@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/inclusionAI/Ling-3.0-flash-VL"
 publisher: "inclusionAI"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Multimodal benchmarks"
     kind: image
@@ -13,8 +14,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "CountBench"
@@ -24,6 +28,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "CountBench"
@@ -33,6 +38,7 @@ charts:
         configuration: "xhigh. API, official settings."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "CountBench"
@@ -42,6 +48,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "CountBench"
@@ -51,6 +58,7 @@ charts:
         configuration: "thinking. API, official settings."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -60,6 +68,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -69,6 +78,7 @@ charts:
         configuration: "xhigh. API, official settings."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -78,6 +88,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -87,6 +98,7 @@ charts:
         configuration: "thinking. API, official settings."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: mmmu_pro
         score: 79.00
@@ -95,6 +107,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mmmu_pro
         score: 76.00
@@ -103,6 +116,7 @@ charts:
         configuration: "xhigh."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: mmmu_pro
         score: 79.00
@@ -111,6 +125,7 @@ charts:
         configuration: "high."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: mmmu_pro
         score: 79.40
@@ -119,6 +134,7 @@ charts:
         configuration: "thinking. No Python tool calls."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -128,6 +144,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -137,6 +154,7 @@ charts:
         configuration: "xhigh. API, official settings. No Python tool calls."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -146,6 +164,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -155,6 +174,7 @@ charts:
         configuration: "thinking. API, official settings. No Python tool calls."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: hle
         score: 19.88
@@ -164,6 +184,7 @@ charts:
         role: subject
         metric: multimodal
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: hle
         score: 21.90
@@ -173,6 +194,7 @@ charts:
         role: competitor
         metric: multimodal
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: hle
         score: 20.12
@@ -182,6 +204,7 @@ charts:
         role: competitor
         metric: multimodal
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: hle
         score: 23.39
@@ -191,6 +214,7 @@ charts:
         role: competitor
         metric: multimodal
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -200,6 +224,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -209,6 +234,7 @@ charts:
         configuration: "xhigh."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -218,6 +244,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -227,6 +254,7 @@ charts:
         configuration: "thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "CharXiv_RQ"
@@ -236,6 +264,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "CharXiv_RQ"
@@ -245,6 +274,7 @@ charts:
         configuration: "xhigh. No Python tool calls."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "CharXiv_RQ"
@@ -254,6 +284,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "CharXiv_RQ"
@@ -263,6 +294,7 @@ charts:
         configuration: "thinking. No Python tool calls."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "MMSearch"
@@ -272,6 +304,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MMSearch"
@@ -281,6 +314,7 @@ charts:
         configuration: "xhigh. API, official settings."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "MMSearch"
@@ -290,6 +324,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "MMSearch"
@@ -299,6 +334,7 @@ charts:
         configuration: "thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -308,6 +344,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -317,6 +354,7 @@ charts:
         configuration: "xhigh."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -326,6 +364,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -335,6 +374,7 @@ charts:
         configuration: "thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "WebVoyager"
@@ -344,6 +384,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "WebVoyager"
@@ -353,6 +394,7 @@ charts:
         configuration: "xhigh. API, official settings."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "WebVoyager"
@@ -362,6 +404,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "WebVoyager"
@@ -371,6 +414,7 @@ charts:
         configuration: "thinking. API, official settings."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -380,6 +424,7 @@ charts:
         configuration: "temperature 0.6, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -389,6 +434,7 @@ charts:
         configuration: "xhigh. API, official settings."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -398,6 +444,7 @@ charts:
         configuration: "high. API, official settings."
         role: competitor
       - model_as_labelled: "Kimi-K2.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"

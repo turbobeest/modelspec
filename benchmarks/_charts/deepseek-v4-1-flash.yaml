@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash"
 publisher: "DeepSeek"
 read_on: "2026-09-24"
+phase: "phase1"
 charts:
   - title: "Instruct comparison"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: gpqa_diamond
         score: 93.4
@@ -21,6 +25,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: gpqa_diamond
         score: 94.1
@@ -29,6 +34,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: gpqa_diamond
         score: 92.9
@@ -37,6 +43,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: gpqa_diamond
         score: 88.1
@@ -45,6 +52,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: gpqa_diamond
         score: 92.4
@@ -53,6 +61,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: gpqa_diamond
         score: 89.9
@@ -61,6 +70,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: gpqa_diamond
         score: 90.9
@@ -69,6 +79,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: hle
         score: 56.3
@@ -77,6 +88,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: hle
         score: 44.5
@@ -85,6 +97,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: hle
         score: 43.5
@@ -93,6 +106,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: hle
         score: 42.0
@@ -101,6 +115,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hle
         score: 42.7
@@ -109,6 +124,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: hle
         score: 37.8
@@ -117,6 +133,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: hle
         score: 36.8
@@ -125,6 +142,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_v2_1
         score: 89.1
@@ -133,6 +151,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1. Code agents use DeepSeek Harness minimal mode and a 1M context, except where the README names another harness."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_v2_1
         score: 88.8
@@ -141,6 +160,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1. Code agents use DeepSeek Harness minimal mode and a 1M context, except where the README names another harness."
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: terminal_bench_v2_1
         score: 88.3
@@ -149,6 +169,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1. Code agents use DeepSeek Harness minimal mode and a 1M context, except where the README names another harness."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: terminal_bench_v2_1
         score: 88.2
@@ -157,6 +178,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1. Code agents use DeepSeek Harness minimal mode and a 1M context, except where the README names another harness."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_v2_1
         score: 87.9
@@ -165,6 +187,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1. Code agents use DeepSeek Harness minimal mode and a 1M context, except where the README names another harness."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: terminal_bench_v2_1
         score: 82.7
@@ -173,6 +196,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1. Code agents use DeepSeek Harness minimal mode and a 1M context, except where the README names another harness."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 90.6
@@ -181,6 +205,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1. Code agents use DeepSeek Harness minimal mode and a 1M context, except where the README names another harness."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_3_0
         score: 43.3
@@ -189,6 +214,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_3_0
         score: 34.4
@@ -197,6 +223,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: terminal_bench_3_0
         score: 17.7
@@ -205,6 +232,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: terminal_bench_3_0
         score: 28.3
@@ -213,6 +241,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_3_0
         score: 11.8
@@ -221,6 +250,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: terminal_bench_3_0
         score: 7.6
@@ -229,6 +259,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_3_0
         score: 30.0
@@ -237,6 +268,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_v4_0
         score: 51.8
@@ -245,6 +277,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_v4_0
         score: 39.9
@@ -253,6 +286,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: terminal_bench_v4_0
         score: 12.6
@@ -261,6 +295,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: terminal_bench_v4_0
         score: 37.9
@@ -269,6 +304,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_v4_0
         score: 12.4
@@ -277,6 +313,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: terminal_bench_v4_0
         score: 7.0
@@ -285,6 +322,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v4_0
         score: 31.2
@@ -293,6 +331,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: cybergym
         score: 84.5
@@ -301,6 +340,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: cybergym
         score: 80.0
@@ -309,6 +349,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: cybergym
         score: 84.5
@@ -317,6 +358,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: cybergym
         score: 83.3
@@ -325,6 +367,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: cybergym
         score: 76.7
@@ -333,6 +376,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: cybergym
         score: 88.1
@@ -341,6 +385,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1"
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: hle_tools
         score: 63.6
@@ -349,6 +394,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1, with tools"
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: hle_tools
         score: 59.8
@@ -357,6 +403,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1, with tools"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: hle_tools
         score: 62.5
@@ -365,6 +412,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1, with tools"
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hle_tools
         score: 60.0
@@ -373,6 +421,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1, with tools"
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: hle_tools
         score: 51.5
@@ -381,6 +430,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1, with tools"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: hle_tools
         score: 63.9
@@ -389,6 +439,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1, with tools"
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: zerobench
         score: 52.0
@@ -397,6 +448,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. ZeroBench-main, with tools, Pass@5"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: zerobench
         score: 53.0
@@ -405,6 +457,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. ZeroBench-main, with tools, Pass@5"
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: zerobench
         score: 41.0
@@ -413,6 +466,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. ZeroBench-main, with tools, Pass@5"
         role: competitor
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: zerobench
         score: 49.0
@@ -421,6 +475,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. ZeroBench-main, with tools, Pass@5"
         role: subject
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Codeforces"
@@ -430,6 +485,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Codeforces"
@@ -439,6 +495,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "Codeforces"
@@ -448,6 +505,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "MathArena Apex"
@@ -457,6 +515,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "MathArena Apex"
@@ -466,6 +525,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "MathArena Apex"
@@ -475,6 +535,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "MathArena Apex"
@@ -484,6 +545,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -493,6 +555,7 @@ charts:
         configuration: "Resolved."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -502,6 +565,7 @@ charts:
         configuration: "Resolved."
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -511,6 +575,7 @@ charts:
         configuration: "Resolved."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -520,6 +585,7 @@ charts:
         configuration: "Resolved."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -529,6 +595,7 @@ charts:
         configuration: "Resolved."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -538,6 +605,7 @@ charts:
         configuration: "Resolved."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -547,6 +615,7 @@ charts:
         configuration: "Resolved."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -556,6 +625,7 @@ charts:
         configuration: "Almost@1."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -565,6 +635,7 @@ charts:
         configuration: "Almost@1."
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -574,6 +645,7 @@ charts:
         configuration: "Almost@1."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -583,6 +655,7 @@ charts:
         configuration: "Almost@1."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -592,6 +665,7 @@ charts:
         configuration: "Almost@1."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench"
@@ -601,6 +675,7 @@ charts:
         configuration: "Almost@1."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -610,6 +685,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -619,6 +695,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -628,6 +705,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -637,6 +715,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -646,6 +725,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -655,6 +735,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -664,6 +745,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -673,6 +755,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -682,6 +765,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -691,6 +775,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -700,6 +785,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -709,6 +795,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -718,6 +805,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -727,6 +815,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -736,6 +825,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -745,6 +835,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -754,6 +845,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -763,6 +855,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -772,6 +865,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -781,6 +875,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -790,6 +885,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -799,6 +895,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -808,6 +905,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -817,6 +915,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -826,6 +925,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -835,6 +935,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -844,6 +945,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -853,6 +955,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Opus-5.0"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -862,6 +965,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -871,6 +975,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -880,6 +985,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -889,6 +995,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: hle
         score: 39.1
@@ -910,6 +1017,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "DeepSeek-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_3_0
         score: 30.0
@@ -918,6 +1026,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95."
         role: subject
       - model_as_labelled: "Kimi-K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: terminal_bench_3_0
         score: 17.7
@@ -926,6 +1035,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: terminal_bench_3_0
         score: 28.3
@@ -934,6 +1044,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Opus5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_3_0
         score: 43.3
@@ -942,6 +1053,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_3_0
         score: 34.4
@@ -950,6 +1062,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "DeepSeek-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: cybergym
         score: 88.1
@@ -958,6 +1071,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Opus has no bar in this group"
         role: subject
       - model_as_labelled: "Kimi-K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: cybergym
         score: 80.0
@@ -966,6 +1080,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Opus has no bar in this group"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: cybergym
         score: 84.5
@@ -974,6 +1089,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Opus has no bar in this group"
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: cybergym
         score: 84.5
@@ -982,6 +1098,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Opus has no bar in this group"
         role: competitor
       - model_as_labelled: "DeepSeek-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -991,6 +1108,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "Kimi-K3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1000,6 +1118,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1009,6 +1128,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "Opus5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1018,6 +1138,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1035,8 +1156,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 88.0
@@ -1045,6 +1169,7 @@ charts:
         configuration: "Max effort, scaffold Claude Code"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 84.1
@@ -1053,6 +1178,7 @@ charts:
         configuration: "Max effort, scaffold Codex"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 85.0
@@ -1061,6 +1187,7 @@ charts:
         configuration: "Max effort, scaffold OpenCode"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 86.1
@@ -1069,6 +1196,7 @@ charts:
         configuration: "Max effort, scaffold Pi"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 90.3
@@ -1077,6 +1205,7 @@ charts:
         configuration: "Max effort, scaffold mini-SWE"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 90.6
@@ -1085,6 +1214,7 @@ charts:
         configuration: "Max effort, scaffold DSH Minimal"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 85.8
@@ -1093,6 +1223,7 @@ charts:
         configuration: "Max effort, scaffold DSH Standard"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 85.8
@@ -1101,6 +1232,7 @@ charts:
         configuration: "Max effort, scaffold DSH PTC"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1110,6 +1242,7 @@ charts:
         configuration: "Max effort, scaffold Claude Code."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1119,6 +1252,7 @@ charts:
         configuration: "Max effort, scaffold Codex."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1128,6 +1262,7 @@ charts:
         configuration: "Max effort, scaffold OpenCode."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1137,6 +1272,7 @@ charts:
         configuration: "Max effort, scaffold Pi."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1146,6 +1282,7 @@ charts:
         configuration: "Max effort, scaffold mini-SWE."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1155,6 +1292,7 @@ charts:
         configuration: "Max effort, scaffold DSH Minimal."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1164,6 +1302,7 @@ charts:
         configuration: "Max effort, scaffold DSH Standard."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -1183,6 +1322,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: agieval
         score: 83.9
@@ -1191,6 +1331,7 @@ charts:
         configuration: "Base model, internal framework 3-5 shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: agieval
         score: 84.4
@@ -1199,6 +1340,7 @@ charts:
         configuration: "Base model, internal framework 3-5 shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: agieval
         score: 83.4
@@ -1207,6 +1349,7 @@ charts:
         configuration: "Base model, internal framework 3-5 shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mmlu_pro
         score: 68.3
@@ -1215,6 +1358,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mmlu_pro
         score: 73.5
@@ -1223,6 +1367,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mmlu_pro
         score: 74.1
@@ -1231,6 +1376,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: ceval
         score: 92.1
@@ -1239,6 +1385,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: ceval
         score: 93.1
@@ -1247,6 +1394,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: ceval
         score: 92.1
@@ -1255,6 +1403,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: simpleqa
         score: 30.1
@@ -1263,6 +1412,7 @@ charts:
         configuration: "Base model, internal framework SimpleQA-Verified, 25-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: simpleqa
         score: 55.2
@@ -1271,6 +1421,7 @@ charts:
         configuration: "Base model, internal framework SimpleQA-Verified, 25-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: simpleqa
         score: 42.3
@@ -1279,6 +1430,7 @@ charts:
         configuration: "Base model, internal framework SimpleQA-Verified, 25-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: supergpqa
         score: 46.5
@@ -1287,6 +1439,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: supergpqa
         score: 53.9
@@ -1295,6 +1448,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: supergpqa
         score: 53.1
@@ -1303,6 +1457,7 @@ charts:
         configuration: "Base model, internal framework 5-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bbh
         score: 86.9
@@ -1311,6 +1466,7 @@ charts:
         configuration: "Base model, internal framework 3-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bbh
         score: 87.5
@@ -1319,6 +1475,7 @@ charts:
         configuration: "Base model, internal framework 3-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bbh
         score: 86.1
@@ -1327,6 +1484,7 @@ charts:
         configuration: "Base model, internal framework 3-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bbeh
         score: 25.4
@@ -1335,6 +1493,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bbeh
         score: 29.8
@@ -1343,6 +1502,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bbeh
         score: 27.2
@@ -1351,6 +1511,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: drop
         score: 88.6
@@ -1359,6 +1520,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, F1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: drop
         score: 88.7
@@ -1367,6 +1529,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, F1"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: drop
         score: 87.9
@@ -1375,6 +1538,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, F1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: hellaswag
         score: 85.7
@@ -1383,6 +1547,7 @@ charts:
         configuration: "Base model, internal framework 0-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: hellaswag
         score: 88.0
@@ -1391,6 +1556,7 @@ charts:
         configuration: "Base model, internal framework 0-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: hellaswag
         score: 87.2
@@ -1399,6 +1565,7 @@ charts:
         configuration: "Base model, internal framework 0-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bigcodebench
         score: 56.8
@@ -1407,6 +1574,7 @@ charts:
         configuration: "Base model, internal framework 3-shot, pass@1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bigcodebench
         score: 59.2
@@ -1415,6 +1583,7 @@ charts:
         configuration: "Base model, internal framework 3-shot, pass@1"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bigcodebench
         score: 60.6
@@ -1423,6 +1592,7 @@ charts:
         configuration: "Base model, internal framework 3-shot, pass@1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: humaneval
         score: 69.5
@@ -1431,6 +1601,7 @@ charts:
         configuration: "Base model, internal framework 0-shot, pass@1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: humaneval
         score: 76.8
@@ -1439,6 +1610,7 @@ charts:
         configuration: "Base model, internal framework 0-shot, pass@1"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: humaneval
         score: 79.4
@@ -1447,6 +1619,7 @@ charts:
         configuration: "Base model, internal framework 0-shot, pass@1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: gsm8k
         score: 90.8
@@ -1455,6 +1628,7 @@ charts:
         configuration: "Base model, internal framework 8-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: gsm8k
         score: 92.6
@@ -1463,6 +1637,7 @@ charts:
         configuration: "Base model, internal framework 8-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: gsm8k
         score: 93.0
@@ -1471,6 +1646,7 @@ charts:
         configuration: "Base model, internal framework 8-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: math
         score: 57.4
@@ -1479,6 +1655,7 @@ charts:
         configuration: "Base model, internal framework 4-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: math
         score: 64.5
@@ -1487,6 +1664,7 @@ charts:
         configuration: "Base model, internal framework 4-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: math
         score: 61.1
@@ -1495,6 +1673,7 @@ charts:
         configuration: "Base model, internal framework 4-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mgsm
         score: 85.7
@@ -1503,6 +1682,7 @@ charts:
         configuration: "Base model, internal framework 8-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mgsm
         score: 84.4
@@ -1511,6 +1691,7 @@ charts:
         configuration: "Base model, internal framework 8-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mgsm
         score: 80.2
@@ -1519,6 +1700,7 @@ charts:
         configuration: "Base model, internal framework 8-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: longbenchv2
         score: 44.7
@@ -1527,6 +1709,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: longbenchv2
         score: 51.5
@@ -1535,6 +1718,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: longbenchv2
         score: 45.2
@@ -1543,6 +1727,7 @@ charts:
         configuration: "Base model, internal framework 1-shot, exact match"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mmmu_pro
         score: 56.5
@@ -1551,6 +1736,7 @@ charts:
         configuration: "Base model, internal framework 4-shot, exact match. Earlier DeepSeek bases are blank."
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: docvqa
         score: 95.6
@@ -1559,6 +1745,7 @@ charts:
         configuration: "Base model, internal framework 4-shot, LLM-judge"
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "CVBench"
@@ -1568,6 +1755,7 @@ charts:
         configuration: "Base model, internal framework."
         role: subject
       - model_as_labelled: "DeepSeek-V4.1-Flash-Base"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "RefCOCO-avg"

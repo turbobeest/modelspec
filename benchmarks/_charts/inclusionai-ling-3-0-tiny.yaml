@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/inclusionAI/Ling-3.0-tiny"
 publisher: "inclusionAI"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Representative benchmarks"
     kind: image
@@ -13,8 +14,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: bfcl
         score: 62.72
@@ -23,6 +27,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20. v4, function calling."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: bfcl
         score: 62.47
@@ -31,6 +36,7 @@ charts:
         configuration: "Thinking. v4, function calling."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: bfcl
         score: 65.83
@@ -39,6 +45,7 @@ charts:
         configuration: "Thinking. v4, function calling."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: bfcl
         score: 41.64
@@ -47,6 +54,7 @@ charts:
         configuration: "Thinking. v4, function calling."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: bfcl
         score: 59.68
@@ -55,6 +63,7 @@ charts:
         configuration: "Thinking. v4, function calling."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: terminal_bench_v2_1
         score: 27.70
@@ -63,6 +72,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: terminal_bench_v2_1
         score: 25.80
@@ -71,6 +81,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 29.20
@@ -79,6 +90,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: terminal_bench_v2_1
         score: 1.90
@@ -87,6 +99,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: terminal_bench_v2_1
         score: 27.30
@@ -95,6 +108,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: null
         benchmark_as_labelled: "ArtifactsBench"
@@ -104,6 +118,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "ArtifactsBench"
@@ -113,6 +128,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "ArtifactsBench"
@@ -122,6 +138,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "ArtifactsBench"
@@ -131,6 +148,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: null
         benchmark_as_labelled: "ArtifactsBench"
@@ -140,6 +158,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: scicode
         score: 24.20
@@ -148,6 +167,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: scicode
         score: 16.10
@@ -156,6 +176,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: scicode
         score: 27.50
@@ -164,6 +185,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: scicode
         score: 24.40
@@ -172,6 +194,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: scicode
         score: 38.20
@@ -180,6 +203,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: gpqa_diamond
         score: 73.40
@@ -188,6 +212,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: gpqa_diamond
         score: 77.10
@@ -196,6 +221,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: gpqa_diamond
         score: 80.60
@@ -204,6 +230,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: gpqa_diamond
         score: 57.60
@@ -212,6 +239,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: gpqa_diamond
         score: 75.30
@@ -220,6 +248,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: hle
         score: 9.30
@@ -228,6 +257,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: hle
         score: 9.90
@@ -236,6 +266,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: hle
         score: 14.90
@@ -244,6 +275,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: hle
         score: 3.80
@@ -252,6 +284,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: hle
         score: 15.70
@@ -260,6 +293,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: hmmt2026
         score: 70.31
@@ -268,6 +302,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20. February 2026."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: hmmt2026
         score: 72.87
@@ -276,6 +311,7 @@ charts:
         configuration: "Thinking. February 2026."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: hmmt2026
         score: 71.21
@@ -284,6 +320,7 @@ charts:
         configuration: "Thinking. February 2026."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: hmmt2026
         score: 33.85
@@ -292,6 +329,7 @@ charts:
         configuration: "Thinking. February 2026."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: hmmt2026
         score: 67.95
@@ -300,6 +338,7 @@ charts:
         configuration: "Thinking. February 2026."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -309,6 +348,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -318,6 +358,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -327,6 +368,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -336,6 +378,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -345,6 +388,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: ifbench
         score: 63.61
@@ -353,6 +397,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: ifbench
         score: 52.00
@@ -361,6 +406,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: ifbench
         score: 66.70
@@ -369,6 +415,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: ifbench
         score: 44.20
@@ -377,6 +424,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: ifbench
         score: 73.50
@@ -385,6 +433,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: null
         benchmark_as_labelled: "LIFEBench"
@@ -394,6 +443,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "LIFEBench"
@@ -403,6 +453,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "LIFEBench"
@@ -412,6 +463,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "LIFEBench"
@@ -421,6 +473,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: null
         benchmark_as_labelled: "LIFEBench"
@@ -430,6 +483,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Ling-3.0-tiny"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "inclusionai/ling-3-0-tiny"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -439,6 +493,7 @@ charts:
         configuration: "Thinking. temperature 1.0, top_p 0.95, top_k 20."
         role: subject
       - model_as_labelled: "Qwen3.5-4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -448,6 +503,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-9B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -457,6 +513,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -466,6 +523,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Gemma-4-12B-it"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-12b-it"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"

@@ -1,6 +1,7 @@
 page_url: "https://openai.com/index/gpt-5-6/"
 publisher: "OpenAI"
 read_on: "2026-09-24"
+phase: "phase2b-2"
 charts:
   - title: "Appendix comparison tables"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -22,6 +26,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -31,6 +36,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -40,6 +46,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -49,6 +56,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -58,6 +66,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -67,6 +76,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -76,6 +86,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Management Consulting Tasks (Internal)"
@@ -85,6 +96,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "Management Consulting Tasks (Internal)"
@@ -94,6 +106,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "Management Consulting Tasks (Internal)"
@@ -103,6 +116,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "Management Consulting Tasks (Internal)"
@@ -112,6 +126,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "Management Consulting Tasks (Internal)"
@@ -121,6 +136,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Management Consulting Tasks (Internal)"
@@ -130,6 +146,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "Management Consulting Tasks (Internal)"
@@ -139,6 +156,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Big Finance Bench"
@@ -148,6 +166,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "Big Finance Bench"
@@ -157,6 +176,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "Big Finance Bench"
@@ -166,6 +186,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "Big Finance Bench"
@@ -175,6 +196,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Big Finance Bench"
@@ -184,6 +206,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: swe_bench_pro
         score: 64.6
@@ -192,6 +215,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: swe_bench_pro
         score: 63.4
@@ -200,6 +224,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: swe_bench_pro
         score: 62.7
@@ -208,6 +233,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: swe_bench_pro
         score: 59.4
@@ -216,6 +242,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: swe_bench_pro
         score: 80.3
@@ -224,6 +251,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: swe_bench_pro
         score: 77.8
@@ -232,6 +260,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-fable-5
         benchmark_id: swe_bench_pro
         score: 80
@@ -240,6 +269,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: swe_bench_pro
         score: 69.2
@@ -248,6 +278,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -256,6 +287,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -265,6 +297,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -274,6 +307,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -283,6 +317,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -292,6 +327,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -301,6 +337,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -310,6 +347,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -319,6 +357,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: terminal_bench_v2_1
         score: 88.8
@@ -327,6 +366,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: terminal_bench_v2_1
         score: 91.9
@@ -335,6 +375,7 @@ charts:
         configuration: "Ultra."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: terminal_bench_v2_1
         score: 87.4
@@ -343,6 +384,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: terminal_bench_v2_1
         score: 84.7
@@ -351,6 +393,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: terminal_bench_v2_1
         score: 85.6
@@ -359,6 +402,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: terminal_bench_v2_1
         score: 88
@@ -367,6 +411,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-fable-5
         benchmark_id: terminal_bench_v2_1
         score: 83.1
@@ -375,6 +420,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: terminal_bench_v2_1
         score: 78.9
@@ -383,6 +429,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: terminal_bench_v2_1
         score: 70.7
@@ -391,6 +438,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -400,6 +448,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -409,6 +458,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -418,6 +468,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -427,6 +478,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -436,6 +488,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -445,6 +498,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-5-flash
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -454,6 +508,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "LifeSciBench"
@@ -463,6 +518,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "LifeSciBench"
@@ -472,6 +528,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "LifeSciBench"
@@ -481,6 +538,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "LifeSciBench"
@@ -490,6 +548,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "LifeSciBench"
@@ -499,6 +558,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "MedChemBench (Internal)"
@@ -508,6 +568,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "MedChemBench (Internal)"
@@ -517,6 +578,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "MedChemBench (Internal)"
@@ -526,6 +588,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "MedChemBench (Internal)"
@@ -535,6 +598,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: healthbench
         score: 60.5
@@ -543,6 +607,7 @@ charts:
         configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: healthbench
         score: 57.7
@@ -551,6 +616,7 @@ charts:
         configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: healthbench
         score: 55.7
@@ -559,6 +625,7 @@ charts:
         configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: healthbench
         score: 49.5
@@ -567,6 +634,7 @@ charts:
         configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: healthbench
         score: 60.9
@@ -575,6 +643,7 @@ charts:
         configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: healthbench
         score: 53
@@ -583,6 +652,7 @@ charts:
         configuration: "Professional. Scored the way the HealthBench Professional paper describes, which the post says is not comparable to Anthropic system-card results."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -592,6 +662,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -601,6 +672,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -610,6 +682,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -619,6 +692,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -628,6 +702,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: browsecomp
         score: 90.4
@@ -636,6 +711,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: browsecomp
         score: 92.2
@@ -644,6 +720,7 @@ charts:
         configuration: "Ultra."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: browsecomp
         score: 87.5
@@ -652,6 +729,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: browsecomp
         score: 83.3
@@ -660,6 +738,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: browsecomp
         score: 84.4
@@ -668,6 +747,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: browsecomp
         score: 88
@@ -676,6 +756,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: browsecomp
         score: 87.9
@@ -684,6 +765,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: browsecomp
         score: 84.3
@@ -692,6 +774,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: browsecomp
         score: 85.9
@@ -700,6 +783,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -709,6 +793,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -718,6 +803,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -727,6 +813,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -736,6 +823,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -745,6 +833,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -754,6 +843,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -763,6 +853,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -772,6 +863,7 @@ charts:
         configuration: "Python tool."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -781,6 +873,7 @@ charts:
         configuration: "Python tool."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -790,6 +883,7 @@ charts:
         configuration: "Python tool."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -799,6 +893,7 @@ charts:
         configuration: "Python tool."
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -808,6 +903,7 @@ charts:
         configuration: "Python tool."
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -817,6 +913,7 @@ charts:
         configuration: "Python tool."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -826,6 +923,7 @@ charts:
         configuration: "Python tool."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Capture-the-Flag Challenges"
@@ -835,6 +933,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "Capture-the-Flag Challenges"
@@ -844,6 +943,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "Capture-the-Flag Challenges"
@@ -853,6 +953,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "Capture-the-Flag Challenges"
@@ -862,6 +963,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -871,6 +973,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol Ultra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -880,6 +983,7 @@ charts:
         configuration: "Ultra."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -889,6 +993,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -898,6 +1003,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -907,6 +1013,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -916,6 +1023,7 @@ charts:
         configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -925,6 +1033,7 @@ charts:
         configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -934,6 +1043,7 @@ charts:
         configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -943,6 +1053,7 @@ charts:
         configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -952,6 +1063,7 @@ charts:
         configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -961,6 +1073,7 @@ charts:
         configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -970,6 +1083,7 @@ charts:
         configuration: "ExploitBench API harness, 5 seeds, reasoning continuity."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -979,6 +1093,7 @@ charts:
         configuration: "Six-hour result in the table. The run used the alpha API and latencies were rescaled to the public API."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -988,6 +1103,7 @@ charts:
         configuration: "Six-hour result in the table. The run used the alpha API and latencies were rescaled to the public API."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -997,6 +1113,7 @@ charts:
         configuration: "Six-hour result in the table. The run used the alpha API and latencies were rescaled to the public API."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -1006,6 +1123,7 @@ charts:
         configuration: "Six-hour result in the table. The run used the alpha API and latencies were rescaled to the public API."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Internal Research Debugging Evaluation"
@@ -1015,6 +1133,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "Internal Research Debugging Evaluation"
@@ -1024,6 +1143,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "Internal Research Debugging Evaluation"
@@ -1033,6 +1153,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "Internal Research Debugging Evaluation"
@@ -1042,6 +1163,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "KernelGen 1P"
@@ -1051,6 +1173,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "KernelGen 1P"
@@ -1060,6 +1183,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "KernelGen 1P"
@@ -1069,6 +1193,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "KernelGen 1P"
@@ -1078,6 +1203,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "NanoGPT"
@@ -1087,6 +1213,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "NanoGPT"
@@ -1096,6 +1223,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "NanoGPT"
@@ -1105,6 +1233,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "NanoGPT"
@@ -1114,6 +1243,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench Lite"
@@ -1123,6 +1253,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench Lite"
@@ -1132,6 +1263,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench Lite"
@@ -1141,6 +1273,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench Lite"
@@ -1150,6 +1283,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "RSI Index"
@@ -1159,6 +1293,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "RSI Index"
@@ -1168,6 +1303,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "RSI Index"
@@ -1177,6 +1313,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "RSI Index"
@@ -1186,6 +1323,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: mmmu_pro
         score: 83
@@ -1194,6 +1332,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: mmmu_pro
         score: 80.7
@@ -1202,6 +1341,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: mmmu_pro
         score: 78.4
@@ -1210,6 +1350,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: mmmu_pro
         score: 81.2
@@ -1218,6 +1359,7 @@ charts:
         configuration: "No tools."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: mmmu_pro
         score: 80.5
@@ -1226,6 +1368,7 @@ charts:
         configuration: "No tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: mmmu_pro
         score: 84.6
@@ -1234,6 +1377,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: mmmu_pro
         score: 82
@@ -1242,6 +1386,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: mmmu_pro
         score: 79.5
@@ -1250,6 +1395,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: mmmu_pro
         score: 83.2
@@ -1258,6 +1404,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: gpqa_diamond
         score: 94.6
@@ -1266,6 +1413,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: gpqa_diamond
         score: 92.9
@@ -1274,6 +1422,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: gpqa_diamond
         score: 92.3
@@ -1282,6 +1431,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: gpqa_diamond
         score: 93.6
@@ -1290,6 +1440,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: gpqa_diamond
         score: 94.1
@@ -1298,6 +1449,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: gpqa_diamond
         score: 94.6
@@ -1306,6 +1458,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-fable-5
         benchmark_id: gpqa_diamond
         score: 92.6
@@ -1314,6 +1467,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: gpqa_diamond
         score: 92
@@ -1322,6 +1476,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: gpqa_diamond
         score: 94.3
@@ -1330,6 +1485,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
@@ -1339,6 +1495,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
@@ -1348,6 +1505,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
@@ -1357,6 +1515,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
@@ -1366,6 +1525,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
@@ -1375,6 +1535,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
@@ -1384,6 +1545,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 1-3 (v2)"
@@ -1393,6 +1555,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -1402,6 +1565,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -1411,6 +1575,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -1420,6 +1585,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -1429,6 +1595,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -1438,6 +1605,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -1447,6 +1615,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1456,6 +1625,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1465,6 +1635,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1474,6 +1645,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1483,6 +1655,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1492,6 +1665,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1501,6 +1675,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1510,6 +1685,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1519,6 +1695,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -1528,6 +1705,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: openai_mrcr
         score: 91.5
@@ -1536,6 +1714,7 @@ charts:
         configuration: "8-needle, 256K-512K."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: openai_mrcr
         score: 89.6
@@ -1544,6 +1723,7 @@ charts:
         configuration: "8-needle, 256K-512K."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: openai_mrcr
         score: 41.3
@@ -1552,6 +1732,7 @@ charts:
         configuration: "8-needle, 256K-512K."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: openai_mrcr
         score: 81.5
@@ -1560,6 +1741,7 @@ charts:
         configuration: "8-needle, 256K-512K."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: openai_mrcr
         score: 73.8
@@ -1568,6 +1750,7 @@ charts:
         configuration: "8-needle, 512K-1M."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: openai_mrcr
         score: 72.5
@@ -1576,6 +1759,7 @@ charts:
         configuration: "8-needle, 512K-1M."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: openai_mrcr
         score: 41.3
@@ -1584,6 +1768,7 @@ charts:
         configuration: "8-needle, 512K-1M."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: openai_mrcr
         score: 74
@@ -1592,6 +1777,7 @@ charts:
         configuration: "8-needle, 512K-1M."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: graphwalks_bfs_256k_1m
         score: 90.7
@@ -1601,6 +1787,7 @@ charts:
         metric: f1
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: graphwalks_bfs_256k_1m
         score: 76.9
@@ -1610,6 +1797,7 @@ charts:
         metric: f1
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: graphwalks_bfs_256k_1m
         score: 81.3
@@ -1619,6 +1807,7 @@ charts:
         metric: f1
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: graphwalks_bfs_256k_1m
         score: 73.7
@@ -1628,6 +1817,7 @@ charts:
         metric: f1
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: graphwalks_bfs_256k_1m
         score: 91.1
@@ -1637,6 +1827,7 @@ charts:
         metric: f1
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: graphwalks_bfs_256k_1m
         score: 85.7
@@ -1646,6 +1837,7 @@ charts:
         metric: f1
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: graphwalks_bfs_256k_1m
         score: 85.9
@@ -1655,6 +1847,7 @@ charts:
         metric: f1
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: graphwalks_bfs_256k_1m
         score: 77.1
@@ -1664,6 +1857,7 @@ charts:
         metric: f1
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: graphwalks_bfs_256k_1m
         score: 71.2
@@ -1673,6 +1867,7 @@ charts:
         metric: f1
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: graphwalks_bfs_256k_1m
         score: 51.2
@@ -1682,6 +1877,7 @@ charts:
         metric: f1
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: graphwalks_bfs_256k_1m
         score: 45.4
@@ -1691,6 +1887,7 @@ charts:
         metric: f1
         role: competitor
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: graphwalks_bfs_256k_1m
         score: 79.4
@@ -1700,6 +1897,7 @@ charts:
         metric: f1
         role: competitor
       - model_as_labelled: "Claude Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: graphwalks_bfs_256k_1m
         score: 74.3
@@ -1709,6 +1907,7 @@ charts:
         metric: f1
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: graphwalks_bfs_256k_1m
         score: 68.1
@@ -1718,6 +1917,7 @@ charts:
         metric: f1
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1727,6 +1927,7 @@ charts:
         configuration: "Opus 4.8 is the published high-effort result, not max."
         role: subject
       - model_as_labelled: "GPT-5.6 Terra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-terra
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1736,6 +1937,7 @@ charts:
         configuration: "Opus 4.8 is the published high-effort result, not max."
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1745,6 +1947,7 @@ charts:
         configuration: "Opus 4.8 is the published high-effort result, not max."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-5
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1754,6 +1957,7 @@ charts:
         configuration: "Opus 4.8 is the published high-effort result, not max."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1763,6 +1967,7 @@ charts:
         configuration: "Opus 4.8 is the published high-effort result, not max."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro Preview"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1780,8 +1985,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -1791,6 +1999,7 @@ charts:
         configuration: "Introduction. The appendix table prints 52.7 percent for the same name."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"

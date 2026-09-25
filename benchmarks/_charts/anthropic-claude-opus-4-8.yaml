@@ -1,6 +1,7 @@
 page_url: "https://www.anthropic.com/news/claude-opus-4-8"
 publisher: "Anthropic"
 read_on: "2026-09-24"
+phase: "phase2a"
 charts:
   - title: "Launch benchmark table"
     kind: image
@@ -15,6 +16,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_pro
         score: 69.2
@@ -23,6 +25,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_pro
         score: 64.3
@@ -31,6 +34,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: swe_bench_pro
         score: 58.6
@@ -39,6 +43,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -47,6 +52,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 74.6
@@ -55,6 +61,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: terminal_bench_v2_1
         score: 66.1
@@ -63,6 +70,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 78.2
@@ -71,6 +79,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: terminal_bench_v2_1
         score: 70.3
@@ -79,6 +88,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle
         score: 49.8
@@ -87,6 +97,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: hle
         score: 46.9
@@ -95,6 +106,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hle
         score: 41.4
@@ -103,6 +115,7 @@ charts:
         configuration: "No tools."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: hle
         score: 44.4
@@ -111,6 +124,7 @@ charts:
         configuration: "No tools."
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle_tools
         score: 57.9
@@ -119,6 +133,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: hle_tools
         score: 54.7
@@ -127,6 +142,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hle_tools
         score: 52.2
@@ -135,6 +151,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: hle_tools
         score: 51.4
@@ -143,6 +160,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: osworld
         score: 83.4
@@ -151,6 +169,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: subject
       - model_as_labelled: "Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: osworld
         score: 82.8
@@ -159,6 +178,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: osworld
         score: 78.7
@@ -167,6 +187,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: osworld
         score: 76.2
@@ -175,6 +196,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -184,6 +206,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -193,6 +216,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -202,6 +226,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"

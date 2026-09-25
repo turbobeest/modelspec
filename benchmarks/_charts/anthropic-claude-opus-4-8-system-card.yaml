@@ -2,6 +2,7 @@ page_url: "https://www.anthropic.com/claude-opus-4-8-system-card"
 publisher: "Anthropic"
 read_on: "2026-09-24"
 document_sha256: "0df5d061b6688c2d5839476620d66960011cb69043185dbed87ed1f68ab76d8f"
+phase: "phase2a"
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
@@ -12,8 +13,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_verified
         score: 88.6
@@ -22,6 +26,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_verified
         score: 87.6
@@ -30,6 +35,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_verified
         score: 80.6
@@ -38,6 +44,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_pro
         score: 69.2
@@ -46,6 +53,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_pro
         score: 64.3
@@ -54,6 +62,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: swe_bench_pro
         score: 58.6
@@ -62,6 +71,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -70,6 +80,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_multilingual
         score: 84.4
@@ -78,6 +89,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_multilingual
         score: 80.5
@@ -86,6 +98,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_multimodal
         score: 38.4
@@ -94,6 +107,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_multimodal
         score: 34.5
@@ -102,6 +116,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: browsecomp
         score: 84.3
@@ -110,6 +125,7 @@ charts:
         configuration: "Single agent."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: browsecomp
         score: 88.5
@@ -118,6 +134,7 @@ charts:
         configuration: "Multi agent."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: browsecomp
         score: 79.8
@@ -126,6 +143,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: browsecomp
         score: 84.4
@@ -134,6 +152,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: browsecomp
         score: 85.9
@@ -142,6 +161,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 74.6
@@ -150,6 +170,7 @@ charts:
         configuration: "Terminus-2 public harness."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: terminal_bench_v2_1
         score: 66.1
@@ -158,6 +179,7 @@ charts:
         configuration: "Terminus-2 public harness."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 78.2
@@ -166,6 +188,7 @@ charts:
         configuration: "Terminus-2 public harness."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: terminal_bench_v2_1
         score: 70.3
@@ -174,6 +197,7 @@ charts:
         configuration: "Terminus-2 public harness."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle
         score: 49.8
@@ -182,6 +206,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: hle
         score: 46.9
@@ -190,6 +215,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hle
         score: 41.4
@@ -198,6 +224,7 @@ charts:
         configuration: "No tools."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: hle
         score: 44.4
@@ -206,6 +233,7 @@ charts:
         configuration: "No tools."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle_tools
         score: 57.9
@@ -214,6 +242,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: hle_tools
         score: 54.7
@@ -222,6 +251,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: hle_tools
         score: 52.2
@@ -230,6 +260,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: hle_tools
         score: 51.4
@@ -238,6 +269,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ChartQAPro"
@@ -247,6 +279,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "ChartQAPro"
@@ -256,6 +289,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ChartQAPro"
@@ -265,6 +299,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "ChartQAPro"
@@ -274,6 +309,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: osworld
         score: 83.4
@@ -282,6 +318,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: osworld
         score: 82.8
@@ -290,6 +327,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: osworld
         score: 78.7
@@ -298,6 +336,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: osworld
         score: 76.2
@@ -306,6 +345,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash"
         benchmark_id: osworld
         score: 78.4
@@ -314,6 +354,7 @@ charts:
         configuration: "OSWorld-Verified. Printed beside Gemini 3.1 Pro."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: gpqa_diamond
         score: 93.6
@@ -322,6 +363,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: gpqa_diamond
         score: 94.2
@@ -330,6 +372,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: gpqa_diamond
         score: 94.3
@@ -338,6 +381,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: screenspot_pro
         score: 82.3
@@ -346,6 +390,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: screenspot_pro
         score: 79.5
@@ -354,6 +399,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: screenspot_pro_tools
         score: 87.9
@@ -362,6 +408,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: screenspot_pro_tools
         score: 87.6
@@ -370,6 +417,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -379,6 +427,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -388,6 +437,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -397,6 +447,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -406,6 +457,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -415,6 +467,7 @@ charts:
         configuration: "Printed beside Gemini 3.1 Pro."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -424,6 +477,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -433,6 +487,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -442,6 +497,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -451,6 +507,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -460,6 +517,7 @@ charts:
         configuration: "Printed beside Gemini 3.1 Pro."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 85.9
@@ -468,6 +526,7 @@ charts:
         configuration: "BFS, 256K subset. F1, five trials."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 76.9
@@ -476,6 +535,7 @@ charts:
         configuration: "BFS, 256K subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 61.1
@@ -484,6 +544,7 @@ charts:
         configuration: "BFS, 256K subset. Table 8.9.A."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 73.7
@@ -492,6 +553,7 @@ charts:
         configuration: "BFS, 256K subset. xhigh, as OpenAI reported."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 68.1
@@ -500,6 +562,7 @@ charts:
         configuration: "BFS, 1M subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 40.3
@@ -508,6 +571,7 @@ charts:
         configuration: "BFS, 1M subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 16.3
@@ -516,6 +580,7 @@ charts:
         configuration: "BFS, 1M subset."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 45.4
@@ -524,6 +589,7 @@ charts:
         configuration: "BFS, 1M subset. xhigh."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: graphwalks_parents_256k_1m
         score: 99.3
@@ -532,6 +598,7 @@ charts:
         configuration: "Parents, 256K subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: graphwalks_parents_256k_1m
         score: 93.6
@@ -540,6 +607,7 @@ charts:
         configuration: "Parents, 256K subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: graphwalks_parents_256k_1m
         score: 95.4
@@ -548,6 +616,7 @@ charts:
         configuration: "Parents, 256K subset."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: graphwalks_parents_256k_1m
         score: 90.1
@@ -556,6 +625,7 @@ charts:
         configuration: "Parents, 256K subset. xhigh."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: graphwalks_parents_256k_1m
         score: 83.3
@@ -564,6 +634,7 @@ charts:
         configuration: "Parents, 1M subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: graphwalks_parents_256k_1m
         score: 56.6
@@ -572,6 +643,7 @@ charts:
         configuration: "Parents, 1M subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: graphwalks_parents_256k_1m
         score: 48.6
@@ -580,6 +652,7 @@ charts:
         configuration: "Parents, 1M subset."
         role: subject
       - model_as_labelled: "GPT-5.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: graphwalks_parents_256k_1m
         score: 58.5

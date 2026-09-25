@@ -1,6 +1,7 @@
 page_url: "https://ai.google.dev/gemma/docs/core/model_card_4"
 publisher: "Google DeepMind"
 read_on: "2026-09-24"
+phase: "phase2b-2"
 charts:
   - title: "Instruction-tuned benchmark results"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: mmlu_pro
         score: 85.2
@@ -21,6 +25,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: mmlu_pro
         score: 82.6
@@ -29,6 +34,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: mmlu_pro
         score: 77.2
@@ -37,6 +43,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: mmlu_pro
         score: 69.4
@@ -45,6 +52,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: mmlu_pro
         score: 60.0
@@ -53,6 +61,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-3-27b-it
         benchmark_id: mmlu_pro
         score: 67.6
@@ -61,6 +70,7 @@ charts:
         configuration: "No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: aime_2026
         score: 89.2
@@ -69,6 +79,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: aime_2026
         score: 88.3
@@ -77,6 +88,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: aime_2026
         score: 77.5
@@ -85,6 +97,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: aime_2026
         score: 42.5
@@ -93,6 +106,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: aime_2026
         score: 37.5
@@ -101,6 +115,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-3-27b-it
         benchmark_id: aime_2026
         score: 20.8
@@ -109,6 +124,7 @@ charts:
         configuration: "No tools. No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: live_code_bench
         score: 80.0
@@ -117,6 +133,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: live_code_bench
         score: 77.1
@@ -125,6 +142,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: live_code_bench
         score: 72.0
@@ -133,6 +151,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: live_code_bench
         score: 52.0
@@ -141,6 +160,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: live_code_bench
         score: 44.0
@@ -149,6 +169,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-3-27b-it
         benchmark_id: live_code_bench
         score: 29.1
@@ -157,6 +178,7 @@ charts:
         configuration: "v6 No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: null
         benchmark_as_labelled: "Codeforces ELO"
@@ -166,6 +188,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: null
         benchmark_as_labelled: "Codeforces ELO"
@@ -175,6 +198,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: null
         benchmark_as_labelled: "Codeforces ELO"
@@ -184,6 +208,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: null
         benchmark_as_labelled: "Codeforces ELO"
@@ -193,6 +218,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: null
         benchmark_as_labelled: "Codeforces ELO"
@@ -202,6 +228,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-3-27b-it
         benchmark_id: null
         benchmark_as_labelled: "Codeforces ELO"
@@ -211,6 +238,7 @@ charts:
         configuration: "No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: gpqa_diamond
         score: 84.3
@@ -219,6 +247,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: gpqa_diamond
         score: 82.3
@@ -227,6 +256,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: gpqa_diamond
         score: 78.8
@@ -235,6 +265,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: gpqa_diamond
         score: 58.6
@@ -243,6 +274,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: gpqa_diamond
         score: 43.4
@@ -251,6 +283,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-3-27b-it
         benchmark_id: gpqa_diamond
         score: 42.4
@@ -259,6 +292,7 @@ charts:
         configuration: "No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-31b-it
         benchmark_id: tau2
         score: 76.9
@@ -267,6 +301,7 @@ charts:
         configuration: "Average over 3."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: tau2
         score: 68.2
@@ -275,6 +310,7 @@ charts:
         configuration: "Average over 3."
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: tau2
         score: 69.0
@@ -283,6 +319,7 @@ charts:
         configuration: "Average over 3."
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: tau2
         score: 42.2
@@ -291,6 +328,7 @@ charts:
         configuration: "Average over 3."
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: tau2
         score: 24.5
@@ -299,6 +337,7 @@ charts:
         configuration: "Average over 3."
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-3-27b-it
         benchmark_id: tau2
         score: 16.2
@@ -307,6 +346,7 @@ charts:
         configuration: "Average over 3. No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: hle
         score: 19.5
@@ -315,6 +355,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: hle
         score: 8.7
@@ -323,6 +364,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: hle
         score: 5.2
@@ -331,6 +373,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: hle_tools
         score: 26.5
@@ -339,6 +382,7 @@ charts:
         configuration: "With search."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: hle_tools
         score: 17.2
@@ -347,6 +391,7 @@ charts:
         configuration: "With search."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-31b-it
         benchmark_id: bbeh
         score: 74.4
@@ -355,6 +400,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: bbeh
         score: 64.8
@@ -363,6 +409,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: bbeh
         score: 53.0
@@ -371,6 +418,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: bbeh
         score: 33.1
@@ -379,6 +427,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: bbeh
         score: 21.9
@@ -387,6 +436,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-3-27b-it
         benchmark_id: bbeh
         score: 19.3
@@ -395,6 +445,7 @@ charts:
         configuration: "No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: mmmlu
         score: 88.4
@@ -403,6 +454,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: mmmlu
         score: 86.3
@@ -411,6 +463,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: mmmlu
         score: 83.4
@@ -419,6 +472,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: mmmlu
         score: 76.6
@@ -427,6 +481,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: mmmlu
         score: 67.4
@@ -435,6 +490,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-3-27b-it
         benchmark_id: mmmlu
         score: 70.7
@@ -443,6 +499,7 @@ charts:
         configuration: "No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: mmmu_pro
         score: 76.9
@@ -451,6 +508,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: mmmu_pro
         score: 73.8
@@ -459,6 +517,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: mmmu_pro
         score: 69.1
@@ -467,6 +526,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: mmmu_pro
         score: 52.6
@@ -475,6 +535,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: mmmu_pro
         score: 44.2
@@ -483,6 +544,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-3-27b-it
         benchmark_id: mmmu_pro
         score: 49.7
@@ -491,6 +553,7 @@ charts:
         configuration: "No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-31b-it
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -500,6 +563,7 @@ charts:
         configuration: "Average edit distance, lower is better."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -509,6 +573,7 @@ charts:
         configuration: "Average edit distance, lower is better."
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -518,6 +583,7 @@ charts:
         configuration: "Average edit distance, lower is better."
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -527,6 +593,7 @@ charts:
         configuration: "Average edit distance, lower is better."
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -536,6 +603,7 @@ charts:
         configuration: "Average edit distance, lower is better."
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-3-27b-it
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench 1.5"
@@ -545,6 +613,7 @@ charts:
         configuration: "Average edit distance, lower is better. No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: null
         benchmark_as_labelled: "MATH-Vision"
@@ -554,6 +623,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: null
         benchmark_as_labelled: "MATH-Vision"
@@ -563,6 +633,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: null
         benchmark_as_labelled: "MATH-Vision"
@@ -572,6 +643,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: null
         benchmark_as_labelled: "MATH-Vision"
@@ -581,6 +653,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: null
         benchmark_as_labelled: "MATH-Vision"
@@ -590,6 +663,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-3-27b-it
         benchmark_id: null
         benchmark_as_labelled: "MATH-Vision"
@@ -599,6 +673,7 @@ charts:
         configuration: "No think."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-31b-it
         benchmark_id: medxpertqa
         score: 61.3
@@ -607,6 +682,7 @@ charts:
         configuration: "Multimodal."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: medxpertqa
         score: 58.1
@@ -615,6 +691,7 @@ charts:
         configuration: "Multimodal."
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: medxpertqa
         score: 48.7
@@ -623,6 +700,7 @@ charts:
         configuration: "Multimodal."
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: medxpertqa
         score: 28.7
@@ -631,6 +709,7 @@ charts:
         configuration: "Multimodal."
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: medxpertqa
         score: 23.5
@@ -639,6 +718,7 @@ charts:
         configuration: "Multimodal."
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: null
         benchmark_as_labelled: "CoVoST"
@@ -648,6 +728,7 @@ charts:
         configuration: "Excluding Chinese."
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: null
         benchmark_as_labelled: "CoVoST"
@@ -657,6 +738,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: null
         benchmark_as_labelled: "CoVoST"
@@ -666,6 +748,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-12b-it
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -675,6 +758,7 @@ charts:
         configuration: "Lower is better. Excluding Chinese."
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -684,6 +768,7 @@ charts:
         configuration: "Lower is better."
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: null
         benchmark_as_labelled: "FLEURS"
@@ -693,6 +778,7 @@ charts:
         configuration: "Lower is better."
         role: subject
       - model_as_labelled: "Gemma 4 31B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-31b-it
         benchmark_id: deepmind_mrcr_v2
         score: 66.4
@@ -701,6 +787,7 @@ charts:
         configuration: "8 needle, 128k, average."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-26b-a4b-it
         benchmark_id: deepmind_mrcr_v2
         score: 44.1
@@ -709,6 +796,7 @@ charts:
         configuration: "8 needle, 128k, average."
         role: subject
       - model_as_labelled: "Gemma 4 12B Unified"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: deepmind_mrcr_v2
         score: 43.4
@@ -717,6 +805,7 @@ charts:
         configuration: "8 needle, 128k, average."
         role: subject
       - model_as_labelled: "Gemma 4 E4B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-e4b-it
         benchmark_id: deepmind_mrcr_v2
         score: 25.4
@@ -725,6 +814,7 @@ charts:
         configuration: "8 needle, 128k, average."
         role: subject
       - model_as_labelled: "Gemma 4 E2B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-e2b-it
         benchmark_id: deepmind_mrcr_v2
         score: 19.1
@@ -733,6 +823,7 @@ charts:
         configuration: "8 needle, 128k, average."
         role: subject
       - model_as_labelled: "Gemma 3 27B (no think)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-3-27b-it
         benchmark_id: deepmind_mrcr_v2
         score: 13.5

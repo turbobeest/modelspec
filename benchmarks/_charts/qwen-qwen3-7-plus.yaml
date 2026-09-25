@@ -1,6 +1,7 @@
 page_url: "https://qwen.ai/blog?id=qwen3.7-plus"
 publisher: "Qwen"
 read_on: "2026-09-24"
+phase: "phase2b-2"
 charts:
   - title: "Text benchmarks"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: terminal_bench_2_0
         score: 65.4
@@ -21,6 +25,7 @@ charts:
         configuration: "Terminus-2 harness. Average of 5."
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: terminal_bench_2_0
         score: 66.7
@@ -29,6 +34,7 @@ charts:
         configuration: "Terminus-2 harness. Average of 5."
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: zhipu/glm-5-1
         benchmark_id: terminal_bench_2_0
         score: 63.5
@@ -37,6 +43,7 @@ charts:
         configuration: "Terminus-2 harness. Average of 5."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: terminal_bench_2_0
         score: 67.9
@@ -45,6 +52,7 @@ charts:
         configuration: "Terminus-2 harness. Average of 5."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: terminal_bench_2_0
         score: 61.6
@@ -53,6 +61,7 @@ charts:
         configuration: "Terminus-2 harness. Average of 5."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: terminal_bench_2_0
         score: 70.3
@@ -61,6 +70,7 @@ charts:
         configuration: "Terminus-2 harness. Average of 5."
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: swe_bench_verified
         score: 80.8
@@ -69,6 +79,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: swe_bench_verified
         score: 80.2
@@ -77,6 +88,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: swe_bench_verified
         score: 80.6
@@ -85,6 +97,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: swe_bench_verified
         score: 78.8
@@ -93,6 +106,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: swe_bench_verified
         score: 77.7
@@ -101,6 +115,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: swe_bench_pro
         score: 57.3
@@ -109,6 +124,7 @@ charts:
         configuration: "Corrected task set."
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: swe_bench_pro
         score: 59.5
@@ -117,6 +133,7 @@ charts:
         configuration: "Corrected task set."
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: zhipu/glm-5-1
         benchmark_id: swe_bench_pro
         score: 58.8
@@ -125,6 +142,7 @@ charts:
         configuration: "Corrected task set."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: swe_bench_pro
         score: 59.0
@@ -133,6 +151,7 @@ charts:
         configuration: "Corrected task set."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: swe_bench_pro
         score: 56.6
@@ -141,6 +160,7 @@ charts:
         configuration: "Corrected task set."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: swe_bench_pro
         score: 57.6
@@ -149,6 +169,7 @@ charts:
         configuration: "Corrected task set."
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: swe_bench_multilingual
         score: 77.5
@@ -157,6 +178,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: swe_bench_multilingual
         score: 76.7
@@ -165,6 +187,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: swe_bench_multilingual
         score: 76.2
@@ -173,6 +196,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: swe_bench_multilingual
         score: 73.8
@@ -181,6 +205,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: swe_bench_multilingual
         score: 75.8
@@ -189,6 +214,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "NL2repo"
@@ -198,6 +224,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "NL2repo"
@@ -207,6 +234,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "NL2repo"
@@ -216,6 +244,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "NL2repo"
@@ -225,6 +254,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "NL2repo"
@@ -234,6 +264,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "NL2repo"
@@ -243,6 +274,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: scicode
         score: 51.9
@@ -251,6 +283,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: scicode
         score: 52.2
@@ -259,6 +292,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: scicode
         score: 45.1
@@ -267,6 +301,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: scicode
         score: 41.4
@@ -275,6 +310,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: scicode
         score: 51.3
@@ -283,6 +319,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "QwenWebDev"
@@ -292,6 +329,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "QwenWebDev"
@@ -301,6 +339,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "QwenWebDev"
@@ -310,6 +349,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "QwenWebDev"
@@ -319,6 +359,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "QwenWebDev"
@@ -328,6 +369,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "QwenSVG"
@@ -337,6 +379,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "QwenSVG"
@@ -346,6 +389,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "QwenSVG"
@@ -355,6 +399,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "QwenSVG"
@@ -364,6 +409,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "QwenSVG"
@@ -373,6 +419,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "QwenSVG"
@@ -382,6 +429,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "Qwenclaw"
@@ -391,6 +439,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "Qwenclaw"
@@ -400,6 +449,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "Qwenclaw"
@@ -409,6 +459,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "Qwenclaw"
@@ -418,6 +469,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "Qwenclaw"
@@ -427,6 +479,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Qwenclaw"
@@ -436,6 +489,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -445,6 +499,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -454,6 +509,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -463,6 +519,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -472,6 +529,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -481,6 +539,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -490,6 +549,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -499,6 +559,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -508,6 +569,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -517,6 +579,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -526,6 +589,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -535,6 +599,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval"
@@ -544,6 +609,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: skillsbench
         score: 56.2
@@ -552,6 +618,7 @@ charts:
         configuration: "OpenCode, 78 tasks, average of 5."
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: skillsbench
         score: 53.1
@@ -560,6 +627,7 @@ charts:
         configuration: "OpenCode, 78 tasks, average of 5."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: skillsbench
         score: 52.3
@@ -568,6 +636,7 @@ charts:
         configuration: "OpenCode, 78 tasks, average of 5."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: skillsbench
         score: 45.7
@@ -576,6 +645,7 @@ charts:
         configuration: "OpenCode, 78 tasks, average of 5."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: skillsbench
         score: 54.9
@@ -584,6 +654,7 @@ charts:
         configuration: "OpenCode, 78 tasks, average of 5."
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "BFCL-V4"
@@ -593,6 +664,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "BFCL-V4"
@@ -602,6 +674,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "BFCL-V4"
@@ -611,6 +684,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "BFCL-V4"
@@ -620,6 +694,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "BFCL-V4"
@@ -629,6 +704,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "BFCL-V4"
@@ -638,6 +714,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MCP-Mark"
@@ -647,6 +724,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "MCP-Mark"
@@ -656,6 +734,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "MCP-Mark"
@@ -665,6 +744,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "MCP-Mark"
@@ -674,6 +754,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MCP-Mark"
@@ -683,6 +764,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MCP-Mark"
@@ -692,6 +774,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -701,6 +784,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -710,6 +794,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -719,6 +804,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -728,6 +814,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -737,6 +824,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -746,6 +834,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "Vitabench"
@@ -755,6 +844,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "Vitabench"
@@ -764,6 +854,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "Vitabench"
@@ -773,6 +864,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "Vitabench"
@@ -782,6 +874,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Vitabench"
@@ -791,6 +884,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "Deep-Planning"
@@ -800,6 +894,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "Deep-Planning"
@@ -809,6 +904,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "Deep-Planning"
@@ -818,6 +914,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "Deep-Planning"
@@ -827,6 +924,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "Deep-Planning"
@@ -836,6 +934,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Deep-Planning"
@@ -845,6 +944,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -854,6 +954,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -863,6 +964,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -872,6 +974,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -881,6 +984,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -890,6 +994,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "SpreadSheetBench-v1"
@@ -899,6 +1004,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -909,6 +1015,7 @@ charts:
         metric: speedup
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -919,6 +1026,7 @@ charts:
         metric: faster_than_compile
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -929,6 +1037,7 @@ charts:
         metric: speedup
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -939,6 +1048,7 @@ charts:
         metric: faster_than_compile
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -949,6 +1059,7 @@ charts:
         metric: speedup
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -959,6 +1070,7 @@ charts:
         metric: faster_than_compile
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -969,6 +1081,7 @@ charts:
         metric: speedup
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -979,6 +1092,7 @@ charts:
         metric: faster_than_compile
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -989,6 +1103,7 @@ charts:
         metric: speedup
         role: subject
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -999,6 +1114,7 @@ charts:
         metric: faster_than_compile
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -1009,6 +1125,7 @@ charts:
         metric: speedup
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Kernel Bench L3"
@@ -1019,6 +1136,7 @@ charts:
         metric: faster_than_compile
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "QwenWorldBench"
@@ -1028,6 +1146,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "QwenWorldBench"
@@ -1037,6 +1156,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "QwenWorldBench"
@@ -1046,6 +1166,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "QwenWorldBench"
@@ -1055,6 +1176,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "QwenWorldBench"
@@ -1064,6 +1186,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "QwenWorldBench"
@@ -1073,6 +1196,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: gpqa_diamond
         score: 91.3
@@ -1081,6 +1205,7 @@ charts:
         configuration: "xhigh system prompt."
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: gpqa_diamond
         score: 90.5
@@ -1089,6 +1214,7 @@ charts:
         configuration: "xhigh system prompt."
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: gpqa_diamond
         score: 86.2
@@ -1097,6 +1223,7 @@ charts:
         configuration: "xhigh system prompt."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: gpqa_diamond
         score: 90.1
@@ -1105,6 +1232,7 @@ charts:
         configuration: "xhigh system prompt."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: gpqa_diamond
         score: 90.4
@@ -1113,6 +1241,7 @@ charts:
         configuration: "xhigh system prompt."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: gpqa_diamond
         score: 90.3
@@ -1121,6 +1250,7 @@ charts:
         configuration: "xhigh system prompt."
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: hle
         score: 40.0
@@ -1129,6 +1259,7 @@ charts:
         configuration: "xhigh system prompt."
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: hle
         score: 36.4
@@ -1137,6 +1268,7 @@ charts:
         configuration: "xhigh system prompt."
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: zhipu/glm-5-1
         benchmark_id: hle
         score: 34.7
@@ -1145,6 +1277,7 @@ charts:
         configuration: "xhigh system prompt."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: hle
         score: 37.7
@@ -1153,6 +1286,7 @@ charts:
         configuration: "xhigh system prompt."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: hle
         score: 28.8
@@ -1161,6 +1295,7 @@ charts:
         configuration: "xhigh system prompt."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: hle
         score: 34.7
@@ -1169,6 +1304,7 @@ charts:
         configuration: "xhigh system prompt."
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: live_code_bench
         score: 88.8
@@ -1177,6 +1313,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: live_code_bench
         score: 89.6
@@ -1185,6 +1322,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: live_code_bench
         score: 93.5
@@ -1193,6 +1331,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: live_code_bench
         score: 87.1
@@ -1201,6 +1340,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: live_code_bench
         score: 89.6
@@ -1209,6 +1349,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: hmmt2026
         score: 96.2
@@ -1217,6 +1358,7 @@ charts:
         configuration: "February 2026."
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: hmmt2026
         score: 92.7
@@ -1225,6 +1367,7 @@ charts:
         configuration: "February 2026."
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: hmmt2026
         score: 89.4
@@ -1233,6 +1376,7 @@ charts:
         configuration: "February 2026."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: hmmt2026
         score: 95.2
@@ -1241,6 +1385,7 @@ charts:
         configuration: "February 2026."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: hmmt2026
         score: 87.8
@@ -1249,6 +1394,7 @@ charts:
         configuration: "February 2026."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: hmmt2026
         score: 92.9
@@ -1257,6 +1403,7 @@ charts:
         configuration: "February 2026."
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -1266,6 +1413,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -1275,6 +1423,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -1284,6 +1433,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -1293,6 +1443,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -1302,6 +1453,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "IMOAnswerBench"
@@ -1311,6 +1463,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "CritPT"
@@ -1320,6 +1473,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "CritPT"
@@ -1329,6 +1483,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "CritPT"
@@ -1338,6 +1493,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "CritPT"
@@ -1347,6 +1503,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "CritPT"
@@ -1356,6 +1513,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "CritPT"
@@ -1365,6 +1523,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -1374,6 +1533,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -1383,6 +1543,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -1392,6 +1553,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -1401,6 +1563,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -1410,6 +1573,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Apex"
@@ -1419,6 +1583,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: mmlu_pro
         score: 89.7
@@ -1427,6 +1592,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: mmlu_pro
         score: 87.1
@@ -1435,6 +1601,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: mmlu_pro
         score: 86.3
@@ -1443,6 +1610,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: mmlu_pro
         score: 87.5
@@ -1451,6 +1619,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: mmlu_pro
         score: 88.5
@@ -1459,6 +1628,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: mmlu_pro
         score: 88.5
@@ -1467,6 +1637,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MMLU-Redux"
@@ -1476,6 +1647,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "MMLU-Redux"
@@ -1485,6 +1657,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "MMLU-Redux"
@@ -1494,6 +1667,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "MMLU-Redux"
@@ -1503,6 +1677,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MMLU-Redux"
@@ -1512,6 +1687,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MMLU-Redux"
@@ -1521,6 +1697,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "SuperGPQA"
@@ -1530,6 +1707,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "SuperGPQA"
@@ -1539,6 +1717,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "SuperGPQA"
@@ -1548,6 +1727,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "SuperGPQA"
@@ -1557,6 +1737,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "SuperGPQA"
@@ -1566,6 +1747,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "SuperGPQA"
@@ -1575,6 +1757,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: ifeval
         score: 91.9
@@ -1583,6 +1766,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: ifeval
         score: 94.5
@@ -1591,6 +1775,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: ifeval
         score: 94.5
@@ -1599,6 +1784,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: ifeval
         score: 91.9
@@ -1607,6 +1793,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: ifeval
         score: 94.3
@@ -1615,6 +1802,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: ifeval
         score: 94.6
@@ -1623,6 +1811,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: ifbench
         score: 62.5
@@ -1631,6 +1820,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: ifbench
         score: 76.0
@@ -1639,6 +1829,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: ifbench
         score: 76.0
@@ -1647,6 +1838,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: ifbench
         score: 77.0
@@ -1655,6 +1847,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: ifbench
         score: 74.2
@@ -1663,6 +1856,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: ifbench
         score: 79.1
@@ -1671,6 +1865,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: deepmind_mrcr_v2
         score: 84.0
@@ -1679,6 +1874,7 @@ charts:
         configuration: "128k, 8 needles."
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: deepmind_mrcr_v2
         score: 63.1
@@ -1687,6 +1883,7 @@ charts:
         configuration: "128k, 8 needles."
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: zhipu/glm-5-1
         benchmark_id: deepmind_mrcr_v2
         score: 62.0
@@ -1695,6 +1892,7 @@ charts:
         configuration: "128k, 8 needles."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: deepmind_mrcr_v2
         score: 74.4
@@ -1703,6 +1901,7 @@ charts:
         configuration: "128k, 8 needles."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: deepmind_mrcr_v2
         score: 85.9
@@ -1711,6 +1910,7 @@ charts:
         configuration: "128k, 8 needles."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: deepmind_mrcr_v2
         score: 91.7
@@ -1719,6 +1919,7 @@ charts:
         configuration: "128k, 8 needles."
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "WMT24++"
@@ -1728,6 +1929,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "WMT24++"
@@ -1737,6 +1939,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "WMT24++"
@@ -1746,6 +1949,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "WMT24++"
@@ -1755,6 +1959,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "WMT24++"
@@ -1764,6 +1969,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "WMT24++"
@@ -1773,6 +1979,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MAXIFE"
@@ -1782,6 +1989,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "MAXIFE"
@@ -1791,6 +1999,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "MAXIFE"
@@ -1800,6 +2009,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "MAXIFE"
@@ -1809,6 +2019,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MAXIFE"
@@ -1818,6 +2029,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MAXIFE"
@@ -1827,6 +2039,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: mmmlu
         score: 90.6
@@ -1835,6 +2048,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: mmmlu
         score: 87.5
@@ -1843,6 +2057,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: mmmlu
         score: 87.2
@@ -1851,6 +2066,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: mmmlu
         score: 87.9
@@ -1859,6 +2075,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: mmmlu
         score: 89.5
@@ -1867,6 +2084,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: mmmlu
         score: 89.0
@@ -1875,6 +2093,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX"
@@ -1884,6 +2103,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX"
@@ -1893,6 +2113,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX"
@@ -1902,6 +2123,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX"
@@ -1911,6 +2133,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX"
@@ -1920,6 +2143,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX"
@@ -1929,6 +2153,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "NOVA-63"
@@ -1938,6 +2163,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "NOVA-63"
@@ -1947,6 +2173,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "NOVA-63"
@@ -1956,6 +2183,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "NOVA-63"
@@ -1965,6 +2193,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "NOVA-63"
@@ -1974,6 +2203,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "NOVA-63"
@@ -1983,6 +2213,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "INCLUDE"
@@ -1992,6 +2223,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "INCLUDE"
@@ -2001,6 +2233,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "INCLUDE"
@@ -2010,6 +2243,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "INCLUDE"
@@ -2019,6 +2253,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "INCLUDE"
@@ -2028,6 +2263,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "INCLUDE"
@@ -2037,6 +2273,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "Global PIQA"
@@ -2046,6 +2283,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "Global PIQA"
@@ -2055,6 +2293,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "Global PIQA"
@@ -2064,6 +2303,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "Global PIQA"
@@ -2073,6 +2313,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "Global PIQA"
@@ -2082,6 +2323,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Global PIQA"
@@ -2091,6 +2333,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "PolyMATH"
@@ -2100,6 +2343,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K2.6 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: moonshot/kimi-k2-6
         benchmark_id: null
         benchmark_as_labelled: "PolyMATH"
@@ -2109,6 +2353,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: zhipu/glm-5-1
         benchmark_id: null
         benchmark_as_labelled: "PolyMATH"
@@ -2118,6 +2363,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Pro Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-pro
         benchmark_id: null
         benchmark_as_labelled: "PolyMATH"
@@ -2127,6 +2373,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "PolyMATH"
@@ -2136,6 +2383,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "PolyMATH"
@@ -2153,8 +2401,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: mmmu_pro
         score: 81.2
@@ -2163,6 +2414,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: mmmu_pro
         score: 73.9
@@ -2171,6 +2423,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: mmmu_pro
         score: 81.8
@@ -2179,6 +2432,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: mmmu_pro
         score: 78.8
@@ -2187,6 +2441,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: mmmu_pro
         score: 79.0
@@ -2195,6 +2450,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -2204,6 +2460,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -2213,6 +2470,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -2222,6 +2480,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -2231,6 +2490,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -2240,6 +2500,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -2249,6 +2510,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -2258,6 +2520,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -2267,6 +2530,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -2276,6 +2540,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -2285,6 +2550,7 @@ charts:
         configuration: "With a code interpreter."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -2294,6 +2560,7 @@ charts:
         configuration: "Without a code interpreter."
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "CharXiv(RQ)"
@@ -2303,6 +2570,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "CharXiv(RQ)"
@@ -2312,6 +2580,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "CharXiv(RQ)"
@@ -2321,6 +2590,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "CharXiv(RQ)"
@@ -2330,6 +2600,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: charxiv_reasoning_tools
         score: 85.9
@@ -2338,6 +2609,7 @@ charts:
         configuration: "With a code interpreter."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: charxiv_reasoning
         score: 84.4
@@ -2346,6 +2618,7 @@ charts:
         configuration: "Without a code interpreter."
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "HiPhO"
@@ -2355,6 +2628,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "HiPhO"
@@ -2364,6 +2638,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "HiPhO"
@@ -2373,6 +2648,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "HiPhO"
@@ -2382,6 +2658,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "HiPhO"
@@ -2391,6 +2668,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -2400,6 +2678,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -2409,6 +2688,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -2418,6 +2698,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -2427,6 +2708,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -2436,6 +2718,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "VisFactor"
@@ -2445,6 +2728,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "VisFactor"
@@ -2454,6 +2738,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "VisFactor"
@@ -2463,6 +2748,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "VisFactor"
@@ -2472,6 +2758,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "VisFactor"
@@ -2481,6 +2768,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: medxpertqa
         score: 77.3
@@ -2489,6 +2777,7 @@ charts:
         configuration: "Multimodal."
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: medxpertqa
         score: 64.4
@@ -2497,6 +2786,7 @@ charts:
         configuration: "Multimodal."
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: medxpertqa
         score: 80.7
@@ -2505,6 +2795,7 @@ charts:
         configuration: "Multimodal."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: medxpertqa
         score: 68.7
@@ -2513,6 +2804,7 @@ charts:
         configuration: "Multimodal."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: medxpertqa
         score: 71.0
@@ -2521,6 +2813,7 @@ charts:
         configuration: "Multimodal."
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "ScreenSpot Pro"
@@ -2530,6 +2823,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ScreenSpot Pro"
@@ -2539,6 +2833,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "ScreenSpot Pro"
@@ -2548,6 +2843,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "ScreenSpot Pro"
@@ -2557,6 +2853,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ScreenSpot Pro"
@@ -2566,6 +2863,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2575,6 +2873,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2584,6 +2883,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2593,6 +2893,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2602,6 +2903,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "AndroidWorld"
@@ -2611,6 +2913,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "AndroidWorld"
@@ -2620,6 +2923,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "AndroidWorld"
@@ -2629,6 +2933,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "AndroidWorld"
@@ -2638,6 +2943,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "QwenVision2Code"
@@ -2647,6 +2953,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "QwenVision2Code"
@@ -2656,6 +2963,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "QwenVision2Code"
@@ -2665,6 +2973,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "QwenVision2Code"
@@ -2674,6 +2983,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "QwenVision2Code"
@@ -2683,6 +2993,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2692,6 +3003,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2701,6 +3013,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2710,6 +3023,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2719,6 +3033,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2728,6 +3043,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "SimpleVQA"
@@ -2737,6 +3053,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "SimpleVQA"
@@ -2746,6 +3063,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "SimpleVQA"
@@ -2755,6 +3073,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "SimpleVQA"
@@ -2764,6 +3083,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "SimpleVQA"
@@ -2773,6 +3093,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -2782,6 +3103,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -2791,6 +3113,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -2800,6 +3123,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -2809,6 +3133,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "WorldVQA"
@@ -2818,6 +3143,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "MMSearchPlus"
@@ -2827,6 +3153,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MMSearchPlus"
@@ -2836,6 +3163,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "MMSearchPlus"
@@ -2845,6 +3173,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MMSearchPlus"
@@ -2854,6 +3183,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MMSearchPlus"
@@ -2863,6 +3193,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "BC-VL"
@@ -2872,6 +3203,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "BC-VL"
@@ -2881,6 +3213,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "BC-VL"
@@ -2890,6 +3223,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "BC-VL"
@@ -2899,6 +3233,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "BC-VL"
@@ -2908,6 +3243,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "MMBC"
@@ -2917,6 +3253,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MMBC"
@@ -2926,6 +3263,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "MMBC"
@@ -2935,6 +3273,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MMBC"
@@ -2944,6 +3283,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MMBC"
@@ -2953,6 +3293,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-4
         benchmark_id: realworldqa
         score: 83.8
@@ -2961,6 +3302,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: realworldqa
         score: 73.9
@@ -2969,6 +3311,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: realworldqa
         score: 83.5
@@ -2977,6 +3320,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: realworldqa
         score: 85.4
@@ -2985,6 +3329,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: realworldqa
         score: 86.9
@@ -2993,6 +3338,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "CountQA"
@@ -3002,6 +3348,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "CountQA"
@@ -3011,6 +3358,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "CountQA"
@@ -3020,6 +3368,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "CountQA"
@@ -3029,6 +3378,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "CountQA"
@@ -3038,6 +3388,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench1.5"
@@ -3047,6 +3398,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench1.5"
@@ -3056,6 +3408,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench1.5"
@@ -3065,6 +3418,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench1.5"
@@ -3074,6 +3428,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OmniDocBench1.5"
@@ -3083,6 +3438,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(EN)"
@@ -3092,6 +3448,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(EN)"
@@ -3101,6 +3458,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(EN)"
@@ -3110,6 +3468,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(EN)"
@@ -3119,6 +3478,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(EN)"
@@ -3128,6 +3488,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(ZH)"
@@ -3137,6 +3498,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(ZH)"
@@ -3146,6 +3508,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(ZH)"
@@ -3155,6 +3518,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(ZH)"
@@ -3164,6 +3528,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2(ZH)"
@@ -3173,6 +3538,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "ODinW13"
@@ -3182,6 +3548,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ODinW13"
@@ -3191,6 +3558,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "LingoQA"
@@ -3200,6 +3568,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "LingoQA"
@@ -3209,6 +3578,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "LingoQA"
@@ -3218,6 +3588,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "LingoQA"
@@ -3227,6 +3598,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "LingoQA"
@@ -3236,6 +3608,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "Ego3D-Bench↓"
@@ -3245,6 +3618,7 @@ charts:
         configuration: "Lower is better."
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "Ego3D-Bench↓"
@@ -3254,6 +3628,7 @@ charts:
         configuration: "Lower is better."
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "Ego3D-Bench↓"
@@ -3263,6 +3638,7 @@ charts:
         configuration: "Lower is better."
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "Ego3D-Bench↓"
@@ -3272,6 +3648,7 @@ charts:
         configuration: "Lower is better."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Ego3D-Bench↓"
@@ -3281,6 +3658,7 @@ charts:
         configuration: "Lower is better."
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "SURDS"
@@ -3290,6 +3668,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "SURDS"
@@ -3299,6 +3678,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "SURDS"
@@ -3308,6 +3688,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "SURDS"
@@ -3317,6 +3698,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "SURDS"
@@ -3326,6 +3708,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "VLADBench"
@@ -3335,6 +3718,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "VLADBench"
@@ -3344,6 +3728,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "VLADBench"
@@ -3353,6 +3738,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "VLADBench"
@@ -3362,6 +3748,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "VLADBench"
@@ -3371,6 +3758,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "VideoMME (w/ sub.)"
@@ -3380,6 +3768,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "VideoMME (w/ sub.)"
@@ -3389,6 +3778,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "VideoMME (w/ sub.)"
@@ -3398,6 +3788,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "VideoMME (w/ sub.)"
@@ -3407,6 +3798,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "VideoMME (w/ sub.)"
@@ -3416,6 +3808,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "VideoMMMU"
@@ -3425,6 +3818,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "VideoMMMU"
@@ -3434,6 +3828,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "VideoMMMU"
@@ -3443,6 +3838,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "VideoMMMU"
@@ -3452,6 +3848,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "VideoMMMU"
@@ -3461,6 +3858,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "MLVU (M-Avg)"
@@ -3470,6 +3868,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MLVU (M-Avg)"
@@ -3479,6 +3878,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "MLVU (M-Avg)"
@@ -3488,6 +3888,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "MLVU (M-Avg)"
@@ -3497,6 +3898,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MLVU (M-Avg)"
@@ -3506,6 +3908,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "TVBench"
@@ -3515,6 +3918,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "TVBench"
@@ -3524,6 +3928,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "TVBench"
@@ -3533,6 +3938,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "TVBench"
@@ -3542,6 +3948,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "TVBench"
@@ -3551,6 +3958,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 (xhigh)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: openai/gpt-5-4
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -3560,6 +3968,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus-4.6 Max"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -3569,6 +3978,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini-3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -3578,6 +3988,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-6-plus
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -3587,6 +3998,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "LVBench"

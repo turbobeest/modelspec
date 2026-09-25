@@ -1,6 +1,7 @@
 page_url: "https://cohere.com/blog/command-a-plus"
 publisher: "Cohere"
 read_on: "2026-09-24"
+phase: "phase2b-3"
 charts:
   - title: "Open benchmarks"
     kind: image
@@ -15,6 +16,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: null
         benchmark_as_labelled: "τ²-Bench Telecom"
@@ -24,6 +26,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: null
         benchmark_as_labelled: "τ²-Bench Telecom"
@@ -33,6 +36,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: null
         benchmark_as_labelled: "Terminal-Bench Hard"
@@ -42,6 +46,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: null
         benchmark_as_labelled: "Terminal-Bench Hard"
@@ -51,6 +56,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: ifbench
         score: 74
@@ -59,6 +65,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: ifbench
         score: 36
@@ -67,6 +74,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: aime_2025
         score: 90
@@ -75,6 +83,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: aime_2025
         score: 57
@@ -83,6 +92,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: scicode
         score: 38
@@ -91,6 +101,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: scicode
         score: 30
@@ -111,6 +122,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Question Answering"
@@ -120,6 +132,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Question Answering"
@@ -129,6 +142,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: null
         benchmark_as_labelled: "Data Analysis"
@@ -138,6 +152,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: null
         benchmark_as_labelled: "Data Analysis"
@@ -147,6 +162,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: null
         benchmark_as_labelled: "Memory Usage Quality"
@@ -156,6 +172,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: null
         benchmark_as_labelled: "Memory Usage Quality"
@@ -175,8 +192,13 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
+      - reader: claude-opus-third
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: mmmu
         score: 75
@@ -185,6 +207,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Vision"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "cohere/command-a-vision-07-2025"
         benchmark_id: mmmu
         score: 65
@@ -193,6 +216,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: mathvista
         score: 81
@@ -201,6 +225,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Vision"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-vision-07-2025"
         benchmark_id: mathvista
         score: 74
@@ -209,6 +234,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: charxiv_reasoning
         score: 53
@@ -217,6 +243,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Vision"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-vision-07-2025"
         benchmark_id: charxiv_reasoning
         score: 47
@@ -225,20 +252,26 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: charxiv
+        benchmark_as_labelled: "CharXiv (descriptive)"
         score: 88
         unit: "percent"
         printed: true
         configuration: ""
+        metric: "CharXiv descriptive"
         role: subject
       - model_as_labelled: "Command A Vision"
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: "cohere/command-a-vision-07-2025"
         benchmark_id: charxiv
+        benchmark_as_labelled: "CharXiv (descriptive)"
         score: 82
         unit: "percent"
         printed: true
         configuration: ""
+        metric: "CharXiv descriptive"
         role: subject
   - title: "Multilingual math and translation"
     kind: image
@@ -253,6 +286,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: null
         benchmark_as_labelled: "MT-AIME 2025"
@@ -262,6 +296,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: null
         benchmark_as_labelled: "MT-AIME 2025"
@@ -271,6 +306,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: null
         benchmark_as_labelled: "WMT24++"
@@ -280,6 +316,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Reasoning"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/command-a-reasoning-08-2025"
         benchmark_id: null
         benchmark_as_labelled: "WMT24++"

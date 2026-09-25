@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/ibm-granite/granite-4.2-3b"
 publisher: "IBM"
 read_on: "2026-09-24"
+phase: "phase2b-3"
 charts:
   - title: "Evaluation results"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: swe_bench_multilingual
         score: 30.78
@@ -21,6 +23,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: swe_bench_multilingual
         score: 41.89
@@ -29,6 +32,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: swe_bench_pro
         score: 19.11
@@ -37,6 +41,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: swe_bench_pro
         score: 33.29
@@ -45,6 +50,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: swe_bench_verified
         score: 47.67
@@ -53,6 +59,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: swe_bench_verified
         score: 57
@@ -61,6 +68,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: terminal_bench_v2_1
         score: 20.56
@@ -69,6 +77,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: terminal_bench_v2_1
         score: 29.24
@@ -77,6 +86,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-bench (AVG)"
@@ -86,6 +96,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-bench (AVG)"
@@ -95,6 +106,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-bench (AVG)"
@@ -104,6 +116,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: bfcl
         score: 52.41
@@ -112,6 +125,7 @@ charts:
         configuration: "v4"
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: bfcl
         score: 52.39
@@ -120,6 +134,7 @@ charts:
         configuration: "v4"
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: bfcl
         score: 61.39
@@ -128,6 +143,7 @@ charts:
         configuration: "v4"
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: null
         benchmark_as_labelled: "ProfBench"
@@ -137,6 +153,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: null
         benchmark_as_labelled: "ProfBench"
@@ -146,6 +163,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: null
         benchmark_as_labelled: "ProfBench"
@@ -155,6 +173,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: null
         benchmark_as_labelled: "BirdBench"
@@ -164,6 +183,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: null
         benchmark_as_labelled: "BirdBench"
@@ -173,6 +193,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: gdpval
         score: 1189
@@ -181,6 +202,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: gdpval
         score: 1225
@@ -189,6 +211,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: aime_2025
         score: 78.33
@@ -197,6 +220,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: aime_2025
         score: 86.67
@@ -205,6 +229,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: aime_2025
         score: 89.17
@@ -213,6 +238,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Feb25"
@@ -222,6 +248,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Feb25"
@@ -231,6 +258,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: null
         benchmark_as_labelled: "HMMT Feb25"
@@ -240,6 +268,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: gpqa
         score: 54.80
@@ -248,6 +277,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: gpqa
         score: 64.14
@@ -256,6 +286,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: gpqa
         score: 66.41
@@ -264,6 +295,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: live_code_bench
         score: 69.71
@@ -272,6 +304,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: live_code_bench
         score: 73.24
@@ -280,6 +313,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: live_code_bench
         score: 75.77
@@ -288,6 +322,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: scicode
         score: 24.11
@@ -296,6 +331,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: scicode
         score: 36.09
@@ -304,6 +340,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: scicode
         score: 38.76
@@ -312,6 +349,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: mmlu_pro
         score: 67.84
@@ -320,6 +358,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: mmlu_pro
         score: 74.04
@@ -328,6 +367,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: mmlu_pro
         score: 77.60
@@ -336,6 +376,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX lite (IBM)"
@@ -345,6 +386,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX lite (IBM)"
@@ -354,6 +396,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: null
         benchmark_as_labelled: "MMLU-ProX lite (IBM)"
@@ -363,6 +406,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: null
         benchmark_as_labelled: "Arena-Hard-V2"
@@ -372,6 +416,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: null
         benchmark_as_labelled: "Arena-Hard-V2"
@@ -381,6 +426,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: null
         benchmark_as_labelled: "Arena-Hard-V2"
@@ -390,6 +436,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: ifbench
         score: 74.33
@@ -398,6 +445,7 @@ charts:
         configuration: "Prompt."
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: ifbench
         score: 79.33
@@ -406,6 +454,7 @@ charts:
         configuration: "Prompt."
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: ifbench
         score: 77.17
@@ -414,6 +463,7 @@ charts:
         configuration: "Prompt."
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: ruler
         score: 67.52
@@ -422,6 +472,7 @@ charts:
         configuration: "64K context."
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: ruler
         score: 80.99
@@ -430,6 +481,7 @@ charts:
         configuration: "64K context."
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: ruler
         score: 89.96
@@ -438,6 +490,7 @@ charts:
         configuration: "64K context."
         role: subject
       - model_as_labelled: "3B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: ruler
         score: 55.30
@@ -446,6 +499,7 @@ charts:
         configuration: "128K context."
         role: subject
       - model_as_labelled: "8B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-8b"
         benchmark_id: ruler
         score: 71.41
@@ -454,6 +508,7 @@ charts:
         configuration: "128K context."
         role: subject
       - model_as_labelled: "30B Dense"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: ruler
         score: 81.38

@@ -8,6 +8,9 @@ publisher's, and the file belongs in the chart cache, named by its sha256.
 A fixture:
 
 - `page_url`, `publisher`, `read_on` (ISO date).
+- `phase` — the reading pass this page belongs to: `phase1`, `phase2a`,
+  `phase2b-1`, `phase2b-2`, `phase2b-3`, or `phase2b-4`. The confirmation
+  tally groups by it.
 - `charts`: each chart has `title`, `footnotes`, `competitor_numbers`
   (`official_reports`, `vendor_run`, or `unstated`), `readings`
   (`reader`, `date`), and `bars`.
@@ -41,6 +44,11 @@ Each bar:
   `readings` (`reader`, `value`). A value counts only when two independent
   readers agree within the printed precision. The bar's `score` is that value.
   A third reading that agrees with neither leaves the bar `disputed`.
+- `confirmed_by` — the readers whose reading of this bar agrees with the
+  stored score. A pair that agrees names both readers. A two-of-three
+  resolution names the two who agree. A bar only one reader recorded names
+  that reader. Every name is one of the chart's `readings`. One name does
+  not fail the check.
 
 `score` is written on its own line so the printed precision survives YAML
 (`78.2` is ±0.05, `78` is ±0.5).
@@ -78,27 +86,44 @@ check" and passes. The job runs `python scripts/chart_check_pr.py --base origin/
 The job classifies evidence rows the pull request adds or changes.
 
 A row is `verified` when a fixture bar from the same page agrees, within the
-printed precision, for the same model and benchmark. Sibling configurations
-count as agreement when any one of them matches.
+printed precision, for the same model and benchmark, and that bar's
+`confirmed_by` names at least two readers. Sibling configurations count as
+agreement when any one of them matches. When the agreeing bar names fewer
+than two readers, the outcome is `verified_single_read`.
 
 These block the job:
 
 - `mismatch`, a same-source bar for that model and benchmark that does not agree.
 - `disputed`, a matching bar that is still disputed.
-- A fixture file the pull request adds or changes, when a chart that has bars
-  has fewer than two distinct readers and no `single_read_reason`.
+- A bar added or changed in a fixture the pull request adds or changes, when
+  `confirmed_by` names fewer than two distinct readers and neither the bar nor
+  its chart has a non-empty `single_read_reason`. A reason on the chart covers
+  every bar in that chart.
 - A `disputed` bar on such a fixture.
 - A `resolution` that does not satisfy the two-of-three rule.
 
 These do not block:
 
+- `verified_single_read`. Warning. The same bar blocks when the pull request
+  also adds or changes it, by the rule above.
 - `no_bar`. The fixture exists and has no bar for this model and benchmark. Warning.
 - `no_fixture`. The page has no fixture yet. Warning, for now.
 - `no_fixture_dataset`. The source is machine-readable. Informational.
   MODEL-111 layer 2 checks those sources.
+- A removed bar. Informational.
 
-Fixtures the pull request does not change are left alone. An existing
-single-read chart does not block an unrelated pull request.
+A bar is changed when its score, unit, labels, `model_id`, `benchmark_id`,
+metric, configuration, role, or `confirmed_by` differs from the base. Bars
+match on the fixture, the chart title, `model_as_labelled`, the benchmark id
+or label, the metric, and the configuration. When more than one bar shares
+that key, the check pairs those bars in the order they appear in the chart.
+
+The report groups blocking bars by fixture and chart and gives each chart's
+count. It lists at most 50 of those bars.
+
+Fixtures the pull request does not change are left alone. A single-read bar
+on an unchanged fixture does not block. A single-read bar left unchanged does
+not block when another bar in the same fixture changes.
 
 To clear `no_fixture`, add a fixture for that page with two independent
 readings. MODEL-113 new-model pull requests are the ones this warning is for.

@@ -19,6 +19,10 @@ benchmark. A row from another source is context on a ``not_held`` bar.
 A third reading settles a bar when two readers agree within the printed
 precision. The score is that value. A third reading that agrees with neither
 leaves the bar disputed.
+
+A pair whose two readings differ is disputed until that third reading. The
+bar names no confirming reader. A two-of-three resolution is exempt, because
+the losing reader still differs.
 """
 
 from __future__ import annotations
@@ -463,6 +467,58 @@ def _resolution_problems(bar: dict[str, Any]) -> list[str]:
     return []
 
 
+def _agreeing_reader_names(bar: dict[str, Any]) -> list[str] | None:
+    """Readers in the settled cluster, in the order the resolution names them.
+
+    ``None`` when the bar has no settled two-of-three resolution.
+    """
+    if _resolution_problems(bar):
+        return None
+    block = _resolution_block(bar)
+    if block is None:
+        return None
+    points = _resolution_points(block)
+    if points is None:
+        return None
+    cluster = _agreement(points)
+    if cluster is None:
+        return None
+    chosen = {id(point) for point in cluster}
+    names = []
+    for item, point in zip(block.get("readings") or [], points):
+        if id(point) in chosen:
+            names.append(str(item.get("reader")))
+    return names
+
+
+def _confirmed_by_problems(bar: dict[str, Any], readers: set[str]) -> list[str]:
+    """Who confirmed the stored score. A missing list is a problem once a bar is settled.
+
+    A resolution that does not settle is reported by ``_resolution_problems`` and
+    is not asked for ``confirmed_by`` as well. An open dispute names no reader.
+    """
+    if _resolution_block(bar) is not None and _resolution_problems(bar):
+        return []
+    if _explicit_dispute(bar) and _agreeing_reader_names(bar) is None:
+        names = bar.get("confirmed_by")
+        if names:
+            return ["confirmed_by must not claim a confirmation"]
+        return []
+    names = bar.get("confirmed_by")
+    problems = []
+    if not isinstance(names, list) or not names or not all(isinstance(name, str) and name.strip() for name in names):
+        problems.append("confirmed_by must name the readers")
+        names = []
+    else:
+        missing = [name for name in names if name not in readers]
+        if missing:
+            problems.append("confirmed_by names a reader who did not read this chart")
+    agreeing = _agreeing_reader_names(bar)
+    if agreeing is not None and list(names or []) != agreeing:
+        problems.append("confirmed_by is not the readers who agree")
+    return problems
+
+
 def _unresolved_bar(bar: dict[str, Any]) -> bool:
     block = _resolution_block(bar)
     if block is not None:
@@ -498,6 +554,7 @@ def _base_result(bar: dict[str, Any]) -> dict[str, Any]:
         "same_source": False,
         "known_mismatch": bar.get("known_mismatch"),
         "disputed_values": bar.get("disputed") if _explicit_dispute(bar) else None,
+        "confirmed_by": list(bar.get("confirmed_by") or []),
     }
 
 
@@ -707,6 +764,7 @@ def classify_fixtures(fixtures: list[dict[str, Any]], models: list[Model]) -> di
                     "title": chart.get("title") or "",
                     "index": index,
                     "kind": chart.get("kind") or "image",
+                    "phase": str(fixture.get("phase") or ""),
                     "needs_reading": bool(chart.get("needs_reading")),
                     "flags": flags,
                     "competitor_numbers": chart.get("competitor_numbers"),
@@ -724,6 +782,7 @@ def classify_fixtures(fixtures: list[dict[str, Any]], models: list[Model]) -> di
         "charts_detail": charts_out,
         "coverage": _coverage(charts_out),
         "uncatalogued": _uncatalogued(charts_out),
+        "confirmation": _confirmation(charts_out),
     }
 
 
@@ -773,6 +832,34 @@ def _uncatalogued(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [{"benchmark_as_labelled": label, "bars": count} for label, count in sorted(counts.items())]
 
 
+def _confirmation(charts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Bars confirmed by two or more readers, and bars confirmed by one.
+
+    One reading is not a failure. A bar with no confirming reader is omitted.
+    A paired disagreement stays disputed until two of three agree.
+    """
+    by_class: dict[str, dict[str, int]] = {}
+    by_phase: dict[str, dict[str, Any]] = {}
+    for chart in charts:
+        phase = str(chart.get("phase") or "") or "unspecified"
+        phase_row = by_phase.setdefault(phase, {"double": 0, "single": 0, "by_class": {}})
+        for bar in chart["bars"]:
+            status = str(bar.get("status") or "")
+            names = bar.get("confirmed_by") or []
+            if len(names) >= 2:
+                kind = "double"
+            elif len(names) == 1:
+                kind = "single"
+            else:
+                continue
+            class_row = by_class.setdefault(status, {"double": 0, "single": 0})
+            class_row[kind] += 1
+            phase_row[kind] += 1
+            phase_class = phase_row["by_class"].setdefault(status, {"double": 0, "single": 0})
+            phase_class[kind] += 1
+    return {"by_class": by_class, "by_phase": by_phase}
+
+
 def _fmt(value: Any) -> str:
     if value is None:
         return "—"
@@ -807,6 +894,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         *_class_lines(report["by_class"]),
         "",
+        *_confirmation_lines(report),
         "## Coverage",
         "",
         "Headline subject bars with a catalogue id. Held means a same-source row exists.",
@@ -898,6 +986,58 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.append(f"{len(single)} charts have one reading. That is not a failure.")
     lines.append("")
     return "\n".join(lines) + "\n"
+
+
+def _confirmation_lines(report: dict[str, Any]) -> list[str]:
+    """Two-or-more against one, per phase and per class. Matched is called out."""
+    confirmation = report.get("confirmation") or {}
+    by_class = confirmation.get("by_class") or {}
+    by_phase = confirmation.get("by_phase") or {}
+    matched = by_class.get("matched") or {"double": 0, "single": 0}
+    lines = [
+        "## Confirmation",
+        "",
+        "Bars whose stored score was confirmed by two or more readers, and bars confirmed by one. "
+        "One reading does not fail the check. A bar with no confirming reader is omitted.",
+        "",
+        f"Matched bars confirmed by two or more readers: {matched.get('double', 0)} "
+        f"of {matched.get('double', 0) + matched.get('single', 0)}.",
+        "",
+        "| Phase | Two or more | One |",
+        "| --- | ---: | ---: |",
+    ]
+    for phase, row in sorted(by_phase.items()):
+        lines.append(f"| {phase} | {row.get('double', 0)} | {row.get('single', 0)} |")
+    lines.extend(
+        [
+            "",
+            "| Class | Two or more | One |",
+            "| --- | ---: | ---: |",
+        ]
+    )
+    ordered = [status for status in CLASS_ORDER if status in by_class]
+    ordered.extend(sorted(status for status in by_class if status not in CLASS_ORDER))
+    for status in ordered:
+        row = by_class[status]
+        lines.append(f"| {status} | {row.get('double', 0)} | {row.get('single', 0)} |")
+    lines.extend(
+        [
+            "",
+            "| Phase | Class | Two or more | One |",
+            "| --- | --- | ---: | ---: |",
+        ]
+    )
+    for phase, row in sorted(by_phase.items()):
+        classes = row.get("by_class") or {}
+        class_order = [status for status in CLASS_ORDER if status in classes]
+        class_order.extend(sorted(status for status in classes if status not in CLASS_ORDER))
+        for status in class_order:
+            counts = classes[status]
+            lines.append(
+                f"| {phase} | {status} | {counts.get('double', 0)} | {counts.get('single', 0)} |"
+            )
+    lines.append("")
+    return lines
 
 
 def _svg_escape(text: str) -> str:
@@ -1019,10 +1159,17 @@ def fixture_errors(fixtures: list[dict[str, Any]], models: list[Model]) -> list[
             digest = chart.get("image_sha256")
             if digest and not re.fullmatch(r"[0-9a-f]{64}", str(digest)):
                 errors.append(f"{where}: image_sha256 is not 64 hex digits")
+            reader_names = {
+                str(item.get("reader"))
+                for item in (chart.get("readings") or [])
+                if isinstance(item, dict) and str(item.get("reader") or "").strip()
+            }
             for bar in chart.get("bars") or []:
                 label = bar.get("model_as_labelled") or "?"
                 bench = bar.get("benchmark_id") or bar.get("benchmark_as_labelled") or "?"
                 for problem in _resolution_problems(bar):
+                    errors.append(f"{where}: {label} {bench} {problem}")
+                for problem in _confirmed_by_problems(bar, reader_names):
                     errors.append(f"{where}: {label} {bench} {problem}")
         document = fixture.get("document_sha256")
         if document and not re.fullmatch(r"[0-9a-f]{64}", str(document)):
@@ -1140,6 +1287,7 @@ _BENCH_ALIASES = (
     ("harvey legal held out", "harvey legal"),
     ("gray swan ipi benchmark", "gray swan ipi"),
     ("simple qa verified", "simpleqa verified"),
+    ("swebench", "swe bench"),
     ("swe bench verified", "swe verified"),
     ("live code bench", "livecodebench"),
     ("humaneval plus", "evalplus"),
@@ -1161,6 +1309,14 @@ _BENCH_ALIASES = (
     ("osworld 2", "osworld"),
     ("aime 24", "aime 2024"),
     ("aime 25", "aime 2025"),
+    ("aime 26", "aime 2026"),
+    ("hmmt february 2026", "hmmt 2026"),
+    ("hmmt feb 2026", "hmmt 2026"),
+    ("hmmt 2026 february", "hmmt 2026"),
+    ("hmmt 2026 feb", "hmmt 2026"),
+    ("taubench 3 average", "taubench 3"),
+    ("strongreject", "strong reject"),
+    ("multi if", "multiif"),
     ("crux o", "cruxeval"),
     ("tau 3 bench avg", "tau 3 bench"),
     ("needle in a haystack", "niah"),
@@ -1282,6 +1438,8 @@ _EFFORT = {"max", "high", "xhigh", "low", "medium"}
 def _present(value: Any) -> str:
     """Drop marks that are not part of the name. Pass³ is a metric, not a footnote."""
     text = str(value or "")
+    # ``(column 'FP16')`` is how a cell was found, not a second model.
+    text = re.sub(r"\(\s*column\b[^)]*\)", " ", text, flags=re.I)
     text = text.replace("**", " ").replace("__", " ").replace("~~", " ").replace("*", " ")
     text = text.replace("\u0332", "")
     # τ³ and the doubled TeX form τ3\tau^{3} are one benchmark name. A trailing ¹ is a footnote.
@@ -1446,9 +1604,24 @@ def _order_claude(text: str) -> str:
     return text
 
 
+def _split_glued_parameter_count(text: str) -> str:
+    """``Qwen3.5397B`` is generation 3.5 and 397B. A one-digit size such as 9B stays put."""
+    return re.sub(r"\b(\d)\.([1-9])(\d{2,3}) b\b", r"\1.\2 \3 b", text)
+
+
+def _gemini_short_name(text: str) -> str:
+    """``3.5 Flash`` and ``3.6 Flash-Lite`` are Gemini. A bare ``3 Pro`` is not."""
+    if text.startswith("gemini "):
+        return text
+    if re.fullmatch(r"\d+\.\d+ (?:flash|pro)(?: lite)?(?: image)?", text):
+        return "gemini " + text
+    return text
+
+
 def _finish_model(text: str) -> str:
     # ``Claude-opus-4-8`` and ``Claude Opus 4.8`` are one product.
     text = _order_claude(_join_version(text))
+    text = _split_glued_parameter_count(text)
     if text.startswith("ds "):
         text = "deepseek " + text[3:]
     parts = text.split()
@@ -1457,8 +1630,55 @@ def _finish_model(text: str) -> str:
     if parts and parts[0] in _CLAUDE_FAMILY:
         parts = ["claude", *parts]
     text = " ".join(parts)
+    text = re.sub(r"\bn 3 ultra\b", "nemotron 3 ultra", text)
+    text = text.replace("diffusion gemma", "diffusiongemma")
+    stripped = re.sub(r"\bnano banana(?: 2)?\b", " ", text)
+    stripped = re.sub(r"\s+", " ", stripped).strip()
+    if stripped:
+        text = stripped
+    text = _gemini_short_name(text)
     text = re.sub(r" a \d+ b$", "", text)
     return _MODEL_ALIASES.get(text, text)
+
+
+_QUANT_PAIRS = (
+    ("bf", "16", "bf16"),
+    ("fp", "16", "fp16"),
+    ("fp", "8", "fp8"),
+    ("fp", "4", "fp4"),
+    ("nvfp", "4", "nvfp4"),
+    ("mxfp", "4", "mxfp4"),
+)
+
+
+def _peel_model_quant(model_key: str) -> tuple[str, str]:
+    """A weight format on the model name is a setting. BF16 and NVFP4 stay different."""
+    tokens = model_key.split()
+    kept: list[str] = []
+    found: list[str] = []
+    index = 0
+    while index < len(tokens):
+        peeled = ""
+        for prefix, digit, name in _QUANT_PAIRS:
+            if tokens[index : index + 2] == [prefix, digit]:
+                peeled = name
+                break
+        if peeled:
+            found.append(peeled)
+            index += 2
+            continue
+        kept.append(tokens[index])
+        index += 1
+    return " ".join(kept), " ".join(found)
+
+
+def _quant_set(metric_key: str) -> set[str]:
+    tokens = set(str(metric_key or "").split())
+    found = {name for _prefix, _digit, name in _QUANT_PAIRS if name in tokens}
+    for prefix, digit, name in _QUANT_PAIRS:
+        if prefix in tokens and digit in tokens:
+            found.add(name)
+    return found
 
 
 def canon_model(value: Any) -> str:
@@ -1529,6 +1749,29 @@ def _slice_tokens_for(bench_tokens: list[str]) -> frozenset[str]:
     return frozenset(allowed)
 
 
+def _fold_variant_marks(bench: str, metric_key: str) -> tuple[str, str]:
+    """A variant written on the setting and the same variant written on the name.
+
+    ``Lite`` on Global-MMLU, and ``Public`` on SWE-bench Pro. Absent on one side,
+    the bars stay apart.
+    """
+    tokens = metric_key.split()
+
+    def move(mark: str, head: str) -> None:
+        nonlocal bench, tokens
+        if mark not in tokens:
+            return
+        if bench != head and not bench.startswith(head + " "):
+            return
+        tokens = [tok for tok in tokens if tok != mark]
+        if mark not in bench.split():
+            bench = f"{bench} {mark}"
+
+    move("lite", "global mmlu")
+    move("public", "swe bench pro")
+    return bench, " ".join(tokens)
+
+
 def _fold_slices(bench: str, metric_key: str) -> tuple[str, str]:
     """Language and domain tokens are part of the benchmark, wherever they were written."""
     bench_tokens = bench.split()
@@ -1570,6 +1813,8 @@ def _attach_named_version(bench: str, metric: str) -> tuple[str, str]:
 def canon_benchmark(value: Any) -> str:
     text = _join_version(_basic_label(value))
     text = re.sub(r"\baug\b", "august", text)
+    # ``ForecastBenchBrier`` lost the space in front of the next word.
+    text = re.sub(r"\bforecastbench(?=[a-z])", "forecastbench ", text)
     text = _apply_aliases(text, _BENCH_ALIASES)
     parts = text.split()
     # A trailing ``(Elo)`` is the unit, already stored on the bar.
@@ -1657,6 +1902,7 @@ def _drop_component_list(text: str) -> str:
 def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     model_body, model_efforts, model_quals = _peel_model(_basic_label(model))
     model_key = _finish_model(model_body)
+    model_key, quant = _peel_model_quant(model_key)
     bench_body, row_extra = _benchmark_parts(benchmark)
     raw_metric = _drop_component_list(str(metric or ""))
     metric_bits = " ".join(bit for bit in (raw_metric, row_extra) if str(bit).strip())
@@ -1698,7 +1944,15 @@ def _identity(model: Any, benchmark: Any, metric: Any) -> tuple[str, str, str]:
     metric_key = canon_metric(metric_text, model_key)
     if effort:
         metric_key = " ".join(sorted({*metric_key.split(), effort}))
+    if quant:
+        extra: list[str] = []
+        for name in quant.split():
+            for prefix, digit, qname in _QUANT_PAIRS:
+                if name == qname:
+                    extra.extend((prefix, digit))
+        metric_key = " ".join(sorted(set(metric_key.split()) | set(extra)))
     bench, metric_key = _fold_slices(bench, metric_key)
+    bench, metric_key = _fold_variant_marks(bench, metric_key)
     return (model_key, bench, metric_key)
 
 
@@ -1868,7 +2122,11 @@ def _effort_conflict(a_item: dict[str, Any], b_item: dict[str, Any]) -> bool:
     if a_harness and b_harness and a_harness != b_harness:
         return True
     # "raw" on one side is a different HealthBench number from the summary row.
-    return ("raw" in a_toks) != ("raw" in b_toks) and ("raw" in a_toks or "raw" in b_toks)
+    if ("raw" in a_toks) != ("raw" in b_toks) and ("raw" in a_toks or "raw" in b_toks):
+        return True
+    a_quant = _quant_set(str(a_item.get("metric_key") or ""))
+    b_quant = _quant_set(str(b_item.get("metric_key") or ""))
+    return a_quant != b_quant and bool(a_quant or b_quant)
 
 
 def _annotation_span(tokens: list[str], start: int) -> int:
@@ -2247,6 +2505,48 @@ def reconcile_readings(
     return {"pairs": rows, "by_class": dict(counts), "by_source": by_source, "touched": touched}
 
 
+def pairing_dispute_errors(
+    fixtures: list[dict[str, Any]],
+    readings: list[dict[str, Any]],
+    manifest: dict[str, str],
+) -> list[str]:
+    """A paired disagreement is disputed, or carries a two-of-three resolution.
+
+    A resolution is exempt. The losing reader still differs by design.
+    """
+    report = reconcile_readings(fixtures, readings, manifest)
+    located: dict[tuple[str, int, int], tuple[dict[str, Any], dict[str, Any], dict[str, Any]]] = {}
+    for fixture in fixtures:
+        path = str(fixture.get("_path") or "")
+        for index, chart in enumerate(fixture.get("charts") or []):
+            if not isinstance(chart, dict):
+                continue
+            for bar_index, bar in enumerate(chart.get("bars") or []):
+                if isinstance(bar, dict):
+                    located[(path, index, bar_index)] = (fixture, chart, bar)
+    errors = []
+    for row in report.get("pairs") or []:
+        if row.get("class") != "disagree" or row.get("bar_index") is None or row.get("chart_index") is None:
+            continue
+        key = (str(row.get("fixture") or ""), int(row["chart_index"]), int(row["bar_index"]))
+        found = located.get(key)
+        if found is None:
+            errors.append(f"{row.get('fixture')}: disagree pair has no fixture bar")
+            continue
+        fixture, chart, bar = found
+        block = _resolution_block(bar)
+        if block is not None and block.get("rule") == "two_of_three":
+            continue
+        if _explicit_dispute(bar):
+            continue
+        label = bar.get("model_as_labelled") or "?"
+        bench = bar.get("benchmark_id") or bar.get("benchmark_as_labelled") or "?"
+        name = fixture.get("_slug") or "?"
+        title = chart.get("title") or "(untitled)"
+        errors.append(f"{name} / {title}: {label} {bench} readers disagree and the bar is not disputed")
+    return errors
+
+
 def render_reconcile_markdown(report: dict[str, Any]) -> str:
     lines = ["# Chart reconcile", "", "## Counts", ""]
     for status in ("agree", "disagree", "only_a", "only_b", "unparsed", "unpaired_source"):
@@ -2434,6 +2734,8 @@ def _reconcile_main(argv: list[str]) -> int:
                 touch["read_on"],
                 grouped.get(key, []),
             )
+        fixtures = load_fixtures(args.root / "benchmarks" / "_charts")
+    problems = pairing_dispute_errors(fixtures, readings, load_manifest(args.manifest))
     counts = report["by_class"]
     print(
         "reconcile "
@@ -2442,6 +2744,10 @@ def _reconcile_main(argv: list[str]) -> int:
             for name in ("agree", "disagree", "only_a", "only_b", "unparsed", "unpaired_source")
         )
     )
+    if problems:
+        for line in problems:
+            print(line, file=sys.stderr)
+        return 1
     return 0
 
 

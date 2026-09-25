@@ -1,6 +1,7 @@
 page_url: "https://cohere.com/blog/north-mini-code"
 publisher: "Cohere"
 read_on: "2026-09-24"
+phase: "phase2b-3"
 charts:
   - title: "Benchmarks"
     kind: image
@@ -13,8 +14,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "North-Mini-Code"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/north-mini-code-1-0"
         benchmark_id: terminal_bench_2_0
         score: 36.0
@@ -23,6 +27,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: subject
       - model_as_labelled: "Qwen3.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: terminal_bench_2_0
         score: 51.5
@@ -31,6 +36,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Poolside XS.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: terminal_bench_2_0
         score: 35.7
@@ -39,6 +45,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Devstral Small 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "mistral/devstral-small-2-24b-instruct-2512"
         benchmark_id: terminal_bench_2_0
         score: 22.5
@@ -47,6 +54,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "North-Mini-Code"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/north-mini-code-1-0"
         benchmark_id: null
         benchmark_as_labelled: "Terminal-Bench Hard"
@@ -56,6 +64,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: subject
       - model_as_labelled: "Qwen3.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: null
         benchmark_as_labelled: "Terminal-Bench Hard"
@@ -65,6 +74,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Devstral Small 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "mistral/devstral-small-2-24b-instruct-2512"
         benchmark_id: null
         benchmark_as_labelled: "Terminal-Bench Hard"
@@ -74,6 +84,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "North-Mini-Code"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/north-mini-code-1-0"
         benchmark_id: swe_bench_verified
         score: 67.6
@@ -82,6 +93,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: subject
       - model_as_labelled: "Qwen3.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: swe_bench_verified
         score: 73.4
@@ -90,6 +102,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Poolside XS.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: swe_bench_verified
         score: 69.9
@@ -98,6 +111,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Devstral Small 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "mistral/devstral-small-2-24b-instruct-2512"
         benchmark_id: swe_bench_verified
         score: 68.2
@@ -106,6 +120,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "North-Mini-Code"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "cohere/north-mini-code-1-0"
         benchmark_id: swe_bench_pro
         score: 40.2
@@ -114,6 +129,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: subject
       - model_as_labelled: "Qwen3.6"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: swe_bench_pro
         score: 49.5
@@ -122,6 +138,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Poolside XS.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: swe_bench_pro
         score: 46.3
@@ -130,6 +147,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "North-Mini-Code"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/north-mini-code-1-0"
         benchmark_id: scicode
         score: 38.2
@@ -138,6 +156,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: subject
       - model_as_labelled: "Qwen3.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: scicode
         score: 35.8
@@ -146,6 +165,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Gemma4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: scicode
         score: 40.0
@@ -154,6 +174,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Devstral Small 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "mistral/devstral-small-2-24b-instruct-2512"
         benchmark_id: scicode
         score: 28.8
@@ -162,6 +183,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "North-Mini-Code"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "cohere/north-mini-code-1-0"
         benchmark_id: live_code_bench
         score: 70.3
@@ -170,6 +192,7 @@ charts:
         configuration: "v6. Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: subject
       - model_as_labelled: "Qwen3.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: live_code_bench
         score: 80.4
@@ -178,6 +201,7 @@ charts:
         configuration: "v6. Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Gemma4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: live_code_bench
         score: 77.1
@@ -196,8 +220,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Poolside XS.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Terminal-Bench Hard"
@@ -207,6 +234,7 @@ charts:
         configuration: "Internally measured."
         role: competitor
       - model_as_labelled: "Poolside XS.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: scicode
         score: 31.9
@@ -215,6 +243,7 @@ charts:
         configuration: "Internally measured."
         role: competitor
       - model_as_labelled: "Poolside XS.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: live_code_bench
         score: 55.2
@@ -223,6 +252,7 @@ charts:
         configuration: "v6. Internally measured."
         role: competitor
       - model_as_labelled: "Devstral Small 2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "mistral/devstral-small-2-24b-instruct-2512"
         benchmark_id: live_code_bench
         score: 40.3
@@ -231,6 +261,7 @@ charts:
         configuration: "v6. Internally measured."
         role: competitor
       - model_as_labelled: "Devstral Small 2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "mistral/devstral-small-2-24b-instruct-2512"
         benchmark_id: swe_bench_pro
         score: 35.7
@@ -249,8 +280,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemma4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: terminal_bench_2_0
         score: 34.2
@@ -259,6 +293,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Gemma4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "Terminal-Bench Hard"
@@ -268,6 +303,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Gemma4"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: swe_bench_verified
         score: 17.4
@@ -276,6 +312,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Gemma4"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: swe_bench_pro
         score: 13.0

@@ -2,6 +2,7 @@ page_url: "https://www.anthropic.com/claude-opus-5-system-card"
 publisher: "Anthropic"
 read_on: "2026-09-24"
 document_sha256: "0950dae1ba6b341e4f1a009e535e0f025625efeca21bd043a9a5ae148a3f2e6b"
+phase: "phase2a"
 charts:
   - title: "Table 8.1.A Capability evaluation summary"
     kind: html_table
@@ -12,8 +13,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: swe_bench_pro
         score: 79.2
@@ -22,6 +26,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_pro
         score: 69.2
@@ -30,6 +35,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: swe_bench_pro
         score: 80
@@ -38,6 +44,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: swe_bench_pro
         score: 64.6
@@ -46,6 +53,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: swe_bench_multilingual
         score: 89.5
@@ -54,6 +62,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_multilingual
         score: 84.4
@@ -62,6 +71,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: swe_bench_multilingual
         score: 86.6
@@ -70,6 +80,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: swe_bench_multimodal
         score: 59.4
@@ -78,6 +89,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_multimodal
         score: 38.4
@@ -86,6 +98,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: swe_bench_multimodal
         score: 54.1
@@ -94,6 +107,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -103,6 +117,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -112,6 +127,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -121,6 +137,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -130,6 +147,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 (Main)"
@@ -139,6 +157,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 (Main)"
@@ -148,6 +167,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 (Main)"
@@ -157,6 +177,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 (Main)"
@@ -166,6 +187,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierBench v0.1"
@@ -175,6 +197,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "FrontierBench v0.1"
@@ -184,6 +207,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierBench v0.1"
@@ -193,6 +217,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierBench v0.1"
@@ -202,6 +227,7 @@ charts:
         configuration: "Codex harness. Harbor evaluation."
         role: competitor
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: browsecomp
         score: 90.8
@@ -210,6 +236,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: browsecomp
         score: 84.3
@@ -218,6 +245,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: browsecomp
         score: 87.4
@@ -226,6 +254,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: browsecomp
         score: 90.4
@@ -234,6 +263,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: hle
         score: 56.3
@@ -242,6 +272,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle
         score: 49.8
@@ -250,6 +281,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: hle
         score: 56.5
@@ -258,6 +290,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: hle_tools
         score: 64.7
@@ -266,6 +299,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle_tools
         score: 57.9
@@ -274,6 +308,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: hle_tools
         score: 63.9
@@ -282,6 +317,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: osworld
         score: 70.6
@@ -290,6 +326,7 @@ charts:
         configuration: "OSWorld 2.0."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: osworld
         score: 55.7
@@ -298,6 +335,7 @@ charts:
         configuration: "OSWorld 2.0."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: osworld
         score: 66.1
@@ -306,6 +344,7 @@ charts:
         configuration: "OSWorld 2.0."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: osworld
         score: 62.6
@@ -314,6 +353,7 @@ charts:
         configuration: "OSWorld 2.0."
         role: competitor
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: healthbench
         score: 59.8
@@ -322,6 +362,7 @@ charts:
         configuration: "HealthBench Professional."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: healthbench
         score: 57.4
@@ -330,6 +371,7 @@ charts:
         configuration: "HealthBench Professional."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: healthbench
         score: 60.5
@@ -338,6 +380,7 @@ charts:
         configuration: "HealthBench Professional."
         role: competitor
       - model_as_labelled: "Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: healthbench
         score: 66.0
@@ -346,6 +389,7 @@ charts:
         configuration: "HealthBench Professional. Footnote on the Fable 5 cell."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-1"
@@ -355,6 +399,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-1"
@@ -364,6 +409,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-1"
@@ -373,6 +419,7 @@ charts:
         configuration: "xhigh effort."
         role: competitor
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: arc_agi_2
         score: 90.4
@@ -381,6 +428,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: arc_agi_2
         score: 72.1
@@ -389,6 +437,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: arc_agi_2
         score: 92.5
@@ -397,6 +446,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -406,6 +456,7 @@ charts:
         configuration: "High effort."
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -415,6 +466,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "GPT 5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -424,6 +476,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: swe_bench_verified
         score: 96.0
@@ -440,8 +493,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -451,6 +507,7 @@ charts:
         configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
         role: subject
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -461,6 +518,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -471,6 +529,7 @@ charts:
         metric: all_trials_correct
         role: subject
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -481,6 +540,7 @@ charts:
         metric: average_turns
         role: subject
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -490,6 +550,7 @@ charts:
         configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
         role: subject
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -500,6 +561,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -510,6 +572,7 @@ charts:
         metric: all_trials_correct
         role: subject
       - model_as_labelled: "Claude Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -520,6 +583,7 @@ charts:
         metric: average_turns
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -529,6 +593,7 @@ charts:
         configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -539,6 +604,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -549,6 +615,7 @@ charts:
         metric: all_trials_correct
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -559,6 +626,7 @@ charts:
         metric: average_turns
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -568,6 +636,7 @@ charts:
         configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -578,6 +647,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -588,6 +658,7 @@ charts:
         metric: all_trials_correct
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"

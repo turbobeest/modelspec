@@ -1,6 +1,7 @@
 page_url: "https://deepmind.google/models/model-cards/gemini-3-1-flash-lite-image/"
 publisher: "Google DeepMind"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Text-to-image and editing Elo"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -22,6 +26,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -31,6 +36,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±6.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -40,6 +46,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±6.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -49,6 +56,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±5.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -58,6 +66,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±6.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -67,6 +76,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±6.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -76,6 +86,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -85,6 +96,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -94,6 +106,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General T2I"
@@ -103,6 +116,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -112,6 +126,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -121,6 +136,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -130,6 +146,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -139,6 +156,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -148,6 +166,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -157,6 +176,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±12.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -166,6 +186,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -175,6 +196,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -184,6 +206,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Visual Design"
@@ -193,6 +216,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±15.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -202,6 +226,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±13.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -211,6 +236,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±16.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -220,6 +246,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±14.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -229,6 +256,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±12.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -238,6 +266,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±12.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -247,6 +276,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±19.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -256,6 +286,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±15.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -265,6 +296,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±16.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -274,6 +306,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±18.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - T2I"
@@ -283,6 +316,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±20.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -292,6 +326,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -301,6 +336,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -310,6 +346,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -319,6 +356,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -328,6 +366,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -337,6 +376,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±12.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -346,6 +386,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -355,6 +396,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±12.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -364,6 +406,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "General Editing"
@@ -373,6 +416,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -382,6 +426,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -391,6 +436,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -400,6 +446,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -409,6 +456,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -418,6 +466,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -427,6 +476,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±14.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -436,6 +486,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -445,6 +496,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -454,6 +506,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Obj/Env Editing"
@@ -463,6 +516,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -472,6 +526,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±6.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -481,6 +536,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±5.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -490,6 +546,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±6.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -499,6 +556,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±6.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -508,6 +566,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±5.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -517,6 +576,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±8.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -526,6 +586,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -535,6 +596,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -544,6 +606,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Character Editing"
@@ -553,6 +616,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -562,6 +626,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -571,6 +636,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -580,6 +646,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -589,6 +656,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -598,6 +666,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -607,6 +676,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±7.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -616,6 +686,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -625,6 +696,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -634,6 +706,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Stylization"
@@ -643,6 +716,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -652,6 +726,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -661,6 +736,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -670,6 +746,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -679,6 +756,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -688,6 +766,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -697,6 +776,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -706,6 +786,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -715,6 +796,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -724,6 +806,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Input (up to 5)"
@@ -733,6 +816,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -742,6 +826,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±13.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -751,6 +836,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±15.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -760,6 +846,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±12.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -769,6 +856,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -778,6 +866,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -787,6 +876,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±20.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -796,6 +886,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±14.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -805,6 +896,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±16.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -814,6 +906,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±13.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Social Media Trends - Editing"
@@ -823,6 +916,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±13.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -832,6 +926,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±10.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -841,6 +936,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±10.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -850,6 +946,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -859,6 +956,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -868,6 +966,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -877,6 +976,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±16.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -886,6 +986,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -895,6 +996,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±13.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -904,6 +1006,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Text Editing"
@@ -913,6 +1016,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -922,6 +1026,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -931,6 +1036,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -940,6 +1046,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -949,6 +1056,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -958,6 +1066,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -967,6 +1076,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -976,6 +1086,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -985,6 +1096,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±13.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -994,6 +1106,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Character (up to 5) Editing"
@@ -1003,6 +1116,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1012,6 +1126,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1021,6 +1136,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1030,6 +1146,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1039,6 +1156,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±7.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1048,6 +1166,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1057,6 +1176,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±13.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1066,6 +1186,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1075,6 +1196,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1084,6 +1206,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Doodle Editing"
@@ -1093,6 +1216,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1102,6 +1226,7 @@ charts:
         configuration: "Side-by-side human Elo. Thinking. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash-Lite Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-flash-lite-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1111,6 +1236,7 @@ charts:
         configuration: "Side-by-side human Elo. No thinking. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 3.1 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-1-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1120,6 +1246,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: subject
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1129,6 +1256,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±9.0."
         role: subject
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1138,6 +1266,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±8.0."
         role: subject
       - model_as_labelled: "GPT 2 Response API Low"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1147,6 +1276,7 @@ charts:
         configuration: "Side-by-side human Elo. Response API, low. Table also prints ±14.0."
         role: competitor
       - model_as_labelled: "Grok Imagine Image Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1156,6 +1286,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Flux 2 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1165,6 +1296,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±11.0."
         role: competitor
       - model_as_labelled: "Seadream v5 Lite 3k"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"
@@ -1174,6 +1306,7 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±10.0."
         role: competitor
       - model_as_labelled: "Hunyuan v3"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi Product (up to 14) Editing"

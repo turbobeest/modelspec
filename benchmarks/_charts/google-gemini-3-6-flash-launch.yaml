@@ -1,6 +1,7 @@
 page_url: "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-6-flash-3-5-flash-lite-3-5-flash-cyber/"
 publisher: "Google DeepMind"
 read_on: "2026-09-24"
+phase: "phase2b-2"
 charts:
   - title: "Gemini 3.6 Flash agentic benchmarks"
     kind: image
@@ -15,6 +16,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -24,6 +26,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-5-flash
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -33,6 +36,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.6 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-6-flash
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -42,6 +46,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: mle_bench
         score: 42.6
@@ -50,6 +55,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-5-flash
         benchmark_id: mle_bench
         score: 49.7
@@ -58,6 +64,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.6 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-6-flash
         benchmark_id: mle_bench
         score: 63.9
@@ -66,6 +73,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -75,6 +83,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-5-flash
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -84,6 +93,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.6 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-6-flash
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -105,6 +115,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.1 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-1-flash-lite
         benchmark_id: terminal_bench_v2_1
         score: 31.0
@@ -113,6 +124,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-5-flash-lite
         benchmark_id: terminal_bench_v2_1
         score: 54.0
@@ -131,8 +143,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-flash-preview
         benchmark_id: swe_bench_pro
         score: 49.6
@@ -141,6 +156,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-5-flash-lite
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -149,6 +165,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-flash-preview
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -158,6 +175,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: google/gemini-3-5-flash-lite
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -177,8 +195,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Mythos Preview"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-preview
         benchmark_id: cybergym
         score: 83.1
@@ -187,6 +208,7 @@ charts:
         configuration: "Anthropic agent."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash Cyber"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: cybergym
         score: 83.2
@@ -195,6 +217,7 @@ charts:
         configuration: "CodeMender, max 5 model calls."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: cybergym
         score: 83.6
@@ -203,6 +226,7 @@ charts:
         configuration: "OpenAI agent."
         role: competitor
       - model_as_labelled: "Mythos 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-mythos-5
         benchmark_id: cybergym
         score: 83.8
@@ -211,6 +235,7 @@ charts:
         configuration: "Anthropic agent."
         role: competitor
       - model_as_labelled: "GPT-5.5-Cyber"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: cybergym
         score: 85.6

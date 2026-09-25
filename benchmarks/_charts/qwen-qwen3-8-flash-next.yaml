@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/Qwen/Qwen3.8-Flash-Next"
 publisher: "Qwen"
 read_on: "2026-09-24"
+phase: "phase2b-2"
 charts:
   - title: "Language"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE 1.1"
@@ -22,6 +26,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE 1.1"
@@ -31,6 +36,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE 1.1"
@@ -40,6 +46,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE 1.1"
@@ -49,6 +56,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: swe_bench_pro
         score: 62.5
@@ -57,6 +65,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: swe_bench_pro
         score: 61.7
@@ -65,6 +74,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: swe_bench_pro
         score: 55.8
@@ -73,6 +83,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: swe_bench_pro
         score: 56.0
@@ -81,6 +92,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: swe_bench_pro
         score: 53.4
@@ -89,6 +101,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: swe_bench_multilingual
         score: 81.0
@@ -97,6 +110,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: swe_bench_multilingual
         score: 73.8
@@ -105,6 +119,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: swe_bench_multilingual
         score: 75.8
@@ -113,6 +128,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: swe_bench_multilingual
         score: 77.5
@@ -121,6 +137,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo-Bench"
@@ -130,6 +147,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo-Bench"
@@ -139,6 +157,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo-Bench"
@@ -148,6 +167,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo-Bench"
@@ -157,6 +177,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo-Bench"
@@ -166,6 +187,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -175,6 +197,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -184,6 +207,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -193,6 +217,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -202,6 +227,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -211,6 +237,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -220,6 +247,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -229,6 +257,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -238,6 +267,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -247,6 +277,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -256,6 +287,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -266,6 +298,7 @@ charts:
         metric: pass_at_1
         role: subject
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -275,6 +308,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -285,6 +319,7 @@ charts:
         metric: pass_at_1
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -294,6 +329,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -304,6 +340,7 @@ charts:
         metric: pass_at_1
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -313,6 +350,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -323,6 +361,7 @@ charts:
         metric: pass_at_1
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
@@ -332,6 +371,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
@@ -341,6 +381,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
@@ -350,6 +391,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified (Pass@1)"
@@ -359,6 +401,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: ifbench
         score: 81.3
@@ -367,6 +410,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: ifbench
         score: 79.5
@@ -375,6 +419,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: ifbench
         score: 79.1
@@ -383,6 +428,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: ifbench
         score: 79.2
@@ -391,6 +437,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: ifbench
         score: 62.5
@@ -399,6 +446,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: gpqa_diamond
         score: 91.7
@@ -407,6 +455,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: gpqa_diamond
         score: 89.2
@@ -415,6 +464,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: gpqa_diamond
         score: 90.3
@@ -423,6 +473,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: gpqa_diamond
         score: 90.8
@@ -431,6 +482,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: gpqa_diamond
         score: 91.3
@@ -439,6 +491,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: hle
         score: 35.9
@@ -447,6 +500,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: hle
         score: 30.8
@@ -455,6 +509,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: hle
         score: 34.7
@@ -463,6 +518,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: hle
         score: 33.8
@@ -471,6 +527,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: hle
         score: 40.0
@@ -479,6 +536,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: live_code_bench
         score: 91.9
@@ -487,6 +545,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: live_code_bench
         score: 90.3
@@ -495,6 +554,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: live_code_bench
         score: 89.6
@@ -503,6 +563,7 @@ charts:
         configuration: "v6"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: deepseek/deepseek-v4-flash
         benchmark_id: live_code_bench
         score: 90.6
@@ -511,6 +572,7 @@ charts:
         configuration: "v6"
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: live_code_bench
         score: 88.8
@@ -527,8 +589,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -539,6 +604,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -549,6 +615,7 @@ charts:
         metric: average
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -559,6 +626,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -569,6 +637,7 @@ charts:
         metric: average
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -579,6 +648,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -589,6 +659,7 @@ charts:
         metric: average
         role: subject
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -599,6 +670,7 @@ charts:
         metric: pass_at_3
         role: competitor
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -609,6 +681,7 @@ charts:
         metric: average
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "RecreationBench"
@@ -618,6 +691,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "RecreationBench"
@@ -627,6 +701,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "RecreationBench"
@@ -636,6 +711,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "AndroidWorld"
@@ -645,6 +721,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "AndroidWorld"
@@ -654,6 +731,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "AndroidWorld"
@@ -663,6 +741,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "AndroidWorld"
@@ -672,6 +751,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -682,6 +762,7 @@ charts:
         metric: binary
         role: subject
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -692,6 +773,7 @@ charts:
         metric: partial
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -702,6 +784,7 @@ charts:
         metric: binary
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -712,6 +795,7 @@ charts:
         metric: partial
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -722,6 +806,7 @@ charts:
         metric: binary
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -732,6 +817,7 @@ charts:
         metric: partial
         role: subject
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -741,6 +827,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -750,6 +837,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -759,6 +847,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -768,6 +857,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -777,6 +867,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -786,6 +877,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -795,6 +887,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -804,6 +897,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -813,6 +907,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -822,6 +917,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -831,6 +927,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: realworldqa
         score: 88.5
@@ -839,6 +936,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: realworldqa
         score: 85.9
@@ -847,6 +945,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: realworldqa
         score: 86.9
@@ -855,6 +954,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: realworldqa
         score: 73.9
@@ -863,6 +963,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -872,6 +973,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -881,6 +983,7 @@ charts:
         configuration: "With CI"
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -890,6 +993,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -899,6 +1003,7 @@ charts:
         configuration: "With CI"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -908,6 +1013,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -917,6 +1023,7 @@ charts:
         configuration: "With CI"
         role: subject
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -926,6 +1033,7 @@ charts:
         configuration: "Without CI"
         role: competitor
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: charxiv_reasoning
         score: 84.6
@@ -934,6 +1042,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.8-Flash-Next"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-flash-next
         benchmark_id: charxiv_reasoning_tools
         score: 90.6
@@ -942,6 +1051,7 @@ charts:
         configuration: "With CI"
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: charxiv_reasoning
         score: 83.7
@@ -950,6 +1060,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: charxiv_reasoning_tools
         score: 90.2
@@ -958,6 +1069,7 @@ charts:
         configuration: "With CI"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: charxiv_reasoning
         score: 85.8
@@ -966,6 +1078,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: charxiv_reasoning_tools
         score: 85.9
@@ -974,6 +1087,7 @@ charts:
         configuration: "With CI"
         role: subject
       - model_as_labelled: "Claude-Opus-4.6 (Max)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: charxiv_reasoning
         score: 66.0

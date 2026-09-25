@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/zai-org/GLM-5.3"
 publisher: "Z.ai"
 read_on: "2026-09-24"
+phase: "phase2b-1"
 charts:
   - title: "Benchmark"
     kind: html_table
@@ -9,8 +10,11 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: terminal_bench_v2_1
         score: 88.2
@@ -19,6 +23,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 81.0
@@ -27,6 +32,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: terminal_bench_v2_1
         score: 88.3
@@ -35,6 +41,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Pro-0813"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 87.9
@@ -43,6 +50,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 86.6
@@ -51,6 +59,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 85.0
@@ -59,6 +68,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_v2_1
         score: 88.0
@@ -67,6 +77,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_v2_1
         score: 88.8
@@ -75,6 +86,7 @@ charts:
         configuration: "Model card table. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: terminal_bench_3_0
         score: 28.3
@@ -83,6 +95,7 @@ charts:
         configuration: "Model card table. Terminal Bench 3.0"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_3_0
         score: 4.6
@@ -91,6 +104,7 @@ charts:
         configuration: "Model card table. Terminal Bench 3.0"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: terminal_bench_3_0
         score: 17.4
@@ -99,6 +113,7 @@ charts:
         configuration: "Model card table. Terminal Bench 3.0"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_3_0
         score: 21.1
@@ -107,6 +122,7 @@ charts:
         configuration: "Model card table. Terminal Bench 3.0"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_3_0
         score: 33.7
@@ -115,6 +131,7 @@ charts:
         configuration: "Model card table. Terminal Bench 3.0"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_3_0
         score: 34.6
@@ -123,6 +140,7 @@ charts:
         configuration: "Model card table. Terminal Bench 3.0"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE (v1.1)"
@@ -132,6 +150,7 @@ charts:
         configuration: "Model card table. DeepSWE (v1.1)"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE (v1.1)"
@@ -141,6 +160,7 @@ charts:
         configuration: "Model card table. DeepSWE (v1.1)"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE (v1.1)"
@@ -150,6 +170,7 @@ charts:
         configuration: "Model card table. DeepSWE (v1.1)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Pro-0813"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE (v1.1)"
@@ -159,6 +180,7 @@ charts:
         configuration: "Model card table. DeepSWE (v1.1)"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE (v1.1)"
@@ -168,6 +190,7 @@ charts:
         configuration: "Model card table. DeepSWE (v1.1)"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE (v1.1)"
@@ -177,6 +200,7 @@ charts:
         configuration: "Model card table. DeepSWE (v1.1)"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE (v1.1)"
@@ -186,6 +210,7 @@ charts:
         configuration: "Model card table. DeepSWE (v1.1)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE (v1.1)"
@@ -195,6 +220,7 @@ charts:
         configuration: "Model card table. DeepSWE (v1.1)"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -204,6 +230,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -213,6 +240,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -222,6 +250,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Pro-0813"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -231,6 +260,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -240,6 +270,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -249,6 +280,7 @@ charts:
         configuration: "Model card table. NL2Repo"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench (Almost Solved)"
@@ -258,6 +290,7 @@ charts:
         configuration: "Model card table. ProgramBench (Almost Solved)"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench (Almost Solved)"
@@ -267,6 +300,7 @@ charts:
         configuration: "Model card table. ProgramBench (Almost Solved)"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench (Almost Solved)"
@@ -276,6 +310,7 @@ charts:
         configuration: "Model card table. ProgramBench (Almost Solved)"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench (Almost Solved)"
@@ -285,6 +320,7 @@ charts:
         configuration: "Model card table. ProgramBench (Almost Solved)"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench (Almost Solved)"
@@ -294,6 +330,7 @@ charts:
         configuration: "Model card table. ProgramBench (Almost Solved)"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench (Almost Solved)"
@@ -303,6 +340,7 @@ charts:
         configuration: "Model card table. ProgramBench (Almost Solved)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ProgramBench (Almost Solved)"
@@ -312,6 +350,7 @@ charts:
         configuration: "Model card table. ProgramBench (Almost Solved)"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -321,6 +360,7 @@ charts:
         configuration: "Model card table. FrontierSWE"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -330,6 +370,7 @@ charts:
         configuration: "Model card table. FrontierSWE"
         role: subject
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -339,6 +380,7 @@ charts:
         configuration: "Model card table. FrontierSWE"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -348,6 +390,7 @@ charts:
         configuration: "Model card table. FrontierSWE"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon (v1.1)"
@@ -357,6 +400,7 @@ charts:
         configuration: "Model card table. SWE-Marathon (v1.1)"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon (v1.1)"
@@ -366,6 +410,7 @@ charts:
         configuration: "Model card table. SWE-Marathon (v1.1)"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon (v1.1)"
@@ -375,6 +420,7 @@ charts:
         configuration: "Model card table. SWE-Marathon (v1.1)"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon (v1.1)"
@@ -384,6 +430,7 @@ charts:
         configuration: "Model card table. SWE-Marathon (v1.1)"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon (v1.1)"
@@ -393,6 +440,7 @@ charts:
         configuration: "Model card table. SWE-Marathon (v1.1)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SWE-Marathon (v1.1)"
@@ -402,6 +450,7 @@ charts:
         configuration: "Model card table. SWE-Marathon (v1.1)"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -411,6 +460,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -420,6 +470,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -429,6 +480,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -438,6 +490,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -447,6 +500,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "PostTrainBench"
@@ -456,6 +510,7 @@ charts:
         configuration: "Model card table. PostTrainBench"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: cybergym
         score: 84.5
@@ -464,6 +519,7 @@ charts:
         configuration: "Model card table. CyberGym"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: cybergym
         score: 77.2
@@ -472,6 +528,7 @@ charts:
         configuration: "Model card table. CyberGym"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: cybergym
         score: 80.0
@@ -480,6 +537,7 @@ charts:
         configuration: "Model card table. CyberGym"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Pro-0813"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: cybergym
         score: 83.3
@@ -488,6 +546,7 @@ charts:
         configuration: "Model card table. CyberGym"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: cybergym
         score: 78.5
@@ -496,6 +555,7 @@ charts:
         configuration: "Model card table. CyberGym"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: cybergym
         score: 78.1
@@ -504,6 +564,7 @@ charts:
         configuration: "Model card table. CyberGym"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: cybergym
         score: 83.8
@@ -512,6 +573,7 @@ charts:
         configuration: "Model card table. CyberGym"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: cybergym
         score: 83.6
@@ -520,6 +582,7 @@ charts:
         configuration: "Model card table. CyberGym"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -529,6 +592,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 2-hour budget. Count of tasks, pass@1, out of 869."
         role: subject
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -538,6 +602,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 6-hour budget. Count of tasks, pass@1, out of 869."
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -547,6 +612,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 2-hour budget. Count of tasks, pass@1, out of 869."
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -556,6 +622,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 6-hour budget. Count of tasks, pass@1, out of 869."
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -565,6 +632,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 2-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -574,6 +642,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 6-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -583,6 +652,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 2-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -592,6 +662,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 6-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -601,6 +672,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 2-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -610,6 +682,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 6-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -619,6 +692,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 2-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -628,6 +702,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 6-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -637,6 +712,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 2-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym (2h / 6h)"
@@ -646,6 +722,7 @@ charts:
         configuration: "Model card table. ExploitGym (2h / 6h) 6-hour budget. Count of tasks, pass@1, out of 869."
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -655,6 +732,7 @@ charts:
         configuration: "Model card table. ExploitBench"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -664,6 +742,7 @@ charts:
         configuration: "Model card table. ExploitBench"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -673,6 +752,7 @@ charts:
         configuration: "Model card table. ExploitBench"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -682,6 +762,7 @@ charts:
         configuration: "Model card table. ExploitBench"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -691,6 +772,7 @@ charts:
         configuration: "Model card table. ExploitBench"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -700,6 +782,7 @@ charts:
         configuration: "Model card table. ExploitBench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -709,6 +792,7 @@ charts:
         configuration: "Model card table. ExploitBench"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified"
@@ -718,6 +802,7 @@ charts:
         configuration: "Model card table. Toolathlon Verified"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified"
@@ -727,6 +812,7 @@ charts:
         configuration: "Model card table. Toolathlon Verified"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified"
@@ -736,6 +822,7 @@ charts:
         configuration: "Model card table. Toolathlon Verified"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Pro-0813"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified"
@@ -745,6 +832,7 @@ charts:
         configuration: "Model card table. Toolathlon Verified"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified"
@@ -754,6 +842,7 @@ charts:
         configuration: "Model card table. Toolathlon Verified"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified"
@@ -763,6 +852,7 @@ charts:
         configuration: "Model card table. Toolathlon Verified"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified"
@@ -772,6 +862,7 @@ charts:
         configuration: "Model card table. Toolathlon Verified"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon Verified"
@@ -781,6 +872,7 @@ charts:
         configuration: "Model card table. Toolathlon Verified"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (ALE-CLI)"
@@ -790,6 +882,7 @@ charts:
         configuration: "Model card table. Agents' Last Exam (ALE-CLI)"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (ALE-CLI)"
@@ -799,6 +892,7 @@ charts:
         configuration: "Model card table. Agents' Last Exam (ALE-CLI)"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (ALE-CLI)"
@@ -808,6 +902,7 @@ charts:
         configuration: "Model card table. Agents' Last Exam (ALE-CLI)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Pro-0813"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (ALE-CLI)"
@@ -817,6 +912,7 @@ charts:
         configuration: "Model card table. Agents' Last Exam (ALE-CLI)"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (ALE-CLI)"
@@ -826,6 +922,7 @@ charts:
         configuration: "Model card table. Agents' Last Exam (ALE-CLI)"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (ALE-CLI)"
@@ -835,6 +932,7 @@ charts:
         configuration: "Model card table. Agents' Last Exam (ALE-CLI)"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (ALE-CLI)"
@@ -844,6 +942,7 @@ charts:
         configuration: "Model card table. Agents' Last Exam (ALE-CLI)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (ALE-CLI)"
@@ -853,6 +952,7 @@ charts:
         configuration: "Model card table. Agents' Last Exam (ALE-CLI)"
         role: competitor
       - model_as_labelled: "GLM-5.3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: hle_tools
         score: 62.5
@@ -861,6 +961,7 @@ charts:
         configuration: "Model card table. HLE w/ Tools"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: hle_tools
         score: 54.7
@@ -869,6 +970,7 @@ charts:
         configuration: "Model card table. HLE w/ Tools"
         role: subject
       - model_as_labelled: "Kimi K3"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: hle_tools
         score: 59.8
@@ -877,6 +979,7 @@ charts:
         configuration: "Model card table. HLE w/ Tools"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 Pro-0813"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: hle_tools
         score: 60.0
@@ -885,6 +988,7 @@ charts:
         configuration: "Model card table. HLE w/ Tools"
         role: competitor
       - model_as_labelled: "Qwen3.8-Max"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: hle_tools
         score: 56.2
@@ -893,6 +997,7 @@ charts:
         configuration: "Model card table. HLE w/ Tools"
         role: competitor
       - model_as_labelled: "Opus 4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: hle_tools
         score: 57.9
@@ -901,6 +1006,7 @@ charts:
         configuration: "Model card table. HLE w/ Tools"
         role: competitor
       - model_as_labelled: "Fable 5 (w/ fallback)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: hle_tools
         score: 63.9
@@ -909,6 +1015,7 @@ charts:
         configuration: "Model card table. HLE w/ Tools"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: hle_tools
         score: 64.5

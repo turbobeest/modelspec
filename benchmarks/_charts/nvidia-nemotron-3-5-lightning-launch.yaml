@@ -1,6 +1,7 @@
 page_url: "https://blogs.nvidia.com/blog/nemotron-lightning-switchyard-rtx-dgx/"
 publisher: "NVIDIA"
 read_on: "2026-09-24"
+phase: "phase2b-3"
 charts:
   - title: "Customer task chart"
     kind: image

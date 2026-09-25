@@ -1,6 +1,7 @@
 page_url: "https://openai.com/index/introducing-gpt-6-sol-and-luna/"
 publisher: "OpenAI"
 read_on: "2026-09-24"
+phase: "phase1"
 charts:
   - title: "OSWorld 2.0 offline, stated in prose"
     kind: text
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-sol"
         benchmark_id: osworld
         benchmark_as_labelled: "OSWorld 2.0, offline set"
@@ -22,6 +24,7 @@ charts:
         configuration: "xhigh effort"
         role: subject
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: osworld
         benchmark_as_labelled: "OSWorld 2.0, offline set"
@@ -41,6 +44,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -50,6 +54,7 @@ charts:
         configuration: "Max effort."
         role: subject
       - model_as_labelled: "GPT-6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -59,6 +64,7 @@ charts:
         configuration: "Max effort."
         role: subject
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -68,6 +74,7 @@ charts:
         configuration: "xhigh."
         role: competitor
       - model_as_labelled: "GPT-6 Luna"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-luna"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"

@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731"
 publisher: "DeepSeek"
 read_on: "2026-09-24"
+phase: "phase2b-1"
 charts:
   - title: "Agent benchmarks"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: terminal_bench_v2_1
         score: 82.7
@@ -21,6 +25,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 61.8
@@ -29,6 +34,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 72.1
@@ -37,6 +43,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 81.0
@@ -45,6 +52,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 85.0
@@ -53,6 +61,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Terminal Bench 2.1"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -62,6 +71,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -71,6 +81,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -80,6 +91,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -89,6 +101,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "NL2Repo"
@@ -98,6 +111,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. NL2Repo"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: cybergym
         score: 76.7
@@ -106,6 +120,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Cybergym"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: cybergym
         score: 38.7
@@ -114,6 +129,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Cybergym"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: cybergym
         score: 52.7
@@ -122,6 +138,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Cybergym"
         role: subject
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: cybergym
         score: 83.1
@@ -130,6 +147,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Cybergym"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -139,6 +157,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -148,6 +167,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -157,6 +177,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -166,6 +187,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -175,6 +197,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DeepSWE"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -184,6 +207,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -193,6 +217,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -202,6 +227,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -211,6 +237,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon-Verified"
@@ -220,6 +247,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Toolathlon-Verified"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -229,6 +257,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -238,6 +267,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -247,6 +277,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -256,6 +287,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -265,6 +297,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. Agents' Last Exam"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-FullStack †"
@@ -274,6 +307,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DSBench-FullStack †"
@@ -283,6 +317,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DSBench-FullStack †"
@@ -292,6 +327,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-FullStack †"
@@ -301,6 +337,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-FullStack †"
@@ -310,6 +347,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-FullStack †"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-0731"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/deepseek-v4-flash-0731"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-Hard †"
@@ -319,6 +357,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Flash (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DSBench-Hard †"
@@ -328,6 +367,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
         role: subject
       - model_as_labelled: "DeepSeek-V4-Pro (Preview)"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DSBench-Hard †"
@@ -337,6 +377,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
         role: subject
       - model_as_labelled: "GLM-5.2"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-Hard †"
@@ -346,6 +387,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the public code-agent rows. DSBench-Hard †"
         role: competitor
       - model_as_labelled: "Opus-4.8"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DSBench-Hard †"

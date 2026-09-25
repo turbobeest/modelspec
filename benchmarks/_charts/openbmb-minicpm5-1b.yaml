@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/openbmb/MiniCPM5-1B"
 publisher: "OpenBMB"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Public leaderboard"
     kind: image
@@ -13,8 +14,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -24,6 +28,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -33,6 +38,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -42,6 +48,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -51,6 +58,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: mmlu_pro
         score: 48.85
@@ -59,6 +67,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: mmlu_pro
         score: 35.63
@@ -67,6 +76,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: mmlu_pro
         score: 42.74
@@ -75,6 +85,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mmlu_pro
         score: 47.98
@@ -83,6 +94,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: mmlu_redux
         score: 70.06
@@ -91,6 +103,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: mmlu_redux
         score: 55.47
@@ -99,6 +112,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: mmlu_redux
         score: 61.50
@@ -107,6 +121,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: mmlu_redux
         score: 66.08
@@ -115,6 +130,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: gpqa_diamond
         score: 26.26
@@ -123,6 +139,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: gpqa_diamond
         score: 25.42
@@ -131,6 +148,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: gpqa_diamond
         score: 30.98
@@ -139,6 +157,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: gpqa_diamond
         score: 34.85
@@ -147,6 +166,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: supergpqa
         score: 23.14
@@ -155,6 +175,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: supergpqa
         score: 20.79
@@ -163,6 +184,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: supergpqa
         score: 22.92
@@ -171,6 +193,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: supergpqa
         score: 22.83
@@ -179,6 +202,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: livecodebench_pro
         score: 22.68
@@ -187,6 +211,7 @@ charts:
         configuration: "Thinking. 2025 Q2, Easy."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: livecodebench_pro
         score: 4.12
@@ -195,6 +220,7 @@ charts:
         configuration: "Thinking. 2025 Q2, Easy."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: livecodebench_pro
         score: 0.00
@@ -203,6 +229,7 @@ charts:
         configuration: "Thinking. 2025 Q2, Easy."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: livecodebench_pro
         score: 6.19
@@ -211,6 +238,7 @@ charts:
         configuration: "Thinking. 2025 Q2, Easy."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "OJBench"
@@ -220,6 +248,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: null
         benchmark_as_labelled: "OJBench"
@@ -229,6 +258,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: null
         benchmark_as_labelled: "OJBench"
@@ -238,6 +268,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "OJBench"
@@ -247,6 +278,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "LCB-v6(@Avg3)"
@@ -256,6 +288,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: null
         benchmark_as_labelled: "LCB-v6(@Avg3)"
@@ -265,6 +298,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: null
         benchmark_as_labelled: "LCB-v6(@Avg3)"
@@ -274,6 +308,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "LCB-v6(@Avg3)"
@@ -283,6 +318,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: ifbench
         score: 46.67
@@ -291,6 +327,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: ifbench
         score: 25.67
@@ -299,6 +336,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: ifbench
         score: 29.33
@@ -307,6 +345,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: ifbench
         score: 41.67
@@ -315,6 +354,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: ifeval
         score: 80.41
@@ -323,6 +363,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: ifeval
         score: 59.89
@@ -331,6 +372,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: ifeval
         score: 59.89
@@ -339,6 +381,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: ifeval
         score: 84.84
@@ -347,6 +390,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -356,6 +400,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -365,6 +410,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -374,6 +420,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -383,6 +430,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "MultiChallenge"
@@ -392,6 +440,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: null
         benchmark_as_labelled: "MultiChallenge"
@@ -401,6 +450,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: null
         benchmark_as_labelled: "MultiChallenge"
@@ -410,6 +460,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MultiChallenge"
@@ -419,6 +470,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: aime_2025
         score: 40.42
@@ -427,6 +479,7 @@ charts:
         configuration: "Thinking. Average of 16."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: aime_2025
         score: 16.25
@@ -435,6 +488,7 @@ charts:
         configuration: "Thinking. Average of 16."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: aime_2025
         score: 1.04
@@ -443,6 +497,7 @@ charts:
         configuration: "Thinking. Average of 16."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: aime_2025
         score: 31.88
@@ -451,6 +506,7 @@ charts:
         configuration: "Thinking. Average of 16."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: aime_2026
         score: 40.42
@@ -459,6 +515,7 @@ charts:
         configuration: "Thinking. Average of 16."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: aime_2026
         score: 12.29
@@ -467,6 +524,7 @@ charts:
         configuration: "Thinking. Average of 16."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: aime_2026
         score: 0.21
@@ -475,6 +533,7 @@ charts:
         configuration: "Thinking. Average of 16."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: aime_2026
         score: 31.67
@@ -483,6 +542,7 @@ charts:
         configuration: "Thinking. Average of 16."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: hmmt2026
         score: 25.76
@@ -491,6 +551,7 @@ charts:
         configuration: "Thinking. February 2026, average of 16."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: hmmt2026
         score: 9.85
@@ -499,6 +560,7 @@ charts:
         configuration: "Thinking. February 2026, average of 16."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: hmmt2026
         score: 0.57
@@ -507,6 +569,7 @@ charts:
         configuration: "Thinking. February 2026, average of 16."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: hmmt2026
         score: 21.21
@@ -515,6 +578,7 @@ charts:
         configuration: "Thinking. February 2026, average of 16."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: math_500
         score: 91.60
@@ -523,6 +587,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: math_500
         score: 72.60
@@ -531,6 +596,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: math_500
         score: 30.40
@@ -539,6 +605,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: math_500
         score: 89.00
@@ -547,6 +614,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: bbh
         score: 71.89
@@ -555,6 +623,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: bbh
         score: 47.86
@@ -563,6 +632,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: bbh
         score: 54.58
@@ -571,6 +641,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bbh
         score: 57.32
@@ -579,6 +650,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: bbeh
         score: 12.14
@@ -587,6 +659,7 @@ charts:
         configuration: "Thinking."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: bbeh
         score: 3.78
@@ -595,6 +668,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: bbeh
         score: 8.53
@@ -603,6 +677,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bbeh
         score: 8.64
@@ -611,6 +686,7 @@ charts:
         configuration: "Thinking."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: bfcl
         score: 25.15
@@ -619,6 +695,7 @@ charts:
         configuration: "Thinking. v4."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: bfcl
         score: 25.43
@@ -627,6 +704,7 @@ charts:
         configuration: "Thinking. v4."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: bfcl
         score: 25.53
@@ -635,6 +713,7 @@ charts:
         configuration: "Thinking. v4."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: null
         benchmark_id: bfcl
         score: 10.60
@@ -643,6 +722,7 @@ charts:
         configuration: "Thinking. v4."
         role: competitor
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: tau2
         score: 79.53
@@ -651,6 +731,7 @@ charts:
         configuration: "Thinking. Telecom."
         role: subject
       - model_as_labelled: "Qwen3-0.6B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-0-6b"
         benchmark_id: tau2
         score: 21.10
@@ -659,6 +740,7 @@ charts:
         configuration: "Thinking. Telecom."
         role: competitor
       - model_as_labelled: "Qwen3.5-0.8B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-0-8b"
         benchmark_id: tau2
         score: 47.70
@@ -667,6 +749,7 @@ charts:
         configuration: "Thinking. Telecom."
         role: competitor
       - model_as_labelled: "LFM2.5-1.2B-Thinking"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: tau2
         score: 19.60
@@ -685,8 +768,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: aime_2025
         score: 17.3
@@ -695,6 +781,7 @@ charts:
         configuration: "After supervised fine-tuning."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: aime_2025
         score: 40.4
@@ -703,6 +790,7 @@ charts:
         configuration: "After RL and on-policy distillation."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: aime_2026
         score: 15.6
@@ -711,6 +799,7 @@ charts:
         configuration: "After supervised fine-tuning."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: aime_2026
         score: 40.4
@@ -719,6 +808,7 @@ charts:
         configuration: "After RL and on-policy distillation."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: hmmt2026
         score: 11.9
@@ -727,6 +817,7 @@ charts:
         configuration: "After supervised fine-tuning. February 2026."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: hmmt2026
         score: 25.8
@@ -735,6 +826,7 @@ charts:
         configuration: "After RL and on-policy distillation. February 2026."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "LCB-v6"
@@ -744,6 +836,7 @@ charts:
         configuration: "After supervised fine-tuning."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "LCB-v6"
@@ -753,6 +846,7 @@ charts:
         configuration: "After RL and on-policy distillation."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: livecodebench_pro
         score: 10.3
@@ -761,6 +855,7 @@ charts:
         configuration: "After supervised fine-tuning. Easy."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: livecodebench_pro
         score: 22.7
@@ -769,6 +864,7 @@ charts:
         configuration: "After RL and on-policy distillation. Easy."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: ifeval
         score: 68.2
@@ -777,6 +873,7 @@ charts:
         configuration: "After supervised fine-tuning."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: ifeval
         score: 80.4
@@ -785,6 +882,7 @@ charts:
         configuration: "After RL and on-policy distillation."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: ifbench
         score: 33.7
@@ -793,6 +891,7 @@ charts:
         configuration: "After supervised fine-tuning."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: ifbench
         score: 46.7
@@ -801,6 +900,7 @@ charts:
         configuration: "After RL and on-policy distillation."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"
@@ -810,6 +910,7 @@ charts:
         configuration: "After supervised fine-tuning."
         role: subject
       - model_as_labelled: "MiniCPM5-1B"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-1b"
         benchmark_id: null
         benchmark_as_labelled: "Multi-IF"

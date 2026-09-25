@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp/blob/main/README.md"
 publisher: "DeepSeek"
 read_on: "2026-09-24"
+phase: "phase1"
 charts:
   - title: "Public benchmarks"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: mmlu_pro
         score: 85.0
@@ -21,6 +25,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: mmlu_pro
         score: 85.0
@@ -29,6 +34,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: gpqa_diamond
         score: 80.7
@@ -37,6 +43,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: gpqa_diamond
         score: 79.9
@@ -45,6 +52,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: hle
         score: 21.7
@@ -53,6 +61,7 @@ charts:
         configuration: "Humanity's Last Exam, reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: hle
         score: 19.8
@@ -61,6 +70,7 @@ charts:
         configuration: "Humanity's Last Exam, reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: live_code_bench
         score: 74.9
@@ -69,6 +79,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: live_code_bench
         score: 74.1
@@ -77,6 +88,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: aime_2025
         score: 88.4
@@ -85,6 +97,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: aime_2025
         score: 89.3
@@ -93,6 +106,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: aider_polyglot
         score: 76.1
@@ -101,6 +115,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: aider_polyglot
         score: 74.5
@@ -109,6 +124,7 @@ charts:
         configuration: "Reasoning mode, no tools"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: browsecomp
         score: 38.5
@@ -117,6 +133,7 @@ charts:
         configuration: "Agentic tool use"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: browsecomp
         score: 40.1
@@ -125,6 +142,7 @@ charts:
         configuration: "Agentic tool use"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: simpleqa
         score: 96.8
@@ -133,6 +151,7 @@ charts:
         configuration: "Agentic tool use"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: simpleqa
         score: 97.1
@@ -141,6 +160,7 @@ charts:
         configuration: "Agentic tool use"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: swe_bench_verified
         score: 68.4
@@ -149,6 +169,7 @@ charts:
         configuration: "SWE Verified, agentic tool use"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: swe_bench_verified
         score: 67.8
@@ -157,6 +178,7 @@ charts:
         configuration: "SWE Verified, agentic tool use"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: swe_bench_multilingual
         score: 57.8
@@ -165,6 +187,7 @@ charts:
         configuration: "Agentic tool use"
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: swe_bench_multilingual
         score: 57.9
@@ -173,6 +196,7 @@ charts:
         configuration: "Agentic tool use"
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: terminal_bench
         score: 36.7
@@ -181,6 +205,7 @@ charts:
         configuration: "Agentic tool use. The README does not name a Terminal-bench version."
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: terminal_bench
         score: 37.7
@@ -189,6 +214,7 @@ charts:
         configuration: "Agentic tool use. The README does not name a Terminal-bench version."
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: null
         benchmark_as_labelled: "HMMT 2025"
@@ -198,6 +224,7 @@ charts:
         configuration: "Reasoning mode, no tools."
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: null
         benchmark_as_labelled: "HMMT 2025"
@@ -207,6 +234,7 @@ charts:
         configuration: "Reasoning mode, no tools."
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: null
         benchmark_as_labelled: "Codeforces"
@@ -216,6 +244,7 @@ charts:
         configuration: "Reasoning mode, no tools."
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: null
         benchmark_as_labelled: "Codeforces"
@@ -225,6 +254,7 @@ charts:
         configuration: "Reasoning mode, no tools."
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp-zh"
@@ -234,6 +264,7 @@ charts:
         configuration: "Reasoning mode, no tools."
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp-zh"

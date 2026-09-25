@@ -1,6 +1,7 @@
 page_url: "https://www.anthropic.com/claude-fable-and-mythos-5-1"
 publisher: "Anthropic"
 read_on: "2026-09-24"
+phase: "phase2a"
 charts:
   - title: "Launch benchmark grid"
     kind: html_table
@@ -11,8 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: terminal_bench_science
         score: 52.6
@@ -21,6 +25,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_science
         score: 24.7
@@ -29,6 +34,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_science
         score: 29.0
@@ -37,6 +43,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_science
         score: 22.4
@@ -45,6 +52,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: terminal_bench_v4_0
         score: 55.8
@@ -53,6 +61,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Mythos 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5-1"
         benchmark_id: terminal_bench_v4_0
         score: 60.9
@@ -61,6 +70,7 @@ charts:
         configuration: "Printed in the Fable 5.1 cell."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_v4_0
         score: 42.0
@@ -69,6 +79,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_v4_0
         score: 52.3
@@ -77,6 +88,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_v4_0
         score: 37.3
@@ -85,6 +97,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: osworld
         score: 77.9
@@ -93,6 +106,7 @@ charts:
         configuration: "OSWorld 2.0 partial."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: osworld
         score: 72.9
@@ -101,6 +115,7 @@ charts:
         configuration: "OSWorld 2.0 partial."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: osworld
         score: 75.4
@@ -109,6 +124,7 @@ charts:
         configuration: "OSWorld 2.0 partial."
         role: subject
       - model_as_labelled: "Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: osworld
         score: 41.7
@@ -117,6 +133,7 @@ charts:
         configuration: "OSWorld 2.0 strict."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: osworld
         score: 36.1
@@ -125,6 +142,7 @@ charts:
         configuration: "OSWorld 2.0 strict."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: osworld
         score: 39.6
@@ -133,6 +151,7 @@ charts:
         configuration: "OSWorld 2.0 strict."
         role: subject
       - model_as_labelled: "Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: hle
         score: 60.9
@@ -141,6 +160,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: hle
         score: 57.8
@@ -149,6 +169,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: hle
         score: 56.6
@@ -157,6 +178,7 @@ charts:
         configuration: "No tools."
         role: subject
       - model_as_labelled: "Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: hle_tools
         score: 65.0
@@ -165,6 +187,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: hle_tools
         score: 63.8
@@ -173,6 +196,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: hle_tools
         score: 63.6
@@ -181,6 +205,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 3.2.0"
@@ -190,6 +215,7 @@ charts:
         configuration: "Max effort for Fable 5.1."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 3.2.0"
@@ -199,6 +225,7 @@ charts:
         configuration: "Max effort for Fable 5.1."
         role: subject
       - model_as_labelled: "Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 3.2.0"
@@ -208,6 +235,7 @@ charts:
         configuration: "Max effort for Fable 5.1."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 3.2.0"

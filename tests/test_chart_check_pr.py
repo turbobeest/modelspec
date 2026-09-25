@@ -119,7 +119,12 @@ def bar(
     benchmark: str = "gpqa_diamond",
     configuration: str = "max",
     extra: str = "",
+    confirmed_by: list[str] | None = None,
+    reason: str = "",
 ) -> str:
+    names = ["one", "two"] if confirmed_by is None else confirmed_by
+    joined = ", ".join(f'"{name}"' for name in names)
+    reason_line = f'        single_read_reason: "{reason}"\n' if reason else ""
     text = (
         "      - model_as_labelled: Widget\n"
         "        model_id: acme/widget\n"
@@ -129,6 +134,8 @@ def bar(
         "        printed: true\n"
         f'        configuration: "{configuration}"\n'
         "        role: subject\n"
+        f"        confirmed_by: [{joined}]\n"
+        f"{reason_line}"
     )
     return text + extra
 
@@ -286,39 +293,208 @@ def test_dataset_and_page_without_a_fixture(tmp_path: Path) -> None:
     assert report["blocking"] == 0
 
 
-def test_new_single_read_fixture_blocks_until_it_has_a_reason(tmp_path: Path) -> None:
-    bare = init_repo(tmp_path)
-    write(bare, "README.md", "base\n")
-    commit(bare, "base")
-    _git(bare, "branch", "base")
-    write(bare, "benchmarks/_charts/new.yaml", chart(bar("96.0"), readings=READ_ONE))
-    commit(bare, "head")
-    blocked, blocked_report = checked(bare)
-    assert blocked.returncode == 1
-    assert blocked_report["findings"][0]["problem"] == (
-        "fewer than two distinct readers and no single_read_reason"
-    )
+def _branch_from_base(repo: Path) -> None:
+    write(repo, "README.md", "base\n")
+    commit(repo, "base")
+    _git(repo, "branch", "base")
 
-    other = tmp_path / "ok"
-    other.mkdir()
-    allowed = init_repo(other)
-    write(allowed, "README.md", "base\n")
-    commit(allowed, "base")
-    _git(allowed, "branch", "base")
+
+def test_new_fixture_with_two_confirmers_passes(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    _branch_from_base(repo)
+    write(repo, "benchmarks/_charts/new.yaml", chart(bar("96.0") + bar("80.0", benchmark="mmlu")))
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 0
+    assert report["findings"] == []
+    assert report["blocking"] == 0
+    assert proc.stdout.strip() != "nothing to check"
+
+
+def test_new_bar_with_one_confirmer_blocks(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    _branch_from_base(repo)
     write(
-        allowed,
+        repo,
+        "benchmarks/_charts/new.yaml",
+        chart(bar("96.0", confirmed_by=["one"]), readings=READ_TWO),
+    )
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 1
+    assert report["blocking"] == 1
+    assert len(report["findings"]) == 1
+    assert report["findings"][0]["level"] == "blocking"
+    assert report["findings"][0]["kind"] == "readers"
+    assert "fewer than two distinct readers and no single_read_reason" in (
+        report["findings"][0]["problem"]
+    )
+    assert "Widget" in report["findings"][0]["problem"]
+
+
+def test_bar_single_read_reason_passes(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    _branch_from_base(repo)
+    write(
+        repo,
+        "benchmarks/_charts/new.yaml",
+        chart(bar("96.0", confirmed_by=["one"], reason="the page was withdrawn")),
+    )
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 0
+    assert report["findings"] == []
+    assert report["blocking"] == 0
+
+
+def test_chart_single_read_reason_covers_its_bars(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    _branch_from_base(repo)
+    write(
+        repo,
         "benchmarks/_charts/new.yaml",
         chart(
-            bar("96.0"),
-            readings=READ_ONE,
+            bar("96.0", confirmed_by=["one"]) + bar("80.0", benchmark="mmlu", confirmed_by=["one"]),
             reason="second reader could not fetch the page",
         ),
     )
-    commit(allowed, "head")
-    passed, passed_report = checked(allowed)
-    assert passed.returncode == 0
-    assert passed_report["findings"] == []
-    assert passed.stdout.strip() != "nothing to check"
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 0
+    assert report["findings"] == []
+    assert report["blocking"] == 0
+
+
+def test_unchanged_single_read_bar_in_a_changed_fixture_is_not_judged(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    write(
+        repo,
+        "benchmarks/_charts/page.yaml",
+        chart(
+            bar("10", benchmark="mmlu", confirmed_by=["one"]) + bar("20", benchmark="gpqa_diamond")
+        ),
+    )
+    commit(repo, "base")
+    _git(repo, "branch", "base")
+    write(
+        repo,
+        "benchmarks/_charts/page.yaml",
+        chart(
+            bar("10", benchmark="mmlu", confirmed_by=["one"]) + bar("21", benchmark="gpqa_diamond")
+        ),
+    )
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 0
+    assert report["findings"] == []
+    assert report["blocking"] == 0
+
+
+def test_confirmed_by_dropping_to_one_reader_blocks(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    write(repo, "benchmarks/_charts/page.yaml", chart(bar("10", confirmed_by=["one", "two"])))
+    commit(repo, "base")
+    _git(repo, "branch", "base")
+    write(repo, "benchmarks/_charts/page.yaml", chart(bar("10", confirmed_by=["one"])))
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 1
+    assert any(
+        "fewer than two distinct readers and no single_read_reason" in item["problem"]
+        for item in report["findings"]
+    )
+    assert all(item["kind"] == "readers" for item in report["findings"])
+
+
+def test_removed_bar_is_informational(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    write(
+        repo,
+        "benchmarks/_charts/page.yaml",
+        chart(bar("10", benchmark="mmlu") + bar("20", benchmark="gpqa_diamond")),
+    )
+    commit(repo, "base")
+    _git(repo, "branch", "base")
+    write(repo, "benchmarks/_charts/page.yaml", chart(bar("10", benchmark="mmlu")))
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 0
+    assert report["blocking"] == 0
+    assert len(report["findings"]) == 1
+    removed = report["findings"][0]
+    assert removed["level"] == "info"
+    assert removed["kind"] == "removed"
+    assert removed["problem"].startswith("removed bar ")
+    assert "gpqa_diamond" in removed["problem"]
+    assert "removed bar" in proc.stdout
+
+
+def test_verified_single_read_warns(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    write(
+        repo,
+        "benchmarks/_charts/page.yaml",
+        chart(bar("96.0", confirmed_by=["one"])),
+    )
+    write(repo, "models/acme/widget.md", card([]))
+    commit(repo, "base")
+    _git(repo, "branch", "base")
+    write(repo, "models/acme/widget.md", card([row_yaml(96.04)]))
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 0
+    assert report["rows"][0]["outcome"] == "verified_single_read"
+    assert report["rows"][0]["level"] == "warning"
+    assert report["warnings"] == 1
+    assert report["blocking"] == 0
+    assert report["findings"] == []
+    assert "verified_single_read" in proc.stdout
+
+
+def test_reader_findings_list_at_most_50_rows(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    _branch_from_base(repo)
+    bars = "".join(
+        bar(str(index), benchmark=f"bench_{index}", confirmed_by=["one"]) for index in range(51)
+    )
+    write(repo, "benchmarks/_charts/new.yaml", chart(bars))
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 1
+    assert len(report["findings"]) == 51
+    assert proc.stdout.count("fewer than two distinct readers") == 50
+    assert "Blocking bars, 50 of 51." in proc.stdout
+    assert "| benchmarks/_charts/new.yaml | Scores | 51 | 0 |" in proc.stdout
+    assert "1 further blocking bar is omitted." in proc.stdout
+
+
+def test_reader_findings_do_not_claim_omitted_rows_when_all_are_shown(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    _branch_from_base(repo)
+    bars = "".join(
+        bar(str(index), benchmark=f"bench_{index}", confirmed_by=["one"]) for index in range(2)
+    )
+    write(repo, "benchmarks/_charts/new.yaml", chart(bars))
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 1
+    assert len(report["findings"]) == 2
+    assert "Blocking bars, 2 of 2." in proc.stdout
+    assert "omitted" not in proc.stdout
+
+
+def test_repeated_bar_key_pairs_by_position(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    bars = bar("10", confirmed_by=["one", "two"]) + bar("20", confirmed_by=["one"])
+    write(repo, "benchmarks/_charts/page.yaml", chart(bars))
+    commit(repo, "base")
+    _git(repo, "branch", "base")
+    later = READ_TWO.replace("2026-09-24", "2026-09-25")
+    write(repo, "benchmarks/_charts/page.yaml", chart(bars, readings=later))
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 0
+    assert report["findings"] == []
 
 
 def test_changed_fixture_with_a_disputed_bar_blocks(tmp_path: Path) -> None:
@@ -349,7 +525,15 @@ def test_bad_resolution_blocks(tmp_path: Path) -> None:
 
 def test_unchanged_single_read_fixture_does_not_block(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
-    write(repo, "benchmarks/_charts/old.yaml", chart(bar("1"), readings=READ_ONE, page="https://example.com/old"))
+    write(
+        repo,
+        "benchmarks/_charts/old.yaml",
+        chart(
+            bar("1", confirmed_by=["one"]),
+            readings=READ_ONE,
+            page="https://example.com/old",
+        ),
+    )
     write(repo, "benchmarks/_charts/page.yaml", chart(bar("96.0")))
     write(repo, "models/acme/widget.md", card([]))
     commit(repo, "base")

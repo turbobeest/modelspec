@@ -1,6 +1,7 @@
 page_url: "https://huggingface.co/inclusionAI/Ling-3.0-flash"
 publisher: "inclusionAI"
 read_on: "2026-09-24"
+phase: "phase2b-4"
 charts:
   - title: "Benchmark comparison"
     kind: image
