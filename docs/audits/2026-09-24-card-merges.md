@@ -215,7 +215,7 @@ averages match. Each task-type average covers every task of that type.
 
 - No surviving row cites a host or benchmark named in
   `tests/test_removed_sources.py`. The five rows these PRs added from those
-  sources (AutomationBench from #171, #194 and #196) were already removed by
+  sources (from #171, #194 and #196) were already removed by
   MODEL-117 before this audit. The test passes.
 - No `benchmarks.scores` value was set by any of the 25 PRs. MODEL-125's
   3,724 changes are removals of cloned values, which leave nulls. Every
