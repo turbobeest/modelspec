@@ -2,7 +2,7 @@
 // vocabulary publishes the registry's default per domain; the page prefers it
 // over the most-covered rule, and says so in the parse trace.
 import { describe, expect, it } from "vitest";
-import { pickBenchmark, type Vocabulary } from "../vocabulary";
+import { pickBenchmark, realTemplates, type Vocabulary } from "../vocabulary";
 import { realVocabulary } from "./vocab-fixtures";
 
 function withDefault(v: Vocabulary, domain: string, benchmark: string | null): Vocabulary {
@@ -32,5 +32,13 @@ describe("default benchmark per domain", () => {
   it("ignores a default that has no verified data in the vocabulary", () => {
     const v = withDefault(realVocabulary, "software_engineering", "no_such_benchmark");
     expect(pickBenchmark(v, "software_engineering")?.id).not.toBe("no_such_benchmark");
+  });
+});
+
+describe("templates", () => {
+  it("ranks the self-hosted assistant on chat preference, not on the coding default", () => {
+    const t = realTemplates(realVocabulary).find((x) => x.id === "private");
+    expect(t?.spec.domain).toBe("chat_preference");
+    expect(t?.spec.bench).toBe("arena_elo_style_control");
   });
 });
