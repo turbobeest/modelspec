@@ -86,69 +86,88 @@ export interface HostedDecisionEngine {
   decide(spec: DecisionSpec, options?: DecideOptions): Promise<Decision>;
 }
 
+/** Rejects with `onAbort()` when `signal` aborts first. */
+function unlessAborted<T>(work: Promise<T>, signal: AbortSignal, onAbort: () => Error): Promise<T> {
+  if (signal.aborted) return Promise.reject(onAbort());
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(onAbort());
+    signal.addEventListener("abort", abort, { once: true });
+    work.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+  });
+}
+
 export const hostedEngine: HostedDecisionEngine = {
   async decide(spec, options = {}) {
     const timeout = new AbortController();
     const timer = setTimeout(() => timeout.abort(), DECIDE_TIMEOUT_MS);
     const abort = () => timeout.abort();
     options.signal?.addEventListener("abort", abort, { once: true });
-    let response: Response;
+    // The timeout covers the whole exchange, body included: a response whose
+    // body stalls is as unanswered as one that never arrives.
+    const stopped = () =>
+      options.signal?.aborted
+        ? new DOMException("Aborted", "AbortError")
+        : new DecideApiError(
+            `The decision service did not answer within ${DECIDE_TIMEOUT_MS / 1000} seconds.`,
+            null,
+            "timeout",
+          );
     try {
-      response = await fetch(DECIDE_ENDPOINT, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          ...(options.snapshot ? { [SNAPSHOT_HEADER]: options.snapshot } : {}),
-        },
-        body: JSON.stringify(spec),
-        signal: timeout.signal,
-      });
-    } catch (error) {
-      if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
-      if (timeout.signal.aborted)
+      let response: Response;
+      try {
+        response = await fetch(DECIDE_ENDPOINT, {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            ...(options.snapshot ? { [SNAPSHOT_HEADER]: options.snapshot } : {}),
+          },
+          body: JSON.stringify(spec),
+          signal: timeout.signal,
+        });
+      } catch {
+        if (timeout.signal.aborted) throw stopped();
+        // A TypeError (a Cloudflare limit page carries no CORS header, so the
+        // browser reports it as a network failure) or an abort the page did not ask for.
+        throw new DecideApiError("The decision service could not be reached.", null, null);
+      }
+
+      let payload: unknown;
+      try {
+        payload = await unlessAborted(response.json() as Promise<unknown>, timeout.signal, stopped);
+      } catch (error) {
+        if (timeout.signal.aborted) throw stopped();
+        if (error instanceof DecideApiError) throw error;
         throw new DecideApiError(
-          `The decision service did not answer within ${DECIDE_TIMEOUT_MS / 1000} seconds.`,
-          null,
-          "timeout",
+          `The decision service returned a non-JSON response (${response.status}).`,
+          response.status,
+          "non_json",
         );
-      if (error instanceof Error && error.name === "AbortError") throw error;
-      throw new DecideApiError("The decision service could not be reached.", null, null);
+      }
+      if (!response.ok) {
+        const parsed = apiError(payload);
+        throw new DecideApiError(
+          parsed.message ?? `The decision service returned HTTP ${response.status}.`,
+          response.status,
+          parsed.code,
+          parsed.issues,
+        );
+      }
+
+      const parsed = decisionSchema.safeParse(payload);
+      if (!parsed.success) {
+        throw new DecideApiError(
+          "The decision service returned an invalid decision response.",
+          response.status,
+          "invalid_response",
+        );
+      }
+      return parsed.data;
     } finally {
       clearTimeout(timer);
       options.signal?.removeEventListener("abort", abort);
     }
-
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch {
-      throw new DecideApiError(
-        `The decision service returned a non-JSON response (${response.status}).`,
-        response.status,
-        "non_json",
-      );
-    }
-    if (!response.ok) {
-      const parsed = apiError(payload);
-      throw new DecideApiError(
-        parsed.message ?? `The decision service returned HTTP ${response.status}.`,
-        response.status,
-        parsed.code,
-        parsed.issues,
-      );
-    }
-
-    const parsed = decisionSchema.safeParse(payload);
-    if (!parsed.success) {
-      throw new DecideApiError(
-        "The decision service returned an invalid decision response.",
-        response.status,
-        "invalid_response",
-      );
-    }
-    return parsed.data;
   },
 };
 

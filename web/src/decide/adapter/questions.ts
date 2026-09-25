@@ -56,7 +56,8 @@ export async function evaluateQuestionOptions({
         job.option.n = answer.results.length;
         job.option.may = answer.may_qualify.length;
       } catch (error) {
-        if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) throw error;
+        // Only the page's own abort stops the probes; any other failure is this probe's.
+        if (signal?.aborted) throw error;
         // One refused probe costs that answer its count, not every question.
         // The console names the condition, so a refusal can be traced to its spec.
         job.option.failed = true;

@@ -138,6 +138,13 @@ no verified Snapshot held, a failed verification is cached as a refusal for one
 revalidation interval, then tried again. The Worker never answers from an
 unverified Snapshot.
 
+An isolate runs one load at a time (MODEL-153). Requests that arrive while a
+cold isolate is loading wait for that load and share its outcome, a Snapshot
+or an error, so a burst costs one download and one parsed Snapshot in memory.
+During a refresh, requests that can answer from the held Snapshot do so
+without waiting. A load older than 20 seconds (`LOAD_WAIT_SECONDS`) is
+presumed dead, and the next request starts another.
+
 ## Snapshot refresh
 
 A site deploy publishes a new Snapshot and a new `vocabulary.json` together

@@ -260,3 +260,152 @@ def test_entry_revalidates_and_reads_the_snapshot_header() -> None:
     assert "force=True" in source
     assert "If-None-Match" in source
     assert "_decision_cache" not in source, "the unbounded per-isolate cache is gone"
+
+
+# ── single flight: a cold burst waits on one load (MODEL-153) ──────────────
+#
+# The decide page's first answer is followed by the full explanation and six
+# next-question probes at once. On a cold isolate each of them used to fetch,
+# verify and parse its own copy of the snapshot.
+
+
+class GatedOrigin(Origin):
+    """An origin whose answers wait until the test opens the gate."""
+
+    def __init__(self, body: bytes, etag: str = '"v1"'):
+        super().__init__(body, etag)
+        self.gate: asyncio.Event | None = None
+
+    async def __call__(self, if_none_match: str | None):
+        gate = self.gate
+        if gate is not None:
+            self.requests.append(if_none_match)
+            await gate.wait()
+            self.requests.pop()
+        return await super().__call__(if_none_match)
+
+
+@pytest.fixture
+def parses(service, monkeypatch) -> list[str]:
+    seen: list[str] = []
+    real = service.load_snapshot
+
+    def counting(data, *, key):
+        snapshot = real(data, key=key)
+        seen.append(snapshot.snapshot_id)
+        return snapshot
+
+    monkeypatch.setattr(service, "load_snapshot", counting)
+    return seen
+
+
+def _bounded(coro):
+    """A red single-flight test fails in seconds rather than hanging the suite."""
+    return asyncio.run(asyncio.wait_for(coro, timeout=5))
+
+
+async def _started(*tasks: asyncio.Task) -> None:
+    """Let every task run up to its first await."""
+    for _ in range(len(tasks) + 3):
+        await asyncio.sleep(0)
+
+
+def test_a_cold_burst_waits_on_one_load(service, old_bytes, parses) -> None:
+    origin, clock = GatedOrigin(old_bytes), Clock()
+    holder = _holder(service, origin, clock)
+
+    async def burst():
+        origin.gate = asyncio.Event()
+        tasks = [asyncio.create_task(holder.current(KEY)) for _ in range(11)]
+        await _started(*tasks)
+        origin.gate.set()
+        return await asyncio.gather(*tasks)
+
+    answers = _bounded(burst())
+    assert origin.requests == [None], "one fetch for the whole burst"
+    assert len(parses) == 1, "one verify-and-parse, so memory holds one snapshot"
+    assert all(answer is answers[0] for answer in answers)
+
+
+@pytest.mark.parametrize("failure", ["network", "refused"])
+def test_a_cold_burst_shares_one_failure(service, old_bytes, parses, failure: str) -> None:
+    origin, clock = GatedOrigin(old_bytes if failure == "network" else _tampered(old_bytes)), Clock()
+    if failure == "network":
+        origin.fail = RuntimeError("connection reset")
+    holder = _holder(service, origin, clock)
+
+    async def burst():
+        origin.gate = asyncio.Event()
+        tasks = [asyncio.create_task(holder.current(KEY)) for _ in range(6)]
+        await _started(*tasks)
+        origin.gate.set()
+        return await asyncio.gather(*tasks, return_exceptions=True)
+
+    outcomes = _bounded(burst())
+    expected = RuntimeError if failure == "network" else service.SnapshotRefusalError
+    assert all(isinstance(outcome, expected) for outcome in outcomes), outcomes
+    assert origin.requests == [None], "the burst does not retry the failure six times"
+
+
+def test_a_warm_isolate_serves_the_held_snapshot_during_a_refresh(
+    service, old_bytes, new_bytes, parses
+) -> None:
+    origin, clock = GatedOrigin(old_bytes), Clock()
+    holder = _holder(service, origin, clock)
+    first = _run(holder.current(KEY))
+    origin.publish(new_bytes, '"v2"')
+    clock.now += service.REVALIDATE_SECONDS
+
+    async def burst():
+        origin.gate = asyncio.Event()
+        refresh = asyncio.create_task(holder.current(KEY))
+        await _started(refresh)
+        # Unforced callers answer from the verified snapshot at once.
+        assert await holder.current(KEY) is first
+        # A caller whose vocabulary names another snapshot waits for the refresh.
+        forced = asyncio.create_task(holder.current(KEY, force=True))
+        await _started(forced)
+        assert not forced.done()
+        origin.gate.set()
+        return await refresh, await forced
+
+    refreshed, forced = _bounded(burst())
+    assert refreshed is forced and refreshed.snapshot_id != first.snapshot_id
+    assert origin.requests == [None, '"v1"'], "the forced caller joined the refresh"
+
+
+def test_a_cancelled_load_hands_over_to_the_waiting_request(service, old_bytes, parses) -> None:
+    origin, clock = GatedOrigin(old_bytes), Clock()
+    holder = _holder(service, origin, clock)
+
+    async def burst():
+        origin.gate = asyncio.Event()
+        loader = asyncio.create_task(holder.current(KEY))
+        await _started(loader)
+        waiter = asyncio.create_task(holder.current(KEY))
+        await _started(waiter)
+        origin.gate = None  # the next fetch answers at once
+        loader.cancel()
+        return await waiter
+
+    assert _bounded(burst()).snapshot_id
+    assert len(parses) == 1
+
+
+def test_a_stuck_load_does_not_hold_the_isolate_forever(service, old_bytes, parses) -> None:
+    origin, clock = GatedOrigin(old_bytes), Clock()
+    holder = _holder(service, origin, clock)
+
+    async def burst():
+        origin.gate = asyncio.Event()  # never opened: this fetch hangs
+        stuck = asyncio.create_task(holder.current(KEY))
+        await _started(stuck)
+        origin.gate = None
+        clock.now += service.LOAD_WAIT_SECONDS
+        try:
+            return await holder.current(KEY)
+        finally:
+            stuck.cancel()
+
+    assert _bounded(burst()).snapshot_id
+    assert len(parses) == 1
