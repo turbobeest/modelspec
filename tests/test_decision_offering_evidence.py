@@ -127,3 +127,41 @@ def test_inheritance_happens_at_load_so_the_stored_snapshot_is_unchanged():
     assert first.to_bytes(key=None) == second.to_bytes(key=None)
     # Evidence is stored once, under the model; no offering carries a copy.
     assert set(first.content["lineup"]["evidence"]) == {"lab/m"}
+
+
+# --- one row per model when it has offerings (MODEL-159) ------------------------------------------
+
+
+def test_a_model_with_offerings_ranks_only_through_them():
+    _, index = build()
+    decision = decide(spec(), index, facets=facets)
+    bare = [r for r in decision.results if r.offering.provider is None]
+    assert bare == []
+    assert [r.offering.provider for r in decision.results if r.offering.model == "lab/m"] \
+        == ["p1", "p2", "p3"]
+    # Nor does the bare row wait in may_qualify beside its offerings.
+    assert all(m.offering.provider is not None for m in decision.may_qualify)
+
+
+def test_a_model_with_no_offering_ranks_as_itself():
+    built = build_snapshot(SnapshotInputs(
+        models=[generator("lab/m"), generator("lab/open")],
+        offerings=[sold("lab/m", "p1", 1.0)],
+        evidence=[evidence("lab/m", TERMINAL, 60.0), evidence("lab/open", TERMINAL, 58.0)],
+        sources=SOURCES, benchmark_domains=DOMAINS,
+    ), gate=False, as_of=AS_OF)
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    decision = decide(spec(), index, facets=facets)
+    assert [(r.offering.model, r.offering.provider) for r in decision.results] == [
+        ("lab/m", "p1"), ("lab/open", None)]
+
+
+def test_a_bare_model_row_is_represented_not_eliminated():
+    from decision.filter import apply
+    from decision.resolve import resolve
+
+    _, index = build()
+    filtered = apply(resolve(spec(), facets=facets), index)
+    assert "lab/m" not in filtered.feasible
+    assert "lab/m" not in {e.candidate for e in filtered.eliminated}
+    assert "lab/m" not in {m.candidate for m in filtered.may_qualify}

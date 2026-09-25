@@ -11,6 +11,7 @@ import datetime
 import hashlib
 import json
 import math
+import re
 from importlib import import_module
 from pathlib import Path
 from typing import Annotated, Literal, Self
@@ -64,6 +65,48 @@ class VerificationActor(Record):
     method: Text
 
 
+#: The ``model_family`` of a reader that runs no model: always independent.
+DETERMINISTIC = "deterministic"
+
+#: A family name's first word -> the lab whose lineage it is.
+_LINEAGES = {
+    "anthropic": "anthropic", "claude": "anthropic",
+    "openai": "openai", "gpt": "openai",
+    "google": "google", "gemini": "google", "gemma": "google",
+    "alibaba": "alibaba", "qwen": "alibaba",
+    "meta": "meta", "llama": "meta",
+    "xai": "xai", "grok": "xai",
+    "mistral": "mistral", "mixtral": "mistral", "codestral": "mistral",
+    "deepseek": "deepseek",
+}
+
+
+def model_family(name: str) -> str:
+    """The lineage a recorded ``model_family`` names: "claude" and "anthropic" are one.
+
+    Case and a trailing version are dropped ("gpt-5", "gemma4", "qwen3"); a
+    first word that names a known lineage ("claude-sonnet-5", "mistral-large")
+    maps to its lab. Gemma and Gemini are one family: a second key must not
+    share the first key's lineage. An unknown name is its own family.
+    """
+    base = re.sub(r"[-_ .]?v?\d[\w.\-]*$", "", name.strip().casefold()) or name.casefold()
+    return _LINEAGES.get(re.split(r"[-_ ]", base)[0], base)
+
+
+def independent_families(collector: str, verifier: str) -> bool:
+    """Two keys: the verifier is deterministic, or of another model family (MODEL-140)."""
+    return verifier == DETERMINISTIC or model_family(collector) != model_family(verifier)
+
+
+def verification_counts(outcome: str, collector: str, verifier: str) -> bool:
+    """Whether a logged verification decides its value's state.
+
+    A same-family ``verified`` is not a second key and does not count; any other
+    outcome counts, so a same-family mismatch still keeps a value out.
+    """
+    return outcome != "verified" or independent_families(collector, verifier)
+
+
 class Verification(Record):
     target: VerificationTarget
     collector: VerificationActor
@@ -87,8 +130,18 @@ class Verification(Record):
         return self
 
     @property
+    def independent(self) -> bool:
+        return independent_families(self.collector.model_family, self.verifier.model_family)
+
+    @property
+    def counts(self) -> bool:
+        """See ``verification_counts``: a same-family ``verified`` is ignored."""
+        return verification_counts(
+            self.outcome, self.collector.model_family, self.verifier.model_family)
+
+    @property
     def quarantined(self) -> bool:
-        return self.outcome != "verified"
+        return self.outcome != "verified" or not self.independent
 
 
 def _registry(info: ValidationInfo):

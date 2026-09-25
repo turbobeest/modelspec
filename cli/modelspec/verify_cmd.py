@@ -3,8 +3,9 @@
 Reads the queue in ``verification/queue/events.jsonl``, re-reads each claim from
 its retained source copy with the deterministic extractors, appends every
 outcome to ``verification/log.jsonl`` and prints a summary. Pass
-``--llm-reader claude`` to add the independent Claude Sonnet prose reader after
-the deterministic readers.
+``--llm-reader claude`` (Claude Sonnet) or ``--llm-reader mistral`` (Mistral
+Large on the local ollama host) to add a prose reader after the deterministic
+readers. A reader is only asked about values collected by another model family.
 """
 
 from __future__ import annotations
@@ -18,22 +19,26 @@ import typer
 from decision import verify as v
 from decision.sources import CopyStore
 
+#: ``--llm-reader`` name -> the ``decision.verify`` factory that builds it.
+READERS = {"claude": "claude_extractor", "mistral": "mistral_extractor"}
+
 
 def verify(
     changed_only: bool = typer.Option(
         False, "--changed-only", help="Only values re-queued by source change detection."),
     root: Path = typer.Option(v.REPO_ROOT, "--root", help="Repository root."),
     llm_reader: str | None = typer.Option(
-        None, "--llm-reader", help="Independent prose reader (supported: claude)."),
+        None, "--llm-reader", help="Independent prose reader: claude or mistral."),
     as_json: bool = typer.Option(False, "--json", help="Machine-readable output."),
 ) -> None:
     """Verify queued facts and evidence against their sources (two keys)."""
     directory = root / "verification"
     extractors = v.deterministic_extractors()
     if llm_reader is not None:
-        if llm_reader != "claude":
-            raise typer.BadParameter("supported reader: claude", param_hint="--llm-reader")
-        extractors.append(v.claude_extractor())
+        if llm_reader not in READERS:
+            raise typer.BadParameter(f"supported readers: {', '.join(READERS)}",
+                                     param_hint="--llm-reader")
+        extractors.append(getattr(v, READERS[llm_reader])())
     report = v.run(
         v.Queue(directory),
         v.VerificationLog(directory),

@@ -68,7 +68,11 @@ signature when a key is available (default: the environment). With a key, an
 unsigned or wrongly signed file is refused. It returns a `SnapshotIndex`:
 
 - `candidates()`: models and offerings in the lineup, sorted; the archive only
-  when asked;
+  when asked. A model with offerings is still a candidate here, because its
+  offerings answer its facts and evidence. The filter keeps its bare row out
+  of the lineup (MODEL-159): the offerings represent it, and the bare row
+  would tie with them. A model with no offering, such as open weights run on
+  your own hardware, ranks as its own row;
 - `fact(cid, facet)`: a `FactValue`. An offering answers its model's facets;
   `offering.provider`, `.region` and `.tier` come from its identity;
 - `ids_where(facet, op, arg)`: a `Bitset3` (passing, failing, unknown). Any

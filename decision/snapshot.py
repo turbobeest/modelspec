@@ -6,8 +6,10 @@ builds it, gates it and loads it:
 * ``build_snapshot`` compiles models, offerings and evidence into a columnar
   snapshot. Only values whose latest verification is ``verified`` enter, and
   only when every source they name resolves to a registered URL that is not an
-  excluded source. Retired models and their offerings go to a separate
-  ``archive`` section. With a premier list, the ``lineup`` holds only the
+  excluded source. A ``verified`` from the collector's own model family is not
+  a second key (MODEL-159): it is skipped as if never logged, while a
+  same-family mismatch still counts. Retired models and their offerings go to
+  a separate ``archive`` section. With a premier list, the ``lineup`` holds only the
   premier models and their offerings; other active models are counted in
   ``out_of_lineup`` and left out (MODEL-157). The legacy flat
   ``benchmarks.scores`` block is never read.
@@ -47,7 +49,7 @@ from typing import Any, Literal, Protocol, runtime_checkable
 import yaml
 
 from decision.excluded import ExcludedSources, excluded_sources
-from decision.model import value_hash
+from decision.model import value_hash, verification_counts
 
 FORMAT = "modelspec.decision-snapshot"
 FORMAT_VERSION = 1
@@ -188,14 +190,16 @@ class SnapshotIndex(Protocol):
 
     def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]: ...
 
+    def kind(self, cid: str) -> Literal["model", "offering"]: ...
+
+    def model_of(self, cid: str) -> str: ...
+
 
 @runtime_checkable
 class ExplanationIndex(SnapshotIndex, Protocol):
     """Snapshot metadata and retained records needed to transport a decision."""
 
     def require_explanation_records(self) -> None: ...
-    def kind(self, cid: str) -> Literal["model", "offering"]: ...
-    def model_of(self, cid: str) -> str: ...
     def source_url(self, source_id: str) -> str: ...
     def record(self, record_id: str) -> Mapping[str, Any]: ...
     def facet_ids(self) -> tuple[str, ...]: ...
@@ -228,6 +232,12 @@ def _as_dict(record: Any) -> dict[str, Any]:
     if hasattr(record, "model_dump"):
         return record.model_dump(mode="json", by_alias=True)
     raise SnapshotBuildError(f"not a record: {record!r}")
+
+
+def _counts(v: Mapping[str, Any]) -> bool:
+    """A same-family ``verified`` is not a second key: it neither admits nor displaces."""
+    return verification_counts(str(v["outcome"]), str(v["collector"]["model_family"]),
+                               str(v["verifier"]["model_family"]))
 
 
 def _offering_id(o: Mapping[str, Any]) -> str:
@@ -380,6 +390,8 @@ class _Compiler:
         latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
         for i, raw in enumerate(rows):
             v = _as_dict(raw)
+            if not _counts(v):
+                continue
             target = v["target"]
             key = (target["kind"], target["id"], str(target.get("value_hash") or ""))
             entry = (str(v["date"]), i + 1, v)
@@ -394,6 +406,7 @@ class _Compiler:
         best = (
             None
             if inline_record is None
+            or not _counts(inline_record)
             or inline_record.get("target", {}).get("value_hash") != expected
             else (str(inline_record["date"]), 0, inline_record)
         )
