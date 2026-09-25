@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { BENCH, FACETS, TYPES, label } from "../adapter";
+import { BENCH } from "../adapter";
 import type { Cond, Spec } from "../adapter";
 import type { AdapterDecision } from "../adapter";
 import { setWeight } from "../state/spec";
 import type { ParsedTask } from "../engine/reference";
+import type { FacetOp, FacetValue, TypeKey } from "../engine/types";
+import { useVocab } from "../vocabulary/context";
+import { domainForType } from "../vocabulary";
+import { issuesFor } from "../vocabulary/issues";
+import type { PlacedIssue } from "../vocabulary/issues";
 export function SpecPanel({
   spec,
   decision,
@@ -17,9 +22,10 @@ export function SpecPanel({
   setAddOpen,
   edit,
   setEdit,
+  issues = [],
 }: {
   spec: Spec;
-  decision: AdapterDecision;
+  decision: AdapterDecision | null;
   draft: string;
   onDraft: (v: string) => void;
   onParse: () => void;
@@ -30,24 +36,34 @@ export function SpecPanel({
   setAddOpen: (v: boolean) => void;
   edit: number | null;
   setEdit: (v: number | null) => void;
+  /** A refused spec's issues, placed on the control that caused each. */
+  issues?: PlacedIssue[];
 }) {
+  const vocab = useVocab();
+  const { label } = vocab;
   const [query, setQuery] = useState("");
-  const matches = FACETS.filter((f) =>
+  const matches = vocab.facetOptions.filter((f) =>
     query
       .toLowerCase()
       .split(/\s+/)
       .every((w) => (f.k + " " + f.label).toLowerCase().includes(w)),
   );
-  const update = (i: number, c: Cond) =>
+  const update = (i: number, c: Cond) => {
+    const retyped =
+      c.f === "type" && vocab.vocabulary ? domainForType(vocab.vocabulary, c.v) : null;
     onSpec({
       ...spec,
-      bench:
-        c.f === "type"
-          ? Object.keys(BENCH).find((b) => BENCH[b].types.includes(c.v)) ||
-            spec.bench
-          : spec.bench,
+      ...(retyped ?? {}),
+      ...(c.f === "type" && !vocab.vocabulary
+        ? {
+            bench:
+              Object.keys(BENCH).find((b) => BENCH[b].types.includes(c.v)) ||
+              spec.bench,
+          }
+        : {}),
       conds: spec.conds.map((x, j) => (j === i ? c : x)),
     });
+  };
   const remove = (i: number) => {
     onSpec({ ...spec, conds: spec.conds.filter((_, j) => i !== j) });
     setEdit(null);
@@ -64,6 +80,7 @@ export function SpecPanel({
   };
   const ec = edit === null ? null : spec.conds[edit];
   const conditionAvailable = (condition: Cond) => {
+    if (!decision) return true;
     switch (condition.f) {
       case "task$":
       case "in$":
@@ -83,6 +100,16 @@ export function SpecPanel({
         return true;
     }
   };
+  const benchLabel = vocab.benchName(spec.bench);
+  const weightName = (k: "cap" | "cost" | "speed") =>
+    k === "cap" ? benchLabel : k === "cost" ? "$ per task" : "Tok/s";
+  const tokenIssues = issuesFor(issues, { kind: "tokens" });
+  const weightIssues = issuesFor(issues, { kind: "weights" });
+  const removed = (i: number) => {
+    const funnel = decision?.explanation.funnel;
+    const drop = funnel && funnel[i] && funnel[i + 1] ? funnel[i].n - funnel[i + 1].n : 0;
+    return drop ? "−" + drop + " removed" : "";
+  };
   return (
     <section className="panel spec-panel" aria-label="Your spec">
       <div className="spec-top">
@@ -101,7 +128,7 @@ export function SpecPanel({
             placeholder="Describe your task (optional), then press Enter"
           />
         </label>
-        <div>
+        <div className={tokenIssues.length ? "has-issue" : undefined}>
           <div className="eyebrow">Tokens per task</div>
           <div className="token-inputs">
             <input
@@ -127,30 +154,23 @@ export function SpecPanel({
             />{" "}
             out
           </div>
+          {tokenIssues.map((text) => (
+            <p key={text} className="issue-note" role="note">
+              {text}
+            </p>
+          ))}
         </div>
-        <div>
+        <div className={weightIssues.length ? "has-issue" : undefined}>
           <div className="eyebrow">Rank by (weights sum to 1)</div>
           <div className="weights">
-            {(["cap", "cost", "speed"] as const).map((k) => (
+            {vocab.weightKeys.map((k) => (
               <label key={k}>
                 <span>
-                  {k === "cap"
-                    ? spec.bench
-                    : k === "cost"
-                      ? "$ per task"
-                      : "Tok/s"}{" "}
-                  <strong>{spec.w[k].toFixed(2)}</strong>
+                  {weightName(k)} <strong>{spec.w[k].toFixed(2)}</strong>
                 </span>
                 <input
                   type="range"
-                  aria-label={
-                    "Weight on " +
-                    (k === "cap"
-                      ? spec.bench
-                      : k === "cost"
-                        ? "$ per task"
-                        : "Tok/s")
-                  }
+                  aria-label={"Weight on " + weightName(k)}
                   min="0"
                   max="1"
                   step="0.05"
@@ -158,13 +178,18 @@ export function SpecPanel({
                   onChange={(e) =>
                     onSpec({
                       ...spec,
-                      w: setWeight(spec.w, k, Number(e.target.value)),
+                      w: setWeight(spec.w, k, Number(e.target.value), vocab.weightKeys),
                     })
                   }
                 />
               </label>
             ))}
           </div>
+          {weightIssues.map((text) => (
+            <p key={text} className="issue-note" role="note">
+              {text}
+            </p>
+          ))}
         </div>
       </div>
       <div className="chips">
@@ -177,10 +202,13 @@ export function SpecPanel({
           </>
         ) : (
           <>
-            {spec.conds.map((c, i) => (
+            {spec.conds.map((c, i) => {
+              const problems = issuesFor(issues, { kind: "condition", index: i });
+              return (
+              <span key={i} className="chip-wrap">
               <span
-                key={i}
-                className={`chip ${c.from ? "parsed" : ""} ${c.soft ? "soft" : ""} ${i === edit ? "editing" : ""}`}
+                className={`chip ${c.from ? "parsed" : ""} ${c.soft ? "soft" : ""} ${i === edit ? "editing" : ""} ${problems.length ? "has-issue" : ""}`}
+                data-issue={problems.length ? "true" : undefined}
               >
                 <button
                   aria-label={"Edit condition: " + label(c)}
@@ -198,13 +226,7 @@ export function SpecPanel({
                       !conditionAvailable(c)
                         ? "not available in this snapshot"
                         : "",
-                      decision.explanation.funnel[i].n -
-                      decision.explanation.funnel[i + 1].n
-                        ? "−" +
-                          (decision.explanation.funnel[i].n -
-                            decision.explanation.funnel[i + 1].n) +
-                          " removed"
-                        : "",
+                      removed(i),
                     ]
                       .filter(Boolean)
                       .join(" · ")}
@@ -217,7 +239,14 @@ export function SpecPanel({
                   ×
                 </button>
               </span>
-            ))}
+              {problems.map((text) => (
+                <span key={text} className="issue-note" role="note">
+                  {text}
+                </span>
+              ))}
+              </span>
+              );
+            })}
             <button
               className="add"
               aria-expanded={addOpen}
@@ -284,7 +313,7 @@ export function SpecPanel({
                   min="0"
                   step={
                     ec.f === "bench"
-                      ? (decision.benchmarks[ec.b]?.d ?? 2) === 3
+                      ? (vocab.benchmarks[ec.b]?.d ?? 2) === 3
                         ? 0.005
                         : 0.5
                       : ec.f === "task$"
@@ -302,7 +331,7 @@ export function SpecPanel({
                   }
                 />
                 {ec.f === "bench"
-                  ? decision.benchmarks[ec.b]?.unit ??
+                  ? vocab.benchmarks[ec.b]?.unit ??
                     "not available in this snapshot"
                   : ec.f === "ctx"
                     ? "tokens"
@@ -357,16 +386,22 @@ export function SpecPanel({
           )}
           {ec.f === "type" && (
             <div className="segments">
-              {(Object.keys(TYPES) as (keyof typeof TYPES)[]).map((v) => (
+              {(Object.keys(vocab.types) as TypeKey[]).map((v) => (
                 <button
                   key={v}
                   aria-pressed={ec.v === v}
                   onClick={() => update(edit, { ...ec, v })}
                 >
-                  {TYPES[v]}
+                  {vocab.types[v]}
                 </button>
               ))}
             </div>
+          )}
+          {ec.f === "facet" && (
+            <FacetEditor
+              cond={ec}
+              onChange={(next) => update(edit, next)}
+            />
           )}
           {ec.f === "origin" && (
             <label>
@@ -414,5 +449,113 @@ export function SpecPanel({
         </div>
       )}
     </section>
+  );
+}
+
+const EDITABLE_OPS: readonly FacetOp[] = ["=", "!=", "<=", ">=", "in", "not in"];
+const OP_NAMES: Readonly<Record<FacetOp, string>> = {
+  "=": "is",
+  "!=": "is not",
+  "<=": "at most",
+  ">=": "at least",
+  in: "any of",
+  "not in": "none of",
+};
+
+/** The editor for a condition on any vocabulary facet: its operators and its values. */
+function FacetEditor({
+  cond,
+  onChange,
+}: {
+  cond: Extract<Cond, { f: "facet" }>;
+  onChange: (c: Cond) => void;
+}) {
+  const { vocabulary } = useVocab();
+  const row = vocabulary?.facets.find((facet) => facet.id === cond.facet);
+  if (!row) return <small>not available in this snapshot</small>;
+  const ops = EDITABLE_OPS.filter((op) => row.operators.includes(op));
+  const choices = (row.values ?? []).map((item) => item.value);
+  const listed = Array.isArray(cond.value) ? cond.value : [String(cond.value)];
+  const setOp = (op: FacetOp) => {
+    const many = op === "in" || op === "not in";
+    const first = listed[0];
+    const value: FacetValue = many
+      ? listed
+      : Array.isArray(cond.value)
+        ? (choices.find((c) => String(c) === first) ?? first)
+        : cond.value;
+    onChange({ ...cond, op, value });
+  };
+  const toggle = (value: string) => {
+    const next = listed.includes(value)
+      ? listed.filter((item) => item !== value)
+      : [...listed, value];
+    if (next.length) onChange({ ...cond, value: next });
+  };
+  return (
+    <>
+      <div className="segments" role="group" aria-label="Operator">
+        {ops.map((op) => (
+          <button key={op} aria-pressed={cond.op === op} onClick={() => setOp(op)}>
+            {OP_NAMES[op]}
+          </button>
+        ))}
+      </div>
+      {row.value_type === "number" && (
+        <label>
+          Value
+          <span className="inline">
+            <input
+              aria-label="Condition value"
+              type="number"
+              value={typeof cond.value === "number" ? cond.value : 0}
+              onChange={(e) => onChange({ ...cond, value: Number(e.target.value) })}
+            />
+            {row.unit?.replaceAll("_", " ")}
+          </span>
+        </label>
+      )}
+      {row.value_type === "date" && (
+        <label>
+          Date
+          <input
+            aria-label="Condition value"
+            type="date"
+            value={typeof cond.value === "string" ? cond.value : ""}
+            onChange={(e) => e.target.value && onChange({ ...cond, value: e.target.value })}
+          />
+        </label>
+      )}
+      {row.value_type === "boolean" && (
+        <div className="segments" role="group" aria-label="Value">
+          {[true, false].map((value) => (
+            <button
+              key={String(value)}
+              aria-pressed={cond.value === value}
+              onClick={() => onChange({ ...cond, value })}
+            >
+              {value ? "Yes" : "No"}
+            </button>
+          ))}
+        </div>
+      )}
+      {(row.value_type === "enum" || row.value_type === "set") && (
+        <div className="segments" role="group" aria-label="Values">
+          {choices.map((choice) => {
+            const value = String(choice);
+            const many = cond.op === "in" || cond.op === "not in";
+            return (
+              <button
+                key={value}
+                aria-pressed={listed.includes(value)}
+                onClick={() => (many ? toggle(value) : onChange({ ...cond, value }))}
+              >
+                {value.replaceAll(/[_-]+/g, " ")}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }

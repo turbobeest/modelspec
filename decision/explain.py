@@ -15,6 +15,25 @@ def facet_unit(facet_id):
     return registry_facet(facet_id).unit
 
 
+def computed(snapshot, cid, facet_id):
+    """The computed value behind a fact (MODEL-153), or ``None`` for a stored one."""
+    lookup = getattr(snapshot, "computed", None)
+    return None if lookup is None else lookup(cid, facet_id)
+
+
+def fact_provenance(snapshot, cid, facet_id):
+    """Records, unit and formula behind a non-evidence fact. A stored fact has
+    one checked record; a computed one has the records it was computed from."""
+    found = computed(snapshot, cid, facet_id)
+    if found is not None:
+        for rid in found.records:
+            checked_record(snapshot, rid)
+        return list(found.records), facet_unit(facet_id), found.formula
+    fact = snapshot.fact(cid, facet_id)
+    checked_record(snapshot, fact.record_id)
+    return [fact.record_id], facet_unit(facet_id), None
+
+
 def checked_record(snapshot, rid):
     if not rid:
         raise ExplanationError("snapshot lacks retained provenance; rebuild it before explaining")
@@ -98,6 +117,7 @@ def contributions(snapshot, cid, parts, evidence):
         records = []
         items = []
         unit = None
+        formula = None
         if part.evidence:
             ids = {e.record_id for e in part.evidence}
             items = [item for group in evidence for item in group.items if item.record_id in ids]
@@ -110,11 +130,8 @@ def contributions(snapshot, cid, parts, evidence):
             for rid in records:
                 checked_record(snapshot, rid)
         elif part.raw_value is not None:
-            facet_id = part.dimension.removeprefix("-")
-            fact = snapshot.fact(cid, facet_id)
-            checked_record(snapshot, fact.record_id)
-            records = [fact.record_id]
-            unit = facet_unit(facet_id)
+            records, unit, formula = fact_provenance(
+                snapshot, cid, part.dimension.removeprefix("-"))
         norm = part.normalisation
         out.append(
             Contribution(
@@ -129,6 +146,7 @@ def contributions(snapshot, cid, parts, evidence):
                 f"maximum={norm.maximum} {unit or 'unit not recorded'}; "
                 "constant dimensions contribute zero dimensionless",
                 evidence=items,
+                formula=formula,
             )
         )
     return out
@@ -242,9 +260,13 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             ref = offering_ref(snapshot, reason.candidate)
             records = []
             unit = None
+            formula = None
             if reason.facet and reason.value is not None:
                 fact = snapshot.fact(reason.candidate, reason.facet)
-                if fact.record_id:
+                if computed(snapshot, reason.candidate, reason.facet) is not None:
+                    records, unit, formula = fact_provenance(
+                        snapshot, reason.candidate, reason.facet)
+                elif fact.record_id:
                     checked_record(snapshot, fact.record_id)
                     records = [fact.record_id]
                     unit = facet_unit(reason.facet)
@@ -264,6 +286,7 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                         values=values,
                         unit=unit,
                         records=records,
+                        formula=formula,
                     )
                 )
             if (
@@ -281,6 +304,7 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                         distance=_distance(reason, condition),
                         unit=unit,
                         records=records,
+                        formula=formula,
                     )
                 )
     if decision.explain == "full":
@@ -330,6 +354,14 @@ def _full(decision, snapshot, filtered, ordered, requested):
             facts.append(
                 ShownFact(facet=facet, value=fact.value, unit=unit, record_id=fact.record_id)
             )
+        from decision.computed import COMPUTED_FACETS
+
+        for facet in COMPUTED_FACETS:
+            found = computed(snapshot, cid, facet)
+            if found is not None:
+                records, unit, formula = fact_provenance(snapshot, cid, facet)
+                facts.append(ShownFact(facet=facet, value=found.value, unit=unit,
+                                       records=records, formula=formula))
         evidence = domain_evidence(snapshot, cid, set(snapshot.domain_ids()) | requested)
         decision.top.append(
             CandidateValues(
@@ -438,7 +470,11 @@ def number_origins(decision, snapshot):
             or key in ("value", "values")
             and ("record_id" in parent or "condition" in parent or "facet" in parent)
         )
-        if raw and records:
+        if raw and isinstance(parent, dict) and parent.get("formula"):
+            # Computed per decision from the records listed (MODEL-153), so it is
+            # checked against the formula, not against one record's value.
+            basis = "computed per decision: " + parent["formula"]
+        elif raw and records:
             basis = "snapshot measurement"
 
             def original(rid):
@@ -528,7 +564,8 @@ def render_html(decision, snapshot):
                 f"<p>{esc(c.dimension)}: {quantity(c.raw_value, c.unit)}; "
                 f"normalised value {quantity(c.value, 'dimensionless')}; "
                 f"weight {quantity(c.weight, 'dimensionless')}. "
-                f"{esc(c.normalisation)} {links(c.records)}</p>"
+                + (f"Computed: {esc(c.formula)}. " if c.formula else "")
+                + f"{esc(c.normalisation)} {links(c.records)}</p>"
             )
             groups = {}
             for item in c.evidence:
@@ -593,7 +630,9 @@ def render_html(decision, snapshot):
         out.append(
             f"<p>{esc(miss.offering.model)} · {esc(miss.condition)}: "
             f"{value}; "
-            f"distance to boundary {quantity(miss.distance, miss.unit)}. {links(miss.records)}</p>"
+            f"distance to boundary {quantity(miss.distance, miss.unit)}. "
+            + (f"Computed: {esc(miss.formula)}. " if miss.formula else "")
+            + f"{links(miss.records)}</p>"
         )
     out.append("</section><section><h2>Why others did not win</h2>")
     for reason in decision.eliminated.models:
@@ -621,10 +660,12 @@ def render_html(decision, snapshot):
                     if isinstance(fact.value, (int, float)) and not isinstance(fact.value, bool)
                     else esc(fact.value)
                 )
-                out.append(
-                    f"<p>{esc(fact.facet)}: {value}. "
-                    f"{links([fact.record_id]) if fact.record_id else 'Identity'}</p>"
+                provenance = (
+                    links([fact.record_id]) if fact.record_id
+                    else f"Computed: {esc(fact.formula)}. {links(fact.records)}" if fact.formula
+                    else "Identity"
                 )
+                out.append(f"<p>{esc(fact.facet)}: {value}. {provenance}</p>")
             out.append(parts(row.contributions) + evidence(row.evidence))
         out.append("</section>")
     out.append("</body></html>")

@@ -126,6 +126,8 @@ class Facet:
     parameter: Parameter | None = None
     required_qualifiers: tuple[str, ...] = ()
     computed_by: str | None = None
+    #: A short name for people, such as "Input price". Optional.
+    label: str | None = None
 
     @property
     def unknown_policy(self) -> UnknownPolicy:
@@ -453,7 +455,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
     entries = _read(root, "facets", "facets")
     _unique(err, "facets.yaml", entries, FACET_ID, "dotted snake_case, such as model.context_window")
     required = {"id", "subject", "value_type", "definition", "tier", "risk", "permitted_source_kinds"}
-    optional = {"unit", "parameter", "required_qualifiers", "computed_by"}
+    optional = {"unit", "parameter", "required_qualifiers", "computed_by", "label"}
     out: dict[str, Facet] = {}
     for e in entries:
         where = f"facets.yaml {e.get('id')!r}"
@@ -479,6 +481,10 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
                 err.add(where, f"parameter values_from {param['values_from']!r} is not a known list")
             else:
                 parameter = Parameter(str(param["name"]), str(param["values_from"]))
+        label = e.get("label")
+        if label is not None and (not isinstance(label, str) or not label.strip()):
+            err.add(where, "label must be a non-empty string")
+            label = None
         rq = e.get("required_qualifiers", [])
         if not isinstance(rq, list) or not all(isinstance(q, str) for q in rq):
             err.add(where, "required_qualifiers must be a list of names")
@@ -490,7 +496,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             definition=" ".join(str(e.get("definition", "")).split()),
             tier=e.get("tier"), risk=e.get("risk"), permitted_source_kinds=tuple(psk),
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
-            computed_by=e.get("computed_by"),
+            computed_by=e.get("computed_by"), label=label,
         ))
     return out
 

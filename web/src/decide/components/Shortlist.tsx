@@ -1,4 +1,5 @@
-import { fmtB, fmtCI, money, label, reason } from "../adapter";
+import { fmtB, fmtCI, money, reason } from "../adapter";
+import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Spec } from "../adapter";
 export function Shortlist({
   decision,
@@ -11,6 +12,9 @@ export function Shortlist({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
+  const { label, benchName, weightKeys } = useVocab(),
+    bench = benchName(spec.bench),
+    speed = weightKeys.includes("speed");
   const e = decision.explanation,
     s = e.shortlist,
     seen = new Map<string, string>();
@@ -19,8 +23,8 @@ export function Shortlist({
       <section className="panel">
         <div className="eyebrow">Shortlist</div>
         <small>
-          {spec.bench} {spec.w.cap.toFixed(2)} · $ {spec.w.cost.toFixed(2)} ·
-          speed {spec.w.speed.toFixed(2)}
+          {bench} {spec.w.cap.toFixed(2)} · $ {spec.w.cost.toFixed(2)}
+          {speed && ` · speed ${spec.w.speed.toFixed(2)}`}
         </small>
         <div className="cards">
           {[
@@ -47,7 +51,7 @@ export function Shortlist({
                         {dup
                           ? "same as " + dup.toLowerCase()
                           : role === "Best value"
-                            ? "most " + spec.bench + " per $"
+                            ? "most " + bench + " per $"
                             : role === "Best overall for your weights"
                               ? "#1 of " + e.feasible.length
                               : role === "Best open weights"
@@ -65,7 +69,7 @@ export function Shortlist({
                     </span>
                     <div className="metrics">
                       <span>
-                        <small>{spec.bench}</small>
+                        <small>{bench}</small>
                         {fmtB(spec.bench, row.cap)}{" "}
                         <small>{fmtCI(spec.bench, row.capR)}</small>
                         <small>
@@ -76,10 +80,12 @@ export function Shortlist({
                         <small>$ per task</small>
                         {money(row.cost)}
                       </span>
-                      <span>
-                        <small>Output</small>
-                        {row.tps ?? "unknown"} {row.tps === null ? "" : "tok/s"}
-                      </span>
+                      {speed && (
+                        <span>
+                          <small>Output</small>
+                          {row.tps ?? "unknown"} {row.tps === null ? "" : "tok/s"}
+                        </span>
+                      )}
                     </div>
                     {(e.insep(row).length > 0 ||
                       row.labOnly ||
@@ -93,7 +99,7 @@ export function Shortlist({
                                 .map((r) => r.m.name)
                                 .join(", ") +
                               " on " +
-                              spec.bench
+                              bench
                             : "",
                           row.labOnly ? "Ranked on a lab-reported score" : "",
                           row.best.softs.length

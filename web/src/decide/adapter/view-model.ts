@@ -1,4 +1,13 @@
-import type { BenchDef, Cond, Evidence, Model, Offering, Spec, TypeKey } from "../engine/types";
+import type {
+  BenchDef,
+  Cond,
+  Evidence,
+  FacetValue,
+  Model,
+  Offering,
+  Spec,
+  TypeKey,
+} from "../engine/types";
 import type { FullEval, NearMiss, Question, RankedRow, Row, Test } from "../engine/reference";
 import type { Axis } from "../state/spec";
 import type { AdapterDecision } from "./index";
@@ -61,6 +70,19 @@ function classId(type: Extract<Cond, { f: "type" }>["v"]): string {
   }
 }
 
+const BARE = /^[A-Za-z0-9_][A-Za-z0-9_.:/+@-]*$/;
+const RESERVED = new Set(["in", "not", "measured_after", "soft", "unknown", "true", "false"]);
+
+/** A value in the compact condition syntax: bare when it would read back as itself. */
+export function compactValue(value: FacetValue): string {
+  if (Array.isArray(value)) return `{${value.map(compactValue).join(", ")}}`;
+  if (typeof value === "boolean" || typeof value === "number") return JSON.stringify(value);
+  const looksTyped = /^-?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(value);
+  return BARE.test(value) && !looksTyped && !RESERVED.has(value) && !value.endsWith(":")
+    ? value
+    : JSON.stringify(value);
+}
+
 export function contractCondition(condition: Cond): string {
   const soft = condition.soft ? " soft(0.2)" : "";
   switch (condition.f) {
@@ -77,7 +99,7 @@ export function contractCondition(condition: Cond): string {
     case "bench":
       return `${slug(condition.b)} >= ${condition.min}${condition.indep ? " @independent" : ""}${soft}`;
     case "task$":
-      return `cost_per_task <= ${condition.max}${soft}`;
+      return `offering.cost_per_task <= ${condition.max}${soft}`;
     case "in$":
       return `offering.price.input <= ${condition.max}${soft}`;
     case "resid":
@@ -92,6 +114,8 @@ export function contractCondition(condition: Cond): string {
       return `origin.lab_jurisdiction not in {${condition.ex.join(", ")}}${soft}`;
     case "rel":
       return `${slug(condition.b)} >= model(${condition.ref})${soft}`;
+    case "facet":
+      return `${condition.facet} ${condition.op} ${compactValue(condition.value)}${soft}`;
   }
 }
 
@@ -112,6 +136,7 @@ function taskType(task: string | undefined): DecisionSpec["task_type"] {
 }
 
 function capabilities(spec: Spec): DecisionSpec["capabilities"] {
+  if (spec.domain) return { [spec.domain]: "required" };
   const type = spec.conds.find(
     (condition): condition is Extract<Cond, { f: "type" }> => condition.f === "type",
   )?.v;
@@ -128,13 +153,14 @@ export function toDecisionSpec(
 ): DecisionSpec {
   const weights: Record<string, number> = {};
   if (spec.w.cap > 0) weights[slug(spec.bench)] = spec.w.cap;
-  if (spec.w.cost > 0) weights["-cost_per_task"] = spec.w.cost;
+  if (spec.w.cost > 0) weights["-offering.cost_per_task"] = spec.w.cost;
   if (spec.w.speed > 0) weights["offering.speed.throughput"] = spec.w.speed;
   return {
     spec_version: 1,
     snapshot: "latest",
     task_type: taskType(spec.task),
     capabilities: capabilities(spec),
+    task_tokens: { input: Math.round(spec.tokIn), output: Math.round(spec.tokOut) },
     where: spec.conds.map(contractCondition),
     optimize: { weights },
     unknowns: "default",
@@ -196,6 +222,15 @@ function stringFact(
   )
     return null;
   return fact.value;
+}
+
+function engineCost(
+  facts: Decision["top"][number]["facts"],
+): { cost?: number; costFormula?: string } {
+  const fact = facts.find((item) => item.facet === "offering.cost_per_task");
+  return fact && typeof fact.value === "number" && fact.formula
+    ? { cost: fact.value, costFormula: fact.formula }
+    : {};
 }
 
 function uiEvidence(item: EvidenceItem): Evidence {
@@ -261,6 +296,7 @@ function modelAndOffering(
     ttft,
     tps: throughput,
     ret: retention,
+    ...engineCost(facts),
   };
   const open = openness === null ? null : openness === "open_weights";
   const model: Model = {
@@ -287,7 +323,12 @@ function modelAndOffering(
   return { model, offering, evidence };
 }
 
+/**
+ * $ per task. The engine's `offering.cost_per_task` when the decision shows it;
+ * otherwise the same formula (docs/decision-contract.md) over the engine's prices.
+ */
 function costPerTask(offering: Offering, spec: Spec): number | null {
+  if (offering.cost !== undefined) return offering.cost;
   if (offering.in === null || offering.out === null) return null;
   return (spec.tokIn * offering.in + spec.tokOut * offering.out) / 1_000_000;
 }
@@ -351,7 +392,7 @@ function rankedRow(
         ?.value ?? 0,
     cost:
       result.contributions.find((item) =>
-        ["cost_per_task", "offering.price.input"].includes(
+        ["offering.cost_per_task", "offering.price.input"].includes(
           item.dimension.replace(/^-/, ""),
         ),
       )?.value ?? 0,
@@ -575,7 +616,13 @@ function shortlist(rows: RankedRow[], spec: Spec): FullEval["shortlist"] {
 export function mapDecisionToViewModel(
   decision: Decision,
   spec: Spec,
-  options: { axis: Axis; dismissed: string[]; questions?: Question[] },
+  options: {
+    axis: Axis;
+    dismissed: string[];
+    questions?: Question[];
+    /** The benchmarks to offer, from the published vocabulary (real mode). */
+    benchmarks?: Record<string, BenchDef>;
+  },
 ): AdapterDecision {
   const sources = sourceRecords(decision);
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
@@ -640,7 +687,7 @@ export function mapDecisionToViewModel(
   const may = consolidateRows(rawMay, rawRows, claimed);
   const excluded = consolidateRows(rawExcluded, rawRows, claimed);
   const rows = [...feasible, ...may, ...excluded];
-  const benchmarks = Object.fromEntries(
+  const benchmarks = options.benchmarks ? { ...options.benchmarks } : Object.fromEntries(
     [...new Set(decision.top.flatMap((candidate) => candidate.evidence.flatMap((group) => group.items.map((item) => item.benchmark))))].map(
       (benchmark) => [benchmark, benchmarkDefinition(decision, benchmark)],
     ),

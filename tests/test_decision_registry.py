@@ -56,6 +56,10 @@ GUARANTEED = {
     "estimate.capability",
 }
 
+#: §8's "Derived" row: cost per task follows its inputs, the guaranteed list
+#: prices, so it is guaranteed wherever they are (MODEL-153).
+DERIVED = {"offering.cost_per_task"}
+
 BEST_EFFORT = {
     "model.parameters_total", "model.parameters_active", "model.architecture",
     "model.knowledge_cutoff", "model.deprecation_date", "model.languages",
@@ -88,7 +92,8 @@ def registry() -> reg.Registry:
 def test_every_guaranteed_facet_in_section_8_is_registered_as_guaranteed(registry):
     ids = {f.id for f in registry.facets()}
     assert GUARANTEED <= ids, sorted(GUARANTEED - ids)
-    assert {f.id for f in registry.facets() if f.tier == "guaranteed"} == GUARANTEED
+    assert {f.id for f in registry.facets() if f.tier == "guaranteed"} == GUARANTEED | DERIVED
+    assert all(registry.facet(f).computed_by for f in DERIVED)
 
 
 def test_every_best_effort_facet_in_section_8_is_registered(registry):

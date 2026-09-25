@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "1.2"
+    assert c.CONTRACT_VERSION == "1.3"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -615,6 +615,9 @@ def _samples() -> list:
         decision.tipping_points[0],
         c.NearMiss(offering=result.offering, condition="context >= 90", distance=10),
         c.ShownFact(facet="context", value=80, unit="tokens"),
+        c.ShownFact(facet="offering.cost_per_task", value=0.06, unit="usd_per_task",
+                    records=["r1", "r2"], formula="(1 × 40,000 + 5 × 4,000) ÷ 1,000,000 = 0.06"),
+        c.TaskTokens(input=40000, output=4000),
         c.CandidateValues(offering=result.offering),
         c.NumberOrigin(path="/results/0/rank", basis="ordinal"),
     ]

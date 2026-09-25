@@ -465,9 +465,12 @@ class _Compiler:
     def _check_facet(self, facet_id: str, kind: str) -> None:
         if self.registry is not None:
             try:
-                self.registry.facet(facet_id)
+                registered = self.registry.facet(facet_id)
             except KeyError as exc:
                 raise SnapshotBuildError(f"facet {facet_id!r} is not registered") from exc
+            if getattr(registered, "computed_by", None):
+                raise SnapshotBuildError(
+                    f"facet {facet_id!r} is computed ({registered.computed_by}), never authored")
         seen = self.facet_subject.setdefault(facet_id, kind)
         if seen != kind:
             raise SnapshotBuildError(f"facet {facet_id!r} is used on both a {seen} and a {kind}")
@@ -1231,6 +1234,14 @@ class LoadedSnapshot:
 
     def benchmark_ids(self) -> tuple[str, ...]:
         return self._benchmarks
+
+    def benchmark_domain_tags(self) -> dict[str, tuple[tuple[str, str], ...]]:
+        """Each benchmark's (domain, directness) tags, sorted by domain."""
+        tags: dict[str, list[tuple[str, str]]] = {b: [] for b in self._benchmarks}
+        for domain_id, rows in self._domains.items():
+            for bench, directness in rows:
+                tags.setdefault(bench, []).append((domain_id, directness))
+        return {b: tuple(sorted(t)) for b, t in tags.items()}
 
     def source_url(self, source_id: str) -> str:
         return self._sources[source_id]

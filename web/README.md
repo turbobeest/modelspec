@@ -1,4 +1,25 @@
-# React + TypeScript + Vite
+# ModelSpec web
+
+## The decide page against real data
+
+The decide page (`decide.html`) reads what it may offer from
+`/api/decision/vocabulary.json` and posts specs to `/v1/decide`. In
+development both go through the Vite proxy (`vite.config.ts`):
+
+```bash
+# 1. The repository's own engine on the published snapshot (MODEL-153).
+curl -o /tmp/snapshot.json.gz https://modelspec.dev/api/decision/snapshot.json.gz
+PYTHONPATH=.. python ../scripts/decide_dev_server.py --snapshot /tmp/snapshot.json.gz
+
+# 2. The page, proxied to it.
+EXPORT_ORIGIN=http://127.0.0.1:8787 DECIDE_API_ORIGIN=http://127.0.0.1:8787 \
+  VITE_DECIDE_ENDPOINT=/v1/decide npm run dev
+```
+
+`DECIDE_API_ORIGIN=https://api.modelspec.dev` sends the specs to the live
+Worker instead. `?demo=1` runs the fictional sample engine and makes no request.
+
+## Template notes (React + TypeScript + Vite)
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

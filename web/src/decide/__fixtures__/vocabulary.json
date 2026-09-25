@@ -1,0 +1,1771 @@
+{
+  "vocabulary_version": 1,
+  "contract_version": "1.3",
+  "snapshot": "snap_7bf37267f8f2b2eb",
+  "default_task_tokens": {
+    "input": 40000,
+    "output": 4000
+  },
+  "task_types": [
+    "new_feature",
+    "bug_fix",
+    "refactor",
+    "test_writing",
+    "docs",
+    "migration",
+    "performance",
+    "security_fix",
+    "review",
+    "analysis",
+    "data_transform",
+    "config_infra"
+  ],
+  "facets": [
+    {
+      "id": "model.class",
+      "label": "Model class",
+      "definition": "The model's class as derived from its model type by `api/classes.py`: what it consumes, what it emits and what decision it makes. One value per model. Class is derived, not authored, and says nothing about quality.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 32,
+      "of": 32,
+      "values": [
+        {
+          "value": "decider",
+          "count": 1
+        },
+        {
+          "value": "orderer",
+          "count": 2
+        },
+        {
+          "value": "text-generator",
+          "count": 25
+        },
+        {
+          "value": "vectoriser",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "id": "model.input_modalities",
+      "label": "Input modalities",
+      "definition": "Every modality the model accepts as input natively, without a separate model transcribing or captioning it first. `document` means files such as PDF read as documents, not text extracted by the caller.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 32,
+      "of": 32,
+      "values": [
+        {
+          "value": "audio",
+          "count": 7
+        },
+        {
+          "value": "document",
+          "count": 17
+        },
+        {
+          "value": "image",
+          "count": 22
+        },
+        {
+          "value": "text",
+          "count": 32
+        },
+        {
+          "value": "video",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "id": "model.output_modalities",
+      "label": "Output modalities",
+      "definition": "Every modality the model emits natively. `embedding` is a vector, `score` a relevance or reward number, `label` a class from a fixed or caller-defined set, and `action` a tool or environment action.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 32,
+      "of": 32,
+      "values": [
+        {
+          "value": "embedding",
+          "count": 4
+        },
+        {
+          "value": "label",
+          "count": 1
+        },
+        {
+          "value": "score",
+          "count": 3
+        },
+        {
+          "value": "text",
+          "count": 25
+        }
+      ]
+    },
+    {
+      "id": "model.context_window",
+      "label": "Context window",
+      "definition": "The maximum number of tokens the model accepts in one request, input and output together, as documented by its lab for its largest supported configuration. A provider that serves a smaller window records that on the offering, not here.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "tokens",
+      "unit_definition": "Tokens as counted by the model's own tokenizer, as documented by its lab. Not words, characters or another model's tokens.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 32,
+      "of": 32,
+      "range": {
+        "min": 8192,
+        "max": 1050000
+      }
+    },
+    {
+      "id": "model.max_output_tokens",
+      "label": "Maximum output tokens",
+      "definition": "The maximum number of tokens the model can emit in one response, including any reasoning tokens the lab counts against the limit, as documented by its lab.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "tokens",
+      "unit_definition": "Tokens as counted by the model's own tokenizer, as documented by its lab. Not words, characters or another model's tokens.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 19,
+      "of": 32,
+      "range": {
+        "min": 65536,
+        "max": 262144
+      }
+    },
+    {
+      "id": "model.weights_openness",
+      "label": "Open weights",
+      "definition": "`open_weights` when the lab publishes the trained weights for download under any licence, including a gated or restrictive one; `closed_weights` otherwise. Says nothing about the licence terms, which are the `licence.*` facets.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 32,
+      "of": 32,
+      "values": [
+        {
+          "value": "closed_weights",
+          "count": 21
+        },
+        {
+          "value": "open_weights",
+          "count": 11
+        }
+      ]
+    },
+    {
+      "id": "model.parameters_total",
+      "label": "Total parameters",
+      "definition": "The total number of parameters in the released model, counting every expert of a mixture-of-experts model. `not_disclosed` is a state of the fact, never an estimate.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "parameters",
+      "unit_definition": "A count of trainable weights (not billions; 7e9 is written 7000000000).",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "range": null
+    },
+    {
+      "id": "model.parameters_active",
+      "label": "Active parameters",
+      "definition": "The number of parameters used to process one token. Equal to the total for a dense model; for a mixture-of-experts model, as the lab documents it.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "parameters",
+      "unit_definition": "A count of trainable weights (not billions; 7e9 is written 7000000000).",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "range": null
+    },
+    {
+      "id": "model.architecture",
+      "label": "Architecture",
+      "definition": "The model's architecture family as `ArchitectureType` in `schema/enums.py` names it. An undisclosed architecture is unknown, never inapplicable.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "values": []
+    },
+    {
+      "id": "licence.commercial_use",
+      "label": "Commercial use",
+      "definition": "Whether the licence governing the model lets a customer use the model or its outputs in a commercial product. `permitted_with_conditions` covers any condition (user caps, attribution, field-of-use limits); the other `licence.*` facets say which.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 28,
+      "of": 32,
+      "values": [
+        {
+          "value": "permitted",
+          "count": 6
+        },
+        {
+          "value": "permitted_with_conditions",
+          "count": 22
+        }
+      ]
+    },
+    {
+      "id": "licence.user_cap",
+      "label": "Licence user cap",
+      "definition": "The largest number of monthly active users a licensee may serve before the licence requires a separate agreement. `unbounded` when the licence sets no such cap.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "monthly_active_users",
+      "unit_definition": "Distinct end users in a calendar month, as the licence itself defines the count.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 27,
+      "of": 32,
+      "range": null,
+      "literals": [
+        "unbounded"
+      ]
+    },
+    {
+      "id": "licence.output_training",
+      "label": "Training on outputs",
+      "definition": "Whether the licence or terms let a customer use the model's outputs to train or improve another model. `restricted` when permitted only for some purposes or models (for example not for a competing model).",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 27,
+      "of": 32,
+      "values": [
+        {
+          "value": "permitted",
+          "count": 11
+        },
+        {
+          "value": "restricted",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "id": "licence.fine_tuning",
+      "label": "Fine-tuning rights",
+      "definition": "Whether the licence lets a customer modify the model's weights by further training and use the result. Whether a provider offers fine-tuning as a service is `offering.fine_tuning`, a different fact.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 27,
+      "of": 32,
+      "values": [
+        {
+          "value": "permitted",
+          "count": 6
+        },
+        {
+          "value": "permitted_with_conditions",
+          "count": 5
+        },
+        {
+          "value": "prohibited",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "id": "origin.lab_jurisdiction",
+      "label": "Lab jurisdiction",
+      "definition": "The country or countries where the lab that trained this model is incorporated, as ISO 3166-1 alpha-2 codes. Where the lab has a parent company, the parent's country is included too. Says nothing about where the model was based on or where it runs.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 20,
+      "of": 32,
+      "values": [
+        {
+          "value": "US",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "id": "origin.base_lineage",
+      "label": "Base model lineage",
+      "definition": "The countries of incorporation of the labs that trained every model this model's weights were derived from (fine-tuned, distilled into, merged or continued from), as ISO 3166-1 alpha-2 codes. The empty set when the model was trained from random initialisation. Excludes this model's own lab unless it also trained an ancestor.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 5,
+      "of": 32,
+      "values": [
+        {
+          "value": "CN",
+          "count": 4
+        },
+        {
+          "value": "US",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "origin.weights_hosting",
+      "label": "Weights hosted in",
+      "definition": "The countries in which the lab itself stores and serves the weights for the hosted inference it sells first-party, as ISO 3166-1 alpha-2 codes. The empty set when the lab sells no hosted inference of this model. Where a third-party provider runs the model is `offering.region`, not this.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "values": []
+    },
+    {
+      "id": "origin.base_models",
+      "label": "Base models",
+      "definition": "The `lab/model-id` of every model this model's weights were directly derived from. The empty set when trained from random initialisation. Backs `origin.base_lineage` with the models themselves.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "values": []
+    },
+    {
+      "id": "model.release_date",
+      "label": "Release date",
+      "definition": "The date the lab first made the model generally available to the public, by API or download. A preview or waitlist release counts only if anyone could sign up.",
+      "subject": "model",
+      "value_type": "date",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 31,
+      "of": 32,
+      "range": {
+        "min": "2025-08-01",
+        "max": "2026-09-22"
+      }
+    },
+    {
+      "id": "model.lifecycle",
+      "label": "Lifecycle",
+      "definition": "`deprecated` when the lab has announced a retirement date; `retired` when the lab no longer serves or supports the model; `active` otherwise. Retired models are excluded from decisions unless a spec asks for them.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 32,
+      "of": 32,
+      "values": [
+        {
+          "value": "active",
+          "count": 32
+        }
+      ]
+    },
+    {
+      "id": "model.knowledge_cutoff",
+      "label": "Knowledge cutoff",
+      "definition": "The latest date of training data the lab documents for the model. A month is recorded as its first day, and the fact's qualifiers say so.",
+      "subject": "model",
+      "value_type": "date",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "range": null
+    },
+    {
+      "id": "model.deprecation_date",
+      "label": "Deprecation date",
+      "definition": "The date the lab has announced the model will stop being served by its own API. Unknown until announced; not the date of the announcement.",
+      "subject": "model",
+      "value_type": "date",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "range": null
+    },
+    {
+      "id": "feature.tool_calling",
+      "label": "Tool calling",
+      "definition": "True when the lab documents that the model emits structured function or tool calls against caller-supplied tool definitions through at least one first-party interface.",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 25,
+      "of": 32,
+      "values": [
+        {
+          "value": true,
+          "count": 25
+        }
+      ]
+    },
+    {
+      "id": "feature.structured_output",
+      "label": "Structured output",
+      "definition": "True when the lab documents constrained output that conforms to a caller-supplied JSON schema. A prompt-only \"JSON mode\" without a schema guarantee is false.",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 25,
+      "of": 32,
+      "values": [
+        {
+          "value": true,
+          "count": 25
+        }
+      ]
+    },
+    {
+      "id": "feature.effort_controls",
+      "label": "Effort controls",
+      "definition": "True when the lab documents a request parameter that changes how much reasoning the model does (a reasoning effort level or thinking budget).",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 25,
+      "of": 32,
+      "values": [
+        {
+          "value": true,
+          "count": 25
+        }
+      ]
+    },
+    {
+      "id": "feature.batch",
+      "label": "Batch interface",
+      "definition": "True when the lab's first-party API offers an asynchronous batch interface for this model. Batch pricing is `offering.price.batch_*`.",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 16,
+      "of": 32,
+      "values": [
+        {
+          "value": true,
+          "count": 16
+        }
+      ]
+    },
+    {
+      "id": "feature.streaming",
+      "label": "Streaming",
+      "definition": "True when the lab's first-party API can return the response incrementally as it is generated.",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 24,
+      "of": 32,
+      "values": [
+        {
+          "value": true,
+          "count": 24
+        }
+      ]
+    },
+    {
+      "id": "model.languages",
+      "label": "Languages",
+      "definition": "The natural languages the lab documents the model as supporting, as BCP 47 tags. Absence from the set means undocumented, not unsupported.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "values": []
+    },
+    {
+      "id": "model.fits_hardware",
+      "label": "Fits hardware",
+      "definition": "The hardware SKUs in `hardware/` on which some published quantisation of the model's weights is estimated to load and run. An estimate, always labelled as one.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "values": []
+    },
+    {
+      "id": "offering.provider",
+      "label": "Provider",
+      "definition": "The provider in `registry/providers.yaml` that sells the offering and bills the customer for it.",
+      "subject": "offering",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 38,
+      "of": 38,
+      "values": [
+        {
+          "value": "alibaba-model-studio",
+          "count": 1
+        },
+        {
+          "value": "anthropic",
+          "count": 6
+        },
+        {
+          "value": "aws-bedrock",
+          "count": 2
+        },
+        {
+          "value": "azure-ai-foundry",
+          "count": 4
+        },
+        {
+          "value": "deepseek",
+          "count": 1
+        },
+        {
+          "value": "google-gemini-api",
+          "count": 4
+        },
+        {
+          "value": "google-vertex-ai",
+          "count": 10
+        },
+        {
+          "value": "meta-model-api",
+          "count": 2
+        },
+        {
+          "value": "openai",
+          "count": 4
+        },
+        {
+          "value": "typesafe",
+          "count": 1
+        },
+        {
+          "value": "xai",
+          "count": 1
+        },
+        {
+          "value": "zai",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "id": "offering.region",
+      "label": "Inference region",
+      "definition": "The countries in which the provider documents that inference for this offering runs, as ISO 3166-1 alpha-2 codes. A global or routed offering lists every country it may run in. The provider's own region name is a qualifier on the fact.",
+      "subject": "offering",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 38,
+      "of": 38,
+      "values": [
+        {
+          "value": "global",
+          "count": 31
+        },
+        {
+          "value": "global-cross-region",
+          "count": 2
+        },
+        {
+          "value": "global-short-context",
+          "count": 4
+        },
+        {
+          "value": "singapore",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "offering.tier",
+      "label": "Account tier",
+      "definition": "The account tier the offering is sold under. A tier is its own offering only when a guaranteed fact differs from the standard tier: price, data handling or an attestation (design §4.1).",
+      "subject": "offering",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 38,
+      "of": 38,
+      "values": [
+        {
+          "value": "standard",
+          "count": 38
+        }
+      ]
+    },
+    {
+      "id": "offering.price.input",
+      "label": "Input price",
+      "definition": "The list price of uncached input tokens for a synchronous request. Where the price varies with prompt length, the lowest band, with the band as a qualifier.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 38,
+      "of": 38,
+      "range": {
+        "min": 0.042,
+        "max": 10.0
+      }
+    },
+    {
+      "id": "offering.price.output",
+      "label": "Output price",
+      "definition": "The list price of output tokens, including reasoning tokens the provider bills as output, for a synchronous request, lowest band as for input.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 38,
+      "of": 38,
+      "range": {
+        "min": 0.0,
+        "max": 50.0
+      }
+    },
+    {
+      "id": "offering.price.cached_input",
+      "label": "Cached input price",
+      "definition": "The list price of input tokens read from the provider's prompt cache. Cache-write surcharges are a qualifier. `not_offered` when the provider has no prompt cache for this offering, which is a known value, not an unknown one.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 36,
+      "of": 38,
+      "range": {
+        "min": 0.044,
+        "max": 1.0
+      }
+    },
+    {
+      "id": "offering.price.batch_input",
+      "label": "Batch input price",
+      "definition": "The list price of input tokens submitted through the provider's asynchronous batch interface. `not_offered` when the provider has no batch interface for this offering.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 26,
+      "of": 38,
+      "range": {
+        "min": 0.375,
+        "max": 5.0
+      },
+      "literals": [
+        "not_offered"
+      ]
+    },
+    {
+      "id": "offering.price.batch_output",
+      "label": "Batch output price",
+      "definition": "The list price of output tokens returned through the provider's asynchronous batch interface. `not_offered` when the provider has no batch interface for this offering.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 26,
+      "of": 38,
+      "range": {
+        "min": 1.875,
+        "max": 25.0
+      },
+      "literals": [
+        "not_offered"
+      ]
+    },
+    {
+      "id": "offering.cost_per_task",
+      "label": "Cost per task",
+      "definition": "What one task costs on this offering at list prices, computed per decision from the spec's `task_tokens`: (offering.price.input × input tokens + offering.price.output × output tokens) / 1,000,000. Unknown when either price is unknown. Never authored on a card.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_task",
+      "unit_definition": "United States dollars for one task, at list prices: the offering's input price times the spec's input tokens per task, plus its output price times the spec's output tokens per task, divided by 1,000,000. Excludes cached, batch and committed-use pricing.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": "MODEL-153",
+      "known": 38,
+      "of": 38,
+      "range": {
+        "min": 0.00168,
+        "max": 0.6
+      }
+    },
+    {
+      "id": "offering.speed.time_to_first_token",
+      "label": "Time to first token",
+      "definition": "The median time from sending a request to receiving the first output token. Always carries the method: prompt length, output length, effort, region of the client, sample size and date.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "milliseconds",
+      "unit_definition": "Milliseconds of wall-clock time.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "range": null
+    },
+    {
+      "id": "offering.speed.throughput",
+      "label": "Output throughput",
+      "definition": "The median output throughput of one request after its first token. Always carries the method, as for time to first token. Self-hosted throughput is a labelled estimate only.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "tokens_per_second",
+      "unit_definition": "Output tokens generated per second of wall-clock time, measured from the first output token to the last, for a single request.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "range": null
+    },
+    {
+      "id": "offering.rate_limit.requests",
+      "label": "Request rate limit",
+      "definition": "The documented default request rate limit for a new account at this tier, at the lowest paid usage level the provider documents.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "requests_per_minute",
+      "unit_definition": "Requests accepted per 60-second window for one account at the tier the offering names, before any limit increase negotiated by contract.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "range": null
+    },
+    {
+      "id": "offering.rate_limit.tokens",
+      "label": "Token rate limit",
+      "definition": "The documented default token rate limit for a new account at this tier, at the lowest paid usage level the provider documents.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "tokens_per_minute",
+      "unit_definition": "Tokens (input plus output unless the provider states otherwise, in which case the fact's qualifiers say so) accepted per 60-second window for one account at the tier the offering names.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "range": null
+    },
+    {
+      "id": "offering.sla_uptime",
+      "label": "SLA uptime",
+      "definition": "The monthly uptime the provider commits to in a published service level agreement for this offering, with service credits. A status-page history is not an SLA.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "percent",
+      "unit_definition": "A percentage from 0 to 100.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "range": null
+    },
+    {
+      "id": "offering.data.retention",
+      "label": "Data retention",
+      "definition": "The longest period the provider's terms say it keeps prompts and outputs for this offering by default, for any purpose including abuse monitoring. 0 means not stored after the response. `unbounded` when the terms set no limit.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "days",
+      "unit_definition": "Calendar days.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 25,
+      "of": 38,
+      "range": {
+        "min": 0,
+        "max": 55
+      }
+    },
+    {
+      "id": "offering.data.trains_on_customer_data",
+      "label": "Trains on customer data",
+      "definition": "True when the provider's default terms for this offering let it use customer prompts or outputs to train or improve models. An opt-out the customer must take still makes this true.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 35,
+      "of": 38,
+      "values": [
+        {
+          "value": false,
+          "count": 35
+        }
+      ]
+    },
+    {
+      "id": "offering.data.zero_retention",
+      "label": "Zero retention available",
+      "definition": "True when the provider documents that a customer can have prompts and outputs for this offering not stored at all, including for abuse monitoring, whether by default or on request.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 15,
+      "of": 38,
+      "values": [
+        {
+          "value": false,
+          "count": 4
+        },
+        {
+          "value": true,
+          "count": 11
+        }
+      ]
+    },
+    {
+      "id": "offering.attestation.soc2",
+      "label": "SOC 2 report",
+      "definition": "The SOC 2 report type the provider documents for the service this offering runs on, when that report's scope covers the service. `none` when the provider documents no such report. Documented, never \"compliant\".",
+      "subject": "offering",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 7,
+      "of": 38,
+      "values": [
+        {
+          "value": "type_2",
+          "count": 7
+        }
+      ]
+    },
+    {
+      "id": "offering.attestation.baa",
+      "label": "HIPAA BAA",
+      "definition": "True when the provider documents that it will sign a HIPAA business associate agreement that covers this offering. Says nothing about whether a customer's use is compliant.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 20,
+      "of": 38,
+      "values": [
+        {
+          "value": true,
+          "count": 20
+        }
+      ]
+    },
+    {
+      "id": "offering.attestation.fedramp",
+      "label": "FedRAMP level",
+      "definition": "The FedRAMP authorization level of the cloud service offering this offering runs in, as the FedRAMP marketplace lists it for this model. `none` when not listed.",
+      "subject": "offering",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "values": []
+    },
+    {
+      "id": "offering.attestation.iso_27001",
+      "label": "ISO/IEC 27001",
+      "definition": "True when the provider documents an ISO/IEC 27001 certificate whose scope covers the service this offering runs on.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "values": []
+    },
+    {
+      "id": "offering.fine_tuning",
+      "label": "Fine-tuning service",
+      "definition": "True when the provider sells fine-tuning of this model as a service and serves the tuned model under this offering's terms.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "values": []
+    },
+    {
+      "id": "offering.private_deployment",
+      "label": "Private deployment",
+      "definition": "True when the provider sells dedicated capacity for this model that is not shared with other customers (provisioned throughput, a dedicated endpoint or deployment in the customer's own cloud account).",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "values": []
+    },
+    {
+      "id": "offering.harness_compatibility",
+      "label": "Harness compatibility",
+      "definition": "The registered harnesses whose own documentation names this provider as a supported backend for this model. Absence means undocumented.",
+      "subject": "offering",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 38,
+      "values": []
+    }
+  ],
+  "benchmarks": [
+    {
+      "id": "arena_elo_style_control",
+      "name": "Arena Elo — Style Control",
+      "unit": "Arena score (Elo scale)",
+      "higher_is_better": true,
+      "models": 18,
+      "independent_models": 18,
+      "range": {
+        "min": 1443.7243904445113,
+        "max": 1507.5817496991563
+      },
+      "domains": [
+        {
+          "id": "chat_preference",
+          "directness": "direct"
+        }
+      ]
+    },
+    {
+      "id": "arena_sc_vision",
+      "name": "Arena Vision (style control)",
+      "unit": "Arena score (Elo scale)",
+      "higher_is_better": true,
+      "models": 12,
+      "independent_models": 12,
+      "range": {
+        "min": 1278.5755227326415,
+        "max": 1325.8646704650125
+      },
+      "domains": [
+        {
+          "id": "chat_preference",
+          "directness": "direct"
+        },
+        {
+          "id": "vision_documents",
+          "directness": "proxy"
+        }
+      ]
+    },
+    {
+      "id": "arena_webdev",
+      "name": "Arena WebDev (Code Arena)",
+      "unit": "Arena score (Elo scale)",
+      "higher_is_better": true,
+      "models": 23,
+      "independent_models": 23,
+      "range": {
+        "min": 1392.0,
+        "max": 1818.41
+      },
+      "domains": [
+        {
+          "id": "chat_preference",
+          "directness": "direct"
+        },
+        {
+          "id": "software_engineering",
+          "directness": "proxy"
+        }
+      ]
+    },
+    {
+      "id": "frontiermath_tiers_1_3_v2",
+      "name": "FrontierMath Tiers 1-3 (v2)",
+      "unit": "percent",
+      "higher_is_better": true,
+      "models": 17,
+      "independent_models": 17,
+      "range": {
+        "min": 45.26,
+        "max": 93.68
+      },
+      "domains": [
+        {
+          "id": "maths",
+          "directness": "direct"
+        }
+      ]
+    },
+    {
+      "id": "gpqa_diamond",
+      "name": "GPQA Diamond",
+      "unit": "percent",
+      "higher_is_better": true,
+      "models": 17,
+      "independent_models": 17,
+      "range": {
+        "min": 85.86,
+        "max": 95.77
+      },
+      "domains": [
+        {
+          "id": "engineering_stem",
+          "directness": "direct"
+        },
+        {
+          "id": "reasoning",
+          "directness": "proxy"
+        }
+      ]
+    },
+    {
+      "id": "hle",
+      "name": "Humanity's Last Exam",
+      "unit": "percent",
+      "higher_is_better": true,
+      "models": 8,
+      "independent_models": 8,
+      "range": {
+        "min": 34.44,
+        "max": 54.8
+      },
+      "domains": [
+        {
+          "id": "engineering_stem",
+          "directness": "direct"
+        },
+        {
+          "id": "maths",
+          "directness": "proxy"
+        },
+        {
+          "id": "reasoning",
+          "directness": "proxy"
+        }
+      ]
+    },
+    {
+      "id": "mteb_eng_v2",
+      "name": "MTEB(eng, v2), mean over tasks",
+      "unit": "percent",
+      "higher_is_better": true,
+      "models": 2,
+      "independent_models": 2,
+      "range": {
+        "min": 75.97,
+        "max": 75.98
+      },
+      "domains": [
+        {
+          "id": "retrieval",
+          "directness": "proxy"
+        }
+      ]
+    },
+    {
+      "id": "mteb_multilingual_v2",
+      "name": "MTEB(Multilingual, v2), mean over tasks",
+      "unit": "percent",
+      "higher_is_better": true,
+      "models": 2,
+      "independent_models": 2,
+      "range": {
+        "min": 72.32,
+        "max": 74.27
+      },
+      "domains": [
+        {
+          "id": "multilingual",
+          "directness": "proxy"
+        },
+        {
+          "id": "retrieval",
+          "directness": "proxy"
+        }
+      ]
+    },
+    {
+      "id": "mteb_v2_retrieval",
+      "name": "MTEB(eng, v2) Retrieval",
+      "unit": "percent",
+      "higher_is_better": true,
+      "models": 2,
+      "independent_models": 2,
+      "range": {
+        "min": 67.12,
+        "max": 70.0
+      },
+      "domains": [
+        {
+          "id": "retrieval",
+          "directness": "direct"
+        }
+      ]
+    },
+    {
+      "id": "swe_bench_verified",
+      "name": "SWE-bench Verified",
+      "unit": "percent",
+      "higher_is_better": true,
+      "models": 6,
+      "independent_models": 6,
+      "range": {
+        "min": 76.65,
+        "max": 83.47
+      },
+      "domains": [
+        {
+          "id": "software_engineering",
+          "directness": "direct"
+        }
+      ]
+    },
+    {
+      "id": "terminal_bench_v4_0",
+      "name": "Terminal-Bench 4.0",
+      "unit": "percent",
+      "higher_is_better": true,
+      "models": 9,
+      "independent_models": 9,
+      "range": {
+        "min": 11.21,
+        "max": 58.18
+      },
+      "domains": [
+        {
+          "id": "agentic_tool_use",
+          "directness": "direct"
+        },
+        {
+          "id": "software_engineering",
+          "directness": "proxy"
+        }
+      ]
+    }
+  ],
+  "domains": [
+    {
+      "id": "software_engineering",
+      "name": "Software engineering",
+      "proxy_only": false,
+      "benchmarks": [
+        "swe_bench_verified",
+        "arena_webdev",
+        "terminal_bench_v4_0"
+      ]
+    },
+    {
+      "id": "engineering_stem",
+      "name": "Engineering and STEM",
+      "proxy_only": false,
+      "benchmarks": [
+        "gpqa_diamond",
+        "hle"
+      ]
+    },
+    {
+      "id": "maths",
+      "name": "Maths",
+      "proxy_only": false,
+      "benchmarks": [
+        "frontiermath_tiers_1_3_v2",
+        "hle"
+      ]
+    },
+    {
+      "id": "reasoning",
+      "name": "General reasoning",
+      "proxy_only": false,
+      "benchmarks": [
+        "gpqa_diamond",
+        "hle"
+      ]
+    },
+    {
+      "id": "agentic_tool_use",
+      "name": "Agentic and tool use",
+      "proxy_only": false,
+      "benchmarks": [
+        "terminal_bench_v4_0"
+      ]
+    },
+    {
+      "id": "vision_documents",
+      "name": "Vision and documents",
+      "proxy_only": false,
+      "benchmarks": [
+        "arena_sc_vision"
+      ]
+    },
+    {
+      "id": "multilingual",
+      "name": "Multilingual",
+      "proxy_only": false,
+      "benchmarks": [
+        "mteb_multilingual_v2"
+      ]
+    },
+    {
+      "id": "chat_preference",
+      "name": "Chat and preference",
+      "proxy_only": false,
+      "benchmarks": [
+        "arena_webdev",
+        "arena_elo_style_control",
+        "arena_sc_vision"
+      ]
+    },
+    {
+      "id": "retrieval",
+      "name": "Retrieval",
+      "proxy_only": false,
+      "benchmarks": [
+        "mteb_v2_retrieval",
+        "mteb_eng_v2",
+        "mteb_multilingual_v2"
+      ]
+    }
+  ]
+}
