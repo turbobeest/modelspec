@@ -183,7 +183,8 @@ def violations(tree: Path, name: str) -> list[str]:
         if "/" in rel:
             if top not in KEEP_DIRS[name]:
                 bad.append(f"{rel}: outside the kept directories")
-            elif top == "api" and path.suffix != ".json":
+            elif (top == "api" and path.suffix != ".json"
+                  and rel != "api/decision/snapshot.json.gz"):
                 bad.append(f"{rel}: /api/ holds JSON only")
             elif top == "legal" and path.name != "index.html":
                 bad.append(f"{rel}: /legal/ holds its pages only")

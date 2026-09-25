@@ -1,4 +1,4 @@
-"""Assemble the rank Worker's Python bundle from the repository's own modules.
+"""Assemble the Worker's Python bundle from the repository's own modules.
 
 MODEL-68. The Worker must not hold a second copy of the scorer, so there is no
 copy in git: this script materialises `api/worker/python_modules/` on demand,
@@ -11,15 +11,16 @@ Python Worker (`docs/rank-api.md` cites the configuration reference), and it is
 on `sys.path` inside the isolate, so `from pipeline.ranking import rank_report`
 resolves there exactly as it resolves in this repository.
 
-Only two modules are copied, byte for byte:
+The ranker and decision engine are copied byte for byte. Registry YAML is copied
+beside the decision package because it is the decision vocabulary at runtime.
 
 * `api/ranking/engine.py` — the profiles, benchmark ranges, normalisation and
   the floors.
 * `pipeline/ranking.py` — `Candidate`, `score`, `_basis`, `rank_report`.
 
-Both import nothing outside the standard library, which is checked here rather
-than assumed: a new third-party import in either would break the Worker at
-deploy time, and this turns that into a failure on the pull request.
+The ranker imports only the standard library. The decision path also imports
+Pydantic and PyYAML, the two packages declared in the Worker's ``pyproject.toml``.
+The check below refuses any undeclared dependency before deployment.
 """
 
 from __future__ import annotations
@@ -42,11 +43,43 @@ SOURCES = {
     Path("api/ranking/engine.py"): Path("api/ranking/engine.py"),
     Path("pipeline/__init__.py"): Path("pipeline/__init__.py"),
     Path("pipeline/ranking.py"): Path("pipeline/ranking.py"),
+    Path("decision/__init__.py"): Path("decision/__init__.py"),
+    Path("decision/contract.py"): Path("decision/contract.py"),
+    Path("decision/engine.py"): Path("decision/engine.py"),
+    Path("decision/excluded.py"): Path("decision/excluded.py"),
+    Path("decision/explain.py"): Path("decision/explain.py"),
+    Path("decision/filter.py"): Path("decision/filter.py"),
+    Path("decision/model.py"): Path("decision/model.py"),
+    Path("decision/optimise.py"): Path("decision/optimise.py"),
+    Path("decision/registry.py"): Path("decision/registry.py"),
+    Path("decision/resolve.py"): Path("decision/resolve.py"),
+    Path("decision/snapshot.py"): Path("decision/snapshot.py"),
+    Path("schema/__init__.py"): Path("schema/__init__.py"),
+    Path("schema/applicability.py"): Path("schema/applicability.py"),
+    Path("schema/card.py"): Path("schema/card.py"),
+    Path("schema/enums.py"): Path("schema/enums.py"),
+    Path("registry/domains.yaml"): Path("registry/domains.yaml"),
+    Path("registry/facets.yaml"): Path("registry/facets.yaml"),
+    Path("registry/harnesses.yaml"): Path("registry/harnesses.yaml"),
+    Path("registry/providers.yaml"): Path("registry/providers.yaml"),
+    Path("registry/sources.yaml"): Path("registry/sources.yaml"),
 }
 
 #: What the bundle is allowed to need. `schema`, `pydantic` and `yaml` are the
 #: ones that would actually show up, and none of them exist in the isolate.
-ALLOWED_TOP_LEVEL = {"api", "pipeline"}
+ALLOWED_TOP_LEVEL = {
+    "annotated_types",
+    "api",
+    "cython_runtime",
+    "decision",
+    "pydantic",
+    "pydantic_core",
+    "pipeline",
+    "schema",
+    "typing_extensions",
+    "typing_inspection",
+    "yaml",
+}
 
 
 def build(destination: Path | None = None) -> Path:
@@ -62,7 +95,7 @@ def build(destination: Path | None = None) -> Path:
 
 
 def check_imports_are_stdlib_only(bundle: Path) -> list[str]:
-    """Import the bundle in isolation and report anything it dragged in.
+    """Import the bundle in isolation and report undeclared dependencies.
 
     Returns the offending top-level module names, empty when the bundle is
     clean. Run in a subprocess by the caller so the repository's own already
@@ -71,7 +104,10 @@ def check_imports_are_stdlib_only(bundle: Path) -> list[str]:
     before = set(sys.modules)
     sys.path.insert(0, str(bundle))
     try:
+        import decision.registry
         import pipeline.ranking  # noqa: F401 - imported for its side effects
+
+        decision.registry.default()
     finally:
         sys.path.remove(str(bundle))
     # Importing left `__pycache__` beside the sources. Wrangler's default
@@ -106,7 +142,7 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
-        print("bundle imports cleanly with only the standard library")
+        print("bundle imports cleanly with only declared dependencies")
     return 0
 
 

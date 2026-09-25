@@ -8,7 +8,8 @@ What is left here is transport: route, read the body, fetch the published
 export, read the determination store, serialise, and report the deployed
 version.
 
-Two endpoints, and they differ in one way that matters. `POST /v1/rank` holds
+Three endpoints, and they differ in one way that matters. `POST /v1/rank` and
+`POST /v1/decide` hold
 no private data at all. `POST /v1/policy-check` (MODEL-80) answers from the
 public export *plus*, for an entitled caller, the policy determinations — which
 are the paid product, are never in this repository, and reach the Worker only
@@ -17,7 +18,7 @@ through Workers KV, staged by `api/worker/load_determinations.py`. See
 one place a request is granted the private store, and it grants it by the tier
 MODEL-69's access gate resolved from a presented key.
 
-Both POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
+All POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
 after the body is read and before any export is fetched. It ships with
 enforcement OFF (`ACCESS_ENFORCED`): an unkeyed request is answered exactly as
 before, a presented key is checked, metered and served per its tier, and a bad
@@ -38,16 +39,12 @@ instance still answering; this is the cheap version of that lesson for a Worker.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from dataclasses import replace
 from datetime import UTC, datetime
 from urllib.parse import urlparse
-
-from js import fetch
-from workers import Response, WorkerEntrypoint
-
-import hashlib
 
 import access
 import access_config
@@ -57,11 +54,14 @@ import access_sandbox
 import billing
 import billing_page
 import credits
-from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
+import decide_service
 import kv_value
 import policy_service
 import rank_service as service
 import x402
+from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
+from js import fetch
+from workers import Response, WorkerEntrypoint
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
 #: is the device vocabulary, added by MODEL-68 and absent from older exports —
@@ -72,6 +72,8 @@ HARDWARE_PATH = "/api/rank/hardware.json"
 #: The public half of the compliance answer (MODEL-80): licence, origin,
 #: commercial-use grant and per-platform availability for every card.
 POLICY_PATH = "/api/policy/catalogue.json"
+DECISION_SNAPSHOT_PATH = "/api/decision/snapshot.json.gz"
+SNAPSHOT_KEY_VAR = "MODELSPEC_SNAPSHOT_KEY"
 
 #: KV keys holding the private determinations, staged by
 #: `api/worker/load_determinations.py`. The manifest is read first and verified
@@ -100,16 +102,20 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 #: is named. `/v1/policy-check` (MODEL-80) is on this list for the same reason
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
 ACCEPTED_ENDPOINTS = (
-    "POST /v1/rank", "POST /v1/policy-check", "GET /v1/health",
+    "POST /v1/rank", "POST /v1/decide", "POST /v1/policy-check", "GET /v1/health",
     "GET /v1/credits",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
 
-#: The subset that takes a body. Both refuse a wrong verb through the one
+#: The subset that takes a body. All refuse a wrong verb through the one
 #: `_method_not_allowed` below, and a path outside this tuple is a 404 before
 #: anything is read or fetched.
-POST_ENDPOINTS = ("/v1/rank", "/v1/policy-check")
+POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/policy-check")
+
+# The browser client stays on the private Pages preview until launch. This is
+# the exact branch origin deployed by `.github/workflows/deploy-sites.yml`.
+CORS_ORIGINS = frozenset({"https://internal.modelspec-7np.pages.dev"})
 
 #: How long a fetched export is reused inside one isolate. Short enough that a
 #: site deploy reaches callers quickly, long enough that a burst of requests
@@ -125,6 +131,7 @@ _cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None, "e
 #: is the same one so that a deploy and a load both reach callers in five
 #: minutes rather than by two different rules.
 _policy_cache: dict[str, object] = {"at": 0.0, "catalogue": None, "error": None}
+_decision_cache: dict[str, object] = {"snapshot": None, "error": None}
 #: `state` is one of the `STORE_*` values below; `error` is set only when it is
 #: `broken`; `message` is the operator-facing sentence for whichever it is.
 _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
@@ -136,6 +143,32 @@ async def _get_json(url: str):
     if not response.ok:
         raise RuntimeError(f"{url} returned HTTP {response.status}")
     return json.loads(await response.text())
+
+
+async def _get_bytes(url: str) -> bytes:
+    response = await fetch(url)
+    if not response.ok:
+        raise RuntimeError(f"{url} returned HTTP {response.status}")
+    from js import Uint8Array
+
+    view = Uint8Array.new(await response.arrayBuffer())
+    return bytes(view.to_py())
+
+
+async def _load_decision_snapshot(origin: str, key: str | None):
+    """Fetch, verify and index the decision snapshot once per isolate."""
+    if _decision_cache["snapshot"] is not None:
+        return _decision_cache["snapshot"]
+    if _decision_cache["error"] is not None:
+        raise decide_service.SnapshotRefusalError(str(_decision_cache["error"]))
+    try:
+        raw = await _get_bytes(origin + DECISION_SNAPSHOT_PATH)
+        snapshot = decide_service.load_snapshot(raw, key=key)
+    except decide_service.SnapshotRefusalError as exc:
+        _decision_cache["error"] = str(exc)
+        raise
+    _decision_cache["snapshot"] = snapshot
+    return snapshot
 
 
 async def _load_export(origin: str, *, force: bool = False):
@@ -355,6 +388,32 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
     )
 
 
+def _decision_response(status: int, body: dict,
+                       extra_headers: dict | None = None) -> Response:
+    return Response(
+        decide_service.serialise(body).decode("utf-8"),
+        status=status,
+        headers={
+            **(extra_headers or {}),
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "no-store",
+        },
+    )
+
+
+def _cors_headers(request) -> dict[str, str]:
+    origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
+    if origin not in CORS_ORIGINS:
+        return {}
+    return {
+        "access-control-allow-origin": origin,
+        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-headers": "authorization, content-type, x-api-key, x-payment",
+        "access-control-max-age": "86400",
+        "vary": "Origin",
+    }
+
+
 def _html_response(status: int, page: str, service_commit: str,
                    extra_headers: dict | None = None) -> Response:
     """A page for a person's browser (the claim page). Never cached: it holds a key."""
@@ -377,6 +436,18 @@ class Default(WorkerEntrypoint):
         origin = str(getattr(self.env, "EXPORT_ORIGIN", "") or "https://modelspec.dev")
         path = urlparse(str(request.url)).path.rstrip("/") or "/"
         method = str(request.method).upper()
+
+        if path == "/v1/decide" and method == "OPTIONS":
+            headers = _cors_headers(request)
+            if not headers:
+                return _json_response(service.HTTP_NOT_FOUND, {
+                    "contract_version": decide_service.contract.CONTRACT_VERSION,
+                    "endpoint": "decide",
+                    "snapshot": None,
+                    "error": {"code": "origin_not_allowed",
+                              "message": "this origin may not call /v1/decide"},
+                })
+            return Response("", status=204, headers=headers)
 
         if path == "/v1/health":
             if method not in ("GET", "HEAD"):
@@ -403,17 +474,33 @@ class Default(WorkerEntrypoint):
         if method != "POST":
             return self._method_not_allowed(service_commit, path, "POST", method)
 
-        max_body = (policy_service.MAX_BODY_BYTES if path == "/v1/policy-check"
-                    else service.MAX_BODY_BYTES)
+        max_body = (
+            policy_service.MAX_BODY_BYTES
+            if path == "/v1/policy-check"
+            else decide_service.MAX_BODY_BYTES
+            if path == "/v1/decide"
+            else service.MAX_BODY_BYTES
+        )
         raw = await request.text()
         if len(raw.encode("utf-8")) > max_body:
-            return _json_response(service.HTTP_PAYLOAD_TOO_LARGE, {
+            response = {
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "payload_too_large",
                           "message": f"the body must be at most {max_body} bytes"},
                 "result": [],
-            })
+            }
+            if path == "/v1/decide":
+                response = decide_service.error_response(
+                    "payload_too_large",
+                    f"the body must be at most {max_body} bytes",
+                    status=service.HTTP_PAYLOAD_TOO_LARGE,
+                    snapshot_id=None,
+                )[1]
+                return _decision_response(
+                    service.HTTP_PAYLOAD_TOO_LARGE, response, _cors_headers(request)
+                )
+            return _json_response(service.HTTP_PAYLOAD_TOO_LARGE, response)
 
         try:
             payload = json.loads(raw) if raw.strip() else None
@@ -423,6 +510,14 @@ class Default(WorkerEntrypoint):
                     policy_service.RequestError(
                         "invalid_request", f"the body is not valid JSON: {exc}"),
                     None, service_commit, origin)
+            elif path == "/v1/decide":
+                status, body = decide_service.error_response(
+                    "invalid_request",
+                    f"the body is not valid JSON: {exc}",
+                    status=decide_service.HTTP_BAD_REQUEST,
+                    snapshot_id=None,
+                )
+                return _decision_response(status, body, _cors_headers(request))
             else:
                 status, body = service.error_response(
                     service.RequestError(
@@ -455,6 +550,30 @@ class Default(WorkerEntrypoint):
                     "the sandbox answers POST /v1/rank only; it holds no synthetic "
                     "policy data. Call /v1/policy-check with a live key.",
                     envelope=envelope)
+        elif path == "/v1/decide":
+            envelope = {
+                "contract_version": decide_service.contract.CONTRACT_VERSION,
+                "endpoint": "decide",
+                "snapshot": getattr(_decision_cache.get("snapshot"), "snapshot_id", None),
+                "service_commit": service_commit,
+                "export_origin": origin,
+            }
+
+            async def _anonymous():
+                return await self._decide(payload, origin)
+
+            async def _live(record, tier):
+                return await self._decide(payload, origin)
+
+            async def _live_unfunded(record, tier):
+                return await self._decide(payload, origin)
+
+            def sandbox():
+                return access.refusal(
+                    access.SANDBOX_NOT_AVAILABLE,
+                    "the sandbox has no synthetic signed decision snapshot; use a live request",
+                    envelope=envelope,
+                )
         else:
             envelope = service._envelope({}, service_commit, origin)
 
@@ -493,11 +612,17 @@ class Default(WorkerEntrypoint):
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
             limits_for=self._limits_for(api_key),
         )
-        return _json_response(
-            outcome.status, outcome.body,
-            {**(outcome.headers or {}),
-             **x402.http_headers(outcome.status, outcome.body,
-                                 settlement=x402_trace.settlement)})
+        headers = {
+            **(outcome.headers or {}),
+            **x402.http_headers(
+                outcome.status, outcome.body, settlement=x402_trace.settlement
+            ),
+        }
+        if path == "/v1/decide":
+            return _decision_response(
+                outcome.status, outcome.body, {**headers, **_cors_headers(request)}
+            )
+        return _json_response(outcome.status, outcome.body, headers)
 
     def _credit_params(self, path: str) -> tuple[int, int, str]:
         try:
@@ -707,6 +832,27 @@ class Default(WorkerEntrypoint):
             return service.rank(payload, candidates, hardware, service_commit, origin)
         except service.RequestError as exc:
             return service.error_response(exc, candidates, service_commit, origin)
+
+    async def _decide(self, payload, origin: str):
+        """``POST /v1/decide`` against the isolate's verified snapshot."""
+        key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
+        try:
+            snapshot = await _load_decision_snapshot(origin, key)
+        except decide_service.SnapshotRefusalError as exc:
+            return decide_service.error_response(
+                "snapshot_refused",
+                str(exc),
+                status=decide_service.HTTP_SERVICE_UNAVAILABLE,
+                snapshot_id=None,
+            )
+        except Exception as exc:  # noqa: BLE001 - the fetched path is named to the caller
+            return decide_service.error_response(
+                "snapshot_unavailable",
+                f"could not read the published decision snapshot: {exc}",
+                status=decide_service.HTTP_BAD_GATEWAY,
+                snapshot_id=None,
+            )
+        return decide_service.decide(payload, snapshot)
 
     def _method_not_allowed(self, service_commit: str, path: str,
                             takes: str, method: str) -> Response:

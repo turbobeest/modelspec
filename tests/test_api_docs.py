@@ -55,6 +55,7 @@ from api.ranking.engine import (  # noqa: E402
 
 REFERENCE = REPO_ROOT / "docs" / "api.md"
 POLICY_REFERENCE = REPO_ROOT / "docs" / "api-policy-check.md"
+DECIDE_REFERENCE = REPO_ROOT / "docs" / "decide-api.md"
 SPEC_PATH = REPO_ROOT / "api" / "worker" / "openapi.yaml"
 TIERS_PATH = REPO_ROOT / "api" / "worker" / "tiers.json"
 ENTRY = REPO_ROOT / "api" / "worker" / "src" / "entry.py"
@@ -78,6 +79,7 @@ def _load(path: Path, name: str):
 generator = _load(REPO_ROOT / "api" / "worker" / "openapi.py", "modelspec_openapi_generator")
 service = generator.service
 policy = generator.policy
+decide = generator.decide_service
 
 
 @pytest.fixture(scope="module")
@@ -160,7 +162,10 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
         *sorted(LOCAL_PLATFORMS | CLOUD_PLATFORMS | PROVIDER_PLATFORMS), None]
     assert properties["limit"]["maximum"] == service.MAX_LIMIT
     assert spec["info"]["x-max-request-bytes"] == {
-        "/v1/rank": service.MAX_BODY_BYTES, "/v1/policy-check": policy.MAX_BODY_BYTES}
+        "/v1/rank": service.MAX_BODY_BYTES,
+        "/v1/decide": decide.MAX_BODY_BYTES,
+        "/v1/policy-check": policy.MAX_BODY_BYTES,
+    }
 
 
 def test_the_policy_request_vocabulary_is_the_parsers(spec: dict[str, Any]) -> None:
@@ -266,7 +271,8 @@ def _codes_of(*modules: str) -> set[str]:
     for name in modules:
         tree = ast.parse((ENTRY.parent / f"{name}.py").read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            if (isinstance(node, ast.Call) and getattr(node.func, "id", "") == "RequestError"
+            if (isinstance(node, ast.Call)
+                    and getattr(node.func, "id", "") in {"RequestError", "error_response"}
                     and node.args and isinstance(node.args[0], ast.Constant)):
                 codes.add(node.args[0].value)
             if isinstance(node, ast.Dict):
@@ -278,8 +284,11 @@ def _codes_of(*modules: str) -> set[str]:
 
 def test_every_error_code_the_worker_emits_has_a_documented_fix(
         reference: str, policy_reference: str) -> None:
-    assert _codes_of("rank_service", "policy_service", "entry") == generator.source_error_codes()
-    transport = set(generator.entry_error_codes())
+    assert _codes_of(
+        "rank_service", "decide_service", "policy_service", "entry"
+    ) == generator.source_error_codes()
+    decide_transport = {"origin_not_allowed", "snapshot_refused", "snapshot_unavailable"}
+    transport = set(generator.entry_error_codes()) - decide_transport
     for text, name, modules in ((reference, "docs/api.md", ("rank_service",)),
                                 (policy_reference, "docs/api-policy-check.md",
                                  ("policy_service",))):
@@ -288,6 +297,13 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
         assert missing == [], f"{name} does not tell a caller what to do about: {missing}"
         for code, fix in fixes.items():
             assert len(fix.split()) >= 3, f"{name}: {code} has no usable fix: {fix!r}"
+
+    decide_fixes = _error_table(DECIDE_REFERENCE.read_text(encoding="utf-8"))
+    decide_codes = _codes_of("decide_service") | {
+        "invalid_request", "payload_too_large", *decide_transport,
+    }
+    missing = sorted(decide_codes - set(decide_fixes))
+    assert missing == [], f"docs/decide-api.md has no fix for: {missing}"
 
 
 def test_every_refusal_status_is_documented(reference: str, policy_reference: str) -> None:
