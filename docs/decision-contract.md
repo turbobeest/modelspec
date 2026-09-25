@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.5**
+Contract version: **1.6**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -327,7 +327,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.5",
+  "contract_version": "1.6",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -365,9 +365,13 @@ same canonical representation it had in 1.0.
   ],
   "eliminated": {
     "funnel": [
-      {"condition": "offering.price.input in [0.5, 3.0]", "before": 212, "after": 64, "may_qualify": 3}
+      {"condition": "offering.price.input in [0.5, 3.0]", "before": 212, "after": 64,
+       "may_qualify": 3, "models_before": 106, "models_after": 38,
+       "offerings_before": 180, "offerings_after": 52,
+       "models_may_qualify": 2, "offerings_may_qualify": 3}
     ],
-    "models": []
+    "models": [],
+    "model_groups": []
   },
   "constraint_costs": [
     {"condition": "origin.lab_jurisdiction in {US}", "admits": 12, "gain": {"software_engineering": 0.06}}
@@ -385,7 +389,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.5"`. |
+| `contract_version` | `"1.6"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
@@ -393,7 +397,7 @@ same canonical representation it had in 1.0.
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
 | `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
-| `eliminated` | The `funnel`: for each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. The per-model `models` list, each with the `model`, the `condition` it failed and the `value` it had. |
+| `eliminated` | The `funnel`: for each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. |
 | `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. |
 | `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. |
 | `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. |
@@ -459,7 +463,7 @@ Only verified evidence reaches a decision; quarantined values never do.
 |---|---|
 | `none` | `results` without `contributions`; `may_qualify`. For high-rate automated calls. |
 | `summary` | Adds `contributions`, the `funnel`, `constraint_costs` and `tipping_points`. |
-| `full` | Adds `eliminated.models`, `top` candidates with their relevant values, `chart`, `number_origins` and the `sources` they cite. |
+| `full` | Adds `eliminated.models`, `eliminated.model_groups`, `top` candidates with their relevant values, `chart`, `number_origins` and the `sources` they cite. |
 
 The fields are always present. At a lower level, the lists it does not populate
 are empty.
@@ -503,8 +507,9 @@ contract version. Version 1.1 retains them.
   its winning verification record. Source dates and measurement qualifiers are
   preserved. Snapshot date type `evaluated` is exposed as contract `observed`;
   `independent_evaluator` is exposed as `independent`.
-- `near_misses` lists candidates that fail exactly one hard condition while
-  passing the others. Each includes `offering`, `condition`, `facet`, `value`,
+- `near_misses` lists models whose best offering fails exactly one hard
+  condition while passing the others. A bare model row is never a near miss
+  for an offering facet. Each includes `offering`, `condition`, `facet`, `value`,
   `distance`, `unit` and `records`. Distance is to the boundary; a strict
   inequality can have zero distance. Compound, categorical and unknown distances
   remain null rather than inventing a conversion or epsilon.
@@ -637,6 +642,11 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.6 — MODEL-155:** Funnel steps add model and offering counts beside the
+  candidate counts. `near_misses` now has at most one row per model and names
+  the best offering that fails exactly one condition. `model_groups` groups
+  candidate eliminations by model and places offering eliminations beneath
+  that model. The candidate-grained fields remain unchanged.
 - **1.5 — MODEL-153:** A `no_feasible` decision adds `relax_to`, the smallest
   change to each numeric cap or floor that admits a model, stated in the
   facet's unit. Additive, so not a major change. `relax` keeps its meaning but

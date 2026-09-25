@@ -23,7 +23,7 @@
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "1.5",
+  "contract_version": "1.6",
   "decision_id": "dec_82fef2f3022a66e1b7f897c0",
   "snapshot": "snap_abbaaf63dc6a7cac",
   "spec_hash": "sha256:58169809043c42397540ad85e390d27df0c8056eb53a32359f0b16447c710332",
@@ -311,16 +311,29 @@
         "condition": "model.class = text-generator",
         "before": 4,
         "after": 4,
-        "may_qualify": 0
+        "may_qualify": 0,
+        "models_before": 4,
+        "models_after": 4,
+        "offerings_before": 4,
+        "offerings_after": 4,
+        "models_may_qualify": 0,
+        "offerings_may_qualify": 0
       },
       {
         "condition": "quality >= 60 @independent",
         "before": 4,
         "after": 3,
-        "may_qualify": 0
+        "may_qualify": 0,
+        "models_before": 4,
+        "models_after": 3,
+        "offerings_before": 4,
+        "offerings_after": 3,
+        "models_may_qualify": 0,
+        "offerings_may_qualify": 0
       }
     ],
-    "models": []
+    "models": [],
+    "model_groups": []
   },
   "constraint_costs": [
     {

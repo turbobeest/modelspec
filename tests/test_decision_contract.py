@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "1.5"
+    assert c.CONTRACT_VERSION == "1.6"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -611,6 +611,15 @@ def _samples() -> list:
         decision.eliminated,
         decision.eliminated.funnel[0],
         decision.eliminated.models[0],
+        c.OfferingElimination(
+            offering=result.offering, condition="context >= 90", value=80
+        ),
+        c.ModelEliminationGroup(
+            model=result.offering.model,
+            offerings=[c.OfferingElimination(
+                offering=result.offering, condition="context >= 90", value=80
+            )],
+        ),
         decision.constraint_costs[0],
         decision.tipping_points[0],
         c.NearMiss(offering=result.offering, condition="context >= 90", distance=10),

@@ -108,6 +108,71 @@ describe("the hosted Decision view-model mapper", () => {
     expect(fixture.near_misses).toHaveLength(4);
     expect(view.nearMisses).toEqual([]);
   });
+
+  it("reads model-grained funnel, eliminations and near misses from contract 1.6", () => {
+    const firstOffering = fixture.results[0].offering;
+    const hosted = decisionSchema.parse({
+      ...fixture,
+      contract_version: "1.6",
+      results: fixture.results.filter((result) => result.offering.model !== firstOffering.model),
+      near_misses: [
+        {
+          values: [],
+          offering: firstOffering,
+          condition: "offering.provider = cloud",
+          facet: "offering.provider",
+          value: "cloud",
+          distance: null,
+          unit: null,
+          records: [],
+        },
+      ],
+      eliminated: {
+        ...fixture.eliminated,
+        funnel: fixture.eliminated.funnel.map((step) => ({
+          ...step,
+          models_before: 4,
+          models_after: 4,
+          offerings_before: 4,
+          offerings_after: 4,
+        })),
+        model_groups: [
+          {
+            model: firstOffering.model,
+            model_elimination: null,
+            offerings: [
+              {
+                values: [],
+                offering: firstOffering,
+                unit: null,
+                records: [],
+                condition: "offering.provider = cloud",
+                value: "cloud",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const view = mapDecisionToViewModel(
+      hosted,
+      {
+        ...baseSpec,
+        bench: "quality",
+        conds: [{ f: "facet", facet: "offering.provider", op: "=", value: "cloud" }],
+      },
+      { axis: "task$", dismissed: [] },
+    );
+
+    expect(view.population).toEqual({ models: 4, offerings: 4 });
+    expect(view.explanation.funnel.map(({ n }) => n)).toEqual([4, 4, 4]);
+    expect(view.nearMisses).toHaveLength(1);
+    expect(view.nearMisses[0].off.o.id).toBe(
+      [firstOffering.provider, firstOffering.model, firstOffering.region, firstOffering.tier]
+        .filter((part) => part !== null)
+        .join("/"),
+    );
+  });
 });
 
 describe("model names", () => {

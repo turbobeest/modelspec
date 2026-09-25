@@ -167,7 +167,7 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
-    contract_version: z.enum(["1.1", "1.2", "1.3", "1.4", "1.5"]),
+    contract_version: z.enum(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
@@ -192,6 +192,12 @@ export const decisionSchema = z
               before: z.number().int().nonnegative(),
               after: z.number().int().nonnegative(),
               may_qualify: z.number().int().nonnegative(),
+              models_before: z.number().int().nonnegative().optional().default(0),
+              models_after: z.number().int().nonnegative().optional().default(0),
+              offerings_before: z.number().int().nonnegative().optional().default(0),
+              offerings_after: z.number().int().nonnegative().optional().default(0),
+              models_may_qualify: z.number().int().nonnegative().optional().default(0),
+              offerings_may_qualify: z.number().int().nonnegative().optional().default(0),
             })
             .strict(),
         ),
@@ -209,6 +215,42 @@ export const decisionSchema = z
             })
             .strict(),
         ),
+        model_groups: z
+          .array(
+            z
+              .object({
+                model: modelId,
+                model_elimination: z
+                  .object({
+                    values: z.array(scalar).optional().default([]),
+                    offering: offeringRefSchema.nullable().optional().default(null),
+                    unit: nullableString.optional().default(null),
+                    records: z.array(z.string()).optional().default([]),
+                    model: modelId,
+                    condition: z.string(),
+                    value: scalar.nullable(),
+                    formula: nullableString.optional(),
+                  })
+                  .strict()
+                  .nullable(),
+                offerings: z.array(
+                  z
+                    .object({
+                      values: z.array(scalar).optional().default([]),
+                      offering: offeringRefSchema,
+                      unit: nullableString.optional().default(null),
+                      records: z.array(z.string()).optional().default([]),
+                      condition: z.string(),
+                      value: scalar.nullable(),
+                      formula: nullableString.optional(),
+                    })
+                    .strict(),
+                ),
+              })
+              .strict(),
+          )
+          .optional()
+          .default([]),
       })
       .strict(),
     constraint_costs: z.array(
