@@ -2335,3 +2335,28 @@ body {
   opacity: 0.75;
   font-weight: 400;
 }
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 24px;
+  max-width: 1640px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.site-footer a {
+  color: var(--muted);
+}
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--ink);
+}
