@@ -18,6 +18,11 @@ condition calls ``evidence`` and then applies its qualifiers; ``@direct`` asks
 whether the benchmark is direct for a capability the spec requests. Retired
 candidates are excluded unless the resolved spec asks for lifecycle ``retired``.
 
+A model with offerings is represented by them (MODEL-159). Its bare model row
+would tie with them on the evidence they inherit, so it never enters the
+lineup and is not reported as eliminated. A model with no offering (open
+weights run on one's own hardware) is its own row.
+
 The shared snapshot protocol lives in ``decision/snapshot.py`` (MODEL-138).
 """
 
@@ -667,15 +672,19 @@ class _Run:
                 f"spec asks for {wanted} but the snapshot is {self.index.snapshot_id}",
                 "snapshot",
             )])
-        retired = 0
+        sold = {self.index.model_of(cid) for cid in self.ids
+                if self.index.kind(cid) == "offering"}
+        represented = retired = 0
         for i, cid in enumerate(self.ids):
-            if self._life(cid) == "retired":
+            if cid in sold:
+                represented |= 1 << i
+            elif self._life(cid) == "retired":
                 retired |= 1 << i
         eliminations: list[Elimination] = []
         if self.resolved.include_retired:
-            self.lineup = self.universe
+            self.lineup = self.universe & ~represented
         else:
-            self.lineup = self.universe & ~retired
+            self.lineup = self.universe & ~retired & ~represented
             for cid in self._ids_of(retired):
                 eliminations.append(Elimination(
                     candidate=cid, _condition=_RETIRED_CONDITION, value="retired",
