@@ -54,7 +54,10 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install pydantic pyyaml
+        # httpx: the decision snapshot build imports `decision.sources`
+        # (MODEL-137), which fetches with it. Without it the snapshot step warns
+        # and publishes nothing (seen on 8e4660a9).
+        run: pip install pydantic pyyaml "httpx==0.28.1"
 
       - uses: actions/setup-node@v4
         with:
