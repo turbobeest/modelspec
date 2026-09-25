@@ -309,6 +309,55 @@ def env_key() -> bytes | None:
     return _key_bytes(os.environ.get(KEY_ENV))
 
 
+def _record_fields(
+    record: Mapping[str, Any], prefix: tuple[str, ...] = (),
+) -> Iterable[tuple[tuple[str, ...], Any]]:
+    for key, value in record.items():
+        path = (*prefix, key)
+        if isinstance(value, dict) and value:
+            yield from _record_fields(value, path)
+        else:
+            yield path, value
+
+
+def _pack_records(records: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    """Intern repeated provenance values, including verification and source data.
+
+    Nested dictionary paths preserve absent fields, explicit nulls and empty
+    dictionaries distinctly. Values stay JSON until a record is requested.
+    """
+    flattened = {rid: dict(_record_fields(record)) for rid, record in records.items()}
+    fields = sorted({path for record in flattened.values() for path in record})
+    values: list[str] = []
+    positions: dict[bytes, int] = {}
+    rows = {}
+    for rid, record in sorted(flattened.items()):
+        row = []
+        for path in fields:
+            if path not in record:
+                row.append(None)
+                continue
+            encoded = canonical_json(record[path])
+            if encoded not in positions:
+                positions[encoded] = len(values)
+                values.append(encoded.decode("utf-8"))
+            row.append(positions[encoded])
+        rows[rid] = row
+    return {"fields": fields, "values": values, "rows": rows}
+
+
+def _unpack_record(table: Mapping[str, Any], rid: str) -> dict[str, Any]:
+    record: dict[str, Any] = {}
+    for path, position in zip(table["fields"], table["rows"][rid]):
+        if position is None:
+            continue
+        target = record
+        for key in path[:-1]:
+            target = target.setdefault(key, {})
+        target[path[-1]] = json.loads(table["values"][position])
+    return record
+
+
 # ── the built snapshot ─────────────────────────────────────────────────────
 
 
@@ -550,7 +599,7 @@ class _Compiler:
             "benchmark_domains": domains,
             "sources": {s: self.sources[s] for s in sorted(self.used_sources)},
             "excluded": dict(sorted(self.excluded.items())),
-            "records": dict(sorted(self.records.items())),
+            "record_table": _pack_records(self.records),
             "fact_records": self.fact_records,
         }
 
@@ -733,6 +782,10 @@ def _date(value: Any) -> date | None:
 
 
 def _key(value: Any) -> str:
+    if isinstance(value, str):
+        return "str:" + value
+    if isinstance(value, bool):
+        return "true" if value else "false"
     return json.dumps(value, sort_keys=True)
 
 
@@ -778,6 +831,25 @@ def _holds(value: Any, op: str, arg: Any) -> bool:
     raise SnapshotError(f"unknown operator {op!r}")
 
 
+class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
+    """Materialise one candidate's evidence on first access."""
+
+    def __init__(self, rows: Mapping[str, Sequence[Sequence[Any]]]):
+        super().__init__()
+        self.rows = rows
+
+    def __missing__(self, cid: str) -> tuple[EvidenceValue, ...]:
+        self[cid] = tuple(
+            EvidenceValue(benchmark_id=r[0], version=r[1], subcategory=r[2], value=r[3],
+                          unit=r[4], measured_by=r[5], effort=r[6], harness=r[7],
+                          date=_date(r[8]), source_ids=tuple(r[9]),
+                          record_id=r[10] if len(r) > 10 else None,
+                          date_type=r[11] if len(r) > 11 else None,
+                          source_snapshot=r[12] if len(r) > 12 else None)
+            for r in self.rows.get(cid, ()))
+        return self[cid]
+
+
 class LoadedSnapshot:
     """The in-memory index over one snapshot. Implements ``SnapshotIndex``."""
 
@@ -791,6 +863,7 @@ class LoadedSnapshot:
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
         self._sources: dict[str, str] = dict(content["sources"])
         self._records = content.get("records", {})
+        self._record_table = content.get("record_table")
         sections = [content["lineup"]] + ([content["archive"]] if include_archive else [])
 
         rows: list[tuple[dict[str, Any], dict[str, Any], int]] = []
@@ -843,18 +916,8 @@ class LoadedSnapshot:
             self._known[facet_id] = known
             self._value_bits[facet_id] = values
 
-        evidence: dict[str, tuple[EvidenceValue, ...]] = {}
-        for section in sections:
-            for cid, ev_rows in section["evidence"].items():
-                evidence[cid] = tuple(
-                    EvidenceValue(benchmark_id=r[0], version=r[1], subcategory=r[2], value=r[3],
-                                  unit=r[4], measured_by=r[5], effort=r[6], harness=r[7],
-                                  date=_date(r[8]), source_ids=tuple(r[9]),
-                                  record_id=r[10] if len(r) > 10 else None,
-                                  date_type=r[11] if len(r) > 11 else None,
-                                  source_snapshot=r[12] if len(r) > 12 else None)
-                    for r in ev_rows)
-        self._evidence = evidence
+        self._evidence = _Evidence({cid: rows for section in sections
+                                    for cid, rows in section["evidence"].items()})
         self._domains: dict[str, list[tuple[str, str]]] = {}
         for bench, tags in content["benchmark_domains"].items():
             for domain_id, directness in tags:
@@ -920,7 +983,7 @@ class LoadedSnapshot:
         """Evidence for one benchmark; ``after`` is exclusive. Unknown dates never pass it."""
         self._check(cid)
         return tuple(
-            e for e in self._evidence.get(cid, ())
+            e for e in self._evidence[cid]
             if e.benchmark_id == benchmark_id
             and (measured_by is None or e.measured_by in measured_by)
             and (effort is None or e.effort == effort)
@@ -932,7 +995,7 @@ class LoadedSnapshot:
         directness = dict(self._domains.get(domain_id, ()))
         return tuple(
             EvidenceValue(**{**e.__dict__, "directness": directness[e.benchmark_id]})
-            for e in self._evidence.get(cid, ()) if e.benchmark_id in directness)
+            for e in self._evidence[cid] if e.benchmark_id in directness)
 
     # beyond the protocol -----------------------------------------------------
 
@@ -946,6 +1009,8 @@ class LoadedSnapshot:
 
     def record(self, record_id: str) -> Mapping[str, Any]:
         """The admitted record with its winning verification, retained verbatim."""
+        if record_id not in self._records and self._record_table is not None:
+            self._records[record_id] = _unpack_record(self._record_table, record_id)
         return self._records[record_id]
 
     def facet_ids(self) -> tuple[str, ...]:
@@ -982,7 +1047,21 @@ def load_snapshot(path: str | Path, *, key: bytes | str | None = _FROM_ENV,
     """
     path = Path(path)
     try:
-        envelope = json.loads(gzip.decompress(path.read_bytes()))
+        text = gzip.decompress(path.read_bytes()).decode("utf-8")
+        stored_digest = None
+        if text.startswith('{"content":{'):
+            # raw_decode finds the JSON boundary, including escaped quotes and
+            # nested objects. Never search for a delimiter inside content.
+            content, end = json.JSONDecoder().raw_decode(text, len('{"content":'))
+            suffix = text[end:].lstrip()
+            envelope = json.loads("{" + suffix[1:]) if suffix.startswith(",") else {}
+            if "content" in envelope:
+                raise SnapshotIntegrityError(f"{path}: duplicate content member")
+            envelope["content"] = content
+            stored_digest = "sha256:" + hashlib.sha256(
+                text[len('{"content":'):end].encode("utf-8")).hexdigest()
+        else:
+            envelope = json.loads(text)
     except (OSError, EOFError, ValueError) as exc:
         raise SnapshotIntegrityError(f"{path}: not a gzipped JSON snapshot: {exc}") from exc
     if not isinstance(envelope, dict) or envelope.get("format") != FORMAT:
@@ -990,7 +1069,11 @@ def load_snapshot(path: str | Path, *, key: bytes | str | None = _FROM_ENV,
     if envelope.get("format_version") != FORMAT_VERSION:
         raise SnapshotIntegrityError(
             f"{path}: format version {envelope.get('format_version')!r}, expected {FORMAT_VERSION}")
-    digest = content_hash(envelope["content"])
+    # Canonical writer output can be checked directly. Other JSON encodings
+    # retain the original semantic hash check, including the signature check.
+    digest = stored_digest
+    if digest != envelope.get("content_hash") or digest is None:
+        digest = content_hash(envelope["content"])
     if digest != envelope.get("content_hash"):
         raise SnapshotIntegrityError(f"{path}: content hash mismatch: the snapshot was altered")
     if envelope.get("snapshot_id") != snapshot_id_for(digest):
