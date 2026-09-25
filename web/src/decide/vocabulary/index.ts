@@ -72,6 +72,8 @@ export const vocabularySchema = z.object({
       id: z.string(),
       name: z.string(),
       proxy_only: z.boolean(),
+      /** The registry's default benchmark for the domain, when it has verified data. */
+      default_benchmark: z.string().nullable().optional(),
       benchmarks: z.array(z.string()),
     }),
   ),
@@ -190,14 +192,20 @@ const hasValue = (row: VocabFacet | null, value: FacetValue) =>
   !!row?.values?.some((item) => item.value === value);
 
 /**
- * The benchmark a domain ranks on: direct evidence first, then the one with
- * the most verified lineup models. Never a fixed name.
+ * Whether a benchmark measures a domain directly (not as a proxy).
  */
 const directFor = (b: VocabBenchmark, domain: string) =>
   b.domains.some((tag) => tag.id === domain && tag.directness === "direct");
 
-/** The benchmark a domain ranks on: direct first, then the most verified lineup models. */
+/**
+ * The benchmark a domain ranks on: the registry's default for the domain when it
+ * has verified data (published as `default_benchmark`), otherwise direct first,
+ * then the most verified lineup models.
+ */
 export function pickBenchmark(v: Vocabulary, domain: string): VocabBenchmark | null {
+  const preferred = v.domains.find((d) => d.id === domain)?.default_benchmark;
+  const chosen = preferred ? offeredBenchmarks(v).find((b) => b.id === preferred) : undefined;
+  if (chosen) return chosen;
   return (
     offeredBenchmarks(v)
       .filter((b) => b.domains.some((tag) => tag.id === domain))
@@ -483,9 +491,11 @@ export function parseRealTask(v: Vocabulary, text: string | null | undefined): R
       word: word ?? "(no domain named)",
       note:
         `${domainName}: rank on ${ranked.name}, ` +
-        (direct
-          ? `the direct benchmark with the most verified lineup models (${ranked.models})`
-          : `a proxy with ${ranked.models} verified lineup models; no direct benchmark has data`) +
+        (v.domains.find((d) => d.id === domain)?.default_benchmark === ranked.id
+          ? `the default benchmark for this domain (${ranked.models} verified lineup models)`
+          : direct
+            ? `the direct benchmark with the most verified lineup models (${ranked.models})`
+            : `a proxy with ${ranked.models} verified lineup models; no direct benchmark has data`) +
         (others.length ? `; also direct: ${others.join(", ")}` : ""),
     });
   }

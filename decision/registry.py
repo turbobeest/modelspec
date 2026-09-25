@@ -199,6 +199,10 @@ class Domain:
     name: str
     definition: str
     proxy_only: bool = False
+    #: The benchmark a task in this domain ranks on by default, when it has
+    #: verified evidence (Jamie's product call). Otherwise the direct benchmark
+    #: with the most verified lineup models. The page lets the user switch.
+    default_benchmark: str | None = None
 
 
 # ── the registry ───────────────────────────────────────────────────────────
@@ -646,15 +650,20 @@ def _load_domains(err: _Errors, root: Path) -> dict[str, Domain]:
     out: dict[str, Domain] = {}
     for e in entries:
         where = f"domains.yaml {e.get('id')!r}"
-        _keys(err, where, e, {"id", "name", "definition"}, {"proxy_only"})
+        _keys(err, where, e, {"id", "name", "definition"}, {"proxy_only", "default_benchmark"})
         _described(err, where, e, MIN_DEFINITION_WORDS)
         if not isinstance(e.get("proxy_only", False), bool):
             err.add(where, "proxy_only must be true or false")
+        default = e.get("default_benchmark")
+        if default is not None and not (isinstance(default, str) and SNAKE_ID.match(default)):
+            err.add(where, "default_benchmark must be a snake_case benchmark id")
         if isinstance(e.get("id"), str):
             out.setdefault(e["id"], Domain(
                 id=e["id"], name=str(e.get("name", "")),
                 definition=" ".join(str(e.get("definition", "")).split()),
-                proxy_only=e.get("proxy_only", False) is True))
+                proxy_only=e.get("proxy_only", False) is True,
+                default_benchmark=e.get("default_benchmark") if isinstance(
+                    e.get("default_benchmark"), str) else None))
     return out
 
 

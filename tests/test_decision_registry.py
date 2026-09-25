@@ -441,3 +441,9 @@ def test_a_value_label_reads_as_words(registry):
     assert commercial.value_label("permitted_with_conditions") == "Permitted with conditions"
     assert registry.facet("model.weights_openness").value_label("open_weights") == "Open weights"
     assert commercial.value_label("not_a_value") is None
+
+
+def test_software_engineering_defaults_to_swe_bench_pro(registry):
+    """Jamie, 2026-09-25: coding tasks rank on SWE-bench Pro by default."""
+    domains = {d.id: d for d in registry.domains()}
+    assert domains["software_engineering"].default_benchmark == "swe_bench_pro"
