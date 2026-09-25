@@ -702,8 +702,8 @@ benchmarks:
     configuration: DeepSeek-V3.2-Exp model card table, Terminal-bench row, column DeepSeek-V3.2-Exp.
     limitations: The table does not state the Terminal-Bench version; in September 2025 the public release was 1.0.
   - benchmark_id: arena_elo_overall
-    model_id_as_evaluated: deepseek-v3.2-exp
-    score: 1422.59
+    model_id_as_evaluated: deepseek-v3.2-exp-thinking
+    score: 1424.95
     unit: elo
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -711,15 +711,12 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1422.59 (95% CI 1416.21-1428.98), 11760 votes. The
-      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13 is the stated date. Row deepseek-v3.2-exp-thinking: rating 1424.95 (95% CI 1418.38-1431.53), 8905 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row deepseek-v3.2-exp (1422.59); dataset re-read 2026-09-24."
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
   - benchmark_id: arena_elo_coding
-    model_id_as_evaluated: deepseek-v3.2-exp
-    score: 1433.0
+    model_id_as_evaluated: deepseek-v3.2-exp-thinking
+    score: 1439.39
     unit: elo
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -727,11 +724,7 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena coding category, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
-      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1433.00 (95% CI 1421.31-1444.68), 2471 votes. The live
-      arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category coding; leaderboard_publish_date 2026-09-13 is the stated date. Row deepseek-v3.2-exp-thinking: rating 1439.39 (95% CI 1426.04-1452.74), 1906 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row deepseek-v3.2-exp (1433.0); dataset re-read 2026-09-24."
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
   - benchmark_id: arena_elo_style_control
