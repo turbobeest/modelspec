@@ -258,9 +258,14 @@ def test_entry_imports_the_decision_stack_only_for_the_decide_route() -> None:
     assert 'headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)' in source
 
 
-def test_cors_is_only_for_the_internal_preview_origin() -> None:
+def test_cors_is_for_the_production_site_and_the_preview_only() -> None:
+    """The live decide page on modelspec.dev must reach the API (a flip to
+    SITE_MODE=live without it served a page that could not answer), and no
+    wildcard origin is allowed."""
     source = (WORKER_SRC / "entry.py").read_text(encoding="utf-8")
-    assert "https://internal.modelspec-7np.pages.dev" in source
+    for origin in ("https://modelspec.dev", "https://www.modelspec.dev",
+                   "https://internal.modelspec-7np.pages.dev"):
+        assert f'"{origin}"' in source
     assert '"access-control-allow-origin": "*"' not in source.lower()
 
 

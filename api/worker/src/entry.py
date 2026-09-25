@@ -113,9 +113,14 @@ ACCEPTED_ENDPOINTS = (
 #: anything is read or fetched.
 POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/policy-check")
 
-# The browser client stays on the private Pages preview until launch. This is
-# the exact branch origin deployed by `.github/workflows/deploy-sites.yml`.
-CORS_ORIGINS = frozenset({"https://internal.modelspec-7np.pages.dev"})
+# The browser clients: the production site (what SITE_MODE=live serves on the
+# apex and www) and the private Pages preview branch deployed by
+# `.github/workflows/deploy-sites.yml`, which is what gets tested before a flip.
+CORS_ORIGINS = frozenset({
+    "https://modelspec.dev",
+    "https://www.modelspec.dev",
+    "https://internal.modelspec-7np.pages.dev",
+})
 
 #: How long a fetched export is reused inside one isolate. Short enough that a
 #: site deploy reaches callers quickly, long enough that a burst of requests
