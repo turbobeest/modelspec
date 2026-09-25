@@ -25,8 +25,9 @@ What the modelspec holding tree is, and why:
   real site would publish. The legal pages stay reachable because Stripe's
   account review and past purchasers rely on them.
 * **An allowlist.** Nothing else of the real build is kept but the fonts the
-  legal pages load and the favicons. A page added to the real site later is
-  dark in holding mode without anyone remembering to add it here.
+  legal pages load and the icon set (`pipeline.brand`). A page added to the
+  real site later is dark in holding mode without anyone remembering to add
+  it here.
 * **A 404, not a redirect.** Every other path (model and benchmark pages, the
   wizard, the explorer, /pricing, llms.txt, the Markdown twins, .well-known)
   is absent, and Pages answers a missing path with `404.html`, which is the
@@ -55,6 +56,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from pipeline import brand
+
 MODE_ENV = "SITE_MODE"
 LIVE = "live"
 HOLDING = "holding"
@@ -64,8 +67,7 @@ SITES = {"modelspec": "ModelSpec"}
 #: What is copied from the real build, byte for byte. Directories whole.
 #: modelspec only. benchgraph.dev is one redirect file, copied unchanged.
 KEEP_DIRS = {"modelspec": ("api", "legal", "fonts")}
-KEEP_FILES = ("openapi.yaml", "favicon.ico", "favicon-64.png", "apple-touch-icon.png",
-              "icon-512.png", "icon.svg")
+KEEP_FILES = ("openapi.yaml", *brand.FILES)
 #: What this module writes itself.
 WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")
 
@@ -116,8 +118,8 @@ def page(site: str) -> str:
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
-        f'<meta name="robots" content="noindex"><title>{site}</title>'
-        '<link rel="icon" href="/favicon.ico">\n'
+        f'<meta name="robots" content="noindex"><title>{site}</title>\n'
+        + brand.head_links() + brand.social_meta(site) +
         f"<style>{_STYLE}</style></head>\n"
         f"<body><main><h1>{site}</h1><p>{line}</p>{footer}"
         f'<p class="l">© {OPERATOR}</p></main></body></html>\n'

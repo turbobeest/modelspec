@@ -47,6 +47,7 @@ import { DecisionTable } from "./components/DecisionTable";
 import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
 import { Share } from "./components/Share";
+import { BrandMark } from "./components/BrandMark";
 import "./decide.css";
 import { mapDecisionToViewModel, toDecisionSpec } from "./adapter/view-model";
 import { evaluateQuestionOptions } from "./adapter/questions";
@@ -564,32 +565,7 @@ function DesignedApp({
           aria-label="ModelSpec home"
           onClick={() => setView("arrive")}
         >
-          <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-            <rect width="32" height="32" rx="3" fill="var(--navy)" />
-            <path
-              d="M6 4.5V26H28"
-              fill="none"
-              stroke="#8fa3c2"
-              strokeWidth="1.2"
-            />
-            <path
-              d="M8.6 23.2C9.8 17.4 10.9 10.6 12.6 9.8C14.3 9 15 17.2 16.2 18.6C17.3 17.4 18.1 9.9 19.9 9.8C21.7 9.7 21.8 18.6 23.4 21.2C24.2 22.5 25.4 22.4 26.4 21.2"
-              fill="none"
-              stroke="white"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            {[
-              [8.6, 23.2],
-              [12.6, 9.8],
-              [16.2, 18.6],
-              [19.9, 9.8],
-              [23.4, 21.2],
-            ].map(([cx, cy]) => (
-              <circle key={cx} cx={cx} cy={cy} r="1.5" fill="#5aa9ec" />
-            ))}
-          </svg>
+          <BrandMark transparent={theme === "dark"} />
           <span>
             Model<span>Spec</span>
           </span>

@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from cli.modelspec import snapshot  # noqa: E402
+from pipeline import brand  # noqa: E402
 from pipeline import build as builder  # noqa: E402
 from pipeline import holding  # noqa: E402
 from pipeline import legal  # noqa: E402
@@ -123,6 +124,21 @@ def test_the_holding_page(trees):
         assert "/api/" not in page and "api.modelspec.dev" not in page
         assert ('href="/legal/terms/"' in page) == (site == "modelspec")
         assert ('href="/legal/privacy/"' in page) == (site == "modelspec")
+
+
+def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
+    ms = trees["holding"] / "modelspec"
+    top = sorted(p.name + ("/" if p.is_dir() else "") for p in ms.iterdir())
+    assert top == sorted(["api/", "legal/", "fonts/", "openapi.yaml", *brand.FILES,
+                          *holding.WRITTEN])
+    for name in brand.FILES:
+        assert (ms / name).read_bytes() == (trees["real"] / "modelspec" / name).read_bytes(), name
+
+
+def test_the_holding_page_links_the_2a_icons_and_social_card(trees):
+    page = (trees["holding"] / "modelspec" / "index.html").read_text(encoding="utf-8")
+    assert brand.head_links() in page
+    assert brand.social_meta("ModelSpec") in page
 
 
 def test_headers_noindex_everything_and_robots_names_no_sitemap(trees):

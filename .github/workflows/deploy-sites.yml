@@ -135,7 +135,10 @@ jobs:
           cp web/dist/decide.html dist/modelspec/404.html
           cp -a web/dist/assets dist/modelspec/assets
           find dist/modelspec/assets -type f -name 'main-*' -delete
-          if [ -f web/dist/favicon.svg ]; then cp web/dist/favicon.svg dist/modelspec/favicon.svg; fi
+          # The 2a icon set and social card, as pipeline.brand wrote them into the real build.
+          for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest; do
+            cp dist-v1/modelspec/$icon dist/modelspec/$icon
+          done
           python - <<'PY'
           from pathlib import Path
 
@@ -206,6 +209,14 @@ jobs:
           test -s dist/modelspec/legal/terms/index.html
           test -s dist/modelspec/legal/privacy/index.html
           test -s dist/modelspec/legal/neutrality/index.html
+          test -s dist/modelspec/favicon.ico
+          test -s dist/modelspec/favicon-64.png
+          test -s dist/modelspec/icon.svg
+          test -s dist/modelspec/apple-touch-icon.png
+          test -s dist/modelspec/icon-192.png
+          test -s dist/modelspec/icon-512.png
+          test -s dist/modelspec/og-card.png
+          test -s dist/modelspec/site.webmanifest
           test ! -e dist/modelspec/downselect
           test ! -e dist/modelspec/graph
           test ! -e dist/modelspec/models

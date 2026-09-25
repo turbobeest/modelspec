@@ -245,7 +245,6 @@ body {
   --bad: #a4262c;
   --badSoft: #fde7e9;
   --good: #0b6a0b;
-  --navy: #0b1426;
   --shadow: 0 10px 32px rgba(11, 20, 38, 0.16);
   --accentText: #006bbd;
   --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
@@ -273,7 +272,6 @@ body {
   --bad: #f28b94;
   --badSoft: #3d1e24;
   --good: #7fd07a;
-  --navy: #1d3a66;
   --shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
   --accentText: #5aa9ec;
 }
