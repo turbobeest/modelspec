@@ -267,9 +267,9 @@ function DesignedApp({
       });
     return () => controller.abort();
     // questionsFor and sendable read only vocabulary and dismissed, listed here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     // `answered`, not the decision: the full explanation replacing the summary
     // must not send every probe again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo, answered, spec, dismissed, vocabulary]);
   useEffect(() => {
     if (demo) return;

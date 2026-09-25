@@ -30,6 +30,7 @@ const decision = (count: number): Decision => ({
   constraint_costs: [],
   tipping_points: [],
   relax: [],
+  relax_to: [],
   warnings: [],
   near_misses: [],
   top: [],

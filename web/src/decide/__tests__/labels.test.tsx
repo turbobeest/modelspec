@@ -50,7 +50,7 @@ function withLicences() {
         ...openness,
         facet: "licence.commercial_use",
         value: "permitted_with_conditions",
-      });
+      } as (typeof candidate.facts)[number]);
   }
   return decisionSchema.parse(raw);
 }
@@ -115,4 +115,22 @@ it("shows the licence label on the open-weights card", async () => {
   render(<App />);
   const card = (await screen.findByText("Best open weights")).closest(".result-card")!;
   expect(card).toHaveTextContent("Permitted with conditions");
+});
+
+it("labels the value a near miss had (Q10: a decider, not `decider`)", async () => {
+  const { mapDecisionToViewModel } = await import("../adapter/view-model");
+  registerValueLabels(realVocabulary.facets.map((row) =>
+    row.id === "model.class"
+      ? { ...row, values: [...(row.values ?? []), { value: "decider", count: 1, label: "Decision model" }] }
+      : row,
+  ));
+  const view = mapDecisionToViewModel(EMPTY_DECISIONS.q10, EMPTY_SPECS.q10, {
+    axis: "task$",
+    dismissed: [],
+    providers: realVocabulary.providers,
+  });
+  const whys = view.nearMisses.map((miss) => miss.why);
+  expect(whys.length).toBeGreaterThan(0);
+  for (const why of whys) expect(why).not.toMatch(/: decider$|_/);
+  expect(whys.some((why) => why.includes("/ 1M tokens"))).toBe(true);
 });

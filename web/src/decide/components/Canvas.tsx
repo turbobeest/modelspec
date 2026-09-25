@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   axisDefs,
   plotDomain,
@@ -10,6 +10,7 @@ import {
 import type { AdapterDecision, Cond, Spec, Row } from "../adapter";
 import type { Axis } from "../state/spec";
 import { useVocab } from "../vocabulary/context";
+import { placeLabels } from "./labels";
 export function Canvas({
   decision,
   spec,
@@ -36,7 +37,17 @@ export function Canvas({
   const vocab = useVocab();
   const plot = useRef<HTMLDivElement>(null),
     [hover, setHover] = useState<Row | null>(null),
+    [plotWidth, setPlotWidth] = useState(800),
     drag = useRef<"x" | "y" | null>(null);
+  useEffect(() => {
+    const el = plot.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0) setPlotWidth(entry.contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const e = decision.explanation,
     ax = axisDefs[axis],
     bd = decision.benchmarks[spec.bench],
@@ -101,41 +112,47 @@ export function Canvas({
         `${i ? "L" : "M"}${100 * pd.fx(ax.get(r) ?? 0)} ${100 * pd.fy(r.cap ?? 0)}`,
     )
     .join(" ");
-  const height = compact ? 300 : 460,
-    placed: { y: number; a0: number; a1: number }[] = [];
-  const labels = pd.values.flatMap(({ r, x, y }) => {
-    if (
-      r.status === -1 ||
-      !(
-        decision.frontier.includes(r) ||
-        Object.values(e.shortlist).some(
-          (s) => s && typeof s === "object" && "m" in s && s.m.id === r.m.id,
-        ) ||
-        r.m.id === selected ||
-        status(r) === "May qualify"
-      )
-    )
-      return [];
-    const xx = pd.fx(x),
-      right = xx > 0.72,
-      a0 = right ? xx - 0.17 : xx,
-      a1 = right ? xx : xx + 0.17;
-    let dy = 0;
-    for (let i = 0; i < 8; i++) {
-      if (
-        !placed.some(
-          (p) =>
-            Math.abs(p.y - (pd.fy(y) * height + dy)) < 15 &&
-            p.a0 < a1 &&
-            a0 < p.a1,
-        )
-      )
-        break;
-      dy += 15;
-    }
-    placed.push({ y: pd.fy(y) * height + dy, a0, a1 });
-    return [{ r, x, y, dy, right }];
-  });
+  const height = compact ? 300 : 460;
+  // Labelled: selected, shortlist, frontier and may-qualify points, most
+  // important first; any other point while it is hovered or focused.
+  const shortlisted = new Set(
+    Object.values(e.shortlist).flatMap((s) =>
+      s && typeof s === "object" && "m" in s ? [s.m.id] : [],
+    ),
+  );
+  const onFrontier = new Set(decision.frontier.map((r) => r.m.id));
+  const rank = (r: Row) =>
+    r.m.id === selected
+      ? 0
+      : shortlisted.has(r.m.id)
+        ? 1
+        : onFrontier.has(r.m.id)
+          ? 2
+          : status(r) === "May qualify"
+            ? 3
+            : r.m.id === hover?.m.id
+              ? 4
+              : null;
+  const labelText = (r: Row) =>
+    r.m.name +
+    (status(r) === "May qualify" ? " · may qualify" : r.labOnly ? " · lab-reported" : "");
+  const toLabel = pd.values
+    .flatMap((p) => {
+      const order = p.r.status === -1 && p.r.m.id !== hover?.m.id ? null : rank(p.r);
+      return order === null ? [] : [{ ...p, order }];
+    })
+    .sort((a, b) => a.order - b.order);
+  const placements = placeLabels(
+    toLabel.map(({ r, x, y }) => ({ id: r.m.id, text: labelText(r), x: pd.fx(x), y: pd.fy(y) })),
+    pd.values.map(({ x, y }) => ({ x: pd.fx(x), y: pd.fy(y) })),
+    plotWidth,
+    height,
+  );
+  const labels = toLabel.map((p, i) => ({
+    ...p,
+    dy: placements[i].dy,
+    right: placements[i].side === "left",
+  }));
   const niceStep = (span: number, n: number) => {
     const r = span / n,
       p = 10 ** Math.floor(Math.log10(r));
@@ -268,6 +285,19 @@ export function Canvas({
             preserveAspectRatio="none"
             aria-label="Pareto frontier"
           >
+            {labels
+              .filter(({ dy }) => dy !== 0)
+              .map(({ r, x, y, dy, right }) => (
+                <line
+                  key={r.m.id}
+                  className="label-leader"
+                  x1={100 * pd.fx(x)}
+                  y1={100 * pd.fy(y)}
+                  x2={100 * (pd.fx(x) + ((right ? -1 : 1) * 10) / plotWidth)}
+                  y2={100 * (pd.fy(y) + dy / height)}
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
             <path
               d={decision.frontier.length > 1 ? path : ""}
               fill="none"
@@ -322,12 +352,7 @@ export function Canvas({
                 transform: `translate(${right ? "calc(-100% - 12px)" : "12px"}, calc(-50% + ${dy}px))`,
               }}
             >
-              {r.m.name}
-              {status(r) === "May qualify"
-                ? " · may qualify"
-                : r.labOnly
-                  ? " · lab-reported"
-                  : ""}
+              {labelText(r)}
             </span>
           ))}
           <div

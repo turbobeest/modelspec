@@ -21,6 +21,7 @@ import {
   renderContractCondition,
   renderUnknownFacets,
   valueLabel,
+  valueWithUnit,
 } from "./condition-label";
 
 const CLASS_TO_TYPE: Readonly<Record<string, TypeKey>> = {
@@ -840,7 +841,11 @@ export function mapDecisionToViewModel(
         row,
         ci: conditionIndex,
         cond: spec.conds[conditionIndex] ?? { f: "active" },
-        why: `${renderContractCondition(miss.condition)}: ${miss.value ?? miss.values.join(", ")}`,
+        why: `${renderContractCondition(miss.condition)}: ${[
+          ...(miss.value === null ? miss.values : [miss.value]),
+        ]
+          .map((value) => (miss.facet ? valueWithUnit(miss.facet, String(value)) : String(value)))
+          .join(", ")}`,
         relaxed: null,
         off: row.best,
       },
