@@ -669,16 +669,16 @@ availability:
 benchmarks:
   scores:
     bbh: 38.1
-    gpqa_diamond: 28.5
     ifeval: 72.4
-    math_500: 52.8
     mmlu_pro: 42.3
     musr: 11.2
     mgsm: 47.9
     gsm8k: 86.2
   benchmark_source: open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 52.8 and gpqa_diamond 28.5. They came from a hand-typed
+    table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
+    for microsoft/Phi-3.5-mini-instruct has MATH Lvl 5 Raw 19.6 and GPQA Raw 34.0).'
 deployment:
   api_only: false
   local_inference: true

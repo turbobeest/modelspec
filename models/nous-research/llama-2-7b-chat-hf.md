@@ -671,13 +671,12 @@ benchmarks:
     winogrande: 71.7
     ifeval: 39.9
     bbh: 31.1
-    math_500: 2.0
-    gpqa_diamond: 25.3
     musr: 36.8
     mmlu_pro: 16.9
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 2.0 and gpqa_diamond 25.3. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for meta-llama/Llama-2-7b-chat-hf, a different repository from this card''s (NousResearch/Llama-2-7b-chat-hf).'
 deployment:
   api_only: false
   local_inference: true

@@ -669,8 +669,6 @@ benchmarks:
   scores:
     ifeval: 12.7
     bbh: 44.0
-    math_500: 3.4
-    gpqa_diamond: 29.7
     musr: 42.4
     mmlu_pro: 27.2
   evidence:
@@ -920,7 +918,8 @@ benchmarks:
       attribution on the benchmark page.
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 3.4 and gpqa_diamond 29.7. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for jebish7/gemma-2-2b-it, a different repository from this card''s (google/gemma-2-2b-it).'
 deployment:
   api_only: false
   local_inference: true

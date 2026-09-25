@@ -668,9 +668,7 @@ availability:
 benchmarks:
   scores:
     bbh: 36.8
-    gpqa_diamond: 27.2
     ifeval: 69.5
-    math_500: 40.1
     mmlu_pro: 40.5
     musr: 11.8
   benchmark_source: open-llm-leaderboard-v2
@@ -690,6 +688,9 @@ benchmarks:
       read 2026-09-24. Run started 2025-01-27T00:00:00.000Z; effort default; highest-effort
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.91 points.
     limitations: Epoch AI data, CC BY 4.0.
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 40.1 and gpqa_diamond 27.2. They came from a hand-typed
+    table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
+    for mistralai/Mixtral-8x7B-v0.1 has MATH Lvl 5 Raw 9.4 and GPQA Raw 32.0).'
 deployment:
   api_only: false
   local_inference: false

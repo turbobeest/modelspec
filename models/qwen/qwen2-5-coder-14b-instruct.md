@@ -691,8 +691,8 @@ benchmarks:
     multipl_e_kotlin: 56.8
     ifeval: 69.1
     bbh: 61.4
-    math_500: 32.5
-    gpqa_diamond: 30.5
+    math_lvl5: 32.5
+    gpqa_pooled: 30.5
     musr: 39.1
     mmlu_pro: 39.4
   benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2

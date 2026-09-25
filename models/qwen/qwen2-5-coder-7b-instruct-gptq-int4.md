@@ -691,13 +691,12 @@ benchmarks:
     multipl_e_kotlin: 48.5
     ifeval: 34.5
     bbh: 48.6
-    math_500: 19.2
-    gpqa_diamond: 25.9
     musr: 34.5
     mmlu_pro: 36.8
   benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 19.2 and gpqa_diamond 25.9. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for Qwen/Qwen2.5-Coder-7B, a different repository from this card''s (Qwen/Qwen2.5-Coder-7B-Instruct-GPTQ-Int4).'
 deployment:
   api_only: false
   local_inference: true

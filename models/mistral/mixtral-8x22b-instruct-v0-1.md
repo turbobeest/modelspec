@@ -668,9 +668,7 @@ availability:
 benchmarks:
   scores:
     bbh: 48.5
-    gpqa_diamond: 36.1
     ifeval: 77.8
-    math_500: 56.2
     mmlu_pro: 52.3
     musr: 18.5
     gsm8k: 88.0
@@ -982,7 +980,9 @@ benchmarks:
       attribution on the benchmark page.
   benchmark_source: open-llm-leaderboard-v2, llm-stats, open-llm-leaderboard-v1
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 56.2 and gpqa_diamond 36.1. They came from a hand-typed
+    table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
+    for mistralai/Mixtral-8x22B-Instruct-v0.1 has MATH Lvl 5 Raw 18.7 and GPQA Raw 37.3).'
 deployment:
   api_only: false
   local_inference: true

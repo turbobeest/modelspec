@@ -668,9 +668,7 @@ availability:
 benchmarks:
   scores:
     bbh: 48.2
-    gpqa_diamond: 36.5
     ifeval: 77.3
-    math_500: 58.5
     mmlu_pro: 52.8
     musr: 18.2
     arc_challenge: 70.5
@@ -996,7 +994,9 @@ benchmarks:
     limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: open-llm-leaderboard-v2, open-llm-leaderboard-v1
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 58.5 and gpqa_diamond 36.5. They came from a hand-typed
+    table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
+    for 01-ai/Yi-1.5-34B-Chat has MATH Lvl 5 Raw 27.7 and GPQA Raw 36.5).'
 deployment:
   api_only: false
   local_inference: true

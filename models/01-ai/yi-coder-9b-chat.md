@@ -669,8 +669,8 @@ benchmarks:
   scores:
     ifeval: 48.2
     bbh: 48.1
-    math_500: 4.0
-    gpqa_diamond: 24.7
+    math_lvl5: 4.0
+    gpqa_pooled: 24.7
     musr: 39.9
     mmlu_pro: 24.3
   evidence:
@@ -726,12 +726,37 @@ benchmarks:
     configuration: Open LLM Leaderboard v2 contents row 01-ai/Yi-Coder-9B-Chat, column "MUSR Raw" x100 (raw accuracy,
       not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
     limitations: ''
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: 01-ai/Yi-Coder-9B-Chat
+    score: 4.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-14'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 MATH Lvl 5
+    configuration: Open LLM Leaderboard v2 contents row 01-ai/Yi-Coder-9B-Chat, column "MATH Lvl 5 Raw" x100 (raw
+      accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: 01-ai/Yi-Coder-9B-Chat
+    score: 24.75
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-14'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 GPQA
+    configuration: Open LLM Leaderboard v2 contents row 01-ai/Yi-Coder-9B-Chat, column "GPQA Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
-    LLM Leaderboard v2 "GPQA Raw" value for 01-ai/Yi-Coder-9B-Chat; math_500 holds the Open LLM Leaderboard v2 "MATH
-    Lvl 5 Raw" value for 01-ai/Yi-Coder-9B-Chat. Each value is confirmed for this exact model but is not the benchmark
-    its key names, so it stays in the flat block and is not promoted to evidence.'
+  benchmark_notes: 'MODEL-116, 2026-09-24: the Open LLM Leaderboard v2 "MATH Lvl 5 Raw" and "GPQA Raw" values for
+    01-ai/Yi-Coder-9B-Chat moved from math_500 and gpqa_diamond to math_lvl5 and gpqa_pooled, and are promoted to
+    evidence.'
 deployment:
   api_only: false
   local_inference: true

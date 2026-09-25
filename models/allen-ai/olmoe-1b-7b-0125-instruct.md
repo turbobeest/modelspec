@@ -669,8 +669,8 @@ benchmarks:
   scores:
     ifeval: 67.6
     bbh: 38.2
-    math_500: 9.0
-    gpqa_diamond: 26.0
+    math_lvl5: 9.0
+    gpqa_pooled: 26.0
     musr: 36.4
     mmlu_pro: 19.1
   evidence:
@@ -726,12 +726,37 @@ benchmarks:
     configuration: Open LLM Leaderboard v2 contents row allenai/OLMoE-1B-7B-0125-Instruct, column "MUSR Raw" x100
       (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
     limitations: ''
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: allenai/OLMoE-1B-7B-0125-Instruct
+    score: 8.99
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2025-02-18'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 MATH Lvl 5
+    configuration: Open LLM Leaderboard v2 contents row allenai/OLMoE-1B-7B-0125-Instruct, column "MATH Lvl 5 Raw"
+      x100 (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: allenai/OLMoE-1B-7B-0125-Instruct
+    score: 26.01
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2025-02-18'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 GPQA
+    configuration: Open LLM Leaderboard v2 contents row allenai/OLMoE-1B-7B-0125-Instruct, column "GPQA Raw" x100
+      (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
-    LLM Leaderboard v2 "GPQA Raw" value for allenai/OLMoE-1B-7B-0125-Instruct; math_500 holds the Open LLM Leaderboard
-    v2 "MATH Lvl 5 Raw" value for allenai/OLMoE-1B-7B-0125-Instruct. Each value is confirmed for this exact model
-    but is not the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
+  benchmark_notes: 'MODEL-116, 2026-09-24: the Open LLM Leaderboard v2 "MATH Lvl 5 Raw" and "GPQA Raw" values for
+    allenai/OLMoE-1B-7B-0125-Instruct moved from math_500 and gpqa_diamond to math_lvl5 and gpqa_pooled, and are promoted
+    to evidence.'
 deployment:
   api_only: false
   local_inference: true

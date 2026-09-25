@@ -669,13 +669,12 @@ benchmarks:
   scores:
     ifeval: 34.0
     bbh: 41.3
-    math_500: 1.4
-    gpqa_diamond: 29.4
     musr: 36.9
     mmlu_pro: 30.6
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 1.4 and gpqa_diamond 29.4. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for 01-ai/Yi-6B-Chat, a different repository from this card''s (01-ai/Yi-6B-Chat-4bits).'
 deployment:
   api_only: false
   local_inference: true

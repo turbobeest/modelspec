@@ -668,9 +668,7 @@ availability:
 benchmarks:
   scores:
     bbh: 39.5
-    gpqa_diamond: 29.8
     ifeval: 72.1
-    math_500: 46.8
     mmlu_pro: 43.5
     musr: 13.1
   evidence:
@@ -903,6 +901,9 @@ benchmarks:
       attribution on the benchmark page.
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 46.8 and gpqa_diamond 29.8. They came from a hand-typed
+    table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
+    for ibm-granite/granite-3.1-8b-instruct has MATH Lvl 5 Raw 22.0 and GPQA Raw 31.2).'
 deployment:
   api_only: false
   local_inference: true
