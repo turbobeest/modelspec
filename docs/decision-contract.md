@@ -584,7 +584,10 @@ it instead of carrying its own list of facets or benchmarks. Built by
   `between` for `facet in [low, high]`, `in` and `not in` for `facet in {…}`,
   `known`), whether it can be an `objective`, its `risk` and `computed_by`, and
   how much of the lineup knows it: `known` of `of` models or offerings, with
-  the `values` (and counts) or the `range` it takes there. A client offers
+  the `values` (and counts) or the `range` it takes there. Each value of an
+  enum or set facet carries the registry's plain `label` where
+  `registry/facets.yaml` gives one (`value_labels`), so a client shows
+  "Permitted with conditions", not `permitted_with_conditions`. A client offers
   nothing with `known: 0`. `offering.cost_per_task` is counted and ranged at
   `default_task_tokens`.
 - `benchmarks`: every benchmark with verified evidence in the snapshot, with

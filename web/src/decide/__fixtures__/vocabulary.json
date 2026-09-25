@@ -44,19 +44,23 @@
       "values": [
         {
           "value": "decider",
-          "count": 1
+          "count": 1,
+          "label": "Decision model"
         },
         {
           "value": "orderer",
-          "count": 2
+          "count": 2,
+          "label": "Reranker"
         },
         {
           "value": "text-generator",
-          "count": 25
+          "count": 25,
+          "label": "Text generator"
         },
         {
           "value": "vectoriser",
-          "count": 4
+          "count": 4,
+          "label": "Embedding model"
         }
       ]
     },
@@ -81,23 +85,28 @@
       "values": [
         {
           "value": "audio",
-          "count": 7
+          "count": 7,
+          "label": "Audio"
         },
         {
           "value": "document",
-          "count": 17
+          "count": 17,
+          "label": "Documents"
         },
         {
           "value": "image",
-          "count": 22
+          "count": 22,
+          "label": "Images"
         },
         {
           "value": "text",
-          "count": 32
+          "count": 32,
+          "label": "Text"
         },
         {
           "value": "video",
-          "count": 9
+          "count": 9,
+          "label": "Video"
         }
       ]
     },
@@ -122,19 +131,23 @@
       "values": [
         {
           "value": "embedding",
-          "count": 4
+          "count": 4,
+          "label": "Embeddings"
         },
         {
           "value": "label",
-          "count": 1
+          "count": 1,
+          "label": "Labels"
         },
         {
           "value": "score",
-          "count": 3
+          "count": 3,
+          "label": "Scores"
         },
         {
           "value": "text",
-          "count": 25
+          "count": 25,
+          "label": "Text"
         }
       ]
     },
@@ -217,11 +230,13 @@
       "values": [
         {
           "value": "closed_weights",
-          "count": 21
+          "count": 21,
+          "label": "Closed weights"
         },
         {
           "value": "open_weights",
-          "count": 11
+          "count": 11,
+          "label": "Open weights"
         }
       ]
     },
@@ -320,11 +335,13 @@
       "values": [
         {
           "value": "permitted",
-          "count": 6
+          "count": 6,
+          "label": "Permitted"
         },
         {
           "value": "permitted_with_conditions",
-          "count": 22
+          "count": 22,
+          "label": "Permitted with conditions"
         }
       ]
     },
@@ -379,11 +396,13 @@
       "values": [
         {
           "value": "permitted",
-          "count": 11
+          "count": 11,
+          "label": "Permitted"
         },
         {
           "value": "restricted",
-          "count": 16
+          "count": 16,
+          "label": "Restricted"
         }
       ]
     },
@@ -410,15 +429,18 @@
       "values": [
         {
           "value": "permitted",
-          "count": 6
+          "count": 6,
+          "label": "Permitted"
         },
         {
           "value": "permitted_with_conditions",
-          "count": 5
+          "count": 5,
+          "label": "Permitted with conditions"
         },
         {
           "value": "prohibited",
-          "count": 16
+          "count": 16,
+          "label": "Prohibited"
         }
       ]
     },
@@ -567,7 +589,8 @@
       "values": [
         {
           "value": "active",
-          "count": 32
+          "count": 32,
+          "label": "Active"
         }
       ]
     },
@@ -878,15 +901,18 @@
       "values": [
         {
           "value": "global",
-          "count": 31
+          "count": 31,
+          "label": "Global"
         },
         {
           "value": "global-cross-region",
-          "count": 2
+          "count": 2,
+          "label": "Global, cross-region routing"
         },
         {
           "value": "global-short-context",
-          "count": 4
+          "count": 4,
+          "label": "Global, short context"
         },
         {
           "value": "singapore",
@@ -917,7 +943,8 @@
       "values": [
         {
           "value": "standard",
-          "count": 38
+          "count": 38,
+          "label": "Standard"
         }
       ]
     },
@@ -1325,7 +1352,8 @@
       "values": [
         {
           "value": "type_2",
-          "count": 7
+          "count": 7,
+          "label": "SOC 2 Type II"
         }
       ]
     },

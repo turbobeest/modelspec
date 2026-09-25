@@ -152,6 +152,19 @@ facets:
     label: Model class
     subject: model
     value_type: {kind: enum, values_from: model_classes}
+    value_labels:
+      actor: Agent (acts on tools or environments)
+      analyser: Analyser (labels parts of its input)
+      decider: Decision model
+      forecaster: Forecaster
+      labeller: Classifier
+      "media-generator": Media generator
+      orderer: Reranker
+      scorer: Scorer
+      simulator: Simulator
+      "text-generator": Text generator
+      transcriber: Speech recognition
+      vectoriser: Embedding model
     definition: >-
       The model's class as derived from its model type by `api/classes.py`:
       what it consumes, what it emits and what decision it makes. One value per
@@ -163,6 +176,13 @@ facets:
     label: Input modalities
     subject: model
     value_type: {kind: set, values: [text, image, audio, video, document, structured]}
+    value_labels:
+      audio: Audio
+      document: Documents
+      image: Images
+      structured: Structured data
+      text: Text
+      video: Video
     definition: >-
       Every modality the model accepts as input natively, without a separate
       model transcribing or captioning it first. `document` means files such as
@@ -174,6 +194,15 @@ facets:
     label: Output modalities
     subject: model
     value_type: {kind: set, values: [text, image, audio, video, embedding, score, label, action]}
+    value_labels:
+      action: Actions
+      audio: Audio
+      embedding: Embeddings
+      image: Images
+      label: Labels
+      score: Scores
+      text: Text
+      video: Video
     definition: >-
       Every modality the model emits natively. `embedding` is a vector,
       `score` a relevance or reward number, `label` a class from a fixed or
@@ -212,6 +241,9 @@ facets:
     label: Open weights
     subject: model
     value_type: {kind: enum, values: [open_weights, closed_weights]}
+    value_labels:
+      closed_weights: Closed weights
+      open_weights: Open weights
     definition: >-
       `open_weights` when the lab publishes the trained weights for download
       under any licence, including a gated or restrictive one; `closed_weights`
@@ -248,6 +280,18 @@ facets:
     label: Architecture
     subject: model
     value_type: {kind: enum, values_from: architecture_types}
+    value_labels:
+      GAN: GAN
+      MoE: Mixture of experts
+      SSM: State-space model
+      "decoder-only": Decoder-only transformer
+      "dense-transformer": Dense transformer
+      diffusion: Diffusion
+      "encoder-decoder": Encoder-decoder transformer
+      "encoder-only": Encoder-only transformer
+      "flow-matching": Flow matching
+      "hybrid-SSM-transformer": Hybrid state-space and transformer
+      other: Other
     definition: >-
       The model's architecture family as `ArchitectureType` in `schema/enums.py`
       names it. An undisclosed architecture is unknown, never inapplicable.
@@ -260,6 +304,10 @@ facets:
     label: Commercial use
     subject: model
     value_type: {kind: enum, values: [permitted, permitted_with_conditions, prohibited]}
+    value_labels:
+      permitted: Permitted
+      permitted_with_conditions: Permitted with conditions
+      prohibited: Prohibited
     definition: >-
       Whether the licence governing the model lets a customer use the model or
       its outputs in a commercial product. `permitted_with_conditions` covers
@@ -284,6 +332,10 @@ facets:
     label: Training on outputs
     subject: model
     value_type: {kind: enum, values: [permitted, restricted, prohibited]}
+    value_labels:
+      permitted: Permitted
+      prohibited: Prohibited
+      restricted: Restricted
     definition: >-
       Whether the licence or terms let a customer use the model's outputs to
       train or improve another model. `restricted` when permitted only for some
@@ -295,6 +347,10 @@ facets:
     label: Fine-tuning rights
     subject: model
     value_type: {kind: enum, values: [permitted, permitted_with_conditions, prohibited]}
+    value_labels:
+      permitted: Permitted
+      permitted_with_conditions: Permitted with conditions
+      prohibited: Prohibited
     definition: >-
       Whether the licence lets a customer modify the model's weights by further
       training and use the result. Whether a provider offers fine-tuning as a
@@ -369,6 +425,10 @@ facets:
     label: Lifecycle
     subject: model
     value_type: {kind: enum, values: [active, deprecated, retired]}
+    value_labels:
+      active: Active
+      deprecated: Deprecated
+      retired: Retired
     definition: >-
       `deprecated` when the lab has announced a retirement date; `retired` when
       the lab no longer serves or supports the model; `active` otherwise.
@@ -489,6 +549,10 @@ facets:
     label: Inference region
     subject: offering
     value_type: {kind: set, values_from: iso_3166_1_alpha_2}
+    value_labels:
+      global: Global
+      "global-cross-region": Global, cross-region routing
+      "global-short-context": Global, short context
     definition: >-
       The countries in which the provider documents that inference for this
       offering runs, as ISO 3166-1 alpha-2 codes. A global or routed offering
@@ -501,6 +565,11 @@ facets:
     label: Account tier
     subject: offering
     value_type: {kind: enum, values: [standard, enterprise, zero_retention, government]}
+    value_labels:
+      enterprise: Enterprise
+      government: Government
+      standard: Standard
+      zero_retention: Zero retention
     definition: >-
       The account tier the offering is sold under. A tier is its own offering
       only when a guaranteed fact differs from the standard tier: price, data
@@ -690,6 +759,10 @@ facets:
     label: SOC 2 report
     subject: offering
     value_type: {kind: enum, values: [type_1, type_2, none]}
+    value_labels:
+      "none": None
+      type_1: SOC 2 Type I
+      type_2: SOC 2 Type II
     definition: >-
       The SOC 2 report type the provider documents for the service this offering
       runs on, when that report's scope covers the service. `none` when the
@@ -712,6 +785,12 @@ facets:
     label: FedRAMP level
     subject: offering
     value_type: {kind: enum, values: [high, moderate, low, li_saas, none]}
+    value_labels:
+      high: FedRAMP High
+      li_saas: FedRAMP Low Impact SaaS
+      low: FedRAMP Low
+      moderate: FedRAMP Moderate
+      "none": None
     definition: >-
       The FedRAMP authorization level of the cloud service offering this
       offering runs in, as the FedRAMP marketplace lists it for this model.

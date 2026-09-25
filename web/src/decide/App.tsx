@@ -23,7 +23,11 @@ import {
 import type { Vocabulary } from "./vocabulary";
 import { VocabContext, fictionalVocab, realVocab } from "./vocabulary/context";
 import { placeIssues } from "./vocabulary/issues";
-import { registerBenchmarks, registerProviders } from "./adapter/condition-label";
+import {
+  registerBenchmarks,
+  registerProviders,
+  registerValueLabels,
+} from "./adapter/condition-label";
 import { baseSpec, decodeSpec, encodeSpec } from "./state/spec";
 import type { Axis } from "./state/spec";
 import { SpecPanel } from "./components/SpecPanel";
@@ -107,6 +111,7 @@ function DesignedApp({
     if (!vocabulary) return fictionalVocab;
     registerBenchmarks(vocabulary.benchmarks);
     registerProviders(vocabulary.providers);
+    registerValueLabels(vocabulary.facets);
     return realVocab(vocabulary);
   }, [vocabulary]);
   const shownAxis = vocab.axes.includes(axis) ? axis : (vocab.axes[0] ?? axis);

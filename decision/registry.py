@@ -128,6 +128,12 @@ class Facet:
     computed_by: str | None = None
     #: A short name for people, such as "Input price". Optional.
     label: str | None = None
+    #: Plain labels for enum or set values, as ``(value, label)`` pairs, so a
+    #: page never shows a token such as ``permitted_with_conditions``.
+    value_labels: tuple[tuple[str, str], ...] = ()
+
+    def value_label(self, value: str) -> str | None:
+        return dict(self.value_labels).get(value)
 
     @property
     def unknown_policy(self) -> UnknownPolicy:
@@ -451,11 +457,33 @@ def _value_type(err: _Errors, where: str, raw: Any, unit: Any, units: Mapping, l
     )
 
 
+def _value_labels(err: _Errors, where: str, raw: Any, vt: ValueType | None,
+                  lists: Mapping) -> tuple[tuple[str, str], ...]:
+    """``value_labels``: a label for each named value of an enum or set facet."""
+    if raw is None:
+        return ()
+    if vt is None or vt.kind not in ("enum", "set"):
+        err.add(where, "value_labels is only for enum and set facets")
+        return ()
+    if not isinstance(raw, dict) or not all(
+            isinstance(label, str) and label.strip() for label in raw.values()):
+        err.add(where, "value_labels must map each value to a non-empty label")
+        return ()
+    allowed = set(vt.values) if vt.values is not None else None
+    producer = lists.get(vt.values_from) if vt.values_from else None
+    if allowed is None and producer is not None:
+        allowed = set(producer())
+    for value in raw:
+        if allowed is not None and str(value) not in allowed:
+            err.add(where, f"value_labels names {value!r}, which is not one of its values")
+    return tuple(sorted((str(k), str(v)) for k, v in raw.items()))
+
+
 def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists: Mapping) -> dict[str, Facet]:
     entries = _read(root, "facets", "facets")
     _unique(err, "facets.yaml", entries, FACET_ID, "dotted snake_case, such as model.context_window")
     required = {"id", "subject", "value_type", "definition", "tier", "risk", "permitted_source_kinds"}
-    optional = {"unit", "parameter", "required_qualifiers", "computed_by", "label"}
+    optional = {"unit", "parameter", "required_qualifiers", "computed_by", "label", "value_labels"}
     out: dict[str, Facet] = {}
     for e in entries:
         where = f"facets.yaml {e.get('id')!r}"
@@ -485,6 +513,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
         if label is not None and (not isinstance(label, str) or not label.strip()):
             err.add(where, "label must be a non-empty string")
             label = None
+        value_labels = _value_labels(err, where, e.get("value_labels"), vt, lists)
         rq = e.get("required_qualifiers", [])
         if not isinstance(rq, list) or not all(isinstance(q, str) for q in rq):
             err.add(where, "required_qualifiers must be a list of names")
@@ -496,7 +525,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             definition=" ".join(str(e.get("definition", "")).split()),
             tier=e.get("tier"), risk=e.get("risk"), permitted_source_kinds=tuple(psk),
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
-            computed_by=e.get("computed_by"), label=label,
+            computed_by=e.get("computed_by"), label=label, value_labels=value_labels,
         ))
     return out
 

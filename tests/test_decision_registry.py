@@ -284,6 +284,10 @@ def _facet(**over):
     (_facet(id="Model Example"), "id"),
     (_facet(surprise=True), "surprise"),
     (_facet(id="model.context_window"), "duplicate"),
+    (_facet(value_type={"kind": "enum", "values": ["a_b"]}, value_labels={"c_d": "C"}), "c_d"),
+    (_facet(value_type={"kind": "enum", "values": ["a_b"]}, value_labels={"a_b": " "}),
+     "value_labels"),
+    (_facet(value_labels={"x": "X"}), "value_labels"),
 ])
 def test_invalid_facets_are_rejected(tmp_path, entry, needle):
     root = _copy(tmp_path)
@@ -413,3 +417,27 @@ def test_module_level_shortcuts_use_the_default_registry():
     assert registry.facet("origin.lab_jurisdiction").tier == "guaranteed"
     with pytest.raises(KeyError):
         registry.facet("no.such.facet")
+
+
+# ── value labels (MODEL-153) ─────────────────────────────────────────────────
+
+
+def test_every_closed_enum_value_has_a_plain_label(registry):
+    """What the page shows for an enum value is a label, never the token."""
+    missing = []
+    for facet in registry._facets.values():
+        if facet.value_type.kind not in ("enum", "set"):
+            continue
+        if facet.id in ("offering.provider", "offering.harness_compatibility", "model.fits_hardware"):
+            continue  # named by registry/providers.yaml, harnesses.yaml and hardware/
+        for value in sorted(registry.allowed_values(facet) or ()):
+            if not facet.value_label(value):
+                missing.append(f"{facet.id}={value}")
+    assert not missing, missing
+
+
+def test_a_value_label_reads_as_words(registry):
+    commercial = registry.facet("licence.commercial_use")
+    assert commercial.value_label("permitted_with_conditions") == "Permitted with conditions"
+    assert registry.facet("model.weights_openness").value_label("open_weights") == "Open weights"
+    assert commercial.value_label("not_a_value") is None

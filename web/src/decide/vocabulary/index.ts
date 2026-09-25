@@ -39,7 +39,10 @@ const facetSchema = z.object({
     .nullable()
     .optional(),
   literals: z.array(z.string()).optional(),
-  values: z.array(z.object({ value: scalar, count: z.number().int() })).optional(),
+  // `label`: the registry's plain name for an enum value (MODEL-153).
+  values: z
+    .array(z.object({ value: scalar, count: z.number().int(), label: z.string().optional() }))
+    .optional(),
 });
 const benchmarkSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9_]*$/),

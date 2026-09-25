@@ -137,7 +137,8 @@ def test_coverage_counts_what_the_snapshot_actually_knows(vocabulary):
     assert facets["model.context_window"]["known"] == 3
     assert facets["model.context_window"]["range"] == {"min": 200000, "max": 200000}
     assert facets["model.weights_openness"]["values"] == [
-        {"value": "closed_weights", "count": 2}, {"value": "open_weights", "count": 1}]
+        {"value": "closed_weights", "count": 2, "label": "Closed weights"},
+        {"value": "open_weights", "count": 1, "label": "Open weights"}]
     assert facets["origin.lab_jurisdiction"]["values"] == [{"value": "US", "count": 3}]
     assert facets["model.release_date"]["range"] is None
 
@@ -305,3 +306,16 @@ def test_no_snapshot_means_no_vocabulary(tmp_path, monkeypatch):
     site_build.write_decision_snapshot_if_ready(
         tmp_path, target, premier=tmp_path / "premier.yaml", as_of=AS_OF)
     assert not (target.parent / "vocabulary.json").exists()
+
+
+def test_enum_values_carry_the_registry_label(snapshot):
+    """The page shows `label`, never the value token (MODEL-153)."""
+    vocabulary = build_vocabulary(snapshot)
+    rows = {row["id"]: row for row in vocabulary["facets"]}
+    openness = {v["value"]: v.get("label") for v in rows["model.weights_openness"]["values"]}
+    assert openness == {"closed_weights": "Closed weights", "open_weights": "Open weights"}
+    for row in vocabulary["facets"]:
+        for item in row.get("values") or []:
+            token = isinstance(item["value"], str) and any(c in item["value"] for c in "_-")
+            if token and row["id"] != "offering.provider":  # providers are named separately
+                assert item.get("label"), (row["id"], item["value"])
