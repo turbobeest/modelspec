@@ -112,9 +112,9 @@ by the decision contract:
 
 A request that exhausts the Worker's resources gets Cloudflare's own error
 page (`1102`, HTTP 503, not JSON, no CORS header), not a contract error. The
-decide page treats a `full` request that fails that way, or fails to connect,
-as a limit: it asks once more with `explain: summary` and says the detailed
-explanation was unavailable.
+decide page asks for `explain: summary` first and draws the ranking from it,
+then asks for `full` in the background; if that fails, the summary stands and
+only the detailed explanation is marked unavailable.
 
 `no_feasible` is a valid Decision with the smallest set of conditions to relax.
 It is a `200`, not a transport failure.
@@ -183,8 +183,13 @@ confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 }
 ```
 
-The decide page then reloads `vocabulary.json` and retries once with the new
-Snapshot ID. A second `snapshot_changed` is shown as an error, not retried.
+The decide page sends the header on every request: the summary, the
+background `full`, and each next-question probe. A `snapshot_changed` on any of
+them reloads `vocabulary.json` once, shared by every request that heard it, and
+retries that request once with the new Snapshot ID. A second
+`snapshot_changed` on the summary is shown as an error; on the background
+`full` after the summary already reloaded, it leaves the summary standing
+and does not reload again.
 
 ## Access and browser calls
 
