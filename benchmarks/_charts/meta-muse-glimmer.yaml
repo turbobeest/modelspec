@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Muse Glimmer-30B"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -44,7 +46,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: deepsearchqa
         score: 74.6
@@ -53,7 +55,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: deepsearchqa
         score: 61.7
@@ -62,7 +64,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: deepsearchqa
         score: 71.1
@@ -161,7 +163,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: skillsbench
         score: 44.3
@@ -170,7 +172,7 @@ charts:
         configuration: "With skills."
         role: subject
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: skillsbench
         score: 32.4
@@ -179,7 +181,7 @@ charts:
         configuration: "With skills."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: skillsbench
         score: 46.6
@@ -269,7 +271,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: terminal_bench_v2_1
         score: 51.7
@@ -278,7 +280,7 @@ charts:
         configuration: "terminus2 harness."
         role: subject
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: terminal_bench_v2_1
         score: 43.4
@@ -287,7 +289,7 @@ charts:
         configuration: "terminus2 harness."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: terminal_bench_v2_1
         score: 60.7
@@ -434,7 +436,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -444,7 +446,7 @@ charts:
         configuration: "Violation rate"
         role: subject
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -454,7 +456,7 @@ charts:
         configuration: "Coverage"
         role: subject
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -464,7 +466,7 @@ charts:
         configuration: "Violation rate"
         role: competitor
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -474,7 +476,7 @@ charts:
         configuration: "Coverage"
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -484,7 +486,7 @@ charts:
         configuration: "Violation rate"
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "CI Memories"
@@ -494,7 +496,7 @@ charts:
         configuration: "Coverage"
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -504,7 +506,7 @@ charts:
         configuration: "Attack success rate"
         role: subject
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -514,7 +516,7 @@ charts:
         configuration: "Utility"
         role: subject
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -524,7 +526,7 @@ charts:
         configuration: "Attack success rate"
         role: competitor
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -534,7 +536,7 @@ charts:
         configuration: "Utility"
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -544,7 +546,7 @@ charts:
         configuration: "Attack success rate"
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: null
         benchmark_as_labelled: "Siren AgentDojo"
@@ -645,6 +647,8 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Muse Glimmer-30B"
@@ -768,7 +772,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: wmdp
         score: 86.5
@@ -777,7 +781,7 @@ charts:
         configuration: "Bio."
         role: subject
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: wmdp
         score: 85.9
@@ -786,7 +790,7 @@ charts:
         configuration: "Bio."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: wmdp
         score: 84.8
@@ -795,7 +799,7 @@ charts:
         configuration: "Bio."
         role: competitor
       - model_as_labelled: "*Kimi K3*"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: wmdp
         score: 89.1
@@ -804,7 +808,7 @@ charts:
         configuration: "Bio."
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: wmdp
         score: 75.2
@@ -813,7 +817,7 @@ charts:
         configuration: "Chem."
         role: subject
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: wmdp
         score: 80.5
@@ -822,7 +826,7 @@ charts:
         configuration: "Chem."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: wmdp
         score: 74.8
@@ -831,7 +835,7 @@ charts:
         configuration: "Chem."
         role: competitor
       - model_as_labelled: "*Kimi K3*"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: wmdp
         score: 84.2
@@ -840,7 +844,7 @@ charts:
         configuration: "Chem."
         role: competitor
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meta/muse-glimmer-30b"
         benchmark_id: lab_bench
         score: 80.2
@@ -849,7 +853,7 @@ charts:
         configuration: "ProtocolQA."
         role: subject
       - model_as_labelled: "Gemma4-31B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: lab_bench
         score: 75.8
@@ -858,7 +862,7 @@ charts:
         configuration: "ProtocolQA."
         role: competitor
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-27b"
         benchmark_id: lab_bench
         score: 69.1
@@ -867,7 +871,7 @@ charts:
         configuration: "ProtocolQA."
         role: competitor
       - model_as_labelled: "*Kimi K3*"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: lab_bench
         score: 81.9

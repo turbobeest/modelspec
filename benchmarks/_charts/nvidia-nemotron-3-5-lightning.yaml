@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -547,7 +549,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Nemotron-3.5-Lightning-30B-A3B-BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: ifbench
         score: 71.88
@@ -556,7 +558,7 @@ charts:
         configuration: "Loose.. BF16"
         role: subject
       - model_as_labelled: "Qwen 3.6 35B A3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: ifbench
         score: 63.71
@@ -565,7 +567,7 @@ charts:
         configuration: "Loose."
         role: competitor
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: ifbench
         score: 77.25
@@ -574,7 +576,7 @@ charts:
         configuration: "Loose."
         role: competitor
       - model_as_labelled: "Nemotron 3 Nano"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
         benchmark_id: ifbench
         score: 72.17
@@ -583,7 +585,7 @@ charts:
         configuration: "Loose."
         role: subject
       - model_as_labelled: "Nemotron 3 Super"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
         benchmark_id: ifbench
         score: 71.92
@@ -592,7 +594,7 @@ charts:
         configuration: "Loose."
         role: subject
       - model_as_labelled: "GPT-OSS 20B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: ifbench
         score: 68.50
@@ -610,6 +612,8 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron-3.5-Lightning BF16"
@@ -649,7 +653,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3.5-Lightning BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 51.6
@@ -658,7 +662,7 @@ charts:
         configuration: "BF16. One decimal as printed."
         role: subject
       - model_as_labelled: "Nemotron-3-Nano NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
         benchmark_id: swe_bench_verified
         score: 34.1
@@ -667,7 +671,7 @@ charts:
         configuration: "NVFP4."
         role: subject
       - model_as_labelled: "Qwen 3.6 35B A3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: swe_bench_verified
         score: 70.1
@@ -676,7 +680,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: swe_bench_verified
         score: 57.4
@@ -685,7 +689,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3.5-Lightning BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: hle
         score: 11.7
@@ -694,7 +698,7 @@ charts:
         configuration: "BF16. One decimal as printed."
         role: subject
       - model_as_labelled: "Nemotron-3-Nano NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
         benchmark_id: hle
         score: 10.9
@@ -703,7 +707,7 @@ charts:
         configuration: "NVFP4."
         role: subject
       - model_as_labelled: "Qwen 3.6 35B A3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: hle
         score: 19.6
@@ -712,7 +716,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: hle
         score: 17.4
@@ -721,7 +725,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3.5-Lightning BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 24.6
@@ -730,7 +734,7 @@ charts:
         configuration: "BF16. One decimal as printed."
         role: subject
       - model_as_labelled: "Nemotron-3-Nano NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
         benchmark_id: terminal_bench_v2_1
         score: 8.3
@@ -739,7 +743,7 @@ charts:
         configuration: "NVFP4."
         role: subject
       - model_as_labelled: "Qwen 3.6 35B A3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 44.4
@@ -748,7 +752,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: terminal_bench_v2_1
         score: 37.2
@@ -757,7 +761,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3.5-Lightning BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-bench"
@@ -767,7 +771,7 @@ charts:
         configuration: "BF16. One decimal as printed."
         role: subject
       - model_as_labelled: "Nemotron-3-Nano NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
         benchmark_id: null
         benchmark_as_labelled: "τ³-bench"
@@ -777,7 +781,7 @@ charts:
         configuration: "NVFP4."
         role: subject
       - model_as_labelled: "Qwen 3.6 35B A3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-bench"
@@ -787,7 +791,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "τ³-bench"
@@ -807,9 +811,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 60.0
@@ -818,7 +824,7 @@ charts:
         configuration: "OpenCode v1.17.8. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 58.4
@@ -827,7 +833,7 @@ charts:
         configuration: "Copilot v1.0.71. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 57.4
@@ -836,7 +842,7 @@ charts:
         configuration: "Claude v2.1.126. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 54.5
@@ -845,7 +851,7 @@ charts:
         configuration: "Pi v0.80.10. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 50.7
@@ -854,7 +860,7 @@ charts:
         configuration: "Mini-SWE agent v2.4.5. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 48.7
@@ -863,7 +869,7 @@ charts:
         configuration: "OpenHands v1.36.1. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 45.7
@@ -872,7 +878,7 @@ charts:
         configuration: "Hermes v0.18.2. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: swe_bench_verified
         score: 11.0
@@ -881,7 +887,7 @@ charts:
         configuration: "Codex v0.144.6. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 29.7
@@ -890,7 +896,7 @@ charts:
         configuration: "Mini-SWE agent v2.4.5. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 29.1
@@ -899,7 +905,7 @@ charts:
         configuration: "OpenCode v1.17.8. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 29.0
@@ -908,7 +914,7 @@ charts:
         configuration: "Claude v2.1.126. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 27.0
@@ -917,7 +923,7 @@ charts:
         configuration: "Copilot v1.0.71. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 26.1
@@ -926,7 +932,7 @@ charts:
         configuration: "OpenHands v1.36.1. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 25.8
@@ -935,7 +941,7 @@ charts:
         configuration: "Hermes v0.18.2. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 24.5
@@ -944,7 +950,7 @@ charts:
         configuration: "Pi v0.80.10. Unmodified harness prompt."
         role: subject
       - model_as_labelled: "Nemotron 3.5 Lightning"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-5-lightning-30b-a3b"
         benchmark_id: terminal_bench_v2_1
         score: 2.9

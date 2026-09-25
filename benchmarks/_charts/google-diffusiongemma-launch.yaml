@@ -14,9 +14,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "DiffusionGemma 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: mmmlu
         score: 81.5
@@ -25,7 +27,7 @@ charts:
         configuration: "No tools on AIME."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: mmmlu
         score: 86.3
@@ -34,7 +36,7 @@ charts:
         configuration: "No tools on AIME."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: mmlu_pro
         score: 77.6
@@ -43,7 +45,7 @@ charts:
         configuration: "No tools on AIME."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: mmlu_pro
         score: 82.6
@@ -70,7 +72,7 @@ charts:
         configuration: "No tools on AIME."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6"
@@ -80,7 +82,7 @@ charts:
         configuration: "No tools on AIME."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: null
         benchmark_as_labelled: "LiveCodeBench v6"
@@ -90,7 +92,7 @@ charts:
         configuration: "No tools on AIME."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: gpqa_diamond
         score: 73.2
@@ -99,7 +101,7 @@ charts:
         configuration: "No tools on AIME."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: gpqa_diamond
         score: 82.3
@@ -108,7 +110,7 @@ charts:
         configuration: "No tools on AIME."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: tau2
         score: 56.2
@@ -117,7 +119,7 @@ charts:
         configuration: "No tools on AIME. Average over 3 domains."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: tau2
         score: 68.2

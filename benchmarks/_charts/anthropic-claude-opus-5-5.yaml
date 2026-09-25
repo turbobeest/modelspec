@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus 5.5"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -59,7 +61,7 @@ charts:
         configuration: "Opus 5.5 at xhigh. Astra at high."
         role: competitor
       - model_as_labelled: "Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -109,7 +111,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 4.0"
@@ -185,7 +187,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: terminal_bench_science
         score: 58.7
@@ -194,7 +196,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: terminal_bench_science
         score: 52.6
@@ -203,7 +205,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_science
         score: 29.0
@@ -212,7 +214,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-6 Astra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: terminal_bench_science
         score: 64.6
@@ -221,7 +223,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_science
         score: 22.4
@@ -287,7 +289,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -297,7 +299,7 @@ charts:
         configuration: "Default effort, called medium in the post."
         role: subject
       - model_as_labelled: "Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 4.0"

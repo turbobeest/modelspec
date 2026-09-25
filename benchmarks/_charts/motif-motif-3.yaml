@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Motif 3"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -74,7 +76,7 @@ charts:
         configuration: "Motif 3: temperature 1.0, top_p 0.95, max length 262144."
         role: competitor
       - model_as_labelled: "Motif 3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "motif/motif-3"
         benchmark_id: tau2
         score: 94.7
@@ -83,7 +85,7 @@ charts:
         configuration: "Motif 3: temperature 1.0, top_p 0.95, max length 262144. Telecom."
         role: subject
       - model_as_labelled: "MiniMax-3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m3"
         benchmark_id: tau2
         score: 88.9
@@ -92,7 +94,7 @@ charts:
         configuration: "Motif 3: temperature 1.0, top_p 0.95, max length 262144. Telecom."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: tau2
         score: 97.7
@@ -101,7 +103,7 @@ charts:
         configuration: "Motif 3: temperature 1.0, top_p 0.95, max length 262144. Telecom."
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: tau2
         score: 95.9
@@ -110,7 +112,7 @@ charts:
         configuration: "Motif 3: temperature 1.0, top_p 0.95, max length 262144. Telecom."
         role: competitor
       - model_as_labelled: "Qwen-3.7 max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-7-max"
         benchmark_id: tau2
         score: 94.7
@@ -119,7 +121,7 @@ charts:
         configuration: "Motif 3: temperature 1.0, top_p 0.95, max length 262144. Telecom."
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: tau2
         score: 96.2

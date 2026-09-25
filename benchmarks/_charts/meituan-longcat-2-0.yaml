@@ -10,9 +10,11 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: terminal_bench_v2_1
         score: 70.8
@@ -21,7 +23,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. Terminal-Bench 2.1"
         role: subject
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: swe_bench_pro
         score: 59.5
@@ -30,7 +32,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. SWE-bench Pro"
         role: subject
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: swe_bench_multilingual
         score: 77.3
@@ -39,7 +41,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. SWE-bench Multilingual"
         role: subject
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: null
         benchmark_as_labelled: "FORTE ↗"
@@ -49,7 +51,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. FORTE ↗"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "FORTE ↗"
@@ -59,7 +61,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. FORTE ↗"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FORTE ↗"
@@ -69,7 +71,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. FORTE ↗"
         role: competitor
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: null
         benchmark_as_labelled: "FORTE ↗"
@@ -79,7 +81,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. FORTE ↗"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "FORTE ↗"
@@ -89,7 +91,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. FORTE ↗"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "FORTE ↗"
@@ -99,7 +101,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. FORTE ↗"
         role: competitor
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: browsecomp
         score: 79.9
@@ -108,7 +110,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. BrowseComp"
         role: subject
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: null
         benchmark_as_labelled: "RWSearch ↗"
@@ -118,7 +120,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. RWSearch ↗"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "RWSearch ↗"
@@ -128,7 +130,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. RWSearch ↗"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "RWSearch ↗"
@@ -138,7 +140,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. RWSearch ↗"
         role: competitor
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: null
         benchmark_as_labelled: "RWSearch ↗"
@@ -148,7 +150,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. RWSearch ↗"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "RWSearch ↗"
@@ -158,7 +160,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. RWSearch ↗"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "RWSearch ↗"
@@ -168,7 +170,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. RWSearch ↗"
         role: competitor
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: ifeval
         score: 90.0
@@ -177,7 +179,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IFEval"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: ifeval
         score: 96.1
@@ -186,7 +188,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IFEval"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: ifeval
         score: 95.0
@@ -195,7 +197,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IFEval"
         role: competitor
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: ifeval
         score: 92.2
@@ -204,7 +206,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IFEval"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: ifeval
         score: 88.7
@@ -213,7 +215,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IFEval"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: ifeval
         score: 86.0
@@ -222,7 +224,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IFEval"
         role: competitor
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: writingbench
         score: 83.8
@@ -231,7 +233,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. Writing Bench"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: writingbench
         score: 83.7
@@ -240,7 +242,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. Writing Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: writingbench
         score: 84.7
@@ -249,7 +251,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. Writing Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: writingbench
         score: 85.3
@@ -258,7 +260,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. Writing Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: writingbench
         score: 85.2
@@ -267,7 +269,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. Writing Bench"
         role: competitor
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -277,7 +279,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -287,7 +289,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -297,7 +299,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -307,7 +309,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -317,7 +319,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. IMO-AnswerBench"
         role: competitor
       - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "meituan/longcat-2-0"
         benchmark_id: gpqa_diamond
         score: 88.9
@@ -326,7 +328,7 @@ charts:
         configuration: "In-house harness. Unstarred cells. GPQA-diamond"
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: gpqa_diamond
         score: 92.4
@@ -341,9 +343,11 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: terminal_bench_v2_1
         score: 70.7
@@ -352,7 +356,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 73.8
@@ -361,7 +365,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: terminal_bench_v2_1
         score: 71.7
@@ -370,7 +374,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 78.9
@@ -379,7 +383,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -388,7 +392,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: swe_bench_pro
         score: 58.6
@@ -397,7 +401,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: swe_bench_pro
         score: 57.3
@@ -406,7 +410,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_pro
         score: 64.3
@@ -415,7 +419,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_pro
         score: 69.2
@@ -424,7 +428,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Pro"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: swe_bench_multilingual
         score: 76.9
@@ -433,7 +437,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: swe_bench_multilingual
         score: 77.8
@@ -442,7 +446,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: swe_bench_multilingual
         score: 80.5
@@ -451,7 +455,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_multilingual
         score: 84.8
@@ -460,7 +464,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. SWE-bench Multilingual"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: browsecomp
         score: 85.9
@@ -469,7 +473,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. BrowseComp"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: browsecomp
         score: 84.4
@@ -478,7 +482,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. BrowseComp"
         role: competitor
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: browsecomp
         score: 84.0
@@ -487,7 +491,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. BrowseComp"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: browsecomp
         score: 79.3
@@ -496,7 +500,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. BrowseComp"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: browsecomp
         score: 84.3
@@ -505,7 +509,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. BrowseComp"
         role: competitor
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: null
         benchmark_as_labelled: "IMO-AnswerBench"
@@ -515,7 +519,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. IMO-AnswerBench"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: gpqa_diamond
         score: 94.3
@@ -524,7 +528,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. GPQA-diamond"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: gpqa_diamond
         score: 93.6
@@ -533,7 +537,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. GPQA-diamond"
         role: competitor
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: gpqa_diamond
         score: 91.3
@@ -542,7 +546,7 @@ charts:
         configuration: "Starred cell, cited from that model's official report. GPQA-diamond"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: gpqa_diamond
         score: 94.2
@@ -879,217 +883,4 @@ charts:
         unit: "percent"
         printed: true
         configuration: "SVG chart. A star in the table is not repeated on the SVG. RWSearch ↗"
-        role: competitor
-      - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "meituan/longcat-2-0"
-        benchmark_id: ifeval
-        score: 90.0
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
-        role: subject
-      - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "google/gemini-3-1-pro-preview"
-        benchmark_id: ifeval
-        score: 96.1
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
-        role: competitor
-      - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "openai/gpt-5-5"
-        benchmark_id: ifeval
-        score: 95.0
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-6"
-        benchmark_id: ifeval
-        score: 92.2
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-7"
-        benchmark_id: ifeval
-        score: 88.7
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-8"
-        benchmark_id: ifeval
-        score: 86.0
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IFEval"
-        role: competitor
-      - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "meituan/longcat-2-0"
-        benchmark_id: writingbench
-        score: 83.8
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
-        role: subject
-      - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "google/gemini-3-1-pro-preview"
-        benchmark_id: writingbench
-        score: 83.7
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
-        role: competitor
-      - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "openai/gpt-5-5"
-        benchmark_id: writingbench
-        score: 84.7
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-7"
-        benchmark_id: writingbench
-        score: 85.3
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-8"
-        benchmark_id: writingbench
-        score: 85.2
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. Writing Bench"
-        role: competitor
-      - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "meituan/longcat-2-0"
-        benchmark_id: null
-        benchmark_as_labelled: "IMO-AnswerBench"
-        score: 81.8
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
-        role: subject
-      - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "google/gemini-3-1-pro-preview"
-        benchmark_id: null
-        benchmark_as_labelled: "IMO-AnswerBench"
-        score: 90.0
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
-        role: competitor
-      - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "openai/gpt-5-5"
-        benchmark_id: null
-        benchmark_as_labelled: "IMO-AnswerBench"
-        score: 79.5
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-6"
-        benchmark_id: null
-        benchmark_as_labelled: "IMO-AnswerBench"
-        score: 75.3
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench Starred: cited from that model's own report."
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-7"
-        benchmark_id: null
-        benchmark_as_labelled: "IMO-AnswerBench"
-        score: 81.8
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-8"
-        benchmark_id: null
-        benchmark_as_labelled: "IMO-AnswerBench"
-        score: 75.3
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. IMO-AnswerBench"
-        role: competitor
-      - model_as_labelled: "LongCat-2.0"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "meituan/longcat-2-0"
-        benchmark_id: gpqa_diamond
-        score: 88.9
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond"
-        role: subject
-      - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "google/gemini-3-1-pro-preview"
-        benchmark_id: gpqa_diamond
-        score: 94.3
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond Starred: cited from that model's own report."
-        role: competitor
-      - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "openai/gpt-5-5"
-        benchmark_id: gpqa_diamond
-        score: 93.6
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond Starred: cited from that model's own report."
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-6"
-        benchmark_id: gpqa_diamond
-        score: 91.3
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond Starred: cited from that model's own report."
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-7"
-        benchmark_id: gpqa_diamond
-        score: 94.2
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond Starred: cited from that model's own report."
-        role: competitor
-      - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
-        model_id: "anthropic/claude-opus-4-8"
-        benchmark_id: gpqa_diamond
-        score: 92.4
-        unit: "percent"
-        printed: true
-        configuration: "SVG chart. A star in the table is not repeated on the SVG. GPQA-diamond"
         role: competitor

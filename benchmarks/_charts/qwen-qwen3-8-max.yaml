@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus4.8"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -184,7 +186,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -194,7 +196,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -204,7 +206,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -214,7 +216,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE"
@@ -274,7 +276,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: paperbench
         score: 80.3
@@ -283,7 +285,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: paperbench
         score: 88.8
@@ -292,7 +294,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: paperbench
         score: 90.5
@@ -301,7 +303,7 @@ charts:
         configuration: "Max."
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: paperbench
         score: 64.8
@@ -310,7 +312,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: paperbench
         score: 93.0
@@ -469,7 +471,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "QwenReactBench"
@@ -479,7 +481,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "QwenReactBench"
@@ -489,7 +491,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "QwenReactBench"
@@ -499,7 +501,7 @@ charts:
         configuration: "Max."
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "QwenReactBench"
@@ -509,7 +511,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "QwenReactBench"
@@ -569,7 +571,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -579,7 +581,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -599,7 +601,7 @@ charts:
         configuration: "Max."
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "CoWorkBench"
@@ -619,7 +621,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "WorkSpaceBench"
@@ -629,7 +631,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "WorkSpaceBench"
@@ -649,7 +651,7 @@ charts:
         configuration: "Max."
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "WorkSpaceBench"
@@ -669,7 +671,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -679,7 +681,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -689,7 +691,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -699,7 +701,7 @@ charts:
         configuration: "Max."
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -709,7 +711,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -764,7 +766,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -785,7 +787,7 @@ charts:
         configuration: "Score."
         role: competitor
       - model_as_labelled: "GPT5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -806,7 +808,7 @@ charts:
         configuration: "Max. Score."
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -827,7 +829,7 @@ charts:
         configuration: "Score."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -1028,7 +1030,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: hle
         score: 45.7
@@ -1037,7 +1039,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: hle
         score: 53.3
@@ -1046,7 +1048,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: hle
         score: 47.2
@@ -1055,7 +1057,7 @@ charts:
         configuration: "Max."
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: hle
         score: 41.4
@@ -1064,7 +1066,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: hle
         score: 43.6
@@ -1354,7 +1356,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: deepmind_mrcr_v2
         score: 83.2
@@ -1363,7 +1365,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: deepmind_mrcr_v2
         score: 93.8
@@ -1372,7 +1374,7 @@ charts:
         configuration: "Max."
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: deepmind_mrcr_v2
         score: 86.7
@@ -1381,7 +1383,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: deepmind_mrcr_v2
         score: 92.9
@@ -1433,6 +1435,8 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus4.8"
@@ -1490,7 +1494,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1500,7 +1504,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1510,7 +1514,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1520,7 +1524,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1530,7 +1534,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1540,7 +1544,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1550,7 +1554,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1560,7 +1564,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1580,7 +1584,7 @@ charts:
         configuration: "Without CI."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1590,7 +1594,7 @@ charts:
         configuration: "Without CI."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -1600,7 +1604,7 @@ charts:
         configuration: "With CI."
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1610,7 +1614,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1620,7 +1624,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1630,7 +1634,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1640,7 +1644,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1650,7 +1654,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1660,7 +1664,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1670,7 +1674,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1680,7 +1684,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1690,7 +1694,7 @@ charts:
         configuration: "Without CI."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1700,7 +1704,7 @@ charts:
         configuration: "With CI."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1710,7 +1714,7 @@ charts:
         configuration: "Without CI."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -1760,7 +1764,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: zerobench
         score: 17.0
@@ -1769,7 +1773,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: zerobench
         score: 34.0
@@ -1778,7 +1782,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: zerobench
         score: 20.0
@@ -1787,7 +1791,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: zerobench
         score: 46.0
@@ -1796,7 +1800,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: zerobench
         score: 17.0
@@ -1805,7 +1809,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: zerobench
         score: 23.0
@@ -1814,7 +1818,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: zerobench
         score: 22.0
@@ -1823,7 +1827,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: zerobench
         score: 35.0
@@ -1832,7 +1836,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: zerobench
         score: 19.0
@@ -1841,7 +1845,7 @@ charts:
         configuration: "Without CI."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: zerobench
         score: 19.0
@@ -1850,7 +1854,7 @@ charts:
         configuration: "With CI."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: zerobench
         score: 24.0
@@ -1859,7 +1863,7 @@ charts:
         configuration: "Without CI."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: zerobench
         score: 49.0
@@ -2282,7 +2286,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2292,7 +2296,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2302,7 +2306,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2312,7 +2316,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2322,7 +2326,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2332,7 +2336,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "OSWorld-Verified"
@@ -2342,7 +2346,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -2353,7 +2357,7 @@ charts:
         metric: binary
         role: competitor
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -2375,7 +2379,7 @@ charts:
         metric: partial
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -2386,7 +2390,7 @@ charts:
         metric: binary
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -2408,7 +2412,7 @@ charts:
         metric: partial
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -2419,7 +2423,7 @@ charts:
         metric: binary
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -2430,7 +2434,7 @@ charts:
         metric: partial
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -2441,7 +2445,7 @@ charts:
         metric: binary
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "OSWorld 2.0"
@@ -2632,7 +2636,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "MobileWorld"
@@ -2642,7 +2646,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "MobileWorld"
@@ -2652,7 +2656,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "MobileWorld"
@@ -2662,7 +2666,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "MobileWorld"
@@ -2672,7 +2676,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "MobileWorld"
@@ -2682,7 +2686,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "MobileWorld"
@@ -2692,7 +2696,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2703,7 +2707,7 @@ charts:
         metric: pass_at_3
         role: competitor
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2714,7 +2718,7 @@ charts:
         metric: average
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2725,7 +2729,7 @@ charts:
         metric: pass_at_3
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2736,7 +2740,7 @@ charts:
         metric: average
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2747,7 +2751,7 @@ charts:
         metric: pass_at_3
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2758,7 +2762,7 @@ charts:
         metric: average
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2769,7 +2773,7 @@ charts:
         metric: pass_at_3
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2780,7 +2784,7 @@ charts:
         metric: average
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2791,7 +2795,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2802,7 +2806,7 @@ charts:
         metric: average
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2813,7 +2817,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -2824,7 +2828,7 @@ charts:
         metric: average
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -2834,7 +2838,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -2844,7 +2848,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -2854,7 +2858,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -2864,7 +2868,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "Vision2Web"
@@ -3114,7 +3118,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: charxiv_reasoning
         score: 78.5
@@ -3123,7 +3127,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: charxiv_reasoning_tools
         score: 89.9
@@ -3132,7 +3136,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: charxiv_reasoning
         score: 87.9
@@ -3141,7 +3145,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: charxiv_reasoning_tools
         score: 93.5
@@ -3150,7 +3154,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: charxiv_reasoning
         score: 84.4
@@ -3159,7 +3163,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: charxiv_reasoning_tools
         score: 89.9
@@ -3168,7 +3172,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: charxiv_reasoning
         score: 85.1
@@ -3177,7 +3181,7 @@ charts:
         configuration: "Without CI."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: charxiv_reasoning_tools
         score: 89.1
@@ -3186,7 +3190,7 @@ charts:
         configuration: "With CI."
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: charxiv_reasoning
         score: 85.8
@@ -3195,7 +3199,7 @@ charts:
         configuration: "Without CI."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: charxiv_reasoning_tools
         score: 85.9
@@ -3204,7 +3208,7 @@ charts:
         configuration: "With CI."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: charxiv_reasoning
         score: 88.4
@@ -3213,7 +3217,7 @@ charts:
         configuration: "Without CI."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: charxiv_reasoning_tools
         score: 93.5
@@ -3282,7 +3286,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3292,7 +3296,7 @@ charts:
         configuration: "English."
         role: competitor
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3302,7 +3306,7 @@ charts:
         configuration: "Chinese."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3312,7 +3316,7 @@ charts:
         configuration: "English."
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3322,7 +3326,7 @@ charts:
         configuration: "Chinese."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3332,7 +3336,7 @@ charts:
         configuration: "English."
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3342,7 +3346,7 @@ charts:
         configuration: "Chinese."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3352,7 +3356,7 @@ charts:
         configuration: "English."
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3362,7 +3366,7 @@ charts:
         configuration: "Chinese."
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3372,7 +3376,7 @@ charts:
         configuration: "English."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3382,7 +3386,7 @@ charts:
         configuration: "Chinese."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3392,7 +3396,7 @@ charts:
         configuration: "English."
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "OCR-Bench-V2"
@@ -3696,7 +3700,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -3706,7 +3710,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -3716,7 +3720,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -3726,7 +3730,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -3736,7 +3740,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -3746,7 +3750,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "ERQA"
@@ -4056,7 +4060,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -4066,7 +4070,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -4076,7 +4080,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -4086,7 +4090,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -4096,7 +4100,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -4106,7 +4110,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "PerceptionBench"
@@ -4806,7 +4810,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -4816,7 +4820,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini3.1-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -4826,7 +4830,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT5.6-Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -4836,7 +4840,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "LVBench"
@@ -4846,7 +4850,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "LVBench"

@@ -1012,6 +1012,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "A.X K2"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -1077,7 +1079,7 @@ charts:
         configuration: "Context 256K."
         role: subject
       - model_as_labelled: "A.X K2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "skt/a-x-k2"
         benchmark_id: ruler
         score: 94.6

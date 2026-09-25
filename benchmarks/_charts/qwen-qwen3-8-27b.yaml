@@ -12,9 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: terminal_bench_v2_1
         score: 73.0
@@ -23,7 +25,7 @@ charts:
         configuration: "Terminus harness."
         role: subject
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-27b
         benchmark_id: terminal_bench_v2_1
         score: 63.4
@@ -32,7 +34,7 @@ charts:
         configuration: "Terminus harness."
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: terminal_bench_v2_1
         score: 64.0
@@ -41,7 +43,7 @@ charts:
         configuration: "Terminus harness."
         role: subject
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 51.7
@@ -50,7 +52,7 @@ charts:
         configuration: "Terminus harness."
         role: competitor
       - model_as_labelled: "Opus4.6 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: terminal_bench_v2_1
         score: 78.2
@@ -254,7 +256,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -264,7 +266,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-27b
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -274,7 +276,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "JobBench"
@@ -284,7 +286,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -295,7 +297,7 @@ charts:
         metric: pass_at_1
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -305,7 +307,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-27b
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -316,7 +318,7 @@ charts:
         metric: pass_at_1
         role: subject
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-27b
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -326,7 +328,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -337,7 +339,7 @@ charts:
         metric: pass_at_1
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -526,6 +528,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Qwen3.8-27B"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -678,7 +682,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -689,7 +693,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -700,7 +704,7 @@ charts:
         metric: average
         role: subject
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-27b
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -711,7 +715,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-27b
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -722,7 +726,7 @@ charts:
         metric: average
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -733,7 +737,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -744,7 +748,7 @@ charts:
         metric: average
         role: subject
       - model_as_labelled: "Opus4.6 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -755,7 +759,7 @@ charts:
         metric: pass_at_3
         role: competitor
       - model_as_labelled: "Opus4.6 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: null
         benchmark_as_labelled: "ClawEval-MM"
@@ -766,7 +770,7 @@ charts:
         metric: average
         role: competitor
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: swe_bench_multimodal
         score: 38.6
@@ -775,7 +779,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.6-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-6-27b
         benchmark_id: swe_bench_multimodal
         score: 25.7
@@ -784,7 +788,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: swe_bench_multimodal
         score: 30.0
@@ -793,7 +797,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus4.6 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-6
         benchmark_id: swe_bench_multimodal
         score: 27.1
@@ -832,7 +836,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -842,7 +846,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "MathVision"
@@ -882,7 +886,7 @@ charts:
         configuration: "Without CI"
         role: competitor
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -892,7 +896,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -912,7 +916,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -922,7 +926,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -942,7 +946,7 @@ charts:
         configuration: "Without CI"
         role: competitor
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: charxiv_reasoning
         score: 83.7
@@ -951,7 +955,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: cerebras/qwen-3-8-27b
         benchmark_id: charxiv_reasoning_tools
         score: 90.2
@@ -969,7 +973,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: charxiv_reasoning
         score: 85.8
@@ -978,7 +982,7 @@ charts:
         configuration: "Without CI"
         role: subject
       - model_as_labelled: "Qwen3.7-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-plus
         benchmark_id: charxiv_reasoning_tools
         score: 85.9
@@ -987,7 +991,7 @@ charts:
         configuration: "With CI"
         role: subject
       - model_as_labelled: "Muse Glimmer-30B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: charxiv_reasoning_tools
         score: 78.8

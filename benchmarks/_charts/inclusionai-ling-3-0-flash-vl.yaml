@@ -14,6 +14,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Ling-3.0-flash-VL"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -172,7 +174,7 @@ charts:
         configuration: "thinking. API, official settings. No Python tool calls."
         role: competitor
       - model_as_labelled: "Ling-3.0-flash-VL"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "inclusionai/ling-3-0-flash-vl"
         benchmark_id: hle
         score: 19.88
@@ -182,7 +184,7 @@ charts:
         role: subject
         metric: multimodal
       - model_as_labelled: "Qwen3.8-27B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: hle
         score: 21.90
@@ -192,7 +194,7 @@ charts:
         role: competitor
         metric: multimodal
       - model_as_labelled: "Gemini 3.5 Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: hle
         score: 20.12
@@ -202,7 +204,7 @@ charts:
         role: competitor
         metric: multimodal
       - model_as_labelled: "Kimi-K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: hle
         score: 23.39

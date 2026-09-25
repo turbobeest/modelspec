@@ -12,9 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.6 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-6-flash
         benchmark_id: swe_bench_pro
         score: 58.7
@@ -23,7 +25,7 @@ charts:
         configuration: "Diverse agentic coding tasks"
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-5-flash
         benchmark_id: swe_bench_pro
         score: 55.1
@@ -32,7 +34,7 @@ charts:
         configuration: "Diverse agentic coding tasks"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -41,7 +43,7 @@ charts:
         configuration: "Diverse agentic coding tasks"
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: swe_bench_pro
         score: 62.7
@@ -50,7 +52,7 @@ charts:
         configuration: "Diverse agentic coding tasks"
         role: competitor
       - model_as_labelled: "Grok 4.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: xai/grok-4-5
         benchmark_id: swe_bench_pro
         score: 64.7
@@ -59,7 +61,7 @@ charts:
         configuration: "Diverse agentic coding tasks"
         role: competitor
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-sonnet-5
         benchmark_id: swe_bench_pro
         score: 63.2
@@ -376,7 +378,7 @@ charts:
         configuration: "With tools"
         role: competitor
       - model_as_labelled: "Gemini 3.6 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-6-flash
         benchmark_id: deepmind_mrcr_v2
         score: 91.8
@@ -385,7 +387,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-5-flash
         benchmark_id: deepmind_mrcr_v2
         score: 77.3
@@ -394,7 +396,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: deepmind_mrcr_v2
         score: 84.9
@@ -403,7 +405,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: subject
       - model_as_labelled: "GPT-5.6 Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-luna
         benchmark_id: deepmind_mrcr_v2
         score: 74.8
@@ -412,7 +414,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: competitor
       - model_as_labelled: "Grok 4.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: xai/grok-4-5
         benchmark_id: deepmind_mrcr_v2
         score: 81.4
@@ -421,7 +423,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: competitor
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-sonnet-5
         benchmark_id: deepmind_mrcr_v2
         score: 71.6
@@ -430,7 +432,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: competitor
       - model_as_labelled: "Gemini 3.6 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-6-flash
         benchmark_id: deepmind_mrcr_v2
         score: 54.0
@@ -439,7 +441,7 @@ charts:
         configuration: "1M (pointwise)"
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-5-flash
         benchmark_id: deepmind_mrcr_v2
         score: 26.6
@@ -448,7 +450,7 @@ charts:
         configuration: "1M (pointwise)"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: deepmind_mrcr_v2
         score: 26.3
@@ -465,9 +467,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.6 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-6-flash
         benchmark_id: null
         benchmark_as_labelled: "Text to Text Safety"
@@ -477,7 +481,7 @@ charts:
         configuration: "Delta versus Gemini 3.5 Flash. Automated content safety evaluation measuring safety policies Lower is better."
         role: subject
       - model_as_labelled: "Gemini 3.6 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-6-flash
         benchmark_id: null
         benchmark_as_labelled: "Multilingual Safety"
@@ -487,7 +491,7 @@ charts:
         configuration: "Delta versus Gemini 3.5 Flash. Automated safety policy evaluation across multiple languages Lower is better."
         role: subject
       - model_as_labelled: "Gemini 3.6 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-6-flash
         benchmark_id: null
         benchmark_as_labelled: "Image to Text Safety"
@@ -497,7 +501,7 @@ charts:
         configuration: "Delta versus Gemini 3.5 Flash. Automated content safety evaluation measuring safety policies Lower is better."
         role: subject
       - model_as_labelled: "Gemini 3.6 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-6-flash
         benchmark_id: null
         benchmark_as_labelled: "Tone 1"
@@ -507,7 +511,7 @@ charts:
         configuration: "Delta versus Gemini 3.5 Flash. Automated evaluation measuring objective tone of model refusal Higher is better."
         role: subject
       - model_as_labelled: "Gemini 3.6 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-6-flash
         benchmark_id: null
         benchmark_as_labelled: "Unjustified-refusals"

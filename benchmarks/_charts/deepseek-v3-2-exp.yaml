@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -252,7 +254,7 @@ charts:
         configuration: "Reasoning mode, no tools."
         role: subject
       - model_as_labelled: "DeepSeek-V3.1-Terminus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v3-1-terminus"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp-zh"
@@ -262,7 +264,7 @@ charts:
         configuration: "Reasoning mode, no tools."
         role: subject
       - model_as_labelled: "DeepSeek-V3.2-Exp"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v3-2-exp"
         benchmark_id: null
         benchmark_as_labelled: "BrowseComp-zh"

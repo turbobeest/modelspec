@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Solar Open 2"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -296,7 +298,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Solar Open 2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: hmmt2026
         score: 93.9
@@ -305,7 +307,7 @@ charts:
         configuration: "February 2026."
         role: subject
       - model_as_labelled: "Solar Open 100B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open-100b"
         benchmark_id: hmmt2026
         score: 68.9
@@ -314,7 +316,7 @@ charts:
         configuration: "February 2026."
         role: subject
       - model_as_labelled: "Command A+"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: hmmt2026
         score: 73.5
@@ -323,7 +325,7 @@ charts:
         configuration: "February 2026."
         role: competitor
       - model_as_labelled: "Mistral Medium 3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: hmmt2026
         score: 62.9
@@ -332,7 +334,7 @@ charts:
         configuration: "February 2026."
         role: competitor
       - model_as_labelled: "MiMo-V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: hmmt2026
         score: 61.4
@@ -341,7 +343,7 @@ charts:
         configuration: "February 2026."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: hmmt2026
         score: 94.7
@@ -820,6 +822,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Solar Open 2"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -936,7 +940,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Solar Open 2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: haerae
         score: 73.8
@@ -945,7 +949,7 @@ charts:
         configuration: "v1.1."
         role: subject
       - model_as_labelled: "Solar Open 100B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open-100b"
         benchmark_id: haerae
         score: 73.3
@@ -954,7 +958,7 @@ charts:
         configuration: "v1.1."
         role: subject
       - model_as_labelled: "MiMo-V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: haerae
         score: 61.7
@@ -963,7 +967,7 @@ charts:
         configuration: "v1.1."
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: haerae
         score: 73.1
@@ -972,7 +976,7 @@ charts:
         configuration: "v1.1."
         role: competitor
       - model_as_labelled: "Claude Haiku 4.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: haerae
         score: 38.5
@@ -981,7 +985,7 @@ charts:
         configuration: "v1.1."
         role: competitor
       - model_as_labelled: "GPT-5.4 mini"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-4-mini"
         benchmark_id: haerae
         score: 69.4
@@ -1342,6 +1346,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Solar Open 2"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -1398,7 +1404,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Solar Open 2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
@@ -1408,7 +1414,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Solar Open 100B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open-100b"
         benchmark_id: null
         benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
@@ -1418,7 +1424,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: null
         benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
@@ -1428,7 +1434,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Mistral Medium 3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
@@ -1438,7 +1444,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "MiMo-V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
@@ -1448,7 +1454,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "MATH (HMMT 2026 and AIME 2026 average)"
@@ -1702,6 +1708,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Solar Open 2"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -1764,7 +1772,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Solar Open 2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
@@ -1774,7 +1782,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Solar Open 100B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open-100b"
         benchmark_id: null
         benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
@@ -1784,7 +1792,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Haiku 4.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: null
         benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
@@ -1794,7 +1802,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "MiMo-V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
@@ -1804,7 +1812,6 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.4 mini"
-        confirmed_by: ["grok-build-4.7"]
         model_id: "openai/gpt-5-4-mini"
         benchmark_id: null
         benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
@@ -1813,8 +1820,12 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 79.5
+          - reader: claude-sonnet
+            value: 81.2
       - model_as_labelled: "DeepSeek-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
@@ -1823,8 +1834,13 @@ charts:
         printed: true
         configuration: ""
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 81.2
+          - reader: claude-sonnet
+            value: 79.5
       - model_as_labelled: "Solar Open 2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
@@ -1834,7 +1850,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Solar Open 100B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open-100b"
         benchmark_id: null
         benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
@@ -1844,7 +1860,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Haiku 4.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: null
         benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
@@ -1854,7 +1870,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "MiMo-V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
@@ -1864,7 +1880,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.4 mini"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-4-mini"
         benchmark_id: null
         benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
@@ -1874,7 +1890,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "K-Domain (KBank-MMLU, KBL, and KorMedMCQA average)"
@@ -1884,7 +1900,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Solar Open 2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open2-250b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-GDPval"
@@ -1894,7 +1910,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Solar Open 100B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open-100b"
         benchmark_id: null
         benchmark_as_labelled: "Ko-GDPval"
@@ -1904,7 +1920,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.4 mini"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-4-mini"
         benchmark_id: null
         benchmark_as_labelled: "Ko-GDPval"
@@ -1914,7 +1930,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Haiku 4.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: null
         benchmark_as_labelled: "Ko-GDPval"
@@ -1924,7 +1940,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "MiMo-V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "Ko-GDPval"
@@ -1934,7 +1950,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Ko-GDPval"

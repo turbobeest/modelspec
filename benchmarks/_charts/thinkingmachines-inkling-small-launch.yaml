@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Inkling-Small"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -104,7 +106,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: swe_bench_pro
         score: 55.9
@@ -158,7 +160,7 @@ charts:
         configuration: "Public set."
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: swe_bench_pro
         score: 54.3
@@ -384,7 +386,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -394,7 +396,7 @@ charts:
         configuration: "Public tasks"
         role: subject
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -404,7 +406,7 @@ charts:
         configuration: "All tasks"
         role: subject
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -414,7 +416,7 @@ charts:
         configuration: "Public tasks"
         role: competitor
       - model_as_labelled: "Minimax M2.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -424,7 +426,7 @@ charts:
         configuration: "Public tasks"
         role: competitor
       - model_as_labelled: "DeepSeek V4Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -434,7 +436,7 @@ charts:
         configuration: "Public tasks"
         role: competitor
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -444,7 +446,7 @@ charts:
         configuration: "Public tasks"
         role: competitor
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -454,7 +456,7 @@ charts:
         configuration: "All tasks"
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -464,7 +466,7 @@ charts:
         configuration: "Public tasks"
         role: subject
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -474,7 +476,7 @@ charts:
         configuration: "All tasks"
         role: subject
       - model_as_labelled: "Claude 4.5Haiku"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -484,7 +486,7 @@ charts:
         configuration: "Public tasks"
         role: competitor
       - model_as_labelled: "Claude 4.5Haiku"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -494,7 +496,7 @@ charts:
         configuration: "All tasks"
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -504,7 +506,7 @@ charts:
         configuration: "Public tasks"
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -514,7 +516,7 @@ charts:
         configuration: "All tasks"
         role: competitor
       - model_as_labelled: "GPT 5.6Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-luna"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -524,7 +526,7 @@ charts:
         configuration: "Public tasks"
         role: competitor
       - model_as_labelled: "GPT 5.6Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-luna"
         benchmark_id: null
         benchmark_as_labelled: "MCP Atlas"
@@ -534,7 +536,7 @@ charts:
         configuration: "All tasks"
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "Tau 3 Banking"
@@ -544,7 +546,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Tau 3 Banking"
@@ -554,7 +556,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "Tau 3 Banking"
@@ -564,7 +566,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Minimax M2.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "Tau 3 Banking"
@@ -574,7 +576,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek V4Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Tau 3 Banking"
@@ -584,7 +586,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "Tau 3 Banking"
@@ -594,7 +596,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "Tau 3 Banking"
@@ -634,7 +636,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: browsecomp
         score: 77.4
@@ -643,7 +645,7 @@ charts:
         configuration: "With context management."
         role: subject
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: browsecomp
         score: 78.6
@@ -652,7 +654,7 @@ charts:
         configuration: "With context management."
         role: competitor
       - model_as_labelled: "Minimax M2.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: browsecomp
         score: 76.3
@@ -661,7 +663,7 @@ charts:
         configuration: "With context management."
         role: competitor
       - model_as_labelled: "DeepSeek V4Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: browsecomp
         score: 73.2
@@ -670,7 +672,7 @@ charts:
         configuration: "With context management."
         role: competitor
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: browsecomp
         score: 63.0
@@ -679,7 +681,7 @@ charts:
         configuration: "With context management."
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: browsecomp
         score: 77.1
@@ -688,7 +690,7 @@ charts:
         configuration: "With context management."
         role: subject
       - model_as_labelled: "GPT 5.6Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-luna"
         benchmark_id: browsecomp
         score: 84.0
@@ -1067,7 +1069,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: aime_2026
         score: 95.5
@@ -1121,7 +1123,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: aime_2026
         score: 97.1
@@ -1247,7 +1249,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: critpt
         score: 8.3
@@ -1301,7 +1303,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: critpt
         score: 5.4
@@ -1413,7 +1415,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: simpleqa
         score: 20.6
@@ -1449,7 +1451,7 @@ charts:
         configuration: "Verified."
         role: competitor
       - model_as_labelled: "DeepSeek V4Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: simpleqa
         score: 34.1
@@ -1467,7 +1469,7 @@ charts:
         configuration: "Verified."
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: simpleqa
         score: 43.9
@@ -1485,7 +1487,7 @@ charts:
         configuration: "Verified."
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: simpleqa
         score: 44.1
@@ -1494,7 +1496,7 @@ charts:
         configuration: "Verified."
         role: competitor
       - model_as_labelled: "GPT 5.6Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-luna"
         benchmark_id: simpleqa
         score: 41.7
@@ -1503,7 +1505,7 @@ charts:
         configuration: "Verified."
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: ifbench
         score: 82.2
@@ -1539,7 +1541,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DeepSeek V4Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: ifbench
         score: 79.2
@@ -1557,7 +1559,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: ifbench
         score: 79.8
@@ -1575,7 +1577,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: ifbench
         score: 78.6
@@ -1584,7 +1586,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT 5.6Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-luna"
         benchmark_id: ifbench
         score: 67.3
@@ -1773,7 +1775,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: fortress
         score: 71.6
@@ -1782,7 +1784,7 @@ charts:
         configuration: "Adversarial."
         role: subject
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: fortress
         score: 77.3
@@ -1791,7 +1793,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: fortress
         score: 64.8
@@ -1800,7 +1802,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "Minimax M2.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: fortress
         score: 86.3
@@ -1809,7 +1811,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "DeepSeek V4Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: fortress
         score: 32.0
@@ -1818,7 +1820,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: fortress
         score: 77.6
@@ -1827,7 +1829,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: fortress
         score: 78.0
@@ -1836,7 +1838,7 @@ charts:
         configuration: "Adversarial."
         role: subject
       - model_as_labelled: "Claude 4.5Haiku"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: fortress
         score: 91.3
@@ -1845,7 +1847,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: fortress
         score: 70.7
@@ -1854,7 +1856,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "GPT 5.6Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-luna"
         benchmark_id: fortress
         score: 83.8
@@ -1863,7 +1865,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: fortress
         score: 96.9
@@ -1872,7 +1874,7 @@ charts:
         configuration: "Benign."
         role: subject
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: fortress
         score: 95.4
@@ -1881,7 +1883,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: fortress
         score: 94.6
@@ -1890,7 +1892,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "Minimax M2.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: fortress
         score: 90.1
@@ -1899,7 +1901,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "DeepSeek V4Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: fortress
         score: 99.2
@@ -1908,7 +1910,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: fortress
         score: 90.6
@@ -1917,7 +1919,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: fortress
         score: 95.9
@@ -1926,7 +1928,7 @@ charts:
         configuration: "Benign."
         role: subject
       - model_as_labelled: "Claude 4.5Haiku"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: fortress
         score: 94.1
@@ -1935,7 +1937,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: fortress
         score: 95.5
@@ -1944,7 +1946,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "GPT 5.6Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-luna"
         benchmark_id: fortress
         score: 97.8
@@ -1953,7 +1955,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: mmmu_pro
         score: 74.0
@@ -1962,7 +1964,7 @@ charts:
         configuration: "Standard, 10 options."
         role: subject
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: mmmu_pro
         score: 77.3
@@ -1971,7 +1973,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: mmmu_pro
         score: 75.4
@@ -1989,7 +1991,7 @@ charts:
         configuration: "Standard, 10 options."
         role: subject
       - model_as_labelled: "Claude 4.5Haiku"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: mmmu_pro
         score: 58.6
@@ -1998,7 +2000,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: mmmu_pro
         score: 79.0
@@ -2016,7 +2018,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: charxiv_reasoning
         score: 77.4
@@ -2025,7 +2027,7 @@ charts:
         configuration: "Original reasoning questions"
         role: subject
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: charxiv_reasoning_tools
         score: 81.3
@@ -2034,7 +2036,7 @@ charts:
         configuration: "With Python"
         role: subject
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: charxiv_reasoning
         score: 80.8
@@ -2043,7 +2045,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: charxiv_reasoning
         score: 81.0
@@ -2052,7 +2054,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: charxiv_reasoning
         score: 78.1
@@ -2061,7 +2063,7 @@ charts:
         configuration: "Original reasoning questions"
         role: subject
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: charxiv_reasoning_tools
         score: 82.0
@@ -2070,7 +2072,7 @@ charts:
         configuration: "With Python"
         role: subject
       - model_as_labelled: "Claude 4.5Haiku"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-haiku-4-5"
         benchmark_id: charxiv_reasoning
         score: 57.4
@@ -2079,7 +2081,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: charxiv_reasoning
         score: 70.0
@@ -2088,7 +2090,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "GPT 5.6Luna"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-luna"
         benchmark_id: charxiv_reasoning
         score: 81.4
@@ -2097,7 +2099,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -2107,7 +2109,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -2127,7 +2129,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -2137,7 +2139,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -2147,7 +2149,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -2167,7 +2169,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -2177,7 +2179,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -2187,7 +2189,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -2207,7 +2209,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -2225,9 +2227,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: mmmu_pro
         score: 74.0
@@ -2236,7 +2240,7 @@ charts:
         configuration: "Standard, 10 options."
         role: subject
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: mmmu_pro
         score: 75.4
@@ -2245,7 +2249,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Nemotron-3Nano-Omni"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-bf16"
         benchmark_id: mmmu_pro
         score: 53.0
@@ -2254,7 +2258,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Qwen3-Omni"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: mmmu_pro
         score: 60.0
@@ -2263,7 +2267,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: mmmu_pro
         score: 77.3
@@ -2272,7 +2276,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Qwen3.5Omni-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: mmmu_pro
         score: 71.0
@@ -2281,7 +2285,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: mmmu_pro
         score: 79.0
@@ -2290,7 +2294,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: charxiv_reasoning
         score: 77.4
@@ -2299,7 +2303,7 @@ charts:
         configuration: "Original reasoning questions"
         role: subject
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: charxiv_reasoning_tools
         score: 81.3
@@ -2308,7 +2312,7 @@ charts:
         configuration: "With Python"
         role: subject
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: charxiv_reasoning
         score: 81.0
@@ -2317,7 +2321,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Nemotron-3Nano-Omni"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-bf16"
         benchmark_id: charxiv_reasoning
         score: 63.6
@@ -2326,7 +2330,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Qwen3-Omni"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: charxiv_reasoning
         score: 61.1
@@ -2335,7 +2339,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Qwen3.5397B-A17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: charxiv_reasoning
         score: 80.8
@@ -2344,7 +2348,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Qwen3.5Omni-Plus"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: charxiv_reasoning
         score: 72.5
@@ -2353,7 +2357,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: charxiv_reasoning
         score: 70.0
@@ -2362,7 +2366,7 @@ charts:
         configuration: "Original reasoning questions"
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -2372,7 +2376,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -2412,7 +2416,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -2422,7 +2426,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -2432,7 +2436,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -2472,7 +2476,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -2482,7 +2486,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -2492,7 +2496,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "MiMo V2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xiaomi/mimo-v2-5"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -2532,7 +2536,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.5Flash-Lite"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash-lite"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -2549,6 +2553,8 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Inkling-Small"
@@ -2682,7 +2688,7 @@ charts:
         configuration: "Uncertainty ±0.54"
         role: competitor
       - model_as_labelled: "Inkling-Small"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -2692,7 +2698,7 @@ charts:
         configuration: "Uncertainty ±0.0086"
         role: subject
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -2702,7 +2708,7 @@ charts:
         configuration: "Uncertainty ±0.0092"
         role: subject
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -2712,7 +2718,7 @@ charts:
         configuration: "Uncertainty ±0.0093"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -2722,7 +2728,7 @@ charts:
         configuration: "Uncertainty ±0.0089"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -2732,7 +2738,7 @@ charts:
         configuration: "Uncertainty ±0.0087"
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -2742,7 +2748,7 @@ charts:
         configuration: "Uncertainty ±0.0084"
         role: competitor
       - model_as_labelled: "Grok 4.3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xai/grok-4-3"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"

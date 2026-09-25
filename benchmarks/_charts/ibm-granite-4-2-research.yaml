@@ -14,6 +14,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Granite 4.2 30b"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -100,7 +102,7 @@ charts:
         configuration: "Printed on the competitor chart."
         role: competitor
       - model_as_labelled: "Granite 4.2 30b"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: ifbench
         score: 75.33
@@ -109,7 +111,7 @@ charts:
         configuration: "Printed on the competitor chart."
         role: subject
       - model_as_labelled: "Nemotron 3 Super 120B A12B BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-super-120b-a12b-bf16"
         benchmark_id: ifbench
         score: 72.33
@@ -118,7 +120,7 @@ charts:
         configuration: "Printed on the competitor chart."
         role: competitor
       - model_as_labelled: "Gemma 4 31B it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: ifbench
         score: 78.50
@@ -154,7 +156,7 @@ charts:
         configuration: "v4. Printed on the competitor chart."
         role: competitor
       - model_as_labelled: "Granite 4.2 30b"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "ibm/granite-4-2-30b"
         benchmark_id: swe_bench_pro
         score: 33.28
@@ -163,7 +165,7 @@ charts:
         configuration: "Printed on the competitor chart."
         role: subject
       - model_as_labelled: "Gemma 4 31B it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-31b-it"
         benchmark_id: swe_bench_pro
         score: 29.73

@@ -12,9 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "MiniCPM5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-2b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -24,7 +26,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: subject
       - model_as_labelled: "LFM2.5-2.6B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -34,7 +36,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-2b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -44,7 +46,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -54,7 +56,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -64,7 +66,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "granite-4.2-3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -74,7 +76,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Nemotron-3-Nano-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -84,7 +86,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -94,7 +96,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "LFM2.5-8B-A1B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: null
         benchmark_as_labelled: "Average of the comparison suite"
@@ -194,7 +196,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-2b"
         benchmark_id: livecodebench_pro
         score: 68.0
@@ -203,7 +205,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: subject
       - model_as_labelled: "LFM2.5-2.6B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: livecodebench_pro
         score: 30.9
@@ -212,7 +214,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-2b"
         benchmark_id: livecodebench_pro
         score: 10.3
@@ -221,7 +223,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: livecodebench_pro
         score: 27.1
@@ -230,7 +232,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: livecodebench_pro
         score: 58.3
@@ -239,7 +241,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "granite-4.2-3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: livecodebench_pro
         score: 54.6
@@ -248,7 +250,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Nemotron-3-Nano-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
         benchmark_id: livecodebench_pro
         score: 51.6
@@ -257,7 +259,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: livecodebench_pro
         score: 45.8
@@ -266,7 +268,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "LFM2.5-8B-A1B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: livecodebench_pro
         score: 27.8
@@ -275,7 +277,7 @@ charts:
         configuration: "2025 Q2, Easy. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-2b"
         benchmark_id: livecodebench_pro
         score: 17.5
@@ -284,7 +286,7 @@ charts:
         configuration: "2025 Q2, Medium. Reproduced by OpenBMB."
         role: subject
       - model_as_labelled: "LFM2.5-2.6B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: livecodebench_pro
         score: 0.0
@@ -293,7 +295,7 @@ charts:
         configuration: "2025 Q2, Medium. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-2b"
         benchmark_id: livecodebench_pro
         score: 0.0
@@ -302,7 +304,7 @@ charts:
         configuration: "2025 Q2, Medium. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: livecodebench_pro
         score: 0.0
@@ -311,7 +313,7 @@ charts:
         configuration: "2025 Q2, Medium. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: livecodebench_pro
         score: 7.0
@@ -320,7 +322,7 @@ charts:
         configuration: "2025 Q2, Medium. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "granite-4.2-3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: livecodebench_pro
         score: 5.3
@@ -329,7 +331,7 @@ charts:
         configuration: "2025 Q2, Medium. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Nemotron-3-Nano-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
         benchmark_id: livecodebench_pro
         score: 5.3
@@ -338,7 +340,7 @@ charts:
         configuration: "2025 Q2, Medium. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: livecodebench_pro
         score: 1.8
@@ -347,7 +349,7 @@ charts:
         configuration: "2025 Q2, Medium. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "LFM2.5-8B-A1B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: livecodebench_pro
         score: 0.0
@@ -1526,7 +1528,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-2b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -1536,7 +1538,7 @@ charts:
         configuration: "Banking. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -1546,7 +1548,7 @@ charts:
         configuration: "Banking. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Nemotron-3-Nano-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -1556,7 +1558,7 @@ charts:
         configuration: "Banking. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -1566,7 +1568,7 @@ charts:
         configuration: "Banking. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "LFM2.5-8B-A1B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: null
         benchmark_as_labelled: "τ³-Bench Banking"
@@ -1576,7 +1578,7 @@ charts:
         configuration: "Banking. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-2b"
         benchmark_id: tau2
         score: 97.1
@@ -1585,7 +1587,7 @@ charts:
         configuration: "Telecom. Reproduced by OpenBMB."
         role: subject
       - model_as_labelled: "LFM2.5-2.6B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: tau2
         score: 90.4
@@ -1594,7 +1596,7 @@ charts:
         configuration: "Telecom. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "granite-4.2-3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: tau2
         score: 40.9
@@ -1603,7 +1605,7 @@ charts:
         configuration: "Telecom. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-2b"
         benchmark_id: bfcl
         score: 66.6
@@ -1612,7 +1614,7 @@ charts:
         configuration: "v4. Reproduced by OpenBMB."
         role: subject
       - model_as_labelled: "LFM2.5-2.6B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: bfcl
         score: 61.1
@@ -1621,7 +1623,7 @@ charts:
         configuration: "v4. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-2b"
         benchmark_id: bfcl
         score: 43.6
@@ -1630,7 +1632,7 @@ charts:
         configuration: "v4. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: bfcl
         score: 36.6
@@ -1639,7 +1641,7 @@ charts:
         configuration: "v4. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: bfcl
         score: 56.8
@@ -1648,7 +1650,7 @@ charts:
         configuration: "v4. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "granite-4.2-3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: bfcl
         score: 52.2
@@ -1657,7 +1659,7 @@ charts:
         configuration: "v4. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Nemotron-3-Nano-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
         benchmark_id: bfcl
         score: 43.7
@@ -1666,7 +1668,7 @@ charts:
         configuration: "v4. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: bfcl
         score: 47.0
@@ -1675,7 +1677,7 @@ charts:
         configuration: "v4. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "LFM2.5-8B-A1B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: bfcl
         score: 49.2
@@ -2035,7 +2037,7 @@ charts:
         configuration: "Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "MiniCPM5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openbmb/minicpm5-2b"
         benchmark_id: gaia
         score: 88.7
@@ -2044,7 +2046,7 @@ charts:
         configuration: "Text-103. Reproduced by OpenBMB."
         role: subject
       - model_as_labelled: "LFM2.5-2.6B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: gaia
         score: 49.5
@@ -2053,7 +2055,7 @@ charts:
         configuration: "Text-103. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-2B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-2b"
         benchmark_id: gaia
         score: 47.9
@@ -2062,7 +2064,7 @@ charts:
         configuration: "Text-103. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E2B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: gaia
         score: 30.1
@@ -2071,7 +2073,7 @@ charts:
         configuration: "Text-103. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Qwen3.5-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: gaia
         score: 78.6
@@ -2080,7 +2082,7 @@ charts:
         configuration: "Text-103. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "granite-4.2-3B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "ibm/granite-4-2-3b"
         benchmark_id: gaia
         score: 57.3
@@ -2089,7 +2091,7 @@ charts:
         configuration: "Text-103. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Nemotron-3-Nano-4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-nano-4b-bf16"
         benchmark_id: gaia
         score: 26.5
@@ -2098,7 +2100,7 @@ charts:
         configuration: "Text-103. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "Gemma-4-E4B-it"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: gaia
         score: 39.5
@@ -2107,7 +2109,7 @@ charts:
         configuration: "Text-103. Reproduced by OpenBMB."
         role: competitor
       - model_as_labelled: "LFM2.5-8B-A1B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-8b-a1b"
         benchmark_id: gaia
         score: 41.1

@@ -912,7 +912,57 @@ This run of the checker counts matched 53, other_configuration 9, mismatched 0, 
 
 Matched bars confirmed by two or more readers: 38 of 53. By phase, that is 17 and 2 in phase 1, 11 and 13 in phase 2a, 7 and 0 in phase 2b batch 1, 3 and 0 in batch 2, and none in batches 3 and 4.
 
-3,116 bars are confirmed by one reader. 7,306 are confirmed by two or more. The 11 disputed bars name no confirming reader and are in neither column. `single-read-blind.yaml` was written before this correction and still has 3,127 rows, including those 11. The rows to re-read are in `disputes-blind.yaml`. 37 charts have every bar confirmed by one reader. The corrected per-fixture and per-chart counts are in `.chart-check/per-bar/report.md`.
+Before the second reading, 3,116 bars were confirmed by one reader and 7,306 by two or more. The 11 disputed bars named no confirming reader and were in neither column. `single-read-blind.yaml` was written before this correction and still has 3,127 rows, including those 11. The rows sent to the second reading are in `disputes-blind.yaml` and `liquid-8b-all-bars-blind.yaml`. 37 charts had every bar confirmed by one reader. The per-fixture and per-chart counts from before that reading are in `.chart-check/per-bar/report.md`.
 
-The phase 1 section above says the 11 OpenAI charts still have one reading. That was before the browser reading. Phase 1 now confirms 663 of 708 bars with both readers and 45 with one.
+The phase 1 section above says the 11 OpenAI charts still have one reading. That was before the browser reading. Before the second reading, phase 1 confirmed 663 of 708 bars with both readers and 45 with one.
+
+### Second reading
+
+Reader D is claude-sonnet, 2026-09-24. Reader A is grok-build-4.7. Reader B is claude-opus. D read the 3,062 single-read bars in the four chunks and every bar on the Liquid 8B blog, `https://www.liquid.ai/blog/lfm2-5-8b-a1b`. A reading counts when it agrees with another within the printed precision. Where the readings do not produce one agreed value, the bar stays disputed and names no confirming reader. No card was edited.
+
+Eight ids on the Liquid list, all on "Knowledge and instruction following" and labelled Non-Hallucination, no longer have a bar. Those bars were removed before this reading and were not put back.
+
+`scripts/chart_check.py` after this reading: 98 pages, 723 charts, 10,402 bars. Mismatched is 0.
+
+| Class | Bars |
+| --- | ---: |
+| matched | 53 |
+| other_configuration | 9 |
+| mismatched | 0 |
+| other_metric | 49 |
+| no_benchmark_page | 5335 |
+| not_held | 4674 |
+| competitor_gap | 34 |
+| competitor_unresolved | 214 |
+| disputed | 34 |
+
+| Phase | Two or more | One |
+| --- | ---: | ---: |
+| phase 1 | 708 | 0 |
+| phase 2a | 621 | 0 |
+| phase 2b batch 1 | 2338 | 0 |
+| phase 2b batch 2 | 2570 | 0 |
+| phase 2b batch 3 | 2416 | 2 |
+| phase 2b batch 4 | 1713 | 0 |
+| Total | 10366 | 2 |
+
+| Class | Two or more | One |
+| --- | ---: | ---: |
+| matched | 53 | 0 |
+| other_configuration | 9 | 0 |
+| other_metric | 49 | 0 |
+| no_benchmark_page | 5335 | 0 |
+| not_held | 4672 | 2 |
+| competitor_gap | 34 | 0 |
+| competitor_unresolved | 214 | 0 |
+
+10,366 bars are confirmed by two or more readers. 2 are confirmed by one. 34 disputed bars name no confirming reader and are in neither column. Matched bars confirmed by two or more readers: 53 of 53. By phase, that is 19 in phase 1, 24 in phase 2a, 7 in phase 2b batch 1, and 3 in batch 2.
+
+The two single bars are Command A+ and Command A Vision, benchmark `charxiv`, on the Vision benchmarks chart of `cohere-command-a-plus`. D did not locate a value. The footnote says CharXiv reasoning and descriptive are separate bars, and the reasoning bars are already `charxiv_reasoning`. These two bars are labelled `charxiv` with an empty configuration, so `metric` was not set. `.chart-check/per-bar/still-single-blind.yaml` lists them.
+
+23 bars were removed from the LongCat-2.0 chart "Benchmark charts" (`meituan-longcat-2-0`). D reported that the SVG contains the Terminal-Bench 2.1, SWE-bench Pro, SWE-bench Multilingual, FORTE, RWSearch, and BrowseComp panels. Each removed bar is IFEval, WritingBench, IMO-AnswerBench, or GPQA-Diamond, and the same model and benchmark already has a bar on an HTML-table chart in that fixture. IFEval, IMO-AnswerBench, and GPQA-Diamond each lost six bars: LongCat-2.0, Gemini 3.1 Pro, GPT-5.5, and Claude Opus 4.6, 4.7, and 4.8. WritingBench lost five: LongCat-2.0, Gemini 3.1 Pro, GPT-5.5, and Claude Opus 4.7 and 4.8. There is no Claude Opus 4.6 WritingBench bar on that chart.
+
+On the Liquid 8B blog, 22 bars resolved to the value reader B and reader D share. That includes the 11 bars that were disputed: Multi-IF for Qwen3.5-4B, Gemma-4-E2B-IT, and Gemma-4-E4B-IT, and AIME 2026 for LFM2.5-8B-A1B, Granite-4.0-H-Tiny, Qwen3.5-4B, Qwen3-30B-A3B-Thinking-2507, Gemma-4-E2B-IT, Gemma-4-E4B-IT, Gemma-4-26B-A4B-IT, and gpt-oss-20b. 18 bars that already carried a two-of-three resolution still agree with D and were left as settled. 18 further bars were confirmed by every reader who agrees with the stored score. 24 bars on "Math and tool use" stay disputed. Each is a BFCLv3, BFCLv4, Tau² Telecom, or Tau² Retail cell whose stored score disagrees with D. Reader B transcribed those cells, and the pairer does not attach that transcription: its benchmark key keeps the words "Tool use" (`bfcl 3 tools` against the fixture's `bfcl 3`). Reader D's value disagrees with the stored score, so the bar names no confirming reader. The improvements table and the math table are separate cells. On the improvements table, LFM2.5-8B-A1B is 64.36 on BFCLv3 and 48.50 on BFCLv4. On the math table, D read 64.79 and 49.73 for those two benchmarks. `.chart-check/per-bar/disputes-2-blind.yaml` lists the 34 bars that are still disputed, with no scores.
+
+Ten of those 34 are outside the Liquid blog. Two are K-Knowledge on `upstage-solar-open2-250b` (GPT-5.4 mini and DeepSeek-V4-Flash). Three are ArXivMath on the Claude Opus 5.5 system card, high, xhigh, and max effort. Two are on `tencent-hy3`: DeepSeek-V4 pro on DeepSWE, and Seed-2.1 pro on WildClawBench. Three are `genai_bench` on `google-gemini-3-1-flash-image`: Gemini 2.5 Flash Image, Gemini 3 Pro Image, and GPT-Image 1.5. Each of those ten has no paired reading from reader B.
 

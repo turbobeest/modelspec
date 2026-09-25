@@ -13,6 +13,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus 5"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -378,7 +380,7 @@ charts:
         configuration: "HealthBench Professional."
         role: competitor
       - model_as_labelled: "Mythos 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: healthbench
         score: 66.0
@@ -474,7 +476,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: swe_bench_verified
         score: 96.0
@@ -491,9 +493,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -503,7 +507,7 @@ charts:
         configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -514,7 +518,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -525,7 +529,7 @@ charts:
         metric: all_trials_correct
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -536,7 +540,7 @@ charts:
         metric: average_turns
         role: subject
       - model_as_labelled: "Claude Mythos 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -546,7 +550,7 @@ charts:
         configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
         role: subject
       - model_as_labelled: "Claude Mythos 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -557,7 +561,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Claude Mythos 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -568,7 +572,7 @@ charts:
         metric: all_trials_correct
         role: subject
       - model_as_labelled: "Claude Mythos 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -579,7 +583,7 @@ charts:
         metric: average_turns
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -589,7 +593,7 @@ charts:
         configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -600,7 +604,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -611,7 +615,7 @@ charts:
         metric: all_trials_correct
         role: subject
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -622,7 +626,7 @@ charts:
         metric: average_turns
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -632,7 +636,7 @@ charts:
         configuration: "Internal harness, max effort, 108 tasks, three trials. Pass@1."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -643,7 +647,7 @@ charts:
         metric: pass_at_3
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -654,7 +658,7 @@ charts:
         metric: all_trials_correct
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"

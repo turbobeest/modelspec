@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Fable"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -158,7 +160,7 @@ charts:
         configuration: "max. Resolve rate."
         role: competitor
       - model_as_labelled: "Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_pro
         score: 69.2
@@ -167,7 +169,7 @@ charts:
         configuration: "max. Resolve rate."
         role: competitor
       - model_as_labelled: "Grok 4.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xai/grok-4-5"
         benchmark_id: swe_bench_pro
         score: 64.7
@@ -203,7 +205,7 @@ charts:
         configuration: "xhigh. Resolve rate."
         role: competitor
       - model_as_labelled: "Grok 4.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xai/grok-4-5"
         benchmark_id: swe_bench_pro
         score: 15954
@@ -213,7 +215,7 @@ charts:
         metric: output_tokens
         role: subject
       - model_as_labelled: "Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: swe_bench_pro
         score: 67020

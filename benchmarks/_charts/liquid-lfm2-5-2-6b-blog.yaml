@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -439,7 +441,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "LFM2.5-2.6B (2.6B)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "liquid/lfm2-5-2-6b"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -449,7 +451,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "gemma-4-E2B-it (5.1B)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e2b-it"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -459,7 +461,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "gemma-4-E4B-it (8B)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-e4b-it"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -469,7 +471,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-4B (4.7B)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-4b"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -479,7 +481,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.5-9B (9.7B)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-9b"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"

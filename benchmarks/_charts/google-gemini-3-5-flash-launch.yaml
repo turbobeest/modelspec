@@ -14,6 +14,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.5 Flash"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -61,7 +63,7 @@ charts:
         configuration: "Terminus-2 harness. Agentic terminal coding"
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-5-flash
         benchmark_id: swe_bench_pro
         score: 55.1
@@ -70,7 +72,7 @@ charts:
         configuration: "Single attempt. Diverse agentic coding tasks"
         role: subject
       - model_as_labelled: "Gemini 3 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-flash-preview
         benchmark_id: swe_bench_pro
         score: 49.6
@@ -79,7 +81,7 @@ charts:
         configuration: "Single attempt. Diverse agentic coding tasks"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: swe_bench_pro
         score: 54.2
@@ -88,7 +90,7 @@ charts:
         configuration: "Single attempt. Diverse agentic coding tasks"
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-7
         benchmark_id: swe_bench_pro
         score: 64.3
@@ -97,7 +99,7 @@ charts:
         configuration: "Single attempt. Diverse agentic coding tasks"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: swe_bench_pro
         score: 58.6
@@ -484,7 +486,7 @@ charts:
         configuration: "Normalized score. Agentic spatial reasoning"
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-5-flash
         benchmark_id: deepmind_mrcr_v2
         score: 77.3
@@ -493,7 +495,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: subject
       - model_as_labelled: "Gemini 3 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-flash-preview
         benchmark_id: deepmind_mrcr_v2
         score: 67.2
@@ -502,7 +504,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: deepmind_mrcr_v2
         score: 84.9
@@ -511,7 +513,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: subject
       - model_as_labelled: "Claude Sonnet 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-sonnet-4-6
         benchmark_id: deepmind_mrcr_v2
         score: 84.9
@@ -520,7 +522,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-7
         benchmark_id: deepmind_mrcr_v2
         score: 59.3
@@ -529,7 +531,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: deepmind_mrcr_v2
         score: 94.8
@@ -538,7 +540,7 @@ charts:
         configuration: "128k (average). Long context performance"
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-5-flash
         benchmark_id: deepmind_mrcr_v2
         score: 26.6
@@ -547,7 +549,7 @@ charts:
         configuration: "1M (pointwise)"
         role: subject
       - model_as_labelled: "Gemini 3 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-flash-preview
         benchmark_id: deepmind_mrcr_v2
         score: 22.1
@@ -556,7 +558,7 @@ charts:
         configuration: "1M (pointwise)"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: deepmind_mrcr_v2
         score: 26.3
@@ -565,7 +567,7 @@ charts:
         configuration: "1M (pointwise)"
         role: subject
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-5-flash
         benchmark_id: hle
         score: 40.2
@@ -574,7 +576,7 @@ charts:
         configuration: "Academic reasoning (full set, text + MM)"
         role: subject
       - model_as_labelled: "Gemini 3 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-flash-preview
         benchmark_id: hle
         score: 33.7
@@ -583,7 +585,7 @@ charts:
         configuration: "Academic reasoning (full set, text + MM)"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemini-3-1-pro-preview
         benchmark_id: hle
         score: 44.4
@@ -592,7 +594,7 @@ charts:
         configuration: "Academic reasoning (full set, text + MM)"
         role: subject
       - model_as_labelled: "Claude Sonnet 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-sonnet-4-6
         benchmark_id: hle
         score: 33.2
@@ -601,7 +603,7 @@ charts:
         configuration: "Academic reasoning (full set, text + MM)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-7
         benchmark_id: hle
         score: 46.9
@@ -610,7 +612,7 @@ charts:
         configuration: "Academic reasoning (full set, text + MM)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-5
         benchmark_id: hle
         score: 41.4

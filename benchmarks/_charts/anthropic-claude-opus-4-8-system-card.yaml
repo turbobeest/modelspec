@@ -13,6 +13,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 4.8"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -343,7 +345,7 @@ charts:
         configuration: "OSWorld-Verified."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash"
         benchmark_id: osworld
         score: 78.4
@@ -455,7 +457,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash"
         benchmark_id: null
         benchmark_as_labelled: "Finance Agent v2"
@@ -505,7 +507,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: competitor
       - model_as_labelled: "Gemini 3.5 Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-5-flash"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -515,7 +517,7 @@ charts:
         configuration: "Printed beside Gemini 3.1 Pro."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 85.9
@@ -524,7 +526,7 @@ charts:
         configuration: "BFS, 256K subset. F1, five trials."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 76.9
@@ -533,7 +535,7 @@ charts:
         configuration: "BFS, 256K subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 61.1
@@ -542,7 +544,7 @@ charts:
         configuration: "BFS, 256K subset. Table 8.9.A."
         role: subject
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 73.7
@@ -551,7 +553,7 @@ charts:
         configuration: "BFS, 256K subset. xhigh, as OpenAI reported."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 68.1
@@ -560,7 +562,7 @@ charts:
         configuration: "BFS, 1M subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 40.3
@@ -569,7 +571,7 @@ charts:
         configuration: "BFS, 1M subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 16.3
@@ -578,7 +580,7 @@ charts:
         configuration: "BFS, 1M subset."
         role: subject
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: graphwalks_bfs_256k_1m
         score: 45.4
@@ -587,7 +589,7 @@ charts:
         configuration: "BFS, 1M subset. xhigh."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: graphwalks_parents_256k_1m
         score: 99.3
@@ -596,7 +598,7 @@ charts:
         configuration: "Parents, 256K subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: graphwalks_parents_256k_1m
         score: 93.6
@@ -605,7 +607,7 @@ charts:
         configuration: "Parents, 256K subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: graphwalks_parents_256k_1m
         score: 95.4
@@ -614,7 +616,7 @@ charts:
         configuration: "Parents, 256K subset."
         role: subject
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: graphwalks_parents_256k_1m
         score: 90.1
@@ -623,7 +625,7 @@ charts:
         configuration: "Parents, 256K subset. xhigh."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: graphwalks_parents_256k_1m
         score: 83.3
@@ -632,7 +634,7 @@ charts:
         configuration: "Parents, 1M subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.7"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-7"
         benchmark_id: graphwalks_parents_256k_1m
         score: 56.6
@@ -641,7 +643,7 @@ charts:
         configuration: "Parents, 1M subset."
         role: subject
       - model_as_labelled: "Claude Opus 4.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-6"
         benchmark_id: graphwalks_parents_256k_1m
         score: 48.6
@@ -650,7 +652,7 @@ charts:
         configuration: "Parents, 1M subset."
         role: subject
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: graphwalks_parents_256k_1m
         score: 58.5

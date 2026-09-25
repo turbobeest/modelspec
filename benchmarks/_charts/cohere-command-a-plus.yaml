@@ -192,9 +192,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Command A+"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: mmmu
         score: 75
@@ -203,7 +205,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A Vision"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "cohere/command-a-vision-07-2025"
         benchmark_id: mmmu
         score: 65

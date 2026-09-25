@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Opus-5.0"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -104,7 +106,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: competitor
       - model_as_labelled: "GLM-5.3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: hle
         score: 42.0
@@ -113,7 +115,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hle
         score: 42.7
@@ -122,7 +124,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: hle
         score: 37.8
@@ -194,7 +196,7 @@ charts:
         configuration: "Max reasoning effort. temperature 1.0, top_p 0.95. Pass@1. Code agents use DeepSeek Harness minimal mode and a 1M context, except where the README names another harness."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 90.6
@@ -503,7 +505,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "MathArena Apex"
@@ -513,7 +515,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "MathArena Apex"
@@ -523,7 +525,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "MathArena Apex"
@@ -533,7 +535,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "MathArena Apex"
@@ -603,7 +605,7 @@ charts:
         configuration: "Resolved."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -743,7 +745,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -753,7 +755,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -763,7 +765,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -773,7 +775,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -783,7 +785,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "Opus-5.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -793,7 +795,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -803,7 +805,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GLM-5.3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -813,7 +815,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -823,7 +825,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -833,7 +835,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -843,7 +845,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "Opus-5.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -853,7 +855,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -863,7 +865,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -873,7 +875,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "GLM-5.3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-3"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -883,7 +885,7 @@ charts:
         configuration: "Max reasoning effort."
         role: competitor
       - model_as_labelled: "DS-V4-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -893,7 +895,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -903,7 +905,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "Agent's Last Exam"
@@ -913,7 +915,7 @@ charts:
         configuration: "Max reasoning effort."
         role: subject
       - model_as_labelled: "Opus-5.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -923,7 +925,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -933,7 +935,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -943,7 +945,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -953,7 +955,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Opus-5.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -963,7 +965,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -973,7 +975,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -983,7 +985,7 @@ charts:
         configuration: "With tools."
         role: competitor
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: null
         benchmark_as_labelled: "BabyVision"
@@ -993,7 +995,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: hle
         score: 39.1
@@ -1154,9 +1156,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 88.0
@@ -1165,7 +1169,7 @@ charts:
         configuration: "Max effort, scaffold Claude Code"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 84.1
@@ -1174,7 +1178,7 @@ charts:
         configuration: "Max effort, scaffold Codex"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 85.0
@@ -1183,7 +1187,7 @@ charts:
         configuration: "Max effort, scaffold OpenCode"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 86.1
@@ -1192,7 +1196,7 @@ charts:
         configuration: "Max effort, scaffold Pi"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 90.3
@@ -1201,7 +1205,7 @@ charts:
         configuration: "Max effort, scaffold mini-SWE"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 90.6
@@ -1210,7 +1214,7 @@ charts:
         configuration: "Max effort, scaffold DSH Minimal"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 85.8
@@ -1219,7 +1223,7 @@ charts:
         configuration: "Max effort, scaffold DSH Standard"
         role: subject
       - model_as_labelled: "DS-V4.1-Flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-flash"
         benchmark_id: terminal_bench_v2_1
         score: 85.8

@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT 5.6 Sol (max)"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -701,7 +703,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: skillsbench
         score: 65.1
@@ -710,7 +712,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: skillsbench
         score: 70.9
@@ -719,7 +721,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: skillsbench
         score: 73.5
@@ -728,7 +730,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: skillsbench
         score: 61.2
@@ -737,7 +739,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: skillsbench
         score: 70.2
@@ -746,7 +748,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
@@ -757,7 +759,7 @@ charts:
         metric: pass_at_1
         role: competitor
       - model_as_labelled: "Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
@@ -767,7 +769,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
@@ -778,7 +780,7 @@ charts:
         metric: pass_at_1
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
@@ -788,7 +790,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
@@ -799,7 +801,7 @@ charts:
         metric: pass_at_1
         role: subject
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
@@ -809,7 +811,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
@@ -820,7 +822,7 @@ charts:
         metric: pass_at_1
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam (Pass / Score)"
@@ -1010,7 +1012,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: hle
         score: 45.7
@@ -1019,7 +1021,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: hle
         score: 53.3
@@ -1028,7 +1030,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: hle
         score: 47.2
@@ -1037,7 +1039,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: hle
         score: 41.4
@@ -1046,7 +1048,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: hle
         score: 43.6
@@ -1100,7 +1102,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: null
         benchmark_as_labelled: "$OneMillion-Bench"
@@ -1110,7 +1112,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Fable 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-fable-5
         benchmark_id: null
         benchmark_as_labelled: "$OneMillion-Bench"
@@ -1120,7 +1122,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: null
         benchmark_as_labelled: "$OneMillion-Bench"
@@ -1130,7 +1132,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: null
         benchmark_as_labelled: "$OneMillion-Bench"
@@ -1140,7 +1142,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: null
         benchmark_as_labelled: "$OneMillion-Bench"
@@ -1336,7 +1338,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: anthropic/claude-opus-4-8
         benchmark_id: deepmind_mrcr_v2
         score: 83.2
@@ -1345,7 +1347,7 @@ charts:
         configuration: "256K, 8-needle"
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: openai/gpt-5-6-sol
         benchmark_id: deepmind_mrcr_v2
         score: 93.8
@@ -1354,7 +1356,7 @@ charts:
         configuration: "256K, 8-needle"
         role: competitor
       - model_as_labelled: "Qwen3.7-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-7-max
         benchmark_id: deepmind_mrcr_v2
         score: 86.7
@@ -1363,7 +1365,7 @@ charts:
         configuration: "256K, 8-needle"
         role: subject
       - model_as_labelled: "Qwen3.8-Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: qwen/qwen3-8-max
         benchmark_id: deepmind_mrcr_v2
         score: 92.9

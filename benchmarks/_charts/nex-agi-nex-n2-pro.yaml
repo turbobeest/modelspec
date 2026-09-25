@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Nex-N2-mini"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -95,7 +97,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Nex-N2-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nex-agi/nex-n2-pro"
         benchmark_id: gdpval
         score: 1585
@@ -420,7 +422,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Nex-N2-Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nex-agi/nex-n2-pro"
         benchmark_id: terminal_bench_v2_1
         score: 75.3

@@ -14,6 +14,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "North-Mini-Code"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -118,7 +120,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "North-Mini-Code"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "cohere/north-mini-code-1-0"
         benchmark_id: swe_bench_pro
         score: 40.2
@@ -127,7 +129,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: subject
       - model_as_labelled: "Qwen3.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-6-35b-a3b"
         benchmark_id: swe_bench_pro
         score: 49.5
@@ -136,7 +138,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Poolside XS.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: swe_bench_pro
         score: 46.3
@@ -218,6 +220,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Poolside XS.2"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -257,7 +261,7 @@ charts:
         configuration: "v6. Internally measured."
         role: competitor
       - model_as_labelled: "Devstral Small 2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "mistral/devstral-small-2-24b-instruct-2512"
         benchmark_id: swe_bench_pro
         score: 35.7
@@ -275,6 +279,8 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemma4"
@@ -306,7 +312,7 @@ charts:
         configuration: "Average of 3 seeds. temperature 1.0, top_p 0.95."
         role: competitor
       - model_as_labelled: "Gemma4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: swe_bench_pro
         score: 13.0

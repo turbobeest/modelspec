@@ -758,7 +758,7 @@ charts:
         configuration: "Unstarred. Cited from elsewhere. WildClawBench (35, text-only)"
         role: subject
       - model_as_labelled: "Hy3 preview"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: skillsbench
         score: 29.1
@@ -767,7 +767,7 @@ charts:
         configuration: "Unstarred. Cited from elsewhere. SkillsBench (79, text-only)"
         role: subject
       - model_as_labelled: "Hy3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "tencent/hy3"
         benchmark_id: skillsbench
         score: 55.3
@@ -1692,7 +1692,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SWE-bench Verified"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: swe_bench_pro
         score: 57.5
@@ -1701,7 +1701,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SWE-bench Pro. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: swe_bench_pro
         score: 51.6
@@ -1710,7 +1710,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SWE-bench Pro. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: terminal_bench_v2_1
         score: 63.5
@@ -1719,7 +1719,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: terminal_bench_v2_1
         score: 60.2
@@ -1728,7 +1728,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 81
@@ -1737,7 +1737,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 77.3
@@ -1755,7 +1755,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_v2_1
         score: 64
@@ -1764,7 +1764,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_v2_1
         score: 60.5
@@ -1773,7 +1773,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 75
@@ -1782,7 +1782,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: terminal_bench_v2_1
         score: 71.5
@@ -1791,7 +1791,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 85
@@ -1800,7 +1800,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: terminal_bench_v2_1
         score: 85.4
@@ -1809,7 +1809,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 84
@@ -1818,7 +1818,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Terminal-Bench 2.1. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: terminal_bench_v2_1
         score: 79.8
@@ -1847,7 +1847,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. NL2repo"
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1857,7 +1857,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1877,7 +1877,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1887,7 +1887,6 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1896,8 +1895,13 @@ charts:
         printed: true
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 7.9
+          - reader: claude-sonnet
+            value: 9.7
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1907,7 +1911,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1917,7 +1921,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1927,7 +1931,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1937,7 +1941,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1947,7 +1951,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1957,7 +1961,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1967,7 +1971,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1977,7 +1981,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -1987,7 +1991,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. DeepSWE. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE"
@@ -2407,7 +2411,7 @@ charts:
             - reader: claude-sonnet
               value: "95.5*"
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2417,7 +2421,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2427,7 +2431,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2437,7 +2441,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2447,7 +2451,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2457,7 +2461,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2467,7 +2471,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2477,7 +2481,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2487,7 +2491,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2497,7 +2501,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2507,7 +2511,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2517,7 +2521,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2527,7 +2531,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2537,7 +2541,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Gemini-3.1-pro-preview"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2547,7 +2551,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2557,7 +2561,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2567,7 +2571,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2577,7 +2581,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "MCP atlas (public)"
@@ -2587,7 +2591,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. MCP atlas (public). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2597,7 +2601,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2607,7 +2611,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2617,7 +2621,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2627,7 +2631,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2637,7 +2641,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2647,7 +2651,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2657,7 +2661,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2667,7 +2671,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2677,7 +2681,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. Toolathlon. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "Toolathlon"
@@ -2767,7 +2771,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval (pass^3)"
@@ -2777,7 +2781,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. ClawEval (pass^3). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "ClawEval (pass^3)"
@@ -2876,7 +2880,6 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "WildClawBench (35, text-only)"
@@ -2885,8 +2888,13 @@ charts:
         printed: true
         configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only). Left-hand printed figure."
         role: competitor
+        disputed:
+          - reader: grok-build-4.7
+            value: 61
+          - reader: claude-sonnet
+            value: 61.7
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "WildClawBench (35, text-only)"
@@ -2936,7 +2944,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. WildClawBench (35, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: skillsbench
         score: 43.0
@@ -2945,7 +2953,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "GLM-5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: skillsbench
         score: 51.9
@@ -2954,7 +2962,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 flash"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: skillsbench
         score: 35.4
@@ -2963,7 +2971,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "DeepSeek-V4 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: skillsbench
         score: 40.5
@@ -2972,7 +2980,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: skillsbench
         score: 53.2
@@ -2981,7 +2989,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: skillsbench
         score: 59.2
@@ -2990,7 +2998,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only). Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Qwen-3.7 Max"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: skillsbench
         score: 46.8
@@ -2999,7 +3007,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only). Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude-opus-4-8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: skillsbench
         score: 64.6
@@ -3008,7 +3016,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. SkillsBench (79, text-only)"
         role: competitor
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: skillsbench
         score: 61.6
@@ -3555,7 +3563,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: frontierscience_research
         score: 28.3
@@ -3564,7 +3572,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. FrontierScience-Research. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: frontierscience_research
         score: 25.6
@@ -3631,7 +3639,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad"
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FrontierScience-Olympiad"
@@ -3641,7 +3649,7 @@ charts:
         configuration: "Starred. Tencent's own testing of that model. FrontierScience-Olympiad. Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Seed-2.1 pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null
         benchmark_id: null
         benchmark_as_labelled: "FrontierScience-Olympiad"
@@ -4443,9 +4451,11 @@ charts:
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Hy3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "tencent/hy3"
         benchmark_id: null
         benchmark_as_labelled: "Expert blind evaluation"
@@ -4455,7 +4465,7 @@ charts:
         configuration: "Mean of 270 expert ratings, out of 4."
         role: subject
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Expert blind evaluation"

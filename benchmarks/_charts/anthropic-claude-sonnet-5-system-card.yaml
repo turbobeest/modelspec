@@ -13,6 +13,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Sonnet 5"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -339,7 +341,7 @@ charts:
         configuration: "HealthBench Professional."
         role: competitor
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: swe_bench_verified
         score: 85.2
@@ -348,7 +350,7 @@ charts:
         configuration: "Mean of five trials."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: swe_bench_multilingual
         score: 78.3
@@ -357,7 +359,7 @@ charts:
         configuration: "Mean of five trials."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: swe_bench_multimodal
         score: 28.1

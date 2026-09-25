@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -268,7 +270,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. Chartography"
         role: competitor
       - model_as_labelled: "DeepSeek-V4-Flash-Vision-Exp"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash-vision-exp"
         benchmark_id: zerobench
         score: 35.0
@@ -277,7 +279,7 @@ charts:
         configuration: "Max effort. DeepSeek Harness minimal mode on the text-agent rows. ZeroBench (Pass@5) Pass@5, without tools."
         role: subject
       - model_as_labelled: "Opus-4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: zerobench
         score: 34.0

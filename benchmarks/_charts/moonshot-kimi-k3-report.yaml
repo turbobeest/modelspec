@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -2112,7 +2114,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. CharXiv (RQ) With tools."
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2122,7 +2124,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: subject
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2132,7 +2134,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2142,7 +2144,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2152,7 +2154,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2162,7 +2164,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2172,7 +2174,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2182,7 +2184,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2192,7 +2194,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2202,7 +2204,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Math-Vision"
@@ -2212,7 +2214,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. Math-Vision Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2222,7 +2224,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: subject
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2232,7 +2234,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
         role: subject
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2242,7 +2244,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Fable 5 (max, w/ fallback)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2252,7 +2254,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2262,7 +2264,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2272,7 +2274,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2282,7 +2284,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2292,7 +2294,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Right-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2302,7 +2304,7 @@ charts:
         configuration: "Table 2. Max effort, as in the column header. ZeroBench-main (pass@5) Left-hand printed figure."
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ZeroBench-main (pass@5)"
@@ -2320,9 +2322,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2332,7 +2336,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2342,7 +2346,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2352,7 +2356,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2362,7 +2366,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2372,7 +2376,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Kimi Code Bench 2.0"
         role: subject
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2382,7 +2386,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2392,7 +2396,7 @@ charts:
         configuration: "Table 3. Harness: Codex. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Code Bench 2.0"
@@ -2402,7 +2406,7 @@ charts:
         configuration: "Table 3. Harness: Codex. Kimi Code Bench 2.0"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2412,7 +2416,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Coding Experience"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2422,7 +2426,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Coding Experience"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2432,7 +2436,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Coding Experience"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2442,7 +2446,7 @@ charts:
         configuration: "Table 3. Harness: Claude Code. Coding Experience"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2452,7 +2456,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Coding Experience"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2462,7 +2466,7 @@ charts:
         configuration: "Table 3. Harness: Codex. Coding Experience"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Coding Experience"
@@ -2472,7 +2476,7 @@ charts:
         configuration: "Table 3. Harness: Codex. Coding Experience"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2482,7 +2486,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2492,7 +2496,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2502,7 +2506,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2512,7 +2516,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "KAET"
@@ -2522,7 +2526,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. KAET"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2532,7 +2536,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2542,7 +2546,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2552,7 +2556,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2562,7 +2566,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "CLIF Bench"
@@ -2572,7 +2576,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. CLIF Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2582,7 +2586,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2592,7 +2596,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2602,7 +2606,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2612,7 +2616,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Agentic Vision Bench"
@@ -2622,7 +2626,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Code. Agentic Vision Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2632,7 +2636,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2642,7 +2646,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2652,7 +2656,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2662,7 +2666,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Finance Bench"
@@ -2672,7 +2676,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Finance Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2682,7 +2686,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2692,7 +2696,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2702,7 +2706,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2712,7 +2716,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "KWV Bench"
@@ -2722,7 +2726,7 @@ charts:
         configuration: "Table 3. Harness: N/A. KWV Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2732,7 +2736,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2742,7 +2746,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2752,7 +2756,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2762,7 +2766,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2772,7 +2776,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "DECK Bench"
@@ -2782,7 +2786,7 @@ charts:
         configuration: "Table 3. Harness: N/A. DECK Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2792,7 +2796,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2802,7 +2806,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2812,7 +2816,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2822,7 +2826,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent Behavior Bench"
@@ -2832,7 +2836,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Agent Behavior Bench"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2842,7 +2846,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2852,7 +2856,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2862,7 +2866,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2872,7 +2876,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Faithfulness g"
@@ -2882,7 +2886,7 @@ charts:
         configuration: "Table 3. Harness: N/A. Faithfulness g"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2892,7 +2896,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2902,7 +2906,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2912,7 +2916,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2922,7 +2926,7 @@ charts:
         configuration: "Table 3. Harness: Kimi Work. Chat All-in-One Bench"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Chat All-in-One Bench"
@@ -2940,9 +2944,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench win"
@@ -2952,7 +2958,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench tie"
@@ -2962,7 +2968,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench lose"
@@ -2972,7 +2978,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Games. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench win"
@@ -2982,7 +2988,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench tie"
@@ -2992,7 +2998,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench lose"
@@ -3002,7 +3008,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: 3D / WebGL / Shader. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench win"
@@ -3012,7 +3018,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench tie"
@@ -3022,7 +3028,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench lose"
@@ -3032,7 +3038,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Website / UI Clone. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench win"
@@ -3042,7 +3048,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Overall. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench tie"
@@ -3052,7 +3058,7 @@ charts:
         configuration: "Table 4. Kimi Webdev Bench against Claude Opus 4.8. Domain: Overall. Share of decisions."
         role: subject
       - model_as_labelled: "Kimi K3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Kimi Webdev Bench lose"
@@ -3070,9 +3076,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -3082,7 +3090,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -3092,7 +3100,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -3102,7 +3110,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -3112,7 +3120,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -3122,7 +3130,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Vals Index (#2/39)"
@@ -3132,7 +3140,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Vals Index (#2/39)"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -3142,7 +3150,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -3152,7 +3160,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -3162,7 +3170,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -3172,7 +3180,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -3182,7 +3190,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "WebDev Arena (Elo, #1/99)"
@@ -3192,7 +3200,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. WebDev Arena (Elo, #1/99)"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -3202,7 +3210,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -3212,7 +3220,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -3222,7 +3230,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -3232,7 +3240,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -3242,7 +3250,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Text Arena (Elo, #8/200)"
@@ -3252,7 +3260,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Text Arena (Elo, #8/200)"
         role: competitor
       - model_as_labelled: "Kimi K3 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k3"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -3262,7 +3270,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: subject
       - model_as_labelled: "Claude Fable 5 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -3272,7 +3280,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: competitor
       - model_as_labelled: "GPT-5.6 Sol (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -3282,7 +3290,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: competitor
       - model_as_labelled: "Claude Opus 4.8 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -3292,7 +3300,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: competitor
       - model_as_labelled: "GPT-5.5 (xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"
@@ -3302,7 +3310,7 @@ charts:
         configuration: "Table 5. Third-party indexes as of 2026-07-23. Agent Arena (#4/37)"
         role: competitor
       - model_as_labelled: "GLM-5.2 (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: null
         benchmark_as_labelled: "Agent Arena (#4/37)"

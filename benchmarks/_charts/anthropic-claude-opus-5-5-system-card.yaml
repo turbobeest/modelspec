@@ -13,6 +13,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -96,7 +98,7 @@ charts:
         configuration: "Adaptive thinking at max effort, default sampling, mean of five trials, unless the row names another effort. Context stays within 1M tokens."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -106,7 +108,7 @@ charts:
         configuration: "Max effort. Summary table."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -116,7 +118,7 @@ charts:
         configuration: "Max effort. Summary table."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -126,7 +128,7 @@ charts:
         configuration: "Max effort. Summary table."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -136,7 +138,7 @@ charts:
         configuration: "Max effort. Summary table."
         role: competitor
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -146,7 +148,7 @@ charts:
         configuration: "Medium effort, the best effort for Opus 5.5."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -156,7 +158,7 @@ charts:
         configuration: "Each model at its best reasoning effort."
         role: subject
       - model_as_labelled: "Claude Fable 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -166,7 +168,7 @@ charts:
         configuration: "Each model at its best reasoning effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -176,7 +178,7 @@ charts:
         configuration: "Each model at its best reasoning effort."
         role: competitor
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Main)"
@@ -186,7 +188,7 @@ charts:
         configuration: "Each model at its best reasoning effort."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -196,7 +198,7 @@ charts:
         configuration: "Medium effort, the best Extended score."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -206,7 +208,7 @@ charts:
         configuration: "Each model at its best reasoning effort."
         role: subject
       - model_as_labelled: "Claude Fable 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -216,7 +218,7 @@ charts:
         configuration: "Each model at its best reasoning effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -226,7 +228,7 @@ charts:
         configuration: "Each model at its best reasoning effort."
         role: competitor
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -236,7 +238,7 @@ charts:
         configuration: "Each model at its best reasoning effort."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -246,7 +248,7 @@ charts:
         configuration: "Max effort."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: terminal_bench_v4_0
         score: 66.4
@@ -255,7 +257,7 @@ charts:
         configuration: "xhigh effort. Summary table, one decimal."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: terminal_bench_v4_0
         score: 66.36
@@ -264,7 +266,7 @@ charts:
         configuration: "xhigh effort, Claude Code --bare, safeguards on, mean of five trials per task."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: terminal_bench_v4_0
         score: 64.8
@@ -273,7 +275,7 @@ charts:
         configuration: "Max effort, Claude Code --bare."
         role: subject
       - model_as_labelled: "Claude Mythos 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5-1"
         benchmark_id: terminal_bench_v4_0
         score: 60.9
@@ -291,7 +293,7 @@ charts:
         configuration: "Max effort."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_v4_0
         score: 52.3
@@ -300,7 +302,7 @@ charts:
         configuration: "Internal setup, max effort for the comparison models."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_v4_0
         score: 51.8
@@ -318,7 +320,7 @@ charts:
         configuration: "High thinking effort, as OpenAI reported. Their highest number."
         role: competitor
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: terminal_bench_science
         score: 58.7
@@ -327,7 +329,7 @@ charts:
         configuration: "Summary table. Safeguards on."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_science
         score: 29.0
@@ -336,7 +338,7 @@ charts:
         configuration: "Summary table. Internal setup."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_science
         score: 30.0
@@ -345,7 +347,7 @@ charts:
         configuration: "Public leaderboard, three trials, Claude Code."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: terminal_bench_science
         score: 52.6
@@ -354,7 +356,7 @@ charts:
         configuration: "Summary table."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: terminal_bench_science
         score: 64.6
@@ -480,7 +482,7 @@ charts:
         configuration: "OSWorld 2.0 strict score."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: healthbench
         score: 65.6
@@ -489,7 +491,7 @@ charts:
         configuration: "HealthBench Professional, length-adjusted. Summary table."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: healthbench
         score: 59.8
@@ -498,7 +500,7 @@ charts:
         configuration: "HealthBench Professional, length-adjusted. Summary table."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: healthbench
         score: 62.1
@@ -507,7 +509,7 @@ charts:
         configuration: "HealthBench Professional, length-adjusted. Summary table."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: healthbench
         score: 63.4
@@ -516,7 +518,7 @@ charts:
         configuration: "HealthBench Professional, length-adjusted. Summary table."
         role: competitor
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: healthbench
         score: 59.2
@@ -525,7 +527,7 @@ charts:
         configuration: "HealthBench raw rubric score. Figure 8.15.1.A."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: healthbench
         score: 58.7
@@ -534,7 +536,7 @@ charts:
         configuration: "HealthBench length-adjusted. Figure 8.15.1.A."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: healthbench
         score: 67.1
@@ -543,7 +545,7 @@ charts:
         configuration: "HealthBench raw rubric score. Figure 8.15.1.A."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: healthbench
         score: 57.8
@@ -552,7 +554,7 @@ charts:
         configuration: "HealthBench length-adjusted. Figure 8.15.1.A."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: healthbench
         score: 66.7
@@ -561,7 +563,7 @@ charts:
         configuration: "HealthBench raw rubric score. Figure 8.15.1.A."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: healthbench
         score: 60.0
@@ -570,7 +572,7 @@ charts:
         configuration: "HealthBench length-adjusted. Figure 8.15.1.A."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: healthbench
         score: 68.1
@@ -579,7 +581,7 @@ charts:
         configuration: "HealthBench raw rubric score. Figure 8.15.1.A."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: healthbench
         score: 60.6
@@ -588,7 +590,7 @@ charts:
         configuration: "HealthBench length-adjusted. Figure 8.15.1.A."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: healthbench
         score: 77.1
@@ -597,7 +599,7 @@ charts:
         configuration: "HealthBench Professional, raw score."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: healthbench
         score: 73.4
@@ -606,7 +608,7 @@ charts:
         configuration: "HealthBench Professional, raw score."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: healthbench
         score: 74.2
@@ -615,7 +617,7 @@ charts:
         configuration: "HealthBench Professional, raw score."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: healthbench
         score: 62.4
@@ -624,7 +626,7 @@ charts:
         configuration: "HealthBench Professional, raw score."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE v2"
@@ -634,7 +636,7 @@ charts:
         configuration: "Max effort, Proximal harness, five trials."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE v2"
@@ -644,7 +646,7 @@ charts:
         configuration: "Max effort, Proximal harness."
         role: competitor
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE v2"
@@ -654,7 +656,7 @@ charts:
         configuration: "Max effort, Proximal harness."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierSWE v2"
@@ -664,7 +666,7 @@ charts:
         configuration: "Max effort, Proximal harness."
         role: competitor
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 4.0"
@@ -674,7 +676,7 @@ charts:
         configuration: "Max effort. Cursor's harness."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 4.0"
@@ -684,7 +686,7 @@ charts:
         configuration: "xhigh and high effort."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 4.0"
@@ -694,7 +696,7 @@ charts:
         configuration: "Medium effort."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 4.0"
@@ -704,7 +706,7 @@ charts:
         configuration: "Max effort."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 4.0"
@@ -714,7 +716,7 @@ charts:
         configuration: "Max effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench 4.0"
@@ -724,7 +726,7 @@ charts:
         configuration: "Max effort."
         role: competitor
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -734,7 +736,7 @@ charts:
         configuration: "Without tools, max effort, five runs. Gemini 3.5 Flash grader."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -744,7 +746,7 @@ charts:
         configuration: "With tools, max effort, five runs."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -754,7 +756,7 @@ charts:
         configuration: "Without tools."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -764,7 +766,7 @@ charts:
         configuration: "With tools."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -774,7 +776,7 @@ charts:
         configuration: "Without tools."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Chartography"
@@ -846,9 +848,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -858,7 +862,7 @@ charts:
         configuration: "Low effort, without tools."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -868,7 +872,7 @@ charts:
         configuration: "Medium effort, without tools."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -878,7 +882,7 @@ charts:
         configuration: "High effort, without tools."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -888,7 +892,7 @@ charts:
         configuration: "xhigh effort, without tools."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -898,7 +902,7 @@ charts:
         configuration: "Max effort, without tools."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -908,7 +912,7 @@ charts:
         configuration: "Low effort, without tools."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -918,7 +922,6 @@ charts:
         configuration: "Medium effort, without tools."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -927,8 +930,12 @@ charts:
         printed: true
         configuration: "High effort, without tools."
         role: subject
+        disputed:
+          - reader: grok-build-4.7
+            value: 75.4
+          - reader: claude-sonnet
+            value: 71.5
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -937,8 +944,12 @@ charts:
         printed: true
         configuration: "xhigh effort, without tools."
         role: subject
+        disputed:
+          - reader: grok-build-4.7
+            value: 78.1
+          - reader: claude-sonnet
+            value: 75.4
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -947,8 +958,13 @@ charts:
         printed: true
         configuration: "Max effort, without tools."
         role: subject
+        disputed:
+          - reader: grok-build-4.7
+            value: 82.5
+          - reader: claude-sonnet
+            value: 78.1
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -958,7 +974,7 @@ charts:
         configuration: "Low effort, without tools."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -968,7 +984,7 @@ charts:
         configuration: "Medium effort, without tools."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -978,7 +994,7 @@ charts:
         configuration: "High effort, without tools."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -988,7 +1004,7 @@ charts:
         configuration: "xhigh effort, without tools."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ArXivMath"
@@ -1006,9 +1022,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn harmless response rate"
@@ -1018,7 +1036,7 @@ charts:
         configuration: "API, no system prompt. ±0.27."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn harmless response rate"
@@ -1028,7 +1046,7 @@ charts:
         configuration: "Claude.ai. ±0.08."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn harmless response rate"
@@ -1038,7 +1056,7 @@ charts:
         configuration: "API, no system prompt. ±0.27."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn harmless response rate"
@@ -1048,7 +1066,7 @@ charts:
         configuration: "Claude.ai. ±0.08."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn harmless response rate"
@@ -1058,7 +1076,7 @@ charts:
         configuration: "API, no system prompt. ±0.16."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn harmless response rate"
@@ -1068,7 +1086,7 @@ charts:
         configuration: "Claude.ai. ±0.14."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn harmless response rate"
@@ -1078,7 +1096,7 @@ charts:
         configuration: "API, no system prompt. ±0.15."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn harmless response rate"
@@ -1096,9 +1114,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn over-refusal rate"
@@ -1108,7 +1128,7 @@ charts:
         configuration: "API, no system prompt. ±0.02."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn over-refusal rate"
@@ -1118,7 +1138,7 @@ charts:
         configuration: "Claude.ai. ±0.07."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn over-refusal rate"
@@ -1128,7 +1148,7 @@ charts:
         configuration: "API, no system prompt."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn over-refusal rate"
@@ -1138,7 +1158,7 @@ charts:
         configuration: "Claude.ai. ±0.06."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn over-refusal rate"
@@ -1148,7 +1168,7 @@ charts:
         configuration: "API, no system prompt. ±0.02."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn over-refusal rate"
@@ -1158,7 +1178,7 @@ charts:
         configuration: "Claude.ai. ±0.07."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn over-refusal rate"
@@ -1168,7 +1188,7 @@ charts:
         configuration: "API, no system prompt. ±0.05."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Single-turn over-refusal rate"
@@ -1186,9 +1206,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Claude Code malicious refusal rate"
@@ -1198,7 +1220,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Claude Code dual-use and benign success rate"
@@ -1208,7 +1230,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Mythos 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Claude Code malicious refusal rate"
@@ -1218,7 +1240,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Mythos 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Claude Code dual-use and benign success rate"
@@ -1228,7 +1250,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Claude Code malicious refusal rate"
@@ -1238,7 +1260,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Claude Code dual-use and benign success rate"
@@ -1248,7 +1270,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Claude Code malicious refusal rate"
@@ -1258,7 +1280,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Claude Code dual-use and benign success rate"
@@ -1276,9 +1298,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Malicious computer-use refusal rate"
@@ -1288,7 +1312,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Mythos 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-mythos-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Malicious computer-use refusal rate"
@@ -1298,7 +1322,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Malicious computer-use refusal rate"
@@ -1308,7 +1332,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Malicious computer-use refusal rate"
@@ -1326,9 +1350,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1338,7 +1364,7 @@ charts:
         configuration: "With thinking, without safeguards."
         role: subject
       - model_as_labelled: "Claude Opus 5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1348,7 +1374,7 @@ charts:
         configuration: "With thinking, probes enabled."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1358,7 +1384,7 @@ charts:
         configuration: "With thinking, without safeguards."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1368,7 +1394,7 @@ charts:
         configuration: "With thinking, probes enabled."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1378,7 +1404,7 @@ charts:
         configuration: "With thinking, without safeguards."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1388,7 +1414,7 @@ charts:
         configuration: "With thinking, probes enabled."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1398,7 +1424,7 @@ charts:
         configuration: "Without thinking, without safeguards."
         role: subject
       - model_as_labelled: "Claude Opus 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1408,7 +1434,7 @@ charts:
         configuration: "Without thinking, probes enabled."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1418,7 +1444,7 @@ charts:
         configuration: "With thinking, without safeguards."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1428,7 +1454,7 @@ charts:
         configuration: "With thinking, probes enabled."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"
@@ -1438,7 +1464,7 @@ charts:
         configuration: "Without thinking, without safeguards."
         role: subject
       - model_as_labelled: "Claude Sonnet 5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-sonnet-5"
         benchmark_id: null
         benchmark_as_labelled: "Shade coding attack success rate"

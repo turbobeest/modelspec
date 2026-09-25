@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "K-EXAONE 2.0"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -424,7 +426,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -434,7 +436,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -444,7 +446,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -454,7 +456,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -464,7 +466,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "τ 3 -Banking"
@@ -474,7 +476,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -484,7 +486,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "K-EXAONE"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -494,7 +496,7 @@ charts:
         configuration: "BF16 table."
         role: subject
       - model_as_labelled: "Qwen3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -504,7 +506,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -514,7 +516,7 @@ charts:
         configuration: "BF16 table."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Claw-Eval"
@@ -804,7 +806,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: hrm8k
         score: 91.1
@@ -813,7 +815,7 @@ charts:
         configuration: "BF16 table. KSM subset."
         role: subject
       - model_as_labelled: "K-EXAONE"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: hrm8k
         score: 91.9
@@ -822,7 +824,7 @@ charts:
         configuration: "BF16 table. KSM subset."
         role: subject
       - model_as_labelled: "Qwen3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: hrm8k
         score: 91.2
@@ -831,7 +833,7 @@ charts:
         configuration: "BF16 table. KSM subset."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hrm8k
         score: 89.4
@@ -840,7 +842,7 @@ charts:
         configuration: "BF16 table. KSM subset."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: hrm8k
         score: 94.3
@@ -894,7 +896,7 @@ charts:
         configuration: "BF16 table. Column labelled max."
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: global_mmlu
         score: 86.6
@@ -903,7 +905,7 @@ charts:
         configuration: "BF16 table. Lite."
         role: subject
       - model_as_labelled: "K-EXAONE"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: global_mmlu
         score: 86.9
@@ -912,7 +914,7 @@ charts:
         configuration: "BF16 table. Lite."
         role: subject
       - model_as_labelled: "Qwen3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: global_mmlu
         score: 92.1
@@ -921,7 +923,7 @@ charts:
         configuration: "BF16 table. Lite."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: global_mmlu
         score: 90.7
@@ -930,7 +932,7 @@ charts:
         configuration: "BF16 table. Lite."
         role: competitor
       - model_as_labelled: "DSV4 Pro (max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: global_mmlu
         score: 92.0
@@ -1099,6 +1101,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "K-EXAONE 2.0"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -1177,7 +1181,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: hrm8k
         score: 91.1
@@ -1186,7 +1190,7 @@ charts:
         configuration: "KSM subset."
         role: subject
       - model_as_labelled: "K-EXAONE"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: hrm8k
         score: 91.9
@@ -1195,7 +1199,7 @@ charts:
         configuration: "KSM subset."
         role: subject
       - model_as_labelled: "Qwen3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: hrm8k
         score: 91.2
@@ -1204,7 +1208,7 @@ charts:
         configuration: "KSM subset."
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: hrm8k
         score: 89.4
@@ -1325,7 +1329,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "K-EXAONE 2.0"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-2-0-750b-a37b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -1335,7 +1339,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "K-EXAONE"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "lgai-exaone/k-exaone-236b-a23b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -1345,7 +1349,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Qwen3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"
@@ -1355,7 +1359,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "KGC-Safety"

@@ -12,9 +12,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: terminal_bench_v2_1
         score: 56.4
@@ -406,7 +408,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -416,7 +418,7 @@ charts:
         configuration: "Airline"
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -426,7 +428,7 @@ charts:
         configuration: "Airline"
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -436,7 +438,7 @@ charts:
         configuration: "Airline"
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -446,7 +448,7 @@ charts:
         configuration: "Airline"
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -456,7 +458,7 @@ charts:
         configuration: "Airline"
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -466,7 +468,7 @@ charts:
         configuration: "Airline"
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -476,7 +478,7 @@ charts:
         configuration: "Airline"
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -486,7 +488,7 @@ charts:
         configuration: "Retail"
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -496,7 +498,7 @@ charts:
         configuration: "Retail"
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -506,7 +508,7 @@ charts:
         configuration: "Retail"
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -516,7 +518,7 @@ charts:
         configuration: "Retail"
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -526,7 +528,7 @@ charts:
         configuration: "Retail"
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -536,7 +538,7 @@ charts:
         configuration: "Retail"
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -546,7 +548,7 @@ charts:
         configuration: "Retail"
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -556,7 +558,7 @@ charts:
         configuration: "Telecom"
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -566,7 +568,7 @@ charts:
         configuration: "Telecom"
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -576,7 +578,7 @@ charts:
         configuration: "Telecom"
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -586,7 +588,7 @@ charts:
         configuration: "Telecom"
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -596,7 +598,7 @@ charts:
         configuration: "Telecom"
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -606,7 +608,7 @@ charts:
         configuration: "Telecom"
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -616,7 +618,7 @@ charts:
         configuration: "Telecom"
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -626,7 +628,7 @@ charts:
         configuration: "Banking"
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -636,7 +638,7 @@ charts:
         configuration: "Banking"
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -646,7 +648,7 @@ charts:
         configuration: "Banking"
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -656,7 +658,7 @@ charts:
         configuration: "Banking"
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -666,7 +668,7 @@ charts:
         configuration: "Banking"
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -676,7 +678,7 @@ charts:
         configuration: "Banking"
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -819,7 +821,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -829,7 +831,7 @@ charts:
         configuration: "without web search"
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -839,7 +841,7 @@ charts:
         configuration: "without web search"
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -849,7 +851,7 @@ charts:
         configuration: "without web search"
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -859,7 +861,7 @@ charts:
         configuration: "without web search"
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -869,7 +871,7 @@ charts:
         configuration: "without web search"
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -879,7 +881,7 @@ charts:
         configuration: "without web search"
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -889,7 +891,7 @@ charts:
         configuration: "without web search"
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -899,7 +901,7 @@ charts:
         configuration: "with web search"
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -909,7 +911,7 @@ charts:
         configuration: "with web search"
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -919,7 +921,7 @@ charts:
         configuration: "with web search"
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -929,7 +931,7 @@ charts:
         configuration: "with web search"
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -939,7 +941,7 @@ charts:
         configuration: "with web search"
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -949,7 +951,7 @@ charts:
         configuration: "with web search"
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "Vals.ai Financial Agent 1.1"
@@ -1415,7 +1417,7 @@ charts:
         configuration: "No tools."
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: scicode
         score: 44.6
@@ -1424,7 +1426,7 @@ charts:
         configuration: "Subtask score."
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: scicode
         score: 38.3
@@ -1433,7 +1435,7 @@ charts:
         configuration: "Subtask score."
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: scicode
         score: 47.7
@@ -1442,7 +1444,7 @@ charts:
         configuration: "Subtask score."
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: scicode
         score: 52.0
@@ -1451,7 +1453,7 @@ charts:
         configuration: "Subtask score."
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: scicode
         score: 48.0
@@ -1460,7 +1462,7 @@ charts:
         configuration: "Subtask score."
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: scicode
         score: 50.5
@@ -1469,7 +1471,7 @@ charts:
         configuration: "Subtask score."
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: scicode
         score: 48.2
@@ -1595,7 +1597,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: critpt
         score: 3.1
@@ -1604,7 +1606,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: critpt
         score: 0.6
@@ -1613,7 +1615,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: critpt
         score: 3.7
@@ -1622,7 +1624,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: critpt
         score: 9.1
@@ -1631,7 +1633,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: critpt
         score: 2.4
@@ -1640,7 +1642,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: critpt
         score: 14.0
@@ -1649,7 +1651,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: critpt
         score: 10.6
@@ -1721,7 +1723,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: ifbench
         score: 81.7
@@ -1730,7 +1732,7 @@ charts:
         configuration: "Prompt-loose."
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: ifbench
         score: 74.6
@@ -1739,7 +1741,7 @@ charts:
         configuration: "Prompt-loose."
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: ifbench
         score: 76.6
@@ -1748,7 +1750,7 @@ charts:
         configuration: "Prompt-loose."
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: ifbench
         score: 73.7
@@ -1757,7 +1759,7 @@ charts:
         configuration: "Prompt-loose."
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: ifbench
         score: 78.2
@@ -1766,7 +1768,7 @@ charts:
         configuration: "Prompt-loose."
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: ifbench
         score: 79.1
@@ -1775,7 +1777,7 @@ charts:
         configuration: "Prompt-loose."
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: ifbench
         score: 82.0
@@ -1854,7 +1856,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: ruler
         score: 94.7
@@ -1863,7 +1865,7 @@ charts:
         configuration: "1M context."
         role: subject
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: ruler
         score: 90.1
@@ -1872,7 +1874,7 @@ charts:
         configuration: "1M context."
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: ruler
         score: 94.2
@@ -1881,7 +1883,7 @@ charts:
         configuration: "1M context."
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: ruler
         score: 87.7
@@ -1890,7 +1892,7 @@ charts:
         configuration: "1M context."
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: longbenchv2
         score: 61.9
@@ -1899,7 +1901,7 @@ charts:
         configuration: "Items up to 1M tokens."
         role: subject
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: longbenchv2
         score: 68.9
@@ -1908,7 +1910,7 @@ charts:
         configuration: "Items up to 1M tokens."
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: longbenchv2
         score: 62.1
@@ -1917,7 +1919,7 @@ charts:
         configuration: "Items up to 1M tokens."
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: longbenchv2
         score: 57.0
@@ -1926,7 +1928,7 @@ charts:
         configuration: "Items up to 1M tokens."
         role: competitor
       - model_as_labelled: "N-3-Ultra 550B-A55B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: mmlu_prox
         score: 83.0
@@ -1935,7 +1937,7 @@ charts:
         configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
         role: subject
       - model_as_labelled: "MiniMax-2.7 230B-A10B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "minimax/minimax-m2-7"
         benchmark_id: mmlu_prox
         score: 78.4
@@ -1944,7 +1946,7 @@ charts:
         configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
         role: competitor
       - model_as_labelled: "GLM-5.1 744B-A40B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-1"
         benchmark_id: mmlu_prox
         score: 85.8
@@ -1953,7 +1955,7 @@ charts:
         configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
         role: competitor
       - model_as_labelled: "Kimi-K2.6 1T-A32B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: mmlu_prox
         score: 85.0
@@ -1962,7 +1964,7 @@ charts:
         configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
         role: competitor
       - model_as_labelled: "Qwen-3.5 397B-17B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: mmlu_prox
         score: 86.4
@@ -1971,7 +1973,7 @@ charts:
         configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
         role: competitor
       - model_as_labelled: "DS-v4-Pro 1.6T-A49B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: mmlu_prox
         score: 85.6
@@ -1980,7 +1982,7 @@ charts:
         configuration: "Average of en/de/fr/es/it/ja/zh/hi/pt/ko."
         role: competitor
       - model_as_labelled: "DS-v4-Flash 284B-A13B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: mmlu_prox
         score: 84.3
@@ -2073,7 +2075,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: terminal_bench_v2_1
         score: 56.4
@@ -2127,7 +2129,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: swe_bench_verified
         score: 70.7
@@ -2136,7 +2138,7 @@ charts:
         configuration: "BF16"
         role: subject
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: swe_bench_verified
         score: 69.5
@@ -2172,7 +2174,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: swe_bench_multilingual
         score: 67.7
@@ -2181,7 +2183,7 @@ charts:
         configuration: "BF16"
         role: subject
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: swe_bench_multilingual
         score: 69.1
@@ -2217,7 +2219,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -2227,7 +2229,7 @@ charts:
         configuration: "BF16. Average"
         role: subject
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "TauBench V3"
@@ -2267,7 +2269,7 @@ charts:
         configuration: "Average"
         role: competitor
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: gdpval
         score: 46.7
@@ -2276,7 +2278,7 @@ charts:
         configuration: "BF16"
         role: subject
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: gdpval
         score: 47.9
@@ -2312,7 +2314,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "ProfBench (Search)"
@@ -2322,7 +2324,7 @@ charts:
         configuration: "BF16"
         role: subject
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "ProfBench (Search)"
@@ -2362,7 +2364,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -2372,7 +2374,7 @@ charts:
         configuration: "BF16"
         role: subject
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "PinchBench"
@@ -2412,7 +2414,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "IOI 2025"
@@ -2422,7 +2424,7 @@ charts:
         configuration: "BF16. Shown as a percentage of 600"
         role: subject
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: null
         benchmark_as_labelled: "IOI 2025"
@@ -2462,7 +2464,7 @@ charts:
         configuration: "Shown as a percentage of 600"
         role: competitor
       - model_as_labelled: "Nemotron-3-Ultra BF16"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: ruler
         score: 94.7
@@ -2471,7 +2473,7 @@ charts:
         configuration: "1M context.. BF16"
         role: subject
       - model_as_labelled: "Nemotron-3-Ultra NVFP4"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: ruler
         score: 94.0
@@ -2480,7 +2482,7 @@ charts:
         configuration: "1M context.. NVFP4"
         role: subject
       - model_as_labelled: "Qwen-3.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "qwen/qwen3-5-397b-a17b"
         benchmark_id: ruler
         score: 90.1

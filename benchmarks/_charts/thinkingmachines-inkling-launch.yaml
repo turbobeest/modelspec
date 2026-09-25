@@ -502,7 +502,7 @@ charts:
         configuration: "Public set.. max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: terminal_bench_v2_1
         score: 63.8
@@ -511,7 +511,7 @@ charts:
         configuration: "Best harness.. effort=0.99"
         role: subject
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: terminal_bench_v2_1
         score: 56.4
@@ -556,7 +556,7 @@ charts:
             - reader: claude-sonnet
               value: "71.3%"
       - model_as_labelled: "GLM 5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: terminal_bench_v2_1
         score: 82.7
@@ -565,7 +565,7 @@ charts:
         configuration: "Best harness."
         role: competitor
       - model_as_labelled: "DeepSeek V4Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: terminal_bench_v2_1
         score: 64.0
@@ -574,7 +574,7 @@ charts:
         configuration: "Best harness."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: terminal_bench_v2_1
         score: 73.8
@@ -592,7 +592,7 @@ charts:
         configuration: "Best harness.. max"
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_v2_1
         score: 89.5
@@ -871,7 +871,7 @@ charts:
         configuration: "max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: browsecomp
         score: 77.1
@@ -880,7 +880,7 @@ charts:
         configuration: "With context management.. effort=0.99"
         role: subject
       - model_as_labelled: "Kimi K2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-5"
         benchmark_id: browsecomp
         score: 74.9
@@ -889,7 +889,7 @@ charts:
         configuration: "With context management."
         role: competitor
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: browsecomp
         score: 83.2
@@ -898,7 +898,7 @@ charts:
         configuration: "With context management."
         role: competitor
       - model_as_labelled: "DeepSeek V4Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: browsecomp
         score: 83.4
@@ -907,7 +907,7 @@ charts:
         configuration: "With context management."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: browsecomp
         score: 85.9
@@ -916,7 +916,7 @@ charts:
         configuration: "With context management.. high"
         role: competitor
       - model_as_labelled: "Claude Fable 5(max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: browsecomp
         score: 88.0
@@ -925,7 +925,7 @@ charts:
         configuration: "With context management.. max"
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: browsecomp
         score: 90.8
@@ -934,7 +934,7 @@ charts:
         configuration: "With context management.. max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: simpleqa
         score: 43.9
@@ -943,7 +943,7 @@ charts:
         configuration: "Verified.. effort=0.99"
         role: subject
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: simpleqa
         score: 32.4
@@ -970,7 +970,7 @@ charts:
         configuration: "Verified."
         role: competitor
       - model_as_labelled: "GLM 5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: simpleqa
         score: 38.1
@@ -997,7 +997,7 @@ charts:
         configuration: "Verified.. high"
         role: competitor
       - model_as_labelled: "Claude Fable 5(max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: simpleqa
         score: 68.3
@@ -1015,7 +1015,7 @@ charts:
         configuration: "Verified.. max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: ifbench
         score: 79.8
@@ -1024,7 +1024,7 @@ charts:
         configuration: "effort=0.99"
         role: subject
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: ifbench
         score: 81.4
@@ -1033,7 +1033,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Kimi K2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-5"
         benchmark_id: ifbench
         score: 70.2
@@ -1042,7 +1042,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: ifbench
         score: 76.0
@@ -1051,7 +1051,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GLM 5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: ifbench
         score: 73.3
@@ -1078,7 +1078,7 @@ charts:
         configuration: "high"
         role: competitor
       - model_as_labelled: "Claude Fable 5(max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: ifbench
         score: 63.5
@@ -1096,7 +1096,7 @@ charts:
         configuration: "max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: global_mmlu
         score: 88.7
@@ -1177,7 +1177,7 @@ charts:
         configuration: "Lite.. max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: mmmu_pro
         score: 73.5
@@ -1186,7 +1186,7 @@ charts:
         configuration: "Standard, 10 options.. effort=0.99"
         role: subject
       - model_as_labelled: "Kimi K2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-5"
         benchmark_id: mmmu_pro
         score: 75.0
@@ -1195,7 +1195,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: mmmu_pro
         score: 79.0
@@ -1204,7 +1204,7 @@ charts:
         configuration: "Standard, 10 options."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: mmmu_pro
         score: 82.0
@@ -1222,7 +1222,7 @@ charts:
         configuration: "Standard, 10 options.. max"
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: mmmu_pro
         score: 83.0
@@ -1231,7 +1231,7 @@ charts:
         configuration: "Standard, 10 options.. max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: charxiv_reasoning
         score: 78.1
@@ -1240,7 +1240,7 @@ charts:
         configuration: "effort=0.99"
         role: subject
       - model_as_labelled: "Kimi K2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-5"
         benchmark_id: charxiv_reasoning
         score: 77.5
@@ -1249,7 +1249,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: charxiv_reasoning
         score: 80.4
@@ -1258,7 +1258,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: charxiv_reasoning
         score: 80.2
@@ -1285,7 +1285,7 @@ charts:
         configuration: "max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: charxiv_reasoning_tools
         score: 82.0
@@ -1294,7 +1294,7 @@ charts:
         configuration: "With Python.. effort=0.99"
         role: subject
       - model_as_labelled: "Kimi K2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-5"
         benchmark_id: charxiv_reasoning_tools
         score: 78.7
@@ -1303,7 +1303,7 @@ charts:
         configuration: "With Python."
         role: competitor
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: charxiv_reasoning_tools
         score: 86.7
@@ -1312,7 +1312,7 @@ charts:
         configuration: "With Python."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: charxiv_reasoning_tools
         score: 89.9
@@ -1321,7 +1321,7 @@ charts:
         configuration: "With Python.. high"
         role: competitor
       - model_as_labelled: "Claude Fable 5(max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: charxiv_reasoning_tools
         score: 89.4
@@ -1330,7 +1330,7 @@ charts:
         configuration: "With Python.. max"
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: charxiv_reasoning_tools
         score: 87.8
@@ -1339,7 +1339,7 @@ charts:
         configuration: "With Python.. max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -1349,7 +1349,7 @@ charts:
         configuration: "effort=0.99"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -1359,7 +1359,7 @@ charts:
         configuration: "high"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -1369,7 +1369,7 @@ charts:
         configuration: "effort=0.99"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -1379,7 +1379,7 @@ charts:
         configuration: "high"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -1389,7 +1389,7 @@ charts:
         configuration: "effort=0.99"
         role: subject
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -1399,7 +1399,7 @@ charts:
         configuration: "high"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: fortress
         score: 78.0
@@ -1408,7 +1408,7 @@ charts:
         configuration: "Adversarial.. effort=0.99"
         role: subject
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: fortress
         score: 77.6
@@ -1417,7 +1417,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "Kimi K2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-5"
         benchmark_id: fortress
         score: 54.1
@@ -1426,7 +1426,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: fortress
         score: 65.6
@@ -1435,7 +1435,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "GLM 5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: fortress
         score: 71.3
@@ -1444,7 +1444,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "DeepSeek V4Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: fortress
         score: 36.0
@@ -1453,7 +1453,7 @@ charts:
         configuration: "Adversarial."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: fortress
         score: 65.2
@@ -1462,7 +1462,7 @@ charts:
         configuration: "Adversarial.. high"
         role: competitor
       - model_as_labelled: "Claude Fable 5(max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: fortress
         score: 96.0
@@ -1471,7 +1471,7 @@ charts:
         configuration: "Adversarial.. max"
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: fortress
         score: 82.4
@@ -1480,7 +1480,7 @@ charts:
         configuration: "Adversarial.. max/xhigh"
         role: competitor
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: fortress
         score: 95.9
@@ -1489,7 +1489,7 @@ charts:
         configuration: "Benign.. effort=0.99"
         role: subject
       - model_as_labelled: "Nemotron 3Ultra"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "nvidia/nvidia-nemotron-3-ultra-550b-a55b"
         benchmark_id: fortress
         score: 90.5
@@ -1498,7 +1498,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "Kimi K2.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-5"
         benchmark_id: fortress
         score: 98.3
@@ -1507,7 +1507,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: fortress
         score: 97.2
@@ -1516,7 +1516,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "GLM 5.2"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "zhipu/glm-5-2"
         benchmark_id: fortress
         score: 90.0
@@ -1525,7 +1525,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "DeepSeek V4Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "deepseek/deepseek-v4-pro"
         benchmark_id: fortress
         score: 98.5
@@ -1534,7 +1534,7 @@ charts:
         configuration: "Benign."
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro(high)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: fortress
         score: 98.0
@@ -1543,7 +1543,7 @@ charts:
         configuration: "Benign.. high"
         role: competitor
       - model_as_labelled: "Claude Fable 5(max)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: fortress
         score: 55.1
@@ -1552,7 +1552,7 @@ charts:
         configuration: "Benign.. max"
         role: competitor
       - model_as_labelled: "GPT 5.6 Sol(max/xhigh)"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: fortress
         score: 98.1
@@ -1649,6 +1649,8 @@ charts:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
+        date: "2026-09-24"
+      - reader: claude-sonnet
         date: "2026-09-24"
     bars:
       - model_as_labelled: "Inkling"
@@ -1762,7 +1764,7 @@ charts:
         configuration: "Uncertainty ±0.82"
         role: competitor
       - model_as_labelled: "Inkling"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -1772,7 +1774,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.5"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-5"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -1782,7 +1784,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 4.8"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-opus-4-8"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -1792,7 +1794,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.1 Pro"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemini-3-1-pro-preview"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -1802,7 +1804,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Grok 4.3"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xai/grok-4-3"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -1812,7 +1814,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Kimi K2.6"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "moonshot/kimi-k2-6"
         benchmark_id: null
         benchmark_as_labelled: "Prophet ArenaBrier Score ↓"
@@ -1830,9 +1832,11 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: hle
         score: 29.7
@@ -1850,7 +1854,7 @@ charts:
         configuration: "Text-only subset.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: hle_tools
         score: 46.0
@@ -1868,7 +1872,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: aime_2026
         score: 97.1
@@ -1886,7 +1890,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: gpqa_diamond
         score: 87.2
@@ -1904,7 +1908,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: swe_bench_verified
         score: 77.6
@@ -1922,7 +1926,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: swe_bench_pro
         score: 54.3
@@ -1940,7 +1944,7 @@ charts:
         configuration: "Public set.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: terminal_bench_v2_1
         score: 63.8
@@ -1949,7 +1953,7 @@ charts:
         configuration: "Best harness.. effort=0.99"
         role: subject
       - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: terminal_bench_v2_1
         score: 52.7
@@ -1958,7 +1962,7 @@ charts:
         configuration: "Best harness.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "Tau 3 Banking"
@@ -1978,7 +1982,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "MCP-Atlas"
@@ -1998,7 +2002,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: simpleqa
         score: 43.9
@@ -2016,7 +2020,7 @@ charts:
         configuration: "Verified.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: ifbench
         score: 79.8
@@ -2034,7 +2038,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: global_mmlu
         score: 88.7
@@ -2052,7 +2056,7 @@ charts:
         configuration: "Lite.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: mmmu_pro
         score: 73.5
@@ -2061,7 +2065,7 @@ charts:
         configuration: "Standard, 10 options.. effort=0.99"
         role: subject
       - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: mmmu_pro
         score: 73.1
@@ -2070,7 +2074,7 @@ charts:
         configuration: "Standard, 10 options.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: charxiv_reasoning
         score: 78.1
@@ -2088,7 +2092,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: charxiv_reasoning_tools
         score: 82.0
@@ -2097,7 +2101,7 @@ charts:
         configuration: "With Python.. effort=0.99"
         role: subject
       - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: charxiv_reasoning_tools
         score: 83.4
@@ -2106,7 +2110,7 @@ charts:
         configuration: "With Python.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "Audio MC"
@@ -2126,7 +2130,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "MMAU"
@@ -2146,7 +2150,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: null
         benchmark_as_labelled: "VoiceBench"
@@ -2166,7 +2170,7 @@ charts:
         configuration: "effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: fortress
         score: 78.0
@@ -2175,7 +2179,7 @@ charts:
         configuration: "Adversarial.. effort=0.99"
         role: subject
       - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: fortress
         score: 75.6
@@ -2184,7 +2188,7 @@ charts:
         configuration: "Adversarial.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: fortress
         score: 95.9
@@ -2193,7 +2197,7 @@ charts:
         configuration: "Benign.. effort=0.99"
         role: subject
       - model_as_labelled: "Inkling-Small(Preview) effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling-small"
         benchmark_id: fortress
         score: 94.1
@@ -2202,7 +2206,7 @@ charts:
         configuration: "Benign.. effort=0.99. Preview"
         role: subject
       - model_as_labelled: "Inkling effort=0.99"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "thinkingmachines/inkling"
         benchmark_id: strong_reject
         score: 98.6

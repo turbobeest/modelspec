@@ -14,6 +14,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemma 4 12B"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -25,7 +27,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: bbeh
         score: 53
@@ -34,7 +36,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: mmlu_pro
         score: 77.2
@@ -43,7 +45,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: live_code_bench
         score: 72
@@ -52,7 +54,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: docvqa
         score: 94.9
@@ -61,7 +63,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: null
         benchmark_as_labelled: "InfoVQA"
@@ -71,7 +73,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: mmmu_pro
         score: 69.1
@@ -80,7 +82,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Gemma 4 12B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: google/gemma-4-12b-it
         benchmark_id: deepmind_mrcr_v2
         score: 43.4

@@ -12,6 +12,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "DiffusionGemma 26B A4B"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -108,7 +110,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: tau2
         score: 56.2
@@ -117,7 +119,7 @@ charts:
         configuration: "Entropy-bound sampler. Average over 3 domains."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: tau2
         score: 68.2
@@ -162,7 +164,7 @@ charts:
         configuration: "Entropy-bound sampler. With search."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: bbeh
         score: 47.6
@@ -171,7 +173,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: bbeh
         score: 64.8
@@ -274,7 +276,7 @@ charts:
         configuration: "Entropy-bound sampler."
         role: subject
       - model_as_labelled: "DiffusionGemma 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/diffusiongemma-26b-a4b-it"
         benchmark_id: deepmind_mrcr_v2
         score: 32.0
@@ -283,7 +285,7 @@ charts:
         configuration: "Entropy-bound sampler. 8-needle, 128k, average."
         role: subject
       - model_as_labelled: "Gemma 4 26B A4B"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "google/gemma-4-26b-a4b-it"
         benchmark_id: deepmind_mrcr_v2
         score: 44.1
