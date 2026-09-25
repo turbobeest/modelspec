@@ -14,6 +14,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-sonnet
         date: "2026-09-24"
+      - reader: claude-opus-third
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Gemini 3.1 Flash Image"
         confirmed_by: ["grok-build-4.7", "claude-sonnet"]
@@ -106,6 +108,7 @@ charts:
         role: subject
         metric: visual_quality
       - model_as_labelled: "Gemini 2.5 Flash Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: "google/gemini-2-5-flash-image"
         benchmark_id: genai_bench
         score: 929.0
@@ -114,12 +117,17 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±6.0."
         role: subject
         metric: visual_quality
-        disputed:
-          - reader: grok-build-4.7
-            value: 929.0
-          - reader: claude-sonnet
-            value: 942.0
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: "929.0"
+            - reader: claude-sonnet
+              value: "942.0"
+            - reader: claude-opus-third
+              value: "929.0"
       - model_as_labelled: "Gemini 3 Pro Image"
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: "google/gemini-3-pro-image"
         benchmark_id: genai_bench
         score: 1043.0
@@ -128,12 +136,17 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±5.0."
         role: subject
         metric: visual_quality
-        disputed:
-          - reader: grok-build-4.7
-            value: 1043.0
-          - reader: claude-sonnet
-            value: 1021.0
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: "1043.0"
+            - reader: claude-sonnet
+              value: "1021.0"
+            - reader: claude-opus-third
+              value: "1043.0"
       - model_as_labelled: "GPT-Image 1.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: null
         benchmark_id: genai_bench
         score: 975.0
@@ -142,11 +155,15 @@ charts:
         configuration: "Side-by-side human Elo. Table also prints ±5.0."
         role: competitor
         metric: visual_quality
-        disputed:
-          - reader: grok-build-4.7
-            value: 975.0
-          - reader: claude-sonnet
-            value: 1047.0
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: "975.0"
+            - reader: claude-sonnet
+              value: "1047.0"
+            - reader: claude-opus-third
+              value: "975.0"
       - model_as_labelled: "Seedream 5.0 Lite"
         confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: null

@@ -194,6 +194,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-sonnet
         date: "2026-09-24"
+      - reader: claude-opus-third
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Command A+"
         confirmed_by: ["grok-build-4.7", "claude-sonnet"]
@@ -250,22 +252,26 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Command A+"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: "cohere/command-a-plus-05-2026"
         benchmark_id: charxiv
+        benchmark_as_labelled: "CharXiv (descriptive)"
         score: 88
         unit: "percent"
         printed: true
         configuration: ""
+        metric: "CharXiv descriptive"
         role: subject
       - model_as_labelled: "Command A Vision"
-        confirmed_by: ["grok-build-4.7"]
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: "cohere/command-a-vision-07-2025"
         benchmark_id: charxiv
+        benchmark_as_labelled: "CharXiv (descriptive)"
         score: 82
         unit: "percent"
         printed: true
         configuration: ""
+        metric: "CharXiv descriptive"
         role: subject
   - title: "Multilingual math and translation"
     kind: image

@@ -940,7 +940,7 @@ def _render_capped_rows(items: list[dict[str, str]], label: str, limit: int) -> 
     shown = items[:limit]
     lines = ["", f"{label}, {len(shown)} of {len(items)}.", "", *_render_finding_table(shown)]
     hidden = len(items) - limit
-    if hidden:
+    if hidden > 0:
         name = label.lower()
         if hidden == 1:
             note = f"1 further {name[:-1]} is omitted."

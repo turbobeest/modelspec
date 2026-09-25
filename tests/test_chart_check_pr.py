@@ -468,6 +468,21 @@ def test_reader_findings_list_at_most_50_rows(tmp_path: Path) -> None:
     assert "1 further blocking bar is omitted." in proc.stdout
 
 
+def test_reader_findings_do_not_claim_omitted_rows_when_all_are_shown(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    _branch_from_base(repo)
+    bars = "".join(
+        bar(str(index), benchmark=f"bench_{index}", confirmed_by=["one"]) for index in range(2)
+    )
+    write(repo, "benchmarks/_charts/new.yaml", chart(bars))
+    commit(repo, "head")
+    proc, report = checked(repo)
+    assert proc.returncode == 1
+    assert len(report["findings"]) == 2
+    assert "Blocking bars, 2 of 2." in proc.stdout
+    assert "omitted" not in proc.stdout
+
+
 def test_repeated_bar_key_pairs_by_position(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     bars = bar("10", confirmed_by=["one", "two"]) + bar("20", confirmed_by=["one"])

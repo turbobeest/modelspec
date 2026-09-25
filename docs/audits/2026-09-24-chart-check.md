@@ -966,3 +966,66 @@ On the Liquid 8B blog, 22 bars resolved to the value reader B and reader D share
 
 Ten of those 34 are outside the Liquid blog. Two are K-Knowledge on `upstage-solar-open2-250b` (GPT-5.4 mini and DeepSeek-V4-Flash). Three are ArXivMath on the Claude Opus 5.5 system card, high, xhigh, and max effort. Two are on `tencent-hy3`: DeepSeek-V4 pro on DeepSWE, and Seed-2.1 pro on WildClawBench. Three are `genai_bench` on `google-gemini-3-1-flash-image`: Gemini 2.5 Flash Image, Gemini 3 Pro Image, and GPT-Image 1.5. Each of those ten has no paired reading from reader B.
 
+### Third reading
+
+Reader E is claude-opus-third, 2026-09-24, a separate reading from the earlier claude-opus pass. Reader A is grok-build-4.7. Reader D is claude-sonnet. Reader B is claude-opus. E read the 34 bars that were still disputed, and both CharXiv panels for the two Command A bars that had one reading.
+
+A value is kept when E's digits agree with exactly one earlier value, within the printed precision. `50.00` and `49.73` differ by 0.27. The precision of `50.00` is 0.005, so they disagree. The resolution quotes `"50.00"`. A bare YAML float would load as 50, and the check would treat it as plus or minus 0.5. The same quote is used for a printed tenth such as `929.0`.
+
+E agreed with exactly one earlier value on all 34 bars. Each bar now has `resolution.rule: two_of_three`. The score is the agreed value. `confirmed_by` names every reader in that cluster, in the order the resolution lists them. The six charts that hold these bars list claude-opus-third among their readings.
+
+On the Liquid 8B blog, the 24 "Math and tool use" bars are BFCLv3, BFCLv4, Tau² Telecom, and Tau² Retail. Reader B's file records the same cells on the chart "Math and agentic workflows", where the setting starts with `group: Tool use`. The match is the model label plus the benchmark. BFCLv3 is `bfcl` with configuration `v3`. BFCLv4 is `bfcl` with configuration `v4`. Tau² Telecom is `tau2` with configuration `Telecom.`. Tau² Retail is `tau2` with configuration `Retail.`. Each of the 24 bars matched one cell. The headline chart and the predecessor table are other cells. On that Tool use table, reader B prints 64.79 and 49.73 for LFM2.5-8B-A1B on BFCLv3 and BFCLv4. The headline chart and the predecessor table print 64.36 and 48.50 for those two. On all 24 bars, B and D printed the same number and E printed that number. A printed a different number. The score is the shared number. `confirmed_by` is claude-opus, claude-sonnet, and claude-opus-third.
+
+The other ten:
+
+| Bars | Agrees with | Score |
+| --- | --- | --- |
+| ArXivMath, Claude Opus 5, high, xhigh, and max, on the Opus 5.5 system card | D | 71.5, 75.4, 78.1 |
+| GenAI-Bench visual quality, Gemini 2.5 Flash Image, Gemini 3 Pro Image, and GPT-Image 1.5 | A | 929.0, 1043.0, 975.0 |
+| DeepSWE right-hand figure for DeepSeek-V4 pro, and WildClawBench left-hand figure for Seed-2.1 pro, on `tencent-hy3` | D | 9.7 and 61.7 |
+| K-Knowledge, GPT-5.4 mini and DeepSeek-V4-Flash | A | 79.5 and 81.2 |
+
+`confirmed_by` on those ten is the agreeing earlier reader and claude-opus-third.
+
+Command A+ stored 88 and Command A Vision stored 82, on bars labelled `charxiv`. E read CharXiv reasoning as 53 and 47, and CharXiv descriptive as 88 and 82. A's stored number is the descriptive panel, and E confirms that panel's value. `metric` is `CharXiv descriptive`. The label is `CharXiv (descriptive)`. `confirmed_by` is grok-build-4.7 and claude-opus-third. The reasoning bars were already `charxiv_reasoning`, at 53 and 47.
+
+`scripts/chart_check.py` exited 0. 98 pages, 723 charts, 10,402 bars. Mismatched is 0. Disputed is 0.
+
+| Class | Bars |
+| --- | ---: |
+| matched | 53 |
+| other_configuration | 9 |
+| mismatched | 0 |
+| other_metric | 54 |
+| no_benchmark_page | 5342 |
+| not_held | 4696 |
+| competitor_gap | 34 |
+| competitor_unresolved | 214 |
+| disputed | 0 |
+
+| Phase | Two or more | One |
+| --- | ---: | ---: |
+| phase 1 | 708 | 0 |
+| phase 2a | 624 | 0 |
+| phase 2b batch 1 | 2340 | 0 |
+| phase 2b batch 2 | 2570 | 0 |
+| phase 2b batch 3 | 2442 | 0 |
+| phase 2b batch 4 | 1718 | 0 |
+| Total | 10402 | 0 |
+
+| Class | Two or more | One |
+| --- | ---: | ---: |
+| matched | 53 | 0 |
+| other_configuration | 9 | 0 |
+| other_metric | 54 | 0 |
+| no_benchmark_page | 5342 | 0 |
+| not_held | 4696 | 0 |
+| competitor_gap | 34 | 0 |
+| competitor_unresolved | 214 | 0 |
+
+10,402 bars are confirmed by two or more readers. None are confirmed by one. No disputed bar is left out of those columns. Matched bars confirmed by two or more readers: 53 of 53.
+
+`scripts/chart_check_pr.py --base origin/main` exited 0. Blocking rows: none. It lists 25 removed bars as informational. 23 are the LongCat bars from the second reading. The other two are Command A+ and Command A Vision `charxiv`. The bar key includes `metric`, and that field is now set, so the old key is reported as removed. The bars remain on the chart under the new key, with two confirming readers.
+
+The same report used to print a negative omitted count when fewer rows than the cap of 50 were listed. It now prints the omitted line only when the hidden count is positive. This run listed all 25 removed bars and printed no omitted line.
+

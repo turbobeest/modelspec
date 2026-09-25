@@ -1710,6 +1710,8 @@ charts:
         date: "2026-09-24"
       - reader: claude-sonnet
         date: "2026-09-24"
+      - reader: claude-opus-third
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Solar Open 2"
         confirmed_by: ["grok-build-4.7", "claude-opus"]
@@ -1812,6 +1814,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-5.4 mini"
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: "openai/gpt-5-4-mini"
         benchmark_id: null
         benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
@@ -1820,12 +1823,17 @@ charts:
         printed: true
         configuration: ""
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 79.5
-          - reader: claude-sonnet
-            value: 81.2
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 79.5
+            - reader: claude-sonnet
+              value: 81.2
+            - reader: claude-opus-third
+              value: 79.5
       - model_as_labelled: "DeepSeek-V4-Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus-third"]
         model_id: "deepseek/deepseek-v4-flash"
         benchmark_id: null
         benchmark_as_labelled: "K-Knowledge (CLIcK and HAE-RAE average)"
@@ -1834,11 +1842,15 @@ charts:
         printed: true
         configuration: ""
         role: competitor
-        disputed:
-          - reader: grok-build-4.7
-            value: 81.2
-          - reader: claude-sonnet
-            value: 79.5
+        resolution:
+          rule: two_of_three
+          readings:
+            - reader: grok-build-4.7
+              value: 81.2
+            - reader: claude-sonnet
+              value: 79.5
+            - reader: claude-opus-third
+              value: 81.2
       - model_as_labelled: "Solar Open 2"
         confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "upstage/solar-open2-250b"
