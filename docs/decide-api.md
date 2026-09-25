@@ -205,9 +205,10 @@ The endpoint runs through the same `access.gate` and x402 wrapper as
 off in `wrangler.jsonc`. A sandbox key is refused because there is no synthetic
 signed Snapshot.
 
-Browser access is allowed only from
-`https://internal.modelspec-7np.pages.dev`. The Worker echoes that exact origin
-and handles its `OPTIONS` preflight. It does not send a wildcard CORS header.
+Browser access is allowed only from `https://modelspec.dev`,
+`https://www.modelspec.dev` and the preview `https://internal.modelspec-7np.pages.dev`.
+The Worker echoes the exact requesting origin from that list and handles its
+`OPTIONS` preflight. It does not send a wildcard CORS header.
 
 ## Status codes
 
