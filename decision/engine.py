@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from dataclasses import replace
-from itertools import combinations
 
 from decision.computed import with_computed
 from decision.contract import (
@@ -21,6 +20,7 @@ from decision.contract import (
 )
 from decision.filter import apply
 from decision.optimise import EvidenceSelector, optimise
+from decision.relax import fewest, smallest_changes
 from decision.resolve import resolve
 from decision.snapshot import ExplanationIndex
 
@@ -119,26 +119,12 @@ def decide(
         )
         for i, row in enumerate(ordered.results[: spec.limit])
     ]
-    relax = []
+    relax, relax_to = [], []
     if ordered.status == "no_feasible":
-        # Search condition groups in increasing cardinality; preserve soft penalties.
-        from decision.contract import render_condition
-
-        hard = [i for i, c in enumerate(resolved.conditions) if c.soft is None]
+        # Never the class or a requested domain: that would change the question.
         if not filtered.feasible:
-            for size in range(1, len(hard) + 1):
-                for dropped in combinations(hard, size):
-                    trial = replace(
-                        resolved,
-                        conditions=tuple(
-                            c for i, c in enumerate(resolved.conditions) if i not in dropped
-                        ),
-                    )
-                    if apply(trial, snapshot).feasible:
-                        relax = [render_condition(resolved.conditions[i]) for i in dropped]
-                        break
-                if relax:
-                    break
+            relax = fewest(resolved, snapshot, requested)
+            relax_to = smallest_changes(resolved, snapshot, requested)
         if not relax:
             relax = [ordered.reason or "no candidates in the snapshot"]
     decision = Decision(
@@ -152,6 +138,7 @@ def decide(
         else ordered.status,
         results=results,
         relax=relax,
+        relax_to=relax_to,
         may_qualify=[
             MayQualify(
                 model=snapshot.model_of(cid),

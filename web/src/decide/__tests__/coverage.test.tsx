@@ -22,7 +22,9 @@ describe("what the verified lineup covers, when a decision is empty", () => {
     expect(c.covers).toContain("25 text generators");
     expect(c.covers).toContain("4 embedding models");
     expect(c.covers).toContain("No speech recognition models yet.");
-    expect(c.relax).toEqual([{ index: 0, label: "Type: transcriber" }]);
+    // Dropping the type would change the question: it is never offered.
+    expect(c.relax).toEqual([]);
+    expect(c.relaxTo).toEqual([]);
   });
 
   it("says hardware fit is not recorded, and how many may qualify (Q17)", () => {
@@ -45,8 +47,17 @@ describe("what the verified lineup covers, when a decision is empty", () => {
     expect(c.needed[0]).toMatch(/^Input price: at most \$0\.2 \/ 1M tokens — none of the \d+ remaining models; the closest is /);
     expect(c.needed[0]).toContain(`$${closest} / 1M tokens`);
     expect(c.needed[0]).toContain("1 model may qualify");
-    // The engine's relaxation, whatever it is, is offered as returned.
-    expect(c.relax).toEqual([{ index: 0, label: "Type: text generator" }]);
+    // The price cap, never the type: the smallest change first, in real units.
+    expect(c.relaxTo).toEqual([
+      {
+        index: 3,
+        cond: { f: "in$", max: 0.75 },
+        label: "Input price: at most $0.75 / 1M tokens",
+        admits: 2,
+      },
+    ]);
+    expect(c.relax).toEqual([{ index: 3, label: "Input price: at most $0.2 / 1M tokens" }]);
+    expect(JSON.stringify(c)).not.toContain("Type:");
   });
 
   it("is not shown for an answered decision, or without published coverage", () => {
@@ -81,34 +92,47 @@ describe("the empty-result panel on the page", () => {
   beforeEach(() => history.replaceState(null, "", "/"));
   afterEach(() => vi.unstubAllGlobals());
 
-  it("shows the panel above may-qualify and relaxes in one click (Q20)", async () => {
+  it("shows the panel above may-qualify and raises the price cap in one click (Q10)", async () => {
     const fetch = routeFetch({
       vocabulary: () => json(realVocabulary),
       decide: (init) =>
-        JSON.parse(String(init?.body)).where.includes("model.class = transcriber")
-          ? json(EMPTY_DECISIONS.q20)
+        JSON.parse(String(init?.body)).where.includes("offering.price.input <= 0.2")
+          ? json(EMPTY_DECISIONS.q10)
           : json(answered),
     });
     vi.stubGlobal("fetch", fetch);
-    history.replaceState(null, "", "/" + encodeSpec(EMPTY_SPECS.q20, "task$"));
+    history.replaceState(null, "", "/" + encodeSpec(EMPTY_SPECS.q10, "task$"));
     render(<App />);
 
     const panel = await screen.findByRole("region", { name: "Lineup coverage" });
     expect(panel).toHaveTextContent("What this question needed");
-    expect(panel).toHaveTextContent("the lineup has no speech recognition models yet");
     expect(panel).toHaveTextContent("32 models as of 2026-09-25");
     expect(panel).not.toHaveTextContent(/sorry|unfortunately|apolog/i);
+    expect(panel).not.toHaveTextContent("Type:");
     const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
     expect(panel.compareDocumentPosition(canvas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-    fireEvent.click(within(panel).getByRole("button", { name: /Type: transcriber/ }));
+    fireEvent.click(within(panel).getByRole("button", { name: /at most \$0\.75 \/ 1M tokens/ }));
     await waitFor(() => {
       const last = sentSpecs(fetch).at(-1);
-      expect(last.where).not.toContain("model.class = transcriber");
-      expect(last.where).toContain("model.lifecycle = active");
+      expect(last.where).toContain("offering.price.input <= 0.75");
+      expect(last.where).not.toContain("offering.price.input <= 0.2");
+      expect(last.where).toContain("model.class = text-generator");
     });
     await waitFor(() =>
       expect(screen.queryByRole("region", { name: "Lineup coverage" })).not.toBeInTheDocument(),
     );
+  });
+
+  it("never offers to drop the type (Q20)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(EMPTY_DECISIONS.q20) }),
+    );
+    history.replaceState(null, "", "/" + encodeSpec(EMPTY_SPECS.q20, "task$"));
+    render(<App />);
+    const panel = await screen.findByRole("region", { name: "Lineup coverage" });
+    expect(panel).toHaveTextContent("the lineup has no speech recognition models yet");
+    expect(within(panel).queryByRole("button", { name: /Type:/ })).not.toBeInTheDocument();
   });
 });

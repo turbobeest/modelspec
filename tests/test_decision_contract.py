@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "1.4"
+    assert c.CONTRACT_VERSION == "1.5"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -622,6 +622,9 @@ def _samples() -> list:
         c.NumberOrigin(path="/results/0/rank", basis="ordinal"),
         c.CitedSource(id="src-board", url="https://board.example.org/results",
                       date=date(2026, 9, 20)),
+        c.Relaxation(condition="offering.price.input <= 0.2",
+                     relaxed="offering.price.input <= 0.75", facet="offering.price.input",
+                     value=0.75, unit="usd_per_1m_tokens", admits=2),
     ]
 
 

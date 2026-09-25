@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.4**
+Contract version: **1.5**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -327,7 +327,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.4",
+  "contract_version": "1.5",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -377,6 +377,7 @@ same canonical representation it had in 1.0.
      "dimension": "-offering.price.output", "threshold": 0.35, "new_top": "openai/gpt-6-sol"}
   ],
   "relax": [],
+  "relax_to": [],
   "warnings": [],
   "out_of_lineup": 1334
 }
@@ -384,7 +385,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.4"`. |
+| `contract_version` | `"1.5"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
@@ -395,7 +396,8 @@ same canonical representation it had in 1.0.
 | `eliminated` | The `funnel`: for each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. The per-model `models` list, each with the `model`, the `condition` it failed and the `value` it had. |
 | `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. |
 | `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. |
-| `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. |
+| `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. |
+| `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
 | `warnings` | Codes about the decision as a whole. |
 | `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
 
@@ -632,6 +634,13 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.5 — MODEL-153:** A `no_feasible` decision adds `relax_to`, the smallest
+  change to each numeric cap or floor that admits a model, stated in the
+  facet's unit. Additive, so not a major change. `relax` keeps its meaning but
+  no longer names the model class or a condition on a requested capability
+  domain: recall Q10 (input price at most $0.20 per 1M) was told to drop
+  `model.class = text-generator`, which would have admitted a decider. It now
+  names the price cap, and `relax_to` says `offering.price.input <= 0.75`.
 - **1.4 — MODEL-163:** A `full` decision is compact: since the snapshot
   carried hundreds of verified evidence rows it exhausted the Worker. No field
   changes its range, so by the rule above this is not a major change, but

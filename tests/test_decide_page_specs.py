@@ -62,3 +62,52 @@ def test_the_web_fixture_has_the_shape_the_builder_writes():
     for row in fresh["facets"]:
         assert fixture_facets[row["id"]] <= set(row) | {"range", "values", "literals"}, row["id"]
         assert set(row) <= fixture_facets[row["id"]] | {"range", "values", "literals"}, row["id"]
+
+
+@pytest.fixture(scope="module")
+def worker_snapshot():
+    """A signed snapshot that knows every benchmark the fixture vocabulary names."""
+    from datetime import date
+
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+    from tests.snapshot_records import SOURCES, evidence, model
+
+    key = b"model-153-page-specs"
+    benchmarks = [row["id"] for row in VOCABULARY["benchmarks"]]
+    built = build_snapshot(SnapshotInputs(
+        models=[model("lab/a"), model("lab/b")],
+        offerings=[],
+        evidence=[evidence(m, b, score) for b in benchmarks
+                  for m, score in (("lab/a", 70.0), ("lab/b", 60.0))],
+        sources=SOURCES,
+        benchmark_domains={row["id"]: [(d["id"], d["directness"]) for d in row["domains"]]
+                           for row in VOCABULARY["benchmarks"]},
+    ), gate=False, as_of=date(2026, 9, 25))
+    return load_snapshot_bytes(built.to_bytes(key=key), key=key, source="page specs")
+
+
+@pytest.fixture(scope="module")
+def decide_service():
+    import importlib.util
+    import sys
+
+    src = Path(__file__).resolve().parents[1] / "api" / "worker" / "src"
+    spec = importlib.util.spec_from_file_location("page_specs_decide_service",
+                                                  src / "decide_service.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("page_specs_decide_service", module)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.mark.parametrize("row", GOLDEN, ids=[row["name"] for row in GOLDEN])
+def test_the_worker_answers_the_page_spec(row, worker_snapshot, decide_service):
+    """What the Worker does with it, not only what the registry parses: no 400.
+
+    On 2026-09-25 two next-question probes came back HTTP 400 from the live
+    Worker. The registry parse above could not have caught a refusal that
+    depends on the Worker's own facet lookup, which resolves benchmarks
+    against the loaded snapshot; this runs each spec through that path.
+    """
+    status, body = decide_service.decide(row["spec"], worker_snapshot)
+    assert status == 200, body.get("error")

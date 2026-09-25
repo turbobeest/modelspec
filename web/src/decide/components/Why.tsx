@@ -19,6 +19,7 @@ export function Why({
   row,
   onSpec,
   onRelax,
+  details = "ready",
   onProvenance,
 }: {
   decision: AdapterDecision;
@@ -26,6 +27,8 @@ export function Why({
   row: Row | null;
   onSpec: (s: Spec) => void;
   onRelax: (i: number) => void;
+  /** Whether the `full` explanation behind a summary is still coming, or failed. */
+  details?: "loading" | "ready" | "unavailable";
   onProvenance: (e: Evidence) => void;
 }) {
   const vocab = useVocab(),
@@ -71,7 +74,13 @@ export function Why({
   ] as const;
   return (
     <section className="panel why-panel" aria-label="Why this model">
-      {decision.explain !== "full" && (
+      {decision.explain !== "full" && details === "loading" && (
+        <p className="details-loading" role="status">
+          Loading the detailed explanation: prices, context length and
+          evidence sources appear here when it arrives.
+        </p>
+      )}
+      {decision.explain !== "full" && details !== "loading" && (
         <p className="limit-notice">
           Detailed explanation unavailable for this request: the decision service
           answered with its summary, so facts such as prices and context length

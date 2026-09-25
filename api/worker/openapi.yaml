@@ -2896,8 +2896,8 @@ components:
           title: Sources
           type: array
         contract_version:
-          const: '1.4'
-          default: '1.4'
+          const: '1.5'
+          default: '1.5'
           title: Contract Version
           type: string
         decision_id:
@@ -2952,6 +2952,11 @@ components:
           items:
             type: string
           title: Relax
+          type: array
+        relax_to:
+          items:
+            $ref: '#/components/schemas/DecisionRelaxation'
+          title: Relax To
           type: array
         warnings:
           items:
@@ -3739,6 +3744,47 @@ components:
       - provider
       title: ProfileOffering
       type: object
+    DecisionRelaxation:
+      additionalProperties: false
+      description: 'The smallest change to one numeric cap or floor that admits a model. Added in 1.5.
+
+
+        ``condition`` is the spec''s condition; ``relaxed`` is the same facet and
+
+        direction at ``value``, in ``unit``, the nearest value any excluded
+
+        candidate has; ``admits`` counts the models that then qualify.'
+      properties:
+        condition:
+          title: Condition
+          type: string
+        relaxed:
+          title: Relaxed
+          type: string
+        facet:
+          title: Facet
+          type: string
+        value:
+          title: Value
+          type: number
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Unit
+        admits:
+          minimum: 1
+          title: Admits
+          type: integer
+      required:
+      - condition
+      - relaxed
+      - facet
+      - value
+      - admits
+      title: Relaxation
+      type: object
     DecisionResult:
       additionalProperties: false
       properties:
@@ -4127,7 +4173,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.4'
+          - '1.5'
         endpoint:
           type: string
           enum:
@@ -4171,7 +4217,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.4'
+          - '1.5'
         endpoint:
           type: string
           enum:

@@ -56,6 +56,7 @@ SOURCES = {
     Path("decision/filter.py"): Path("decision/filter.py"),
     Path("decision/model.py"): Path("decision/model.py"),
     Path("decision/optimise.py"): Path("decision/optimise.py"),
+    Path("decision/relax.py"): Path("decision/relax.py"),
     Path("decision/registry.py"): Path("decision/registry.py"),
     Path("decision/resolve.py"): Path("decision/resolve.py"),
     Path("decision/snapshot.py"): Path("decision/snapshot.py"),

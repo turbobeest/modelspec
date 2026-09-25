@@ -33,9 +33,31 @@ export function Coverage({
           <p>{c.covers}</p>
         </div>
       </div>
+      {!!c.relaxTo.length && (
+        <div className="coverage-relax">
+          <span>The smallest change that answers:</span>
+          {c.relaxTo.map((r) => (
+            <button
+              key={r.index}
+              className="ink-button"
+              onClick={() =>
+                onSpec({
+                  ...spec,
+                  conds: spec.conds.map((cond, i) => (i === r.index ? r.cond : cond)),
+                })
+              }
+            >
+              {r.label}{" "}
+              <small>
+                admits {r.admits} {r.admits === 1 ? "model" : "models"}
+              </small>
+            </button>
+          ))}
+        </div>
+      )}
       {!!c.relax.length && (
         <div className="coverage-relax">
-          <span>The engine can answer if you drop:</span>
+          <span>{c.relaxTo.length ? "Or drop:" : "The engine can answer if you drop:"}</span>
           {c.relax.map((r) => (
             <button
               key={r.index}

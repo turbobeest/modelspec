@@ -4,7 +4,7 @@
 import type { Decision } from "../adapter/contract";
 import { facetName, renderContractCondition, valueWithUnit } from "../adapter/condition-label";
 import { contractCondition } from "../adapter/view-model";
-import type { Spec } from "../engine/types";
+import type { Cond, Spec } from "../engine/types";
 import { CLASS_OF_TYPE } from "./index";
 import type { Vocabulary } from "./index";
 
@@ -15,6 +15,16 @@ export interface LineupCoverage {
   covers: string;
   /** The engine's relaxations the page can apply: the condition's index in the spec. */
   relax: { index: number; label: string }[];
+  /** The smallest change to a cap or floor that admits a model: replaces the condition at `index`. */
+  relaxTo: { index: number; cond: Cond; label: string; admits: number }[];
+}
+
+/** The page condition `c` with its threshold moved to `value`, when it has one. */
+function withThreshold(c: Cond, value: number): Cond | null {
+  if ("max" in c && typeof c.max === "number") return { ...c, max: value } as Cond;
+  if ("min" in c && typeof c.min === "number") return { ...c, min: value } as Cond;
+  if (c.f === "facet" && typeof c.value === "number") return { ...c, value };
+  return null;
 }
 
 const CLASS_NOUNS: Readonly<Record<string, readonly [string, string]>> = {
@@ -129,5 +139,13 @@ export function lineupCoverage(
     const index = spec.conds.findIndex((c) => contractCondition(c) === condition);
     return index < 0 ? [] : [{ index, label: renderContractCondition(condition) }];
   });
-  return { needed, covers: sentences.join(" "), relax };
+  // Only what the page can apply exactly: the moved condition must be the engine's.
+  const relaxTo = decision.relax_to.flatMap((r) => {
+    const index = spec.conds.findIndex((c) => contractCondition(c) === r.condition);
+    const cond = index < 0 ? null : withThreshold(spec.conds[index], r.value);
+    return cond && contractCondition(cond) === r.relaxed
+      ? [{ index, cond, label: renderContractCondition(r.relaxed), admits: r.admits }]
+      : [];
+  });
+  return { needed, covers: sentences.join(" "), relax, relaxTo };
 }

@@ -1680,6 +1680,13 @@ body {
 .limit-notice strong {
   color: var(--ink);
 }
+.details-loading {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink2);
+  border: 1px dashed var(--line);
+  border-radius: 2px;
+}
 .error strong {
   color: var(--bad);
 }

@@ -76,7 +76,9 @@ export function Field({
                 <button key={o.label} onClick={() => onAdd(o.c)}>
                   {o.label}{" "}
                   <small>
-                    {o.n === undefined ? (
+                    {o.failed ? (
+                      "count unavailable"
+                    ) : o.n === undefined ? (
                       "checking…"
                     ) : (
                       <>

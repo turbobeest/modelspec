@@ -151,7 +151,7 @@ function capabilities(spec: Spec): DecisionSpec["capabilities"] {
 
 export function toDecisionSpec(
   spec: Spec,
-  explain: "none" | "full",
+  explain: "none" | "summary" | "full",
 ): DecisionSpec {
   const weights: Record<string, number> = {};
   if (spec.w.cap > 0) weights[slug(spec.bench)] = spec.w.cap;

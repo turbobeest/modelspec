@@ -117,8 +117,8 @@ it("shows a network failure with Retry, and Retry recovers", async () => {
     "fetch",
     routeFetch({
       decide: () => {
-        // The full request and its one summary retry both fail to connect.
-        if (calls++ < 2) throw new TypeError("Failed to fetch");
+        // The summary, which the page asks for first, fails to connect.
+        if (calls++ < 1) throw new TypeError("Failed to fetch");
         return json(fixture);
       },
     }),
@@ -134,6 +134,38 @@ it("shows a network failure with Retry, and Retry recovers", async () => {
 
 const explainOf = (init: RequestInit | undefined) => JSON.parse(String(init?.body)).explain;
 
+it("asks for the summary first, draws it, then enriches the Why panel with full", async () => {
+  let release: () => void = () => {};
+  const fullAnswered = new Promise<void>((resolve) => (release = resolve));
+  const fetch = routeFetch({
+    decide: async (init) => {
+      if (explainOf(init) !== "full") return json(summaryJson);
+      await fullAnswered;
+      return json(fixture);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  await findModels();
+
+  expect(await screen.findByRole("region", { name: "Trade-off canvas" })).toBeInTheDocument();
+  const decides = () =>
+    fetch.mock.calls.filter(([, init]) => init?.method === "POST").map(([, init]) => explainOf(init));
+  expect(decides().slice(0, 2)).toEqual(["summary", "full"]);
+  const why = screen.getByRole("region", { name: "Why this model" });
+  expect(why).toHaveTextContent("Loading the detailed explanation");
+  expect(why).not.toHaveTextContent("unavailable");
+
+  release();
+  await waitFor(() =>
+    expect(screen.getByRole("region", { name: "Why this model" })).not.toHaveTextContent(
+      "Loading the detailed explanation",
+    ),
+  );
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  // Enriching the explanation does not re-run the next-question probes.
+  expect(decides().filter((explain) => explain === "summary")).toHaveLength(1);
+});
+
 it.each([
   ["a non-JSON 503 (Cloudflare 1102)", () => new Response("error code: 1102", { status: 503 })],
   [
@@ -142,39 +174,17 @@ it.each([
       throw new TypeError("Failed to fetch");
     },
   ],
-])("retries %s once with summary and says the service hit a limit", async (_name, limited) => {
-  const fetch = routeFetch({
-    decide: (init) => (explainOf(init) === "full" ? limited() : json(summaryJson)),
-  });
-  vi.stubGlobal("fetch", fetch);
-  await findModels();
-
-  const notice = await screen.findByText(/The decision service hit a limit on this request/);
-  expect(notice.closest('[role="status"]')).not.toBeNull();
-  expect(screen.queryByText("Couldn't reach the decision service.")).not.toBeInTheDocument();
-  expect(await screen.findByRole("region", { name: "Trade-off canvas" })).toBeInTheDocument();
-  const why = screen.getByRole("region", { name: "Why this model" });
-  expect(why).toHaveTextContent("Detailed explanation unavailable for this request");
-  const decides = fetch.mock.calls.filter(([, init]) => init?.method === "POST");
-  expect(decides.slice(0, 2).map(([, init]) => explainOf(init))).toEqual(["full", "summary"]);
-  noSkeleton();
-});
-
-it("says the service hit a limit, not that it is unreachable, when the retry fails too", async () => {
+])("keeps the summary and marks details unavailable when full fails with %s", async (_name, limited) => {
   vi.stubGlobal(
     "fetch",
-    routeFetch({
-      decide: (init) => {
-        if (explainOf(init) === "full") return new Response("error code: 1102", { status: 503 });
-        throw new TypeError("Failed to fetch");
-      },
-    }),
+    routeFetch({ decide: (init) => (explainOf(init) === "full" ? limited() : json(summaryJson)) }),
   );
   await findModels();
-  const alert = await screen.findByRole("alert");
-  expect(alert).toHaveTextContent("The decision service hit a limit on this request.");
-  expect(alert).not.toHaveTextContent("No snapshot yet");
-  expect(within(alert).getByRole("button", { name: "Retry" })).toBeInTheDocument();
+
+  expect(await screen.findByRole("region", { name: "Trade-off canvas" })).toBeInTheDocument();
+  const why = screen.getByRole("region", { name: "Why this model" });
+  await waitFor(() => expect(why).toHaveTextContent("Detailed explanation unavailable for this request"));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   noSkeleton();
 });
 
