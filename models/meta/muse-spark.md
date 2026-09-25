@@ -684,7 +684,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: muse-spark
-    score: 1473.3254184714117
+    score: 1488.05
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -698,13 +698,13 @@ benchmarks:
       votes, rank 13.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: meta/muse-spark#arena_elo_style_control#9ffc21ef9dd0
+    id: meta/muse-spark#arena_elo_style_control#859002e19068
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding
@@ -723,6 +723,15 @@ benchmarks:
       votes, rank 19.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_coding#e5ebb1052b6c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: muse-spark
     score: 1504.78
@@ -739,6 +748,15 @@ benchmarks:
       votes, rank 19.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_hard_prompts#f56b7e8510fc
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: muse-spark
     score: 1460.89
@@ -754,6 +772,15 @@ benchmarks:
       max-effort rule). Rating 1460.89 [1440.98, 1480.81], 857 votes, rank 54.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_math#97766f13c77e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: muse-spark
     score: 1463.7
@@ -770,6 +797,15 @@ benchmarks:
       votes, rank 20.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_creative_writing#3ea45ace03b5
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: muse-spark
     score: 1463.34
@@ -786,6 +822,15 @@ benchmarks:
       votes, rank 38.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_instruction_following#dc8ae7251c12
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: muse-spark
     score: 1491.31
@@ -802,6 +847,15 @@ benchmarks:
       votes, rank 21.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_multi_turn#900d2292a53b
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: muse-spark
     score: 1489.93
@@ -818,6 +872,15 @@ benchmarks:
       votes, rank 46.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_expert#a81c6018ff5c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: muse-spark
     score: 1474.17
@@ -834,6 +897,15 @@ benchmarks:
       votes, rank 47.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_longer_query#e736ae7981c1
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: muse-spark
     score: 1476.71
@@ -850,6 +922,15 @@ benchmarks:
       votes, rank 16.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_non_english#a941f93d1146
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: muse-spark
     score: 1503.55
@@ -867,6 +948,15 @@ benchmarks:
       rank 11.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_medicine#c720d914208c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: muse-spark
     score: 1503.34
@@ -884,6 +974,15 @@ benchmarks:
       rank 10.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_legal#12cf6c7d4dc8
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: muse-spark
     score: 1489.64
@@ -901,6 +1000,15 @@ benchmarks:
       votes, rank 12.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_business#285dcb841a13
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: muse-spark
     score: 1497.12
@@ -918,6 +1026,15 @@ benchmarks:
       votes, rank 24.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_science#33b63e334473
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: muse-spark
     score: 1459.84
@@ -935,9 +1052,18 @@ benchmarks:
       votes, rank 33.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: meta/muse-spark#arena_sc_writing#2cdd625f9c45
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: muse-spark
-    score: 1306.1326259105908
+    score: 1293.68
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -951,13 +1077,13 @@ benchmarks:
       votes, rank 7.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: meta/muse-spark#arena_sc_vision#f14df85ad3eb
+    id: meta/muse-spark#arena_sc_vision#82779fe1e1c1
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-vision-json
-      snapshot_ref: sha256:6f953385cd16118776e1dd3dbabb27560797db96b5da07fe4fc336150b37962e
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
       cited_regions:
       - rows
   - benchmark_id: gpqa_diamond
@@ -1020,6 +1146,15 @@ benchmarks:
       effort default; ±3.6 (95% CI). Harness: mini-swe-agent (the board marks mini-swe-agent
       runs with an asterisk).'
     limitations: ''
+    id: meta/muse-spark#swe_bench_pro#0ea81c2cbb4b
+    measured_by: independent_evaluator
+    effort: null
+    harness: unregistered
+    sources:
+    - source_id: model-160-scale-swe-bench-pro-public
+      snapshot_ref: sha256:b0df5d5cbc6fd2c3925e740d0379f6570e00d58b98ca576c8141e6af67dc0666
+      cited_regions:
+      - rows
 deployment:
   api_only: false
   local_inference: true

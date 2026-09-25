@@ -672,7 +672,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: glm-5.2-max
-    score: 1466.9328617073902
+    score: 1472.1
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -686,13 +686,13 @@ benchmarks:
       rank 38.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: zhipu/glm-5-2#arena_elo_style_control#76a1502ad519
+    id: zhipu/glm-5-2#arena_elo_style_control#8cf8d809a569
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding
@@ -711,6 +711,15 @@ benchmarks:
       rank 48.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_coding#8325776505c6
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: glm-5.2-max
     score: 1493.08
@@ -727,6 +736,15 @@ benchmarks:
       rank 37.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_hard_prompts#f792f99acc1e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: glm-5.2-max
     score: 1479.48
@@ -742,6 +760,15 @@ benchmarks:
       max-effort rule). Rating 1479.48 [1464.96, 1494.00], 1662 votes, rank 26.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_math#cb0756c6bb35
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: glm-5.2-max
     score: 1450.95
@@ -758,6 +785,15 @@ benchmarks:
       rank 35.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_creative_writing#f80ee924fdb6
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: glm-5.2-max
     score: 1466.16
@@ -774,6 +810,15 @@ benchmarks:
       rank 32.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_instruction_following#2d1c993e1af3
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: glm-5.2-max
     score: 1468.92
@@ -790,6 +835,15 @@ benchmarks:
       rank 57.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_multi_turn#721a1e490afa
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: glm-5.2-max
     score: 1493.72
@@ -806,6 +860,15 @@ benchmarks:
       rank 40.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_expert#c3feb9651207
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: glm-5.2-max
     score: 1483.27
@@ -822,6 +885,15 @@ benchmarks:
       rank 31.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_longer_query#24a6cb842544
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: glm-5.2-max
     score: 1458.33
@@ -838,6 +910,15 @@ benchmarks:
       rank 38.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_non_english#071e200e0eb3
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: glm-5.2-max
     score: 1485.29
@@ -855,6 +936,15 @@ benchmarks:
       rank 41.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_medicine#4b180596d350
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: glm-5.2-max
     score: 1479.37
@@ -872,6 +962,15 @@ benchmarks:
       rank 36.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_legal#f46cdac9caa0
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: glm-5.2-max
     score: 1459.75
@@ -889,6 +988,15 @@ benchmarks:
       rank 53.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_business#f56b54cbedb7
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: glm-5.2-max
     score: 1490.66
@@ -906,6 +1014,15 @@ benchmarks:
       rank 30.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_science#901aff243e65
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: glm-5.2-max
     score: 1455.16
@@ -923,6 +1040,15 @@ benchmarks:
       rank 38.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: zhipu/glm-5-2#arena_sc_writing#aee7cdcc0522
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: glm-5.2-max
     score: 1599.52
@@ -1008,6 +1134,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-27T19:36:05.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.50 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: zhipu/glm-5-2#simpleqa_verified#bdec63d119ba
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
   - benchmark_id: swe_bench_verified
     model_id_as_evaluated: glm-5.2_max
     score: 78.7
@@ -1037,7 +1172,7 @@ benchmarks:
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
@@ -1046,13 +1181,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: zhipu/glm-5-2#frontiercode_v1_1#5b1e2ccd9352
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-frontiercode
+      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      cited_regions:
+      - rows
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: GLM-5.2
     score: 8313.78
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
@@ -1061,13 +1205,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: zhipu/glm-5-2#vending_bench_2#2a3b3ffac8fb
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      cited_regions:
+      - rows
   - benchmark_id: deepswe_v1_1
     model_id_as_evaluated: glm-5-2 (max)
     score: 43.78
     unit: percent
     source_url: https://deepswe.datacurve.ai/
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: DeepSWE v1.1, pass@1, mini-swe-agent
@@ -1076,13 +1229,22 @@ benchmarks:
       rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: zhipu/glm-5-2#deepswe_v1_1#a13ec1b7e360
+    measured_by: benchmark_author
+    effort: max
+    harness: unregistered
+    sources:
+    - source_id: model-160-deepswe-v1-1
+      snapshot_ref: sha256:7fcc641eb55d3cfbc8429ea1ef26448ef44bb66772190ee69f8464958c0a79dc
+      cited_regions:
+      - rows
   - benchmark_id: aime_2026
     model_id_as_evaluated: GLM 5.2
     score: 90.0
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: AIME 2026, MathArena final-answer table
@@ -1091,6 +1253,15 @@ benchmarks:
       model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
+    id: zhipu/glm-5-2#aime_2026#be95f0de2f89
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-matharena-aime-2026
+      snapshot_ref: sha256:f7e2ee1441375d33b08d553c6ddda60da7f3b453145ab0eeb26d5ca4a49484e9
+      cited_regions:
+      - rows
   - benchmark_id: tau3_banking
     model_id_as_evaluated: GLM-5.2 (xhigh)
     score: 37.11
@@ -1106,6 +1277,15 @@ benchmarks:
       1.0.1. pass^4 13.402061855670103.
     limitations: Banking_knowledge evaluation with AllTools retrieval, GPT-5.2 low-reasoning
       user simulation, four trials, and seed 300.
+    id: zhipu/glm-5-2#tau3_banking#a1fd7b3fddb7
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-160-tau-bench-glm-5-2-sierra-2026-08-04
+      snapshot_ref: sha256:767cf5acce455604026d1c2298c1ca6cf55a3bea419d16f060e201867fd0d0f5
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

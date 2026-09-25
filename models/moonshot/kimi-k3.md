@@ -671,7 +671,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: kimi-k3-max
-    score: 1472.272610174843
+    score: 1484.77
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -685,13 +685,13 @@ benchmarks:
       rank 17.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: moonshot/kimi-k3#arena_elo_style_control#2280a42ea88a
+    id: moonshot/kimi-k3#arena_elo_style_control#626b086a22fe
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding
@@ -710,6 +710,15 @@ benchmarks:
       rank 7.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_coding#306e8dc75662
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: kimi-k3-max
     score: 1514.14
@@ -726,6 +735,15 @@ benchmarks:
       rank 10.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_hard_prompts#f1abfe13b40d
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: kimi-k3-max
     score: 1500.64
@@ -741,6 +759,15 @@ benchmarks:
       max-effort rule). Rating 1500.64 [1480.75, 1520.53], 884 votes, rank 12.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_math#e187c3e088ce
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: kimi-k3-max
     score: 1458.44
@@ -757,6 +784,15 @@ benchmarks:
       rank 27.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_creative_writing#a7ce6365092e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: kimi-k3-max
     score: 1483.73
@@ -773,6 +809,15 @@ benchmarks:
       rank 13.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_instruction_following#7b194e0492e1
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: kimi-k3-max
     score: 1496.04
@@ -789,6 +834,15 @@ benchmarks:
       rank 13.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_multi_turn#4be8dc4891c9
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: kimi-k3-max
     score: 1526.92
@@ -805,6 +859,15 @@ benchmarks:
       rank 10.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_expert#947736537901
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: kimi-k3-max
     score: 1500.43
@@ -821,6 +884,15 @@ benchmarks:
       rank 12.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_longer_query#f032a65ed6bd
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: kimi-k3-max
     score: 1472.23
@@ -837,6 +909,15 @@ benchmarks:
       rank 19.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_non_english#d9c7bf733912
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: kimi-k3-max
     score: 1506.37
@@ -854,6 +935,15 @@ benchmarks:
       rank 9.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_medicine#30502cc52421
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: kimi-k3-max
     score: 1507.83
@@ -871,6 +961,15 @@ benchmarks:
       rank 7.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_legal#178335086307
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: kimi-k3-max
     score: 1486.36
@@ -888,6 +987,15 @@ benchmarks:
       rank 16.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_business#e573ae0000af
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: kimi-k3-max
     score: 1516.51
@@ -905,6 +1013,15 @@ benchmarks:
       rank 7.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_science#647032bb63f0
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: kimi-k3-max
     score: 1470.74
@@ -922,6 +1039,15 @@ benchmarks:
       rank 22.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: moonshot/kimi-k3#arena_sc_writing#648b68c738ae
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: kimi-k3-max
     score: 1659.57
@@ -1007,13 +1133,22 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-27T19:36:12.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.58 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k3#simpleqa_verified#a38e8a324525
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
   - benchmark_id: frontiercode_v1_1
     model_id_as_evaluated: Kimi K3
-    score: 44.17
+    score: 44.2
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
@@ -1022,13 +1157,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k3#frontiercode_v1_1#f63b6831f269
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-frontiercode
+      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      cited_regions:
+      - rows
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Kimi K3 (Moonshot)
     score: 5165.04
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
@@ -1037,13 +1181,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k3#vending_bench_2#d0a01806a09d
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      cited_regions:
+      - rows
   - benchmark_id: deepswe_v1_1
     model_id_as_evaluated: kimi-k3 (max)
     score: 68.51
     unit: percent
     source_url: https://deepswe.datacurve.ai/
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: DeepSWE v1.1, pass@1, mini-swe-agent
@@ -1052,13 +1205,22 @@ benchmarks:
       rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k3#deepswe_v1_1#2a2bf0c4b1e5
+    measured_by: benchmark_author
+    effort: max
+    harness: unregistered
+    sources:
+    - source_id: model-160-deepswe-v1-1
+      snapshot_ref: sha256:7fcc641eb55d3cfbc8429ea1ef26448ef44bb66772190ee69f8464958c0a79dc
+      cited_regions:
+      - rows
   - benchmark_id: aime_2026
     model_id_as_evaluated: Kimi K3 (Think)
     score: 96.67
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: AIME 2026, MathArena final-answer table
@@ -1067,6 +1229,15 @@ benchmarks:
       model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
+    id: moonshot/kimi-k3#aime_2026#6c9811642c61
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-matharena-aime-2026
+      snapshot_ref: sha256:f7e2ee1441375d33b08d553c6ddda60da7f3b453145ab0eeb26d5ca4a49484e9
+      cited_regions:
+      - rows
   - benchmark_id: tau3_banking
     model_id_as_evaluated: Kimi K3 (max)
     score: 37.11
@@ -1082,6 +1253,15 @@ benchmarks:
       pass^4 17.525773195876287.
     limitations: Banking_knowledge evaluation with AllTools retrieval, GPT-5.2 low-reasoning
       user simulation, four trials, and seed 300.
+    id: moonshot/kimi-k3#tau3_banking#f6ca45252a49
+    measured_by: benchmark_author
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-tau-bench-kimi-k3-sierra-2026-08-04
+      snapshot_ref: sha256:66629ae2c914f7656ca3a7e34aefba9af62ea20349b13c5f657e605f272047b1
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

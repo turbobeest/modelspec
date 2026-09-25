@@ -672,7 +672,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemini-3.7-flash-high
-    score: 1490.4920154663198
+    score: 1489.82
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -686,13 +686,13 @@ benchmarks:
       rank 12.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: google/gemini-3-7-flash#arena_elo_style_control#7be6e7f1d2c9
+    id: google/gemini-3-7-flash#arena_elo_style_control#98b2af289dc5
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding
@@ -711,6 +711,15 @@ benchmarks:
       rank 26.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_coding#160eff398cbf
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1506.7
@@ -727,6 +736,15 @@ benchmarks:
       rank 18.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_hard_prompts#aba74016b974
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1521.51
@@ -742,6 +760,15 @@ benchmarks:
       max-effort rule). Rating 1521.51 [1488.25, 1554.77], 310 votes, rank 5.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_math#a26416f8d42f
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1494.76
@@ -758,6 +785,15 @@ benchmarks:
       rank 4.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_creative_writing#ab21c2a35622
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1484.41
@@ -774,6 +810,15 @@ benchmarks:
       rank 12.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_instruction_following#eadce7ffa0b9
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1498.23
@@ -790,6 +835,15 @@ benchmarks:
       rank 9.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_multi_turn#41927684804f
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1515.38
@@ -806,6 +860,15 @@ benchmarks:
       rank 16.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_expert#65814a1d1bb1
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1498.07
@@ -822,6 +885,15 @@ benchmarks:
       rank 16.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_longer_query#9d9fe1f1bb89
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1483.76
@@ -838,6 +910,15 @@ benchmarks:
       rank 10.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_non_english#b3fdeb416bc3
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1493.05
@@ -855,6 +936,15 @@ benchmarks:
       rank 24.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_medicine#8e5ce276d9c5
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1496.89
@@ -872,6 +962,15 @@ benchmarks:
       rank 16.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_legal#11eed42e4c89
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1474.41
@@ -889,6 +988,15 @@ benchmarks:
       rank 31.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_business#0098ef32727a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1510.95
@@ -906,6 +1014,15 @@ benchmarks:
       rank 14.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_science#61fbad21e4d0
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1488.65
@@ -923,6 +1040,15 @@ benchmarks:
       rank 7.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: google/gemini-3-7-flash#arena_sc_writing#b9671dcb5fce
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: gemini-3.7-flash-high
     score: 1594.56
@@ -1008,13 +1134,22 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-27T19:30:25.000Z; effort high; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.46 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-7-flash#simpleqa_verified#1e9f1c381872
+    measured_by: independent_evaluator
+    effort: high
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
   - benchmark_id: frontiercode_v1_1
     model_id_as_evaluated: Gemini 3.7 Flash
-    score: 43.59
+    score: 43.6
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
@@ -1023,13 +1158,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule). Harness chisel.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-7-flash#frontiercode_v1_1#5eb8d078c609
+    measured_by: benchmark_author
+    effort: medium
+    harness: null
+    sources:
+    - source_id: model-160-frontiercode
+      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      cited_regions:
+      - rows
   - benchmark_id: deepswe_v1_1
     model_id_as_evaluated: gemini-3-7-flash (high)
     score: 65.27
     unit: percent
     source_url: https://deepswe.datacurve.ai/
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: DeepSWE v1.1, pass@1, mini-swe-agent
@@ -1038,6 +1182,15 @@ benchmarks:
       rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-7-flash#deepswe_v1_1#87646c1530b5
+    measured_by: benchmark_author
+    effort: high
+    harness: unregistered
+    sources:
+    - source_id: model-160-deepswe-v1-1
+      snapshot_ref: sha256:7fcc641eb55d3cfbc8429ea1ef26448ef44bb66772190ee69f8464958c0a79dc
+      cited_regions:
+      - rows
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: Gemini 3.7 Flash
     score: 11.21

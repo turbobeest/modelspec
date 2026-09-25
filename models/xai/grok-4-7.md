@@ -722,7 +722,7 @@ benchmarks:
     unit: percent
     source_url: https://cursor.com/cursorbench
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: CursorBench 4.0
@@ -730,6 +730,15 @@ benchmarks:
       per its changelog); the board states no row date, so the reading is dated by the observation.
       Highest-effort row (xhigh); $6.01 a task.
     limitations: Runs only in Cursor's production agent harness.
+    id: xai/grok-4-7#cursorbench_4#5d63f6081a07
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-160-cursorbench
+      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

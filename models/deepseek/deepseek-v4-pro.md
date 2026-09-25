@@ -714,7 +714,7 @@ benchmarks:
     limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: deepseek-v4-pro
-    score: 1450.6296556657103
+    score: 1457.34
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -728,13 +728,13 @@ benchmarks:
       votes, rank 57.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: deepseek/deepseek-v4-pro#arena_elo_style_control#9467faca9855
+    id: deepseek/deepseek-v4-pro#arena_elo_style_control#ac8b24532794
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding
@@ -753,6 +753,15 @@ benchmarks:
       votes, rank 65.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_coding#7bb6a22dd938
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: deepseek-v4-pro
     score: 1479.8
@@ -769,6 +778,15 @@ benchmarks:
       votes, rank 56.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_hard_prompts#1721a1bb9d73
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: deepseek-v4-pro
     score: 1444.63
@@ -784,6 +802,15 @@ benchmarks:
       max-effort rule). Rating 1444.63 [1433.13, 1456.14], 2868 votes, rank 70.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_math#dac2caeac8b4
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: deepseek-v4-pro
     score: 1443.95
@@ -800,6 +827,15 @@ benchmarks:
       votes, rank 48.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_creative_writing#30e657b83531
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: deepseek-v4-pro
     score: 1452.55
@@ -816,6 +852,15 @@ benchmarks:
       votes, rank 54.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_instruction_following#e747acf81c15
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: deepseek-v4-pro
     score: 1475.19
@@ -832,6 +877,15 @@ benchmarks:
       votes, rank 45.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_multi_turn#cbebd3a79af9
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: deepseek-v4-pro
     score: 1481.35
@@ -848,6 +902,15 @@ benchmarks:
       votes, rank 61.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_expert#a0b0b1c4a88e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: deepseek-v4-pro
     score: 1471.54
@@ -864,6 +927,15 @@ benchmarks:
       votes, rank 52.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_longer_query#bffd2050cd41
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: deepseek-v4-pro
     score: 1444.72
@@ -880,6 +952,15 @@ benchmarks:
       votes, rank 58.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_non_english#2c74e3a5d154
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: deepseek-v4-pro
     score: 1476.7
@@ -897,6 +978,15 @@ benchmarks:
       votes, rank 57.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_medicine#cc8bcc37ece4
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: deepseek-v4-pro
     score: 1473.18
@@ -914,6 +1004,15 @@ benchmarks:
       votes, rank 47.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_legal#5e2494fe4a5e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: deepseek-v4-pro
     score: 1460.69
@@ -931,6 +1030,15 @@ benchmarks:
       votes, rank 51.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_business#5c7b704a0a15
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: deepseek-v4-pro
     score: 1480.7
@@ -948,6 +1056,15 @@ benchmarks:
       votes, rank 50.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_science#b885a31fd483
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: deepseek-v4-pro
     score: 1450.89
@@ -965,6 +1082,15 @@ benchmarks:
       votes, rank 47.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: deepseek/deepseek-v4-pro#arena_sc_writing#6e7ee8f3ed7a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: deepseek-v4-pro
     score: 1445.47
@@ -1050,6 +1176,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-27T19:30:29.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.58 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: deepseek/deepseek-v4-pro#simpleqa_verified#49345e002b7f
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
   - benchmark_id: swe_bench_verified
     model_id_as_evaluated: deepseek-v4-pro_max
     score: 77.64
@@ -1075,11 +1210,11 @@ benchmarks:
       - rows
   - benchmark_id: frontiercode_v1_1
     model_id_as_evaluated: DeepSeek V4 Pro
-    score: 17.64
+    score: 17.6
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
@@ -1088,13 +1223,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: deepseek/deepseek-v4-pro#frontiercode_v1_1#f974f4f74c25
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-frontiercode
+      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      cited_regions:
+      - rows
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Deepseek V4 Pro
     score: 3284.52
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
@@ -1103,13 +1247,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: deepseek/deepseek-v4-pro#vending_bench_2#d0ccc210af57
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      cited_regions:
+      - rows
   - benchmark_id: aime_2026
     model_id_as_evaluated: DeepSeek-v4-Pro (Max)
     score: 96.67
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: AIME 2026, MathArena final-answer table
@@ -1118,6 +1271,15 @@ benchmarks:
       MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
+    id: deepseek/deepseek-v4-pro#aime_2026#762af5769a5d
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-matharena-aime-2026
+      snapshot_ref: sha256:f7e2ee1441375d33b08d553c6ddda60da7f3b453145ab0eeb26d5ca4a49484e9
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

@@ -772,7 +772,7 @@ benchmarks:
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1507.58
-    unit: elo
+    unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
@@ -785,10 +785,19 @@ benchmarks:
       arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
+    id: anthropic/claude-fable-5-1#arena_elo_overall#9661fc6241b2
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      cited_regions:
+      - rows
   - benchmark_id: arena_elo_coding
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1511.36
-    unit: elo
+    unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
@@ -802,9 +811,18 @@ benchmarks:
       arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
+    id: anthropic/claude-fable-5-1#arena_elo_coding#898943f81012
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:acfd5444c3981590ac4a3e5589d1f54950660ce053f740f44a755d508540045b
+      cited_regions:
+      - rows
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: claude-fable-5.1-max
-    score: 1507.5817496991563
+    score: 1498.47
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -818,13 +836,13 @@ benchmarks:
       rank 5.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: anthropic/claude-fable-5-1#arena_elo_style_control#4074eb435a41
+    id: anthropic/claude-fable-5-1#arena_elo_style_control#8ac8ce0e6d60
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding
@@ -843,6 +861,15 @@ benchmarks:
       rank 32.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_coding#2d51f6f3d3f3
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1516.66
@@ -859,6 +886,15 @@ benchmarks:
       rank 8.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_hard_prompts#5c8af8fd54fd
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1522.28
@@ -874,6 +910,15 @@ benchmarks:
       max-effort rule). Rating 1522.28 [1486.11, 1558.46], 243 votes, rank 4.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_math#b39d788bd347
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1486.33
@@ -890,6 +935,15 @@ benchmarks:
       rank 6.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_creative_writing#4e66481e8140
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1495.81
@@ -906,6 +960,15 @@ benchmarks:
       rank 6.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_instruction_following#ce66f691cf68
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1487.94
@@ -922,6 +985,15 @@ benchmarks:
       rank 23.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_multi_turn#b931103cebf3
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1532.3
@@ -938,6 +1010,15 @@ benchmarks:
       rank 8.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_expert#1f01344a4da7
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1510.61
@@ -954,6 +1035,15 @@ benchmarks:
       rank 5.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_longer_query#cdbc6e694f1e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1492.38
@@ -970,6 +1060,15 @@ benchmarks:
       rank 3.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_non_english#3b705ee6bda4
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1509.29
@@ -987,6 +1086,15 @@ benchmarks:
       rank 6.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_medicine#688371e6dbf9
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1497.12
@@ -1004,6 +1112,15 @@ benchmarks:
       rank 15.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_legal#261d8bb99dea
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1485.89
@@ -1021,6 +1138,15 @@ benchmarks:
       rank 17.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_business#3d4d21f2afad
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1513.51
@@ -1038,6 +1164,15 @@ benchmarks:
       rank 9.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_science#30e3e5aadc0e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1500.64
@@ -1055,9 +1190,18 @@ benchmarks:
       rank 2.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-fable-5-1#arena_sc_writing#72f0256d121f
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: claude-fable-5.1-max
-    score: 1322.3403440993363
+    score: 1288.87
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -1071,13 +1215,13 @@ benchmarks:
       rank 11.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: anthropic/claude-fable-5-1#arena_sc_vision#4fcea570d925
+    id: anthropic/claude-fable-5-1#arena_sc_vision#87d43c380e00
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-vision-json
-      snapshot_ref: sha256:6f953385cd16118776e1dd3dbabb27560797db96b5da07fe4fc336150b37962e
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
       cited_regions:
       - rows
   - benchmark_id: arena_webdev
@@ -1142,13 +1286,22 @@ benchmarks:
       read 2026-09-24. Run started 2026-09-01T18:31:59.000Z; effort max; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.44 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-fable-5-1#simpleqa_verified#92aeb614e7c4
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
   - benchmark_id: frontiercode_v1_1
-    model_id_as_evaluated: Claude Fable 5.1
-    score: 50.91
+    model_id_as_evaluated: Fable 5.1
+    score: 50.9
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
@@ -1157,13 +1310,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule). Harness claude-code.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-fable-5-1#frontiercode_v1_1#2e7f4ee2e909
+    measured_by: benchmark_author
+    effort: medium
+    harness: null
+    sources:
+    - source_id: model-160-frontiercode
+      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      cited_regions:
+      - rows
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Claude Fable 5.1
     score: 5421.56
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
@@ -1172,6 +1334,15 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-fable-5-1#vending_bench_2#1dbca369a383
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      cited_regions:
+      - rows
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: Fable 5.1
     score: 57.88
@@ -1224,7 +1395,7 @@ benchmarks:
     unit: percent
     source_url: https://cursor.com/cursorbench
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: CursorBench 4.0
@@ -1232,6 +1403,15 @@ benchmarks:
       per its changelog); the board states no row date, so the reading is dated by the observation.
       Highest-effort row (max); $17.28 a task.
     limitations: Runs only in Cursor's production agent harness.
+    id: anthropic/claude-fable-5-1#cursorbench_4#d30f1a858bf1
+    measured_by: benchmark_author
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-cursorbench
+      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      cited_regions:
+      - rows
   - benchmark_id: healthbench_professional
     model_id_as_evaluated: Claude Fable 5.1
     score: 62.1
