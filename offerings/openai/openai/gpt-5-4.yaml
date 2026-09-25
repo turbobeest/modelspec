@@ -1,0 +1,125 @@
+- model: openai/gpt-5-4
+  provider: openai
+  region: global
+  tier: standard
+  facts:
+  - id: openai/openai/gpt-5-4/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.price.input
+    value: 2.5
+    state: known
+    sources:
+    - source_id: openai-gpt-5-4-pricing
+      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.price.output
+    value: 15.0
+    state: known
+    sources:
+    - source_id: openai-gpt-5-4-pricing
+      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.price.cached_input
+    value: 0.25
+    state: known
+    sources:
+    - source_id: openai-gpt-5-4-pricing
+      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.price.batch_input
+    value: 1.25
+    state: known
+    sources:
+    - source_id: openai-gpt-5-4-pricing
+      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.price.batch_output
+    value: 7.5
+    state: known
+    sources:
+    - source_id: openai-gpt-5-4-pricing
+      snapshot_ref: sha256:d26def1c73cfa7e5fefad7b6997e6888b7d7f337622d2b76005e753546d5fdb6
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.data.retention
+    value: 30
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.data.zero_retention
+    value: true
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.attestation.soc2
+    value: type_2
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.attestation.baa
+    value: true
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:0e1d84fd0357a8a1116b17262856d3cd9456ab1a6c41a5857a6b78bc12c73988
+      cited_regions:
+      - page

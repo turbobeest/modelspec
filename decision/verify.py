@@ -221,6 +221,7 @@ _UNIT_SPELLINGS = {
     "%": "percent", "percent": "percent", "pct": "percent", "per cent": "percent",
     "fraction": "fraction", "ratio": "fraction",
     "token": "tokens", "tokens": "tokens", "tok": "tokens",
+    "ktok": "k_tokens", "mtok": "m_tokens",
     "ms": "milliseconds", "millisecond": "milliseconds", "milliseconds": "milliseconds",
     "s": "seconds", "sec": "seconds", "second": "seconds", "seconds": "seconds",
     "tokens/s": "tokens_per_second", "tok/s": "tokens_per_second",
@@ -233,7 +234,7 @@ _UNIT_SPELLINGS = {
 }
 _MAGNITUDE = {"k": "k", "thousand": "k", "m": "m", "million": "m", "b": "b", "billion": "b"}
 _SCALED = re.compile(r"^(k|m|b|thousand|million|billion)\s*(tokens?|parameters?|params)$")
-_PRICE = re.compile(r"^usd\s*/\s*(1\s*)?(k|m|thousand|million)\s*(tokens?)?$")
+_PRICE = re.compile(r"^usd\s*/\s*(1\s*)?(k|m|thousand|million)\s*(tokens?|tok)?$")
 
 
 def unit_id(text: str | None) -> str | None:
@@ -293,7 +294,12 @@ def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None
     decimals = len(raw.partition(".")[2])
     rest = m.group("rest")
     if m.group("cur"):
-        spelled = "usd" + rest
+        hinted = unit_id(hint)
+        if not rest and hinted in {"k_tokens", "m_tokens"}:
+            magnitude = "1k" if hinted == "k_tokens" else "1m"
+            spelled = f"usd/{magnitude} tokens"
+        else:
+            spelled = "usd" + rest
     elif not rest:
         spelled = hint
     elif rest.casefold() in _MAGNITUDE and hint:
@@ -633,7 +639,7 @@ class Diff:
 
 
 _TRUE = frozenset({"yes", "true", "supported", "available", "y", "✓", "✔"})
-_FALSE = frozenset({"no", "false", "not supported", "unsupported", "unavailable", "n", "✗", "✘"})
+_FALSE = frozenset({"no", "none", "false", "not supported", "unsupported", "unavailable", "n", "✗", "✘"})
 
 
 def _show(claim: Claim) -> JsonValue:
@@ -648,9 +654,24 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         return Diff("value", expected, None)
     if isinstance(value, bool):
         s = reading.value.strip().casefold()
-        found = True if s in _TRUE else False if s in _FALSE else None
+        explicit_no_training = (
+            "train" in s
+            and any(phrase in s for phrase in (
+                "do not use", "does not use", "will not use", "won't use", "not used",
+            ))
+        )
+        explicit_available = (
+            ("zero data retention" in s and not any(x in s for x in ("not available", "unavailable")))
+            or ("baa" in s and any(x in s for x in ("available", "eligible")))
+        )
+        found = (True if s in _TRUE or explicit_available
+                 else False if s in _FALSE or explicit_no_training else None)
         return None if found is value else Diff("value", expected, reading.value)
     if isinstance(value, (int, float)):
+        if value == 0 and claim.unit == "days" and normalise_name(reading.value) in {
+            "none", "no retention", "zero data retention",
+        }:
+            return None
         q = parse_quantity(reading.value, reading.unit)
         if q is None:
             return Diff("value", expected, reading.value)
@@ -663,7 +684,13 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
                        for s in re.split(r",|;|\band\b", reading.value) if s.strip()}
         claimed_items = {str(v).strip().casefold() for v in value}
         return None if found_items == claimed_items else Diff("value", expected, reading.value)
-    if _condition("date", str(value)) == _condition("date", reading.value):
+    expected_name = normalise_name(str(value))
+    found_name = normalise_name(reading.value)
+    if expected_name == found_name:
+        return None
+    if expected_name == "type 2" and (
+        "type 2" in found_name or "type ii" in found_name
+    ):
         return None
     return Diff("value", expected, reading.value)
 

@@ -1,0 +1,125 @@
+- model: anthropic/claude-opus-5
+  provider: anthropic
+  region: global
+  tier: standard
+  facts:
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.price.input
+    value: 5.0
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.price.output
+    value: 25.0
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.price.cached_input
+    value: 0.5
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.price.batch_input
+    value: 2.5
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.price.batch_output
+    value: 12.5
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:1c955f6ae5dfceddb05ff6e12324502d846c6f97329c68c764baa881ba4013e6
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.data.retention
+    value: 30
+    state: known
+    sources:
+    - source_id: anthropic-retention
+      snapshot_ref: sha256:34b1d61c26d9c5348d3102e3fc182e0388ee958f4173b11dda00f091013d6350
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: anthropic-training
+      snapshot_ref: sha256:61d03c0e497193e1fee09daf93dbfcf82c2d7e2f14ac88eeef97a3ec8755d74c
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.data.zero_retention
+    value: true
+    state: known
+    sources:
+    - source_id: anthropic-zdr
+      snapshot_ref: sha256:a797add371a878f40dfb63de1096e76bb8a65b392f7a8c7e1b27f61ccec67665
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.attestation.soc2
+    value: type_2
+    state: known
+    sources:
+    - source_id: anthropic-attestations
+      snapshot_ref: sha256:adac1e9b59a81f13f8ddccd65980455d2f0dc50595ae417e07fb604acae2e394
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-opus-5/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-5/global/standard
+    facet: offering.attestation.baa
+    value: true
+    state: known
+    sources:
+    - source_id: anthropic-attestations
+      snapshot_ref: sha256:adac1e9b59a81f13f8ddccd65980455d2f0dc50595ae417e07fb604acae2e394
+      cited_regions:
+      - page
