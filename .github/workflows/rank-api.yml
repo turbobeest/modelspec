@@ -341,7 +341,7 @@ jobs:
           #     or reports the rollout's expected temporary state.
           probe /v1/decide -X POST \
             -H 'content-type: application/json' \
-            -d '{"spec_version":1,"snapshot":"latest","explain":"none","limit":1}'
+            -d '{"spec_version":1,"snapshot":"latest","optimize":{"max":"gpqa_diamond"},"explain":"none","limit":1}'
           snapshot=$(field snapshot)
           error=$(field error)
           if [ "$status" = 200 ] && [ -n "$snapshot" ]; then
