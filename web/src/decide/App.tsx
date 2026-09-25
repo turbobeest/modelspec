@@ -52,6 +52,12 @@ import { mapDecisionToViewModel, toDecisionSpec } from "./adapter/view-model";
 import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
 
+/**
+ * The main decision shows Retry if it has not resolved by then, whatever it is
+ * waiting on: the request, its body, or a vocabulary reload after a 409.
+ */
+export const DECISION_WATCHDOG_MS = 20_000;
+
 function DesignedApp({
   demo,
   simulate,
@@ -88,7 +94,9 @@ function DesignedApp({
       x: number;
       y: number;
     } | null>(null),
-    [retried, setRetried] = useState(false);
+    [retried, setRetried] = useState(false),
+    // "Find models" pressed before the vocabulary arrived: answered when it does.
+    [pendingFind, setPendingFind] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
@@ -204,6 +212,27 @@ function DesignedApp({
     setHostedDecision(null);
     setHostedQuestions([]);
     setRequestState({ kind: "loading" });
+    const fail = (cause: unknown) =>
+      setRequestState({
+        kind: "error",
+        message:
+          cause instanceof DecideApiError
+            ? cause.message
+            : "The decision service could not be reached.",
+        code: cause instanceof DecideApiError ? cause.code : null,
+        status: cause instanceof DecideApiError ? cause.status : null,
+        issues: cause instanceof DecideApiError ? cause.issues : [],
+      });
+    const watchdog = setTimeout(() => {
+      controller.abort();
+      fail(
+        new DecideApiError(
+          `The decision service did not answer within ${DECISION_WATCHDOG_MS / 1000} seconds.`,
+          null,
+          "timeout",
+        ),
+      );
+    }, DECISION_WATCHDOG_MS);
     const ask = (current: Vocabulary | null, explain: "summary" | "full") => {
       const nextSpec = current ? sendableSpec(current, requested) : requested;
       return hostedEngine
@@ -218,8 +247,9 @@ function DesignedApp({
       nextSpec: Spec;
     try {
       // Summary first: it is small and answers well inside the Worker's limits,
-      // so the ranking draws at once. The full explanation follows and only
-      // enriches the Why panel; if it fails, the summary stands (MODEL-153).
+      // so the ranking draws at once. The full explanation and the probes
+      // follow only once it has answered, so a cold Worker meets one request
+      // before the burst; if `full` fails, the summary stands (MODEL-153).
       const answer = await retryOnSnapshotChange(
         vocabulary,
         (current) => ask(current, "summary"),
@@ -236,16 +266,12 @@ function DesignedApp({
       );
       setRequestState({ kind: "success", details: "loading" });
     } catch (cause) {
-      if (cause instanceof Error && cause.name === "AbortError") return;
-      const apiError = cause instanceof DecideApiError ? cause : null;
-      setRequestState({
-        kind: "error",
-        message: apiError?.message ?? "The decision service could not be reached.",
-        code: apiError?.code ?? null,
-        status: apiError?.status ?? null,
-        issues: apiError?.issues ?? [],
-      });
+      // Aborted by a newer request or by the watchdog: whichever did owns the state.
+      if (controller.signal.aborted) return;
+      fail(cause);
       return;
+    } finally {
+      clearTimeout(watchdog);
     }
     try {
       // Once the summary has reloaded, a second 409 here leaves the summary
@@ -363,6 +389,14 @@ function DesignedApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vocabulary]);
   useEffect(() => {
+    if (!pendingFind || !vocabulary) return;
+    setPendingFind(false);
+    initialAnswered.current = true;
+    find(spec === baseSpec ? realBaseSpec(vocabulary) : spec);
+    // find reads the latest draft and spec itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFind, vocabulary]);
+  useEffect(() => {
     if (view === "work")
       history.replaceState(
         null,
@@ -407,7 +441,8 @@ function DesignedApp({
       questionsAbort.current?.abort();
     };
   }, []);
-  function find() {
+  /** Parse the draft into `from` (the current spec unless told otherwise) and decide. */
+  function find(from: Spec = spec) {
     setView("work");
     setParsing(true);
     setAddOpen(false);
@@ -417,7 +452,7 @@ function DesignedApp({
       const p: ReturnType<typeof parseTask> & { domain?: string | null } = vocabulary
           ? parseRealTask(vocabulary, draft)
           : parseTask(draft),
-        keep = spec.conds.filter(
+        keep = from.conds.filter(
           (c) =>
             !c.from &&
             !p.conds.some(
@@ -427,7 +462,7 @@ function DesignedApp({
             ),
         );
       const nextSpec: Spec = {
-        ...spec,
+        ...from,
         task: draft,
         bench: p.bench,
         w: p.w,
@@ -440,7 +475,9 @@ function DesignedApp({
       setSelected(null);
       setAxis(p.bench === "RetrievalEval v2" ? "in$" : "task$");
       if (!demo && !vocabulary) {
-        // The vocabulary failed or is still loading; its own message says which.
+        // The vocabulary failed or is still loading; its own message says
+        // which, and the task is answered when it arrives.
+        setPendingFind(true);
         setVocabAttempt((n) => (vocabState.kind === "error" ? n + 1 : n));
         return;
       }
@@ -629,7 +666,7 @@ function DesignedApp({
                 A small classifier turns this into conditions you can see and
                 edit. There is no chat.
               </span>
-              <button className="primary" onClick={find}>
+              <button className="primary" onClick={() => find()}>
                 Find models ↵
               </button>
             </div>
@@ -697,13 +734,18 @@ function DesignedApp({
             </div>
           )}
           {vocabAlert}
+          {!demo && vocabState.kind === "loading" && (
+            <div role="status" aria-busy="true" className="loading">
+              <span>Loading what the current snapshot can answer…</span>
+            </div>
+          )}
           {(decision || !demo) && <SpecPanel
             spec={shownSpec}
             decision={decision}
             issues={placed}
             draft={draft}
             onDraft={setDraft}
-            onParse={find}
+            onParse={() => find()}
             onSpec={changeSpec}
             parsing={parsing}
             trace={trace}

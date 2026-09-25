@@ -210,27 +210,27 @@ it("reports a request that never answers instead of spinning", async () => {
   expect((error as DecideApiError).code).toBe("timeout");
 });
 
-it("shows a timeout in the page with Retry", async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+it("reports a response whose body stalls, not only one that never starts", async () => {
+  vi.useFakeTimers();
   vi.stubGlobal(
     "fetch",
-    routeFetch({
-      decide: (init) =>
-        new Promise<Response>((_resolve, reject) =>
-          init?.signal?.addEventListener("abort", () =>
-            reject(new DOMException("Aborted", "AbortError")),
-          ),
-        ),
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => new Promise(() => {}),
     }),
   );
-  await findModels();
-  await vi.advanceTimersByTimeAsync(DECIDE_TIMEOUT_MS + 1000);
-  const alert = await screen.findByRole("alert");
-  expect(alert).toHaveTextContent("The decision service is taking too long.");
-  expect(alert).toHaveTextContent("did not answer within 30 seconds");
-  expect(within(alert).getByRole("button", { name: "Retry" })).toBeInTheDocument();
-  noSkeleton();
+  const pending = hostedEngine
+    .decide({ spec_version: 1, optimize: { max: "quality" } })
+    .catch((error: unknown) => error);
+  await vi.advanceTimersByTimeAsync(DECIDE_TIMEOUT_MS + 1);
+  const error = await pending;
+  expect(error).toBeInstanceOf(DecideApiError);
+  expect((error as DecideApiError).code).toBe("timeout");
 });
+
+// The page's own 20-second watchdog, which fires before this 30-second one,
+// is tested in burst.test.tsx.
 
 it("says there is no snapshot yet when the vocabulary is not published", async () => {
   const fetch = routeFetch({

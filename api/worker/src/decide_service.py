@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import time
@@ -34,6 +35,12 @@ SNAPSHOT_HEADER = "x-modelspec-snapshot"
 #: Present only when the latest refresh failed and an older verified snapshot answered.
 STALE_HEADER = "x-modelspec-snapshot-stale"
 _STALE_HEADER_MAX = 200
+#: A request that finds a load in progress waits for it rather than starting
+#: its own (MODEL-153), but not past this: a load older than this is presumed
+#: dead, and the next request starts another.
+LOAD_WAIT_SECONDS = 20
+#: How often a waiting request looks at the load it is waiting on.
+LOAD_POLL_SECONDS = 0.025
 
 
 class SnapshotRefusalError(ValueError):
@@ -85,6 +92,16 @@ def _header_value(message: str) -> str:
     return flat[:_STALE_HEADER_MAX]
 
 
+class _Load:
+    """One fetch-and-verify in progress. Other requests read its outcome, never its I/O."""
+
+    def __init__(self, started: float):
+        self.started = started
+        self.done = False
+        self.snapshot: Any = None
+        self.error: BaseException | None = None
+
+
 class SnapshotHolder:
     """The isolate's verified snapshot, revalidated at most once per interval.
 
@@ -93,19 +110,31 @@ class SnapshotHolder:
     snapshot and records why, for ``headers()``. With nothing held, a failure
     is raised; a refusal is remembered for the interval so an unsigned build
     is not re-downloaded on every request.
+
+    One load at a time (MODEL-153). While a load runs, a request that can
+    answer from the held snapshot does; one that cannot (a cold isolate, or a
+    caller whose vocabulary names another snapshot) waits for that load and
+    shares its outcome, success or failure. The page's first burst used to
+    make a cold isolate fetch, verify and parse one copy per request.
+
+    Waiters poll rather than await a future the loading request resolves: on
+    Workers, resuming one request from another request's I/O is not safe.
     """
 
     def __init__(self, fetch: FetchSnapshot, *, clock: Callable[[], float] = time.monotonic,
                  interval: float = REVALIDATE_SECONDS,
-                 forced_interval: float = FORCED_REVALIDATE_SECONDS):
+                 forced_interval: float = FORCED_REVALIDATE_SECONDS,
+                 sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep):
         self._fetch = fetch
         self._clock = clock
+        self._sleep = sleep
         self._interval = interval
         self._forced_interval = forced_interval
         self._held: _Held | None = None
         self._checked_at: float | None = None
         self._refusal: SnapshotRefusalError | None = None
         self._stale: str | None = None
+        self._load: _Load | None = None
 
     @property
     def snapshot(self):
@@ -125,16 +154,54 @@ class SnapshotHolder:
         age = self._clock() - self._checked_at
         return age >= (self._forced_interval if force else self._interval)
 
+    def _live(self, load: _Load | None) -> bool:
+        return load is not None and self._clock() - load.started < LOAD_WAIT_SECONDS
+
     async def current(self, key: bytes | str | None, *, force: bool = False):
         """The snapshot to answer from, revalidating first when it is due."""
+        load = self._load
+        if self._live(load):
+            if self._held is not None and not force:
+                return self._held.snapshot
+            return await self._wait(load, key, force)
         if not self._due(force):
             if self._held is not None:
                 return self._held.snapshot
             if self._refusal is not None:
                 raise self._refusal
+        return await self._revalidate(key)
+
+    async def _wait(self, load: _Load, key, force: bool):
+        while not load.done:
+            if not self._live(load):
+                # Presumed dead: join whichever request replaces it, or replace it.
+                return await self.current(key, force=force)
+            await self._sleep(LOAD_POLL_SECONDS)
+        if load.error is None:
+            return load.snapshot
+        if isinstance(load.error, Exception):
+            raise load.error
+        # The loading request was cancelled before it finished: load here instead.
+        return await self.current(key, force=force)
+
+    async def _revalidate(self, key):
+        load = _Load(self._clock())
+        self._load = load
         # Stamped before the await: concurrent requests in this isolate keep
-        # serving the held snapshot instead of starting a second fetch.
-        self._checked_at = self._clock()
+        # serving the held snapshot, or wait on this load, instead of fetching.
+        self._checked_at = load.started
+        try:
+            load.snapshot = await self._refresh(key)
+        except BaseException as exc:  # noqa: BLE001 - recorded for waiters, then re-raised
+            load.error = exc
+            raise
+        finally:
+            load.done = True
+            if self._load is load:
+                self._load = None
+        return load.snapshot
+
+    async def _refresh(self, key):
         held = self._held
         try:
             fetched = await self._fetch(held.etag if held is not None else None)
