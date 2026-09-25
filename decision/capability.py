@@ -34,6 +34,8 @@ _RIDGE_GENERAL = 1.0
 _RIDGE_DOMAIN = 4.0
 _RIDGE_ITEM = 0.25
 _MIN_ITEM_MODELS = 3
+_DOMAIN_PRIOR_PRECISION = 0.25
+_PROJECTION_PROXY_LOADING = 0.35
 
 
 @dataclass(frozen=True)
@@ -149,8 +151,12 @@ class CapabilityFit:
     source_offsets: dict[str, float]
     directness: DirectnessFit
     drivers: dict[tuple[str, str], tuple[EstimateDriver, ...]]
+    domain_estimates: dict[tuple[str, str], CapabilityEstimate] = field(default_factory=dict)
 
     def estimate(self, model_id: str, domain: str) -> CapabilityEstimate | None:
+        domain_estimate = self.domain_estimates.get((model_id, domain))
+        if domain_estimate is not None:
+            return domain_estimate
         model = self.models.get(model_id)
         if model is None or not model.covariance or domain not in model.dimensions:
             return None
@@ -406,6 +412,85 @@ def _prepare(
     return items, prepared
 
 
+def _domain_estimates(
+    items: Mapping[str, ItemFit],
+    rows: Sequence[_Prepared],
+) -> tuple[
+    dict[tuple[str, str], CapabilityEstimate],
+    dict[tuple[str, str], tuple[EstimateDriver, ...]],
+]:
+    """Project every domain from its own tagged measurements.
+
+    The bifactor fit may use one item for a direct domain and, at a lower
+    loading, for a proxy domain. Its other factors must not then order another
+    domain. This projection uses only rows tagged to the requested domain.
+    Positive within-item scores make it monotone in each observed value, while
+    proxy loadings add less precision and therefore leave broader intervals.
+    """
+    domains = {domain for item in items.values() for domain, _ in item.domains}
+    estimates: dict[tuple[str, str], CapabilityEstimate] = {}
+    drivers: dict[tuple[str, str], tuple[EstimateDriver, ...]] = {}
+
+    for domain in sorted(domains):
+        domain_rows = [
+            row
+            for row in rows
+            if domain in dict(items[row.item_id].domains)
+        ]
+        by_item: dict[str, list[_Prepared]] = defaultdict(list)
+        for row in domain_rows:
+            by_item[row.item_id].append(row)
+
+        scores: dict[str, list[tuple[_Prepared, float, float]]] = defaultdict(list)
+        for item_id, item_rows in sorted(by_item.items()):
+            targets = [row.target for row in item_rows]
+            center = sum(targets) / len(targets)
+            spread = math.sqrt(
+                sum((value - center) ** 2 for value in targets)
+                / max(1, len(targets) - 1)
+            ) or 1.0
+            for row, value in zip(item_rows, targets):
+                z_score = (value - center) / spread
+                directness_loading = (
+                    1.0
+                    if dict(items[item_id].domains)[domain] == "direct"
+                    else _PROJECTION_PROXY_LOADING
+                )
+                precision = directness_loading**2 * row.recency_weight
+                scores[row.observation.model_id].append((row, z_score, precision))
+
+        for model_id, model_rows in sorted(scores.items()):
+            precision = _DOMAIN_PRIOR_PRECISION + sum(
+                weight for _, _, weight in model_rows
+            )
+            mean = sum(weight * value for _, value, weight in model_rows) / precision
+            sd = math.sqrt(1 / precision)
+            estimates[(model_id, domain)] = CapabilityEstimate(
+                mean,
+                mean - _INTERVAL_Z * sd,
+                mean + _INTERVAL_Z * sd,
+                sd,
+            )
+            total = sum(weight for _, _, weight in model_rows) or 1.0
+            driver_rows = [
+                EstimateDriver(
+                    row.observation.record_id,
+                    row.observation.benchmark_id,
+                    row.observation.version,
+                    1.0
+                    if dict(items[row.item_id].domains)[domain] == "direct"
+                    else _PROJECTION_PROXY_LOADING,
+                    weight / total,
+                    row.recency_weight,
+                )
+                for row, _, weight in model_rows
+            ]
+            driver_rows.sort(key=lambda driver: (-driver.weight, driver.record_id))
+            drivers[(model_id, domain)] = tuple(driver_rows)
+
+    return estimates, drivers
+
+
 def fit_capabilities(
     observations: Iterable[CapabilityObservation],
     benchmark_specs: Mapping[str, BenchmarkSpec],
@@ -599,6 +684,9 @@ def fit_capabilities(
             normalised.sort(key=lambda driver: (-driver.weight, driver.record_id))
             drivers[(model_id, domain)] = tuple(normalised)
 
+    domain_estimates, domain_drivers = _domain_estimates(items, rows)
+    drivers.update(domain_drivers)
+
     return CapabilityFit(
         as_of=as_of,
         items=items,
@@ -607,6 +695,7 @@ def fit_capabilities(
         source_offsets=source_offsets,
         directness=DirectnessFit(proxy_loading=proxy),
         drivers=drivers,
+        domain_estimates=domain_estimates,
     )
 
 

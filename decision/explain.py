@@ -225,12 +225,24 @@ def part_provenance(snapshot, cid, part):
             checked_record(snapshot, rid)
         return records, part.evidence[0].unit, None
     if part.estimate is not None:
+        domain = part.dimension.removeprefix("-")
         records = [driver.record_id for driver in snapshot.capability_drivers(
-            cid, part.dimension.removeprefix("-")
+            cid, domain
         )]
         for rid in records:
             checked_record(snapshot, rid)
-        return records, "latent capability", "hierarchical bifactor IRT estimate"
+        directness = {
+            kind
+            for item in snapshot.capability_items.values()
+            for tagged_domain, kind in item.get("domains", ())
+            if tagged_domain == domain
+        }
+        formula = (
+            "proxy-only monotone domain evidence estimate"
+            if directness == {"proxy"}
+            else "monotone domain evidence estimate"
+        )
+        return records, "latent capability", formula
     if part.raw_value is not None:
         return fact_provenance(snapshot, cid, part.dimension.removeprefix("-"))
     return [], None, None

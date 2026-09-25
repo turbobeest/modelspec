@@ -7,6 +7,6 @@ capabilities: {retrieval: required, multilingual: required}
 where:
   - model.class = vectoriser
   - model.weights_openness = open_weights
-optimize: {max: multilingual}
+optimize: {max: mteb_multilingual_v2 @independent}
 explain: full
 limit: 3

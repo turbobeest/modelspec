@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -15,8 +17,15 @@ from decision.capability import (
 )
 from decision.contract import parse_spec
 from decision.engine import decide
+from decision.excluded import excluded_sources
 from decision.registry import default as default_registry
-from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.snapshot import (
+    SnapshotInputs,
+    build_snapshot,
+    collect_repo,
+    load_premier,
+    load_snapshot_bytes,
+)
 from tests.snapshot_records import SOURCES, evidence, model
 
 AS_OF = date(2026, 9, 25)
@@ -132,6 +141,122 @@ def test_source_offset_age_and_directness_are_part_of_the_fit() -> None:
     assert fit.directness.proxy_loading < fit.directness.direct_loading
     assert drivers["old_measurement"].recency_weight < drivers["novel_repo_work"].recency_weight
     assert all(row.loading > 0 for row in drivers.values())
+
+
+def proxy_only_observations() -> list[CapabilityObservation]:
+    scores = {
+        "medical": {"lab/model-0": 1509, "lab/model-1": 1488, "lab/model-2": 1496},
+        "chat-0": {"lab/model-0": 1459, "lab/model-1": 1483, "lab/model-2": 1538},
+        "chat-1": {"lab/model-0": 1471, "lab/model-1": 1467, "lab/model-2": 1490},
+        "reasoning": {"lab/model-0": 1488, "lab/model-1": 1532, "lab/model-2": 1494},
+    }
+    rows = []
+    for benchmark_id, by_model in scores.items():
+        if benchmark_id == "medical":
+            domains = (("chat_preference", "direct"), ("medical", "proxy"))
+        elif benchmark_id.startswith("chat-"):
+            domains = (("chat_preference", "direct"),)
+        else:
+            domains = (("reasoning", "direct"),)
+        rows.extend(
+            CapabilityObservation(
+                model_id=model_id,
+                benchmark_id=benchmark_id,
+                value=value,
+                unit="elo",
+                measured_by="independent_evaluator",
+                date=AS_OF,
+                record_id=f"{model_id}#{benchmark_id}",
+                version="1.0",
+                domains=domains,
+            )
+            for model_id, value in by_model.items()
+        )
+    return rows
+
+
+@pytest.mark.parametrize("increase", [1, 10, 50])
+def test_raising_proxy_domain_evidence_cannot_lower_the_estimate_or_rank(
+    increase: int,
+) -> None:
+    rows = proxy_only_observations()
+    specs = {row.benchmark_id: BenchmarkSpec() for row in rows}
+    before = fit_capabilities(rows, specs, as_of=AS_OF)
+    target = "lab/model-0"
+    raised = [
+        replace(row, value=row.value + increase)
+        if row.model_id == target and row.benchmark_id == "medical"
+        else row
+        for row in rows
+    ]
+    after = fit_capabilities(raised, specs, as_of=AS_OF)
+
+    def rank(fit) -> int:
+        ordered = sorted(
+            (
+                (fit.estimate(model_id, "medical").value, model_id)
+                for model_id in {row.model_id for row in rows}
+            ),
+            reverse=True,
+        )
+        return next(index for index, (_, model_id) in enumerate(ordered) if model_id == target)
+
+    assert after.estimate(target, "medical").value >= before.estimate(target, "medical").value
+    assert rank(after) <= rank(before)
+
+
+@pytest.fixture(scope="module")
+def medical_case_snapshot():
+    root = Path(__file__).resolve().parents[1]
+    built = build_snapshot(
+        collect_repo(root),
+        registry=default_registry(),
+        premier=load_premier(root / "premier" / "slice-1.yaml"),
+        as_of=AS_OF,
+        guard=excluded_sources(),
+        gate=False,
+    )
+    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+
+
+def test_medical_proxy_regression_follows_its_only_domain_benchmark(
+    medical_case_snapshot,
+) -> None:
+    opus = "anthropic/claude-opus-4-6"
+    muse = "meta/muse-spark"
+    opus_evidence = medical_case_snapshot.evidence(opus, "arena_sc_medicine")
+    muse_evidence = medical_case_snapshot.evidence(muse, "arena_sc_medicine")
+
+    assert max(row.value for row in opus_evidence) == pytest.approx(1519.76)
+    assert max(row.value for row in muse_evidence) == pytest.approx(1503.55)
+    assert medical_case_snapshot.capability_estimate(
+        opus, "medical"
+    ).value >= medical_case_snapshot.capability_estimate(muse, "medical").value
+
+
+def test_proxy_only_domain_estimate_says_so_in_the_explanation(
+    medical_case_snapshot,
+) -> None:
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "medical"},
+            "explain": "summary",
+            "limit": 3,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, medical_case_snapshot, facets=default_registry().facet)
+
+    assert decision.results
+    assert all("proxy_evidence_only" in result.warnings for result in decision.results)
+    assert all(
+        contribution.formula == "proxy-only monotone domain evidence estimate"
+        for result in decision.results
+        for contribution in result.contributions
+        if contribution.dimension == "medical"
+    )
 
 
 def test_holdout_prediction_beats_the_benchmark_mean() -> None:

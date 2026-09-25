@@ -6,6 +6,6 @@ capabilities: {software_engineering: required}
 where:
   - model.class = text-generator
   - model.weights_openness = closed_weights
-optimize: {max: software_engineering}
+optimize: {max: arena_elo_coding @independent}
 explain: full
 limit: 3

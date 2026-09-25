@@ -442,8 +442,8 @@ never listed as a candidate or in `may_qualify`.
 `unit`, `n` (a count, for outcome rates), `measured_by`, `effort`, `harness`,
 `harness_unregistered`, `date`, `date_type`, `source` (the URL it was read
 from), `source_snapshot` (the content hash of the retained copy), and
-`directness`. Evidence used in a capability estimate also carries its learned
-benchmark `loading`, its `estimate_weight`, and its age-based
+`directness`. Evidence used in a capability estimate also carries its
+directness `loading`, its `estimate_weight`, and its age-based
 `recency_weight`. Those three fields are null for unblended evidence.
 
 - `measured_by` is one of `benchmark_author`, `independent`,
@@ -458,6 +458,9 @@ benchmark `loading`, its `estimate_weight`, and its age-based
   `false`.
 
 Only verified evidence reaches a decision; quarantined values never do.
+When every fitted benchmark for an estimate is tagged `proxy`, the result's
+`warnings` includes `proxy_evidence_only`. Its contribution formula also names
+the estimate as proxy-only.
 
 ### Explanation levels
 

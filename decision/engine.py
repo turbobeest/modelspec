@@ -117,6 +117,17 @@ def decide(
     objective_domains = [name.removeprefix("-") for name in names
                          if name.removeprefix("-") in domains]
     shown_domains = sorted(requested | set(objective_domains))
+    proxy_only_domains = {
+        domain
+        for domain in shown_domains
+        if {
+            directness
+            for item in snapshot.capability_items.values()
+            for tagged_domain, directness in item.get("domains", ())
+            if tagged_domain == domain
+        }
+        == {"proxy"}
+    }
     probability_domain = (
         objective_domains[0] if len(objective_domains) == 1 and len(names) == 1 else None
     )
@@ -153,6 +164,8 @@ def decide(
         warnings = list(row.warnings)
         if row.candidate_id in filtered.deprecated:
             warnings.append("deprecated")
+        if any(estimate.domain in proxy_only_domains for estimate in estimates):
+            warnings.append("proxy_evidence_only")
         current = model_estimates.get(model_id)
         if current is not None and any(
             other_id != model_id

@@ -60,10 +60,15 @@ def _observations(snapshot: LoadedSnapshot) -> list[CapabilityObservation]:
 
 def _disagreements(
     snapshot: LoadedSnapshot, metadata: Mapping[str, Mapping[str, Any]]
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], int]:
     tags = snapshot.benchmark_domain_tags()
     models = [cid for cid in snapshot.candidates() if snapshot.kind(cid) == "model"]
     rows = []
+    not_separable = 0
+    fitted_benchmarks = {
+        str(item["benchmark"])
+        for item in snapshot.capability_items.values()
+    }
     for domain in snapshot.domain_ids():
         estimated = [
             (snapshot.capability_estimate(model_id, domain), model_id) for model_id in models
@@ -103,6 +108,29 @@ def _disagreements(
             )
             if single_top == estimate_top:
                 continue
+            estimate = snapshot.capability_estimate(estimate_top, domain)
+            benchmark_leader_estimate = snapshot.capability_estimate(single_top, domain)
+            if (
+                estimate is None
+                or benchmark_leader_estimate is None
+                or max(estimate.low, benchmark_leader_estimate.low)
+                <= min(estimate.high, benchmark_leader_estimate.high)
+            ):
+                not_separable += 1
+                continue
+            direct_support = sorted(
+                other_benchmark
+                for other_benchmark, other_tags in tags.items()
+                if other_benchmark != benchmark
+                and other_benchmark in fitted_benchmarks
+                and dict(other_tags).get(domain) == "direct"
+                and snapshot.evidence(estimate_top, other_benchmark)
+            )
+            if not direct_support:
+                raise AssertionError(
+                    f"{domain}/{benchmark}: separable estimate leader {estimate_top} "
+                    "has no other direct evidence"
+                )
             rows.append(
                 {
                     "domain": domain,
@@ -112,14 +140,10 @@ def _disagreements(
                     "single_benchmark_top": single_top,
                     "single_benchmark_date": single.date.isoformat() if single.date else None,
                     "sources": sorted(snapshot.source_url(source) for source in single.source_ids),
-                    "reason": (
-                        "the estimate combines every tagged item with learned "
-                        "discrimination, source offset, directness and recency; the "
-                        "benchmark row uses one measurement"
-                    ),
+                    "supporting_direct_benchmarks": direct_support,
                 }
             )
-    return rows
+    return rows, not_separable
 
 
 def validate(root: Path, report_date: date) -> dict[str, Any]:
@@ -161,6 +185,9 @@ def validate(root: Path, report_date: date) -> dict[str, Any]:
         decide(spec, loaded, facets=registry.facet)
         timings.append((time.perf_counter() - started) * 1000)
 
+    disagreements, not_separable_point_orders = _disagreements(
+        loaded, inputs.benchmark_metadata
+    )
     return {
         "date": report_date.isoformat(),
         "snapshot": loaded.snapshot_id,
@@ -176,7 +203,8 @@ def validate(root: Path, report_date: date) -> dict[str, Any]:
             "runs": len(timings),
             "environment": "local Worker-equivalent Python decision path",
         },
-        "disagreements": _disagreements(loaded, inputs.benchmark_metadata),
+        "disagreements": disagreements,
+        "not_separable_point_orders": not_separable_point_orders,
     }
 
 
@@ -207,14 +235,17 @@ def _markdown(result: dict[str, Any]) -> str:
         f"{latency['median']:.1f} ms; maximum {latency['max']:.1f} ms. "
         f"Measured on the {latency['environment']}; this is not a deployed-Worker network timing.",
         "",
-        "## Estimate/single-benchmark disagreements",
+        "## Separable estimate/single-benchmark disagreements",
         "",
         "Each row compares the estimate leader with the best admitted raw score on one tagged "
-        "benchmark. A disagreement is expected when the other evidence, learned item "
-        "discrimination, source offset, directness or recency changes the combined ordering.",
+        "benchmark. Point-order differences whose estimate intervals overlap are not listed "
+        "as disagreements. The report found "
+        f"{result['not_separable_point_orders']} such not-separable point orders. Every "
+        "listed disagreement names the other direct evidence that can explain it.",
         "",
-        "| Domain | Benchmark | Tag | Estimate leader | Single-benchmark leader | Reading |",
-        "|---|---|---|---|---|---|",
+        "| Domain | Benchmark | Tag | Estimate leader | Single-benchmark leader | "
+        "Other direct evidence | Reading |",
+        "|---|---|---|---|---|---|---|",
     ]
     for row in result["disagreements"]:
         links = ", ".join(f"[{index + 1}]({url})" for index, url in enumerate(row["sources"]))
@@ -223,10 +254,12 @@ def _markdown(result: dict[str, Any]) -> str:
             reading += "; " + links
         lines.append(
             f"| `{row['domain']}` | `{row['benchmark']}` | {row['directness']} | "
-            f"`{row['estimate_top']}` | `{row['single_benchmark_top']}` | {reading} |"
+            f"`{row['estimate_top']}` | `{row['single_benchmark_top']}` | "
+            f"{', '.join(f'`{item}`' for item in row['supporting_direct_benchmarks'])} | "
+            f"{reading} |"
         )
     if not result["disagreements"]:
-        lines.append("| — | No disagreements | — | — | — | — |")
+        lines.append("| — | No disagreements | — | — | — | — | — |")
     return "\n".join(lines) + "\n"
 
 

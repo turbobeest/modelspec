@@ -1033,7 +1033,7 @@ class EvidenceItem(_Strict):
     source: Url
     source_snapshot: str | None = None
     directness: Directness
-    #: Learned benchmark loading in the capability estimate. Added in 1.6.
+    #: Directness loading used in the capability estimate. Added in 1.6.
     loading: float | None = None
     #: Share of the estimate's tagged measurement precision. Added in 1.6.
     estimate_weight: float | None = None
