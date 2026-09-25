@@ -668,13 +668,12 @@ benchmarks:
   scores:
     ifeval: 33.2
     bbh: 47.8
-    math_500: 5.7
-    gpqa_diamond: 31.0
     musr: 39.3
     mmlu_pro: 31.6
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 5.7 and gpqa_diamond 31.0. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for sabersaleh/Llama3, a different repository from this card''s (meta-llama/Llama-3.1-8B-Instruct).'
 deployment:
   api_only: false
   local_inference: false

@@ -731,8 +731,8 @@ benchmarks:
     mmlu_world_religions: 54.4
     ifeval: 20.4
     bbh: 33.7
-    math_500: 3.0
-    gpqa_diamond: 25.5
+    math_lvl5: 3.0
+    gpqa_pooled: 25.5
     musr: 39.8
     mmlu_pro: 13.7
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2

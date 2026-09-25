@@ -669,8 +669,8 @@ benchmarks:
   scores:
     ifeval: 31.5
     bbh: 33.2
-    math_500: 10.3
-    gpqa_diamond: 25.9
+    math_lvl5: 10.3
+    gpqa_pooled: 25.9
     musr: 33.4
     mmlu_pro: 17.2
   benchmark_source: open-llm-leaderboard-v2

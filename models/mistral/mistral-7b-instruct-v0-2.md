@@ -732,8 +732,8 @@ benchmarks:
     mmlu_world_religions: 83.6
     ifeval: 55.0
     bbh: 44.6
-    math_500: 3.0
-    gpqa_diamond: 27.6
+    math_lvl5: 3.0
+    gpqa_pooled: 27.6
     musr: 39.7
     mmlu_pro: 27.2
   evidence:
@@ -1044,9 +1044,8 @@ benchmarks:
       attribution on the benchmark page.
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: math_500 holds the Open LLM
-    Leaderboard v2 "MATH Lvl 5 Raw" value for mistralai/Mistral-7B-Instruct-v0.2. Each value is confirmed for this
-    exact model but is not the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
+  benchmark_notes: 'MODEL-116, 2026-09-24: the Open LLM Leaderboard v2 "MATH Lvl 5 Raw" and "GPQA Raw" values for
+    mistralai/Mistral-7B-Instruct-v0.2 moved from math_500 and gpqa_diamond to math_lvl5 and gpqa_pooled.'
 deployment:
   api_only: false
   local_inference: true

@@ -731,13 +731,12 @@ benchmarks:
     mmlu_world_religions: 83.0
     ifeval: 14.6
     bbh: 46.0
-    math_500: 4.5
-    gpqa_diamond: 30.5
     musr: 36.1
     mmlu_pro: 32.1
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 4.5 and gpqa_diamond 30.5. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for meta-llama/Meta-Llama-3-8B, a different repository from this card''s (NousResearch/Meta-Llama-3-8B).'
 deployment:
   api_only: false
   local_inference: true

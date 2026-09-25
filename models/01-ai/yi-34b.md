@@ -671,8 +671,8 @@ benchmarks:
     winogrande: 83.0
     ifeval: 30.5
     bbh: 54.6
-    math_500: 5.1
-    gpqa_diamond: 36.7
+    math_lvl5: 5.1
+    gpqa_pooled: 36.7
     musr: 41.2
     mmlu_pro: 44.1
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2

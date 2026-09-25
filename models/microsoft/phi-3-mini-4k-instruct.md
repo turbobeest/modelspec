@@ -731,8 +731,6 @@ benchmarks:
     mmlu_world_religions: 83.6
     ifeval: 54.4
     bbh: 55.0
-    math_500: 16.4
-    gpqa_diamond: 32.3
     musr: 42.8
     mmlu_pro: 40.3
   evidence:
@@ -982,7 +980,8 @@ benchmarks:
       attribution on the benchmark page.
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 16.4 and gpqa_diamond 32.3. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for unsloth/Phi-3-mini-4k-instruct, a different repository from this card''s (microsoft/Phi-3-mini-4k-instruct).'
 deployment:
   api_only: false
   local_inference: true

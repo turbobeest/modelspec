@@ -669,8 +669,7 @@ benchmarks:
   scores:
     ifeval: 14.3
     bbh: 55.3
-    math_500: 0.0
-    gpqa_diamond: 31.6
+    gpqa_pooled: 31.6
     musr: 43.9
     mmlu_pro: 41.4
   evidence:
@@ -726,12 +725,25 @@ benchmarks:
     configuration: Open LLM Leaderboard v2 contents row THUDM/glm-4-9b, column "MUSR Raw" x100 (raw accuracy, not
       the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
     limitations: ''
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: THUDM/glm-4-9b
+    score: 31.63
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-04'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 GPQA
+    configuration: Open LLM Leaderboard v2 contents row THUDM/glm-4-9b, column "GPQA Raw" x100 (raw accuracy, not
+      the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
-    LLM Leaderboard v2 "GPQA Raw" value for THUDM/glm-4-9b; math_500 holds the Open LLM Leaderboard v2 "MATH Lvl 5
-    Raw" value for THUDM/glm-4-9b. Each value is confirmed for this exact model but is not the benchmark its key names,
-    so it stays in the flat block and is not promoted to evidence.'
+  benchmark_notes: 'MODEL-116, 2026-09-24: the Open LLM Leaderboard v2 "GPQA Raw" value for THUDM/glm-4-9b moved from
+    gpqa_diamond to gpqa_pooled, and is promoted to evidence. The same run (THUDM/glm-4-9b, open-llm-leaderboard/results)
+    scored exactly 0 on every MATH Lvl 5 subtask, a failed generative run (the model card reports MATH 30.4), so MATH
+    Lvl 5 is left empty.'
 deployment:
   api_only: false
   local_inference: true

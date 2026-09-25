@@ -668,13 +668,13 @@ benchmarks:
   scores:
     ifeval: 13.6
     bbh: 31.9
-    math_500: 0.8
-    gpqa_diamond: 25.2
     musr: 33.8
     mmlu_pro: 10.9
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 0.8 and gpqa_diamond 25.2. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for ministral/Ministral-3b-instruct, a different repository from this card''s (no
+    Hugging Face repo).'
 deployment:
   api_only: false
   local_inference: false

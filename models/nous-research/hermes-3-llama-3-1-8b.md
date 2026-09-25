@@ -670,8 +670,8 @@ benchmarks:
   scores:
     ifeval: 61.7
     bbh: 51.8
-    math_500: 4.8
-    gpqa_diamond: 29.8
+    math_lvl5: 4.8
+    gpqa_pooled: 29.8
     musr: 43.7
     mmlu_pro: 31.4
   evidence:
@@ -727,12 +727,37 @@ benchmarks:
     configuration: Open LLM Leaderboard v2 contents row NousResearch/Hermes-3-Llama-3.1-8B, column "MUSR Raw" x100
       (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
     limitations: ''
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: NousResearch/Hermes-3-Llama-3.1-8B
+    score: 4.76
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-29'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 MATH Lvl 5
+    configuration: Open LLM Leaderboard v2 contents row NousResearch/Hermes-3-Llama-3.1-8B, column "MATH Lvl 5 Raw"
+      x100 (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: NousResearch/Hermes-3-Llama-3.1-8B
+    score: 29.78
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-29'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 GPQA
+    configuration: Open LLM Leaderboard v2 contents row NousResearch/Hermes-3-Llama-3.1-8B, column "GPQA Raw" x100
+      (raw accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
-    LLM Leaderboard v2 "GPQA Raw" value for NousResearch/Hermes-3-Llama-3.1-8B; math_500 holds the Open LLM Leaderboard
-    v2 "MATH Lvl 5 Raw" value for NousResearch/Hermes-3-Llama-3.1-8B. Each value is confirmed for this exact model
-    but is not the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
+  benchmark_notes: 'MODEL-116, 2026-09-24: the Open LLM Leaderboard v2 "MATH Lvl 5 Raw" and "GPQA Raw" values for
+    NousResearch/Hermes-3-Llama-3.1-8B moved from math_500 and gpqa_diamond to math_lvl5 and gpqa_pooled, and are
+    promoted to evidence.'
 deployment:
   api_only: false
   local_inference: true

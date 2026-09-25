@@ -669,8 +669,8 @@ benchmarks:
   scores:
     ifeval: 30.7
     bbh: 31.8
-    math_500: 1.8
-    gpqa_diamond: 26.9
+    math_lvl5: 1.8
+    gpqa_pooled: 26.9
     musr: 33.9
     mmlu_pro: 14.8
   evidence:

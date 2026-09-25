@@ -670,13 +670,12 @@ benchmarks:
     gsm8k: 14.5
     ifeval: 25.2
     bbh: 35.0
-    math_500: 1.7
-    gpqa_diamond: 26.7
     musr: 37.0
     mmlu_pro: 18.6
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 1.7 and gpqa_diamond 26.7. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for meta-llama/Llama-2-7b-hf, a different repository from this card''s (NousResearch/Llama-2-7b-hf).'
 deployment:
   api_only: false
   local_inference: true

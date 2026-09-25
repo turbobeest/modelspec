@@ -670,8 +670,8 @@ benchmarks:
     gsm8k: 34.3
     ifeval: 24.5
     bbh: 40.5
-    math_500: 2.0
-    gpqa_diamond: 25.0
+    math_lvl5: 2.0
+    gpqa_pooled: 25.0
     musr: 37.6
     mmlu_pro: 22.6
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2

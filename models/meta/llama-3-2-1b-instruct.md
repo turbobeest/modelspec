@@ -670,8 +670,6 @@ benchmarks:
   scores:
     ifeval: 58.1
     bbh: 34.8
-    math_500: 8.2
-    gpqa_diamond: 26.8
     musr: 32.0
     mmlu_pro: 17.4
   evidence:
@@ -935,7 +933,8 @@ benchmarks:
     limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 8.2 and gpqa_diamond 26.8. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for unsloth/Llama-3.2-1B-Instruct, a different repository from this card''s (meta-llama/Llama-3.2-1B-Instruct).'
 deployment:
   api_only: false
   local_inference: true

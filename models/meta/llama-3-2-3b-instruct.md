@@ -672,8 +672,8 @@ benchmarks:
     gsm8k: 77.7
     ifeval: 73.9
     bbh: 46.1
-    math_500: 17.7
-    gpqa_diamond: 27.9
+    math_lvl5: 17.7
+    gpqa_pooled: 27.9
     musr: 35.3
     mmlu_pro: 31.9
     medqa: 52.6
