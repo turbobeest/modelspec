@@ -13,7 +13,7 @@ collects a value never verifies it.
    changed region with `Queue.requeue(report)`. The re-check pins each source
    to its new retained copy. `RecheckReport.requeue` refs are `fact:<id>` or
    `evidence:<id>`.
-3. `modelspec verify [--changed-only]` (or `verify.run`) re-reads each pending
+3. `modelspec verify [--changed-only] [--llm-reader claude]` (or `verify.run`) re-reads each pending
    claim from the cited regions of its retained copies. It appends one
    `Verification` per value to `verification/log.jsonl` and prints a summary.
    `--changed-only` skips new values and runs only the re-queued ones.
@@ -30,8 +30,16 @@ first. Deterministic extractors always run first:
 - `KeyValueExtractor`: `Key: value` lists. The region must name the subject
   under a `Model` or `Name` key.
 - `LLMExtractor`: prose. It calls an injected `complete(prompt)` function,
-  and its actor records the model: `llm-extract:<model>`. The CLI does not
-  configure one yet, so a prose region is reported as `skipped`.
+  and its actor records the model: `llm-extract:<model>`. The CLI's
+  `--llm-reader claude` option calls the authenticated Claude CLI with Sonnet 5
+  at low effort. Its verification actor is `claude-cli`, model family
+  `anthropic`. The reader must return the value, unit, conditions and a source
+  sentence. The verifier checks that sentence against the retained cited region.
+
+Claude replies are cached outside the repository under
+`~/.cache/modelspec/llm-reader` by source-copy hash, cited region and facet.
+Set `MODELSPEC_LLM_CACHE` to use another directory. A run stops before its
+401st uncached call. Deterministic extractors still run first.
 
 The first extractor that accepts a region and is independent of the collector
 reads it. `decision.model.Verification` rejects a verifier whose agent and

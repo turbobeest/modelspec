@@ -42,9 +42,12 @@ are ``"fact:<id>"`` or ``"evidence:<id>"``.
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
+import os
 import re
+import subprocess
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
@@ -255,6 +258,8 @@ def unit_id(text: str | None) -> str | None:
     s = re.sub(r"\s*/\s*", "/", re.sub(r"\s+", " ", s)).strip()
     if not s:
         return None
+    if s in {"/1m tokens", "per 1m tokens", "per million tokens"}:
+        return "usd_per_1m_tokens"
     if s in UNITS:
         return s
     if s in _UNIT_SPELLINGS:
@@ -293,6 +298,8 @@ def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None
     """
     if text is None:
         return None
+    text = text.replace(r"\$", "$")
+    text = re.sub(r"(?i)^\s*(?:up to|about|approximately)\s+", "", text)
     m = _NUMBER.match(text)
     if not m:
         return None
@@ -302,7 +309,9 @@ def parse_quantity(text: str | None, hint: str | None = None) -> Quantity | None
     rest = m.group("rest")
     if m.group("cur"):
         hinted = unit_id(hint)
-        if not rest and hinted in {"k_tokens", "m_tokens"}:
+        if not rest and hinted and hinted.startswith("usd_per_"):
+            spelled = hinted
+        elif not rest and hinted in {"k_tokens", "m_tokens"}:
             magnitude = "1k" if hinted == "k_tokens" else "1m"
             spelled = f"usd/{magnitude} tokens"
         else:
@@ -507,6 +516,180 @@ class TableExtractor:
         ]
 
 
+class OfferingPriceExtractor:
+    """Read provider pricing tables whose rows or cells carry price labels."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="offering-price-table@1")
+
+    def accepts(self, text: str) -> bool:
+        return " | " in text and bool(re.search(r"(?i)\b(price|pricing|input|output)\b", text))
+
+    @staticmethod
+    def _wanted(field: str) -> str:
+        return field.removeprefix("offering.price.")
+
+    @staticmethod
+    def _cell_value(cell: str, wanted: str) -> str | None:
+        labels = {
+            "input": "Input",
+            "output": "Output",
+            "cached_input": "Cached Input",
+            "batch_input": "Input",
+            "batch_output": "Output",
+        }
+        pattern = re.compile(
+            rf"(?i)(?<!cached )\b{re.escape(labels[wanted])}\s*:\s*"
+            r"(\\?\$\s*[0-9]+(?:\.[0-9]+)?)"
+        )
+        if wanted == "cached_input":
+            pattern = re.compile(r"(?i)\bCached Input\s*:\s*(\\?\$\s*[0-9]+(?:\.[0-9]+)?)")
+        match = pattern.search(cell)
+        return match.group(1) if match else None
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        wanted = self._wanted(claim.field)
+        if wanted == claim.field:
+            raise ExtractorError("not an offering price")
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        scoped_subject = next((name for name in claim.names
+                               if normalise_name(name) in normalise_name(text)), None)
+        simple_label = {"input": "input", "output": "output",
+                        "cached_input": "cached input"}.get(wanted)
+        if scoped_subject and simple_label:
+            for line in lines:
+                cells = [cell.strip() for cell in line.strip("| ").split("|")]
+                if len(cells) >= 2 and normalise_name(cells[0]) == simple_label:
+                    if match := re.search(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?", cells[1]):
+                        return [Reading(scoped_subject, match.group(0), claim.unit)]
+        if scoped_subject and "price per btok per mtok" in normalise_name(text):
+            if wanted == "input":
+                match = re.search(r"(?im)^\|?\s*Price \(per Btok / per Mtok\).*?"
+                                  r"\\?\$[0-9.]+\s*/\s*(\\?\$[0-9.]+)", text)
+                if match:
+                    return [Reading(scoped_subject, match.group(1), claim.unit)]
+            if wanted == "output" and "output tokens are free" in text.casefold():
+                return [Reading(scoped_subject, "0", claim.unit)]
+        if scoped_subject and wanted == "cached_input":
+            name = re.escape(scoped_subject)
+            pattern = rf"(?is){name}.{{0,160}}?\((\\?\$[0-9.]+)\s+USD per million tokens\)"
+            match = re.search(pattern, text)
+            if match:
+                return [Reading(scoped_subject, match.group(1), claim.unit)]
+        named_readings: list[Reading] = []
+        label = {
+            "input": "input price", "output": "output price",
+            "cached_input": "context caching price",
+            "batch_input": "input price", "batch_output": "output price",
+        }[wanted]
+        desired_mode = "batch" if wanted.startswith("batch_") else "standard"
+        for published in claim.names:
+            start = next((i for i, line in enumerate(lines)
+                          if normalise_name(line) == normalise_name(published)), None)
+            if start is None:
+                continue
+            mode = None
+            for line in lines[start + 1:]:
+                normal = normalise_name(line)
+                if normal.startswith("gemini ") and "-" not in line \
+                        and normal != normalise_name(published):
+                    break
+                if normal in {"standard", "batch", "flex", "priority"}:
+                    mode = normal
+                    continue
+                if mode == desired_mode and normal.startswith(label):
+                    if match := re.search(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?", line):
+                        named_readings.append(Reading(published, match.group(0), claim.unit))
+                        break
+        if named_readings:
+            return named_readings
+        rows = [[part.strip() for part in re.split(r" ?\| ?", line)]
+                for line in text.splitlines() if "|" in line]
+        if len(rows) < 2:
+            raise ExtractorError("no pricing table")
+        headers = [normalise_name(cell) for cell in rows[0]]
+        names = [normalise_name(name) for name in claim.names]
+        current_subject: str | None = None
+        readings: list[Reading] = []
+
+        for row in rows[1:]:
+            if len(row) != len(headers):
+                continue
+            if row[0]:
+                current_subject = row[0]
+            subject = current_subject
+            matched_name = next((claim.names[i] for i, name in enumerate(names)
+                                 if subject and name in normalise_name(subject)), None)
+            if matched_name is None:
+                continue
+            subject = matched_name
+
+            # Azure-style cells contain several labelled prices. Batch prices
+            # live in the column whose header names the Batch API.
+            columns = range(len(row))
+            if wanted.startswith("batch_"):
+                columns = [i for i, header in enumerate(headers) if "batch" in header]
+            else:
+                columns = [i for i, header in enumerate(headers) if "batch" not in header]
+            for i in columns:
+                if value := self._cell_value(row[i], wanted):
+                    readings.append(Reading(subject, value, claim.unit))
+
+            # Vertex-style continuation rows put the price kind in Type and
+            # the value in the first price column.
+            type_i = next((i for i, header in enumerate(headers) if header == "type"), None)
+            if type_i is not None:
+                kind = normalise_name(row[type_i])
+                batch_table = any("batch" in header or "flex" in header for header in headers)
+                has_cache_hit = any(
+                    len(other) == len(headers) and normalise_name(other[type_i]) == "cache hit"
+                    for other in rows[1:]
+                )
+                expected = {
+                    "input": "input", "output": "output",
+                    "cached_input": "cache hit" if has_cache_hit else "input",
+                    "batch_input": "input" if batch_table else "batch input",
+                    "batch_output": "output" if batch_table else "batch output",
+                }[wanted]
+                matches = (
+                    kind.startswith(expected)
+                    or (wanted.endswith("output") and "output" in kind)
+                )
+                if matches:
+                    price_columns = [i for i, header in enumerate(headers)
+                                     if "price" in header and i != type_i]
+                    if wanted == "cached_input":
+                        cached = [i for i in price_columns if "cached" in headers[i]]
+                        price_columns = cached or price_columns
+                    elif price_columns:
+                        uncached = [i for i in price_columns if "cached" not in headers[i]]
+                        price_columns = uncached or price_columns
+                    value = next(
+                        (row[i] for i in price_columns if row[i] and row[i] != "N/A"),
+                        None,
+                    )
+                    if value:
+                        readings.append(Reading(subject, value, claim.unit))
+
+            # AWS-style tables encode each price kind in its column header.
+            if type_i is None:
+                terms = {
+                    "input": ("input tokens",),
+                    "output": ("output tokens",),
+                    "cached_input": ("cache read",),
+                    "batch_input": ("input tokens batch", "input tokens (batch"),
+                    "batch_output": ("output tokens batch", "output tokens (batch"),
+                }[wanted]
+                for i, header in enumerate(headers):
+                    flat = header.replace("price per 1m ", "")
+                    if any(term.replace(" ", "") in flat.replace(" ", "") for term in terms):
+                        if wanted in {"input", "output"} and "batch" in header:
+                            continue
+                        readings.append(Reading(subject, row[i], claim.unit))
+                        break
+        return readings
+
+
 _KEY_VALUE = re.compile(r"^([^:|]{1,60}?)\s*:\s+(.+)$")
 _SUBJECT_KEYS = frozenset({"model", "model name", "name"})
 _DATE_KEYS = frozenset({"date", "as of", "evaluated", "updated", "last updated"})
@@ -543,6 +726,46 @@ class KeyValueExtractor:
         return [Reading(subject=subject, value=pairs.get(_label(claim)),
                         conditions={"effort": pairs.get("effort"),
                                     "harness": pairs.get("harness"), "date": date_})]
+
+
+class GovernanceProseExtractor:
+    """Read explicit provider-wide governance statements with fixed phrase rules."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="governance-prose@1")
+
+    def accepts(self, text: str) -> bool:
+        corpus = text.casefold()
+        return any(term in corpus for term in ("train", "retention", "retained", "stored",
+                                                "soc 2", "business associate agreement", "baa"))
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        corpus = text.casefold()
+        subject = claim.names[0]
+        if claim.field == "offering.data.trains_on_customer_data":
+            phrases = ("does not use your prompts", "never trains on your api",
+                       "not used to train", "not fine-tuned or lora-adapted with customer data")
+            if any(phrase in corpus for phrase in phrases):
+                return [Reading(subject, "false")]
+        elif claim.field == "offering.data.zero_retention":
+            if "guaranteed zero data retention" in corpus and "use vertex ai" in corpus:
+                return [Reading(subject, "false")]
+            if "never persisted to disk" in corpus or "no storage of prompts" in corpus:
+                return [Reading(subject, "true")]
+        elif claim.field == "offering.data.retention":
+            match = re.search(r"(?is)(?:retained|stored).{0,100}?\b(\d+)\s*days?", text)
+            if match:
+                return [Reading(subject, match.group(1), "days")]
+        elif claim.field == "offering.attestation.soc2":
+            if re.search(r"(?i)SOC\s*2\s*Type\s*(?:2|II)", text):
+                return [Reading(subject, "SOC 2 Type 2")]
+        elif claim.field == "offering.attestation.baa":
+            if "business associate agreement" in corpus and any(
+                phrase in corpus
+                for phrase in ("review and accept", "enter into an agreement")
+            ):
+                return [Reading(subject, "BAA available")]
+        return []
 
 
 class ModelPageExtractor:
@@ -603,7 +826,8 @@ class ModelPageExtractor:
             normal = normalise_name(line)
             if normal in aliases:
                 value = lines[i + 1] if i + 1 < len(lines) else None
-                readings.append(Reading(subject=subject, value=value))
+                unit = claim.unit if claim.field.startswith("offering.price.") else None
+                readings.append(Reading(subject=subject, value=value, unit=unit))
                 continue
             suffix = next((alias for alias in aliases if normal.endswith(" " + alias)), None)
             if suffix:
@@ -612,6 +836,35 @@ class ModelPageExtractor:
                 words = len(suffix.split())
                 value = " ".join(line.split()[:-words])
                 readings.append(Reading(subject=subject, value=value, unit=claim.unit))
+
+        if claim.field in {"offering.price.batch_input", "offering.price.batch_output"} \
+                and re.search(r"(?i)batch(?: and flex)? (?:are )?priced at 50%", text):
+            base_label = "input" if claim.field.endswith("batch_input") else "output"
+            for i, line in enumerate(lines[:-1]):
+                if normalise_name(line) != base_label:
+                    continue
+                quantity = parse_quantity(lines[i + 1], claim.unit)
+                if quantity is not None:
+                    readings.append(Reading(subject, str(quantity.number / 2), claim.unit))
+        if claim.field in {"offering.price.batch_input", "offering.price.batch_output"} \
+                and "Batch API price" in lines:
+            start = lines.index("Batch API price")
+            base_label = "input" if claim.field.endswith("batch_input") else "output"
+            for i in range(start + 1, len(lines) - 1):
+                if normalise_name(lines[i]) == base_label:
+                    quantity = parse_quantity(lines[i + 1], claim.unit)
+                    if quantity is not None:
+                        readings.append(Reading(subject, str(quantity.number), claim.unit))
+                        break
+        if claim.field == "offering.price.cached_input" and "Cached tokens" in lines:
+            i = lines.index("Cached tokens")
+            if i + 1 < len(lines):
+                readings.append(Reading(subject, lines[i + 1], claim.unit))
+        if claim.field in {"offering.price.batch_input", "offering.price.batch_output"} \
+                and "Batch API" in lines:
+            i = lines.index("Batch API")
+            if i + 1 < len(lines):
+                readings.append(Reading(subject, lines[i + 1]))
 
         if claim.field == "model.class" and subject is not None:
             identity = normalise_name(f"{claim.subject} {' '.join(claim.names)}")
@@ -728,7 +981,10 @@ report every value it gives for "{label}", for any model.
 Return only a JSON array. One object per value, with these string fields (null
 when the region does not say): "subject" (the model name exactly as written),
 "value" (the number or text exactly as written), "unit", "effort", "harness",
-"date". Return [] if the region gives no such value. Do not infer or convert.
+"date", and "quoted_sentence" (the exact sentence containing the value).
+Return [] if the region gives no such value. Do not infer, convert, combine
+sentences, or use knowledge outside the source region. A quoted sentence must
+appear verbatim in the source region.
 
 The model being checked is published as: {names}.
 
@@ -739,6 +995,75 @@ Source region:
 """
 
 
+class LLMCallBudgetExceededError(RuntimeError):
+    """The configured live-reader call budget has been exhausted."""
+
+
+class ClaudeCLICompletion:
+    """Call the authenticated Claude CLI and return its assistant text."""
+
+    def __init__(self, *, max_calls: int = 400) -> None:
+        self.max_calls = max_calls
+        self.calls = 0
+
+    def __call__(self, prompt: str) -> str:
+        if self.calls >= self.max_calls:
+            raise LLMCallBudgetExceededError(
+                f"stopped before exceeding the {self.max_calls}-call budget"
+            )
+        self.calls += 1
+        command = [
+            "claude", "-p", prompt, "--model", "claude-sonnet-5", "--effort", "low",
+            "--output-format", "json",
+        ]
+        try:
+            completed = subprocess.run(
+                command,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except OSError as exc:
+            raise ExtractorError(f"Claude CLI could not start: {exc}") from exc
+        if completed.returncode != 0:
+            detail = completed.stderr.strip() or f"exit {completed.returncode}"
+            raise ExtractorError(f"Claude CLI failed: {detail}")
+        try:
+            envelope = json.loads(completed.stdout)
+            result = envelope["result"]
+            if not isinstance(result, str):
+                raise TypeError("result is not text")
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ExtractorError(f"Claude CLI returned an invalid JSON envelope: {exc}") from exc
+        return result
+
+
+class LLMCache:
+    """Persistent reader replies keyed by source copy, cited region and facet."""
+
+    def __init__(self, root: str | Path | None = None) -> None:
+        configured = os.environ.get("MODELSPEC_LLM_CACHE")
+        self.root = Path(root or configured or Path.home() / ".cache/modelspec/llm-reader")
+
+    def _path(self, key: tuple[str, str, str]) -> Path:
+        digest = hashlib.sha256(
+            json.dumps(("strict-reader-v2", *key), ensure_ascii=False,
+                       separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        return self.root / digest[:2] / f"{digest}.json"
+
+    def get(self, key: tuple[str, str, str]) -> str | None:
+        path = self._path(key)
+        return path.read_text(encoding="utf-8") if path.is_file() else None
+
+    def put(self, key: tuple[str, str, str], reply: str) -> None:
+        path = self._path(key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if not path.exists():
+            path.write_text(reply, encoding="utf-8")
+
+
 class LLMExtractor:
     """Reads prose through ``complete(prompt) -> str``, an injected model call.
 
@@ -747,30 +1072,61 @@ class LLMExtractor:
     """
 
     def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
-                 model_family: str) -> None:
+                 model_family: str, cache: LLMCache | None = None) -> None:
         self.complete = complete
+        self.cache = cache
         self.actor = VerificationActor(agent=agent, model_family=model_family,
                                        method=f"llm-extract:{model}")
 
     def accepts(self, text: str) -> bool:
         return bool(text.strip())
 
-    def extract(self, claim: Claim, text: str) -> list[Reading]:
+    def extract(self, claim: Claim, text: str, *,
+                cache_key: tuple[str, str, str] | None = None) -> list[Reading]:
         prompt = LLM_PROMPT.format(label=claim.label or claim.field.replace("_", " "),
                                    names=", ".join(claim.names), text=text)
-        reply = self.complete(prompt)
+        reply = self.cache.get(cache_key) if self.cache is not None and cache_key else None
+        if reply is None:
+            reply = self.complete(prompt)
         try:
-            rows = json.loads(reply)
+            cleaned = reply.strip()
+            if cleaned.startswith("```json") and cleaned.endswith("```"):
+                cleaned = cleaned[7:-3].strip()
+            rows = json.loads(cleaned)
             if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
                 raise ValueError("not a list of objects")
-            return [
-                Reading(subject=_text(r.get("subject")), value=_text(r.get("value")),
+            for row in rows:
+                quote = row.get("quoted_sentence")
+                if not isinstance(quote, str) or not quote.strip() or \
+                        normalise_name(quote) not in normalise_name(text):
+                    raise ValueError("quoted_sentence is missing or is not verbatim source text")
+            readings = [
+                Reading(subject=_text(r.get("subject")) or claim.names[0],
+                        value=_text(r.get("value")),
                         unit=_text(r.get("unit")),
                         conditions={k: _text(r.get(k)) for k in CONDITION_KEYS})
                 for r in rows
             ]
+            if not readings and claim.value is None:
+                readings = [Reading(subject=claim.names[0], value=None)]
+            if self.cache is not None and cache_key:
+                self.cache.put(cache_key, reply)
+            return readings
         except ValueError as exc:
             raise ExtractorError(f"unparseable reply from {self.actor.method}: {exc}") from exc
+
+
+def claude_extractor(*, cache: LLMCache | None = None,
+                     complete: Callable[[str], str] | None = None,
+                     max_calls: int = 400) -> LLMExtractor:
+    """The independent Claude Sonnet reader used by ``modelspec verify``."""
+    return LLMExtractor(
+        complete or ClaudeCLICompletion(max_calls=max_calls),
+        agent="claude-cli",
+        model="claude-sonnet-5",
+        model_family="anthropic",
+        cache=cache or LLMCache(),
+    )
 
 
 def _text(value: Any) -> str | None:
@@ -778,7 +1134,8 @@ def _text(value: Any) -> str | None:
 
 
 def deterministic_extractors() -> list[Extractor]:
-    return [StructuredDataExtractor(), TableExtractor(), KeyValueExtractor(), ModelPageExtractor()]
+    return [StructuredDataExtractor(), OfferingPriceExtractor(), TableExtractor(),
+            GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor()]
 
 
 # --- regions -------------------------------------------------------------------------------------
@@ -829,7 +1186,9 @@ class Diff:
 
 
 _TRUE = frozenset({"yes", "true", "supported", "available", "y", "✓", "✔"})
-_FALSE = frozenset({"no", "none", "false", "not supported", "unsupported", "unavailable", "n", "✗", "✘"})
+_FALSE = frozenset({
+    "no", "none", "false", "not supported", "unsupported", "unavailable", "n", "✗", "✘",
+})
 
 
 def _show(claim: Claim) -> JsonValue:
@@ -852,7 +1211,10 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
             ))
         )
         explicit_available = (
-            ("zero data retention" in s and not any(x in s for x in ("not available", "unavailable")))
+            (
+                "zero data retention" in s
+                and not any(x in s for x in ("not available", "unavailable"))
+            )
             or ("baa" in s and any(x in s for x in ("available", "eligible")))
         )
         found = (True if s in _TRUE or explicit_available
@@ -877,7 +1239,9 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         return None if found_items == claimed_items else Diff("value", expected, reading.value)
     expected_name = normalise_name(str(value))
     found_name = normalise_name(reading.value)
-    if expected_name == "not offered" and found_name in {"n a", "na", "not available"}:
+    if expected_name == "not offered" and found_name in {
+        "n a", "na", "not available", "not supported",
+    }:
         return None
     if expected_name == found_name:
         return None
@@ -997,7 +1361,14 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 continue
             for extractor in independent:
                 try:
-                    readings = extractor.extract(claim, text)
+                    if isinstance(extractor, LLMExtractor):
+                        readings = extractor.extract(
+                            claim,
+                            text,
+                            cache_key=(source.snapshot_ref, region_id, claim.field),
+                        )
+                    else:
+                        readings = extractor.extract(claim, text)
                 except ExtractorError as exc:
                     reasons.append(f"extractor_error:{where}: {exc}")
                     continue
@@ -1221,11 +1592,14 @@ def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequen
 
 
 __all__ = [
-    "Claim", "CONDITION_KEYS", "Diff", "Extractor", "ExtractorError", "KeyValueExtractor",
-    "LLMExtractor", "ModelPageExtractor", "Quantity", "Queue", "Reading", "Regions", "Result",
+    "Claim", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff", "Extractor", "ExtractorError",
+    "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
+    "LLMExtractor", "ModelPageExtractor", "OfferingPriceExtractor", "Quantity", "Queue", "Reading",
+    "Regions", "Result",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "TableExtractor", "TOLERANCE_RULE",
     "UNITS", "VerificationLog", "compare",
-    "deterministic_extractors", "is_quarantined", "load_sources", "numbers_agree",
+    "claude_extractor", "deterministic_extractors", "is_quarantined", "load_sources",
+    "numbers_agree",
     "parse_quantity", "quarantined_values", "run", "split_model_cell", "target_ref", "unit_id",
     "verify",
 ]
