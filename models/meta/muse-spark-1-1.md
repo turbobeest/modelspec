@@ -689,6 +689,15 @@ benchmarks:
       2026-09-13, read 2026-09-24. Rank 15, 27615 votes, interval [1475.35, 1485.0].
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC
       BY 4.0.
+    id: meta/muse-spark-1-1#arena_elo_overall#efdcadcfd60c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      cited_regions:
+      - rows
   - benchmark_id: arena_elo_vision
     model_id_as_evaluated: muse-spark-1.1
     score: 1294.16
@@ -703,6 +712,15 @@ benchmarks:
       2026-09-13, read 2026-09-24. Rank 21, 8447 votes, interval [1286.17, 1302.16].
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC
       BY 4.0.
+    id: meta/muse-spark-1-1#arena_elo_vision#c2537b6cc314
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision
+      snapshot_ref: sha256:12075d19b12efd468a1bd4314619e07e2f44409bd500c3c2cb0ca3d2b813fa7b
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: muse-spark-1.1
     score: 1542.36
@@ -741,6 +759,15 @@ benchmarks:
       asterisk means mini-swe-agent, as the page states.
     limitations: Public split only. The same page lists a private-split row at 51.5,
       which is not this number.
+    id: meta/muse-spark-1-1#swe_bench_pro#6857d2ed9fb3
+    measured_by: independent_evaluator
+    effort: null
+    harness: unregistered
+    sources:
+    - source_id: model-160-scale-swe-bench-pro-public
+      snapshot_ref: sha256:b0df5d5cbc6fd2c3925e740d0379f6570e00d58b98ca576c8141e6af67dc0666
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

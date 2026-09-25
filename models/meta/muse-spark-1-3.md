@@ -689,6 +689,15 @@ benchmarks:
       2026-09-13, read 2026-09-24. Rank 10, 4723 votes, interval [1480.91, 1498.57].
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC
       BY 4.0.
+    id: meta/muse-spark-1-3#arena_elo_overall#823c259bcf5b
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      cited_regions:
+      - rows
   - benchmark_id: arena_elo_vision
     model_id_as_evaluated: muse-spark-1.3-max
     score: 1314.56
@@ -703,6 +712,15 @@ benchmarks:
       2026-09-13, read 2026-09-24. Rank 8, 1804 votes, interval [1299.74, 1329.38].
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC
       BY 4.0.
+    id: meta/muse-spark-1-3#arena_elo_vision#673d2dfdef97
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision
+      snapshot_ref: sha256:12075d19b12efd468a1bd4314619e07e2f44409bd500c3c2cb0ca3d2b813fa7b
+      cited_regions:
+      - rows
   - benchmark_id: arena_webdev
     model_id_as_evaluated: muse-spark-1.3-max
     score: 1658.22
@@ -749,6 +767,28 @@ benchmarks:
       snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
       cited_regions:
       - rows
+  - benchmark_id: cursorbench_4
+    model_id_as_evaluated: Muse Spark 1.3
+    score: 41.6
+    unit: percent
+    source_url: https://cursor.com/cursorbench
+    source_kind: benchmark_author
+    evidence_date: '2026-09-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: CursorBench 4.0
+    configuration: Cursor's CursorBench 4.0 board read 2026-09-25; the board states no row date,
+      so the reading is dated by the observation. Highest-effort row (max); $2.64 a task.
+    limitations: Runs only in Cursor's production agent harness.
+    effort: max
+    harness: null
+    measured_by: benchmark_author
+    sources:
+    - source_id: model-160-cursorbench
+      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      cited_regions:
+      - rows
+    id: meta/muse-spark-1-3#cursorbench_4#6e9469c005d3
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

@@ -176,9 +176,9 @@ def test_glm52_arena_row_is_on_the_product_card():
         if e.get("benchmark_id") == "arena_elo_style_control"
         and e.get("model_id_as_evaluated") == "glm-5.2-max"
     ]
-    # MODEL-143 re-read the row from the retained CC BY dataset snapshot and
-    # preserved its full published precision.
-    assert arena and arena[0]["score"] == 1466.9328617073902
+    # The text_style_control rating (MODEL-160). MODEL-143 had replaced it with the
+    # raw `text` config's 1466.93, which is not a style-controlled score.
+    assert arena and arena[0]["score"] == 1472.1
     assert arena[0]["evidence_date"] == "2026-09-13"
     assert all(e.get("source_url", "").startswith("https://") for e in rows)
     scraped = [e for e in rows if e.get("source_url", "").startswith("https://lmarena.ai")]

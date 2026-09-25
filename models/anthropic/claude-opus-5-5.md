@@ -801,7 +801,7 @@ benchmarks:
     unit: percent
     source_url: https://cursor.com/cursorbench
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: CursorBench 4.0
@@ -809,6 +809,15 @@ benchmarks:
       per its changelog); the board states no row date, so the reading is dated by the observation.
       Highest-effort row (max); $13.43 a task.
     limitations: Runs only in Cursor's production agent harness.
+    id: anthropic/claude-opus-5-5#cursorbench_4#c17f30f6758e
+    measured_by: benchmark_author
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-cursorbench
+      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      cited_regions:
+      - rows
   - benchmark_id: healthbench_professional
     model_id_as_evaluated: Claude Opus 5.5
     score: 65.6

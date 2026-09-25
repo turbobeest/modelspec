@@ -670,7 +670,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: claude-opus-4-7-high
-    score: 1489.9999284927271
+    score: 1501.75
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -684,13 +684,13 @@ benchmarks:
       rank 3.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: anthropic/claude-opus-4-7#arena_elo_style_control#fa6f9e1a89c6
+    id: anthropic/claude-opus-4-7#arena_elo_style_control#0a7c2627001a
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding
@@ -709,6 +709,15 @@ benchmarks:
       rank 2.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_coding#81b78d5fd27a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1525.87
@@ -725,6 +734,15 @@ benchmarks:
       rank 4.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_hard_prompts#b1d4bf683b47
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1503.17
@@ -740,6 +758,15 @@ benchmarks:
       max-effort rule). Rating 1503.17 [1492.02, 1514.33], 3030 votes, rank 11.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_math#7c57dab54dd2
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1488.38
@@ -756,6 +783,15 @@ benchmarks:
       rank 5.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_creative_writing#4fb5fd2d6c36
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1502.7
@@ -772,6 +808,15 @@ benchmarks:
       rank 3.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_instruction_following#67c0af854c0d
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1515.58
@@ -788,6 +833,15 @@ benchmarks:
       rank 4.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_multi_turn#1cfe78964a4a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1532.95
@@ -804,6 +858,15 @@ benchmarks:
       rank 6.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_expert#fdfa05b75ae0
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1514.43
@@ -820,6 +883,15 @@ benchmarks:
       rank 4.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_longer_query#6a7086edbbbe
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1491.09
@@ -836,6 +908,15 @@ benchmarks:
       rank 4.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_non_english#bfb47f630f9c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1519.62
@@ -853,6 +934,15 @@ benchmarks:
       rank 3.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_medicine#80f5e61c9e77
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1511.81
@@ -870,6 +960,15 @@ benchmarks:
       rank 3.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_legal#d17e0af5d907
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1507.82
@@ -887,6 +986,15 @@ benchmarks:
       rank 2.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_business#dea53443a148
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1525.65
@@ -904,6 +1012,15 @@ benchmarks:
       rank 4.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_science#143e4a18b65c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: claude-opus-4-7-high
     score: 1495.46
@@ -921,9 +1038,18 @@ benchmarks:
       rank 5.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: anthropic/claude-opus-4-7#arena_sc_writing#ced2e9e39c32
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: claude-opus-4-7-high
-    score: 1316.0651308650738
+    score: 1300.94
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -937,13 +1063,13 @@ benchmarks:
       rank 3.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: anthropic/claude-opus-4-7#arena_sc_vision#38f8ad9eb259
+    id: anthropic/claude-opus-4-7#arena_sc_vision#838277a31132
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-vision-json
-      snapshot_ref: sha256:6f953385cd16118776e1dd3dbabb27560797db96b5da07fe4fc336150b37962e
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
       cited_regions:
       - rows
   - benchmark_id: arena_webdev
@@ -1031,6 +1157,15 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-27T19:27:26.000Z; effort xhigh; highest-effort run
       for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.58 points.
     limitations: Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-opus-4-7#simpleqa_verified#69e840f04dba
+    measured_by: independent_evaluator
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
   - benchmark_id: swe_bench_verified
     model_id_as_evaluated: claude-opus-4-7_max
     score: 83.47
@@ -1060,7 +1195,7 @@ benchmarks:
     unit: percent
     source_url: https://osworld-v2.xlang.ai/
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: OSWorld 2.0, binary completion, full set
@@ -1069,13 +1204,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule). Step budget 500, tool setting batched tool.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-opus-4-7#osworld_2#8a3543ba95df
+    measured_by: benchmark_author
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-osworld
+      snapshot_ref: sha256:1dcb90295d11405244342556a3f7b15ecf324b0050afafbf7e1bb4e27c246d4c
+      cited_regions:
+      - rows
   - benchmark_id: frontiercode_v1_1
-    model_id_as_evaluated: Claude Opus 4.7
-    score: 38.54
+    model_id_as_evaluated: Opus 4.7
+    score: 38.5
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
@@ -1084,13 +1228,22 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule). Harness claude-code.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-opus-4-7#frontiercode_v1_1#72965ef52bd2
+    measured_by: benchmark_author
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-frontiercode
+      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      cited_regions:
+      - rows
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Claude Opus 4.7
     score: 10936.76
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
@@ -1099,6 +1252,15 @@ benchmarks:
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: anthropic/claude-opus-4-7#vending_bench_2#29dc325e7df7
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      cited_regions:
+      - rows
   - benchmark_id: hle
     model_id_as_evaluated: claude-opus-4-7
     score: 36.2
@@ -1128,7 +1290,7 @@ benchmarks:
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-25'
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: AIME 2026, MathArena final-answer table
@@ -1137,6 +1299,15 @@ benchmarks:
       MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
+    id: anthropic/claude-opus-4-7#aime_2026#625980cec19d
+    measured_by: independent_evaluator
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-160-matharena-aime-2026
+      snapshot_ref: sha256:f7e2ee1441375d33b08d553c6ddda60da7f3b453145ab0eeb26d5ca4a49484e9
+      cited_regions:
+      - rows
   - benchmark_id: tau3_banking
     model_id_as_evaluated: Claude Opus 4.7 (max)
     score: 40.21
@@ -1152,6 +1323,15 @@ benchmarks:
       1.0.1. pass^4 24.742268041237114.
     limitations: Banking_knowledge evaluation with AllTools retrieval, GPT-5.2 low-reasoning
       user simulation, four trials, and seed 300.
+    id: anthropic/claude-opus-4-7#tau3_banking#13c937b46d58
+    measured_by: benchmark_author
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-tau-bench-claude-opus-4-7-sierra-2026-05-05
+      snapshot_ref: sha256:30df0599dd45109246461e3fdde8439468021683f2b5b97f391777394daa0ef7
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
