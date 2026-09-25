@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 import yaml
 
-from decision.contract import Decision, Spec, parse_spec
+from decision.contract import Decision, MayQualify, Spec, parse_spec
 from decision.engine import decide
 from decision.filter import apply
 from decision.optimise import EvidenceSelector
@@ -98,6 +98,32 @@ def _models(entries: Sequence[Mapping[str, Any]]) -> set[str]:
 
 def _model_ids(snapshot: LoadedSnapshot) -> set[str]:
     return {snapshot.model_of(candidate) for candidate in snapshot.candidates()}
+
+
+def _one_row_per_model(decision: Decision, limit: int) -> Decision:
+    """The decision as the recall questions read it: one row per model.
+
+    The engine ranks offerings, and a model's offerings share its evidence, so
+    they rank together. A question asks which model, so each model keeps its
+    best-ranked row, up to ``limit`` models, ranked among models. Its
+    ``may_qualify`` entries merge into one, with every facet they are unknown on.
+    """
+    results, seen = [], set()
+    for result in decision.results:
+        if result.offering.model in seen:
+            continue
+        seen.add(result.offering.model)
+        results.append(result.model_copy(update={"rank": len(results) + 1}))
+        if len(results) == limit:
+            break
+    flagged: dict[str, MayQualify] = {}
+    for item in decision.may_qualify:
+        first = flagged.setdefault(item.model, item)
+        if first is not item:
+            unknown = list(dict.fromkeys([*first.unknown, *item.unknown]))
+            flagged[item.model] = first.model_copy(update={"unknown": unknown})
+    return decision.model_copy(
+        update={"results": results, "may_qualify": list(flagged.values())})
 
 
 def _decision_models(decision: Decision) -> tuple[list[str], set[str]]:
@@ -436,6 +462,9 @@ def _markdown(
         "that is absent, ambiguous, or quarantined. Engine-behavior findings cover decisions that "
         "rank an unacceptable or indeterminate winner, surface forbidden models, or fail to list "
         "an in-snapshot model under `may_qualify`.",
+        "- The engine ranks offerings. Each question asks which model, so the runner asks for "
+        "every row and keeps each model's best-ranked row, up to the spec's `limit` in models; "
+        "`may_qualify` shows each model once. Decision IDs are for the spec with `limit: 500`.",
         "",
     ]
     if completeness_gaps:
@@ -543,7 +572,11 @@ def run(
                 encoding="utf-8"
             )
             spec: Spec = parse_spec(raw_spec, facets=registry.facet)
-            decision = decide(spec, snapshot, facets=registry.facet)
+            # Ask for every row, then keep the spec's limit in models, not offerings.
+            decision = _one_row_per_model(
+                decide(spec.model_copy(update={"limit": 500}), snapshot, facets=registry.facet),
+                spec.limit,
+            )
             rows.append(
                 _score(
                     question,

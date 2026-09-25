@@ -106,3 +106,32 @@ def test_the_direct_detector_reads_directness_against_the_request() -> None:
     assert _direct_objective_has_a_value(asks("agentic_tool_use"), index, {"lab/alpha"}, registry)
     assert not _direct_objective_has_a_value(
         asks("software_engineering"), index, {"lab/alpha"}, registry)
+
+
+def test_the_runner_judges_one_row_per_model() -> None:
+    """The recall questions ask which model; the engine ranks offerings (MODEL-158)."""
+    from decision.contract import Decision, MayQualify, OfferingRef, Result
+    from scripts.recall_run import _one_row_per_model
+
+    def sold(mid: str, provider: str | None = None) -> OfferingRef:
+        if provider is None:
+            return OfferingRef(model=mid)
+        return OfferingRef(model=mid, provider=provider, region="global", tier="standard")
+
+    ranked = [sold("lab/a", "p1"), sold("lab/a"), sold("lab/a", "p2"),
+              sold("lab/b", "p1"), sold("lab/c", "p1"), sold("lab/d", "p1")]
+    decision = Decision(
+        decision_id="dec_0123456789ab", snapshot="snap_0123456789abcdef",
+        spec_hash="sha256:" + "0" * 64, explain="none", status="partial",
+        results=[Result(rank=i + 1, offering=o) for i, o in enumerate(ranked)],
+        may_qualify=[
+            MayQualify(model="lab/e", offering=sold("lab/e", "p1"), unknown=["x"]),
+            MayQualify(model="lab/e", unknown=["y"]),
+            MayQualify(model="lab/f", unknown=["x"]),
+        ],
+    )
+    grouped = _one_row_per_model(decision, limit=3)
+    assert [(r.rank, r.offering.model, r.offering.provider) for r in grouped.results] == [
+        (1, "lab/a", "p1"), (2, "lab/b", "p1"), (3, "lab/c", "p1")]
+    assert [(m.model, m.unknown) for m in grouped.may_qualify] == [
+        ("lab/e", ["x", "y"]), ("lab/f", ["x"])]

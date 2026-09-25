@@ -729,6 +729,15 @@ benchmarks:
       copied to either card. Adaptive thinking, max effort. 15 trials per task, Claude
       Code --bare, max effort; SE ±1.6-2 pts.
     limitations: ''
+    id: anthropic/claude-fable-5-1#terminal_bench_v4_0#be4c454ede6e
+    measured_by: provider_self_report
+    effort: max
+    harness: unregistered
+    sources:
+    - source_id: model-158-anthropic-claude-fable-5-1-system-card
+      snapshot_ref: sha256:7aa537ec09dd282f94919a8dd407403be66d1b482b50a36effe46a42213b01b9
+      cited_regions:
+      - terminal-bench-4-0
   - benchmark_id: terminal_bench_science
     model_id_as_evaluated: Claude Fable 5.1
     score: 52.6
@@ -1164,7 +1173,7 @@ benchmarks:
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
   - benchmark_id: terminal_bench_v4_0
-    model_id_as_evaluated: Fable 5.1 (max) with Claude Code
+    model_id_as_evaluated: Fable 5.1
     score: 57.88
     unit: percent
     source_url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
@@ -1177,6 +1186,15 @@ benchmarks:
       reasoning effort max, 330 trials, accuracy 57.88 ± 3.76 (95% CI). The board''s row date
       is the evidence date. Highest-effort row for the model, best agent on a tie.'
     limitations: The agent harness differs between rows; compare rows with the same agent.
+    id: anthropic/claude-fable-5-1#terminal_bench_v4_0#18b78bc593ca
+    measured_by: benchmark_author
+    effort: max
+    harness: unregistered
+    sources:
+    - source_id: model-143-evidence-terminal-bench-4-0-json
+      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      cited_regions:
+      - rows
   - benchmark_id: hle
     model_id_as_evaluated: Fable 5.1 (xhigh)
     score: 46.5

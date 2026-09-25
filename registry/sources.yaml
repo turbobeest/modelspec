@@ -1199,3 +1199,14 @@ sources:
     locator:
       kind: page
       value: ''
+# MODEL-158: the Fable 5.1 system card is a PDF, which the normaliser cannot read
+# yet; its retained copy is the pypdf text of section 8.6 (Terminal-Bench 4.0).
+- id: model-158-anthropic-claude-fable-5-1-system-card
+  url: https://www.anthropic.com/claude-fable-5-1-system-card
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: terminal-bench-4-0
+    locator:
+      kind: page
+      value: ''

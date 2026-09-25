@@ -949,11 +949,28 @@ class _FacetBitsets:
 
 
 class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
-    """Materialise one candidate's evidence on first access."""
+    """Materialise one candidate's evidence on first access.
 
-    def __init__(self, rows: Mapping[str, Sequence[Sequence[Any]]]):
+    An offering answers its model's evidence: capability belongs to the model,
+    and an offering is that model as one provider sells it. The offering's own
+    measurements of a benchmark, when it has any, replace its model's for that
+    benchmark. The stored snapshot keeps evidence under its subject only.
+    """
+
+    def __init__(self, rows: Mapping[str, Sequence[Sequence[Any]]],
+                 model_of: Mapping[str, str]):
         super().__init__()
         self.rows = rows
+        self.model_of = model_of
+
+    def _rows(self, cid: str) -> list[Sequence[Any]]:
+        own = list(self.rows.get(cid, ()))
+        model = self.model_of.get(cid, cid)
+        if model == cid:
+            return own
+        measured = {r[0] for r in own}
+        inherited = [r for r in self.rows.get(model, ()) if r[0] not in measured]
+        return sorted(own + inherited, key=lambda r: (r[0], r[8] or "", r[3], canonical_json(r)))
 
     def __missing__(self, cid: str) -> tuple[EvidenceValue, ...]:
         self[cid] = tuple(
@@ -963,7 +980,7 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
                           record_id=r[10] if len(r) > 10 else None,
                           date_type=r[11] if len(r) > 11 else None,
                           source_snapshot=r[12] if len(r) > 12 else None)
-            for r in self.rows.get(cid, ()))
+            for r in self._rows(cid))
         return self[cid]
 
 
@@ -1030,7 +1047,8 @@ class LoadedSnapshot:
         }
 
         self._evidence = _Evidence({cid: rows for section in sections
-                                    for cid, rows in section["evidence"].items()})
+                                    for cid, rows in section["evidence"].items()},
+                                   {cid: meta["model"] for cid, meta in self._meta.items()})
         self._evidence_bits: dict[tuple[Any, ...], _FacetBitsets] = {}
         self._benchmarks = tuple(sorted(content["benchmark_domains"]))
         self._domains: dict[str, list[tuple[str, str]]] = {}

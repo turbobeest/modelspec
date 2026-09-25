@@ -919,3 +919,40 @@ def test_claims_build_from_model_evidence(store, regions) -> None:
     # the claim dropped a qualifier the source attaches to the value.
     result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
     assert [d.field for d in result.diffs] == ["harness"]
+
+
+def _harness_reading(harness: str | None) -> _FakeLLM:
+    return _FakeLLM(json.dumps([{
+        "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens", "harness": harness,
+        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+    }]))
+
+
+@pytest.mark.parametrize(("found", "outcome"), [
+    ("Claude Code in --bare mode", "verified"),  # named, but no registered version
+    ("claude-code@2.1.282", "mismatch"),  # a registered harness is not `unregistered`
+    (None, "mismatch"),  # the source names no harness at all
+])
+def test_an_unregistered_harness_claim_matches_a_named_unregistered_harness(
+        store, regions, found, outcome) -> None:
+    claim = _prose_claim(store)
+    claim = verify.Claim(**{**claim.__dict__, "conditions": {"harness": "unregistered"}})
+    result = verify.verify(claim, regions, [_harness_reading(found).extractor], today=TODAY)
+    assert result.outcome == outcome
+    if outcome == "mismatch":
+        assert [d.field for d in result.diffs] == ["harness"]
+
+
+@pytest.mark.parametrize(("found", "outcome"), [
+    ("maximum thinking effort", "verified"),
+    ("max reasoning effort", "verified"),
+    ("high thinking effort", "mismatch"),
+])
+def test_an_effort_written_as_prose_is_read_as_its_level(store, regions, found, outcome) -> None:
+    claim = _prose_claim(store)
+    claim = verify.Claim(**{**claim.__dict__, "conditions": {"effort": "max"}})
+    reading = _FakeLLM(json.dumps([{
+        "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens", "effort": found,
+        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+    }]))
+    assert verify.verify(claim, regions, [reading.extractor], today=TODAY).outcome == outcome

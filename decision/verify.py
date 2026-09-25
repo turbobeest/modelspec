@@ -72,6 +72,8 @@ from decision.normalise import (
     normalise_document,
     select_region,
 )
+from decision.registry import UNREGISTERED
+from decision.registry import default as default_registry
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -362,7 +364,8 @@ EFFORT_LEVELS = frozenset(
 _EFFORT_ALIASES = {"maximum": "max", "standard": "default"}
 _QUALIFIER = re.compile(r"[\(\[]([^\)\]]*)[\)\]]")
 _EFFORT_QUALIFIER = re.compile(
-    r"^(?:(?:reasoning\s+)?effort\s*[:=]?\s*)?(\w+)(?:\s+(?:reasoning\s+)?effort)?$")
+    r"^(?:(?:(?:reasoning|thinking)\s+)?effort\s*[:=]?\s*)?(\w+)"
+    r"(?:\s+(?:(?:reasoning|thinking)\s+)?effort)?$")
 
 
 def normalise_name(name: str) -> str:
@@ -393,6 +396,10 @@ def _condition(key: str, value: str | None) -> str | None:
         return None
     s = str(value).strip().casefold()
     if key == "effort":
+        # "max effort", "maximum thinking effort": the level, as a table cell would give it.
+        q = _EFFORT_QUALIFIER.match(s)
+        if q and q.group(1) in EFFORT_LEVELS:
+            s = q.group(1)
         return _EFFORT_ALIASES.get(s, s)
     if key == "date":
         parsed = _parse_date(str(value).strip())
@@ -1262,6 +1269,9 @@ def _diffs(claim: Claim, reading: Reading) -> list[Diff]:
             found = name_effort
         if key == "date" and claimed is None:
             continue  # a date the claim does not carry is not checked
+        if key == "harness" and claimed == UNREGISTERED and found is not None \
+                and default_registry().resolve_harness(found) == UNREGISTERED:
+            continue  # the registry reports a named, unregistered harness as `unregistered`
         if claimed != found:
             diffs.append(Diff(key, claim.conditions.get(key), found))
     return diffs

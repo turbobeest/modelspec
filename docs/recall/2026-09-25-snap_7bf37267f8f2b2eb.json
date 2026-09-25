@@ -1,0 +1,3840 @@
+{
+  "non_gating": true,
+  "premier_completeness_gaps": [],
+  "questions": [
+    {
+      "decision": {
+        "decision_id": "dec_809a5564e16a29556423e56c",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          }
+        ],
+        "may_qualify_count": 14,
+        "out_of_lineup": 1334,
+        "relax": [],
+        "spec_hash": "sha256:6de8834a4efe8b8b4c6c1c9d4ce79f8b574f9f1622e7fea0e21b97712a1197f2",
+        "status": "partial",
+        "top_3": [
+          {
+            "model": "openai/gpt-6-astra",
+            "rank": 1,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 58.18 percent"
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "rank": 2,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 57.88 percent"
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "rank": 3,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 51.82 percent"
+          }
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "engine_behavior",
+          "message": "expected evidence cannot separate a single winner, but the decision reports an ordered top result",
+          "severity": "fail"
+        }
+      ],
+      "id": "Q01",
+      "question": "Choose the strongest model for a multi-day coding agent that edits a large repository.",
+      "verdict": "fail"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_0c16f3e056e7f28061d1b564",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          }
+        ],
+        "may_qualify_count": 14,
+        "out_of_lineup": 1334,
+        "relax": [],
+        "spec_hash": "sha256:776c827fa9e2662dd31d1030558262815282bf7ff849e7bfb0a0f622fad4defa",
+        "status": "partial",
+        "top_3": [
+          {
+            "model": "openai/gpt-6-astra",
+            "rank": 1,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 58.18 percent"
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "rank": 2,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 57.88 percent"
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "rank": 3,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 51.82 percent"
+          }
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "engine_behavior",
+          "message": "expected evidence cannot separate a single winner, but the decision reports an ordered top result",
+          "severity": "fail"
+        }
+      ],
+      "id": "Q02",
+      "question": "Choose a reliable autonomous agent for shell tools and multi-step engineering work.",
+      "verdict": "fail"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_661e289e728183957651a325",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:49b68522149329e29a6350e48bdac19a3d98647349a250b2fdcb64aff7e4e95a",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q03",
+      "question": "Which model should review a complex pull request for defects?",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_3a525bbef8ee0f896d9a533e",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:3f1a46677d72e8578ec1984eca4dbd32e6b194a13d071a73f1e5e5f0046332b5",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: openai/gpt-6-luna",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q04",
+      "question": "Which model should power a high-quality general assistant?",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_3a525bbef8ee0f896d9a533e",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:3f1a46677d72e8578ec1984eca4dbd32e6b194a13d071a73f1e5e5f0046332b5",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q05",
+      "question": "Which model should power natural, helpful chat?",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_17865310a0fe0b4961126fe1",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:6201ff958361f3e7d4e5c0aa5ffb8fb697eb9222db6c8b860198d07c7132712d",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q06",
+      "question": "Which model should solve difficult reasoning problems?",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_ce5b22dcbf56752551e5adc3",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:8d82a1953fbef7466dcbc72cbc449ae1b0af1ab0416be72930e2d9c38d908024",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q07",
+      "question": "Which model should solve competition mathematics?",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_5c5d7a4631cc5f8306d15ed1",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          }
+        ],
+        "may_qualify_count": 18,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:8e01aa25d854c62b08bcaf656db236bec9624a7ff7fb7113096cbbf40e661c6d",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q08",
+      "question": "Choose the generator for retrieval-augmented generation over a collection of documents that runs to 200,000 tokens.",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_ed85efd8406130ad48eaf4d8",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:8a2b53097eb7a7afc21705e686cfd1f8440749719ab76734f7bb61a2f7b8d18d",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q09",
+      "question": "Choose a model to summarize a long technical document faithfully.",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_7c8f1abda8c105b3316730b7",
+        "may_qualify": [
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "model.class = text-generator"
+        ],
+        "spec_hash": "sha256:919a124ff6de85ae6bf6ac3f95b24e2e0f94af34a648683272648beb86432592",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "must-never-appear model(s) were listed in may_qualify because a disqualifying facet is unknown or quarantined: google/gemini-3-8-flash, openai/gpt-6-astra",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: deepseek/deepseek-flash",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: deepseek/deepseek-v3-1",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: google/gemini-2-0-flash",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "every named acceptable model is absent from the snapshot: google/gemini-2-5-flash-lite, openai/gpt-4-1-nano, openai/gpt-4o-mini, openai/gpt-5-4-nano, openai/gpt-5-6-luna, openai/gpt-5-nano, openai/gpt-6-luna",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q10",
+      "question": "Choose a high-volume assistant whose input price is at most $0.20 per million tokens.",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_98919ed8b33093ce3f78af86",
+        "may_qualify": [
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "model.class = text-generator"
+        ],
+        "spec_hash": "sha256:5bc0f6de889bacb345d04f16770d4d06310f088f4104e4ed44755569e415fdc2",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "must-never-appear model(s) were listed in may_qualify because a disqualifying facet is unknown or quarantined: google/gemini-3-8-flash, openai/gpt-6-astra",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: deepseek/deepseek-v3-1",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: google/gemini-2-0-flash",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "every named acceptable model is absent from the snapshot: deepseek/deepseek-flash, google/gemini-2-5-flash, google/gemini-2-5-flash-lite, google/gemini-3-1-flash-lite, google/gemini-3-5-flash-lite, openai/gpt-3-5-turbo, openai/gpt-4-1-mini, openai/gpt-4-1-nano, openai/gpt-4o-mini, openai/gpt-5-mini, openai/gpt-5-nano, openai/gpt-6-luna",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q11",
+      "question": "Choose a low-cost support chatbot whose input price is at most $0.50 per million tokens.",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_da2e9939dbe8794cc2393a00",
+        "may_qualify": [
+          {
+            "model": "deepseek/deepseek-v4-pro",
+            "offering": {
+              "model": "deepseek/deepseek-v4-pro",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "swe_bench_pro"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k2-6",
+            "offering": {
+              "model": "moonshot/kimi-k2-6",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "swe_bench_pro"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k3",
+            "offering": {
+              "model": "moonshot/kimi-k3",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "swe_bench_pro"
+            ]
+          },
+          {
+            "model": "qwen/qwen3-8-flash-next",
+            "offering": {
+              "model": "qwen/qwen3-8-flash-next",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "swe_bench_pro"
+            ]
+          },
+          {
+            "model": "zhipu/glm-5-2",
+            "offering": {
+              "model": "zhipu/glm-5-2",
+              "provider": "zai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "swe_bench_pro"
+            ]
+          },
+          {
+            "model": "zhipu/glm-5-3",
+            "offering": {
+              "model": "zhipu/glm-5-3",
+              "provider": "zai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "swe_bench_pro"
+            ]
+          }
+        ],
+        "may_qualify_count": 6,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:6b1da56693b00e43ad49f66a6aa8e91c6c669d6f0300c267171909c750a8c520",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: deepseek/deepseek-flash",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q12",
+      "question": "Choose the best open-weights coding model to self-host, assuming the hardware is adequate.",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_1a4d25aee21138fe52d2b25a",
+        "may_qualify": [
+          {
+            "model": "moonshot/kimi-k2-6",
+            "offering": {
+              "model": "moonshot/kimi-k2-6",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          },
+          {
+            "model": "qwen/qwen3-8-flash-next",
+            "offering": {
+              "model": "qwen/qwen3-8-flash-next",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "gpqa_diamond"
+            ]
+          }
+        ],
+        "may_qualify_count": 2,
+        "out_of_lineup": 1334,
+        "relax": [],
+        "spec_hash": "sha256:1fbb22e5acf6ed93ad964f78ea451d1a41cd83e3d519a34ce6d7e9213e34a37a",
+        "status": "partial",
+        "top_3": [
+          {
+            "model": "moonshot/kimi-k3",
+            "rank": 1,
+            "sources": [
+              "https://epoch.ai/benchmarks/gpqa-diamond"
+            ],
+            "value": "gpqa_diamond: 93.12 percent"
+          },
+          {
+            "model": "zhipu/glm-5-2",
+            "rank": 2,
+            "sources": [
+              "https://epoch.ai/benchmarks/gpqa-diamond"
+            ],
+            "value": "gpqa_diamond: 91.86 percent"
+          },
+          {
+            "model": "zhipu/glm-5-3",
+            "rank": 3,
+            "sources": [
+              "https://epoch.ai/benchmarks/gpqa-diamond"
+            ],
+            "value": "gpqa_diamond: 90.91 percent"
+          }
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "engine_behavior",
+          "message": "top result(s) outside the acceptable set: moonshot/kimi-k3, zhipu/glm-5-2, zhipu/glm-5-3",
+          "severity": "fail"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: deepseek/deepseek-flash",
+          "severity": "partial"
+        },
+        {
+          "cause": "engine_behavior",
+          "message": "expected evidence cannot separate a single winner, but the decision reports an ordered top result",
+          "severity": "fail"
+        }
+      ],
+      "id": "Q13",
+      "question": "Choose an open-weights reasoning model to self-host, assuming the hardware is adequate.",
+      "verdict": "fail"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_d33f84e222d274460800f000",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-astra",
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_vision"
+            ]
+          }
+        ],
+        "may_qualify_count": 19,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:db228162902660757e5b6fd1a343535d4f92154db9f992bc7e3008bfc8e200e1",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q14",
+      "question": "Which model should interpret charts and technical screenshots?",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_3860c343e069ee8ade09cb36",
+        "may_qualify": [
+          {
+            "model": "jcorners/ingot-8b-r3",
+            "offering": {
+              "model": "jcorners/ingot-8b-r3",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.languages"
+            ]
+          },
+          {
+            "model": "kingsoft/qzhou-embedding",
+            "offering": {
+              "model": "kingsoft/qzhou-embedding",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.languages"
+            ]
+          },
+          {
+            "model": "microsoft/harrier-oss-v1-27b",
+            "offering": {
+              "model": "microsoft/harrier-oss-v1-27b",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.languages"
+            ]
+          },
+          {
+            "model": "tencent/kalm-embedding-gemma3-12b-2511",
+            "offering": {
+              "model": "tencent/kalm-embedding-gemma3-12b-2511",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.languages"
+            ]
+          }
+        ],
+        "may_qualify_count": 4,
+        "out_of_lineup": 1334,
+        "relax": [
+          "model.languages in {en}"
+        ],
+        "spec_hash": "sha256:6dd93f0f7e6dc7d9183746e7e0503dc7956434037bd915b4bb7c81386bbabd74",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q15",
+      "question": "Choose an embedding model for semantic search over English documents.",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_aac3cb8f95964d008d5e3d05",
+        "may_qualify": [
+          {
+            "model": "kingsoft/qzhou-embedding",
+            "offering": {
+              "model": "kingsoft/qzhou-embedding",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "mteb_multilingual_v2"
+            ]
+          }
+        ],
+        "may_qualify_count": 1,
+        "out_of_lineup": 1334,
+        "relax": [],
+        "spec_hash": "sha256:12a1b7924d1f11e659f1823bc3c153508edf7f274ddb44793e911d133be48203",
+        "status": "partial",
+        "top_3": [
+          {
+            "model": "microsoft/harrier-oss-v1-27b",
+            "rank": 1,
+            "sources": [
+              "https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores"
+            ],
+            "value": "mteb_multilingual_v2: 74.27 percent"
+          },
+          {
+            "model": "tencent/kalm-embedding-gemma3-12b-2511",
+            "rank": 2,
+            "sources": [
+              "https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores"
+            ],
+            "value": "mteb_multilingual_v2: 72.32 percent"
+          }
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "engine_behavior",
+          "message": "tencent/kalm-embedding-gemma3-12b-2511 should be in may_qualify but was ranked",
+          "severity": "fail"
+        },
+        {
+          "cause": "engine_behavior",
+          "message": "expected evidence cannot separate a single winner, but the decision reports an ordered top result",
+          "severity": "fail"
+        }
+      ],
+      "id": "Q16",
+      "question": "Choose open-weights embeddings for multilingual semantic search.",
+      "verdict": "fail"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_367a13dc9a3bce40d951326a",
+        "may_qualify": [
+          {
+            "model": "deepseek/deepseek-v4-pro",
+            "offering": {
+              "model": "deepseek/deepseek-v4-pro",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k2-6",
+            "offering": {
+              "model": "moonshot/kimi-k2-6",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k3",
+            "offering": {
+              "model": "moonshot/kimi-k3",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "qwen/qwen3-8-flash-next",
+            "offering": {
+              "model": "qwen/qwen3-8-flash-next",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "zhipu/glm-5-2",
+            "offering": {
+              "model": "zhipu/glm-5-2",
+              "provider": "zai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "zhipu/glm-5-3",
+            "offering": {
+              "model": "zhipu/glm-5-3",
+              "provider": "zai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "model.fits_hardware"
+            ]
+          }
+        ],
+        "may_qualify_count": 6,
+        "out_of_lineup": 1334,
+        "relax": [
+          "model.fits_hardware in {nvidia_rtx_4090}"
+        ],
+        "spec_hash": "sha256:04fadc780710e3400432b9b2e5eb77e672684d4d62ba7bf1bf0bb96d23cd5097",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "no result has a complete verified objective value; admitted evidence may be absent, ambiguous, or quarantined",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "must-never-appear model(s) were listed in may_qualify because a disqualifying facet is unknown or quarantined: qwen/qwen3-8-flash-next",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: google/gemma-4-26b-a4b-it",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: google/gemma-4-31b-it",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "every named acceptable model is absent from the snapshot: google/gemma-4-e2b-it, google/gemma-4-e4b-it",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q17",
+      "question": "Choose a local coding model that runs on one RTX 4090 with 24 GB of VRAM.",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_d3ba706e9b0a447ca73c30bb",
+        "may_qualify": [
+          {
+            "model": "deepseek/deepseek-v4-pro",
+            "offering": {
+              "model": "deepseek/deepseek-v4-pro",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k2-6",
+            "offering": {
+              "model": "moonshot/kimi-k2-6",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k3",
+            "offering": {
+              "model": "moonshot/kimi-k3",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "qwen/qwen3-8-flash-next",
+            "offering": {
+              "model": "qwen/qwen3-8-flash-next",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "zhipu/glm-5-2",
+            "offering": {
+              "model": "zhipu/glm-5-2",
+              "provider": "zai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          },
+          {
+            "model": "zhipu/glm-5-3",
+            "offering": {
+              "model": "zhipu/glm-5-3",
+              "provider": "zai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_overall"
+            ]
+          }
+        ],
+        "may_qualify_count": 6,
+        "out_of_lineup": 1334,
+        "relax": [
+          "no complete objective values"
+        ],
+        "spec_hash": "sha256:70f00ea8b39d717a6ace9518cb241627a41f8d3864243d37d638994a17f204a9",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: google/gemma-4-26b-a4b-it",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: google/gemma-4-e2b-it",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: google/gemma-4-e4b-it",
+          "severity": "partial"
+        },
+        {
+          "cause": "missing_data",
+          "message": "required may-qualify model is outside the premier lineup: microsoft/phi-4",
+          "severity": "partial"
+        }
+      ],
+      "id": "Q18",
+      "question": "Choose a local chat model for a base Apple M4 device.",
+      "verdict": "partial"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_a4dc4add5a46d26538b86378",
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-1-pro-preview",
+            "offering": {
+              "model": "google/gemini-3-1-pro-preview",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-5-flash",
+            "offering": {
+              "model": "google/gemini-3-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-7-flash",
+            "offering": {
+              "model": "google/gemini-3-7-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "google/gemini-3-8-flash",
+            "offering": {
+              "model": "google/gemini-3-8-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-1",
+            "offering": {
+              "model": "meta/muse-spark-1-1",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark-1-3",
+            "offering": {
+              "model": "meta/muse-spark-1-3",
+              "provider": "meta-model-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "meta/muse-spark",
+            "offering": {
+              "model": "meta/muse-spark",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "xai/grok-4-7",
+            "offering": {
+              "model": "xai/grok-4-7",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          }
+        ],
+        "may_qualify_count": 14,
+        "out_of_lineup": 1334,
+        "relax": [],
+        "spec_hash": "sha256:a20b14fb43d93f9d874946521fae78126b8ae3d845c291019f485a9010251d53",
+        "status": "partial",
+        "top_3": [
+          {
+            "model": "openai/gpt-6-astra",
+            "rank": 1,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 58.18 percent"
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "rank": 2,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 57.88 percent"
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "rank": 3,
+            "sources": [
+              "https://www.tbench.ai/",
+              "https://www.tbench.ai/leaderboard/terminal-bench/4.0"
+            ],
+            "value": "terminal_bench_v4_0: 51.82 percent"
+          }
+        ],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "engine_behavior",
+          "message": "all machine-checkable expectations were met",
+          "severity": "pass"
+        }
+      ],
+      "id": "Q19",
+      "question": "Choose a scientific research assistant that can search and use tools.",
+      "verdict": "pass"
+    },
+    {
+      "decision": {
+        "decision_id": "dec_ab18db6d5e40681a84b1c821",
+        "may_qualify": [],
+        "may_qualify_count": 0,
+        "out_of_lineup": 1334,
+        "relax": [
+          "model.class = transcriber"
+        ],
+        "spec_hash": "sha256:207aea22add90f05172c1ab43480c7cd98c670370cea866c5b3ebb2498ee2ab8",
+        "status": "no_feasible",
+        "top_3": [],
+        "warnings": []
+      },
+      "error": null,
+      "findings": [
+        {
+          "cause": "engine_behavior",
+          "message": "all machine-checkable expectations were met",
+          "severity": "pass"
+        }
+      ],
+      "id": "Q20",
+      "question": "Choose a speech recognition model for transcription.",
+      "verdict": "pass"
+    }
+  ],
+  "report_date": "2026-09-25",
+  "snapshot": "snap_7bf37267f8f2b2eb",
+  "snapshot_as_of": "2026-09-25",
+  "snapshot_excluded": {
+    "quarantined": 392
+  },
+  "snapshot_out_of_lineup": 1334
+}
