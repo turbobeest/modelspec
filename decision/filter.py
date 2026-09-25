@@ -303,6 +303,7 @@ class _Run:
         self.resolved = resolved
         self.index = index
         self.facets = resolved.facets
+        self.facet_cache: dict[str, Any] = {}
         self.ids = list(index.candidates())
         if len(set(self.ids)) != len(self.ids):
             raise ValueError("snapshot candidates are not unique")
@@ -310,13 +311,19 @@ class _Run:
         self.universe = (1 << self.n) - 1
         self.pos = {cid: i for i, cid in enumerate(self.ids)}
         self.cache: dict[int, Bits] = {}
+        self.evidence_conditions: dict[int, bool] = {}
         self.resolved_threshold: dict[int, Any] = {}
         self.penalties: list[SoftPenalty] = []
         self.path = ""
         self.lineup = 0
 
     def _ids_of(self, bits: int) -> tuple[str, ...]:
-        return tuple(cid for i, cid in enumerate(self.ids) if bits & (1 << i))
+        ids = []
+        while bits:
+            bit = bits & -bits
+            ids.append(self.ids[bit.bit_length() - 1])
+            bits ^= bit
+        return tuple(ids)
 
     def _life(self, cid: str) -> str:
         life = self.index.lifecycle(cid)
@@ -325,24 +332,33 @@ class _Run:
         return life
 
     def _facet(self, facet_id: str) -> Any:
+        if facet_id in self.facet_cache:
+            return self.facet_cache[facet_id]
         try:
-            return self.facets(facet_id)
+            facet = self.facets(facet_id)
+            self.facet_cache[facet_id] = facet
+            return facet
         except KeyError:
             raise SpecError([Issue(
                 None, facet_id, f"unknown facet {facet_id!r}: not in the facet registry", self.path,
             )]) from None
 
     def _is_evidence(self, cond: Any) -> bool:
-        if getattr(cond, "qualifiers", None) is not None:
-            return True
-        facet_id = _facet_of(cond)
-        if facet_id is None or isinstance(cond, Known):
-            return False
-        info = self._facet(facet_id)
-        return getattr(info, "subject", "model") == "evidence" or facet_id.startswith("evidence.")
+        key = id(cond)
+        if key not in self.evidence_conditions:
+            facet_id = _facet_of(cond)
+            self.evidence_conditions[key] = (
+                getattr(cond, "qualifiers", None) is not None
+                or (facet_id is not None and not isinstance(cond, Known) and (
+                    self._facet(facet_id).subject == "evidence" or facet_id.startswith("evidence.")
+                ))
+            )
+        return self.evidence_conditions[key]
 
     def _unknown_disposition(self, cond: Any, unk_bits: int) -> tuple[int, int, int]:
         """Split unknown bits into (treat as pass, may_qualify, unverified fail)."""
+        if not unk_bits:
+            return 0, 0, 0
         explicit = getattr(cond, "unknown", None)
         if explicit == "pass":
             return unk_bits, 0, 0
