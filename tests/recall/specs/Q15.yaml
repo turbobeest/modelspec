@@ -5,6 +5,6 @@ capabilities: {retrieval: required}
 where:
   - model.class = vectoriser
   - model.languages in {en}
-optimize: {max: mteb_v2_retrieval @independent @direct}
+optimize: {max: mteb_v2_retrieval @independent}
 explain: full
 limit: 3
