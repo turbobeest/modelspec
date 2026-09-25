@@ -3,8 +3,10 @@
 `decision/model.py` defines the records consumed by source change detection,
 verification, and the snapshot builder. These records do not call the v1 ranker.
 The design and glossary are on `origin/design/decision-engine` until that draft
-PR merges. This implementation follows design sections 4.1, 4.2, and 5, with the
-MODEL-134 instruction that verification must differ in agent **or** model family.
+PR merges. This implementation follows design sections 4.1, 4.2, and 5. A
+record parses when verification differs in agent **or** model family
+(MODEL-134); it only counts as a second key when it differs in model family
+(MODEL-140, enforced by MODEL-159).
 
 ## Registry validation
 
@@ -37,11 +39,20 @@ unknown fact can have no source because no claim has been collected yet.
 
 `Verification` names a fact or evidence ID. Each actor records its agent,
 model family, and collection or checking method. A second method alone does
-not make the same agent and model family independent. A mismatch requires a
+not make the same agent and model family independent, and the record is
+refused. A second agent of the same model family parses, so the append-only
+log still loads, but it is not independent: `Verification.independent` is true
+only when the verifier is deterministic (`model_family: deterministic`) or of
+another model family. `model_family()` compares lineages, not spellings:
+`claude` and `anthropic` are one family, as are `gpt-5` and `openai`, and
+`gemma4` and `gemini`. A same-family `verified` does not count
+(`Verification.counts`): it admits nothing and displaces no other record. A
+same-family mismatch still counts, so it keeps a value out. A mismatch requires a
 nonempty `diff`; other outcomes carry no diff. A verification attached to a
 record must target that record's ID and kind.
 
-`quarantined` is a derived Python property, not writable serialized state.
+`quarantined` is a derived Python property, not writable serialized state. It
+is true unless the outcome is `verified` and the verifier is independent.
 A missing verification, `mismatch`, or `unreachable` means quarantined. Only
 `verified` clears it. This is the verification status, not a completeness gate:
 the snapshot builder must also enforce known values, freshness, and source

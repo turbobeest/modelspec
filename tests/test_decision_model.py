@@ -180,11 +180,21 @@ def test_collector_cannot_verify_own_work():
         Verification.model_validate(data)
 
 
-@pytest.mark.parametrize("change", [{"agent": "another-agent"}, {"model_family": "other-family"}])
-def test_different_agent_or_family_is_independent(change):
+@pytest.mark.parametrize("change", [{"model_family": "other-family"},
+                                    {"agent": "another-agent", "model_family": "deterministic"}])
+def test_different_family_or_deterministic_is_independent(change):
     data = verification_data()
     data["verifier"] = {**data["collector"], **change}
     assert not Verification.model_validate(data).quarantined
+
+
+def test_another_agent_of_the_same_family_parses_but_is_not_a_second_key():
+    # MODEL-159: the log already holds such records, so they load; they admit nothing.
+    data = verification_data()
+    data["verifier"] = {**data["collector"], "agent": "another-agent"}
+    record = Verification.model_validate(data)
+    assert not record.independent
+    assert record.quarantined
 
 
 @pytest.mark.parametrize("outcome", ["verified", "mismatch", "unreachable"])

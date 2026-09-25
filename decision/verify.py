@@ -14,9 +14,12 @@ extractor, and compares:
 Extractors are pluggable. The deterministic ones (``TableExtractor``,
 ``KeyValueExtractor``) always run before any other; ``LLMExtractor`` reads
 prose through an injected completion function, so nothing here calls a model
-or the network on its own. Each extractor's actor (agent, model family,
-method) is the verifier the log records, and ``decision.model.Verification``
-refuses one that matches the collector in both agent and model family.
+or the network on its own: ``claude_extractor`` (Claude Sonnet, via the Claude
+CLI) and ``mistral_extractor`` (Mistral Large, via ollama) are the two wired
+readers. Each extractor's actor (agent, model family, method) is the verifier
+the log records. Two keys means another model family (MODEL-159): a reader
+from the collector's family is never asked, and a same-family ``verified``
+already in the log does not count (``Verification.counts``).
 
 Outcomes are ``verified``, ``mismatch`` (with a structured diff) and
 ``unreachable`` (the copy, source or region is missing). A claim no
@@ -27,9 +30,10 @@ anything never verified, is **quarantined**.
 Files, under ``verification/`` at the repository root:
 
 - ``log.jsonl``: the verification log, append-only, one
-  ``decision.model.Verification`` per line. The latest outcome per target and
-  checked value wins: latest ``date``, and on a tie the later line (the rule
-  ``decision.snapshot`` applies when it reads ``verification/log.jsonl``).
+  ``decision.model.Verification`` per line. The latest counting outcome per
+  target and checked value wins: latest ``date``, and on a tie the later line
+  (the rule ``decision.snapshot`` applies when it reads
+  ``verification/log.jsonl``).
 - ``queue/events.jsonl``: append-only work queue. A collector files a claim
   (``collected``), change detection re-queues one (``changed``), a run records
   what it checked (``checked``). Mismatched and unreachable targets stay listed
@@ -48,6 +52,7 @@ import json
 import os
 import re
 import subprocess
+import urllib.request
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
@@ -58,6 +63,7 @@ from typing import Any, Literal, Protocol
 from pydantic import JsonValue, ValidationError
 
 from decision.model import (
+    DETERMINISTIC,
     SourceRef,
     TargetRef,
     Verification,
@@ -450,7 +456,6 @@ class Extractor(Protocol):
     def extract(self, claim: Claim, text: str) -> list[Reading]: ...
 
 
-DETERMINISTIC = "deterministic"
 VERIFY_AGENT = "modelspec-verify"
 
 
@@ -1047,15 +1052,22 @@ class ClaudeCLICompletion:
 
 
 class LLMCache:
-    """Persistent reader replies keyed by source copy, cited region and facet."""
+    """Persistent reader replies keyed by source copy, cited region and facet.
 
-    def __init__(self, root: str | Path | None = None) -> None:
+    ``namespace`` keeps one reader's replies from answering for another's. The
+    Claude reader has none, so the replies it cached before there were two
+    readers still hit.
+    """
+
+    def __init__(self, root: str | Path | None = None, *, namespace: str | None = None) -> None:
         configured = os.environ.get("MODELSPEC_LLM_CACHE")
         self.root = Path(root or configured or Path.home() / ".cache/modelspec/llm-reader")
+        self.namespace = namespace
 
     def _path(self, key: tuple[str, str, str]) -> Path:
+        scope = () if self.namespace is None else (self.namespace,)
         digest = hashlib.sha256(
-            json.dumps(("strict-reader-v2", *key), ensure_ascii=False,
+            json.dumps(("strict-reader-v2", *scope, *key), ensure_ascii=False,
                        separators=(",", ":")).encode("utf-8")
         ).hexdigest()
         return self.root / digest[:2] / f"{digest}.json"
@@ -1133,6 +1145,99 @@ def claude_extractor(*, cache: LLMCache | None = None,
         model="claude-sonnet-5",
         model_family="anthropic",
         cache=cache or LLMCache(),
+    )
+
+
+OLLAMA_URL = "http://100.127.37.30:11434/api/chat"
+MISTRAL_MODEL = "mistral-large:123b-instruct-2411-q4_K_M"
+#: Ollama's ``format: json`` constrains a reply to one JSON object, so a bare
+#: array cannot be returned: Mistral then reports only the first value in a
+#: region. This system turn asks for the array inside an object; ``LLM_PROMPT``
+#: itself is sent unchanged.
+OLLAMA_JSON_MODE = (
+    'Your reply must be one JSON object of the form {"values": [...]}, where the '
+    "array is exactly the JSON array the user asks for, with one element per value."
+)
+
+
+def _as_array(content: str) -> str:
+    """A JSON-mode reply as the array ``LLM_PROMPT`` asks for.
+
+    Ollama's ``format: json`` tends to wrap the array in an object, or to return
+    one row bare. ``{"rows": [...]}`` (any single key) gives its array, one row
+    gives a one-row array, ``{}`` gives ``[]``. Anything else is returned as is,
+    for ``LLMExtractor`` to accept or refuse.
+    """
+    try:
+        data = json.loads(content)
+    except ValueError:
+        return content
+    if isinstance(data, dict):
+        lists = [v for v in data.values() if isinstance(v, list)]
+        if not data:
+            data = []
+        elif len(data) == 1 and len(lists) == 1:
+            data = lists[0]
+        elif "quoted_sentence" in data:
+            data = [data]
+    return json.dumps(data, ensure_ascii=False) if isinstance(data, list) else content
+
+
+class OllamaChatCompletion:
+    """Call a model served by ollama's ``/api/chat`` at temperature 0, in JSON mode."""
+
+    def __init__(self, *, url: str | None = None, model: str = MISTRAL_MODEL,
+                 max_calls: int = 400, timeout: float = 900) -> None:
+        self.url = url or os.environ.get("MODELSPEC_OLLAMA_URL") or OLLAMA_URL
+        self.model = model
+        self.max_calls = max_calls
+        self.timeout = timeout
+        self.calls = 0
+
+    def __call__(self, prompt: str) -> str:
+        if self.calls >= self.max_calls:
+            raise LLMCallBudgetExceededError(
+                f"stopped before exceeding the {self.max_calls}-call budget"
+            )
+        self.calls += 1
+        body = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": OLLAMA_JSON_MODE},
+                         {"role": "user", "content": prompt}],
+            "stream": False,
+            "format": "json",
+            "options": {"temperature": 0},
+        }
+        request = urllib.request.Request(
+            self.url, data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:  # noqa: S310
+                envelope = json.loads(response.read())
+        except (OSError, ValueError) as exc:
+            raise ExtractorError(f"ollama at {self.url} failed: {exc}") from exc
+        try:
+            content = envelope["message"]["content"]
+            if not isinstance(content, str):
+                raise TypeError("content is not text")
+        except (KeyError, TypeError) as exc:
+            raise ExtractorError(f"ollama returned an invalid chat envelope: {exc}") from exc
+        return _as_array(content)
+
+
+def mistral_extractor(*, cache: LLMCache | None = None,
+                      complete: Callable[[str], str] | None = None,
+                      max_calls: int = 400) -> LLMExtractor:
+    """The local Mistral Large reader: a third model family, for Claude-collected values."""
+    return LLMExtractor(
+        complete or OllamaChatCompletion(max_calls=max_calls),
+        agent="ollama",
+        model=MISTRAL_MODEL,
+        model_family="mistral",
+        # The namespace names the request shape too: a reply cached before the
+        # JSON-mode system turn read only one value per region.
+        cache=cache or LLMCache(namespace=f"ollama:{MISTRAL_MODEL}:values-object"),
     )
 
 
@@ -1337,11 +1442,12 @@ def _verification(claim: Claim, actor: VerificationActor, outcome: str, today: d
 
 
 def _independent(claim: Claim, actor: VerificationActor, today: date) -> bool:
+    """A second key: another agent or family (parse rule), and another family unless
+    deterministic (``Verification.independent``)."""
     try:
-        _verification(claim, actor, "verified", today)
+        return _verification(claim, actor, "verified", today).independent
     except ValidationError:
         return False
-    return True
 
 
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
@@ -1425,13 +1531,35 @@ class VerificationLog:
         return records
 
     def latest(self) -> dict[tuple[str, str], Verification]:
-        """Latest ``date`` wins; on a tie, the later line (as ``decision.snapshot`` reads it)."""
+        """Latest ``date`` wins; on a tie, the later line (as ``decision.snapshot`` reads it).
+
+        A record that does not count (a same-family ``verified``) is skipped.
+        """
         latest: dict[tuple[str, str], Verification] = {}
         for record in self.records():
+            if not record.counts:
+                continue
             key = _key(record.target)
             if key not in latest or record.date >= latest[key].date:
                 latest[key] = record
         return latest
+
+    def requarantined(self) -> list[VerificationTarget]:
+        """Values a same-family ``verified`` vouches for that no counting record admits.
+
+        Keyed by target and checked value, as ``decision.snapshot`` admits them:
+        what MODEL-159's family rule keeps out until another family verifies it.
+        """
+        vouched: dict[tuple[str, str, str], VerificationTarget] = {}
+        counting: dict[tuple[str, str, str], Verification] = {}
+        for record in self.records():
+            key = (record.target.kind, record.target.id, record.target.value_hash)
+            if not record.counts:
+                vouched[key] = record.target
+            elif key not in counting or record.date >= counting[key].date:
+                counting[key] = record
+        return [target for key, target in sorted(vouched.items())
+                if key not in counting or counting[key].outcome != "verified"]
 
     def is_quarantined(self, target: TargetRef | str) -> bool:
         record = self.latest().get(_key(target_ref(target)))
@@ -1604,11 +1732,13 @@ def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequen
 __all__ = [
     "Claim", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff", "Extractor", "ExtractorError",
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
-    "LLMExtractor", "ModelPageExtractor", "OfferingPriceExtractor", "Quantity", "Queue", "Reading",
+    "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
+    "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
     "Regions", "Result",
     "RunReport", "StoredRegions", "StructuredDataExtractor", "TableExtractor", "TOLERANCE_RULE",
     "UNITS", "VerificationLog", "compare",
     "claude_extractor", "deterministic_extractors", "is_quarantined", "load_sources",
+    "mistral_extractor",
     "numbers_agree",
     "parse_quantity", "quarantined_values", "run", "split_model_cell", "target_ref", "unit_id",
     "verify",

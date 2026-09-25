@@ -13,7 +13,7 @@ collects a value never verifies it.
    changed region with `Queue.requeue(report)`. The re-check pins each source
    to its new retained copy. `RecheckReport.requeue` refs are `fact:<id>` or
    `evidence:<id>`.
-3. `modelspec verify [--changed-only] [--llm-reader claude]` (or `verify.run`) re-reads each pending
+3. `modelspec verify [--changed-only] [--llm-reader claude|mistral]` (or `verify.run`) re-reads each pending
    claim from the cited regions of its retained copies. It appends one
    `Verification` per value to `verification/log.jsonl` and prints a summary.
    `--changed-only` skips new values and runs only the re-queued ones.
@@ -33,18 +33,39 @@ first. Deterministic extractors always run first:
   and its actor records the model: `llm-extract:<model>`. The CLI's
   `--llm-reader claude` option calls the authenticated Claude CLI with Sonnet 5
   at low effort. Its verification actor is `claude-cli`, model family
-  `anthropic`. The reader must return the value, unit, conditions and a source
-  sentence. The verifier checks that sentence against the retained cited region.
+  `anthropic`. `--llm-reader mistral` calls Mistral Large
+  (`mistral-large:123b-instruct-2411-q4_K_M`) on the local ollama host
+  (`http://100.127.37.30:11434/api/chat`, or `MODELSPEC_OLLAMA_URL`) at
+  temperature 0 in JSON mode. Its actor is `ollama`, model family `mistral`: the
+  reader for values a Claude collector filed. Both readers get the same prompt.
+  It asks for the value, unit, conditions and a source sentence. The verifier
+  checks that sentence against the retained cited region. Ollama's JSON mode
+  returns one object, not an array, so a system turn asks Mistral to wrap the
+  array as `{"values": [...]}`. Without it, Mistral reports only the first
+  value in a region.
 
-Claude replies are cached outside the repository under
+Reader replies are cached outside the repository under
 `~/.cache/modelspec/llm-reader` by source-copy hash, cited region and facet.
-Set `MODELSPEC_LLM_CACHE` to use another directory. A run stops before its
-401st uncached call. Deterministic extractors still run first.
+Mistral's replies are also keyed by its model and request shape, so neither
+reader answers for the other. Set `MODELSPEC_LLM_CACHE` to use another
+directory. A run stops before its 401st uncached call. Deterministic
+extractors still run first.
 
 The first extractor that accepts a region and is independent of the collector
-reads it. `decision.model.Verification` rejects a verifier whose agent and
-model family both match the collector's. A claim that no independent
-extractor can read is `skipped`: nothing is logged, and the claim stays queued.
+reads it. Two keys means another model family (MODEL-140, enforced by
+MODEL-159). A deterministic extractor is always independent. An LLM reader is
+independent only when its model family differs from the collector's. So a
+Claude-collected value is never sent to the Claude reader. A claim that no
+independent extractor can read is `skipped`: nothing is logged, and the claim
+stays queued.
+
+The log already holds records from before the family rule, so the rule applies
+when records are counted, not when they are parsed. `VerificationLog.latest`
+and the snapshot builder skip a same-family `verified` as if it were never
+logged. `VerificationLog.requarantined()` lists the values that such a record
+vouches for and that no counting record admits.
+`scripts/model_159_requeue_dependent.py` prints those values and requeues
+them for `--changed-only --llm-reader mistral`.
 
 ## Checks
 
