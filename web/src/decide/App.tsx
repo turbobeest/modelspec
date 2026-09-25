@@ -19,7 +19,9 @@ import { DecisionTable } from "./components/DecisionTable";
 import { Why } from "./components/Why";
 import { Share } from "./components/Share";
 import "./decide.css";
-export default function App({
+import { RealApp } from "./RealApp";
+
+export function DemoApp({
   simulate,
 }: {
   simulate?: "loading" | "error" | "none";
@@ -494,5 +496,13 @@ export default function App({
         />
       )}
     </div>
+  );
+}
+
+export default function App(props: { simulate?: "loading" | "error" | "none" }) {
+  return new URLSearchParams(location.search).get("demo") === "1" ? (
+    <DemoApp {...props} />
+  ) : (
+    <RealApp />
   );
 }

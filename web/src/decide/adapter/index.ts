@@ -21,6 +21,15 @@ import {
 import type { Row, FullEval, RankedRow } from "../engine/reference";
 import type { Cond, Evidence, Spec } from "../engine/types";
 import type { Decision, EvidenceItem, OfferingRef } from "./contract";
+export { DECIDE_ENDPOINT, DecideApiError, hostedEngine } from "./hosted";
+export { decisionSchema, decisionSpecSchema } from "./contract";
+export type {
+  Decision,
+  DecisionSpec,
+  EvidenceItem,
+  OfferingRef,
+  Result,
+} from "./contract";
 import { snapshotId, specHash } from "../state/spec";
 import type { Axis } from "../state/spec";
 export {
@@ -112,8 +121,8 @@ export interface AdapterDecision extends Decision {
   frontier: Row[];
   winning_strip: { row: Row | undefined; start: number; count: number }[];
 }
-/** The only spec-in, decision-out boundary. The UI never ranks candidates. */
-export interface DecisionEngine {
+/** Synchronous boundary for the fictional demo. The hosted contract is async. */
+interface SampleDecisionEngine {
   decide(
     spec: Spec,
     options?: { axis?: Axis; dismissed?: string[] },
@@ -211,7 +220,7 @@ function minimalRelaxation(spec: Spec): string[] {
   return ["Choose a primary benchmark with evidence"];
 }
 
-export const fictionalEngine: DecisionEngine = {
+export const fictionalEngine: SampleDecisionEngine = {
   decide(spec, { axis = "task$", dismissed = [] } = {}) {
     const e = evaluate(catalogue, spec),
       ax = axisDefs[axis],
@@ -343,11 +352,5 @@ export const fictionalEngine: DecisionEngine = {
       frontier,
       winning_strip,
     };
-  },
-};
-/** MODEL-151 will supply transport and validation for POST /v1/decide. */
-export const hostedEngine: DecisionEngine = {
-  decide() {
-    throw new Error("POST /v1/decide is not connected. MODEL-151.");
   },
 };

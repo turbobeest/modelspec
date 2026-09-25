@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 import App from "../App";
-beforeEach(() => history.replaceState(null, "", "/decide.html"));
+beforeEach(() => history.replaceState(null, "", "/?demo=1"));
 it("parses Enter, shows a loading trace, and keeps the spec in the URL", async () => {
   render(<App />);
   const task = screen.getByLabelText("Describe your task");
@@ -133,7 +133,7 @@ it("restores the saved spec and respects query theme and layout", () => {
   history.replaceState(
     null,
     "",
-    "/decide.html?theme=dark&layout=table#s=" +
+    "/?demo=1&theme=dark&layout=table#s=" +
       btoa(
         encodeURIComponent(
           JSON.stringify({

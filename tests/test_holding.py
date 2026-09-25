@@ -209,10 +209,10 @@ def test_every_path_the_cli_workers_and_mcp_fetch_is_still_published(trees):
     assert any((ms / "api" / "benchmarks").glob("*.json"))
 
 
-# ── SITE_MODE=live: today's site ─────────────────────────────────────────────
+# ── the full source tree used to derive holding ──────────────────────────────
 
-def test_live_production_is_the_real_build_unchanged(trees):
-    """Live mode deploys `dist`. Holding mode only reads it."""
+def test_full_build_still_contains_every_source_page_before_composition(trees):
+    """The workflow derives holding before replacing dist with the live composition."""
     ms, bg = trees["real"] / "modelspec", trees["real"] / "benchgraph"
     assert len(list((ms / "m").glob("*/*/index.html"))) == len(load_models(ROOT))
     for rel in ("sitemap.xml", "llms.txt", "llms-full.txt", "index.md", "_worker.js",
