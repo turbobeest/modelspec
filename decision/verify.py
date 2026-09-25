@@ -72,6 +72,8 @@ from decision.normalise import (
     normalise_document,
     select_region,
 )
+from decision.registry import UNREGISTERED
+from decision.registry import default as default_registry
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -1262,6 +1264,9 @@ def _diffs(claim: Claim, reading: Reading) -> list[Diff]:
             found = name_effort
         if key == "date" and claimed is None:
             continue  # a date the claim does not carry is not checked
+        if key == "harness" and claimed == UNREGISTERED and found is not None \
+                and default_registry().resolve_harness(found) == UNREGISTERED:
+            continue  # the registry reports a named, unregistered harness as `unregistered`
         if claimed != found:
             diffs.append(Diff(key, claim.conditions.get(key), found))
     return diffs
