@@ -27,6 +27,8 @@
 #   required_qualifiers     optional: qualifiers every fact must carry
 #   computed_by             optional: the ticket whose build step produces the
 #                           value. Such facets are never authored on a card.
+#   label                   optional: a short name for people ("Input price").
+#                           The id stays the identifier; the label is display.
 #
 # A fact's state (known, unknown, not_disclosed, requires_contract) is separate
 # from its value and is not declared here.
@@ -77,6 +79,12 @@ units:
       The unit declared by the benchmark page's `metric.unit` for the benchmark
       version the evidence names. Evidence on different benchmarks is never
       compared in this unit.
+  - id: usd_per_task
+    definition: >-
+      United States dollars for one task, at list prices: the offering's input
+      price times the spec's input tokens per task, plus its output price times
+      the spec's output tokens per task, divided by 1,000,000. Excludes cached,
+      batch and committed-use pricing.
   - id: capability_scale
     definition: >-
       The latent scale of the capability model (MODEL-129). Values are
@@ -141,6 +149,7 @@ source_kinds:
 facets:
   # ── Model: class, modalities, context ─────────────────────────────────────
   - id: model.class
+    label: Model class
     subject: model
     value_type: {kind: enum, values_from: model_classes}
     definition: >-
@@ -151,6 +160,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
   - id: model.input_modalities
+    label: Input modalities
     subject: model
     value_type: {kind: set, values: [text, image, audio, video, document, structured]}
     definition: >-
@@ -161,6 +171,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
   - id: model.output_modalities
+    label: Output modalities
     subject: model
     value_type: {kind: set, values: [text, image, audio, video, embedding, score, label, action]}
     definition: >-
@@ -171,6 +182,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
   - id: model.context_window
+    label: Context window
     subject: model
     value_type: {kind: number}
     unit: tokens
@@ -183,6 +195,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository]
   - id: model.max_output_tokens
+    label: Maximum output tokens
     subject: model
     value_type: {kind: number}
     unit: tokens
@@ -196,6 +209,7 @@ facets:
 
   # ── Model: weights, parameters, architecture ──────────────────────────────
   - id: model.weights_openness
+    label: Open weights
     subject: model
     value_type: {kind: enum, values: [open_weights, closed_weights]}
     definition: >-
@@ -207,6 +221,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, lab_announcement, weights_repository, licence_text]
   - id: model.parameters_total
+    label: Total parameters
     subject: model
     value_type: {kind: number}
     unit: parameters
@@ -218,6 +233,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, weights_repository]
   - id: model.parameters_active
+    label: Active parameters
     subject: model
     value_type: {kind: number}
     unit: parameters
@@ -229,6 +245,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, weights_repository]
   - id: model.architecture
+    label: Architecture
     subject: model
     value_type: {kind: enum, values_from: architecture_types}
     definition: >-
@@ -240,6 +257,7 @@ facets:
 
   # ── Model: licence rights (governance) ────────────────────────────────────
   - id: licence.commercial_use
+    label: Commercial use
     subject: model
     value_type: {kind: enum, values: [permitted, permitted_with_conditions, prohibited]}
     definition: >-
@@ -251,6 +269,7 @@ facets:
     risk: governance
     permitted_source_kinds: [licence_text, provider_terms]
   - id: licence.user_cap
+    label: Licence user cap
     subject: model
     value_type: {kind: number, unbounded: true}
     unit: monthly_active_users
@@ -262,6 +281,7 @@ facets:
     risk: governance
     permitted_source_kinds: [licence_text]
   - id: licence.output_training
+    label: Training on outputs
     subject: model
     value_type: {kind: enum, values: [permitted, restricted, prohibited]}
     definition: >-
@@ -272,6 +292,7 @@ facets:
     risk: governance
     permitted_source_kinds: [licence_text, provider_terms]
   - id: licence.fine_tuning
+    label: Fine-tuning rights
     subject: model
     value_type: {kind: enum, values: [permitted, permitted_with_conditions, prohibited]}
     definition: >-
@@ -284,6 +305,7 @@ facets:
 
   # ── Model: origin, three separate facets (governance) ─────────────────────
   - id: origin.lab_jurisdiction
+    label: Lab jurisdiction
     subject: model
     value_type: {kind: set, values_from: iso_3166_1_alpha_2}
     definition: >-
@@ -295,6 +317,7 @@ facets:
     risk: governance
     permitted_source_kinds: [lab_documentation, official_registry, provider_terms]
   - id: origin.base_lineage
+    label: Base model lineage
     subject: model
     value_type: {kind: set, values_from: iso_3166_1_alpha_2}
     definition: >-
@@ -307,6 +330,7 @@ facets:
     risk: governance
     permitted_source_kinds: [lab_documentation, weights_repository, licence_text]
   - id: origin.weights_hosting
+    label: Weights hosted in
     subject: model
     value_type: {kind: set, values_from: iso_3166_1_alpha_2}
     definition: >-
@@ -318,6 +342,7 @@ facets:
     risk: governance
     permitted_source_kinds: [lab_documentation, provider_terms, provider_documentation]
   - id: origin.base_models
+    label: Base models
     subject: model
     value_type: {kind: set, values_from: model_ids}
     definition: >-
@@ -330,6 +355,7 @@ facets:
 
   # ── Model: lifecycle ──────────────────────────────────────────────────────
   - id: model.release_date
+    label: Release date
     subject: model
     value_type: {kind: date}
     definition: >-
@@ -340,6 +366,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_announcement, lab_documentation]
   - id: model.lifecycle
+    label: Lifecycle
     subject: model
     value_type: {kind: enum, values: [active, deprecated, retired]}
     definition: >-
@@ -350,6 +377,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, lab_announcement]
   - id: model.knowledge_cutoff
+    label: Knowledge cutoff
     subject: model
     value_type: {kind: date}
     definition: >-
@@ -359,6 +387,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation]
   - id: model.deprecation_date
+    label: Deprecation date
     subject: model
     value_type: {kind: date}
     definition: >-
@@ -370,6 +399,7 @@ facets:
 
   # ── Model: features ───────────────────────────────────────────────────────
   - id: feature.tool_calling
+    label: Tool calling
     subject: model
     value_type: {kind: boolean}
     definition: >-
@@ -380,6 +410,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation]
   - id: feature.structured_output
+    label: Structured output
     subject: model
     value_type: {kind: boolean}
     definition: >-
@@ -390,6 +421,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation]
   - id: feature.effort_controls
+    label: Effort controls
     subject: model
     value_type: {kind: boolean}
     definition: >-
@@ -399,6 +431,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation]
   - id: feature.batch
+    label: Batch interface
     subject: model
     value_type: {kind: boolean}
     definition: >-
@@ -408,6 +441,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, provider_documentation]
   - id: feature.streaming
+    label: Streaming
     subject: model
     value_type: {kind: boolean}
     definition: >-
@@ -419,6 +453,7 @@ facets:
 
   # ── Model: best-effort extras ─────────────────────────────────────────────
   - id: model.languages
+    label: Languages
     subject: model
     value_type: {kind: set, values_from: bcp_47}
     definition: >-
@@ -428,6 +463,7 @@ facets:
     risk: capability
     permitted_source_kinds: [lab_documentation, weights_repository]
   - id: model.fits_hardware
+    label: Fits hardware
     subject: model
     value_type: {kind: set, values_from: hardware}
     definition: >-
@@ -440,6 +476,7 @@ facets:
 
   # ── Offering: identity ────────────────────────────────────────────────────
   - id: offering.provider
+    label: Provider
     subject: offering
     value_type: {kind: enum, values_from: "registry:providers"}
     definition: >-
@@ -449,6 +486,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.region
+    label: Inference region
     subject: offering
     value_type: {kind: set, values_from: iso_3166_1_alpha_2}
     definition: >-
@@ -460,6 +498,7 @@ facets:
     risk: governance
     permitted_source_kinds: [provider_documentation, provider_terms]
   - id: offering.tier
+    label: Account tier
     subject: offering
     value_type: {kind: enum, values: [standard, enterprise, zero_retention, government]}
     definition: >-
@@ -472,6 +511,7 @@ facets:
 
   # ── Offering: price ───────────────────────────────────────────────────────
   - id: offering.price.input
+    label: Input price
     subject: offering
     value_type: {kind: number}
     unit: usd_per_1m_tokens
@@ -483,6 +523,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.price.output
+    label: Output price
     subject: offering
     value_type: {kind: number}
     unit: usd_per_1m_tokens
@@ -493,6 +534,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.price.cached_input
+    label: Cached input price
     subject: offering
     value_type: {kind: number, not_offered: true}
     unit: usd_per_1m_tokens
@@ -505,6 +547,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.price.batch_input
+    label: Batch input price
     subject: offering
     value_type: {kind: number, not_offered: true}
     unit: usd_per_1m_tokens
@@ -516,6 +559,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.price.batch_output
+    label: Batch output price
     subject: offering
     value_type: {kind: number, not_offered: true}
     unit: usd_per_1m_tokens
@@ -527,8 +571,24 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
 
+  - id: offering.cost_per_task
+    label: Cost per task
+    subject: offering
+    value_type: {kind: number}
+    unit: usd_per_task
+    definition: >-
+      What one task costs on this offering at list prices, computed per
+      decision from the spec's `task_tokens`: (offering.price.input × input
+      tokens + offering.price.output × output tokens) / 1,000,000. Unknown when
+      either price is unknown. Never authored on a card.
+    tier: guaranteed
+    risk: capability
+    permitted_source_kinds: [modelspec_estimate]
+    computed_by: MODEL-153
+
   # ── Offering: speed, limits, SLA ──────────────────────────────────────────
   - id: offering.speed.time_to_first_token
+    label: Time to first token
     subject: offering
     value_type: {kind: number}
     unit: milliseconds
@@ -541,6 +601,7 @@ facets:
     permitted_source_kinds: [modelspec_measurement, independent_evaluator, provider_self_report, outcome_protocol]
     required_qualifiers: [method]
   - id: offering.speed.throughput
+    label: Output throughput
     subject: offering
     value_type: {kind: number}
     unit: tokens_per_second
@@ -553,6 +614,7 @@ facets:
     permitted_source_kinds: [modelspec_measurement, independent_evaluator, provider_self_report, outcome_protocol]
     required_qualifiers: [method]
   - id: offering.rate_limit.requests
+    label: Request rate limit
     subject: offering
     value_type: {kind: number}
     unit: requests_per_minute
@@ -563,6 +625,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.rate_limit.tokens
+    label: Token rate limit
     subject: offering
     value_type: {kind: number}
     unit: tokens_per_minute
@@ -573,6 +636,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.sla_uptime
+    label: SLA uptime
     subject: offering
     value_type: {kind: number}
     unit: percent
@@ -586,6 +650,7 @@ facets:
 
   # ── Offering: data handling (governance) ──────────────────────────────────
   - id: offering.data.retention
+    label: Data retention
     subject: offering
     value_type: {kind: number, unbounded: true}
     unit: days
@@ -598,6 +663,7 @@ facets:
     risk: governance
     permitted_source_kinds: [provider_terms, provider_documentation]
   - id: offering.data.trains_on_customer_data
+    label: Trains on customer data
     subject: offering
     value_type: {kind: boolean}
     definition: >-
@@ -608,6 +674,7 @@ facets:
     risk: governance
     permitted_source_kinds: [provider_terms]
   - id: offering.data.zero_retention
+    label: Zero retention available
     subject: offering
     value_type: {kind: boolean}
     definition: >-
@@ -620,6 +687,7 @@ facets:
 
   # ── Offering: attestations (governance; documented, never certified) ──────
   - id: offering.attestation.soc2
+    label: SOC 2 report
     subject: offering
     value_type: {kind: enum, values: [type_1, type_2, none]}
     definition: >-
@@ -630,6 +698,7 @@ facets:
     risk: governance
     permitted_source_kinds: [provider_trust_center, provider_documentation]
   - id: offering.attestation.baa
+    label: HIPAA BAA
     subject: offering
     value_type: {kind: boolean}
     definition: >-
@@ -640,6 +709,7 @@ facets:
     risk: governance
     permitted_source_kinds: [provider_trust_center, provider_documentation, provider_terms]
   - id: offering.attestation.fedramp
+    label: FedRAMP level
     subject: offering
     value_type: {kind: enum, values: [high, moderate, low, li_saas, none]}
     definition: >-
@@ -650,6 +720,7 @@ facets:
     risk: governance
     permitted_source_kinds: [official_registry, provider_documentation]
   - id: offering.attestation.iso_27001
+    label: ISO/IEC 27001
     subject: offering
     value_type: {kind: boolean}
     definition: >-
@@ -661,6 +732,7 @@ facets:
 
   # ── Offering: best-effort extras ──────────────────────────────────────────
   - id: offering.fine_tuning
+    label: Fine-tuning service
     subject: offering
     value_type: {kind: boolean}
     definition: >-
@@ -670,6 +742,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.private_deployment
+    label: Private deployment
     subject: offering
     value_type: {kind: boolean}
     definition: >-
@@ -680,6 +753,7 @@ facets:
     risk: capability
     permitted_source_kinds: [provider_documentation]
   - id: offering.harness_compatibility
+    label: Harness compatibility
     subject: offering
     value_type: {kind: set, values_from: "registry:harnesses"}
     definition: >-
@@ -691,6 +765,7 @@ facets:
 
   # ── Evidence and estimates ────────────────────────────────────────────────
   - id: evidence.benchmark
+    label: Benchmark result
     subject: evidence
     value_type: {kind: number}
     unit: benchmark_metric
@@ -704,6 +779,7 @@ facets:
     permitted_source_kinds: [benchmark_author, independent_evaluator, provider_self_report, modelspec_measurement]
     required_qualifiers: [measured_by, evidence_date, date_type]
   - id: evidence.outcome
+    label: Outcome success rate
     subject: evidence
     value_type: {kind: number}
     unit: percent
@@ -717,6 +793,7 @@ facets:
     permitted_source_kinds: [outcome_protocol]
     required_qualifiers: [harness, record_count]
   - id: estimate.capability
+    label: Capability estimate
     subject: model
     value_type: {kind: range}
     unit: capability_scale

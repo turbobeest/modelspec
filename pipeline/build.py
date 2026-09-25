@@ -271,6 +271,25 @@ def _fallback_home(site: str, headline: str, lede: str, links: list[tuple[str, s
                    build=build, site=site, nav_links=nav)
 
 
+def write_decision_vocabulary(root: Path, snapshot_path: Path, *, key: bytes | None) -> Path:
+    """Write ``vocabulary.json`` beside the snapshot it describes (MODEL-153)."""
+    import json
+
+    from decision import snapshot as decision_snapshot
+    from decision.vocabulary import build_vocabulary
+    from pipeline.load import load_benchmarks
+
+    loaded = decision_snapshot.load_snapshot(snapshot_path, key=key)
+    pages = {b.benchmark_id: b.front for b in load_benchmarks(root)}
+    target = snapshot_path.parent / "vocabulary.json"
+    target.write_text(
+        json.dumps(build_vocabulary(loaded, pages=pages), indent=2, ensure_ascii=False,
+                   allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    return target
+
+
 def write_decision_snapshot_if_ready(
     root: Path,
     target: Path,
@@ -278,10 +297,14 @@ def write_decision_snapshot_if_ready(
     premier: Path,
     as_of: date,
 ) -> bool:
-    """Publish only a complete, signed snapshot; warn when it is not ready."""
+    """Publish only a complete, signed snapshot; warn when it is not ready.
+
+    The vocabulary (``vocabulary.json``) is published with it or not at all.
+    """
     from decision import snapshot as decision_snapshot
 
     target.unlink(missing_ok=True)
+    (target.parent / "vocabulary.json").unlink(missing_ok=True)
     key = decision_snapshot.env_key()
     if key is None:
         print(
@@ -315,8 +338,10 @@ def write_decision_snapshot_if_ready(
 
     try:
         built.write(target, key=key)
+        write_decision_vocabulary(root, target, key=key)
     except Exception as exc:  # noqa: BLE001 - the site still ships without this optional file
         target.unlink(missing_ok=True)
+        (target.parent / "vocabulary.json").unlink(missing_ok=True)
         print(
             f"::warning::decision snapshot not published: {type(exc).__name__}: {exc}",
             file=sys.stderr,
@@ -376,8 +401,9 @@ def main(argv: list[str] | None = None) -> int:
         from decision import snapshot as decision_snapshot
         premier = Path(args.premier) if args.premier else root / "premier" / "slice-1.yaml"
         try:
-            decision_snapshot.build_from_repo(root, premier=premier, as_of=today).write(
-                ms / "api" / "decision" / "snapshot.json.gz")
+            written = decision_snapshot.build_from_repo(
+                root, premier=premier, as_of=today).write(ms / "api" / "decision" / "snapshot.json.gz")
+            write_decision_vocabulary(root, written, key=decision_snapshot.env_key())
         except decision_snapshot.SnapshotError as exc:
             print(f"error: decision snapshot: {exc}", file=sys.stderr)
             return 2

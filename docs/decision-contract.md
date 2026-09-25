@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.2**
+Contract version: **1.3**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -34,6 +34,7 @@ task_type: refactor
 capabilities:
   software_engineering: required
   formal_verification: preferred
+task_tokens: { input: 60000, output: 6000 }
 where:
   - offering.price.input in [0.50, 3.00]
   - swe_bench_pro >= 55 @independent @default_effort measured_after 2026-06-01
@@ -41,6 +42,7 @@ where:
   - not: licence.commercial_use = prohibited
   - software_engineering >= model(openai/gpt-6-sol)
   - model.context_window >= 200000 soft(0.2)
+  - offering.cost_per_task <= 0.25
   - facet: offering.data.trains_on_customer_data
     op: "="
     value: false
@@ -61,6 +63,7 @@ save_as: acme-rust-refactor
 | `task` | string | none | Free text for the decision model. **Not yet in slice 1:** a spec that sets it is refused. Send `task_type` and `capabilities`. |
 | `task_type` | closed set, below | none | What kind of task this is. |
 | `capabilities` | map of domain ID to `required` or `preferred` | none | The capabilities the task needs. |
+| `task_tokens` | `{input, output}`, whole numbers ≥ 0 | `{input: 40000, output: 4000}` | Tokens one task takes. Prices `offering.cost_per_task`; see below. |
 | `where` | list of conditions | `[]` | Conditions, ANDed, applied in order. The order sets the order of the elimination funnel. |
 | `optimize` | objective | required | Exactly one objective form. |
 | `unknowns` | `default` | `default` | How unknown values are handled when a condition does not say. The only value is `default`: capability facets list the model as "may qualify", governance facets count it as not satisfied. |
@@ -79,6 +82,33 @@ types.
 model ID is `lab/model`. A harness ID is `name@major.minor`
 (`claude-code@2.1`). Every facet a spec names must be in the facet registry
 (`decision.registry`, MODEL-133), or the spec is refused.
+
+### Cost per task
+
+The design's unit of cost is one task. `task_tokens` says how many input and
+output tokens a task takes, and the engine computes the facet
+`offering.cost_per_task` (unit `usd_per_task`) for every offering:
+
+```text
+offering.cost_per_task = (offering.price.input × input + offering.price.output × output) / 1,000,000
+```
+
+- Both prices are the offering's list prices in USD per 1M tokens. When either
+  is unknown, the cost per task is unknown, and a condition on it follows the
+  unknown rules below (it is a capability facet, so the offering may qualify).
+- Without `task_tokens` the engine prices at `input: 40000`, `output: 4000`.
+  The spec hash leaves an absent `task_tokens` out, so a spec that does not use
+  it keeps its 1.2 hash; writing the default values explicitly is a different
+  spec with a different hash.
+- It is a computed facet (`computed_by` in the registry): it is never stored in
+  a snapshot or written on a card, and it has no record of its own. Wherever an
+  explanation shows it (a contribution, a near miss, an elimination, a shown
+  fact), `records` names the two price records and `formula` shows the
+  calculation with the numbers:
+  `(1 USD per 1M input tokens × 40,000 input tokens + 5 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.06 USD per task`.
+- Use it like any number facet: `offering.cost_per_task <= 0.10` in `where`,
+  `-offering.cost_per_task` in `weights` or `pareto`, `min:
+  offering.cost_per_task`.
 
 ### The inventory profile
 
@@ -297,7 +327,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.2",
+  "contract_version": "1.3",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -354,7 +384,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.2"`. |
+| `contract_version` | `"1.3"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
@@ -486,7 +516,8 @@ contract version. Version 1.1 retains them.
   scalar `value` remains null in that case.
 - `top` contains up to 20 optimised candidates independently of the result
   limit, with `offering`, `facts`, `contributions` and domain `evidence`.
-  Shown facts carry `facet`, `value`, `unit`, and `record_id`.
+  Shown facts carry `facet`, `value`, `unit`, and `record_id`; a computed fact
+  (1.3) has no `record_id` and carries `records` and `formula` instead.
 - `chart` is inline SVG, with separate raw-value scales by objective dimension.
 - `number_origins` covers every numeric JSON leaf outside that index. Each entry
   has its JSON-pointer `path`, calculation or input `basis`, supporting `records`
@@ -505,6 +536,32 @@ arguments for the registry and explicit benchmark/version/sub-category bindings.
 Ambiguous benchmark measurements remain missing. Capability objectives have no
 composite until MODEL-129. Requested domains come from `capabilities` and use
 snapshot domain tags, never a fixed benchmark list.
+
+## The published vocabulary (MODEL-153)
+
+The site build writes `/api/decision/vocabulary.json` beside the decision
+snapshot it describes, and only when it publishes that snapshot. A client reads
+it instead of carrying its own list of facets or benchmarks. Built by
+[`decision/vocabulary.py`](../decision/vocabulary.py):
+
+- `snapshot`, `contract_version`, `default_task_tokens` and `task_types`.
+- `facets`: every registered facet except the parameterised families, each
+  with `id`, `label`, `definition`, `subject`, `value_type`, `unit`, the
+  condition `operators` its type admits (`=`, `!=`, `<`, `<=`, `>`, `>=`,
+  `between` for `facet in [low, high]`, `in` and `not in` for `facet in {…}`,
+  `known`), whether it can be an `objective`, its `risk` and `computed_by`, and
+  how much of the lineup knows it: `known` of `of` models or offerings, with
+  the `values` (and counts) or the `range` it takes there. A client offers
+  nothing with `known: 0`. `offering.cost_per_task` is counted and ranged at
+  `default_task_tokens`.
+- `benchmarks`: every benchmark with verified evidence in the snapshot, with
+  `id`, `name`, `unit`, `higher_is_better`, `models` (lineup models with a
+  verified row), `independent_models` (those with a row that `@independent`
+  admits), the `range` of those values, and its `domains` with `directness`.
+- `domains`: every registered domain with a listed benchmark, its `benchmarks`
+  ordered direct first, then by `models`.
+
+The field set is additive: a client ignores fields it does not know.
 
 ## Versioning (MODEL-59)
 
@@ -532,6 +589,13 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **1.3 — MODEL-153:** Additive. A spec accepts `task_tokens` (`input`,
+  `output`), and the registry adds the computed facet `offering.cost_per_task`
+  in `usd_per_task`. A contribution, a near miss, an elimination and a shown
+  fact add `formula`; a shown fact adds `records`, for a computed value with no
+  record of its own. `contract_version` is `"1.3"`. A spec without
+  `task_tokens` keeps its hash.
 
 - **1.2 — MODEL-157:** Additive. A decision adds `out_of_lineup`, the count of
   active catalogue models outside the snapshot's premier lineup. An evidence

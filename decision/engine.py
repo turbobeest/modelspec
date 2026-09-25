@@ -7,7 +7,9 @@ from collections.abc import Mapping
 from dataclasses import replace
 from itertools import combinations
 
+from decision.computed import with_computed
 from decision.contract import (
+    DEFAULT_TASK_TOKENS,
     Decision,
     FacetLookup,
     InventoryProfile,
@@ -74,6 +76,9 @@ def decide(
     """Return a reproducible decision. Explanation work is skipped at ``none``."""
     if snapshot is None:
         raise ValueError("a loaded decision snapshot is required")
+    # Computed facets (offering.cost_per_task) depend on the spec, so the
+    # snapshot answers them through a per-decision view.
+    snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
     if spec.explain in ("summary", "full"):
         snapshot.require_explanation_records()
     resolved = resolve(spec, facets=facets, profiles=profiles)

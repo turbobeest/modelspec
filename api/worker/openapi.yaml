@@ -2826,6 +2826,12 @@ components:
             $ref: '#/components/schemas/DecisionEvidenceItem'
           title: Evidence
           type: array
+        formula:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Formula
       required:
       - dimension
       title: Contribution
@@ -2856,8 +2862,8 @@ components:
           title: Number Origins
           type: array
         contract_version:
-          const: '1.2'
-          default: '1.2'
+          const: '1.3'
+          default: '1.3'
           title: Contract Version
           type: string
         decision_id:
@@ -3441,6 +3447,12 @@ components:
           - type: 'null'
           default: null
           title: Value
+        formula:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Formula
       required:
       - model
       - condition
@@ -3511,6 +3523,12 @@ components:
             type: string
           title: Records
           type: array
+        formula:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Formula
       required:
       - offering
       - condition
@@ -3793,6 +3811,17 @@ components:
           - type: 'null'
           default: null
           title: Record Id
+        records:
+          items:
+            type: string
+          title: Records
+          type: array
+        formula:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Formula
       required:
       - facet
       title: ShownFact
@@ -3871,6 +3900,11 @@ components:
           - type: 'null'
           default: null
           title: Capabilities
+        task_tokens:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionTaskTokens'
+          - type: 'null'
+          default: null
         where:
           items:
             anyOf:
@@ -3916,6 +3950,23 @@ components:
       - spec_version
       - optimize
       title: Spec
+      type: object
+    DecisionTaskTokens:
+      additionalProperties: false
+      description: How many tokens one task takes. ``offering.cost_per_task`` is priced from it.
+      properties:
+        input:
+          minimum: 0
+          title: Input
+          type: integer
+        output:
+          minimum: 0
+          title: Output
+          type: integer
+      required:
+      - input
+      - output
+      title: TaskTokens
       type: object
     DecisionTippingPoint:
       additionalProperties: false
@@ -4032,7 +4083,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.2'
+          - '1.3'
         endpoint:
           type: string
           enum:
@@ -4076,7 +4127,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.2'
+          - '1.3'
         endpoint:
           type: string
           enum:

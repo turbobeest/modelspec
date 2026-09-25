@@ -48,6 +48,7 @@ SOURCES = {
     Path("pipeline/__init__.py"): Path("pipeline/__init__.py"),
     Path("pipeline/ranking.py"): Path("pipeline/ranking.py"),
     Path("decision/__init__.py"): Path("decision/__init__.py"),
+    Path("decision/computed.py"): Path("decision/computed.py"),
     Path("decision/contract.py"): Path("decision/contract.py"),
     Path("decision/engine.py"): Path("decision/engine.py"),
     Path("decision/excluded.py"): Path("decision/excluded.py"),

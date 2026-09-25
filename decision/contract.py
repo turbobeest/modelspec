@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.2"
+CONTRACT_VERSION = "1.3"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -971,6 +971,17 @@ ProfileRef = Annotated[
 # ── the spec ───────────────────────────────────────────────────────────────
 
 
+class TaskTokens(_Strict):
+    """How many tokens one task takes. ``offering.cost_per_task`` is priced from it."""
+
+    input: int = Field(ge=0)
+    output: int = Field(ge=0)
+
+
+#: What ``offering.cost_per_task`` is priced at when a spec gives no ``task_tokens``.
+DEFAULT_TASK_TOKENS = TaskTokens(input=40000, output=4000)
+
+
 class Spec(_Strict):
     """A request for a decision."""
 
@@ -980,6 +991,8 @@ class Spec(_Strict):
     task: str | None = None
     task_type: TaskType | None = None
     capabilities: dict[FacetId, CapabilityLevel] | None = None
+    #: Tokens per task, for ``offering.cost_per_task``. Added in 1.3.
+    task_tokens: TaskTokens | None = None
     where: list[Condition] = Field(default_factory=list)
     optimize: Objective
     unknowns: Literal["default"] = "default"
@@ -1048,6 +1061,8 @@ class Contribution(_Strict):
     value: float | None = None
     normalisation: str | None = None
     evidence: list[EvidenceItem] = Field(default_factory=list)
+    #: How a computed raw value was reached, with the numbers. Added in 1.3.
+    formula: str | None = None
 
 
 class Result(_Strict):
@@ -1085,6 +1100,8 @@ class ModelElimination(_Strict):
     model: ModelId
     condition: str
     value: Scalar | None = None
+    #: How a computed value was reached, with the numbers. Added in 1.3.
+    formula: str | None = None
 
 
 class Eliminated(_Strict):
@@ -1116,6 +1133,8 @@ class NearMiss(_Strict):
     distance: float | None = None
     unit: str | None = None
     records: list[str] = Field(default_factory=list)
+    #: How a computed value was reached, with the numbers. Added in 1.3.
+    formula: str | None = None
 
 
 class ShownFact(_Strict):
@@ -1123,6 +1142,10 @@ class ShownFact(_Strict):
     value: Scalar | list[Scalar] | None = None
     unit: str | None = None
     record_id: str | None = None
+    #: A computed fact has no record of its own: the records it was computed
+    #: from, and the formula with the numbers. Added in 1.3.
+    records: list[str] = Field(default_factory=list)
+    formula: str | None = None
 
 
 class CandidateValues(_Strict):
@@ -1146,7 +1169,7 @@ class Decision(_Strict):
     top: list[CandidateValues] = Field(default_factory=list)
     chart: str | None = None
     number_origins: list[NumberOrigin] = Field(default_factory=list)
-    contract_version: Literal["1.2"] = CONTRACT_VERSION
+    contract_version: Literal["1.3"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     spec_hash: SpecHash
@@ -1178,7 +1201,7 @@ class Decision(_Strict):
 
 
 CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
-    Spec, Objective, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
+    Spec, TaskTokens, Objective, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
     Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate, Contribution,
