@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DECIDE_ENDPOINT,
+  DecideApiError,
   fictionalEngine,
   hostedEngine,
+  retryOnSnapshotChange,
+  sharedReload,
   templates,
   catalogue,
   decisionSchema,
@@ -215,6 +218,43 @@ describe("the fictional decision adapter", () => {
     );
     expect(catalogue.offerings).toBe(60);
   });
+  it("names the vocabulary's snapshot in a header, never in the spec", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(answer), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    await hostedEngine.decide(contractSpec, { snapshot: "snap_12345678" });
+    const init = fetch.mock.calls[0][1];
+    expect(init.headers).toMatchObject({ "X-ModelSpec-Snapshot": "snap_12345678" });
+    expect(init.body).toBe(JSON.stringify(contractSpec));
+  });
+  it("reads a snapshot_changed 409 as its own code", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            contract_version: "1.4",
+            endpoint: "decide",
+            snapshot: "snap_new",
+            error: {
+              code: "snapshot_changed",
+              message: "reload the vocabulary and retry",
+              requested: "snap_old",
+              current: "snap_new",
+            },
+          }),
+          { status: 409, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+    await expect(
+      hostedEngine.decide(contractSpec, { snapshot: "snap_old" }),
+    ).rejects.toMatchObject({ status: 409, code: "snapshot_changed" });
+  });
   it("preserves the API error code and never accepts an invalid success body", async () => {
     vi.stubGlobal(
       "fetch",
@@ -264,4 +304,81 @@ it("tests all offerings in three values and selects a passing one before price",
   expect(eu.explanation.rows.find((r) => r.m.name === "Q-Swift")?.status).toBe(
     0,
   );
+});
+
+describe("a snapshot that changed under the page", () => {
+  const changed = () =>
+    new DecideApiError("reload the vocabulary and retry", 409, "snapshot_changed");
+
+  it("reloads the vocabulary once and retries with its snapshot", async () => {
+    const asked: (string | null)[] = [];
+    const reload = vi.fn().mockResolvedValue({ snapshot: "snap_new" });
+    const outcome = await retryOnSnapshotChange(
+      { snapshot: "snap_old" },
+      async (vocabulary) => {
+        asked.push(vocabulary?.snapshot ?? null);
+        if (vocabulary?.snapshot === "snap_old") throw changed();
+        return "answer";
+      },
+      reload,
+    );
+    expect(outcome).toEqual({ result: "answer", vocabulary: { snapshot: "snap_new" } });
+    expect(asked).toEqual(["snap_old", "snap_new"]);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry a second time", async () => {
+    const ask = vi.fn().mockRejectedValue(changed());
+    const reload = vi.fn().mockResolvedValue({ snapshot: "snap_newer" });
+    await expect(retryOnSnapshotChange({ snapshot: "snap_old" }, ask, reload)).rejects.toMatchObject({
+      code: "snapshot_changed",
+    });
+    expect(ask).toHaveBeenCalledTimes(2);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry when the reload names the same snapshot", async () => {
+    const ask = vi.fn().mockRejectedValue(changed());
+    const reload = vi.fn().mockResolvedValue({ snapshot: "snap_old" });
+    await expect(retryOnSnapshotChange({ snapshot: "snap_old" }, ask, reload)).rejects.toMatchObject({
+      code: "snapshot_changed",
+    });
+    expect(ask).toHaveBeenCalledTimes(1);
+  });
+
+  it("shares one reload between every request that heard the same 409", async () => {
+    const load = vi.fn<() => Promise<{ snapshot: string }>>().mockResolvedValue({
+      snapshot: "snap_new",
+    });
+    const reload = sharedReload(load);
+    const ask = async (vocabulary: { snapshot: string } | null) => {
+      if (vocabulary?.snapshot === "snap_old") throw changed();
+      return vocabulary?.snapshot;
+    };
+    const outcomes = await Promise.all(
+      [1, 2, 3].map(() => retryOnSnapshotChange({ snapshot: "snap_old" }, ask, reload)),
+    );
+    expect(outcomes.map((outcome) => outcome.result)).toEqual(["snap_new", "snap_new", "snap_new"]);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it("tries a failed reload again on the next 409", async () => {
+    const load = vi
+      .fn<() => Promise<{ snapshot: string }>>()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValue({ snapshot: "snap_new" });
+    const reload = sharedReload(load);
+    await expect(reload("snap_old")).rejects.toThrow("offline");
+    await expect(reload("snap_old")).resolves.toEqual({ snapshot: "snap_new" });
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves every other error alone", async () => {
+    const ask = vi.fn().mockRejectedValue(new DecideApiError("bad", 400, "invalid_spec"));
+    const reload = vi.fn();
+    await expect(retryOnSnapshotChange({ snapshot: "snap_old" }, ask, reload)).rejects.toMatchObject({
+      code: "invalid_spec",
+    });
+    expect(reload).not.toHaveBeenCalled();
+  });
 });

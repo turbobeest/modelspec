@@ -5,12 +5,21 @@ import {
   catalogue,
   candidateQuestions,
   hostedEngine,
+  retryOnSnapshotChange,
+  sharedReload,
   DecideApiError,
   parseTask,
   fmtB,
   fmtCI,
 } from "./adapter";
-import type { Cond, Decision, Evidence, Spec, SpecIssue } from "./adapter";
+import type {
+  Cond,
+  Decision,
+  Evidence,
+  HostedDecisionEngine,
+  Spec,
+  SpecIssue,
+} from "./adapter";
 import {
   VocabularyError,
   loadVocabulary,
@@ -84,7 +93,11 @@ function DesignedApp({
     requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
     questionsAbort = useRef<AbortController | null>(null),
-    provTrigger = useRef<HTMLElement | null>(null);
+    provTrigger = useRef<HTMLElement | null>(null),
+    initialAnswered = useRef(false);
+  // A site deploy can change the snapshot under an open page (MODEL-159). The
+  // Worker says so with a 409; every request that hears it shares one reload.
+  const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary()));
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
     [hostedQuestions, setHostedQuestions] = useState<Question[]>([]),
     [requestState, setRequestState] = useState<
@@ -184,7 +197,6 @@ function DesignedApp({
 
   async function runDecision(requested: Spec) {
     if (demo) return;
-    const nextSpec = sendable(requested);
     requestAbort.current?.abort();
     questionsAbort.current?.abort();
     const controller = new AbortController();
@@ -192,16 +204,36 @@ function DesignedApp({
     setHostedDecision(null);
     setHostedQuestions([]);
     setRequestState({ kind: "loading" });
+    const ask = (current: Vocabulary | null, explain: "summary" | "full") => {
+      const nextSpec = current ? sendableSpec(current, requested) : requested;
+      return hostedEngine
+        .decide(toDecisionSpec(nextSpec, explain), {
+          signal: controller.signal,
+          snapshot: current?.snapshot,
+        })
+        .then((decision) => ({ decision, nextSpec }));
+    };
+    let used = vocabulary,
+      reloaded = false,
+      nextSpec: Spec;
     try {
       // Summary first: it is small and answers well inside the Worker's limits,
       // so the ranking draws at once. The full explanation follows and only
       // enriches the Why panel; if it fails, the summary stands (MODEL-153).
-      const summary = await hostedEngine.decide(toDecisionSpec(nextSpec, "summary"), {
-        signal: controller.signal,
-      });
+      const answer = await retryOnSnapshotChange(
+        vocabulary,
+        (current) => ask(current, "summary"),
+        reloadVocabulary,
+      );
       if (controller.signal.aborted) return;
-      setHostedDecision(summary);
-      setHostedQuestions(questionsFor(nextSpec));
+      used = answer.vocabulary;
+      reloaded = used !== vocabulary;
+      nextSpec = answer.result.nextSpec;
+      if (used && reloaded) setVocabState({ kind: "ready", vocabulary: used });
+      setHostedDecision(answer.result.decision);
+      setHostedQuestions(
+        used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec),
+      );
       setRequestState({ kind: "success", details: "loading" });
     } catch (cause) {
       if (cause instanceof Error && cause.name === "AbortError") return;
@@ -216,11 +248,15 @@ function DesignedApp({
       return;
     }
     try {
-      const full = await hostedEngine.decide(toDecisionSpec(nextSpec, "full"), {
-        signal: controller.signal,
-      });
+      // Once the summary has reloaded, a second 409 here leaves the summary
+      // standing: the background request never starts another reload.
+      const answer = reloaded
+        ? { result: await ask(used, "full"), vocabulary: used }
+        : await retryOnSnapshotChange(used, (current) => ask(current, "full"), reloadVocabulary);
       if (controller.signal.aborted) return;
-      setHostedDecision(full);
+      if (answer.vocabulary && answer.vocabulary !== used)
+        setVocabState({ kind: "ready", vocabulary: answer.vocabulary });
+      setHostedDecision(answer.result.decision);
       setRequestState({ kind: "success", details: "ready" });
     } catch (cause) {
       if (controller.signal.aborted || (cause instanceof Error && cause.name === "AbortError"))
@@ -247,8 +283,21 @@ function DesignedApp({
     const controller = new AbortController();
     questionsAbort.current = controller;
     const candidates = questionsFor(spec);
+    // Each probe names the snapshot too; after one 409 the rest use the reload.
+    let current = vocabulary;
+    const pinned: HostedDecisionEngine = {
+      decide: (next, options) =>
+        retryOnSnapshotChange(
+          current,
+          (v) => hostedEngine.decide(next, { ...options, snapshot: v?.snapshot }),
+          reloadVocabulary,
+        ).then((answer) => {
+          current = answer.vocabulary;
+          return answer.result;
+        }),
+    };
     void evaluateQuestionOptions({
-      engine: hostedEngine,
+      engine: pinned,
       spec: toDecisionSpec(sendable(spec), "none"),
       questions: candidates,
       signal: controller.signal,
@@ -302,6 +351,9 @@ function DesignedApp({
     if (!vocabulary) return;
     if (initial) {
       // A shared link: answer it as written. What the engine refuses is shown on its chip.
+      // Once: a vocabulary reloaded after a deploy must not answer it again.
+      if (initialAnswered.current) return;
+      initialAnswered.current = true;
       void runDecision(initial.spec);
       return;
     }

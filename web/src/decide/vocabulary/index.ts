@@ -134,6 +134,10 @@ export async function loadVocabulary(signal?: AbortSignal): Promise<Vocabulary> 
   try {
     response = await fetch(VOCABULARY_URL, {
       headers: { Accept: "application/json" },
+      // The site serves this with max-age=14400; after a deploy (or a 409
+      // snapshot_changed) a cached copy would describe the old snapshot.
+      // no-cache revalidates with the ETag, so an unchanged file is a 304.
+      cache: "no-cache",
       signal,
     });
   } catch (error) {

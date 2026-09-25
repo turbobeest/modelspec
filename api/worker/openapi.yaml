@@ -56,6 +56,7 @@ info:
   - payload_too_large
   - rate_limited
   - sandbox_not_available
+  - snapshot_changed
   - snapshot_not_loaded
   - tier_not_configured
   - undetermined_present
@@ -322,6 +323,15 @@ paths:
     post:
       operationId: decide
       summary: Return a decision from the signed published snapshot.
+      parameters:
+      - name: X-ModelSpec-Snapshot
+        in: header
+        required: false
+        description: The snapshot the caller's vocabulary.json describes. When the Worker answers from
+          another snapshot it returns 409 snapshot_changed before reading the spec (MODEL-159).
+        schema:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
       requestBody:
         required: true
         content:
@@ -343,6 +353,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DecisionResponse'
+          headers:
+            X-ModelSpec-Snapshot:
+              description: The verified snapshot that answered (MODEL-159).
+              schema:
+                type: string
+            X-ModelSpec-Snapshot-Stale:
+              description: Present only when the isolate's latest revalidation failed (network, HTTP error,
+                or a snapshot that failed verification) and an older verified snapshot answered. The value
+                says why.
+              schema:
+                type: string
         '400':
           description: The body is not a contract-v1 spec.
           content:
@@ -350,7 +371,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/DecisionRequestRefused'
         '409':
-          description: The requested snapshot is not the snapshot loaded by this isolate.
+          description: 'snapshot_not_loaded: the spec pinned a snapshot this isolate has not loaded. snapshot_changed:
+            the X-ModelSpec-Snapshot header names another snapshot than the one answering; reload vocabulary.json
+            and retry once.'
           content:
             application/json:
               schema:
@@ -4196,6 +4219,7 @@ components:
               - no_snapshot
               - origin_not_allowed
               - payload_too_large
+              - snapshot_changed
               - snapshot_not_loaded
               - snapshot_refused
               - snapshot_unavailable
@@ -4205,6 +4229,12 @@ components:
               type: array
               items:
                 type: object
+            requested:
+              type: string
+              description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'
+            current:
+              type: string
+              description: 'snapshot_changed only: the snapshot that answers now.'
     DecisionSnapshotUnavailable:
       type: object
       required:

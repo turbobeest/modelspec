@@ -572,7 +572,7 @@ _ENTRY_ONLY = {
     "credits_store_not_configured", "missing_holder", "origin_not_allowed",
     "snapshot_refused", "snapshot_unavailable",
 }
-_DECIDE_ONLY = {"invalid_spec", "no_snapshot", "snapshot_not_loaded"}
+_DECIDE_ONLY = {"invalid_spec", "no_snapshot", "snapshot_not_loaded", "snapshot_changed"}
 
 
 def source_error_codes() -> set[str]:
@@ -1730,6 +1730,14 @@ def _decision_schemas() -> dict[str, Any]:
                     )},
                     "message": {"type": "string"},
                     "issues": {"type": "array", "items": {"type": "object"}},
+                    "requested": {
+                        "type": "string",
+                        "description": "snapshot_changed only: the X-ModelSpec-Snapshot sent.",
+                    },
+                    "current": {
+                        "type": "string",
+                        "description": "snapshot_changed only: the snapshot that answers now.",
+                    },
                 },
             },
         },
@@ -1871,6 +1879,19 @@ def build_spec() -> dict[str, Any]:
             "description": "Seconds before retrying a no_snapshot response.",
             "schema": {"type": "integer", "minimum": 1},
         }
+    }
+    decide_snapshot_headers = {
+        "X-ModelSpec-Snapshot": {
+            "description": "The verified snapshot that answered (MODEL-159).",
+            "schema": {"type": "string"},
+        },
+        "X-ModelSpec-Snapshot-Stale": {
+            "description": (
+                "Present only when the isolate's latest revalidation failed (network, HTTP "
+                "error, or a snapshot that failed verification) and an older verified "
+                "snapshot answered. The value says why."),
+            "schema": {"type": "string"},
+        },
     }
 
     security_schemes = {
@@ -2027,6 +2048,14 @@ def build_spec() -> dict[str, Any]:
                 "post": {
                     "operationId": "decide",
                     "summary": "Return a decision from the signed published snapshot.",
+                    "parameters": [{
+                        "name": "X-ModelSpec-Snapshot", "in": "header", "required": False,
+                        "description": (
+                            "The snapshot the caller's vocabulary.json describes. When the "
+                            "Worker answers from another snapshot it returns 409 "
+                            "snapshot_changed before reading the spec (MODEL-159)."),
+                        "schema": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    }],
                     "requestBody": {
                         "required": True,
                         "content": {"application/json": {
@@ -2035,16 +2064,22 @@ def build_spec() -> dict[str, Any]:
                         }},
                     },
                     "responses": {
-                        "200": _json_body(
-                            "A decision pinned to the snapshot that produced it.",
-                            {"$ref": "#/components/schemas/DecisionResponse"},
-                        ),
+                        "200": {
+                            **_json_body(
+                                "A decision pinned to the snapshot that produced it.",
+                                {"$ref": "#/components/schemas/DecisionResponse"},
+                            ),
+                            "headers": decide_snapshot_headers,
+                        },
                         str(decide_service.HTTP_BAD_REQUEST): _json_body(
                             "The body is not a contract-v1 spec.",
                             {"$ref": "#/components/schemas/DecisionRequestRefused"},
                         ),
                         str(decide_service.HTTP_CONFLICT): _json_body(
-                            "The requested snapshot is not the snapshot loaded by this isolate.",
+                            "snapshot_not_loaded: the spec pinned a snapshot this isolate "
+                            "has not loaded. snapshot_changed: the X-ModelSpec-Snapshot header "
+                            "names another snapshot than the one answering; reload "
+                            "vocabulary.json and retry once.",
                             {"$ref": "#/components/schemas/DecisionRequestRefused"},
                         ),
                         not_found[0]: not_found[1],
