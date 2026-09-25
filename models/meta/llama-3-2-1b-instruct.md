@@ -668,10 +668,10 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    ifeval: 58.1
-    bbh: 34.8
-    musr: 32.0
-    mmlu_pro: 17.4
+    ifeval: 57.0
+    bbh: 35.0
+    musr: 33.3
+    mmlu_pro: 16.8
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: llama-3.2-1b-instruct
@@ -934,7 +934,11 @@ benchmarks:
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 8.2 and gpqa_diamond 26.8. They were the Open LLM Leaderboard
-    v2 MATH Lvl 5 and GPQA values for unsloth/Llama-3.2-1B-Instruct, a different repository from this card''s (meta-llama/Llama-3.2-1B-Instruct).'
+    v2 MATH Lvl 5 and GPQA values for unsloth/Llama-3.2-1B-Instruct, a different repository from this card''s (meta-llama/Llama-3.2-1B-Instruct).
+    MODEL-154, read 2026-09-24: Rechecked ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (meta-llama/Llama-3.2-1B-Instruct,
+    torch.bfloat16, model revision d0a2081ed47e20ce524e8bc5d132f3fad2f69ff0). IFEval is the mean of strict prompt
+    and instruction accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages
+    rounded to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B-Instruct/results_2025-02-13T18-27-04.338360.json.'
 deployment:
   api_only: false
   local_inference: true

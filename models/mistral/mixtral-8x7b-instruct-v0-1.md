@@ -667,10 +667,10 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    bbh: 36.8
-    ifeval: 69.5
-    mmlu_pro: 40.5
-    musr: 11.8
+    bbh: 49.6
+    ifeval: 56.0
+    mmlu_pro: 36.9
+    musr: 42.0
     arc_challenge: 70.1
     gsm8k: 61.1
     hellaswag: 87.6
@@ -996,7 +996,11 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 40.1 and gpqa_diamond 27.2. They came from a hand-typed
     table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
-    for mistralai/Mixtral-8x7B-Instruct-v0.1 has MATH Lvl 5 Raw 9.1 and GPQA Raw 30.3).'
+    for mistralai/Mixtral-8x7B-Instruct-v0.1 has MATH Lvl 5 Raw 9.1 and GPQA Raw 30.3). MODEL-154, read 2026-09-24:
+    Rechecked ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (mistralai/Mixtral-8x7B-Instruct-v0.1,
+    torch.bfloat16, model revision 41bd4c9e7e4fb318ca40e721131d4933966c2cc1). IFEval is the mean of strict prompt
+    and instruction accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages
+    rounded to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json.'
 deployment:
   api_only: false
   local_inference: true

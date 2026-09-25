@@ -689,14 +689,13 @@ benchmarks:
     multipl_e_lua: 38.5
     multipl_e_scala: 40.2
     multipl_e_kotlin: 48.5
-    ifeval: 34.5
-    bbh: 48.6
-    musr: 34.5
-    mmlu_pro: 36.8
   benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 19.2 and gpqa_diamond 25.9. They were the Open LLM Leaderboard
-    v2 MATH Lvl 5 and GPQA values for Qwen/Qwen2.5-Coder-7B, a different repository from this card''s (Qwen/Qwen2.5-Coder-7B-Instruct-GPTQ-Int4).'
+    v2 MATH Lvl 5 and GPQA values for Qwen/Qwen2.5-Coder-7B, a different repository from this card''s (Qwen/Qwen2.5-Coder-7B-Instruct-GPTQ-Int4).
+    MODEL-154, read 2026-09-24: Set ifeval, bbh, musr and mmlu_pro to null. No exact repository row in contents and
+    no results directory for this repository. No evidence is transferred from a mirror, quantization, base or instruction-tuned
+    variant. Source inventory: https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet.'
 deployment:
   api_only: false
   local_inference: true

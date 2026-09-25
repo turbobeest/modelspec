@@ -667,10 +667,10 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    bbh: 39.5
+    bbh: 53.6
     ifeval: 72.1
-    mmlu_pro: 43.5
-    musr: 13.1
+    mmlu_pro: 35.4
+    musr: 47.1
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: granite-3.1-8b-instruct
@@ -903,7 +903,11 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 46.8 and gpqa_diamond 29.8. They came from a hand-typed
     table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
-    for ibm-granite/granite-3.1-8b-instruct has MATH Lvl 5 Raw 22.0 and GPQA Raw 31.2).'
+    for ibm-granite/granite-3.1-8b-instruct has MATH Lvl 5 Raw 22.0 and GPQA Raw 31.2). MODEL-154, read 2026-09-24:
+    Rechecked ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (ibm-granite/granite-3.1-8b-instruct,
+    torch.float16, model revision f6749f3946b2dc9983b870317a71ddf7a65c0806). IFEval is the mean of strict prompt and
+    instruction accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages
+    rounded to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.1-8b-instruct/results_2025-02-13T18-27-04.338360.json.'
 deployment:
   api_only: false
   local_inference: true
