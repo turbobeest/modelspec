@@ -57,8 +57,8 @@ models/*.md ──▶ pipeline/build.py ──▶ static JSON on Cloudflare Page
                           Worker  modelspec-rank  (Python, Pyodide)
                             api/worker/src/entry.py       transport only
                             api/worker/src/rank_service.py  the answer
-                            python_modules/pipeline/ranking.py   ← vendored verbatim
-                            python_modules/api/ranking/engine.py ← vendored verbatim
+                            src/pipeline/ranking.py   ← vendored verbatim
+                            src/api/ranking/engine.py ← vendored verbatim
                                             ▲
                                   POST api.modelspec.dev/v1/rank
 ```
@@ -273,8 +273,9 @@ smoke test is the only thing that proves a deploy landed.
 The `bundle` job runs on every pull request and is the cheap half of the safety
 net: it vendors the scorer, imports the bundle in isolation (a new third-party
 import in `pipeline/ranking.py` would break the Worker, and this catches it on
-the PR), runs the byte-identity suite, and builds the bundle with
-`wrangler deploy --dry-run`, which needs no credential.
+the PR), runs the byte-identity suite, builds the bundle with
+`wrangler deploy --dry-run`, and walks the built bundle's import graph. The dry
+run needs no credential.
 
 The `deploy` job uses `CLOUDFLARE_API_MODELSPEC_TOKEN` — Workers Scripts:Edit,
 Workers KV Storage:Edit and Workers Routes:Edit on the `modelspec.dev` zone, and
@@ -363,21 +364,24 @@ seconds after each deploy while the new route propagates.
 ## Local development
 
 ```bash
-python api/worker/vendor.py --check      # assemble python_modules/, prove it imports
-cd api/worker && npx wrangler@4.134.0 dev --local --var BUILD_COMMIT:dev
+python api/worker/vendor.py --check      # generate packages under src/, prove imports
+cd api/worker
+uv sync --frozen
+npm install --no-save wrangler@4.139.0
+uv run pywrangler dev --local --var BUILD_COMMIT:dev
 curl -s localhost:8787/v1/health
 curl -s -X POST localhost:8787/v1/rank -H 'content-type: application/json' \
   -d '{"use_case":"coding","limit":3}'
 ```
 
-`dev --local` reads the live export from `modelspec.dev`. `python_modules/` is
-generated and git-ignored; rerun `vendor.py` after touching `pipeline/ranking.py`
-or `api/ranking/engine.py`.
+`dev --local` reads the live export from `modelspec.dev`. The generated package
+directories under `src/` are git-ignored; rerun `vendor.py` after touching
+`pipeline/ranking.py` or `api/ranking/engine.py`.
 
-No `uv` or `pywrangler` is needed. Those exist to vendor third-party Python
-packages, and this Worker has none: `compatibility_flags` carries
-`disable_python_external_sdk`, which serves the `workers` SDK from the runtime
-itself.
+Pywrangler owns `python_modules/` and recreates it from `pylock.toml` before
+`dev`, `deploy`, or `versions`. It installs Pydantic and PyYAML for the decision
+path. Repository packages belong under `src/`; putting them in
+`python_modules/` loses them on the next sync.
 
 ## Known limits
 

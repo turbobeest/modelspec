@@ -87,6 +87,12 @@ def spec() -> dict[str, Any]:
     return yaml.safe_load(SPEC_PATH.read_text(encoding="utf-8"))
 
 
+def test_generator_prefers_repository_packages_to_the_vendored_subset() -> None:
+    """The generated src/pipeline package does not contain build-only modules."""
+    source = (REPO_ROOT / "api" / "worker" / "openapi.py").read_text(encoding="utf-8")
+    assert "for path in (str(SRC), str(REPO_ROOT)):" in source
+
+
 @pytest.fixture(scope="module")
 def reference() -> str:
     return REFERENCE.read_text(encoding="utf-8")

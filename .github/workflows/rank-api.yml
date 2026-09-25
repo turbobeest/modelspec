@@ -102,6 +102,12 @@ jobs:
         # every pull request rather than first on main with a token in scope.
         run: uv run --project . pywrangler deploy --dry-run --outdir ../../dist/rank-worker
 
+      - name: Check the built Worker's import graph
+        working-directory: api/worker
+        # Inspect Wrangler's output, not the pre-build source tree. This catches
+        # pywrangler dropping a repository package while it syncs dependencies.
+        run: python bundle_check.py ../../dist/rank-worker
+
       - name: Summarise
         run: |
           {
