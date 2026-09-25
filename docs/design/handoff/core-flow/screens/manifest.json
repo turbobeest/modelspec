@@ -1,0 +1,1184 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "records": [
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "01-arrive",
+      "path": "app/light-canvas/01-arrive.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "02-parsing",
+      "path": "app/light-canvas/02-parsing.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "03-decide",
+      "path": "app/light-canvas/03-decide.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "04-search",
+      "path": "app/light-canvas/04-search.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "05-editor",
+      "path": "app/light-canvas/05-editor.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "06-soft-preference",
+      "path": "app/light-canvas/06-soft-preference.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "07-may-provisional",
+      "path": "app/light-canvas/07-may-provisional.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "08-not-separable",
+      "path": "app/light-canvas/08-not-separable.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "09-provenance",
+      "path": "app/light-canvas/09-provenance.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "10-retired",
+      "path": "app/light-canvas/10-retired.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "11-nothing-qualifies",
+      "path": "app/light-canvas/11-nothing-qualifies.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "12-not-plotted",
+      "path": "app/light-canvas/12-not-plotted.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "13-tooltip",
+      "path": "app/light-canvas/13-tooltip.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-1",
+      "path": "app/light-canvas/14-share-1.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-2",
+      "path": "app/light-canvas/14-share-2.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-3",
+      "path": "app/light-canvas/14-share-3.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-4",
+      "path": "app/light-canvas/14-share-4.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-5",
+      "path": "app/light-canvas/14-share-5.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-6",
+      "path": "app/light-canvas/14-share-6.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "15-loading",
+      "path": "app/light-canvas/15-loading.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "16-error",
+      "path": "app/light-canvas/16-error.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "01-arrive",
+      "path": "app/light-table/01-arrive.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "02-parsing",
+      "path": "app/light-table/02-parsing.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "03-decide",
+      "path": "app/light-table/03-decide.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "04-search",
+      "path": "app/light-table/04-search.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "05-editor",
+      "path": "app/light-table/05-editor.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "06-soft-preference",
+      "path": "app/light-table/06-soft-preference.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "07-may-provisional",
+      "path": "app/light-table/07-may-provisional.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "08-not-separable",
+      "path": "app/light-table/08-not-separable.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "09-provenance",
+      "path": "app/light-table/09-provenance.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "10-retired",
+      "path": "app/light-table/10-retired.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "11-nothing-qualifies",
+      "path": "app/light-table/11-nothing-qualifies.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "12-not-plotted",
+      "path": "app/light-table/12-not-plotted.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "13-tooltip",
+      "path": "app/light-table/13-tooltip.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-1",
+      "path": "app/light-table/14-share-1.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-2",
+      "path": "app/light-table/14-share-2.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-3",
+      "path": "app/light-table/14-share-3.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-4",
+      "path": "app/light-table/14-share-4.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-5",
+      "path": "app/light-table/14-share-5.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-6",
+      "path": "app/light-table/14-share-6.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "15-loading",
+      "path": "app/light-table/15-loading.png"
+    },
+    {
+      "target": "app",
+      "theme": "light",
+      "layout": "table",
+      "state": "16-error",
+      "path": "app/light-table/16-error.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "01-arrive",
+      "path": "app/dark-canvas/01-arrive.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "02-parsing",
+      "path": "app/dark-canvas/02-parsing.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "03-decide",
+      "path": "app/dark-canvas/03-decide.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "04-search",
+      "path": "app/dark-canvas/04-search.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "05-editor",
+      "path": "app/dark-canvas/05-editor.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "06-soft-preference",
+      "path": "app/dark-canvas/06-soft-preference.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "07-may-provisional",
+      "path": "app/dark-canvas/07-may-provisional.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "08-not-separable",
+      "path": "app/dark-canvas/08-not-separable.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "09-provenance",
+      "path": "app/dark-canvas/09-provenance.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "10-retired",
+      "path": "app/dark-canvas/10-retired.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "11-nothing-qualifies",
+      "path": "app/dark-canvas/11-nothing-qualifies.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "12-not-plotted",
+      "path": "app/dark-canvas/12-not-plotted.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "13-tooltip",
+      "path": "app/dark-canvas/13-tooltip.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-1",
+      "path": "app/dark-canvas/14-share-1.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-2",
+      "path": "app/dark-canvas/14-share-2.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-3",
+      "path": "app/dark-canvas/14-share-3.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-4",
+      "path": "app/dark-canvas/14-share-4.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-5",
+      "path": "app/dark-canvas/14-share-5.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-6",
+      "path": "app/dark-canvas/14-share-6.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "15-loading",
+      "path": "app/dark-canvas/15-loading.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "16-error",
+      "path": "app/dark-canvas/16-error.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "01-arrive",
+      "path": "app/dark-table/01-arrive.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "02-parsing",
+      "path": "app/dark-table/02-parsing.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "03-decide",
+      "path": "app/dark-table/03-decide.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "04-search",
+      "path": "app/dark-table/04-search.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "05-editor",
+      "path": "app/dark-table/05-editor.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "06-soft-preference",
+      "path": "app/dark-table/06-soft-preference.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "07-may-provisional",
+      "path": "app/dark-table/07-may-provisional.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "08-not-separable",
+      "path": "app/dark-table/08-not-separable.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "09-provenance",
+      "path": "app/dark-table/09-provenance.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "10-retired",
+      "path": "app/dark-table/10-retired.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "11-nothing-qualifies",
+      "path": "app/dark-table/11-nothing-qualifies.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "12-not-plotted",
+      "path": "app/dark-table/12-not-plotted.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "13-tooltip",
+      "path": "app/dark-table/13-tooltip.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-1",
+      "path": "app/dark-table/14-share-1.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-2",
+      "path": "app/dark-table/14-share-2.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-3",
+      "path": "app/dark-table/14-share-3.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-4",
+      "path": "app/dark-table/14-share-4.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-5",
+      "path": "app/dark-table/14-share-5.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-6",
+      "path": "app/dark-table/14-share-6.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "15-loading",
+      "path": "app/dark-table/15-loading.png"
+    },
+    {
+      "target": "app",
+      "theme": "dark",
+      "layout": "table",
+      "state": "16-error",
+      "path": "app/dark-table/16-error.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "01-arrive",
+      "path": "reference/light-canvas/01-arrive.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "02-parsing",
+      "path": "reference/light-canvas/02-parsing.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "03-decide",
+      "path": "reference/light-canvas/03-decide.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "04-search",
+      "path": "reference/light-canvas/04-search.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "05-editor",
+      "path": "reference/light-canvas/05-editor.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "06-soft-preference",
+      "path": "reference/light-canvas/06-soft-preference.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "07-may-provisional",
+      "path": "reference/light-canvas/07-may-provisional.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "08-not-separable",
+      "path": "reference/light-canvas/08-not-separable.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "09-provenance",
+      "path": "reference/light-canvas/09-provenance.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "10-retired",
+      "path": "reference/light-canvas/10-retired.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "11-nothing-qualifies",
+      "path": "reference/light-canvas/11-nothing-qualifies.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "12-not-plotted",
+      "path": "reference/light-canvas/12-not-plotted.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "13-tooltip",
+      "path": "reference/light-canvas/13-tooltip.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-1",
+      "path": "reference/light-canvas/14-share-1.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-2",
+      "path": "reference/light-canvas/14-share-2.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-3",
+      "path": "reference/light-canvas/14-share-3.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-4",
+      "path": "reference/light-canvas/14-share-4.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-5",
+      "path": "reference/light-canvas/14-share-5.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "14-share-6",
+      "path": "reference/light-canvas/14-share-6.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "15-loading",
+      "path": "reference/light-canvas/15-loading.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "canvas",
+      "state": "16-error",
+      "path": "reference/light-canvas/16-error.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "01-arrive",
+      "path": "reference/light-table/01-arrive.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "02-parsing",
+      "path": "reference/light-table/02-parsing.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "03-decide",
+      "path": "reference/light-table/03-decide.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "04-search",
+      "path": "reference/light-table/04-search.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "05-editor",
+      "path": "reference/light-table/05-editor.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "06-soft-preference",
+      "path": "reference/light-table/06-soft-preference.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "07-may-provisional",
+      "path": "reference/light-table/07-may-provisional.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "08-not-separable",
+      "path": "reference/light-table/08-not-separable.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "09-provenance",
+      "path": "reference/light-table/09-provenance.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "10-retired",
+      "path": "reference/light-table/10-retired.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "11-nothing-qualifies",
+      "path": "reference/light-table/11-nothing-qualifies.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "12-not-plotted",
+      "path": "reference/light-table/12-not-plotted.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "13-tooltip",
+      "path": "reference/light-table/13-tooltip.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-1",
+      "path": "reference/light-table/14-share-1.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-2",
+      "path": "reference/light-table/14-share-2.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-3",
+      "path": "reference/light-table/14-share-3.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-4",
+      "path": "reference/light-table/14-share-4.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-5",
+      "path": "reference/light-table/14-share-5.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "14-share-6",
+      "path": "reference/light-table/14-share-6.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "15-loading",
+      "path": "reference/light-table/15-loading.png"
+    },
+    {
+      "target": "reference",
+      "theme": "light",
+      "layout": "table",
+      "state": "16-error",
+      "path": "reference/light-table/16-error.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "01-arrive",
+      "path": "reference/dark-canvas/01-arrive.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "02-parsing",
+      "path": "reference/dark-canvas/02-parsing.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "03-decide",
+      "path": "reference/dark-canvas/03-decide.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "04-search",
+      "path": "reference/dark-canvas/04-search.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "05-editor",
+      "path": "reference/dark-canvas/05-editor.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "06-soft-preference",
+      "path": "reference/dark-canvas/06-soft-preference.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "07-may-provisional",
+      "path": "reference/dark-canvas/07-may-provisional.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "08-not-separable",
+      "path": "reference/dark-canvas/08-not-separable.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "09-provenance",
+      "path": "reference/dark-canvas/09-provenance.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "10-retired",
+      "path": "reference/dark-canvas/10-retired.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "11-nothing-qualifies",
+      "path": "reference/dark-canvas/11-nothing-qualifies.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "12-not-plotted",
+      "path": "reference/dark-canvas/12-not-plotted.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "13-tooltip",
+      "path": "reference/dark-canvas/13-tooltip.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-1",
+      "path": "reference/dark-canvas/14-share-1.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-2",
+      "path": "reference/dark-canvas/14-share-2.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-3",
+      "path": "reference/dark-canvas/14-share-3.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-4",
+      "path": "reference/dark-canvas/14-share-4.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-5",
+      "path": "reference/dark-canvas/14-share-5.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "14-share-6",
+      "path": "reference/dark-canvas/14-share-6.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "15-loading",
+      "path": "reference/dark-canvas/15-loading.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "canvas",
+      "state": "16-error",
+      "path": "reference/dark-canvas/16-error.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "01-arrive",
+      "path": "reference/dark-table/01-arrive.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "02-parsing",
+      "path": "reference/dark-table/02-parsing.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "03-decide",
+      "path": "reference/dark-table/03-decide.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "04-search",
+      "path": "reference/dark-table/04-search.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "05-editor",
+      "path": "reference/dark-table/05-editor.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "06-soft-preference",
+      "path": "reference/dark-table/06-soft-preference.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "07-may-provisional",
+      "path": "reference/dark-table/07-may-provisional.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "08-not-separable",
+      "path": "reference/dark-table/08-not-separable.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "09-provenance",
+      "path": "reference/dark-table/09-provenance.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "10-retired",
+      "path": "reference/dark-table/10-retired.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "11-nothing-qualifies",
+      "path": "reference/dark-table/11-nothing-qualifies.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "12-not-plotted",
+      "path": "reference/dark-table/12-not-plotted.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "13-tooltip",
+      "path": "reference/dark-table/13-tooltip.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-1",
+      "path": "reference/dark-table/14-share-1.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-2",
+      "path": "reference/dark-table/14-share-2.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-3",
+      "path": "reference/dark-table/14-share-3.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-4",
+      "path": "reference/dark-table/14-share-4.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-5",
+      "path": "reference/dark-table/14-share-5.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "14-share-6",
+      "path": "reference/dark-table/14-share-6.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "15-loading",
+      "path": "reference/dark-table/15-loading.png"
+    },
+    {
+      "target": "reference",
+      "theme": "dark",
+      "layout": "table",
+      "state": "16-error",
+      "path": "reference/dark-table/16-error.png"
+    }
+  ]
+}
