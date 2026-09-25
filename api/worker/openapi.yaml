@@ -2692,6 +2692,35 @@ components:
       - offering
       title: CandidateValues
       type: object
+    DecisionCitedSource:
+      additionalProperties: false
+      description: One registered source, listed once per decision. Added in 1.4.
+      properties:
+        id:
+          title: Id
+          type: string
+        url:
+          pattern: ^https?://\S+$
+          title: Url
+          type: string
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Title
+        date:
+          anyOf:
+          - format: date
+            type: string
+          - type: 'null'
+          default: null
+          title: Date
+      required:
+      - id
+      - url
+      title: CitedSource
+      type: object
     DecisionCompare:
       additionalProperties: false
       description: '``facet op value``; the value may be ``model(<id>)`` for a relative condition.'
@@ -2861,9 +2890,14 @@ components:
             $ref: '#/components/schemas/DecisionNumberOrigin'
           title: Number Origins
           type: array
+        sources:
+          items:
+            $ref: '#/components/schemas/DecisionCitedSource'
+          title: Sources
+          type: array
         contract_version:
-          const: '1.3'
-          default: '1.3'
+          const: '1.4'
+          default: '1.4'
           title: Contract Version
           type: string
         decision_id:
@@ -3587,6 +3621,11 @@ components:
             type: string
           title: Sources
           type: array
+        source_ids:
+          items:
+            type: string
+          title: Source Ids
+          type: array
       required:
       - path
       - basis
@@ -3822,6 +3861,11 @@ components:
           - type: 'null'
           default: null
           title: Formula
+        source_ids:
+          items:
+            type: string
+          title: Source Ids
+          type: array
       required:
       - facet
       title: ShownFact
@@ -4083,7 +4127,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.3'
+          - '1.4'
         endpoint:
           type: string
           enum:
@@ -4127,7 +4171,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.3'
+          - '1.4'
         endpoint:
           type: string
           enum:

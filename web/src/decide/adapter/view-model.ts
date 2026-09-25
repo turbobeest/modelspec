@@ -176,15 +176,31 @@ function sameOffering(left: OfferingRef, right: OfferingRef): boolean {
   );
 }
 
+/**
+ * Each record's source URLs. From 1.4 origins and shown facts name sources by
+ * ID into `decision.sources`; before, origins listed URLs. An ID the table
+ * does not list resolves to nothing, so its value is not shown.
+ */
 function sourceRecords(decision: Decision): Map<string, string[]> {
+  const urls = new Map(decision.sources.map((source) => [source.id, source.url]));
+  const resolve = (ids: string[]) =>
+    ids.flatMap((id) => {
+      const url = urls.get(id);
+      return url === undefined ? [] : [url];
+    });
   const byRecord = new Map<string, Set<string>>();
-  for (const origin of decision.number_origins) {
-    for (const record of origin.records) {
-      const sources = byRecord.get(record) ?? new Set<string>();
-      origin.sources.forEach((source) => sources.add(source));
-      byRecord.set(record, sources);
+  const add = (records: string[], sources: string[]) => {
+    for (const record of records) {
+      const known = byRecord.get(record) ?? new Set<string>();
+      sources.forEach((source) => known.add(source));
+      byRecord.set(record, known);
     }
-  }
+  };
+  for (const origin of decision.number_origins)
+    add(origin.records, [...origin.sources, ...resolve(origin.source_ids)]);
+  for (const candidate of decision.top)
+    for (const fact of candidate.facts)
+      add(fact.record_id ? [fact.record_id] : (fact.records ?? []), resolve(fact.source_ids));
   return new Map(
     [...byRecord].map(([record, sources]) => [record, [...sources].sort()]),
   );
@@ -231,6 +247,34 @@ function engineCost(
     : {};
 }
 
+/** A summary has no `top`: $ per task is the ranked result's contribution, if ranked on it. */
+function contributionCost(
+  result: Decision["results"][number] | undefined,
+): { cost?: number; costFormula?: string } {
+  const part = result?.contributions.find(
+    (item) => item.dimension.replace(/^-/, "") === "offering.cost_per_task",
+  );
+  return part && typeof part.raw_value === "number" && part.formula
+    ? { cost: part.raw_value, costFormula: part.formula }
+    : {};
+}
+
+/** A summary has no `top`: a ranked result's evidence, and what its contributions used. */
+function resultEvidence(result: Decision["results"][number] | undefined): EvidenceItem[] {
+  if (!result) return [];
+  const items = [
+    ...result.evidence.flatMap((group) => group.items),
+    ...result.contributions.flatMap((part) => part.evidence),
+  ];
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.record_id ?? `${item.benchmark}|${item.value}|${item.source}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function uiEvidence(item: EvidenceItem): Evidence {
   return {
     b: item.benchmark,
@@ -272,6 +316,10 @@ function modelAndOffering(
   names: ModelNames,
 ): { model: Model; offering: Offering; evidence: Evidence[] } {
   const values = decision.top.find((candidate) => sameOffering(candidate.offering, offeringRef));
+  // Without a top entry (a summary decision), fall back to the ranked result.
+  const result = values
+    ? undefined
+    : decision.results.find((candidate) => sameOffering(candidate.offering, offeringRef));
   const facts = values?.facts ?? [];
   const modelId = offeringRef.model;
   const [lab, tail] = modelId.split("/", 2);
@@ -284,7 +332,9 @@ function modelAndOffering(
   const className = stringFact(facts, "model.class", sources);
   const openness = stringFact(facts, "model.weights_openness", sources);
   const lifecycle = stringFact(facts, "model.lifecycle", sources);
-  const evidence = (values?.evidence ?? []).flatMap((group) => group.items.map(uiEvidence));
+  const evidence = values
+    ? values.evidence.flatMap((group) => group.items.map(uiEvidence))
+    : resultEvidence(result).map(uiEvidence);
   const offering: Offering = {
     id: [offeringRef.provider, modelId, offeringRef.region, offeringRef.tier]
       .filter((part) => part !== null)
@@ -296,7 +346,7 @@ function modelAndOffering(
     ttft,
     tps: throughput,
     ret: retention,
-    ...engineCost(facts),
+    ...(values ? engineCost(facts) : contributionCost(result)),
   };
   const open = openness === null ? null : openness === "open_weights";
   const model: Model = {
@@ -387,7 +437,7 @@ function rankedRow(
   const selected = evidence.find((item) => item.b === spec.bench) ?? null;
   if (selected === null)
     throw new Error(
-      `${result.offering.model} has no sourced ${spec.bench} evidence in this full decision`,
+      `${result.offering.model} has no sourced ${spec.bench} evidence in this decision`,
     );
   const norm = {
     cap:

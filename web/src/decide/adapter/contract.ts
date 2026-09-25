@@ -118,6 +118,8 @@ export const decisionSchema = z
                   record_id: nullableString,
                   records: z.array(z.string()).optional(),
                   formula: nullableString.optional(),
+                  // 1.4: the fact's sources, as IDs into the decision's `sources`.
+                  source_ids: z.array(z.string()).optional().default([]),
                 })
                 .strict(),
             ),
@@ -143,13 +145,29 @@ export const decisionSchema = z
             path: z.string(),
             basis: z.string(),
             records: z.array(z.string()),
+            // Always empty from 1.4, which names sources by `source_ids`.
             sources: z.array(z.url()),
+            source_ids: z.array(z.string()).optional().default([]),
           })
           .strict(),
       )
       .optional()
       .default([]),
-    contract_version: z.enum(["1.1", "1.2", "1.3"]),
+    // 1.4: every source the origins and shown facts cite, once each.
+    sources: z
+      .array(
+        z
+          .object({
+            id: z.string(),
+            url: z.url(),
+            title: nullableString,
+            date: z.iso.date().nullable(),
+          })
+          .strict(),
+      )
+      .optional()
+      .default([]),
+    contract_version: z.enum(["1.1", "1.2", "1.3", "1.4"]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),

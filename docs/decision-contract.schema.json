@@ -194,6 +194,52 @@
       "title": "CandidateValues",
       "type": "object"
     },
+    "CitedSource": {
+      "additionalProperties": false,
+      "description": "One registered source, listed once per decision. Added in 1.4.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "url": {
+          "pattern": "^https?://\\S+$",
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "url"
+      ],
+      "title": "CitedSource",
+      "type": "object"
+    },
     "Compare": {
       "additionalProperties": false,
       "description": "``facet op value``; the value may be ``model(<id>)`` for a relative condition.",
@@ -462,8 +508,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.3",
-          "default": "1.3",
+          "const": "1.4",
+          "default": "1.4",
           "title": "Contract Version",
           "type": "string"
         },
@@ -529,6 +575,13 @@
           "pattern": "^snap_[A-Za-z0-9:._-]+$",
           "title": "Snapshot",
           "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/CitedSource"
+          },
+          "title": "Sources",
+          "type": "array"
         },
         "spec_hash": {
           "pattern": "^sha256:[0-9a-f]{64}$",
@@ -1673,6 +1726,13 @@
           "title": "Records",
           "type": "array"
         },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
         "sources": {
           "items": {
             "pattern": "^https?://\\S+$",
@@ -2027,6 +2087,13 @@
             "type": "string"
           },
           "title": "Records",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
           "type": "array"
         },
         "unit": {
@@ -2529,5 +2596,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.3"
+  "x-contract-version": "1.4"
 }

@@ -11,8 +11,67 @@ class ExplanationError(ValueError):
     """A displayed measurement cannot be traced to a verified snapshot record."""
 
 
+#: Facets a top candidate always shows when known, beside those the spec names:
+#: what the decide page displays for a candidate (contract 1.4).
+DISPLAY_FACETS = (
+    "licence.commercial_use",
+    "model.class",
+    "model.context_window",
+    "model.lifecycle",
+    "model.release_date",
+    "model.weights_openness",
+    "offering.cost_per_task",
+    "offering.data.retention",
+    "offering.price.input",
+    "offering.price.output",
+    "offering.speed.throughput",
+    "offering.speed.time_to_first_token",
+    "origin.lab_jurisdiction",
+)
+
+#: The sections whose numbers a decision presents, and so the only ones
+#: ``number_origins`` covers. A shown fact in ``top`` carries its own record
+#: and source IDs, so it needs no origin; ``top``'s contributions repeat the
+#: optimiser's arithmetic, already on their records.
+PRESENTED = ("results", "top/*/evidence", "near_misses", "constraint_costs",
+             "tipping_points", "eliminated/models")
+
+#: Numbers with nothing to trace: the spec's own weights echoed back, the sum
+#: of its soft penalties, ranks and counts. Funnel counts and ``out_of_lineup``
+#: sit outside the presented sections for the same reason.
+UNTRACED = frozenset({"weight", "soft_penalty", "rank", "admits"})
+
+
 def facet_unit(facet_id):
     return registry_facet(facet_id).unit
+
+
+def named_facets(resolved):
+    """Every facet the spec's conditions (profile rules included) and objective name."""
+    from decision.contract import AllOf, AnyOf, Known, NotOf
+
+    names = set()
+
+    def walk(cond):
+        if isinstance(cond, AnyOf | AllOf):
+            for child in cond.any if isinstance(cond, AnyOf) else cond.all:
+                walk(child)
+        elif isinstance(cond, NotOf):
+            walk(cond.not_)
+        else:
+            names.add(cond.known if isinstance(cond, Known) else cond.facet)
+
+    for cond in resolved.conditions:
+        walk(cond)
+    objective = resolved.spec.optimize
+    terms = [objective.max, objective.min, *(step.facet for step in objective.lexicographic or ()),
+             *(objective.weights or ()), *(objective.pareto or ())]
+    names.update(term.removeprefix("-") for term in terms if term)
+    return names
+
+
+def benchmark_domains(snapshot, benchmark):
+    return [domain for domain, _ in snapshot.benchmark_domain_tags().get(benchmark, ())]
 
 
 def computed(snapshot, cid, facet_id):
@@ -93,45 +152,59 @@ def evidence_item(snapshot, row, domain):
     )
 
 
-def domain_evidence(snapshot, cid, domains):
+def domain_evidence(snapshot, cid, domains, benchmarks=None):
+    """Verified evidence per domain. An offering answers its model's evidence,
+    so a row the offering and its model both return is listed once."""
     subjects = [cid]
     if snapshot.model_of(cid) != cid:
         subjects.append(snapshot.model_of(cid))
-    return [
-        DomainEvidence(
-            domain=domain,
-            items=[
-                evidence_item(snapshot, row, domain)
-                for subject in subjects
-                for row in snapshot.evidence_for_domain(subject, domain)
-                if row.verified
-            ],
-        )
-        for domain in sorted(domains)
-    ]
+    groups = []
+    for domain in sorted(domains):
+        rows = {}
+        for subject in subjects:
+            for row in snapshot.evidence_for_domain(subject, domain):
+                if row.verified and (benchmarks is None or row.benchmark_id in benchmarks):
+                    rows.setdefault(row.record_id, row)
+        groups.append(DomainEvidence(
+            domain=domain, items=[evidence_item(snapshot, row, domain) for row in rows.values()]))
+    return groups
+
+
+def part_provenance(snapshot, cid, part):
+    """Records, unit and formula behind one objective dimension's raw value."""
+    if part.evidence:
+        records = sorted({e.record_id for e in part.evidence})
+        for rid in records:
+            checked_record(snapshot, rid)
+        return records, part.evidence[0].unit, None
+    if part.raw_value is not None:
+        return fact_provenance(snapshot, cid, part.dimension.removeprefix("-"))
+    return [], None, None
+
+
+def _items(groups, ids):
+    """The evidence items with these record IDs, each once."""
+    found = {}
+    for group in groups:
+        for item in group.items:
+            if item.record_id in ids:
+                found.setdefault(item.record_id, item)
+    return list(found.values())
 
 
 def contributions(snapshot, cid, parts, evidence):
     out = []
     for part in parts:
-        records = []
+        records, unit, formula = part_provenance(snapshot, cid, part)
         items = []
-        unit = None
-        formula = None
         if part.evidence:
-            ids = {e.record_id for e in part.evidence}
-            items = [item for group in evidence for item in group.items if item.record_id in ids]
-            # A benchmark objective may have no requested domain. Do not invent directness.
+            items = _items(evidence, set(records))
+            # A benchmark objective may have no requested domain. Do not invent
+            # directness: read it from the domains that tag the benchmark.
             if not items:
-                groups = domain_evidence(snapshot, cid, snapshot.domain_ids())
-                items = [item for group in groups for item in group.items if item.record_id in ids]
-            records = sorted(ids)
-            unit = part.evidence[0].unit
-            for rid in records:
-                checked_record(snapshot, rid)
-        elif part.raw_value is not None:
-            records, unit, formula = fact_provenance(
-                snapshot, cid, part.dimension.removeprefix("-"))
+                domains = {d for e in part.evidence for d in benchmark_domains(
+                    snapshot, e.benchmark_id)}
+                items = _items(domain_evidence(snapshot, cid, domains), set(records))
         norm = part.normalisation
         out.append(
             Contribution(
@@ -175,9 +248,10 @@ def explain(decision, resolved, snapshot, filtered, ordered, selectors, domains)
         for point in ordered.tipping_points
     ]
     if decision.explain == "full":
-        _full(decision, snapshot, filtered, ordered, requested)
+        _full(decision, snapshot, ordered, requested, named_facets(resolved))
         decision.chart = contribution_chart(decision)
         decision.number_origins = list(number_origins(decision, snapshot))
+        decision.sources = cited_sources(decision, snapshot)
 
 
 def _distance(reason, condition):
@@ -234,17 +308,20 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             snapshot,
         )
         alternative = run_optimise(snapshot, relaxed, resolved.spec, selectors, domains)
-        gains, units, records = {}, {}, set()
+        gains, units, records, bests = {}, {}, set(), {}
         for dimension in current:
             before, after = best(ordered.results, dimension), best(alternative.results, dimension)
-            if before is None or after is None:
-                continue
-            gains[dimension] = after - before
-            for row in (*ordered.results, *alternative.results):
-                for part in contributions(snapshot, row.candidate_id, row.contributions, []):
-                    if part.dimension == dimension:
-                        records.update(part.records)
-                        units[dimension] = part.unit
+            if before is not None and after is not None:
+                gains[dimension] = after - before
+                bests[dimension] = (before, after)
+        # A gain rests on the two values it subtracts: the records behind those.
+        for side, rows in enumerate((ordered.results, alternative.results)):
+            for row in rows:
+                for part in row.contributions:
+                    if part.dimension in bests and part.raw_value == bests[part.dimension][side]:
+                        rids, units[part.dimension], _ = part_provenance(
+                            snapshot, row.candidate_id, part)
+                        records.update(rids)
         decision.constraint_costs.append(
             ConstraintCost(
                 condition=text,
@@ -336,41 +413,63 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             )
 
 
-def _full(decision, snapshot, filtered, ordered, requested):
+def _full(decision, snapshot, ordered, requested, named):
+    """Up to 20 optimised candidates with the facets the spec names, the display
+    set, and evidence on the benchmarks the spec names: not every value held."""
+    from decision.computed import COMPUTED_FACETS
     from decision.contract import CandidateValues, ShownFact
     from decision.engine import offering_ref
 
-    for row in ordered.results[:20]:
+    shown = named | set(DISPLAY_FACETS)
+    stored = [facet for facet in snapshot.facet_ids() if facet in shown]
+    benchmarks = named & set(snapshot.benchmark_ids())
+    ranked = len(decision.results)
+    for position, row in enumerate(ordered.results[:20]):
         cid = row.candidate_id
         facts = []
-        for facet in snapshot.facet_ids():
+        for facet in stored:
             fact = snapshot.fact(cid, facet)
             if fact.state != "known":
                 continue
             unit = None
             if fact.record_id:
-                checked_record(snapshot, fact.record_id)
                 unit = facet_unit(facet)
-            facts.append(
-                ShownFact(facet=facet, value=fact.value, unit=unit, record_id=fact.record_id)
-            )
-        from decision.computed import COMPUTED_FACETS
-
+            facts.append(ShownFact(
+                facet=facet, value=fact.value, unit=unit, record_id=fact.record_id,
+                source_ids=source_ids(snapshot, [fact.record_id] if fact.record_id else [])))
         for facet in COMPUTED_FACETS:
-            found = computed(snapshot, cid, facet)
+            found = computed(snapshot, cid, facet) if facet in shown else None
             if found is not None:
                 records, unit, formula = fact_provenance(snapshot, cid, facet)
                 facts.append(ShownFact(facet=facet, value=found.value, unit=unit,
-                                       records=records, formula=formula))
-        evidence = domain_evidence(snapshot, cid, set(snapshot.domain_ids()) | requested)
+                                       records=records, formula=formula,
+                                       source_ids=source_ids(snapshot, records)))
+        # Group each named benchmark under the requested domains that tag it,
+        # or, when none does, under the first domain that does.
+        domains = set(requested)
+        for benchmark in benchmarks:
+            tagged = benchmark_domains(snapshot, benchmark)
+            if tagged and not requested & set(tagged):
+                domains.add(tagged[0])
+        evidence = [group for group in domain_evidence(snapshot, cid, domains, benchmarks)
+                    if group.items]
         decision.top.append(
             CandidateValues(
                 offering=offering_ref(snapshot, cid),
                 facts=facts,
                 evidence=evidence,
-                contributions=contributions(snapshot, cid, row.contributions, evidence),
+                # A ranked candidate's contributions are in ``results``, not repeated.
+                contributions=[] if position < ranked else contributions(
+                    snapshot, cid, row.contributions, evidence),
             )
         )
+
+
+def top_contributions(decision):
+    """Each top candidate with its contributions, from ``results`` when ranked."""
+    ranked = {r.offering.model_dump_json(): r.contributions for r in decision.results}
+    for row in decision.top:
+        yield row, row.contributions or ranked.get(row.offering.model_dump_json(), [])
 
 
 def contribution_chart(decision):
@@ -379,8 +478,8 @@ def contribution_chart(decision):
 
     rows = [
         (r.offering.model, c)
-        for r in decision.top
-        for c in r.contributions
+        for r, parts in top_contributions(decision)
+        for c in parts
         if c.raw_value is not None
     ]
     parts = [
@@ -425,43 +524,46 @@ def numbers(value, path=""):
             yield from numbers(child, path + "/" + str(i))
 
 
+def presented_values(data):
+    """The numbers ``number_origins`` covers: those in the presented sections."""
+    def within(node, path, keys):
+        if not keys:
+            yield from ((p, v) for p, v in numbers(node, path)
+                        if p.rsplit("/", 1)[-1] not in UNTRACED)
+        elif keys[0] == "*":
+            for i, child in enumerate(node):
+                yield from within(child, f"{path}/{i}", keys[1:])
+        else:
+            yield from within(node.get(keys[0], []), f"{path}/{keys[0]}", keys[1:])
+
+    for section in PRESENTED:
+        yield from within(data, "", section.split("/"))
+
+
+def _node(data, path):
+    parent, ancestors = data, []
+    nodes = path.strip("/").split("/")
+    for node in nodes[:-1]:
+        ancestors.append(parent)
+        parent = parent[int(node)] if isinstance(parent, list) else parent[node]
+    key = nodes[-1]
+    if isinstance(parent, list):
+        return ancestors[-1], nodes[-2], int(key)
+    return parent, key, None
+
+
 def number_origins(decision, snapshot):
-    """Distinguish measurements from spec inputs and reproducible calculations."""
+    """Distinguish measurements from spec inputs and reproducible calculations.
+
+    Covers the presented numbers only (``presented_values``). An origin names
+    its records and their sources by ID; ``cited_sources`` lists each source
+    once.
+    """
     from decision.contract import NumberOrigin
 
     data = decision.model_dump(mode="json")
-    all_records = set()
-
-    def collect(node):
-        if isinstance(node, dict):
-            all_records.update(node.get("records", []))
-            if node.get("record_id"):
-                all_records.add(node["record_id"])
-            for child in node.values():
-                collect(child)
-        elif isinstance(node, list):
-            for child in node:
-                collect(child)
-
-    collect(data)
-    # Include known condition facts even when no result survives.
-    for cid in snapshot.candidates():
-        for facet in snapshot.facet_ids():
-            rid = snapshot.fact(cid, facet).record_id
-            if rid:
-                all_records.add(rid)
-    for path, value in numbers(data):
-        nodes = path.strip("/").split("/")
-        parent = data
-        ancestors = []
-        for node in nodes[:-1]:
-            ancestors.append(parent)
-            parent = parent[int(node)] if isinstance(parent, list) else parent[node]
-        key = nodes[-1]
-        list_index = int(key) if isinstance(parent, list) else None
-        if list_index is not None:
-            parent = ancestors[-1]
-            key = nodes[-2]
+    for path, value in presented_values(data):
+        parent, key, list_index = _node(data, path)
         records = parent.get("records", []) if isinstance(parent, dict) else []
         if isinstance(parent, dict) and parent.get("record_id"):
             records = [parent["record_id"]]
@@ -484,10 +586,6 @@ def number_origins(decision, snapshot):
 
             if not any(value == original(rid) for rid in records):
                 raise ExplanationError(f"{path}: value differs from retained record")
-        elif key == "weight":
-            basis = "spec objective weight; unweighted objectives use unit weight"
-        elif key == "soft_penalty":
-            basis = "sum of spec penalties on failed or unknown soft conditions"
         elif key == "distance":
             basis = "distance from snapshot value to spec condition boundary, in original units"
         elif "/gain/" in path:
@@ -498,19 +596,42 @@ def number_origins(decision, snapshot):
             basis = "feasible-set min-max normalisation of snapshot measurements"
         elif key == "n":
             basis = "sample count from snapshot evidence"
-        elif path == "/out_of_lineup":
-            basis = "count of active models the snapshot build left outside the premier lineup"
         else:
             basis = "count or ordinal from snapshot candidates after filtering and optimisation"
-        records = sorted(set(records) or all_records)
-        sources = sorted(
-            {
-                snapshot.source_url(s["source_id"])
-                for rid in records
-                for s in checked_record(snapshot, rid)["sources"]
-            }
-        )
-        yield NumberOrigin(path=path, basis=basis, records=records, sources=sources)
+            records = []
+        records = sorted(set(records))
+        yield NumberOrigin(
+            path=path, basis=basis, records=records, source_ids=source_ids(snapshot, records))
+
+
+def source_ids(snapshot, records):
+    """The registered sources behind checked records, by ID."""
+    return sorted({source["source_id"] for rid in records
+                   for source in checked_record(snapshot, rid)["sources"]})
+
+
+def cited_sources(decision, snapshot):
+    """Each source the origins and shown facts cite, once: URL, and the latest
+    date a record in this decision citing it was verified."""
+    from decision.contract import CitedSource
+
+    records = {rid for origin in decision.number_origins for rid in origin.records}
+    for row in decision.top:
+        for fact in row.facts:
+            records.update(fact.records)
+            if fact.record_id:
+                records.add(fact.record_id)
+    verified = {}
+    for rid in records:
+        record = snapshot.record(rid)
+        day = record["verification"].get("date")
+        for source in record["sources"]:
+            sid = source["source_id"]
+            verified.setdefault(sid, None)
+            if day and (verified[sid] is None or day > verified[sid]):
+                verified[sid] = day
+    return [CitedSource(id=sid, url=snapshot.source_url(sid), date=verified[sid])
+            for sid in sorted(verified)]
 
 
 def render_html(decision, snapshot):
@@ -651,8 +772,8 @@ def render_html(decision, snapshot):
         )
     out.append("</section>")
     if decision.top:
-        out.append("<section><h2>Top candidates with every value</h2>")
-        for row in decision.top:
+        out.append("<section><h2>Top candidates</h2>")
+        for row, shown in top_contributions(decision):
             out.append(f"<h3>{esc(row.offering.model)}</h3>")
             for fact in row.facts:
                 value = (
@@ -666,7 +787,7 @@ def render_html(decision, snapshot):
                     else "Identity"
                 )
                 out.append(f"<p>{esc(fact.facet)}: {value}. {provenance}</p>")
-            out.append(parts(row.contributions) + evidence(row.evidence))
+            out.append(parts(shown) + evidence(row.evidence))
         out.append("</section>")
     out.append("</body></html>")
     return "".join(out)

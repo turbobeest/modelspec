@@ -4,6 +4,7 @@
 // vocabulary before any decision is asked for.
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import summaryJson from "../__fixtures__/compact-summary.json";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import App from "../App";
 import { DECIDE_TIMEOUT_MS, DecideApiError, decisionSchema, hostedEngine } from "../adapter";
@@ -116,7 +117,8 @@ it("shows a network failure with Retry, and Retry recovers", async () => {
     "fetch",
     routeFetch({
       decide: () => {
-        if (calls++ === 0) throw new TypeError("Failed to fetch");
+        // The full request and its one summary retry both fail to connect.
+        if (calls++ < 2) throw new TypeError("Failed to fetch");
         return json(fixture);
       },
     }),
@@ -128,6 +130,52 @@ it("shows a network failure with Retry, and Retry recovers", async () => {
   noSkeleton();
   fireEvent.click(within(alert).getByRole("button", { name: "Retry" }));
   expect(await screen.findByRole("region", { name: "Trade-off canvas" })).toBeInTheDocument();
+});
+
+const explainOf = (init: RequestInit | undefined) => JSON.parse(String(init?.body)).explain;
+
+it.each([
+  ["a non-JSON 503 (Cloudflare 1102)", () => new Response("error code: 1102", { status: 503 })],
+  [
+    "a network failure (a limit page carries no CORS header)",
+    () => {
+      throw new TypeError("Failed to fetch");
+    },
+  ],
+])("retries %s once with summary and says the service hit a limit", async (_name, limited) => {
+  const fetch = routeFetch({
+    decide: (init) => (explainOf(init) === "full" ? limited() : json(summaryJson)),
+  });
+  vi.stubGlobal("fetch", fetch);
+  await findModels();
+
+  const notice = await screen.findByText(/The decision service hit a limit on this request/);
+  expect(notice.closest('[role="status"]')).not.toBeNull();
+  expect(screen.queryByText("Couldn't reach the decision service.")).not.toBeInTheDocument();
+  expect(await screen.findByRole("region", { name: "Trade-off canvas" })).toBeInTheDocument();
+  const why = screen.getByRole("region", { name: "Why this model" });
+  expect(why).toHaveTextContent("Detailed explanation unavailable for this request");
+  const decides = fetch.mock.calls.filter(([, init]) => init?.method === "POST");
+  expect(decides.slice(0, 2).map(([, init]) => explainOf(init))).toEqual(["full", "summary"]);
+  noSkeleton();
+});
+
+it("says the service hit a limit, not that it is unreachable, when the retry fails too", async () => {
+  vi.stubGlobal(
+    "fetch",
+    routeFetch({
+      decide: (init) => {
+        if (explainOf(init) === "full") return new Response("error code: 1102", { status: 503 });
+        throw new TypeError("Failed to fetch");
+      },
+    }),
+  );
+  await findModels();
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("The decision service hit a limit on this request.");
+  expect(alert).not.toHaveTextContent("No snapshot yet");
+  expect(within(alert).getByRole("button", { name: "Retry" })).toBeInTheDocument();
+  noSkeleton();
 });
 
 it("reports a request that never answers instead of spinning", async () => {

@@ -1,0 +1,380 @@
+{
+  "near_misses": [
+    {
+      "values": [],
+      "offering": {
+        "model": "lab/delta",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "condition": "quality >= 60 @independent",
+      "facet": "quality",
+      "value": 36.0,
+      "distance": 24.0,
+      "unit": "percent",
+      "records": [
+        "lab/delta#quality#36.0"
+      ],
+      "formula": null
+    }
+  ],
+  "top": [],
+  "chart": null,
+  "number_origins": [],
+  "sources": [],
+  "contract_version": "1.4",
+  "decision_id": "dec_82fef2f3022a66e1b7f897c0",
+  "snapshot": "snap_abbaaf63dc6a7cac",
+  "spec_hash": "sha256:58169809043c42397540ad85e390d27df0c8056eb53a32359f0b16447c710332",
+  "explain": "summary",
+  "status": "answered",
+  "results": [
+    {
+      "rank": 1,
+      "offering": {
+        "model": "lab/alpha",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "harness": null,
+      "effort": null,
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/alpha#quality#92.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 92.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.168,
+          "unit": "usd_per_task",
+          "records": [
+            "cloud/lab/alpha/global/standard#offering.price.input",
+            "cloud/lab/alpha/global/standard#offering.price.output"
+          ],
+          "dimension": "-offering.cost_per_task",
+          "weight": 0.22,
+          "value": 0.0,
+          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": "(3 USD per 1M input tokens × 40,000 input tokens + 12 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.168 USD per task"
+        },
+        {
+          "raw_value": 92.0,
+          "unit": "percent",
+          "records": [
+            "lab/alpha#quality#92.0"
+          ],
+          "dimension": "quality",
+          "weight": 0.78,
+          "value": 1.0,
+          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; constant dimensions contribute zero dimensionless",
+          "evidence": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/alpha#quality#92.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 92.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ],
+          "formula": null
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "rank": 2,
+      "offering": {
+        "model": "lab/gamma",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "harness": null,
+      "effort": null,
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/gamma#quality#88.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 88.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.112,
+          "unit": "usd_per_task",
+          "records": [
+            "cloud/lab/gamma/global/standard#offering.price.input",
+            "cloud/lab/gamma/global/standard#offering.price.output"
+          ],
+          "dimension": "-offering.cost_per_task",
+          "weight": 0.22,
+          "value": 0.5,
+          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": "(2 USD per 1M input tokens × 40,000 input tokens + 8 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.112 USD per task"
+        },
+        {
+          "raw_value": 88.0,
+          "unit": "percent",
+          "records": [
+            "lab/gamma#quality#88.0"
+          ],
+          "dimension": "quality",
+          "weight": 0.78,
+          "value": 0.8,
+          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; constant dimensions contribute zero dimensionless",
+          "evidence": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/gamma#quality#88.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 88.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ],
+          "formula": null
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "rank": 3,
+      "offering": {
+        "model": "lab/beta",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "harness": null,
+      "effort": null,
+      "evidence": [
+        {
+          "domain": "software_engineering",
+          "items": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/beta#quality#72.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 72.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ]
+        }
+      ],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.056,
+          "unit": "usd_per_task",
+          "records": [
+            "cloud/lab/beta/global/standard#offering.price.input",
+            "cloud/lab/beta/global/standard#offering.price.output"
+          ],
+          "dimension": "-offering.cost_per_task",
+          "weight": 0.22,
+          "value": 1.0,
+          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": "(1 USD per 1M input tokens × 40,000 input tokens + 4 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.056 USD per task"
+        },
+        {
+          "raw_value": 72.0,
+          "unit": "percent",
+          "records": [
+            "lab/beta#quality#72.0"
+          ],
+          "dimension": "quality",
+          "weight": 0.78,
+          "value": 0.0,
+          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; constant dimensions contribute zero dimensionless",
+          "evidence": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/beta#quality#72.0",
+              "benchmark": "quality",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 72.0,
+              "unit": "percent",
+              "n": null,
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-08-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct"
+            }
+          ],
+          "formula": null
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "may_qualify": [],
+  "eliminated": {
+    "funnel": [
+      {
+        "condition": "model.class = text-generator",
+        "before": 4,
+        "after": 4,
+        "may_qualify": 0
+      },
+      {
+        "condition": "quality >= 60 @independent",
+        "before": 4,
+        "after": 3,
+        "may_qualify": 0
+      }
+    ],
+    "models": []
+  },
+  "constraint_costs": [
+    {
+      "units": {
+        "quality": "percent",
+        "-offering.cost_per_task": "usd_per_task"
+      },
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "lab/alpha#quality#92.0"
+      ],
+      "condition": "model.class = text-generator",
+      "admits": 0,
+      "gain": {
+        "-offering.cost_per_task": 0.0,
+        "quality": 0.0
+      }
+    },
+    {
+      "units": {
+        "quality": "percent",
+        "-offering.cost_per_task": "usd_per_task"
+      },
+      "records": [
+        "cloud/lab/beta/global/standard#offering.price.input",
+        "cloud/lab/beta/global/standard#offering.price.output",
+        "cloud/lab/delta/global/standard#offering.price.input",
+        "cloud/lab/delta/global/standard#offering.price.output",
+        "lab/alpha#quality#92.0"
+      ],
+      "condition": "quality >= 60 @independent",
+      "admits": 1,
+      "gain": {
+        "-offering.cost_per_task": -0.028,
+        "quality": 0.0
+      }
+    }
+  ],
+  "tipping_points": [
+    {
+      "description": "increase weight past threshold; other weights and normalisation fixed",
+      "dimension": "-offering.cost_per_task",
+      "threshold": 0.31199999999999983,
+      "new_top": "lab/gamma"
+    },
+    {
+      "description": "decrease weight past threshold; other weights and normalisation fixed",
+      "dimension": "quality",
+      "threshold": 0.5500000000000003,
+      "new_top": "lab/gamma"
+    }
+  ],
+  "relax": [],
+  "warnings": [],
+  "out_of_lineup": 0
+}
