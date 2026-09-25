@@ -7,8 +7,8 @@ Uses REAL scraped data from the HuggingFace open-llm-leaderboard/contents datase
 Populates benchmarks.scores with:
   - ifeval (IFEval raw score, 0-100)
   - bbh (Big Bench Hard raw score, 0-100)
-  - math_500 (MATH Lvl 5 raw score, 0-100)
-  - gpqa_diamond (GPQA raw score, 0-100)
+  - math_lvl5 (MATH Lvl 5 raw score, 0-100)
+  - gpqa_pooled (GPQA raw score, 0-100: Main, Extended and Diamond pooled)
   - musr (MuSR raw score, 0-100)
   - mmlu_pro (MMLU-PRO raw score, 0-100)
 
@@ -37,7 +37,29 @@ from scripts.seed_huggingface import write_card_yaml, slugify  # noqa: E402
 
 MODELS_DIR = PROJECT_ROOT / "models"
 
-V2_BENCHMARKS = ["ifeval", "bbh", "math_500", "gpqa_diamond", "musr", "mmlu_pro"]
+#: Leaderboard column -> score key. "MATH Lvl 5" is the level-5 slice of the
+#: MATH test split, not MATH-500; "GPQA" is lm-eval's `leaderboard_gpqa`, which
+#: pools Main, Extended and Diamond, so it is not GPQA Diamond (MODEL-116).
+OLL_V2_COLUMNS = {
+    "IFEval": "ifeval",
+    "BBH": "bbh",
+    "MATH Lvl 5": "math_lvl5",
+    "GPQA": "gpqa_pooled",
+    "MUSR": "musr",
+    "MMLU-PRO": "mmlu_pro",
+}
+V2_BENCHMARKS = list(OLL_V2_COLUMNS.values())
+
+#: Keys the extraction used before MODEL-116.
+_LEGACY_KEYS = {"math_500": "math_lvl5", "gpqa_diamond": "gpqa_pooled"}
+
+
+def canonical_scores(v2_data: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
+    """Rename pre-MODEL-116 keys in extracted leaderboard data."""
+    return {
+        model: {_LEGACY_KEYS.get(key, key): value for key, value in scores.items()}
+        for model, scores in v2_data.items()
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -182,7 +204,7 @@ def main():
         sys.exit(1)
 
     with open(v2_data_path) as f:
-        v2_data = json.load(f)
+        v2_data = canonical_scores(json.load(f))
 
     print(f"\n[1/3] Loaded {len(v2_data)} models from v2 leaderboard data")
 
