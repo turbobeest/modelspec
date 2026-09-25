@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.0**
+Contract version: **1.1**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -19,10 +19,8 @@ every example below must parse.
 This contract is separate from the v1 CLI envelope (`schema_version`, see
 [`cli-contract.md`](cli-contract.md)) and from `/v1/rank`. Neither changes.
 
-> **Status, slice 1.** The types, the parser, the canonical hash and
-> `modelspec decide` are built. The engine is not: `decision.decide` raises
-> `NotImplementedError`, and the CLI reports "engine not yet built" (MODEL-141,
-> MODEL-142, MODEL-145). Free-text `task` is parsed but refused.
+> **Status, slice 1.** The types, parser, canonical hash, engine, explanations,
+> and `modelspec decide` are built. Free-text `task` is parsed but refused.
 
 ---
 
@@ -34,21 +32,21 @@ snapshot: latest
 profile: profile:acme-prod
 task_type: refactor
 capabilities:
-  coding.rust: required
+  software_engineering: required
   formal_verification: preferred
 where:
-  - input_price in [0.50, 3.00]
+  - offering.price.input in [0.50, 3.00]
   - swe_bench_pro >= 55 @independent @default_effort measured_after 2026-06-01
-  - any: [ offered_on = aws-bedrock:us-east-1, deployment = self_hosted ]
-  - not: license = noncommercial
-  - coding >= model(openai/gpt-6-sol)
-  - context_window >= 200000 soft(0.2)
-  - facet: data.trains_on_customer_data
+  - any: [ offering.provider = aws-bedrock, model.weights_openness = open_weights ]
+  - not: licence.commercial_use = prohibited
+  - software_engineering >= model(openai/gpt-6-sol)
+  - model.context_window >= 200000 soft(0.2)
+  - facet: offering.data.trains_on_customer_data
     op: "="
     value: false
     unknown: fail
 optimize:
-  weights: { coding: 0.6, -cost_per_task: 0.3, output_tps: 0.1 }
+  weights: { software_engineering: 0.6, -offering.price.output: 0.3, offering.speed.throughput: 0.1 }
 unknowns: default
 explain: summary
 limit: 20
@@ -77,7 +75,7 @@ A spec with a field not named here is refused. Nothing is silently ignored.
 `analysis`, `data_transform`, `config_infra`: the outcome protocol's task
 types.
 
-**Identifiers.** A facet ID is lowercase and dotted (`origin.lab_country`). A
+**Identifiers.** A facet ID is lowercase and dotted (`origin.lab_jurisdiction`). A
 model ID is `lab/model`. A harness ID is `name@major.minor`
 (`claude-code@2.1`). Every facet a spec names must be in the facet registry
 (`decision.registry`, MODEL-133), or the spec is refused.
@@ -98,8 +96,8 @@ profile:
       hardware: { class: nvidia-dgx-spark, count: 2, memory_gb: 256 }
   harnesses: [ claude-code@2.1, dpf-native@1.0 ]
   rules:
-    - origin.lab_country in {US}
-    - license.commercial_use = true
+    - origin.lab_jurisdiction in {US}
+    - licence.commercial_use = true
   budget: { max_cost_per_task_usd: 2.00 }
 ```
 
@@ -122,21 +120,21 @@ between spellings.
 ### The compact form
 
 ```text conditions
-input_price in [0.5, 3.0]
-origin.lab_country in {US, CA}
-origin.lab_country not in {CN, RU}
-license != noncommercial
-offered_on = aws-bedrock:us-east-1
-offered_on = "a value with spaces, or a comma"
-known(parameters.total)
-coding >= model(openai/gpt-6-sol)
-context_window >= 200000 soft(0.2)
-data.trains_on_customer_data = false unknown(fail)
+offering.price.input in [0.5, 3.0]
+origin.lab_jurisdiction in {US, CA}
+origin.lab_jurisdiction not in {CN, RU}
+licence.commercial_use != prohibited
+offering.provider = aws-bedrock
+offering.provider = "a value with spaces, or a comma"
+known(model.parameters_total)
+software_engineering >= model(openai/gpt-6-sol)
+model.context_window >= 200000 soft(0.2)
+offering.data.trains_on_customer_data = false unknown(fail)
 swe_bench_pro >= 55 @independent @default_effort measured_after 2026-06-01
 swe_bench_pro >= 40 @any @effort(high) @harness(claude-code@2.1) @direct
-any(offered_on = aws-bedrock:us-east-1; deployment = self_hosted)
-all(input_price <= 3; not(license = noncommercial)) soft(0.5)
-not(license = noncommercial)
+any(offering.provider = aws-bedrock; model.weights_openness = open_weights)
+all(offering.price.input <= 3; not(licence.commercial_use = prohibited)) soft(0.5)
+not(licence.commercial_use = prohibited)
 ```
 
 - **Comparisons:** `=`, `!=`, `<`, `<=`, `>`, `>=`. `==` is refused.
@@ -178,13 +176,13 @@ Comparisons and windows also take `qualifiers`. Every condition except
   op: ">="
   value: 55
   qualifiers: { measured_by: independent, effort: default, measured_after: 2026-06-01 }
-- facet: context_window
+- facet: model.context_window
   op: ">="
   value: 200000
   soft: { penalty: 0.2 }
 - any:
-    - offered_on = aws-bedrock:us-east-1
-    - { facet: deployment, op: "=", value: self_hosted }
+    - offering.provider = aws-bedrock
+    - { facet: model.weights_openness, op: "=", value: open_weights }
   unknown: list
 ```
 
@@ -235,21 +233,34 @@ with the engine (MODEL-142). A result's total is always reported in
 | Form | Example | Meaning |
 |---|---|---|
 | `max` | `max: swe_bench_pro` | Highest value first. |
-| `min` | `min: cost_per_task` | Lowest value first. |
+| `min` | `min: offering.price.output` | Lowest value first. |
 | `lexicographic` | see below | Order by the first step, then break near-ties with the next. |
-| `weights` | `weights: { coding: 0.6, -cost_per_task: 0.3 }` | A weighted sum over normalised facets. The normalisation is reported in each contribution. |
-| `pareto` | `pareto: [ coding, -cost_per_task, output_tps ]` | The non-dominated set. |
+| `weights` | `weights: { software_engineering: 0.6, -offering.price.output: 0.3 }` | A weighted sum over normalised facets. The normalisation is reported in each contribution. |
+| `pareto` | `pareto: [ software_engineering, -offering.price.output, offering.speed.throughput ]` | The non-dominated set. |
 
 In `weights` and `pareto`, a leading `-` on a facet means lower is better.
 Weights are positive; a facet may appear once. `pareto` needs at least two
 dimensions.
 
+An evidence objective can carry the same qualifiers as an evidence condition:
+
+```yaml
+optimize:
+  max: swe_bench_pro @independent @default_effort
+```
+
+Qualifiers also work on weighted, Pareto, and lexicographic terms. Quote a
+qualified mapping key, for example
+`weights: {"swe_bench_pro @independent": 1}`. They select matching verified
+measurements before optimisation; they never add a score. Qualifiers on a
+non-evidence facet are refused.
+
 ```yaml
 optimize:
   lexicographic:
-    - max: output_tps within 5%
-    - { min: cost_per_task, within: 0.25 }
-    - max: coding
+    - max: offering.speed.throughput within 5%
+    - { min: offering.price.output, within: 0.25 }
+    - max: software_engineering
 ```
 
 A `lexicographic` objective has at least two steps. Each step is one of `max` or
@@ -274,15 +285,16 @@ cannot be maximised, windowed or compared with `<`.
 4. Hash with SHA-256 and write `sha256:<hex>`.
 
 The hash is stable under key order, whitespace, and the choice between the
-compact and YAML forms. It changes if any field changes, including the order of
-`where`, which orders the funnel. It covers every field, `explain` and `limit`
-included.
+compact and YAML forms. It changes if any field changes, including an objective
+qualifier and the order of `where`, which orders the funnel. It covers every
+field, `explain` and `limit` included. An unqualified 1.1 objective keeps the
+same canonical representation it had in 1.0.
 
 ## The decision
 
 ```json decision
 {
-  "contract_version": "1.0",
+  "contract_version": "1.1",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -296,7 +308,7 @@ included.
       "harness": "claude-code@2.1",
       "effort": "high",
       "evidence": [
-        {"domain": "coding.rust", "items": [
+        {"domain": "software_engineering", "items": [
           {"benchmark": "multi_swe_bench", "version": "1.0", "sub_category": "rust",
            "value": 48.2, "unit": "percent", "measured_by": "independent",
            "effort": "default", "date": "2026-09-20", "date_type": "observed",
@@ -308,7 +320,7 @@ included.
       "top3_stability": null,
       "soft_penalty": 0.0,
       "contributions": [
-        {"dimension": "coding.rust", "weight": 0.6, "value": 0.81,
+        {"dimension": "software_engineering", "weight": 0.6, "value": 0.81,
          "normalisation": "min-max over the feasible set", "evidence": []}
       ],
       "warnings": ["provisional_released_2_days_ago"]
@@ -316,20 +328,20 @@ included.
   ],
   "may_qualify": [
     {"model": "google/gemini-3-8-pro", "offering": null,
-     "unknown": ["data.trains_on_customer_data"]}
+     "unknown": ["offering.data.trains_on_customer_data"]}
   ],
   "eliminated": {
     "funnel": [
-      {"condition": "input_price in [0.5, 3.0]", "before": 212, "after": 64, "may_qualify": 3}
+      {"condition": "offering.price.input in [0.5, 3.0]", "before": 212, "after": 64, "may_qualify": 3}
     ],
     "models": []
   },
   "constraint_costs": [
-    {"condition": "origin.lab_country in {US}", "admits": 12, "gain": {"coding.rust": 0.06}}
+    {"condition": "origin.lab_jurisdiction in {US}", "admits": 12, "gain": {"software_engineering": 0.06}}
   ],
   "tipping_points": [
     {"description": "rank 1 holds unless the cost weight exceeds 0.35",
-     "dimension": "-cost_per_task", "threshold": 0.35, "new_top": "openai/gpt-6-sol"}
+     "dimension": "-offering.price.output", "threshold": 0.35, "new_top": "openai/gpt-6-sol"}
   ],
   "relax": [],
   "warnings": []
@@ -338,7 +350,7 @@ included.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.0"`. |
+| `contract_version` | `"1.1"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
@@ -430,7 +442,8 @@ and unresolved explanation provenance exit **1** with a structured error when
 
 ### Explanation provenance (MODEL-145)
 
-These are additive response fields; the contract remains 1.0.
+These additive response fields were introduced without changing the 1.0
+contract version. Version 1.1 retains them.
 
 - Contributions add `raw_value`, `unit`, and `records`. The existing `value`
   remains the feasible-set normalised value, never a capability estimate.
@@ -498,3 +511,13 @@ Decided now, so that later slices do not widen anything:
 
 Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
+
+## Change log
+
+- **1.1 — MODEL-148:** Objective terms accept evidence qualifiers. This is an
+  additive input change; unqualified spec hashes retain their 1.0 canonical
+  representation.
+- **1.0 — MODEL-145:** Added the optional explanation response fields
+  `near_misses`, `top`, `chart`, and `number_origins`, plus retained-record
+  provenance on explanation values. Older snapshots must be rebuilt before
+  those explanations can be generated.

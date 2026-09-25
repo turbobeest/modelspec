@@ -34,6 +34,7 @@ from decision.sources import (
     Source,
     SourceState,
     due,
+    load_sources,
     recheck,
 )
 
@@ -41,6 +42,33 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).parent / "fixtures" / "sources"
 URL = "https://lab.example.com/pricing"
 T0 = datetime(2026, 9, 24, 12, 0, tzinfo=UTC)
+
+
+def test_source_recheck_uses_the_shared_domain_types() -> None:
+    from decision.model import Source as DomainSource
+    from decision.model import SourceSnapshot as DomainSourceSnapshot
+    from decision.sources import SourceSnapshot as RecheckSourceSnapshot
+
+    assert Source is DomainSource
+    assert RecheckSourceSnapshot is DomainSourceSnapshot
+
+
+def test_source_registry_rejects_xpath_instead_of_dropping_the_region(tmp_path: Path) -> None:
+    path = tmp_path / "sources.yaml"
+    path.write_text(
+        """schema_version: 1
+sources:
+  - id: source
+    url: https://example.test/page
+    fetch: conditional_http
+    normaliser: html-default
+    cited_regions:
+      - id: result
+        locator: {kind: xpath, value: "//table[1]"}
+"""
+    )
+    with pytest.raises(ValueError, match="xpath cited-region locators are not supported"):
+        load_sources(path)
 
 
 def fixture(name: str) -> bytes:
@@ -54,9 +82,9 @@ def pricing_source(**kw: object) -> Source:
         "fetch": FetchMode.CONDITIONAL_HTTP,
         "normaliser": "html-default",
         "cited_regions": (
-            CitedRegion("price-table", Locator.table(0)),
-            CitedRegion("rate-limits", Locator.heading("rate-limits")),
-            CitedRegion("data-handling", Locator.heading("Data handling")),
+            CitedRegion(id="price-table", locator={"kind": "table", "value": "0"}),
+            CitedRegion(id="rate-limits", locator={"kind": "heading", "value": "rate-limits"}),
+            CitedRegion(id="data-handling", locator={"kind": "heading", "value": "Data handling"}),
         ),
     }
     defaults.update(kw)
@@ -361,7 +389,7 @@ def test_plain_text_sources_fingerprint_the_whole_page(store: CopyStore) -> None
     src = pricing_source(
         url="https://lab.example.com/LICENSE.txt",
         normaliser="text-default",
-        cited_regions=(CitedRegion("licence", Locator.page()),),
+        cited_regions=(CitedRegion(id="licence", locator={"kind": "page"}),),
     )
     cites = (Citation("fact:m/licence", src.id, "licence", FactKind.GOVERNANCE),)
     text = b"Example Licence 1.0\n\nYou may use the weights commercially.\n"
@@ -385,7 +413,8 @@ def test_plain_text_sources_fingerprint_the_whole_page(store: CopyStore) -> None
 def test_text_rule_sets_accept_only_page_locators() -> None:
     with pytest.raises(ValueError, match="page"):
         pricing_source(
-            normaliser="text-default", cited_regions=(CitedRegion("t", Locator.table(0)),)
+            normaliser="text-default",
+            cited_regions=(CitedRegion(id="t", locator={"kind": "table", "value": "0"}),)
         )
 
 
@@ -581,4 +610,4 @@ def test_change_detection_has_no_llm_or_agent_hook() -> None:
             for alias in node.names
         }
         third_party = imported - set(sys.stdlib_module_names) - {"__future__", "decision"}
-        assert third_party <= {"httpx"}, f"{name} imports {third_party}"
+        assert third_party <= {"httpx", "yaml"}, f"{name} imports {third_party}"

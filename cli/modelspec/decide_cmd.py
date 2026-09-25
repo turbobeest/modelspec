@@ -10,17 +10,13 @@ import typer
 
 from decision import contract
 from decision.engine import decide as run_decision
+from decision.registry import facet
 
 EXIT_ERROR = 1
 
 
-def _facet_lookup() -> tuple[contract.FacetLookup | None, str | None]:
-    """The registry lookup, or why there is none."""
-    try:
-        from decision.registry import facet
-    except ImportError as exc:
-        return None, f"the facet registry is not available ({exc})"
-    return facet, None
+def _facet_lookup() -> contract.FacetLookup:
+    return facet
 
 
 def _fail(payload: dict[str, Any], lines: list[str], as_json: bool) -> None:
@@ -59,7 +55,7 @@ def decide(
             as_json,
         )
 
-    facets, missing = _facet_lookup()
+    facets = _facet_lookup()
     try:
         raw = contract.load_yaml(text)
         if explain is not None and isinstance(raw, dict):
@@ -77,8 +73,6 @@ def decide(
         )
 
     base |= {"spec_hash": contract.spec_hash(spec), "explain": spec.explain}
-    if missing and not as_json:
-        typer.echo(f"warning: {missing}; facet IDs were not checked", err=True)
     if snapshot_file is None:
         _fail(
             base

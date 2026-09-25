@@ -6,55 +6,39 @@ removed on 2026-09-24. Zapier is treated the same way by the same decision, so
 every value sourced from zapier.com and the AutomationBench benchmark were
 removed with it.
 
-This file is the one place in the repository that names either source. The
-checks cover the tracked files (cards, benchmark pages, census and eligibility
-evidence, code and docs), the loaded cards and pages, the ranking tables, and
-the JSON the export writes. Set ``MODELSPEC_DIST`` to a built ``dist/`` to scan
-that too.
+This guard and ``decision/excluded.py`` are the only files that name either
+source. The checks cover tracked files, loaded cards and pages, ranking tables,
+and the JSON export. Set ``MODELSPEC_DIST`` to a built ``dist/`` to scan it too.
 """
 
 from __future__ import annotations
 
 import os
-import re
 import subprocess
 from pathlib import Path
-from urllib.parse import urlsplit
 
 import pytest
 
 from api.ranking.engine import BENCHMARK_RANGES, USE_CASE_PROFILES, VERIFIED_ADDITIONS
-from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
-
-#: Hosts whose values must not appear, including any subdomain.
-REMOVED_HOSTS = ("artificialanalysis.ai", "zapier.com")
-
-#: Any mention of either source, or of the benchmarks they own. "Omniscience"
-#: is matched as a bare name because that evaluator's hallucination benchmark
-#: was once stored with its prefix dropped. Its column labels
-#: ("Non-Hallucination", "Hallucination rate") are not matched: labs publish
-#: their own evaluations under those names.
-REMOVED_TEXT = re.compile(
-    r"artificial[\s-]?analysis|zapier|automationbench|gdpval-aa|aa-lcr|aa[\s-]intelligence[\s-]index"
-    r"|omniscience",
-    re.IGNORECASE,
+from decision.excluded import (
+    REMOVED_HOSTS,  # noqa: F401 - part of this guard's public test surface
+    REMOVED_ID,
+    REMOVED_TEXT,
+    excluded_sources,
 )
-
-#: Benchmark ids the removed sources own: `aa_*`, `*_aa`, `artificial_analysis*`,
-#: `artificialanalysis_*` and `automationbench*`.
-REMOVED_ID = re.compile(r"^(aa_|artificial_?analysis|automationbench)|_aa$|_aa_")
+from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
 
 #: A document that records the MODEL-117 decision may name the sources it is
 #: about. Nothing else may.
 ALLOWED = (
     Path(__file__).resolve().relative_to(REPO_ROOT).as_posix(),
+    "decision/excluded.py",
 )
 ALLOWED_GLOBS = ("docs/research/source-terms-*.md",)
 
 
 def _removed_host(url: object) -> bool:
-    host = (urlsplit(str(url or "").strip()).hostname or "").lower().rstrip(".")
-    return any(host == h or host.endswith("." + h) for h in REMOVED_HOSTS)
+    return excluded_sources().url(url)
 
 
 def _allowed(rel: str) -> bool:

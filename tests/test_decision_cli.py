@@ -6,29 +6,21 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
-from cli.modelspec import decide_cmd  # noqa: E402
 
 VALID = """
 spec_version: 1
 where:
-  - input_price in [0.5, 3]
+  - offering.price.input in [0.5, 3]
   - swe_bench_pro >= 55 @independent measured_after 2026-06-01
 optimize:
   max: swe_bench_pro
 """
-
-
-@pytest.fixture(autouse=True)
-def no_registry(monkeypatch):
-    """Structure-only validation, so these tests do not depend on MODEL-133's data."""
-    monkeypatch.setattr(decide_cmd, "_facet_lookup", lambda: (None, "stubbed out in tests"))
 
 
 def _run(tmp_path: Path, text: str, *args: str):
@@ -48,7 +40,7 @@ def test_json_reports_the_spec_hash_and_the_error_code(tmp_path) -> None:
     assert result.exit_code == 1
     payload = json.loads(result.stderr)
     assert payload["command"] == "decide"
-    assert payload["contract_version"] == "1.0"
+    assert payload["contract_version"] == "1.1"
     assert payload["spec_hash"].startswith("sha256:")
     assert payload["error"]["code"] == "snapshot_required"
 
@@ -70,7 +62,7 @@ def test_json_lists_every_issue(tmp_path) -> None:
     error = json.loads(result.stderr)["error"]
     assert error["code"] == "invalid_spec"
     assert [i["path"] for i in error["issues"]] == ["where[0]", "where[1]"]
-    assert {i["field"] for i in error["issues"]} == {"input_price", "swe_bench_pro"}
+    assert {i["field"] for i in error["issues"]} == {"offering.price.input", "swe_bench_pro"}
     assert all(i["condition"] and i["reason"] for i in error["issues"])
 
 
@@ -94,9 +86,11 @@ def test_a_missing_file_is_a_usage_error(tmp_path) -> None:
     assert "nope.yaml" in result.output
 
 
-def test_a_missing_registry_is_said_not_skipped(tmp_path) -> None:
-    result = _run(tmp_path, VALID)
-    assert "facet IDs were not checked" in result.output
+def test_unknown_facet_uses_the_registry_nearest_match(tmp_path) -> None:
+    result = _run(tmp_path, VALID.replace("offering.price.input", "offering.price.inpt"))
+    assert result.exit_code == 1
+    assert "unknown facet 'offering.price.inpt'" in result.output
+    assert "did you mean 'offering.price.input'" in result.output
 
 
 def test_the_existing_commands_are_all_still_there() -> None:

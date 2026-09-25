@@ -1,11 +1,4 @@
-"""The snapshot builder, its completeness gate and its loader (MODEL-138).
-
-MODEL-133 (the registry) and MODEL-134 (the domain records) are not on main
-when this was written, so the tests use a local registry stub with the same
-surface (`facets()`, each facet with `id`, `subject`, `tier`, `computed_by`)
-and plain dicts in the serialised shape of MODEL-134's records. The builder
-accepts either.
-"""
+"""The snapshot builder, its completeness gate and its loader (MODEL-138)."""
 
 from __future__ import annotations
 
@@ -14,13 +7,14 @@ import gzip
 import json
 import random
 import time
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
 import pytest
 
 from decision import snapshot as snap
+from decision.registry import Registry
+from decision.registry import default as default_registry
 from decision.snapshot import (
     UNKNOWN,
     Bitset3,
@@ -28,6 +22,7 @@ from decision.snapshot import (
     EvidenceValue,
     FactValue,
     SnapshotBuildError,
+    SnapshotError,
     SnapshotIndex,
     SnapshotInputs,
     SnapshotIntegrityError,
@@ -49,44 +44,37 @@ AS_OF = date(2026, 9, 24)
 KEY = b"test-key-not-a-secret"
 
 
-# ── a registry stub with MODEL-133's surface ───────────────────────────────
-
-
-@dataclass(frozen=True)
-class StubFacet:
-    id: str
-    subject: str
-    tier: str = "guaranteed"
-    risk: str = "capability"
-    computed_by: str | None = None
-
-
-class StubRegistry:
-    def __init__(self, facets):
-        self._facets = {f.id: f for f in facets}
-
-    def facets(self):
-        return tuple(self._facets.values())
-
-    def facet(self, id_):
-        return self._facets[id_]
-
-
-REGISTRY = StubRegistry([
-    StubFacet("model.context_window", "model"),
-    StubFacet("model.weights_openness", "model"),
-    StubFacet("model.input_modalities", "model"),
-    StubFacet("licence.user_cap", "model", risk="governance"),
-    StubFacet("model.parameters_total", "model", tier="best_effort"),
-    StubFacet("estimate.capability", "model", computed_by="MODEL-129"),
-    StubFacet("offering.provider", "offering"),
-    StubFacet("offering.region", "offering"),
-    StubFacet("offering.tier", "offering"),
-    StubFacet("offering.price.input", "offering"),
-    StubFacet("offering.price.batch_input", "offering", tier="best_effort"),
-    StubFacet("offering.data.retention", "offering", tier="best_effort", risk="governance"),
-    StubFacet("evidence.benchmark", "evidence", tier="best_effort"),
-])
+# Completeness tests intentionally exercise a small slice of the real registry
+# so each missing-value assertion stays focused.
+_ALL_REGISTRY = default_registry()
+_FACET_IDS = (
+    "model.context_window",
+    "model.weights_openness",
+    "model.input_modalities",
+    "licence.user_cap",
+    "model.parameters_total",
+    "estimate.capability",
+    "offering.provider",
+    "offering.region",
+    "offering.tier",
+    "offering.price.input",
+    "offering.price.batch_input",
+    "offering.speed.throughput",
+    "evidence.benchmark",
+)
+COMPLETENESS_REGISTRY = Registry(
+    units={},
+    source_kinds={},
+    facets={id_: _ALL_REGISTRY.facet(id_) for id_ in _FACET_IDS},
+    providers={},
+    harnesses={},
+    domains={},
+    named_lists={
+        "benchmarks": lambda: frozenset(),
+        "registry:domains": lambda: frozenset(),
+    },
+)
+REGISTRY = _ALL_REGISTRY
 
 
 def inputs(**overrides) -> SnapshotInputs:
@@ -113,7 +101,8 @@ def inputs(**overrides) -> SnapshotInputs:
 
 
 def build(tmp_path: Path, name="snap.json.gz", *, key=None, premier=None, **overrides) -> Path:
-    built = build_snapshot(inputs(**overrides), registry=REGISTRY, premier=premier, as_of=AS_OF)
+    selected = COMPLETENESS_REGISTRY if premier is not None else REGISTRY
+    built = build_snapshot(inputs(**overrides), registry=selected, premier=premier, as_of=AS_OF)
     path = tmp_path / name
     built.write(path, key=key)
     return path
@@ -151,8 +140,9 @@ def test_signed_snapshots_are_byte_identical_too(tmp_path):
 
 
 def test_snapshot_id_matches_the_contract_pattern(tmp_path):
-    from decision.contract import SNAPSHOT_PATTERN
     import re
+
+    from decision.contract import SNAPSHOT_PATTERN
 
     index = load(build(tmp_path))
     assert re.match(SNAPSHOT_PATTERN, index.snapshot_id)
@@ -190,6 +180,19 @@ def test_the_verification_log_overrides_an_older_inline_verification(tmp_path):
     assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
 
 
+def test_changed_value_is_quarantined_until_it_is_reverified(tmp_path):
+    checked = fact("model", "lab/alpha", "model.context_window", 128000)
+    checked["value"] = 64000
+    index = load(build(
+        tmp_path,
+        models=[model("lab/alpha", facts=[checked])],
+        offerings=[],
+        evidence=[],
+    ))
+    assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
+    assert index.excluded == {"quarantined": 1}
+
+
 def test_unverified_evidence_never_enters(tmp_path):
     rows = [evidence("lab/alpha", "swe_bench_pro", 55.0, outcome=None),
             evidence("lab/alpha", "swe_bench_pro", 56.0, outcome="mismatch")]
@@ -217,7 +220,7 @@ def test_legacy_flat_scores_never_enter(tmp_path):
 
 
 def _guard():
-    return snap.excluded_sources(REPO_ROOT)
+    return snap.excluded_sources()
 
 
 def test_the_guard_matches_tests_test_removed_sources():
@@ -293,7 +296,10 @@ def test_an_offering_of_an_unknown_model_fails_loudly():
 def test_the_gate_passes_a_complete_premier_set(tmp_path):
     offerings = [offering("lab/alpha", facts=[
         fact("offering", "lab-api/lab/alpha/global/standard", "offering.price.input", 3.0,
-             source="src-pricing")])]
+             source="src-pricing"),
+        fact("offering", "lab-api/lab/alpha/global/standard", "offering.price.batch_input",
+             "not_offered", source="src-pricing"),
+    ])]
     build(tmp_path, premier=["lab/alpha"], offerings=offerings)
 
 
@@ -303,7 +309,7 @@ def test_the_gate_fails_on_one_missing_guaranteed_fact():
     with pytest.raises(CompletenessError) as exc:
         build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[],
                               evidence=[]),
-                       registry=REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+                       registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
     assert [(g.subject, g.facet) for g in exc.value.gaps] == [("lab/alpha", "model.context_window")]
     message = str(exc.value)
     assert "lab/alpha" in message and "model.context_window" in message
@@ -316,7 +322,7 @@ def test_the_gate_names_the_source_of_an_unverified_fact():
     with pytest.raises(CompletenessError) as exc:
         build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[],
                               evidence=[]),
-                       registry=REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+                       registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
     (gap,) = exc.value.gaps
     assert gap.reason == "quarantined (mismatch)"
     assert gap.sources == (SOURCES["src-lab-docs"],)
@@ -328,14 +334,21 @@ def test_the_gate_checks_guaranteed_offering_facets_and_ignores_best_effort():
     no_price = offering("lab/alpha", facts=[])
     with pytest.raises(CompletenessError) as exc:
         build_snapshot(inputs(models=[model("lab/alpha")], offerings=[no_price], evidence=[]),
-                       registry=REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
-    assert [(g.subject, g.facet) for g in exc.value.gaps] == [(oid, "offering.price.input")]
+                       registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+    assert [(g.subject, g.facet) for g in exc.value.gaps] == [
+        (oid, "offering.price.batch_input"),
+        (oid, "offering.price.input"),
+    ]
 
 
 def test_the_gate_skips_computed_facets():
     """`estimate.capability` is guaranteed but computed by MODEL-129 (slice 2)."""
-    built = build_snapshot(inputs(offerings=[]), registry=REGISTRY, premier=["lab/alpha"],
-                           as_of=AS_OF)
+    built = build_snapshot(
+        inputs(offerings=[]),
+        registry=COMPLETENESS_REGISTRY,
+        premier=["lab/alpha"],
+        as_of=AS_OF,
+    )
     assert built.snapshot_id
 
 
@@ -343,7 +356,7 @@ def test_the_gate_accepts_verified_not_disclosed_states():
     facts = model("lab/alpha")["facts"]
     facts[0] = fact("model", "lab/alpha", "model.context_window", None, state="not_disclosed")
     build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[], evidence=[]),
-                   registry=REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+                   registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
 
 
 def test_the_gate_rejects_an_unknown_state():
@@ -352,18 +365,18 @@ def test_the_gate_rejects_an_unknown_state():
                     source=None, outcome=None)
     with pytest.raises(CompletenessError, match="model.context_window"):
         build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[], evidence=[]),
-                       registry=REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+                       registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
 
 
 def test_the_gate_fails_on_a_premier_model_missing_from_the_catalogue():
     with pytest.raises(CompletenessError, match="lab/ghost"):
-        build_snapshot(inputs(), registry=REGISTRY, premier=["lab/ghost"], as_of=AS_OF)
+        build_snapshot(inputs(), registry=COMPLETENESS_REGISTRY, premier=["lab/ghost"], as_of=AS_OF)
 
 
 def test_retired_models_leave_the_premier_set():
     build_snapshot(inputs(models=[model("lab/alpha"), model("lab/old", lifecycle="retired",
                                                             facts=[])], offerings=[], evidence=[]),
-                   registry=REGISTRY, premier=["lab/alpha", "lab/old"], as_of=AS_OF)
+                   registry=COMPLETENESS_REGISTRY, premier=["lab/alpha", "lab/old"], as_of=AS_OF)
 
 
 def test_premier_file_formats(tmp_path):
@@ -628,10 +641,36 @@ def test_collect_repo_reads_cards_offerings_sources_and_domains(tmp_path):
     assert collected.benchmark_domains == {"swe_bench_pro": (("software_engineering", "direct"),)}
     assert [o["provider"] for o in collected.offerings] == ["lab-api"]
     index_path = tmp_path / "s"
-    build_snapshot(collected, registry=REGISTRY, premier=["lab/alpha"], as_of=AS_OF).write(index_path)
+    build_snapshot(
+        collected,
+        registry=COMPLETENESS_REGISTRY,
+        premier=["lab/alpha"],
+        as_of=AS_OF,
+    ).write(index_path)
     index = load(index_path)
     assert index.fact("lab/alpha", "model.context_window").value == 128000
     assert [e.value for e in index.evidence("lab/alpha", "swe_bench_pro")] == [55.0]
+
+
+def test_repo_verification_log_quarantine_never_enters_the_snapshot(tmp_path):
+    root = _mini_repo(tmp_path)
+    log_dir = root / "verification"
+    log_dir.mkdir()
+    quarantined = verification(
+        "fact",
+        "lab/alpha#model.context_window",
+        "mismatch",
+        day="2026-09-24",
+        value=128000,
+    )
+    (log_dir / "log.jsonl").write_text(json.dumps(quarantined) + "\n")
+
+    collected = snap.collect_repo(root)
+    assert collected.verifications == [quarantined]
+    index_path = tmp_path / "quarantined.gz"
+    build_snapshot(collected, registry=REGISTRY, as_of=AS_OF).write(index_path)
+    index = load(index_path)
+    assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
 
 
 def test_cli_snapshot_build(tmp_path, monkeypatch):
@@ -640,7 +679,7 @@ def test_cli_snapshot_build(tmp_path, monkeypatch):
     from cli.modelspec import cli as cli_mod
 
     root = _mini_repo(tmp_path)
-    monkeypatch.setattr(snap, "default_registry", lambda: REGISTRY)
+    monkeypatch.setattr(snap, "default_registry", lambda: COMPLETENESS_REGISTRY)
     monkeypatch.delenv(snap.KEY_ENV, raising=False)
     out = tmp_path / "out.json.gz"
     runner = CliRunner()
@@ -711,6 +750,21 @@ def test_legacy_retained_records_still_load(tmp_path):
     env["snapshot_id"] = snap.snapshot_id_for(env["content_hash"])
     path.write_bytes(gzip.compress(json.dumps(env).encode()))
     assert load(path).record(row["id"]) == row
+
+
+def test_pre_provenance_snapshot_plainly_requires_rebuilding_for_explanations(tmp_path):
+    path = build(tmp_path)
+    env = json.loads(gzip.decompress(path.read_bytes()))
+    env["content"].pop("record_table")
+    env["content"].pop("fact_records")
+    env["content_hash"] = snap.content_hash(env["content"])
+    env["snapshot_id"] = snap.snapshot_id_for(env["content_hash"])
+    path.write_bytes(gzip.compress(json.dumps(env).encode()))
+
+    index = load(path)
+    assert "rebuild" in index.explanation_rebuild_required
+    with pytest.raises(SnapshotError, match="rebuild it before explaining"):
+        index.require_explanation_records()
 
 
 def test_duplicate_content_cannot_bypass_integrity(tmp_path):

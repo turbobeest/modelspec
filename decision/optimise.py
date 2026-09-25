@@ -12,7 +12,7 @@ from datetime import date
 from math import isclose, isfinite
 from typing import TYPE_CHECKING, Literal
 
-from decision.contract import Objective, Tolerance
+from decision.contract import EvidenceQualifiers, Objective, Tolerance
 
 if TYPE_CHECKING:
     from decision.snapshot import EvidenceValue, SnapshotIndex
@@ -29,6 +29,33 @@ class EvidenceSelector:
     effort: str | None = None
     harness: str | None = None
     after: date | None = None
+    direct: bool = False
+
+    @classmethod
+    def from_qualifiers(
+        cls, benchmark_id: str, qualifiers: EvidenceQualifiers | None
+    ) -> EvidenceSelector:
+        qualifiers = qualifiers or EvidenceQualifiers()
+        measured = {
+            "independent": frozenset({
+                "benchmark_author",
+                "independent",
+                "independent_evaluator",
+                "modelspec",
+                "outcome_protocol",
+            }),
+            "provider_self_report": frozenset({"provider_self_report"}),
+            "any": None,
+            None: None,
+        }[qualifiers.measured_by]
+        return cls(
+            benchmark_id=benchmark_id,
+            measured_by=measured,
+            effort=qualifiers.effort,
+            harness=qualifiers.harness,
+            after=qualifiers.measured_after,
+            direct=qualifiers.direct,
+        )
 
 
 @dataclass(frozen=True)
@@ -175,7 +202,8 @@ def _read(snapshot: SnapshotIndex, cid: str, facet: str,
         effort=selector.effort, harness=selector.harness, after=selector.after)
     matches = [e for e in evidence if e.verified and _number(e.value) is not None
                and (selector.version is None or e.version == selector.version)
-               and e.subcategory == selector.subcategory]
+               and e.subcategory == selector.subcategory
+               and (not selector.direct or e.directness == "direct")]
     # Multiple measurements need a resolver decision, not an implicit max or average.
     if len(matches) != 1:
         return None, (), ()

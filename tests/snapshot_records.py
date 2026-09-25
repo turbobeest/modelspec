@@ -6,12 +6,21 @@ speed test (``tests/test_decision_filter.py``) loads the 30-model one.
 
 from __future__ import annotations
 
-from decision.snapshot import SnapshotInputs
+from datetime import date
+
+from decision.model import value_hash
+from decision.snapshot import (
+    EvidenceValue,
+    FactValue,
+    LoadedSnapshot,
+    SnapshotInputs,
+    build_snapshot,
+)
 
 
-def verification(kind, id_, outcome="verified", day="2026-09-20"):
+def verification(kind, id_, outcome="verified", day="2026-09-20", *, value=128000):
     v = {
-        "target": {"kind": kind, "id": id_},
+        "target": {"kind": kind, "id": id_, "value_hash": value_hash(value)},
         "collector": {"agent": "collector-a", "model_family": "family-a", "method": "read"},
         "verifier": {"agent": "verifier-b", "model_family": "family-b", "method": "re-read"},
         "method": "re-read the cited region",
@@ -39,7 +48,7 @@ def fact(subject_kind, subject_id, facet, value, *, state="known", source="src-l
         "sources": [source_ref(source)] if source else [],
     }
     if outcome:
-        out["verification"] = verification("fact", fid, outcome)
+        out["verification"] = verification("fact", fid, outcome, value=out["value"])
     return out
 
 
@@ -87,7 +96,7 @@ def evidence(mid, benchmark, score, *, eid=None, measured_by="independent_evalua
         "sources": [source_ref(source)],
     }
     if outcome:
-        row["verification"] = verification("evidence", eid, outcome)
+        row["verification"] = verification("evidence", eid, outcome, value=score)
     return row
 
 
@@ -96,6 +105,68 @@ SOURCES = {
     "src-pricing": "https://lab.example.com/pricing",
     "src-board": "https://board.example.org/results",
 }
+
+
+def loaded_index(
+    rows: dict[str, dict[str, object]],
+    *,
+    lifecycle: dict[str, str] | None = None,
+    evidence_rows: dict[tuple[str, str], tuple[EvidenceValue, ...]] | None = None,
+    extras: dict[str, dict[str, object]] | None = None,
+    benchmark_domains: dict[str, list[tuple[str, str]]] | None = None,
+) -> LoadedSnapshot:
+    """Build the real snapshot index from compact test rows."""
+    lifecycle = lifecycle or {}
+    all_rows = {**rows, **(extras or {})}
+    models = []
+    for mid, values in all_rows.items():
+        records = []
+        for facet_id, raw in values.items():
+            value = raw if isinstance(raw, FactValue) else FactValue("known", raw)
+            stored = value.value.isoformat() if isinstance(value.value, date) else value.value
+            records.append(fact(
+                "model",
+                mid,
+                facet_id,
+                stored,
+                state=value.state,
+            ))
+        models.append({
+            "id": mid,
+            "lifecycle": lifecycle.get(
+                mid, "retired" if extras is not None and mid in extras else "active"
+            ),
+            "facts": records,
+        })
+
+    evidence_records = []
+    for (mid, benchmark), values in (evidence_rows or {}).items():
+        for position, value in enumerate(values):
+            actual_benchmark = value.benchmark_id or benchmark
+            row = evidence(
+                mid,
+                actual_benchmark,
+                value.value,
+                eid=f"{mid}#{actual_benchmark}#{position}",
+                measured_by=value.measured_by,
+                effort=value.effort,
+                harness=value.harness,
+                day=value.date.isoformat() if value.date else "",
+                outcome="verified" if value.verified else "mismatch",
+            )
+            row["benchmark_version"] = value.version
+            row["subcategory"] = value.subcategory
+            row["unit"] = value.unit
+            evidence_records.append(row)
+
+    inputs = SnapshotInputs(
+        models=models,
+        evidence=evidence_records,
+        sources=SOURCES,
+        benchmark_domains=benchmark_domains or {},
+    )
+    built = build_snapshot(inputs)
+    return LoadedSnapshot(built.envelope(None), include_archive=True, signature_verified=False)
 
 
 def thirty_models(*, include_offerings=True) -> SnapshotInputs:

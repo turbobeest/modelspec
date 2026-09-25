@@ -96,6 +96,18 @@ def test_every_best_effort_facet_in_section_8_is_registered(registry):
     assert BEST_EFFORT <= ids, sorted(BEST_EFFORT - ids)
 
 
+def test_parameterized_facet_ids_resolve_through_the_real_registry(registry):
+    benchmark = registry.facet("swe_bench_pro")
+    assert benchmark.id == "swe_bench_pro"
+    assert benchmark.subject == "evidence"
+    assert benchmark.value_type.kind == "number"
+
+    domain = registry.facet("software_engineering")
+    assert domain.id == "software_engineering"
+    assert domain.subject == "model"
+    assert domain.value_type.kind == "range"
+
+
 def test_every_facet_has_an_exact_definition(registry):
     for f in registry.facets():
         # A sentence or more, not a label.

@@ -1,4 +1,5 @@
 # Seeded verification fixture (MODEL-140): the registered sources the claims cite.
+schema_version: 1
 sources:
   - id: seeded-leaderboard
     url: https://leaderboard.example.test/coding

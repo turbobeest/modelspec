@@ -1,90 +1,34 @@
-"""Optimise through its public boundary with an in-memory snapshot."""
+"""Optimise through its public boundary with the real snapshot index."""
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass
 from datetime import date
-from typing import Any, Literal, Protocol
 
-from decision.contract import Objective
-from decision.optimise import optimise
-
-
-@dataclass(frozen=True)
-class FactValue:
-    state: str
-    value: Any = None
-    sources: tuple[str, ...] = ()
+from decision.contract import EvidenceQualifiers, Objective
+from decision.optimise import EvidenceSelector, optimise
+from decision.snapshot import EvidenceValue
+from tests.snapshot_records import loaded_index
 
 
-@dataclass(frozen=True)
-class EvidenceValue:
-    benchmark_id: str = "bench"
-    version: str = "1"
-    subcategory: str | None = None
-    value: float = 50
-    unit: str = "percent"
-    measured_by: str = "independent"
-    effort: str = "default"
-    harness: str = "test@1.0"
-    date: date | None = None
-    source_ids: tuple[str, ...] = ("source_fixture",)
-    verified: bool = True
-
-
-# MODEL-138 has not landed. This test-local copy records the agreed protocol;
-# production imports the protocol/value types only under TYPE_CHECKING until then.
-
-
-@dataclass(frozen=True)
-class Bitset3:
-    passing: int
-    failing: int
-    unknown: int
-
-
-class SnapshotIndex(Protocol):
-    snapshot_id: str
-
-    def candidates(self) -> Sequence[str]: ...
-    def lifecycle(self, cid: str) -> Literal["active", "deprecated", "retired"]: ...
-    def fact(self, cid: str, facet_id: str) -> FactValue: ...
-    def ids_where(self, facet_id: str, op: str, arg: Any) -> Bitset3: ...
-    def evidence(self, cid: str, benchmark_id: str, *, measured_by: set[str] | None = None,
-                 effort: str | None = None, harness: str | None = None,
-                 after: date | None = None) -> Sequence[EvidenceValue]: ...
-    def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[EvidenceValue]: ...
-
-
-class MemoryIndex:
-    snapshot_id = "snap_fixture"
-
-    def __init__(self, rows):
-        self.rows = rows
-
-    def candidates(self):
-        return tuple(self.rows)
-
-    def lifecycle(self, cid):
-        raise AssertionError("optimisation must not score lifecycle")
-
-    def ids_where(self, facet_id, op, arg):
-        raise AssertionError("the input has already been filtered")
-
-    def evidence(self, cid, benchmark_id, *, measured_by=None, effort=None,
-                 harness=None, after=None):
-        return ()
-
-    def evidence_for_domain(self, cid, domain_id):
-        raise AssertionError("slice 1 must not blend domain evidence")
-
-    def fact(self, cid, facet_id):
-        value = self.rows[cid].get(facet_id)
-        return FactValue("unknown" if value is None else "known", value)
+def evidence_value(**overrides) -> EvidenceValue:
+    values = {
+        "benchmark_id": "bench",
+        "version": "1",
+        "subcategory": None,
+        "value": 50,
+        "unit": "percent",
+        "measured_by": "independent",
+        "effort": "default",
+        "harness": "test@1.0",
+        "date": None,
+        "source_ids": ("src-board",),
+        "verified": True,
+    }
+    values.update(overrides)
+    return EvidenceValue(**values)
 
 
 def run(rows, objective, **kwargs):
-    return optimise(MemoryIndex(rows), list(rows), Objective.model_validate(objective), **kwargs)
+    return optimise(loaded_index(rows), list(rows), Objective.model_validate(objective), **kwargs)
 
 
 def ids(result):
@@ -102,8 +46,8 @@ def test_single_normalises_penalty_and_places_missing_after_known():
 
 
 def test_weights_normalise_only_feasible_set_and_record_contributions():
-    snapshot = MemoryIndex({"a": {"x": 10, "cost": 20}, "b": {"x": 20, "cost": 40},
-                            "outside": {"x": 10000}})
+    snapshot = loaded_index({"a": {"x": 10, "cost": 20}, "b": {"x": 20, "cost": 40},
+                             "outside": {"x": 10000}})
     result = optimise(snapshot, ["b", "a"], Objective(weights={"x": 2, "-cost": 1}))
     assert ids(result) == ["b", "a"]
     assert result.results[0].score == 2
@@ -175,37 +119,50 @@ def test_tipping_points_match_brute_force_with_penalties():
 
 
 
-class EvidenceIndex(MemoryIndex):
-    def __init__(self, evidence):
-        super().__init__({cid: {} for cid in evidence})
-        self.measurements = evidence
+def evidence_index(values: dict[str, list[EvidenceValue]]):
+    return loaded_index(
+        {cid: {} for cid in values},
+        evidence_rows={(cid, "bench"): tuple(rows) for cid, rows in values.items()},
+    )
 
-    def evidence(self, cid, benchmark_id, *, measured_by=None, effort=None,
-                 harness=None, after=None):
-        return [e for e in self.measurements[cid] if e.benchmark_id == benchmark_id
-                and (measured_by is None or e.measured_by in measured_by)
-                and (effort is None or e.effort == effort)
-                and (harness is None or e.harness == harness)
-                and (after is None or e.date > after)]
+
+def test_objective_qualifiers_create_the_complete_evidence_selector():
+    selector = EvidenceSelector.from_qualifiers(
+        "bench",
+        EvidenceQualifiers(
+            measured_by="independent",
+            effort="max",
+            harness="test@1.0",
+            measured_after=date(2026, 8, 1),
+            direct=True,
+        ),
+    )
+    assert selector.benchmark_id == "bench"
+    assert selector.measured_by is not None
+    assert "independent_evaluator" in selector.measured_by
+    assert selector.effort == "max"
+    assert selector.harness == "test@1.0"
+    assert selector.after == date(2026, 8, 1)
+    assert selector.direct is True
 
 
 def test_evidence_qualifiers_and_provenance_without_picking_best_measurement():
     from datetime import date
 
     from decision.optimise import EvidenceSelector
-    index = EvidenceIndex({
-        "a": [EvidenceValue(value=40, date=date(2026, 9, 1)),
-              EvidenceValue(value=99, effort="max", date=date(2026, 9, 1))],
-        "b": [EvidenceValue(value=90, verified=False, date=date(2026, 9, 1))],
-        "c": [EvidenceValue(value=60, date=date(2026, 9, 1)),
-              EvidenceValue(value=70, date=date(2026, 9, 2))]})
+    index = evidence_index({
+        "a": [evidence_value(value=40, date=date(2026, 9, 1)),
+              evidence_value(value=99, effort="max", date=date(2026, 9, 1))],
+        "b": [evidence_value(value=90, verified=False, date=date(2026, 9, 1))],
+        "c": [evidence_value(value=60, date=date(2026, 9, 1)),
+              evidence_value(value=70, date=date(2026, 9, 2))]})
     result = optimise(index, index.candidates(), Objective(max="quality"),
                       evidence_selectors={"quality": EvidenceSelector(
                           "bench", version="1", measured_by=frozenset({"independent"}),
                           effort="default", harness="test@1.0", after=date(2026, 8, 1))})
     assert ids(result) == ["a", "b", "c"]
-    assert result.results[0].contributions[0].evidence == (index.measurements["a"][0],)
-    assert result.results[0].contributions[0].sources == ("source_fixture",)
+    assert [row.value for row in result.results[0].contributions[0].evidence] == [40]
+    assert result.results[0].contributions[0].sources == ("src-board",)
     assert result.results[2].warnings == ("missing_objective_value",)
 
 
@@ -217,7 +174,7 @@ def test_domain_objective_refuses_blending():
 
 def test_min_negative_values_ties_and_non_numeric_missing():
     result = run({"z": {"x": -10}, "a": {"x": -10}, "b": {"x": -2},
-                  "c": {"x": True}, "d": {"x": float("nan")}}, {"min": "x"})
+                  "c": {"x": True}, "d": {"x": "not-a-number"}}, {"min": "x"})
     assert ids(result) == ["a", "z", "b", "c", "d"]
     assert [r.score for r in result.results] == [1, 1, 0, None, None]
 
@@ -291,13 +248,13 @@ def test_all_evidence_selectors_exclude_other_measurement_conditions():
 
     from decision.optimise import EvidenceSelector
 
-    measurement = EvidenceValue(value=40, date=date(2026, 9, 1))
+    measurement = evidence_value(value=40, date=date(2026, 9, 1))
     other_conditions = [replace(measurement, **change) for change in [
         {"measured_by": "provider_self_report"}, {"harness": "other@1.0"},
         {"date": date(2026, 8, 1)}, {"version": "2"}, {"subcategory": "part"},
         {"benchmark_id": "other"}, {"verified": False}]]
-    index = EvidenceIndex({"a": [measurement, *other_conditions],
-                           "b": [replace(measurement, value=60)]})
+    index = evidence_index({"a": [measurement, *other_conditions],
+                            "b": [replace(measurement, value=60)]})
     selector = EvidenceSelector("bench", version="1", effort="default", harness="test@1.0",
                                 after=date(2026, 8, 1), measured_by=frozenset({"independent"}))
     result = optimise(index, index.candidates(), Objective(min="coding"),

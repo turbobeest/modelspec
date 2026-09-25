@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from decision.model import Fact, Verification
+from decision.model import Fact, Verification, value_hash
 
 
 class RegistryStub:
@@ -72,7 +72,11 @@ def fact_data(**changes):
 
 def verification_data(**changes):
     return {
-        "target": {"kind": "fact", "id": "fake-context"},
+        "target": {
+            "kind": "fact",
+            "id": "fake-context",
+            "value_hash": value_hash(128000),
+        },
         "collector": {"agent": "collector", "model_family": "family-a", "method": "extract"},
         "verifier": {"agent": "verifier", "model_family": "family-b", "method": "re-read"},
         "method": "compare",
@@ -87,6 +91,23 @@ def test_fact_round_trip(context):
     assert fact.value == 128000
     assert fact.quarantined
     assert Fact.model_validate_json(fact.model_dump_json(), context=context) == fact
+
+
+def test_facts_validate_against_the_real_facet_registry() -> None:
+    context = Fact.model_validate(
+        fact_data(facet="model.context_window", value=128000)
+    )
+    assert context.value == 128000
+
+    modalities = Fact.model_validate(
+        fact_data(facet="model.input_modalities", value=["text", "image"])
+    )
+    assert modalities.value == ["text", "image"]
+
+    with pytest.raises(ValidationError, match="registered values"):
+        Fact.model_validate(
+            fact_data(facet="model.input_modalities", value=["text", "telepathy"])
+        )
 
 
 @pytest.mark.parametrize("state", ["unknown", "not_disclosed", "requires_contract"])
@@ -177,6 +198,13 @@ def test_verification_must_name_its_fact(context):
         Fact.model_validate(data, context=context)
 
 
+def test_verification_record_names_the_value_it_checked() -> None:
+    data = verification_data()
+    del data["target"]["value_hash"]
+    with pytest.raises(ValidationError, match="value_hash"):
+        Verification.model_validate(data)
+
+
 def test_source_and_snapshot_round_trip():
     from decision.model import Source, SourceSnapshot
 
@@ -185,7 +213,7 @@ def test_source_and_snapshot_round_trip():
             "id": "fake-doc",
             "url": "https://example.invalid/spec",
             "fetch": "conditional_http",
-            "normaliser": "fake-doc-v1",
+            "normaliser": "html-default",
             "cited_regions": [{"id": "specs", "locator": {"kind": "css", "value": "#specs"}}],
         }
     )
@@ -193,9 +221,11 @@ def test_source_and_snapshot_round_trip():
         {
             "source_id": source.id,
             "retrieved_at": "2026-09-24T12:00:00Z",
-            "fingerprint": "sha256:" + "a" * 64,
+            "page_fingerprint": "sha256:" + "a" * 64,
             "region_fingerprints": {"specs": "sha256:" + "b" * 64},
             "copy_ref": "sha256:" + "c" * 64,
+            "etag": '"fixture-v1"',
+            "last_modified": "Wed, 24 Sep 2026 12:00:00 GMT",
         }
     )
     assert Source.model_validate_json(source.model_dump_json()) == source
@@ -224,7 +254,7 @@ def test_source_rejects_duplicate_regions():
     [
         {"copy_ref": "local/file.html"},
         {"retrieved_at": "2026-09-24T12:00:00"},
-        {"fingerprint": "not-a-hash"},
+        {"page_fingerprint": "not-a-hash"},
     ],
 )
 def test_snapshot_requires_content_addresses_and_aware_time(change):
@@ -235,7 +265,7 @@ def test_snapshot_requires_content_addresses_and_aware_time(change):
             {
                 "source_id": "fake-doc",
                 "retrieved_at": "2026-09-24T12:00:00Z",
-                "fingerprint": "sha256:" + "a" * 64,
+                "page_fingerprint": "sha256:" + "a" * 64,
                 "region_fingerprints": {"specs": "sha256:" + "b" * 64},
                 "copy_ref": "sha256:" + "c" * 64,
                 **change,
@@ -285,7 +315,13 @@ def test_qualified_evidence_round_trip(context):
             "benchmark_version": "2.0",
             "subcategory": "fake-task",
             "sources": [citation()],
-            "verification": verification_data(target={"kind": "evidence", "id": "fake-evidence"}),
+            "verification": verification_data(
+                target={
+                    "kind": "evidence",
+                    "id": "fake-evidence",
+                    "value_hash": value_hash(42.0),
+                }
+            ),
         },
         context=context,
     )

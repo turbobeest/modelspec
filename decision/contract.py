@@ -20,7 +20,7 @@ import typing
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
-from typing import Annotated, Any, Literal, Protocol
+from typing import Annotated, Any, Literal
 
 import yaml
 from pydantic import (
@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.0"
+CONTRACT_VERSION = "1.1"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -791,6 +791,24 @@ def _base(signed: str) -> str:
     return signed.removeprefix("-")
 
 
+def _objective_term(text: str) -> tuple[str, EvidenceQualifiers | None]:
+    try:
+        reader = _Reader(text.strip())
+        head = reader.take()
+        if head is None or head.kind != "word":
+            raise _SyntaxError(None, "an objective term starts with a facet")
+        reader.field = head.text.removeprefix("-")
+        raw: dict[str, Any] = {}
+        _compact_modifiers(reader, raw)
+        if set(raw) - {"qualifiers"}:
+            raise _SyntaxError(reader.field, "objective terms take evidence qualifiers only")
+        qualifiers = EvidenceQualifiers.model_validate(raw["qualifiers"]) \
+            if raw.get("qualifiers") else None
+        return head.text, qualifiers
+    except _SyntaxError as exc:
+        raise ValueError(exc.reason) from None
+
+
 class Objective(_Strict):
     """Exactly one of ``max``, ``min``, ``lexicographic``, ``weights``, ``pareto``."""
 
@@ -799,6 +817,55 @@ class Objective(_Strict):
     lexicographic: list[LexStep] | None = None
     weights: dict[SignedFacetId, float] | None = None
     pareto: list[SignedFacetId] | None = None
+    qualifiers: dict[FacetId, EvidenceQualifiers] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _qualified_terms(cls, value: Any) -> Any:
+        if not isinstance(value, Mapping):
+            return value
+        data = dict(value)
+        qualifiers = dict(data.get("qualifiers") or {})
+
+        def parse(term: Any) -> Any:
+            if not isinstance(term, str):
+                return term
+            facet, found = _objective_term(term)
+            base = _base(facet)
+            if found is not None:
+                prior = qualifiers.get(base)
+                dumped = found.model_dump(exclude_none=True)
+                if prior is not None and EvidenceQualifiers.model_validate(prior) != found:
+                    raise ValueError(f"conflicting evidence qualifiers for {base}")
+                qualifiers[base] = dumped
+            return facet
+
+        for side in ("max", "min"):
+            if side in data:
+                data[side] = parse(data[side])
+        if isinstance(data.get("weights"), Mapping):
+            data["weights"] = {parse(term): weight for term, weight in data["weights"].items()}
+        if isinstance(data.get("pareto"), list):
+            data["pareto"] = [parse(term) for term in data["pareto"]]
+        if isinstance(data.get("lexicographic"), list):
+            steps = []
+            for raw in data["lexicographic"]:
+                if not isinstance(raw, Mapping):
+                    steps.append(raw)
+                    continue
+                step = dict(raw)
+                for side in ("max", "min"):
+                    if side in step:
+                        term = step[side]
+                        if isinstance(term, str) and " within " in term:
+                            term, tolerance = term.split(" within ", 1)
+                            step["within"] = tolerance.strip()
+                        step[side] = parse(term)
+                steps.append(step)
+            data["lexicographic"] = steps
+        if qualifiers:
+            data["qualifiers"] = qualifiers
+        return data
 
     @field_validator("lexicographic")
     @classmethod
@@ -1070,7 +1137,7 @@ class Decision(_Strict):
     top: list[CandidateValues] = Field(default_factory=list)
     chart: str | None = None
     number_origins: list[NumberOrigin] = Field(default_factory=list)
-    contract_version: Literal["1.0"] = CONTRACT_VERSION
+    contract_version: Literal["1.1"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     spec_hash: SpecHash
@@ -1191,30 +1258,41 @@ def _issues(exc: ValidationError) -> list[Issue]:
 # ── the registry check ─────────────────────────────────────────────────────
 
 
-class FacetInfo(Protocol):
-    id: str
-    value_type: str
-    tier: str
-    risk: str
-
-
-FacetLookup = Callable[[str], FacetInfo]
+FacetLookup = Callable[[str], Any]
 
 
 def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
     """Every facet a spec names must be registered, and ordered where it is ordered."""
     issues: list[Issue] = []
 
-    def use(facet_id: str, ordered: bool, path: str, condition: str | None) -> None:
+    def use(
+        facet_id: str,
+        ordered: bool,
+        path: str,
+        condition: str | None,
+        qualifiers: EvidenceQualifiers | None = None,
+    ) -> None:
         try:
             info = facets(facet_id)
-        except KeyError:
-            issues.append(Issue(condition, facet_id,
-                                f"unknown facet {facet_id!r}: not in the facet registry", path))
+        except KeyError as exc:
+            detail = str(exc)
+            reason = detail if detail.startswith("unknown facet ") else (
+                f"unknown facet {facet_id!r}: not in the facet registry"
+            )
+            issues.append(Issue(condition, facet_id, reason, path))
             return
-        if ordered and info.value_type in UNORDERED_VALUE_TYPES:
+        value_type = info.value_type
+        kind = value_type if isinstance(value_type, str) else value_type.kind
+        if qualifiers is not None and getattr(info, "subject", None) != "evidence":
+            issues.append(Issue(
+                condition,
+                facet_id,
+                "evidence qualifiers are only valid on evidence facets",
+                path,
+            ))
+        if ordered and kind in UNORDERED_VALUE_TYPES:
             issues.append(Issue(condition, facet_id,
-                                f"{facet_id} is a {info.value_type} facet, which has no order; "
+                                f"{facet_id} is a {kind} facet, which has no order; "
                                 "use = or in {…}", path))
 
     def walk(cond: Any, path: str) -> None:
@@ -1229,7 +1307,13 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
         else:
             ordered = isinstance(cond, Window) or (isinstance(cond, Compare)
                                                    and cond.op in ORDERED_OPS)
-            use(cond.facet, ordered, path, render_condition(cond))
+            use(
+                cond.facet,
+                ordered,
+                path,
+                render_condition(cond),
+                getattr(cond, "qualifiers", None),
+            )
 
     for i, cond in enumerate(spec.where):
         walk(cond, f"where[{i}]")
@@ -1239,12 +1323,32 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
     objective = spec.optimize
     for side in ("max", "min"):
         if getattr(objective, side):
-            use(getattr(objective, side), True, f"optimize.{side}", None)
+            facet_id = getattr(objective, side)
+            use(
+                facet_id,
+                True,
+                f"optimize.{side}",
+                None,
+                objective.qualifiers.get(facet_id),
+            )
     for i, step in enumerate(objective.lexicographic or []):
-        use(step.facet, True, f"optimize.lexicographic[{i}]", None)
+        use(
+            step.facet,
+            True,
+            f"optimize.lexicographic[{i}]",
+            None,
+            objective.qualifiers.get(step.facet),
+        )
     for form in ("weights", "pareto"):
         for signed in getattr(objective, form) or []:
-            use(_base(signed), True, f"optimize.{form}", None)
+            facet_id = _base(signed)
+            use(
+                facet_id,
+                True,
+                f"optimize.{form}",
+                None,
+                objective.qualifiers.get(facet_id),
+            )
     return issues
 
 
@@ -1314,6 +1418,10 @@ def _normalise(value: Any) -> Any:
 def canonical_json(spec: Spec) -> str:
     """The spec in its structured form, defaults filled, keys sorted, no whitespace."""
     data = _normalise(spec.model_dump(mode="json", by_alias=True, exclude_none=True))
+    # Contract 1.1 adds objective qualifiers without changing the canonical
+    # representation of an existing 1.0 spec.
+    if not data["optimize"].get("qualifiers"):
+        data["optimize"].pop("qualifiers", None)
     return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 

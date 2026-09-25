@@ -1,0 +1,4 @@
+# Registered sources for decision facts and evidence.
+# The canonical row format is documented in verification/README.md.
+schema_version: 1
+sources: []

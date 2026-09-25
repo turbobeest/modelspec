@@ -15,9 +15,7 @@ Nothing here calls a model or a paid scraper. The re-check is a pure function of
 the sources, their last states and what the origin servers return; agents run
 downstream, only on what ``RecheckReport.requeue`` lists.
 
-The ``Source`` and ``SourceSnapshot`` types below are the local seam for the
-types MODEL-134 defines in ``decision/model.py``; they are reconciled there at
-merge.
+Source records use the shared types in ``decision.model``.
 """
 
 from __future__ import annotations
@@ -36,7 +34,10 @@ from typing import Any, Literal
 from urllib.parse import urlsplit
 
 import httpx
+import yaml
 
+from decision.model import CitedRegion as CitedRegion
+from decision.model import Source, SourceSnapshot
 from decision.normalise import (
     NORMALISERS,
     Locator,
@@ -46,8 +47,6 @@ from decision.normalise import (
     normalise_document,
     select_region,
 )
-
-# --- the seam: Source and SourceSnapshot (MODEL-134 owns the canonical types) ---------------------
 
 
 class FetchMode(StrEnum):
@@ -63,62 +62,33 @@ class FetchMode(StrEnum):
         return 20 if self is FetchMode.RENDERED else 1
 
 
-@dataclass(frozen=True)
-class CitedRegion:
-    id: str
-    locator: Locator
+def load_sources(path: str | Path) -> dict[str, Source]:
+    """Load the canonical ``registry/sources.yaml`` format.
 
-
-@dataclass(frozen=True)
-class Source:
-    id: str
-    url: str
-    fetch: FetchMode = FetchMode.CONDITIONAL_HTTP
-    normaliser: str = "html-default"
-    cited_regions: tuple[CitedRegion, ...] = ()
-
-    def __post_init__(self) -> None:
-        if urlsplit(self.url).scheme not in ("http", "https"):
-            raise ValueError(f"source {self.id}: url must be http(s), got {self.url!r}")
-        rules = NORMALISERS.get(self.normaliser)
-        if rules is None:
-            raise ValueError(f"source {self.id}: unknown normaliser {self.normaliser!r}")
-        ids = [r.id for r in self.cited_regions]
-        if len(ids) != len(set(ids)):
-            raise ValueError(f"source {self.id}: duplicate cited region ids")
-        if rules.content == "text" and any(r.locator.kind != "page" for r in self.cited_regions):
-            raise ValueError(f"source {self.id}: text sources support only page locators")
-
-
-@dataclass(frozen=True)
-class SourceSnapshot:
-    """One dated retrieval. Decisions use ``region_fingerprints``; ``None`` means the
-    region's locator matched nothing. ``etag`` and ``last_modified`` are the
-    validators for the next conditional request."""
-
-    source_id: str
-    retrieved_at: datetime
-    page_fingerprint: str
-    region_fingerprints: Mapping[str, str | None]
-    copy_ref: str
-    etag: str | None = None
-    last_modified: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "source_id": self.source_id,
-            "retrieved_at": self.retrieved_at.isoformat(),
-            "page_fingerprint": self.page_fingerprint,
-            "region_fingerprints": dict(self.region_fingerprints),
-            "copy_ref": self.copy_ref,
-            "etag": self.etag,
-            "last_modified": self.last_modified,
-        }
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> SourceSnapshot:
-        return cls(**{**data, "retrieved_at": datetime.fromisoformat(data["retrieved_at"])})
-
+    The file is ``{schema_version: 1, sources: [...]}``, and each source row is
+    validated by :class:`decision.model.Source`. A missing file is an empty
+    registry so a checkout with no registered sources still builds an empty
+    snapshot.
+    """
+    path = Path(path)
+    if not path.is_file():
+        return {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(data, Mapping) or data.get("schema_version") != 1:
+        raise ValueError(f"{path}: schema_version must be 1")
+    rows = data.get("sources")
+    if not isinstance(rows, list):
+        raise ValueError(f"{path}: sources must be a list")
+    registered: dict[str, Source] = {}
+    for i, raw in enumerate(rows):
+        try:
+            source = Source.model_validate(raw)
+        except ValueError as exc:
+            raise ValueError(f"{path}: sources[{i}]: {exc}") from exc
+        if source.id in registered:
+            raise ValueError(f"{path}: duplicate source ID {source.id!r}")
+        registered[source.id] = source
+    return registered
 
 # --- what cites a region, and how often it is re-checked -----------------------------------------
 
@@ -168,7 +138,7 @@ class SourceState:
     def to_dict(self) -> dict[str, Any]:
         return {
             "source_id": self.source_id,
-            "snapshot": self.snapshot.to_dict() if self.snapshot else None,
+            "snapshot": self.snapshot.model_dump(mode="json") if self.snapshot else None,
             "consecutive_failures": self.consecutive_failures,
             "quarantined": self.quarantined,
             "last_attempt_at": self.last_attempt_at.isoformat() if self.last_attempt_at else None,
@@ -180,7 +150,7 @@ class SourceState:
         attempt = data.get("last_attempt_at")
         return cls(
             source_id=data["source_id"],
-            snapshot=SourceSnapshot.from_dict(snapshot) if snapshot else None,
+            snapshot=SourceSnapshot.model_validate(snapshot) if snapshot else None,
             consecutive_failures=data.get("consecutive_failures", 0),
             quarantined=data.get("quarantined", False),
             last_attempt_at=datetime.fromisoformat(attempt) if attempt else None,
@@ -506,26 +476,25 @@ def _check_one(
     grace: int,
     report: RecheckReport,
 ) -> SourceState:
-    if source.fetch is FetchMode.RENDERED:
+    if source.fetch == FetchMode.RENDERED.value:
         report.skipped.append(Skipped(source.id, "rendered_fetch_required"))
         return state
 
     previous = state.snapshot
-    conditional = source.fetch is FetchMode.CONDITIONAL_HTTP and previous is not None
+    conditional = source.fetch == FetchMode.CONDITIONAL_HTTP.value and previous is not None
     result = fetcher.fetch(
-        canonical_url(source.url),
+        canonical_url(str(source.url)),
         etag=previous.etag if conditional and previous else None,
         last_modified=previous.last_modified if conditional and previous else None,
     )
     old = previous.region_fingerprints if previous else {}
 
     if result.outcome == "not_modified" and previous is not None:
-        snapshot = replace(
-            previous,
-            retrieved_at=now,
-            etag=result.etag or previous.etag,
-            last_modified=result.last_modified or previous.last_modified,
-        )
+        snapshot = previous.model_copy(update={
+            "retrieved_at": now,
+            "etag": result.etag or previous.etag,
+            "last_modified": result.last_modified or previous.last_modified,
+        })
         for region in source.cited_regions:
             fp = old.get(region.id)
             status = RegionStatus.UNCHANGED if fp is not None else RegionStatus.CHANGED
@@ -553,7 +522,8 @@ def _check_one(
 
     current: dict[str, str | None] = {}
     for region in source.cited_regions:
-        text = select_region(doc, region.locator)
+        kind = "heading" if region.locator.kind == "heading_anchor" else region.locator.kind
+        text = select_region(doc, Locator(kind, region.locator.value))
         fp = fingerprint(text) if text is not None else None
         current[region.id] = fp
         before = old.get(region.id)
