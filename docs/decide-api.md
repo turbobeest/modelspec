@@ -65,8 +65,9 @@ The body limit is 64 KiB.
 ## Response
 
 A successful body is the decision contract's Decision object without a Worker
-wrapper. This keeps it byte-identical to the JSON printed by `modelspec decide`
-for the same Spec and Snapshot.
+wrapper, as compact JSON (contract 1.4). This keeps it byte-identical to the
+JSON printed by `modelspec decide --json` for the same Spec and Snapshot. It is
+shown indented here for reading.
 
 ```json
 {
@@ -74,7 +75,8 @@ for the same Spec and Snapshot.
   "top": [],
   "chart": null,
   "number_origins": [],
-  "contract_version": "1.1",
+  "sources": [],
+  "contract_version": "1.4",
   "decision_id": "dec_0123456789abcdef01234567",
   "snapshot": "snap_0123456789abcdef",
   "spec_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -98,8 +100,16 @@ by the decision contract:
   skipped.
 - `summary` adds contributions, the funnel, constraint costs, and tipping
   points.
-- `full` also adds per-model reasons, the top candidates' values, provenance,
-  and a chart.
+- `full` also adds per-model reasons, the top candidates' relevant values,
+  provenance with each source listed once, and a chart. On the live
+  snapshot's default coding task at `limit: 20` it is about 230 KB (MODEL-163;
+  before 1.4 it was 7.5 MB and exhausted the Worker).
+
+A request that exhausts the Worker's resources gets Cloudflare's own error
+page (`1102`, HTTP 503, not JSON, no CORS header), not a contract error. The
+decide page treats a `full` request that fails that way, or fails to connect,
+as a limit: it asks once more with `explain: summary` and says the detailed
+explanation was unavailable.
 
 `no_feasible` is a valid Decision with the smallest set of conditions to relax.
 It is a `200`, not a transport failure.

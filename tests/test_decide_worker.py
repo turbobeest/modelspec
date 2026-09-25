@@ -108,6 +108,7 @@ def test_worker_decision_is_byte_identical_to_modelspect_decide(
     status, body = service.decide(_payload(level), snapshot)
     assert status == 200
     assert service.serialise(body) == cli.stdout.encode("utf-8")
+    assert service.serialise(body).count(b"\n") == 1, "the body is compact JSON"
     assert body["snapshot"] == snapshot.snapshot_id
     assert body["explain"] == level
 

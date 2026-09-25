@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.3"
+CONTRACT_VERSION = "1.4"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -143,6 +143,8 @@ def _iso_date(value: Any) -> Any:
 
 
 Scalar = Annotated[bool | int | float | date | str, BeforeValidator(_iso_date)]
+#: For a field named ``date``, whose default would shadow the type in its class.
+Day = date
 
 
 class _Strict(BaseModel):
@@ -1146,6 +1148,9 @@ class ShownFact(_Strict):
     #: from, and the formula with the numbers. Added in 1.3.
     records: list[str] = Field(default_factory=list)
     formula: str | None = None
+    #: The registered sources behind ``record_id`` or ``records``, as IDs into
+    #: ``Decision.sources``. Added in 1.4.
+    source_ids: list[str] = Field(default_factory=list)
 
 
 class CandidateValues(_Strict):
@@ -1155,11 +1160,25 @@ class CandidateValues(_Strict):
     evidence: list[DomainEvidence] = Field(default_factory=list)
 
 
+class CitedSource(_Strict):
+    """One registered source, listed once per decision. Added in 1.4."""
+
+    id: str
+    url: Url
+    #: The snapshot records no titles yet: null, never a guess.
+    title: str | None = None
+    #: The latest date a record in this decision citing it was verified.
+    date: Day | None = None
+
+
 class NumberOrigin(_Strict):
     path: str
     basis: str
     records: list[str] = Field(default_factory=list)
+    #: Always empty from 1.4: ``source_ids`` name entries of ``Decision.sources``.
     sources: list[Url] = Field(default_factory=list)
+    #: The registered sources behind ``records``. Added in 1.4.
+    source_ids: list[str] = Field(default_factory=list)
 
 
 class Decision(_Strict):
@@ -1169,7 +1188,9 @@ class Decision(_Strict):
     top: list[CandidateValues] = Field(default_factory=list)
     chart: str | None = None
     number_origins: list[NumberOrigin] = Field(default_factory=list)
-    contract_version: Literal["1.3"] = CONTRACT_VERSION
+    #: Every source the number origins cite, once each. Added in 1.4.
+    sources: list[CitedSource] = Field(default_factory=list)
+    contract_version: Literal["1.4"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     spec_hash: SpecHash
@@ -1206,7 +1227,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate, Contribution,
     MayQualify, Eliminated, FunnelStep, ModelElimination, ConstraintCost, TippingPoint,
-    NearMiss, ShownFact, CandidateValues, NumberOrigin,
+    NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource,
 )
 
 

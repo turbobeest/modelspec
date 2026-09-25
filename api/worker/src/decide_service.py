@@ -120,5 +120,9 @@ def decide(payload: Any, snapshot) -> tuple[int, dict[str, Any]]:
 
 
 def serialise(body: dict[str, Any]) -> bytes:
-    """Use the same indentation and Unicode handling as ``modelspec decide``."""
-    return (json.dumps(body, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    """Byte for byte what ``modelspec decide --json`` prints: compact, UTF-8.
+
+    Compact because a ``full`` decision runs to hundreds of kilobytes, a third
+    of it indentation when pretty-printed (MODEL-163).
+    """
+    return (json.dumps(body, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")

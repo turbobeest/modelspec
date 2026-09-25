@@ -1669,6 +1669,17 @@ body {
 .error > div {
   flex: 1;
 }
+.limit-notice {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink2);
+  background: var(--warnSoft);
+  border: 1px solid var(--warn);
+  border-radius: 2px;
+}
+.limit-notice strong {
+  color: var(--ink);
+}
 .error strong {
   color: var(--bad);
 }

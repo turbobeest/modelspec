@@ -71,6 +71,13 @@ export function Why({
   ] as const;
   return (
     <section className="panel why-panel" aria-label="Why this model">
+      {decision.explain !== "full" && (
+        <p className="limit-notice">
+          Detailed explanation unavailable for this request: the decision service
+          answered with its summary, so facts such as prices and context length
+          are not shown.
+        </p>
+      )}
       <div className="why-heading">
         <div>
           <div className="eyebrow">Why this model</div>

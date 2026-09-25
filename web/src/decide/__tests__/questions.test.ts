@@ -35,6 +35,7 @@ const decision = (count: number): Decision => ({
   top: [],
   chart: null,
   number_origins: [],
+  sources: [],
 });
 
 it("debounces next-question evaluation and caps fan-out at six requests", async () => {

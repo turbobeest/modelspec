@@ -115,30 +115,43 @@ def test_full_adds_all_values_and_reasons_while_none_skips_explanation(index):
     assert none.constraint_costs == [] and none.chart is None
 
 
-def test_every_full_number_resolves_to_snapshot_sources_and_verification(index):
-    from decision.explain import numbers
+def test_every_presented_number_resolves_to_snapshot_sources_and_verification(index):
+    """MODEL-145's guarantee, walked over the compact 1.4 form."""
+    from decision.explain import presented_values
 
     decision = decide(spec(), index, facets=facets)
     data = decision.model_dump(mode="json")
     origins = {origin.path: origin for origin in decision.number_origins}
-    assert set(origins) == {path for path, _ in numbers(data)}
-    for path, value in numbers(data):
+    table = {source.id: source.url for source in decision.sources}
+    presented = list(presented_values(data))
+    assert presented and set(origins) == {path for path, _ in presented}
+    for path, value in presented:
         origin = origins[path]
         assert origin.basis
-        assert origin.records
+        assert origin.sources == []
+        assert set(origin.source_ids) <= set(table)
         for rid in origin.records:
             record = index.record(rid)
             verification = record["verification"]
             assert verification["outcome"] == "verified"
             assert verification["collector"]["agent"] != verification["verifier"]["agent"]
-            assert all(
-                index.source_url(s["source_id"]) in origin.sources for s in record["sources"]
-            )
+            assert {s["source_id"] for s in record["sources"]} <= set(origin.source_ids)
+            assert all(table[s["source_id"]] == index.source_url(s["source_id"])
+                       for s in record["sources"])
         if origin.basis == "snapshot measurement":
+            assert origin.records
             assert any(
                 value == index.record(rid).get("score", index.record(rid).get("value"))
                 for rid in origin.records
             )
+    # A shown fact carries its provenance itself: record and source IDs.
+    for row in decision.top:
+        for shown in row.facts:
+            record = index.record(shown.record_id)
+            assert record["verification"]["outcome"] == "verified"
+            assert record["value"] == shown.value
+            assert [s["source_id"] for s in record["sources"]] == shown.source_ids
+            assert all(sid in table for sid in shown.source_ids)
 
 
 def test_html_is_self_contained_escaped_and_labels_lab_reports(index):
@@ -340,8 +353,8 @@ def test_source_links_refuse_non_http_registered_urls(index):
         decide(spec(), index, facets=facets)
 
 
-def test_numeric_list_fact_values_are_measurements_not_counts(tmp_path):
-    from decision.contract import CandidateValues, Decision, OfferingRef, ShownFact
+def test_numeric_list_values_are_measurements_not_counts(tmp_path):
+    from decision.contract import Decision, ModelElimination, OfferingRef
     from decision.explain import number_origins
 
     raw = fact("model", "lab/a", "sizes", [4, 8])
@@ -353,16 +366,14 @@ def test_numeric_list_fact_values_are_measurements_not_counts(tmp_path):
         spec_hash="sha256:" + "0" * 64,
         status="answered",
         explain="full",
-        top=[
-            CandidateValues(
-                offering=OfferingRef(model="lab/a"),
-                facts=[ShownFact(facet="sizes", value=[4, 8], record_id="lab/a#sizes")],
-            )
-        ],
     )
-    origins = [o for o in number_origins(decision, index) if o.path.startswith("/top/")]
+    decision.eliminated.models.append(ModelElimination(
+        model="lab/a", offering=OfferingRef(model="lab/a"), condition="sizes in [10, 20]",
+        values=[4, 8], records=["lab/a#sizes"]))
+    origins = list(number_origins(decision, index))
     assert [o.basis for o in origins] == ["snapshot measurement", "snapshot measurement"]
     assert all(o.records == ["lab/a#sizes"] for o in origins)
+    assert all(o.source_ids == ["src-lab-docs"] for o in origins)
 
 
 def test_full_explains_multiple_measurements_failing_an_evidence_window(tmp_path):

@@ -26,9 +26,11 @@ export {
   DECIDE_TIMEOUT_MS,
   DecideApiError,
   PUBLIC_DECIDE_ENDPOINT,
+  decideWithFallback,
   hostedEngine,
+  mayBeLimit,
 } from "./hosted";
-export type { SpecIssue } from "./hosted";
+export type { HostedAnswer, SpecIssue } from "./hosted";
 export { decisionSchema, decisionSpecSchema } from "./contract";
 export type {
   Decision,
@@ -309,7 +311,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "1.3",
+      contract_version: "1.4",
       out_of_lineup: 0,
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
       snapshot: snapshotId(spec),
@@ -392,6 +394,7 @@ export const fictionalEngine: SampleDecisionEngine = {
       top: [],
       chart: null,
       number_origins: [],
+      sources: [],
       nearMisses: e.nearMisses,
       questions: suggestions(catalogue, spec, dismissed)
         .filter((q) => (q.gain ?? 0) > 0)

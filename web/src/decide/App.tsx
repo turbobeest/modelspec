@@ -5,6 +5,7 @@ import {
   catalogue,
   candidateQuestions,
   hostedEngine,
+  decideWithFallback,
   DecideApiError,
   parseTask,
   fmtB,
@@ -92,7 +93,8 @@ function DesignedApp({
           status: number | null;
           issues: SpecIssue[];
         }
-      | { kind: "success" }
+      // `limited`: the full explanation hit a Worker limit; this is the summary.
+      | { kind: "success"; limited: boolean }
     >({ kind: "idle" }),
     [vocabState, setVocabState] = useState<
       | { kind: "loading" }
@@ -183,13 +185,13 @@ function DesignedApp({
     setHostedQuestions([]);
     setRequestState({ kind: "loading" });
     try {
-      const answer = await hostedEngine.decide(toDecisionSpec(nextSpec, "full"), {
+      const answer = await decideWithFallback(hostedEngine, toDecisionSpec(nextSpec, "full"), {
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
-      setHostedDecision(answer);
+      setHostedDecision(answer.decision);
       setHostedQuestions(questionsFor(nextSpec));
-      setRequestState({ kind: "success" });
+      setRequestState({ kind: "success", limited: answer.limited });
     } catch (cause) {
       if (cause instanceof Error && cause.name === "AbortError") return;
       const apiError = cause instanceof DecideApiError ? cause : null;
@@ -420,8 +422,8 @@ function DesignedApp({
     if (requestState.kind !== "error") return "Decision unavailable.";
     if (requestState.status === 400 && requestState.issues.length)
       return "The engine could not read part of this spec.";
-    if (requestState.status === 503 || requestState.code === "no_snapshot")
-      return "No snapshot yet.";
+    if (requestState.code === "no_snapshot") return "No snapshot yet.";
+    if (requestState.code === "limit") return "The decision service hit a limit on this request.";
     if (requestState.code === "timeout") return "The decision service is taking too long.";
     if (requestState.status === null) return "Couldn't reach the decision service.";
     return `Decision unavailable${requestState.code ? ` (${requestState.code})` : ""}.`;
@@ -434,7 +436,7 @@ function DesignedApp({
       return placed.some((issue) => issue.target.kind !== "spec")
         ? "Each problem is marked beside the condition or control that caused it."
         : "";
-    if (requestState.status === 503 || requestState.code === "no_snapshot")
+    if (requestState.code === "no_snapshot")
       return `The decision engine has no published snapshot to answer from yet. ${requestState.message}`;
     return requestState.message;
   };
@@ -637,6 +639,13 @@ function DesignedApp({
             onAdd={add}
             onDismiss={(id) => setDismissed([...dismissed, id])}
           />}
+          {!error && requestState.kind === "success" && requestState.limited && (
+            <div role="status" className="limit-notice">
+              <strong>The decision service hit a limit on this request.</strong>{" "}
+              The ranking below comes from its summary explanation; the detailed
+              explanation is unavailable for this request.
+            </div>
+          )}
           {error ? (
             <div role="alert" className="error">
               <div>

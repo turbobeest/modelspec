@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "1.3"
+    assert c.CONTRACT_VERSION == "1.4"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -620,6 +620,8 @@ def _samples() -> list:
         c.TaskTokens(input=40000, output=4000),
         c.CandidateValues(offering=result.offering),
         c.NumberOrigin(path="/results/0/rank", basis="ordinal"),
+        c.CitedSource(id="src-board", url="https://board.example.org/results",
+                      date=date(2026, 9, 20)),
     ]
 
 

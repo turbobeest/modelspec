@@ -40,7 +40,7 @@ def test_json_reports_the_spec_hash_and_the_error_code(tmp_path) -> None:
     assert result.exit_code == 1
     payload = json.loads(result.stderr)
     assert payload["command"] == "decide"
-    assert payload["contract_version"] == "1.3"
+    assert payload["contract_version"] == "1.4"
     assert payload["spec_hash"].startswith("sha256:")
     assert payload["error"]["code"] == "snapshot_required"
 

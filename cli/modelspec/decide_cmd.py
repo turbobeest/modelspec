@@ -107,4 +107,9 @@ def decide(
             [f"error: {exc}"],
             as_json,
         )
-    typer.echo(result.model_dump_json(indent=2))
+    if as_json:
+        # The Worker's body byte for byte (api/worker/src/decide_service.serialise).
+        typer.echo(json.dumps(result.model_dump(mode="json"), ensure_ascii=False,
+                              separators=(",", ":")))
+    else:
+        typer.echo(result.model_dump_json(indent=2))

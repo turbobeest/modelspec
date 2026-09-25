@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.3**
+Contract version: **1.4**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -327,7 +327,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.3",
+  "contract_version": "1.4",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -384,7 +384,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.3"`. |
+| `contract_version` | `"1.4"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
@@ -457,7 +457,7 @@ Only verified evidence reaches a decision; quarantined values never do.
 |---|---|
 | `none` | `results` without `contributions`; `may_qualify`. For high-rate automated calls. |
 | `summary` | Adds `contributions`, the `funnel`, `constraint_costs` and `tipping_points`. |
-| `full` | Adds `eliminated.models`, `top` candidates with all values, `chart` and `number_origins`. |
+| `full` | Adds `eliminated.models`, `top` candidates with their relevant values, `chart`, `number_origins` and the `sources` they cite. |
 
 The fields are always present. At a lower level, the lists it does not populate
 are empty.
@@ -516,16 +516,47 @@ contract version. Version 1.1 retains them.
   scalar `value` remains null in that case.
 - `top` contains up to 20 optimised candidates independently of the result
   limit, with `offering`, `facts`, `contributions` and domain `evidence`.
-  Shown facts carry `facet`, `value`, `unit`, and `record_id`; a computed fact
-  (1.3) has no `record_id` and carries `records` and `formula` instead.
+  From 1.4 it is compact (MODEL-163):
+  - `facts` are the known facets the spec names, in its conditions (profile
+    rules included) and its objective, plus a fixed display set: context
+    window, class, lifecycle, weights openness, release date, commercial-use
+    licence, lab jurisdiction, input and output price, `$ per task`,
+    throughput, time to first token and data retention. Not every value the
+    candidate holds.
+  - Shown facts carry `facet`, `value`, `unit`, and `record_id`; a computed
+    fact (1.3) has no `record_id` and carries `records` and `formula` instead.
+    Each carries `source_ids` (1.4): its record's registered sources, as IDs
+    into `sources`.
+  - `evidence` is limited to the benchmarks the spec names, grouped under the
+    requested domain that tags them, or else the first domain that does.
+  - `contributions` is empty for a candidate that `results` ranks: its
+    contributions are there, with the same numbers. A candidate beyond the
+    result limit carries its own.
 - `chart` is inline SVG, with separate raw-value scales by objective dimension.
-- `number_origins` covers every numeric JSON leaf outside that index. Each entry
-  has its JSON-pointer `path`, calculation or input `basis`, supporting `records`
-  and registered `sources`. Measurements match retained snapshot records.
-  Counts, ordinals, spec weights, penalties, deltas and thresholds are explicitly
-  derived numbers, not new measurements. Counts on an empty snapshot can have
-  no supporting records. Source URLs and winning verification records resolve
-  through `snapshot.source_url()` and `snapshot.record()`.
+- `number_origins` covers the numbers a decision presents: every numeric JSON
+  leaf in `results`, in `top`'s `evidence`, in `near_misses`,
+  `constraint_costs`, `tipping_points` and `eliminated.models`. Each entry has
+  its JSON-pointer `path`, calculation or input `basis`, supporting `records`
+  and `source_ids`, the registered sources of those records. Measurements
+  match retained snapshot records. Distances, gains, normalised values and
+  thresholds are explicitly derived numbers, not new measurements. Numbers with
+  nothing to trace have no entry: spec weights echoed back (`weight`), the sum
+  of spec soft penalties (`soft_penalty`), ranks, the counts `admits`, the
+  funnel counts and `out_of_lineup`. A shown fact carries its provenance itself
+  (`record_id` or `records`, and `source_ids`), and `top`'s contributions are
+  the optimiser's arithmetic on records they list. Before 1.4 every numeric
+  leaf had an entry and each repeated its source URLs in `sources`; from 1.4
+  `sources` on an origin is always empty.
+- `sources` (1.4) lists every source the origins and shown facts cite, once:
+  its `id`, `url`, `title` (null: the snapshot records no titles yet) and
+  `date`, the latest date a record in this decision citing it was verified.
+  Source URLs and winning verification records resolve through
+  `snapshot.source_url()` and `snapshot.record()`.
+- An offering answers its model's evidence; an evidence row the offering and
+  its model both return is listed once (1.4; before, it was listed twice).
+- `constraint_costs[].records` are the records behind the two values each gain
+  subtracts: the best current and the best relaxed value (1.4; before, every
+  record of every row on that dimension).
 
 Raw measurements without retained provenance fail explanation with a rebuild
 message. Old snapshots still load for `none`. A missing unit is displayed as
@@ -589,6 +620,26 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **1.4 — MODEL-163:** A `full` decision is compact: since the snapshot
+  carried hundreds of verified evidence rows it exhausted the Worker. No field
+  changes its range, so by the rule above this is not a major change, but
+  three fields change what they hold. A 1.3 client should know:
+  - `number_origins[].sources` is always empty. The new `source_ids` name the
+    sources, resolved through the new top-level `sources` table (`id`, `url`,
+    `title`, `date`).
+  - `number_origins` covers the presented numbers, not every numeric leaf:
+    see *Explanation provenance*.
+  - `top[].facts` holds the named facets and the display set, not every value;
+    `top[].evidence` holds the named benchmarks; `top[].contributions` is empty
+    for a candidate `results` ranks. A shown fact adds `source_ids`.
+
+  Behaviour at every level: an offering no longer lists its model's evidence
+  twice, and a constraint cost's `records` are those behind its gain. The
+  Worker and `modelspec decide --json` print compact JSON (no indentation),
+  still byte for byte the same; without `--json` the CLI still indents.
+  Measured on the live snapshot's default coding task at `limit: 20`, `full`
+  went from 7.5 MB to 232 KB.
 
 - **1.3 — MODEL-153:** Additive. A spec accepts `task_tokens` (`input`,
   `output`), and the registry adds the computed facet `offering.cost_per_task`
