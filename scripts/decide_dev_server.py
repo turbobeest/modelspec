@@ -26,7 +26,7 @@ sys.path[:0] = [str(REPO), str(REPO / "api" / "worker" / "src")]
 import decide_service  # noqa: E402
 from decision import snapshot as decision_snapshot  # noqa: E402
 from decision.vocabulary import build_vocabulary  # noqa: E402
-from pipeline.load import load_benchmarks  # noqa: E402
+from pipeline.load import load_benchmarks, load_models  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,7 +38,9 @@ def main(argv: list[str] | None = None) -> int:
     snapshot = decision_snapshot.load_snapshot(
         args.snapshot, key=decision_snapshot.env_key(), include_archive=True)
     pages = {b.benchmark_id: b.front for b in load_benchmarks(REPO)}
-    vocabulary = json.dumps(build_vocabulary(snapshot, pages=pages), ensure_ascii=False).encode()
+    cards = {m.model_id: m.front for m in load_models(REPO)}
+    vocabulary = json.dumps(build_vocabulary(snapshot, pages=pages, cards=cards),
+                            ensure_ascii=False).encode()
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, status: int, body: bytes) -> None:

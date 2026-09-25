@@ -136,7 +136,7 @@ export function Shortlist({
             <strong>{r.m.name}</strong>
             {r.m.provisional && <span className="badge warn">Provisional</span>}
             <small>{r.m.labName}</small>
-            <span>Unknown: {reason(r)}</span>
+            <span>{reason(r)}</span>
           </button>
         ))}
         {!e.may.length && <small>No unresolved conditions.</small>}

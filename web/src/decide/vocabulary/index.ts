@@ -72,6 +72,17 @@ export const vocabularySchema = z.object({
       benchmarks: z.array(z.string()),
     }),
   ),
+  /** Card names by model ID. A vocabulary published before MODEL-153 has none. */
+  models: z
+    .record(
+      z.string(),
+      z.object({
+        display_name: z.string().nullable(),
+        lab: z.string(),
+        lab_name: z.string().nullable(),
+      }),
+    )
+    .default({}),
 });
 export type Vocabulary = z.infer<typeof vocabularySchema>;
 export type VocabFacet = Vocabulary["facets"][number];
@@ -147,19 +158,40 @@ const hasValue = (row: VocabFacet | null, value: FacetValue) =>
  * The benchmark a domain ranks on: direct evidence first, then the one with
  * the most verified lineup models. Never a fixed name.
  */
+const directFor = (b: VocabBenchmark, domain: string) =>
+  b.domains.some((tag) => tag.id === domain && tag.directness === "direct");
+
+/** The benchmark a domain ranks on: direct first, then the most verified lineup models. */
 export function pickBenchmark(v: Vocabulary, domain: string): VocabBenchmark | null {
-  const direct = (b: VocabBenchmark) =>
-    b.domains.some((tag) => tag.id === domain && tag.directness === "direct");
   return (
     offeredBenchmarks(v)
       .filter((b) => b.domains.some((tag) => tag.id === domain))
       .sort(
         (a, b) =>
-          Number(direct(b)) - Number(direct(a)) ||
+          Number(directFor(b, domain)) - Number(directFor(a, domain)) ||
           b.models - a.models ||
           a.id.localeCompare(b.id),
       )[0] ?? null
   );
+}
+
+/** What the rank-by control offers: the domain's direct benchmarks, most covered first. */
+export function rankChoices(v: Vocabulary, domain: string | null | undefined): VocabBenchmark[] {
+  if (!domain) return [];
+  return offeredBenchmarks(v).filter((b) => directFor(b, domain));
+}
+
+/** Rank on another benchmark; a floor the task parse set moves with it. */
+export function switchBenchmark(v: Vocabulary, spec: Spec, id: string): Spec {
+  const next = v.benchmarks.find((b) => b.id === id);
+  if (!next) return spec;
+  return {
+    ...spec,
+    bench: id,
+    conds: spec.conds.map((c) =>
+      c.f === "bench" && c.from && c.b === spec.bench ? benchCond(next, true) : c,
+    ),
+  };
 }
 
 export const CLASS_OF_TYPE: Readonly<Record<TypeKey, string>> = {
@@ -408,10 +440,18 @@ export function parseRealTask(v: Vocabulary, text: string | null | undefined): R
   const ranked = domain ? pickBenchmark(v, domain) : offeredBenchmarks(v)[0] ?? null;
   const domainName = v.domains.find((d) => d.id === domain)?.name ?? domain ?? "no domain";
   if (ranked) {
-    const direct = ranked.domains.some((d) => d.id === domain && d.directness === "direct");
+    const direct = domain !== null && directFor(ranked, domain);
+    const others = rankChoices(v, domain)
+      .filter((b) => b.id !== ranked.id)
+      .map((b) => `${b.name} (${b.models})`);
     trace.push({
       word: word ?? "(no domain named)",
-      note: `${domainName}: rank on ${ranked.name} (${direct ? "direct" : "proxy"} evidence, ${ranked.models} models verified)`,
+      note:
+        `${domainName}: rank on ${ranked.name}, ` +
+        (direct
+          ? `the direct benchmark with the most verified lineup models (${ranked.models})`
+          : `a proxy with ${ranked.models} verified lineup models; no direct benchmark has data`) +
+        (others.length ? `; also direct: ${others.join(", ")}` : ""),
     });
   }
   const conds: Cond[] = [];

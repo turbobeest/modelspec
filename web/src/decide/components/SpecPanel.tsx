@@ -6,7 +6,7 @@ import { setWeight } from "../state/spec";
 import type { ParsedTask } from "../engine/reference";
 import type { FacetOp, FacetValue, TypeKey } from "../engine/types";
 import { useVocab } from "../vocabulary/context";
-import { domainForType } from "../vocabulary";
+import { domainForType, rankChoices, switchBenchmark } from "../vocabulary";
 import { issuesFor } from "../vocabulary/issues";
 import type { PlacedIssue } from "../vocabulary/issues";
 export function SpecPanel({
@@ -101,6 +101,7 @@ export function SpecPanel({
     }
   };
   const benchLabel = vocab.benchName(spec.bench);
+  const choices = vocab.vocabulary ? rankChoices(vocab.vocabulary, spec.domain) : [];
   const weightName = (k: "cap" | "cost" | "speed") =>
     k === "cap" ? benchLabel : k === "cost" ? "$ per task" : "Tok/s";
   const tokenIssues = issuesFor(issues, { kind: "tokens" });
@@ -185,6 +186,21 @@ export function SpecPanel({
               </label>
             ))}
           </div>
+          {choices.length > 1 && (
+            <div className="rank-on" role="group" aria-label="Benchmark to rank on">
+              <span>Measured by</span>
+              {choices.map((b) => (
+                <button
+                  key={b.id}
+                  aria-pressed={b.id === spec.bench}
+                  title={`${b.models} lineup models with verified results, ${b.independent_models} measured independently`}
+                  onClick={() => onSpec(switchBenchmark(vocab.vocabulary!, spec, b.id))}
+                >
+                  {b.name} <small>{b.models} {b.models === 1 ? "model" : "models"}</small>
+                </button>
+              ))}
+            </div>
+          )}
           {weightIssues.map((text) => (
             <p key={text} className="issue-note" role="note">
               {text}

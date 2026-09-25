@@ -277,13 +277,15 @@ def write_decision_vocabulary(root: Path, snapshot_path: Path, *, key: bytes | N
 
     from decision import snapshot as decision_snapshot
     from decision.vocabulary import build_vocabulary
-    from pipeline.load import load_benchmarks
+    from pipeline.load import load_benchmarks, load_models
 
-    loaded = decision_snapshot.load_snapshot(snapshot_path, key=key)
+    loaded = decision_snapshot.load_snapshot(snapshot_path, key=key, include_archive=True)
     pages = {b.benchmark_id: b.front for b in load_benchmarks(root)}
+    cards = {m.model_id: m.front for m in load_models(root)}
     target = snapshot_path.parent / "vocabulary.json"
     target.write_text(
-        json.dumps(build_vocabulary(loaded, pages=pages), indent=2, ensure_ascii=False,
+        json.dumps(build_vocabulary(loaded, pages=pages, cards=cards), indent=2,
+                   ensure_ascii=False,
                    allow_nan=False) + "\n",
         encoding="utf-8",
     )

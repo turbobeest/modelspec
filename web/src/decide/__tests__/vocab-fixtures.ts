@@ -27,6 +27,12 @@ export const smallVocabulary: Vocabulary = {
   domains: [
     { id: "software_engineering", name: "Software engineering", proxy_only: false, benchmarks: ["quality"] },
   ],
+  // lab/alpha has no card name: the page shows its ID.
+  models: {
+    "lab/delta": { display_name: "Delta 4.7", lab: "lab", lab_name: "Lab Inc." },
+    "lab/beta": { display_name: "Beta-5.2", lab: "lab", lab_name: "Lab Inc." },
+    "lab/gamma": { display_name: "Gamma Max 0902", lab: "lab", lab_name: "Lab Inc." },
+  },
 };
 
 export const json = (body: unknown, status = 200) =>

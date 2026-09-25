@@ -57,7 +57,8 @@ def sold(mid, provider, price_in, price_out=None):
 @pytest.fixture(scope="module")
 def snapshot():
     inputs = SnapshotInputs(
-        models=[generator("lab/a"), generator("lab/b", "open_weights"), generator("lab/c")],
+        models=[generator("lab/a"), generator("lab/b", "open_weights"), generator("lab/c"),
+                model("lab/old", lifecycle="retired")],
         offerings=[sold("lab/a", "p1", 1.0, 5.0), sold("lab/a", "p2", 1.2, 6.0),
                    sold("lab/b", "p1", 0.2, 0.8), sold("lab/c", "p1", 3.0)],
         evidence=[
@@ -73,9 +74,15 @@ def snapshot():
     return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
 
 
+CARDS = {
+    "lab/a": {"display_name": "Alpha 4.7", "provider": "lab", "provider_display": "Lab Inc."},
+    "lab/old": {"display_name": "Old One", "provider": "lab", "provider_display": "Lab Inc."},
+}
+
+
 @pytest.fixture(scope="module")
 def vocabulary(snapshot):
-    return build_vocabulary(snapshot, pages=PAGES)
+    return build_vocabulary(snapshot, pages=PAGES, cards=CARDS)
 
 
 def by_id(rows):
@@ -89,6 +96,20 @@ def test_it_names_the_snapshot_and_the_contract(snapshot, vocabulary):
     assert vocabulary["default_task_tokens"] == {
         "input": DEFAULT_TASK_TOKENS.input, "output": DEFAULT_TASK_TOKENS.output}
     json.dumps(vocabulary, allow_nan=False)
+
+
+def test_every_lineup_and_archive_model_is_named_from_its_card(vocabulary):
+    assert vocabulary["models"] == {
+        "lab/a": {"display_name": "Alpha 4.7", "lab": "lab", "lab_name": "Lab Inc."},
+        "lab/b": {"display_name": None, "lab": "lab", "lab_name": None},
+        "lab/c": {"display_name": None, "lab": "lab", "lab_name": None},
+        "lab/old": {"display_name": "Old One", "lab": "lab", "lab_name": "Lab Inc."},
+    }
+
+
+def test_a_model_without_a_card_is_never_named_from_its_slug(snapshot):
+    rows = build_vocabulary(snapshot, pages=PAGES)["models"]
+    assert all(row["display_name"] is None and row["lab_name"] is None for row in rows.values())
 
 
 def test_every_registered_facet_is_listed_with_label_unit_subject_type_and_operators(vocabulary):
@@ -224,6 +245,8 @@ def test_the_site_build_writes_the_vocabulary_beside_the_snapshot(tmp_path, monk
     written = json.loads(stale.read_text())
     assert written["snapshot"] == snap.load_snapshot(target, key=KEY).snapshot_id
     assert [b["id"] for b in written["benchmarks"]] == ["swe_bench_pro"]
+    assert written["models"] == {
+        "lab/alpha": {"display_name": None, "lab": "lab", "lab_name": None}}
 
 
 def test_no_snapshot_means_no_vocabulary(tmp_path, monkeypatch):
