@@ -667,16 +667,20 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    bbh: 48.5
-    ifeval: 77.8
-    mmlu_pro: 52.3
-    musr: 18.5
+    bbh: 62.4
+    ifeval: 25.8
+    mmlu_pro: 46.4
+    musr: 40.4
     gsm8k: 88.0
   benchmark_source: open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 56.2 and gpqa_diamond 36.1. They came from a hand-typed
     table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
-    for mistralai/Mixtral-8x22B-v0.1 has MATH Lvl 5 Raw 18.4 and GPQA Raw 37.6).'
+    for mistralai/Mixtral-8x22B-v0.1 has MATH Lvl 5 Raw 18.4 and GPQA Raw 37.6). MODEL-154, read 2026-09-24: Rechecked
+    ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (mistralai/Mixtral-8x22B-v0.1, torch.bfloat16,
+    model revision b03e260818710044a2f088d88fab12bb220884fb). IFEval is the mean of strict prompt and instruction
+    accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages rounded
+    to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json.'
   evidence:
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: open-mixtral-8x22b

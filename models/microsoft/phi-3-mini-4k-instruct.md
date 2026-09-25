@@ -729,10 +729,10 @@ benchmarks:
     mmlu_us_foreign_policy: 85.0
     mmlu_virology: 49.4
     mmlu_world_religions: 83.6
-    ifeval: 54.4
-    bbh: 55.0
-    musr: 42.8
-    mmlu_pro: 40.3
+    ifeval: 56.1
+    bbh: 56.8
+    musr: 39.5
+    mmlu_pro: 38.7
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: phi-3-mini-4k-instruct
@@ -981,7 +981,11 @@ benchmarks:
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 16.4 and gpqa_diamond 32.3. They were the Open LLM Leaderboard
-    v2 MATH Lvl 5 and GPQA values for unsloth/Phi-3-mini-4k-instruct, a different repository from this card''s (microsoft/Phi-3-mini-4k-instruct).'
+    v2 MATH Lvl 5 and GPQA values for unsloth/Phi-3-mini-4k-instruct, a different repository from this card''s (microsoft/Phi-3-mini-4k-instruct).
+    MODEL-154, read 2026-09-24: Rechecked ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (microsoft/Phi-3-mini-4k-instruct,
+    torch.bfloat16, model revision ff07dc01615f8113924aed013115ab2abd32115b). IFEval is the mean of strict prompt
+    and instruction accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages
+    rounded to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-3-mini-4k-instruct/results_2024-06-17T11-04-33.850464.json.'
 deployment:
   api_only: false
   local_inference: true

@@ -666,14 +666,18 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    ifeval: 33.2
-    bbh: 47.8
-    musr: 39.3
-    mmlu_pro: 31.6
+    ifeval: 49.2
+    bbh: 50.9
+    musr: 39.7
+    mmlu_pro: 38.0
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 5.7 and gpqa_diamond 31.0. They were the Open LLM Leaderboard
-    v2 MATH Lvl 5 and GPQA values for sabersaleh/Llama3, a different repository from this card''s (meta-llama/Llama-3.1-8B-Instruct).'
+    v2 MATH Lvl 5 and GPQA values for sabersaleh/Llama3, a different repository from this card''s (meta-llama/Llama-3.1-8B-Instruct).
+    MODEL-154, read 2026-09-24: Rechecked ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (meta-llama/Llama-3.1-8B-Instruct,
+    torch.float16, model revision 0e9e39f249a16976918f6564b8830bc894c89659). IFEval is the mean of strict prompt and
+    instruction accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages
+    rounded to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.1-8B-Instruct/results_2025-02-13T18-27-04.338360.json.'
 deployment:
   api_only: false
   local_inference: false

@@ -667,10 +667,10 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    ifeval: 12.7
-    bbh: 44.0
-    musr: 42.4
-    mmlu_pro: 27.2
+    ifeval: 56.7
+    bbh: 42.0
+    musr: 39.3
+    mmlu_pro: 25.5
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemma-2-2b-it
@@ -919,7 +919,11 @@ benchmarks:
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 3.4 and gpqa_diamond 29.7. They were the Open LLM Leaderboard
-    v2 MATH Lvl 5 and GPQA values for jebish7/gemma-2-2b-it, a different repository from this card''s (google/gemma-2-2b-it).'
+    v2 MATH Lvl 5 and GPQA values for jebish7/gemma-2-2b-it, a different repository from this card''s (google/gemma-2-2b-it).
+    MODEL-154, read 2026-09-24: Rechecked ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (google/gemma-2-2b-it,
+    torch.bfloat16, model revision main). IFEval is the mean of strict prompt and instruction accuracy; BBH and MuSR
+    are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages rounded to one decimal, not normalized
+    leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json.'
 deployment:
   api_only: false
   local_inference: true

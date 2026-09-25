@@ -673,15 +673,14 @@ benchmarks:
     arena_elo_hard_prompts: 1396.7
     arena_elo_style_control: 1371.4
     arena_elo_vision: 1160.4
-    math_500: 78.3
+    math: 78.3
     swe_bench_verified: 49.0
   benchmark_source: lmarena.ai, provider-reports, llm-stats, intlpull, multimodal-evals,
     safety-evals
   benchmark_as_of: 2026-04
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: math_500 holds Anthropic''s
-    MATH (0-shot CoT) 78.3% for Claude 3.5 Sonnet (new), from anthropic.com/news/3-5-models-and-computer-use. Each
-    value is confirmed for this exact model but is not the benchmark its key names, so it stays in the flat block
-    and is not promoted to evidence.'
+  benchmark_notes: 'MODEL-154, read 2026-09-24: moved 78.3 from math_500 to math, the full MATH test. This resolves
+    the MODEL-116 overlap noted by MODEL-125. Lab-reported method: 0-shot CoT. Source: https://www.anthropic.com/news/3-5-models-and-computer-use.
+    This remains a legacy flat value; no independent verification is claimed.'
   evidence:
   - benchmark_id: metr_time_horizon_50
     model_id_as_evaluated: claude_3_5_sonnet_20241022_inspect

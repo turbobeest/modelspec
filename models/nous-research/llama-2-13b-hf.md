@@ -668,14 +668,13 @@ availability:
 benchmarks:
   scores:
     gsm8k: 22.8
-    ifeval: 24.8
-    bbh: 41.3
-    musr: 35.4
-    mmlu_pro: 23.8
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 1.5 and gpqa_diamond 28.1. They were the Open LLM Leaderboard
-    v2 MATH Lvl 5 and GPQA values for meta-llama/Llama-2-13b-hf, a different repository from this card''s (NousResearch/Llama-2-13b-hf).'
+    v2 MATH Lvl 5 and GPQA values for meta-llama/Llama-2-13b-hf, a different repository from this card''s (NousResearch/Llama-2-13b-hf).
+    MODEL-154, read 2026-09-24: Set ifeval, bbh, musr and mmlu_pro to null. No exact repository row in contents and
+    no results directory for this repository. No evidence is transferred from a mirror, quantization, base or instruction-tuned
+    variant. Source inventory: https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet.'
 deployment:
   api_only: false
   local_inference: true

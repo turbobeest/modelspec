@@ -1,0 +1,4603 @@
+{
+  "read_date": "2026-09-24",
+  "results_revision": "aa81ecc38fdc5708254b833923368970efdf5ef5",
+  "contents_source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+  "sample_method": "Sorted OLL-tagged cards with non-null IFEval; random.Random(154).sample(population, ceil(n * 0.1)) selected 16 of 160 before MODEL-116 merged. Exclude the one sampled initial-release lab-report value, leaving 15 of the final 138 OLL-sourced values. MODEL-116 removes two zero-valued failed runs, neither sampled.",
+  "excluded_initial_values": [
+    {
+      "path": "models/cohere/command-r-08-2024.md",
+      "value": 70,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/cohere/command-r-plus-08-2024.md",
+      "value": 75.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/deepseek/deepseek-r1-distill-llama-70b.md",
+      "value": 78.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/deepseek/deepseek-r1-distill-llama-8b.md",
+      "value": 64,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/deepseek/deepseek-r1-distill-qwen-14b.md",
+      "value": 72.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/deepseek/deepseek-r1-distill-qwen-32b.md",
+      "value": 76.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/deepseek/deepseek-r1-distill-qwen-7b.md",
+      "value": 66,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/deepseek/deepseek-v3-1.md",
+      "value": 85.5,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/google/gemma-2-27b-it.md",
+      "value": 75.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/google/gemma-2-9b-it.md",
+      "value": 68.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/google/gemma-2-9b.md",
+      "value": 68.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/google/gemma-3-12b-it.md",
+      "value": 73.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/google/gemma-3-27b-it.md",
+      "value": 79.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/microsoft/phi-4-mini-instruct.md",
+      "value": 72.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/microsoft/phi-4-multimodal-instruct.md",
+      "value": 78,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/microsoft/phi-4.md",
+      "value": 78.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/qwen/qwen2-5-72b-instruct.md",
+      "value": 82.0,
+      "initial_source": "lmarena.ai, provider-reports"
+    },
+    {
+      "path": "models/qwen/qwen2-5-coder-32b-instruct-awq.md",
+      "value": 76.0,
+      "initial_source": "provider-reports"
+    },
+    {
+      "path": "models/qwen/qwen2-5-coder-32b-instruct.md",
+      "value": 76.0,
+      "initial_source": "provider-reports"
+    },
+    {
+      "path": "models/unsloth/llama-3-1-8b-instruct.md",
+      "value": 62,
+      "initial_source": "lmarena.ai, provider-reports"
+    }
+  ],
+  "ifeval_audit": [
+    {
+      "card": "models/01-ai/yi-1-5-34b-32k.md",
+      "model_repository": "01-ai/Yi-1.5-34B-32K",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 31.2,
+          "new": 31.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-34B-32K/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-34B-32K",
+      "model_revision": "2c03a29761e4174f20347a60fbe229be4383d48b",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2532347504621072,
+          "inst_level_strict_acc,none": 0.37050359712230213
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-34b-chat-16k.md",
+      "model_repository": "01-ai/Yi-1.5-34B-Chat-16K",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 45.6,
+          "new": 45.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-34B-Chat-16K/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-34B-Chat-16K",
+      "model_revision": "ff74452e11f0f749ab872dc19b1dd3813c25c4d8",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.39371534195933455,
+          "inst_level_strict_acc,none": 0.5191846522781774
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-34b-chat.md",
+      "model_repository": "01-ai/Yi-1.5-34B-Chat",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 77.3,
+          "new": 60.7
+        },
+        "bbh": {
+          "old": 48.2,
+          "new": 60.8
+        },
+        "musr": {
+          "old": 18.2,
+          "new": 42.8
+        },
+        "mmlu_pro": {
+          "old": 52.8,
+          "new": 45.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-34B-Chat/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-34B-Chat",
+      "model_revision": "f3128b2d02d82989daae566c0a7eadc621ca3254",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5526802218114603,
+          "inst_level_strict_acc,none": 0.6606714628297362
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.832
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.34
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.624
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.8202247191011236
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.628
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.752
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.384
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.536
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.44
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.548
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.696
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.552
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.616
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.808
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.548
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.732
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.792
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.6042780748663101
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.636
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.248
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.768
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.5684931506849316
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.88
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.248
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.30859375
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.392
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.584
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.45204454787234044
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-34b.md",
+      "model_repository": "01-ai/Yi-1.5-34B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 77.3,
+          "new": 28.4
+        },
+        "bbh": {
+          "old": 48.2,
+          "new": 59.8
+        },
+        "musr": {
+          "old": 18.2,
+          "new": 42.4
+        },
+        "mmlu_pro": {
+          "old": 52.8,
+          "new": 46.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-34B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-34B",
+      "model_revision": "4b486f81c935a2dadde84c6baa1e1370d40a098f",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.21811460258780038,
+          "inst_level_strict_acc,none": 0.3501199040767386
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.86
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.348
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.704
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.8202247191011236
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.628
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.652
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.352
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.396
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.488
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.476
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.876
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.428
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.532
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.72
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.92
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.608
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.624
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.6203208556149733
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.584
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.2
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.832
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.5547945205479452
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.892
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.228
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.3828125
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.336
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.552
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.4665890957446808
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-6b-chat.md",
+      "model_repository": "01-ai/Yi-1.5-6B-Chat",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 51.5,
+          "new": 51.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-6B-Chat/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-6B-Chat",
+      "model_revision": "771924d1c83d67527d665913415d7086f11ea9c0",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.45471349353049906,
+          "inst_level_strict_acc,none": 0.5743405275779376
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-6b.md",
+      "model_repository": "01-ai/Yi-1.5-6B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 26.2,
+          "new": 26.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-6B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-6B",
+      "model_revision": "157a3d77ab5a8a8f079510eaa25169b547481f06",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2199630314232902,
+          "inst_level_strict_acc,none": 0.30335731414868106
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-9b-32k.md",
+      "model_repository": "01-ai/Yi-1.5-9B-32K",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 23.0,
+          "new": 23.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-9B-32K/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-9B-32K",
+      "model_revision": "116561dfae63af90f9d163b43077629e0e916bb1",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.18484288354898337,
+          "inst_level_strict_acc,none": 0.27577937649880097
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-9b-chat-16k.md",
+      "model_repository": "01-ai/Yi-1.5-9B-Chat-16K",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 42.1,
+          "new": 42.1
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-9B-Chat-16K/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-9B-Chat-16K",
+      "model_revision": "2b397e5f0fab87984efa66856c5c4ed4bbe68b50",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.3512014787430684,
+          "inst_level_strict_acc,none": 0.49160671462829736
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-9b-chat.md",
+      "model_repository": "01-ai/Yi-1.5-9B-Chat",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 60.5,
+          "new": 60.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-9B-Chat/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-9B-Chat",
+      "model_revision": "bc87d8557c98dc1e5fdef6ec23ed31088c4d3f35",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5508317929759704,
+          "inst_level_strict_acc,none": 0.658273381294964
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-1-5-9b.md",
+      "model_repository": "01-ai/Yi-1.5-9B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 29.4,
+          "new": 29.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-1.5-9B",
+      "model_revision": "8cfde9604384c50137bee480b8cef8a08e5ae81d",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.23105360443622922,
+          "inst_level_strict_acc,none": 0.35611510791366907
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-34b-200k.md",
+      "model_repository": "01-ai/Yi-34B-200K",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 15.4,
+          "new": 15.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-34B-200K/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-34B-200K",
+      "model_revision": "8ac1a1ebe011df28b78ccd08012aeb2222443c77",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.12384473197781885,
+          "inst_level_strict_acc,none": 0.18465227817745802
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-34b-chat.md",
+      "model_repository": "01-ai/Yi-34B-Chat",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 47.0,
+          "new": 47.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-34B-Chat/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-34B-Chat",
+      "model_revision": "2e528b6a80fb064a0a746c5ca43114b135e30464",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4121996303142329,
+          "inst_level_strict_acc,none": 0.5275779376498801
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-34b.md",
+      "model_repository": "01-ai/Yi-34B",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 30.5,
+          "new": 30.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-34B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-34B",
+      "model_revision": "e1e7da8c75cfd5c44522228599fd4d2990cedd1c",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.24584103512014788,
+          "inst_level_strict_acc,none": 0.36330935251798563
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-6b-200k.md",
+      "model_repository": "01-ai/Yi-6B-200K",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 8.4,
+          "new": 8.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B-200K/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-6B-200K",
+      "model_revision": "4a74338e778a599f313e9fa8f5bc08c717604420",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.07393715341959335,
+          "inst_level_strict_acc,none": 0.09472422062350119
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-6b-chat-4bits.md",
+      "model_repository": "01-ai/Yi-6B-Chat-4bits",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 34.0,
+          "new": null
+        },
+        "bbh": {
+          "old": 41.3,
+          "new": null
+        },
+        "musr": {
+          "old": 36.9,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 30.6,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/01-ai/yi-6b-chat.md",
+      "model_repository": "01-ai/Yi-6B-Chat",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 34.0,
+          "new": 34.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B-Chat/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-6B-Chat",
+      "model_revision": "01f7fabb6cfb26efeb764da4a0a19cad2c754232",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2809611829944547,
+          "inst_level_strict_acc,none": 0.3980815347721823
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-6b.md",
+      "model_repository": "01-ai/Yi-6B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 28.9,
+          "new": 28.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-6B",
+      "model_revision": "7f7fb7662fd8ec09029364f408053c954986c8e5",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.22735674676524953,
+          "inst_level_strict_acc,none": 0.3513189448441247
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-9b-200k.md",
+      "model_repository": "01-ai/Yi-9B-200K",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 23.3,
+          "new": 23.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-9B-200K/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-9B-200K",
+      "model_revision": "8c93accd5589dbb74ee938e103613508c4a9b88d",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.18484288354898337,
+          "inst_level_strict_acc,none": 0.2805755395683453
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-9b.md",
+      "model_repository": "01-ai/Yi-9B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 27.1,
+          "new": 27.1
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-9B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-9B",
+      "model_revision": "b4a466d95091696285409f1dcca3028543cb39da",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2144177449168207,
+          "inst_level_strict_acc,none": 0.3273381294964029
+        }
+      }
+    },
+    {
+      "card": "models/01-ai/yi-coder-9b-chat.md",
+      "model_repository": "01-ai/Yi-Coder-9B-Chat",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 48.2,
+          "new": 48.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-Coder-9B-Chat/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "01-ai/Yi-Coder-9B-Chat",
+      "model_revision": "356a1f8d4e4a606d0b879e54191ca809918576b8",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4214417744916821,
+          "inst_level_strict_acc,none": 0.5419664268585132
+        }
+      }
+    },
+    {
+      "card": "models/ai21/jamba-v0-1.md",
+      "model_repository": "ai21labs/Jamba-v0.1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 20.3,
+          "new": 20.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/ai21labs/Jamba-v0.1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "ai21labs/Jamba-v0.1",
+      "model_revision": "9efd11575ba791d9e3d25d4c8b670e78506b2df7",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.14972273567467653,
+          "inst_level_strict_acc,none": 0.25539568345323743
+        }
+      }
+    },
+    {
+      "card": "models/allen-ai/olmo-1b-hf.md",
+      "model_repository": "allenai/OLMo-1B-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 21.8,
+          "new": 21.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMo-1B-hf/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "allenai/OLMo-1B-hf",
+      "model_revision": "8e995430edd24416ccfa98b5b283fa07b0c9f1a9",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.1534195933456562,
+          "inst_level_strict_acc,none": 0.2829736211031175
+        }
+      }
+    },
+    {
+      "card": "models/allen-ai/olmo-2-1124-7b.md",
+      "model_repository": "allenai/OLMo-2-1124-7B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 72.4,
+          "new": null
+        },
+        "bbh": {
+          "old": 40.2,
+          "new": null
+        },
+        "musr": {
+          "old": 35.1,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 26.7,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/allen-ai/olmoe-1b-7b-0125-instruct.md",
+      "model_repository": "allenai/OLMoE-1B-7B-0125-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 67.6,
+          "new": 67.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0125-Instruct/results_2025-02-18T16-55-46.069198.json",
+      "evaluated_model": "allenai/OLMoE-1B-7B-0125-Instruct",
+      "model_revision": "b89a7c4bc24fb9e55ce2543c9458ce0ca5c4650e",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.6284658040665434,
+          "inst_level_strict_acc,none": 0.7230215827338129
+        }
+      }
+    },
+    {
+      "card": "models/allen-ai/olmoe-1b-7b-0924.md",
+      "model_repository": "allenai/OLMoE-1B-7B-0924",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 21.8,
+          "new": 21.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0924/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "allenai/OLMoE-1B-7B-0924",
+      "model_revision": "4fa3a6e09ed0e41639962f38bfba0fc532b90075",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.15157116451016636,
+          "inst_level_strict_acc,none": 0.2853717026378897
+        }
+      }
+    },
+    {
+      "card": "models/baai/infinity-instruct-3m-0625-llama3-8b.md",
+      "model_repository": "BAAI/Infinity-Instruct-3M-0625-Llama3-8B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 60.5,
+          "new": 60.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Llama3-8B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "BAAI/Infinity-Instruct-3M-0625-Llama3-8B",
+      "model_revision": "7be7c0ff1e35c3bb781c47222da99a1724f5f1da",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5637707948243993,
+          "inst_level_strict_acc,none": 0.6462829736211031
+        }
+      }
+    },
+    {
+      "card": "models/baai/infinity-instruct-3m-0625-yi-1-5-9b.md",
+      "model_repository": "BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 51.9,
+          "new": 51.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B",
+      "model_revision": "a42c86c61b98ca4fdf238d688fe6ea11cf414d29",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4676524953789279,
+          "inst_level_strict_acc,none": 0.5695443645083933
+        }
+      }
+    },
+    {
+      "card": "models/baai/infinity-instruct-7m-gen-llama3-1-8b.md",
+      "model_repository": "BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 61.3,
+          "new": 61.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B",
+      "model_revision": "56f9c2845ae024eb8b1dd9ea0d8891cbaf33c596",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5693160813308688,
+          "inst_level_strict_acc,none": 0.657074340527578
+        }
+      }
+    },
+    {
+      "card": "models/cerebras/llama3-1-8b.md",
+      "model_repository": "meta-llama/Llama-3.1-8B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 33.2,
+          "new": 49.2
+        },
+        "bbh": {
+          "old": 47.8,
+          "new": 50.9
+        },
+        "musr": {
+          "old": 39.3,
+          "new": 39.7
+        },
+        "mmlu_pro": {
+          "old": 31.6,
+          "new": 38.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.1-8B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-3.1-8B-Instruct",
+      "model_revision": "0e9e39f249a16976918f6564b8830bc894c89659",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4195933456561922,
+          "inst_level_strict_acc,none": 0.564748201438849
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.82
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.5668449197860963
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.468
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.532
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.556
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.34
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.628
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.42
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.42
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.684
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.64
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.552
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.464
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.4520547945205479
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.6
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.648
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.512
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.6179775280898876
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.668
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.352
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.212
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.152
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.36
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.544
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.532
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.35546875
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.304
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.37982047872340424
+        }
+      }
+    },
+    {
+      "card": "models/deepseek/deepseek-llm-7b-base.md",
+      "model_repository": "deepseek-ai/deepseek-llm-7b-base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 21.8,
+          "new": 21.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-llm-7b-base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "deepseek-ai/deepseek-llm-7b-base",
+      "model_revision": "7683fea62db869066ddaff6a41d032262c490d4f",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.15157116451016636,
+          "inst_level_strict_acc,none": 0.2841726618705036
+        }
+      }
+    },
+    {
+      "card": "models/deepseek/deepseek-llm-7b-chat.md",
+      "model_repository": "deepseek-ai/deepseek-llm-7b-chat",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 41.7,
+          "new": 41.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-llm-7b-chat/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "deepseek-ai/deepseek-llm-7b-chat",
+      "model_revision": "afbda8b347ec881666061fa67447046fc5164ec8",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.36414048059149723,
+          "inst_level_strict_acc,none": 0.47002398081534774
+        }
+      }
+    },
+    {
+      "card": "models/deepseek/deepseek-moe-16b-base.md",
+      "model_repository": "deepseek-ai/deepseek-moe-16b-base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 24.5,
+          "new": 24.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-moe-16b-base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "deepseek-ai/deepseek-moe-16b-base",
+      "model_revision": "521d2bc4fb69a3f3ae565310fcc3b65f97af2580",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.18299445471349354,
+          "inst_level_strict_acc,none": 0.3069544364508393
+        }
+      }
+    },
+    {
+      "card": "models/deepseek/deepseek-r1-distill-qwen-1-5b.md",
+      "model_repository": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 34.6,
+          "new": 34.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+      "model_revision": "80da49efd7aed5a338dfa7f23f75a9311f0dec20",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2754158964879852,
+          "inst_level_strict_acc,none": 0.4172661870503597
+        }
+      }
+    },
+    {
+      "card": "models/google/flan-t5-base.md",
+      "model_repository": "google/flan-t5-base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 18.9,
+          "new": 18.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "google/flan-t5-base",
+      "model_revision": "7bcac572ce56db69c1ea7c8af255c5d7c9672fc2",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.12754158964879853,
+          "inst_level_strict_acc,none": 0.25059952038369304
+        }
+      }
+    },
+    {
+      "card": "models/google/flan-t5-large.md",
+      "model_repository": "google/flan-t5-large",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 22.0,
+          "new": 22.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-large/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "google/flan-t5-large",
+      "model_revision": "0613663d0d48ea86ba8cb3d7a44f0f65dc596a2a",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.16081330868761554,
+          "inst_level_strict_acc,none": 0.2793764988009592
+        }
+      }
+    },
+    {
+      "card": "models/google/flan-t5-small.md",
+      "model_repository": "google/flan-t5-small",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 15.2,
+          "new": 15.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-small/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "google/flan-t5-small",
+      "model_revision": "0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.09981515711645102,
+          "inst_level_strict_acc,none": 0.20503597122302158
+        }
+      }
+    },
+    {
+      "card": "models/google/flan-t5-xl.md",
+      "model_repository": "google/flan-t5-xl",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 22.1,
+          "new": 22.1
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-xl/results_2024-10-24T00-00-00.000000.json",
+      "evaluated_model": "google/flan-t5-xl",
+      "model_revision": "7d6315df2c2fb742f0f5b556879d730926ca9001",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.16081330868761554,
+          "inst_level_strict_acc,none": 0.2805755395683453
+        }
+      }
+    },
+    {
+      "card": "models/google/gemma-1-1-2b-it.md",
+      "model_repository": "google/gemma-1.1-2b-it",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 30.7,
+          "new": 30.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-1.1-2b-it/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "google/gemma-1.1-2b-it",
+      "model_revision": "bf4924f313df5166dee1467161e886e55f2eb4d4",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2513863216266174,
+          "inst_level_strict_acc,none": 0.36211031175059955
+        }
+      }
+    },
+    {
+      "card": "models/google/gemma-2-2b-it.md",
+      "model_repository": "google/gemma-2-2b-it",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 12.7,
+          "new": 56.7
+        },
+        "bbh": {
+          "old": 44.0,
+          "new": 42.0
+        },
+        "musr": {
+          "old": 42.4,
+          "new": 39.3
+        },
+        "mmlu_pro": {
+          "old": 27.2,
+          "new": 25.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json",
+      "evaluated_model": "google/gemma-2-2b-it",
+      "model_revision": "main",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5101663585951941,
+          "inst_level_strict_acc,none": 0.6235011990407674
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.556
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.344
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.372
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.58
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.476
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.424
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.5668449197860963
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.14
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.116
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.488
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.48
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.388
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.18
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.344
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.276
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.4246575342465753
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.652
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.5786516853932584
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.74
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.492
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.46
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.36
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.296
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.344
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.5
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.456
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.22265625
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.25498670212765956
+        }
+      }
+    },
+    {
+      "card": "models/google/gemma-2-2b.md",
+      "model_repository": "google/gemma-2-2b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 20.2,
+          "new": 20.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "google/gemma-2-2b",
+      "model_revision": "0738188b3055bc98daf0fe7211f0091357e5b979",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.13493530499075784,
+          "inst_level_strict_acc,none": 0.2685851318944844
+        }
+      }
+    },
+    {
+      "card": "models/google/gemma-2b-it.md",
+      "model_repository": "google/gemma-2b-it",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 26.9,
+          "new": 26.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2b-it/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "google/gemma-2b-it",
+      "model_revision": "de144fb2268dee1066f515465df532c05e699d48",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.21072088724584104,
+          "inst_level_strict_acc,none": 0.3273381294964029
+        }
+      }
+    },
+    {
+      "card": "models/google/gemma-2b.md",
+      "model_repository": "google/gemma-2b",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 20.4,
+          "new": 20.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2b/results_2024-10-24T00-00-00.000000.json",
+      "evaluated_model": "google/gemma-2b",
+      "model_revision": "2ac59a5d7bf4e1425010f0d457dde7d146658953",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.14972273567467653,
+          "inst_level_strict_acc,none": 0.2577937649880096
+        }
+      }
+    },
+    {
+      "card": "models/google/gemma-7b-it.md",
+      "model_repository": "google/gemma-7b-it",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 38.7,
+          "new": 38.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-7b-it/results_2024-10-24T00-00-00.000000.json",
+      "evaluated_model": "google/gemma-7b-it",
+      "model_revision": "18329f019fb74ca4b24f97371785268543d687d2",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.32162661737523107,
+          "inst_level_strict_acc,none": 0.4520383693045564
+        }
+      }
+    },
+    {
+      "card": "models/google/mt5-base.md",
+      "model_repository": "google/mt5-base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 16.5,
+          "new": 16.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "google/mt5-base",
+      "model_revision": "2eb15465c5dd7f72a8f7984306ad05ebc3dd1e1f",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.10720887245841035,
+          "inst_level_strict_acc,none": 0.22182254196642687
+        }
+      }
+    },
+    {
+      "card": "models/google/mt5-small.md",
+      "model_repository": "google/mt5-small",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 17.2,
+          "new": 17.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-small/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "google/mt5-small",
+      "model_revision": "73fb5dbe4756edadc8fbe8c769b0a109493acf7a",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.11460258780036968,
+          "inst_level_strict_acc,none": 0.2290167865707434
+        }
+      }
+    },
+    {
+      "card": "models/ibm/granite-3-0-1b-a400m-base.md",
+      "model_repository": "ibm-granite/granite-3.0-1b-a400m-base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 24.0,
+          "new": 24.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-1b-a400m-base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "ibm-granite/granite-3.0-1b-a400m-base",
+      "model_revision": "c4f3d75be923941823388ae9bb4467831610d8af",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.17744916820702403,
+          "inst_level_strict_acc,none": 0.30335731414868106
+        }
+      }
+    },
+    {
+      "card": "models/ibm/granite-3-0-8b-instruct.md",
+      "model_repository": "ibm-granite/granite-3.0-8b-instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 53.1,
+          "new": 53.1
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-8b-instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "ibm-granite/granite-3.0-8b-instruct",
+      "model_revision": "67f8d982f22afd8533b87851725360194fbf4575",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4731977818853974,
+          "inst_level_strict_acc,none": 0.5887290167865707
+        }
+      }
+    },
+    {
+      "card": "models/ibm/granite-3-1-1b-a400m-instruct.md",
+      "model_repository": "ibm-granite/granite-3.1-1b-a400m-instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 46.9,
+          "new": 46.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.1-1b-a400m-instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "ibm-granite/granite-3.1-1b-a400m-instruct",
+      "model_revision": "c4f8e0dd19f0ce00bca6c9742751d1827e8fa03a",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.40850277264325324,
+          "inst_level_strict_acc,none": 0.5287769784172662
+        }
+      }
+    },
+    {
+      "card": "models/ibm/granite-3-1-2b-instruct.md",
+      "model_repository": "ibm-granite/granite-3.1-2b-instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 62.9,
+          "new": 62.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.1-2b-instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "ibm-granite/granite-3.1-2b-instruct",
+      "model_revision": "8f683a244be9034aeea43dd2a80b7b4fe01d376f",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5748613678373382,
+          "inst_level_strict_acc,none": 0.6822541966426858
+        }
+      }
+    },
+    {
+      "card": "models/ibm/granite-3-1-8b-instruct.md",
+      "model_repository": "ibm-granite/granite-3.1-8b-instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 72.1,
+          "new": 72.1
+        },
+        "bbh": {
+          "old": 39.5,
+          "new": 53.6
+        },
+        "musr": {
+          "old": 13.1,
+          "new": 47.1
+        },
+        "mmlu_pro": {
+          "old": 43.5,
+          "new": 35.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.1-8b-instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "ibm-granite/granite-3.1-8b-instruct",
+      "model_revision": "f6749f3946b2dc9983b870317a71ddf7a65c0806",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.6765249537892791,
+          "inst_level_strict_acc,none": 0.7649880095923262
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.812
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.6042780748663101
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.504
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.656
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.588
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.44
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.608
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.492
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.488
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.7
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.648
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.632
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.348
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.5
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.584
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.512
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.54
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.7584269662921348
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.716
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.508
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.18
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.18
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.344
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.532
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.568
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.328125
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.516
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.3537234042553192
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-2-13b-chat-hf.md",
+      "model_repository": "meta-llama/Llama-2-13b-chat-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 39.8,
+          "new": 39.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-chat-hf/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-2-13b-chat-hf",
+      "model_revision": "a2cb7a712bb6e5e736ca7f8cd98167f81a0b5bd8",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.34011090573012936,
+          "inst_level_strict_acc,none": 0.4568345323741007
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-2-13b-hf.md",
+      "model_repository": "meta-llama/Llama-2-13b-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 24.8,
+          "new": 24.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-hf/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-2-13b-hf",
+      "model_revision": "5c31dfb671ce7cfe2d7bb7c04375e44c55e815b1",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.18114602587800369,
+          "inst_level_strict_acc,none": 0.31534772182254195
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-2-70b-chat-hf.md",
+      "model_repository": "meta-llama/Llama-2-70b-chat-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 49.6,
+          "new": 49.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-70b-chat-hf/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-2-70b-chat-hf",
+      "model_revision": "e9149a12809580e8602995856f8098ce973d1080",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4436229205175601,
+          "inst_level_strict_acc,none": 0.5479616306954437
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-2-70b-hf.md",
+      "model_repository": "meta-llama/Llama-2-70b-hf",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 24.1,
+          "new": 24.1
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-70b-hf/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-2-70b-hf",
+      "model_revision": "3aba440b59558f995867ba6e1f58f21d0336b5bb",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.1756007393715342,
+          "inst_level_strict_acc,none": 0.3057553956834532
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-2-7b-chat-hf.md",
+      "model_repository": "meta-llama/Llama-2-7b-chat-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 39.9,
+          "new": 39.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-chat-hf/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-2-7b-chat-hf",
+      "model_revision": "f5db02db724555f92da89c216ac04704f23d4590",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.33086876155268025,
+          "inst_level_strict_acc,none": 0.46642685851318944
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-2-7b-hf.md",
+      "model_repository": "meta-llama/Llama-2-7b-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 25.2,
+          "new": 25.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-hf/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-2-7b-hf",
+      "model_revision": "01c7f73d771dfac7d292323805ebc428287df4f9",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.18484288354898337,
+          "inst_level_strict_acc,none": 0.31894484412470026
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-3-2-1b-instruct.md",
+      "model_repository": "meta-llama/Llama-3.2-1B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 58.1,
+          "new": 57.0
+        },
+        "bbh": {
+          "old": 34.8,
+          "new": 35.0
+        },
+        "musr": {
+          "old": 32.0,
+          "new": 33.3
+        },
+        "mmlu_pro": {
+          "old": 17.4,
+          "new": 16.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-3.2-1B-Instruct",
+      "model_revision": "d0a2081ed47e20ce524e8bc5d132f3fad2f69ff0",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5101663585951941,
+          "inst_level_strict_acc,none": 0.6294964028776978
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.42
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.136
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.224
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.544
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.516
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.5026737967914439
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.224
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.5449438202247191
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.2808219178082192
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.492
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.176
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.18
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.672
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.2
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.216
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.132
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.484
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.336
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.412
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.34
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.3
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.384
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.304
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.372
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.528
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.244
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.2265625
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.16821808510638298
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-3-2-1b.md",
+      "model_repository": "meta-llama/Llama-3.2-1B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 14.8,
+          "new": 14.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-3.2-1B",
+      "model_revision": "a7c18587d7f473bfea02aa5639aa349403307b54",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.11090573012939002,
+          "inst_level_strict_acc,none": 0.18465227817745802
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-3-2-3b-instruct.md",
+      "model_repository": "meta-llama/Llama-3.2-3B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 73.9,
+          "new": 73.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-3.2-3B-Instruct",
+      "model_revision": "392a143b624368100f77a3eafaa4a2468ba50a72",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.6968576709796673,
+          "inst_level_strict_acc,none": 0.7817745803357314
+        }
+      }
+    },
+    {
+      "card": "models/meta/llama-3-2-3b.md",
+      "model_repository": "meta-llama/Llama-3.2-3B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 13.4,
+          "new": 13.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Llama-3.2-3B",
+      "model_revision": "5cc0ffe09ee49f7be6ca7c794ee6bd7245e84e60",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.09242144177449169,
+          "inst_level_strict_acc,none": 0.1750599520383693
+        }
+      }
+    },
+    {
+      "card": "models/meta/meta-llama-3-70b-instruct.md",
+      "model_repository": "meta-llama/Meta-Llama-3-70B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 81.0,
+          "new": 81.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Meta-Llama-3-70B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Meta-Llama-3-70B-Instruct",
+      "model_revision": "7129260dd854a80eb10ace5f61c20324b472b31c",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.7744916820702403,
+          "inst_level_strict_acc,none": 0.8453237410071942
+        }
+      }
+    },
+    {
+      "card": "models/meta/meta-llama-3-70b.md",
+      "model_repository": "meta-llama/Meta-Llama-3-70B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 16.0,
+          "new": 16.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Meta-Llama-3-70B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Meta-Llama-3-70B",
+      "model_revision": "b4d08b7db49d488da3ac49adf25a6b9ac01ae338",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.10720887245841035,
+          "inst_level_strict_acc,none": 0.21342925659472423
+        }
+      }
+    },
+    {
+      "card": "models/meta/meta-llama-3-8b-instruct.md",
+      "model_repository": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 47.8,
+          "new": 47.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Meta-Llama-3-8B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "model_revision": "e1945c40cd546c78e41f1151f4db032b271faeaa",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.40850277264325324,
+          "inst_level_strict_acc,none": 0.5479616306954437
+        }
+      }
+    },
+    {
+      "card": "models/meta/meta-llama-3-8b.md",
+      "model_repository": "meta-llama/Meta-Llama-3-8B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 14.6,
+          "new": 14.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Meta-Llama-3-8B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "meta-llama/Meta-Llama-3-8B",
+      "model_revision": "62bd457b6fe961a42a631306577e622c83876cb6",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.09796672828096119,
+          "inst_level_strict_acc,none": 0.19304556354916066
+        }
+      }
+    },
+    {
+      "card": "models/microsoft/dialogpt-medium.md",
+      "model_repository": "microsoft/DialoGPT-medium",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 14.8,
+          "new": 14.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/DialoGPT-medium/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "microsoft/DialoGPT-medium",
+      "model_revision": "7b40bb0f92c45fefa957d088000d8648e5c7fa33",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.09796672828096119,
+          "inst_level_strict_acc,none": 0.19784172661870503
+        }
+      }
+    },
+    {
+      "card": "models/microsoft/phi-2.md",
+      "model_repository": "microsoft/phi-2",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 27.4,
+          "new": 27.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/phi-2/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "microsoft/phi-2",
+      "model_revision": "ef382358ec9e382308935a992d908de099b64c23",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2144177449168207,
+          "inst_level_strict_acc,none": 0.3333333333333333
+        }
+      }
+    },
+    {
+      "card": "models/microsoft/phi-3-5-mini-instruct.md",
+      "model_repository": "microsoft/Phi-3.5-mini-instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 72.4,
+          "new": 57.7
+        },
+        "bbh": {
+          "old": 38.1,
+          "new": 55.2
+        },
+        "musr": {
+          "old": 11.2,
+          "new": 40.2
+        },
+        "mmlu_pro": {
+          "old": 42.3,
+          "new": 39.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-3.5-mini-instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "microsoft/Phi-3.5-mini-instruct",
+      "model_revision": "64963004ad95869fa73a30279371c8778509ac84",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5194085027726433,
+          "inst_level_strict_acc,none": 0.6354916067146283
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.64
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.152
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.44
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.608
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.812
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.6256684491978609
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.156
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.7078651685393258
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.4931506849315068
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.612
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.532
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.568
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.748
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.596
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.592
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.664
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.472
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.588
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.588
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.776
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.432
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.244
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.652
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.544
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.604
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.368
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.234375
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.39619348404255317
+        }
+      }
+    },
+    {
+      "card": "models/microsoft/phi-3-mini-128k-instruct.md",
+      "model_repository": "microsoft/Phi-3-mini-128k-instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 59.8,
+          "new": 59.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-3-mini-128k-instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "microsoft/Phi-3-mini-128k-instruct",
+      "model_revision": "5be6479b4bc06a081e8f4c6ece294241ccd32dec",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5489833641404805,
+          "inst_level_strict_acc,none": 0.6462829736211031
+        }
+      }
+    },
+    {
+      "card": "models/microsoft/phi-3-mini-4k-instruct.md",
+      "model_repository": "microsoft/Phi-3-mini-4k-instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 54.4,
+          "new": 56.1
+        },
+        "bbh": {
+          "old": 55.0,
+          "new": 56.8
+        },
+        "musr": {
+          "old": 42.8,
+          "new": 39.5
+        },
+        "mmlu_pro": {
+          "old": 40.3,
+          "new": 38.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-3-mini-4k-instruct/results_2024-06-17T11-04-33.850464.json",
+      "evaluated_model": "microsoft/Phi-3-mini-4k-instruct",
+      "model_revision": "ff07dc01615f8113924aed013115ab2abd32115b",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.49907578558225507,
+          "inst_level_strict_acc,none": 0.6235011990407674
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.592
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.292
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.64
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.7865168539325843
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.548
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.488
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.388
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.536
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.236
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.48
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.636
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.548
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.56
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.716
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.692
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.92
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.82
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.6096256684491979
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.624
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.216
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.66
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.5821917808219178
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.812
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.24
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.2890625
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.348
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.548
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.38663563829787234
+        }
+      }
+    },
+    {
+      "card": "models/mistral/ministral-3b-latest.md",
+      "model_repository": "",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 13.6,
+          "new": null
+        },
+        "bbh": {
+          "old": 31.9,
+          "new": null
+        },
+        "musr": {
+          "old": 33.8,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 10.9,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "Card has no Hugging Face repository; similarly named community models are not its evidence."
+    },
+    {
+      "card": "models/mistral/ministral-8b-instruct-2410.md",
+      "model_repository": "mistralai/Ministral-8B-Instruct-2410",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 59.0,
+          "new": 59.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Ministral-8B-Instruct-2410/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "mistralai/Ministral-8B-Instruct-2410",
+      "model_revision": "199e57c1d66379760f6413f79d27008d1d1dbd6e",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5341959334565619,
+          "inst_level_strict_acc,none": 0.645083932853717
+        }
+      }
+    },
+    {
+      "card": "models/mistral/mistral-7b-instruct-v0-1.md",
+      "model_repository": "mistralai/Mistral-7B-Instruct-v0.1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 44.9,
+          "new": 44.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "mistralai/Mistral-7B-Instruct-v0.1",
+      "model_revision": "86370fc1f5e0aa51b50dcdf6eada80697b570099",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.3974121996303142,
+          "inst_level_strict_acc,none": 0.5
+        }
+      }
+    },
+    {
+      "card": "models/mistral/mistral-7b-instruct-v0-2.md",
+      "model_repository": "mistralai/Mistral-7B-Instruct-v0.2",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 55.0,
+          "new": 55.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.2/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "mistralai/Mistral-7B-Instruct-v0.2",
+      "model_revision": "41b61a33a2483885c981aa79e0df6b32407ed873",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5009242144177449,
+          "inst_level_strict_acc,none": 0.5983213429256595
+        }
+      }
+    },
+    {
+      "card": "models/mistral/mistral-7b-instruct-v0-3.md",
+      "model_repository": "mistralai/Mistral-7B-Instruct-v0.3",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 54.7,
+          "new": 54.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.3/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "mistralai/Mistral-7B-Instruct-v0.3",
+      "model_revision": "83e9aa141f2e28c82232fea5325f54edf17c43de",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.49353049907578556,
+          "inst_level_strict_acc,none": 0.5995203836930456
+        }
+      }
+    },
+    {
+      "card": "models/mistral/mistral-7b-v0-1.md",
+      "model_repository": "mistralai/Mistral-7B-v0.1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 23.9,
+          "new": 23.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-v0.1/results_2024-10-24T00-00-00.000000.json",
+      "evaluated_model": "mistralai/Mistral-7B-v0.1",
+      "model_revision": "26bca36bde8333b5d7f72e9ed20ccda6a618af24",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.17375231053604437,
+          "inst_level_strict_acc,none": 0.30335731414868106
+        }
+      }
+    },
+    {
+      "card": "models/mistral/mistral-7b-v0-3.md",
+      "model_repository": "mistralai/Mistral-7B-v0.3",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 22.7,
+          "new": 22.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-v0.3/results_2024-10-24T00-00-00.000000.json",
+      "evaluated_model": "mistralai/Mistral-7B-v0.3",
+      "model_revision": "b67d6a03ca097c5122fa65904fce0413500bf8c8",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.15711645101663585,
+          "inst_level_strict_acc,none": 0.2961630695443645
+        }
+      }
+    },
+    {
+      "card": "models/mistral/mixtral-8x22b-instruct-v0-1.md",
+      "model_repository": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 77.8,
+          "new": 71.8
+        },
+        "bbh": {
+          "old": 48.5,
+          "new": 61.2
+        },
+        "musr": {
+          "old": 18.5,
+          "new": 43.1
+        },
+        "mmlu_pro": {
+          "old": 52.3,
+          "new": 44.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-06-26T15-18-07.434042.json",
+      "evaluated_model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+      "model_revision": "main",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.6765249537892791,
+          "inst_level_strict_acc,none": 0.7601918465227818
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.684
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.384
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.428
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.702247191011236
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.696
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.672
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.168
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.608
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.52
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.488
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.828
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.624
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.588
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.768
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.788
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.812
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.848
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.5828877005347594
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.62
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.276
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.848
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.6506849315068494
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.844
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.272
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.27734375
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.448
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.568
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.44830452127659576
+        }
+      }
+    },
+    {
+      "card": "models/mistral/mixtral-8x7b-instruct-v0-1.md",
+      "model_repository": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 69.5,
+          "new": 56.0
+        },
+        "bbh": {
+          "old": 36.8,
+          "new": 49.6
+        },
+        "musr": {
+          "old": 11.8,
+          "new": 42.0
+        },
+        "mmlu_pro": {
+          "old": 40.5,
+          "new": 36.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+      "model_revision": "41bd4c9e7e4fb318ca40e721131d4933966c2cc1",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5083179297597042,
+          "inst_level_strict_acc,none": 0.6115107913669064
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.62
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.16
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.32
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.856
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.58
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.6310160427807486
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.176
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.6123595505617978
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.4863013698630137
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.644
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.324
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.508
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.892
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.44
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.424
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.464
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.48
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.656
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.516
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.508
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.344
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.26
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.576
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.432
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.528
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.44
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.29296875
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.36918218085106386
+        }
+      }
+    },
+    {
+      "card": "models/mistral/mixtral-8x7b-v0-1.md",
+      "model_repository": "mistralai/Mixtral-8x7B-v0.1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 69.5,
+          "new": 24.2
+        },
+        "bbh": {
+          "old": 36.8,
+          "new": 50.9
+        },
+        "musr": {
+          "old": 11.8,
+          "new": 43.2
+        },
+        "mmlu_pro": {
+          "old": 40.5,
+          "new": 38.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "mistralai/Mixtral-8x7B-v0.1",
+      "model_revision": "ffe1a706bacbd5abddc5ff99432ee38f7e0662fb",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.19408502772643252,
+          "inst_level_strict_acc,none": 0.28896882494004794
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.812
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.432
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.304
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.636
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.632
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.6
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.5935828877005348
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.144
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.244
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.492
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.496
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.416
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.176
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.692
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.4
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.4452054794520548
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.88
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.6292134831460674
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.86
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.424
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.656
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.516
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.352
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.376
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.524
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.456
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.31640625
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.3849734042553192
+        }
+      }
+    },
+    {
+      "card": "models/mistral/open-mixtral-8x22b.md",
+      "model_repository": "mistralai/Mixtral-8x22B-v0.1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 77.8,
+          "new": 25.8
+        },
+        "bbh": {
+          "old": 48.5,
+          "new": 62.4
+        },
+        "musr": {
+          "old": 18.5,
+          "new": 40.4
+        },
+        "mmlu_pro": {
+          "old": 52.3,
+          "new": 46.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "mistralai/Mixtral-8x22B-v0.1",
+      "model_revision": "b03e260818710044a2f088d88fab12bb220884fb",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.19038817005545286,
+          "inst_level_strict_acc,none": 0.3261390887290168
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.904
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.376
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.576
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.6797752808988764
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.732
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.636
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.5
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.508
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.444
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.488
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.936
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.54
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.592
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.716
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.896
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.724
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.788
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.6096256684491979
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.616
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.172
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.876
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.6301369863013698
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.84
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.196
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.37109375
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.34
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.5
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.46392952127659576
+        }
+      }
+    },
+    {
+      "card": "models/mistral/open-mixtral-8x7b.md",
+      "model_repository": "mistralai/Mixtral-8x7B-v0.1",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 69.5,
+          "new": 24.2
+        },
+        "bbh": {
+          "old": 36.8,
+          "new": 50.9
+        },
+        "musr": {
+          "old": 11.8,
+          "new": 43.2
+        },
+        "mmlu_pro": {
+          "old": 40.5,
+          "new": 38.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "mistralai/Mixtral-8x7B-v0.1",
+      "model_revision": "ffe1a706bacbd5abddc5ff99432ee38f7e0662fb",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.19408502772643252,
+          "inst_level_strict_acc,none": 0.28896882494004794
+        },
+        "leaderboard_bbh_sports_understanding": {
+          "acc_norm,none": 0.812
+        },
+        "leaderboard_bbh_object_counting": {
+          "acc_norm,none": 0.432
+        },
+        "leaderboard_bbh_geometric_shapes": {
+          "acc_norm,none": 0.304
+        },
+        "leaderboard_bbh_hyperbaton": {
+          "acc_norm,none": 0.636
+        },
+        "leaderboard_bbh_disambiguation_qa": {
+          "acc_norm,none": 0.632
+        },
+        "leaderboard_bbh_logical_deduction_three_objects": {
+          "acc_norm,none": 0.6
+        },
+        "leaderboard_bbh_causal_judgement": {
+          "acc_norm,none": 0.5935828877005348
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_seven_objects": {
+          "acc_norm,none": 0.144
+        },
+        "leaderboard_bbh_temporal_sequences": {
+          "acc_norm,none": 0.244
+        },
+        "leaderboard_bbh_web_of_lies": {
+          "acc_norm,none": 0.492
+        },
+        "leaderboard_bbh_formal_fallacies": {
+          "acc_norm,none": 0.496
+        },
+        "leaderboard_bbh_salient_translation_error_detection": {
+          "acc_norm,none": 0.416
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_five_objects": {
+          "acc_norm,none": 0.176
+        },
+        "leaderboard_bbh_ruin_names": {
+          "acc_norm,none": 0.692
+        },
+        "leaderboard_bbh_logical_deduction_five_objects": {
+          "acc_norm,none": 0.4
+        },
+        "leaderboard_bbh_penguins_in_a_table": {
+          "acc_norm,none": 0.4452054794520548
+        },
+        "leaderboard_bbh_movie_recommendation": {
+          "acc_norm,none": 0.88
+        },
+        "leaderboard_bbh_snarks": {
+          "acc_norm,none": 0.6292134831460674
+        },
+        "leaderboard_bbh_boolean_expressions": {
+          "acc_norm,none": 0.86
+        },
+        "leaderboard_bbh_navigate": {
+          "acc_norm,none": 0.424
+        },
+        "leaderboard_bbh_date_understanding": {
+          "acc_norm,none": 0.656
+        },
+        "leaderboard_bbh_reasoning_about_colored_objects": {
+          "acc_norm,none": 0.516
+        },
+        "leaderboard_bbh_logical_deduction_seven_objects": {
+          "acc_norm,none": 0.352
+        },
+        "leaderboard_bbh_tracking_shuffled_objects_three_objects": {
+          "acc_norm,none": 0.376
+        },
+        "leaderboard_musr_murder_mysteries": {
+          "acc_norm,none": 0.524
+        },
+        "leaderboard_musr_team_allocation": {
+          "acc_norm,none": 0.456
+        },
+        "leaderboard_musr_object_placements": {
+          "acc_norm,none": 0.31640625
+        },
+        "leaderboard_mmlu_pro": {
+          "acc,none": 0.3849734042553192
+        }
+      }
+    },
+    {
+      "card": "models/nous-research/hermes-2-pro-llama-3-8b.md",
+      "model_repository": "NousResearch/Hermes-2-Pro-Llama-3-8B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 53.6,
+          "new": 53.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Hermes-2-Pro-Llama-3-8B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "NousResearch/Hermes-2-Pro-Llama-3-8B",
+      "model_revision": "bc265d1781299ed2045214289c927c207439a729",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4824399260628466,
+          "inst_level_strict_acc,none": 0.5899280575539568
+        }
+      }
+    },
+    {
+      "card": "models/nous-research/hermes-2-theta-llama-3-8b.md",
+      "model_repository": "NousResearch/Hermes-2-Theta-Llama-3-8B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 65.2,
+          "new": 65.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Hermes-2-Theta-Llama-3-8B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "NousResearch/Hermes-2-Theta-Llama-3-8B",
+      "model_revision": "885173e97ab8572b444f7db1290d5d0386e26816",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.6081330868761553,
+          "inst_level_strict_acc,none": 0.6954436450839329
+        }
+      }
+    },
+    {
+      "card": "models/nous-research/hermes-3-llama-3-1-8b.md",
+      "model_repository": "NousResearch/Hermes-3-Llama-3.1-8B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 61.7,
+          "new": 61.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Hermes-3-Llama-3.1-8B/results_2024-08-29T00-22-29.896826.json",
+      "evaluated_model": "NousResearch/Hermes-3-Llama-3.1-8B",
+      "model_revision": "aabb745a717e133b74dcae23195d2635cf5f38cc",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5637707948243993,
+          "inst_level_strict_acc,none": 0.670263788968825
+        }
+      }
+    },
+    {
+      "card": "models/nous-research/hermes-3-llama-3-2-3b.md",
+      "model_repository": "NousResearch/Hermes-3-Llama-3.2-3B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 38.2,
+          "new": 38.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Hermes-3-Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "NousResearch/Hermes-3-Llama-3.2-3B",
+      "model_revision": "7f1a6bec8cdce6551014fd5bbeb4cd8c0f1fbeab",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.31053604436229204,
+          "inst_level_strict_acc,none": 0.45443645083932854
+        }
+      }
+    },
+    {
+      "card": "models/nous-research/llama-2-13b-hf.md",
+      "model_repository": "NousResearch/Llama-2-13b-hf",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 24.8,
+          "new": null
+        },
+        "bbh": {
+          "old": 41.3,
+          "new": null
+        },
+        "musr": {
+          "old": 35.4,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 23.8,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/nous-research/llama-2-7b-chat-hf.md",
+      "model_repository": "NousResearch/Llama-2-7b-chat-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 39.9,
+          "new": null
+        },
+        "bbh": {
+          "old": 31.1,
+          "new": null
+        },
+        "musr": {
+          "old": 36.8,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 16.9,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/nous-research/llama-2-7b-hf.md",
+      "model_repository": "NousResearch/Llama-2-7b-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 25.2,
+          "new": null
+        },
+        "bbh": {
+          "old": 35.0,
+          "new": null
+        },
+        "musr": {
+          "old": 37.0,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 18.6,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/nous-research/llama-3-2-1b.md",
+      "model_repository": "NousResearch/Llama-3.2-1B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 14.8,
+          "new": null
+        },
+        "bbh": {
+          "old": 31.1,
+          "new": null
+        },
+        "musr": {
+          "old": 34.5,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 12.0,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/nous-research/meta-llama-3-70b-instruct.md",
+      "model_repository": "NousResearch/Meta-Llama-3-70B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 81.0,
+          "new": null
+        },
+        "bbh": {
+          "old": 65.5,
+          "new": null
+        },
+        "musr": {
+          "old": 41.5,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 52.1,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/nous-research/meta-llama-3-8b-instruct.md",
+      "model_repository": "NousResearch/Meta-Llama-3-8B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 47.8,
+          "new": null
+        },
+        "bbh": {
+          "old": 49.1,
+          "new": null
+        },
+        "musr": {
+          "old": 38.1,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 35.9,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/nous-research/meta-llama-3-8b.md",
+      "model_repository": "NousResearch/Meta-Llama-3-8B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 14.6,
+          "new": null
+        },
+        "bbh": {
+          "old": 46.0,
+          "new": null
+        },
+        "musr": {
+          "old": 36.1,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 32.1,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/nous-research/nous-hermes-2-mixtral-8x7b-dpo.md",
+      "model_repository": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 59.0,
+          "new": 59.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+      "model_revision": "286ae6737d048ad1d965c2e830864df02db50f2f",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5378927911275416,
+          "inst_level_strict_acc,none": 0.6414868105515588
+        }
+      }
+    },
+    {
+      "card": "models/nous-research/nous-hermes-2-solar-10-7b.md",
+      "model_repository": "NousResearch/Nous-Hermes-2-SOLAR-10.7B",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 52.8,
+          "new": 52.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Nous-Hermes-2-SOLAR-10.7B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "NousResearch/Nous-Hermes-2-SOLAR-10.7B",
+      "model_revision": "14c1fbe2f71acdcd58247b30d5439bd572d52386",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4658040665434381,
+          "inst_level_strict_acc,none": 0.5899280575539568
+        }
+      }
+    },
+    {
+      "card": "models/nous-research/nous-hermes-llama-2-7b.md",
+      "model_repository": "NousResearch/Nous-Hermes-llama-2-7b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 17.3,
+          "new": 17.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Nous-Hermes-llama-2-7b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "NousResearch/Nous-Hermes-llama-2-7b",
+      "model_revision": "b7c3ec54b754175e006ef75696a2ba3802697078",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.15157116451016636,
+          "inst_level_strict_acc,none": 0.19424460431654678
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-0-5b-instruct.md",
+      "model_repository": "Qwen/Qwen2-0.5B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 22.5,
+          "new": 22.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2-0.5B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2-0.5B-Instruct",
+      "model_revision": "c291d6fce4804a1d39305f388dd32897d1f7acc4",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.16635859519408502,
+          "inst_level_strict_acc,none": 0.2829736211031175
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-1-5b-instruct.md",
+      "model_repository": "Qwen/Qwen2-1.5B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 33.7,
+          "new": 33.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2-1.5B-Instruct",
+      "model_revision": "ba1cf1846d7df0a0591d6c00649f57e798519da8",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2809611829944547,
+          "inst_level_strict_acc,none": 0.3932853717026379
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-5-0-5b-instruct.md",
+      "model_repository": "Qwen/Qwen2.5-0.5B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 31.5,
+          "new": 31.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-0.5B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "model_revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.26247689463955637,
+          "inst_level_strict_acc,none": 0.36810551558752996
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-5-0-5b.md",
+      "model_repository": "Qwen/Qwen2.5-0.5B",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 16.3,
+          "new": 16.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-0.5B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2.5-0.5B",
+      "model_revision": "2630d3d2321bc1f1878f702166d1b2af019a7310",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.10720887245841035,
+          "inst_level_strict_acc,none": 0.2182254196642686
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-5-1-5b-instruct.md",
+      "model_repository": "Qwen/Qwen2.5-1.5B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 44.8,
+          "new": 44.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "model_revision": "5fee7c4ed634dc66c6e318c8ac2897b8b9154536",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4011090573012939,
+          "inst_level_strict_acc,none": 0.4940047961630695
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-5-1-5b.md",
+      "model_repository": "Qwen/Qwen2.5-1.5B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 26.7,
+          "new": 26.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2.5-1.5B",
+      "model_revision": "e5dfabbcffd9b0c7b31d89b82c5a6b72e663f32c",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2255083179297597,
+          "inst_level_strict_acc,none": 0.30935251798561153
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-5-3b-instruct.md",
+      "model_repository": "Qwen/Qwen2.5-3B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 64.7,
+          "new": 64.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-3B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2.5-3B-Instruct",
+      "model_revision": "82f42baa094a9600e39ccd80d34058aeeb3abbc1",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.600739371534196,
+          "inst_level_strict_acc,none": 0.6942446043165468
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-5-coder-14b-instruct.md",
+      "model_repository": "Qwen/Qwen2.5-Coder-14B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 69.1,
+          "new": 69.1
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-14B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2.5-Coder-14B-Instruct",
+      "model_revision": "1a62978099f9b19f72fdd191988ff958abb18561",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.6524953789279113,
+          "inst_level_strict_acc,none": 0.7290167865707434
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-5-coder-7b-instruct-gptq-int4.md",
+      "model_repository": "Qwen/Qwen2.5-Coder-7B-Instruct-GPTQ-Int4",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 34.5,
+          "new": null
+        },
+        "bbh": {
+          "old": 48.6,
+          "new": null
+        },
+        "musr": {
+          "old": 34.5,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 36.8,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/qwen/qwen2-5-coder-7b-instruct.md",
+      "model_repository": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 61.5,
+          "new": 61.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-7B-Instruct/results_2024-11-07T03-51-21.119041.json",
+      "evaluated_model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "model_revision": "f784f10a7b2aac91bd26e6dbe7dccce691cd4ac5",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5711645101663586,
+          "inst_level_strict_acc,none": 0.658273381294964
+        }
+      }
+    },
+    {
+      "card": "models/qwen/qwen2-5-math-1-5b.md",
+      "model_repository": "Qwen/Qwen2.5-Math-1.5B",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": true,
+      "fields": {
+        "ifeval": {
+          "old": 18.6,
+          "new": null
+        },
+        "bbh": {
+          "old": 37.5,
+          "new": null
+        },
+        "musr": {
+          "old": 36.9,
+          "new": null
+        },
+        "mmlu_pro": {
+          "old": 18.0,
+          "new": null
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet",
+      "absence_reason": "No exact repository row in contents and no results directory for this repository."
+    },
+    {
+      "card": "models/qwen/qwen2-vl-7b-instruct.md",
+      "model_repository": "Qwen/Qwen2-VL-7B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 46.0,
+          "new": 46.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2-VL-7B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "Qwen/Qwen2-VL-7B-Instruct",
+      "model_revision": "51c47430f97dd7c74aa1fa6825e68a813478097f",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.4066543438077634,
+          "inst_level_strict_acc,none": 0.513189448441247
+        }
+      }
+    },
+    {
+      "card": "models/rwkv/rwkv-raven-14b.md",
+      "model_repository": "RWKV/rwkv-raven-14b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 7.7,
+          "new": 7.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/RWKV/rwkv-raven-14b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "RWKV/rwkv-raven-14b",
+      "model_revision": "359c0649b4f1d10a26ebea32908035bc00d152ee",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.051756007393715345,
+          "inst_level_strict_acc,none": 0.10191846522781775
+        }
+      }
+    },
+    {
+      "card": "models/stability/stablelm-2-1-6b.md",
+      "model_repository": "stabilityai/stablelm-2-1_6b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 11.6,
+          "new": 11.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-2-1_6b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "stabilityai/stablelm-2-1_6b",
+      "model_revision": "8879812cccd176fbbe9ceb747b815bcc7d6499f8",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.08872458410351201,
+          "inst_level_strict_acc,none": 0.14268585131894485
+        }
+      }
+    },
+    {
+      "card": "models/stability/stablelm-3b-4e1t.md",
+      "model_repository": "stabilityai/stablelm-3b-4e1t",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 22.0,
+          "new": 22.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-3b-4e1t/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "stabilityai/stablelm-3b-4e1t",
+      "model_revision": "fa4a6a92fca83c3b4223a3c9bf792887090ebfba",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.15526802218114602,
+          "inst_level_strict_acc,none": 0.2853717026378897
+        }
+      }
+    },
+    {
+      "card": "models/stability/stablelm-zephyr-3b.md",
+      "model_repository": "stabilityai/stablelm-zephyr-3b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 36.8,
+          "new": 36.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-zephyr-3b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "stabilityai/stablelm-zephyr-3b",
+      "model_revision": "a14f62d95754d96aea2be6e24c0f6966636797b9",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.3049907578558225,
+          "inst_level_strict_acc,none": 0.4316546762589928
+        }
+      }
+    },
+    {
+      "card": "models/teknium/openhermes-13b.md",
+      "model_repository": "teknium/OpenHermes-13B",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 26.7,
+          "new": 26.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-13B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "teknium/OpenHermes-13B",
+      "model_revision": "bcad6fff9f8591e091d2d57356a3f102197e8c5f",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.20147874306839186,
+          "inst_level_strict_acc,none": 0.33213429256594723
+        }
+      }
+    },
+    {
+      "card": "models/teknium/openhermes-2-5-mistral-7b.md",
+      "model_repository": "teknium/OpenHermes-2.5-Mistral-7B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 55.7,
+          "new": 55.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2.5-Mistral-7B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "teknium/OpenHermes-2.5-Mistral-7B",
+      "model_revision": "24c0bea14d53e6f67f1fbe2eca5bfe7cae389b33",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5027726432532348,
+          "inst_level_strict_acc,none": 0.6115107913669064
+        }
+      }
+    },
+    {
+      "card": "models/teknium/openhermes-2-mistral-7b.md",
+      "model_repository": "teknium/OpenHermes-2-Mistral-7B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 52.9,
+          "new": 52.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2-Mistral-7B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "teknium/OpenHermes-2-Mistral-7B",
+      "model_revision": "4c6e34123b140ce773a8433cae5410949289102c",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.47689463955637706,
+          "inst_level_strict_acc,none": 0.580335731414868
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon-11b.md",
+      "model_repository": "tiiuae/falcon-11B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 32.6,
+          "new": 32.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-11B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/falcon-11B",
+      "model_revision": "066e3bf4e2d9aaeefa129af0a6d39727d27816b3",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.266173752310536,
+          "inst_level_strict_acc,none": 0.38609112709832133
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon-40b-instruct.md",
+      "model_repository": "tiiuae/falcon-40b-instruct",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 24.5,
+          "new": 24.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-40b-instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/falcon-40b-instruct",
+      "model_revision": "ecb78d97ac356d098e79f0db222c9ce7c5d9ee5f",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.19593345656192238,
+          "inst_level_strict_acc,none": 0.2949640287769784
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon-40b.md",
+      "model_repository": "tiiuae/falcon-40b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 25.0,
+          "new": 25.0
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-40b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/falcon-40b",
+      "model_revision": "4a70170c215b36a3cce4b4253f6d0612bb7d4146",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.19593345656192238,
+          "inst_level_strict_acc,none": 0.30335731414868106
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon-7b-instruct.md",
+      "model_repository": "tiiuae/falcon-7b-instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 19.7,
+          "new": 19.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b-instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/falcon-7b-instruct",
+      "model_revision": "cf4b3c42ce2fdfe24f753f0f0d179202fea59c99",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.15157116451016636,
+          "inst_level_strict_acc,none": 0.2422062350119904
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon-7b.md",
+      "model_repository": "tiiuae/falcon-7b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 18.2,
+          "new": 18.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/falcon-7b",
+      "model_revision": "898df1396f35e447d5fe44e0a3ccaaaa69f30d36",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.11829944547134935,
+          "inst_level_strict_acc,none": 0.24580335731414868
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon-mamba-7b.md",
+      "model_repository": "tiiuae/falcon-mamba-7b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 33.4,
+          "new": 33.4
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-mamba-7b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/falcon-mamba-7b",
+      "model_revision": "5337fd73f19847e111ba2291f3f0e1617b90c37d",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2846580406654344,
+          "inst_level_strict_acc,none": 0.3824940047961631
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon3-1b-base.md",
+      "model_repository": "tiiuae/Falcon3-1B-Base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 24.3,
+          "new": 24.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-1B-Base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/Falcon3-1B-Base",
+      "model_revision": "cc56a5a7c3923821312ad14f52c5a7c3fa835cbc",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.17744916820702403,
+          "inst_level_strict_acc,none": 0.30815347721822545
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon3-1b-instruct.md",
+      "model_repository": "tiiuae/Falcon3-1B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 55.6,
+          "new": 55.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-1B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/Falcon3-1B-Instruct",
+      "model_revision": "27dd70ccb22fd3cc71c5adbc95eb670455afff3d",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5046210720887245,
+          "inst_level_strict_acc,none": 0.6067146282973621
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon3-3b-base.md",
+      "model_repository": "tiiuae/Falcon3-3B-Base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 27.6,
+          "new": 27.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-3B-Base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/Falcon3-3B-Base",
+      "model_revision": "3d49753006a0fa5384031a737c60fbcd0f60b7f2",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.2088724584103512,
+          "inst_level_strict_acc,none": 0.3441247002398082
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon3-3b-instruct.md",
+      "model_repository": "tiiuae/Falcon3-3B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 69.8,
+          "new": 69.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-3B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/Falcon3-3B-Instruct",
+      "model_revision": "552213004cecf9bb6ce332f46da0d4324c8347f1",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.6543438077634011,
+          "inst_level_strict_acc,none": 0.7410071942446043
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon3-7b-base.md",
+      "model_repository": "tiiuae/Falcon3-7B-Base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 34.2,
+          "new": 34.2
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/Falcon3-7B-Base",
+      "model_revision": "a1cf49eb7a53210fc2ee82f3876bbc7efb2244fd",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.27911275415896486,
+          "inst_level_strict_acc,none": 0.4040767386091127
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon3-7b-instruct.md",
+      "model_repository": "tiiuae/Falcon3-7B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 76.1,
+          "new": 76.1
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/Falcon3-7B-Instruct",
+      "model_revision": "7aae4f3953f3dbfaa81aeecbb404a6bbba0e0c06",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.722735674676525,
+          "inst_level_strict_acc,none": 0.7997601918465228
+        }
+      }
+    },
+    {
+      "card": "models/tii/falcon3-mamba-7b-instruct.md",
+      "model_repository": "tiiuae/Falcon3-Mamba-7B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 71.7,
+          "new": 71.7
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-Mamba-7B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "tiiuae/Falcon3-Mamba-7B-Instruct",
+      "model_revision": "382561849d1509b5f1a4d7a38bb286b3c4f46fbd",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.6728280961182994,
+          "inst_level_strict_acc,none": 0.7601918465227818
+        }
+      }
+    },
+    {
+      "card": "models/together/gpt-jt-6b-v1.md",
+      "model_repository": "togethercomputer/GPT-JT-6B-v1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 20.6,
+          "new": 20.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-JT-6B-v1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/GPT-JT-6B-v1",
+      "model_revision": "f34aa35f906895602c1f86f5685e598afdea8051",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.14602587800369685,
+          "inst_level_strict_acc,none": 0.26618705035971224
+        }
+      }
+    },
+    {
+      "card": "models/together/gpt-neoxt-chat-base-20b.md",
+      "model_repository": "togethercomputer/GPT-NeoXT-Chat-Base-20B",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 18.3,
+          "new": 18.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-NeoXT-Chat-Base-20B/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/GPT-NeoXT-Chat-Base-20B",
+      "model_revision": "d386708e84d862a65f7d2b4989f64750cb657227",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.12014787430683918,
+          "inst_level_strict_acc,none": 0.24580335731414868
+        }
+      }
+    },
+    {
+      "card": "models/together/llama-2-7b-32k-instruct.md",
+      "model_repository": "togethercomputer/Llama-2-7B-32K-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 21.3,
+          "new": 21.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/Llama-2-7B-32K-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/Llama-2-7B-32K-Instruct",
+      "model_revision": "d27380af003252f5eb0d218e104938b4e673e3f3",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.16820702402957485,
+          "inst_level_strict_acc,none": 0.2577937649880096
+        }
+      }
+    },
+    {
+      "card": "models/together/llama-2-7b-32k.md",
+      "model_repository": "togethercomputer/LLaMA-2-7B-32K",
+      "read_date": "2026-09-24",
+      "sampled": true,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 18.6,
+          "new": 18.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/LLaMA-2-7B-32K/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/LLaMA-2-7B-32K",
+      "model_revision": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.1367837338262477,
+          "inst_level_strict_acc,none": 0.23621103117505995
+        }
+      }
+    },
+    {
+      "card": "models/together/redpajama-incite-7b-base.md",
+      "model_repository": "togethercomputer/RedPajama-INCITE-7B-Base",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 20.8,
+          "new": 20.8
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Base/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/RedPajama-INCITE-7B-Base",
+      "model_revision": "78f7e482443971f4873ba3239f0ac810a367833b",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.1478743068391867,
+          "inst_level_strict_acc,none": 0.2685851318944844
+        }
+      }
+    },
+    {
+      "card": "models/together/redpajama-incite-7b-chat.md",
+      "model_repository": "togethercomputer/RedPajama-INCITE-7B-Chat",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 15.6,
+          "new": 15.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Chat/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/RedPajama-INCITE-7B-Chat",
+      "model_revision": "47b94a739e2f3164b438501c8684acc5d5acc146",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.10536044362292052,
+          "inst_level_strict_acc,none": 0.20623501199040767
+        }
+      }
+    },
+    {
+      "card": "models/together/redpajama-incite-7b-instruct.md",
+      "model_repository": "togethercomputer/RedPajama-INCITE-7B-Instruct",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 20.6,
+          "new": 20.6
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Instruct/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/RedPajama-INCITE-7B-Instruct",
+      "model_revision": "7f36397b9985a3f981cdb618f8fec1c565ca5927",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.14602587800369685,
+          "inst_level_strict_acc,none": 0.26498800959232616
+        }
+      }
+    },
+    {
+      "card": "models/together/redpajama-incite-base-3b-v1.md",
+      "model_repository": "togethercomputer/RedPajama-INCITE-Base-3B-v1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 22.9,
+          "new": 22.9
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-Base-3B-v1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/RedPajama-INCITE-Base-3B-v1",
+      "model_revision": "094fbdd0c911feb485ce55de1952ab2e75277e1e",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.1589648798521257,
+          "inst_level_strict_acc,none": 0.2997601918465228
+        }
+      }
+    },
+    {
+      "card": "models/together/redpajama-incite-chat-3b-v1.md",
+      "model_repository": "togethercomputer/RedPajama-INCITE-Chat-3B-v1",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 16.5,
+          "new": 16.5
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-Chat-3B-v1/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "togethercomputer/RedPajama-INCITE-Chat-3B-v1",
+      "model_revision": "f0e0995eba801096ed04cb87931d96a8316871af",
+      "precision": "torch.float16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.11460258780036968,
+          "inst_level_strict_acc,none": 0.2158273381294964
+        }
+      }
+    },
+    {
+      "card": "models/zhipu/glm-4-9b-chat-hf.md",
+      "model_repository": "zai-org/glm-4-9b-chat-hf",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 65.1,
+          "new": 65.1
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/THUDM/glm-4-9b-chat-hf/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "THUDM/glm-4-9b-chat-hf",
+      "model_revision": "c7f73fd9e0f378c87f3c8f2c25aec6ad705043cd",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.5951940850277264,
+          "inst_level_strict_acc,none": 0.7074340527577938
+        }
+      }
+    },
+    {
+      "card": "models/zhipu/glm-4-9b.md",
+      "model_repository": "zai-org/glm-4-9b",
+      "read_date": "2026-09-24",
+      "sampled": false,
+      "leftover": false,
+      "fields": {
+        "ifeval": {
+          "old": 14.3,
+          "new": 14.3
+        }
+      },
+      "source": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/THUDM/glm-4-9b/results_2025-02-13T18-27-04.338360.json",
+      "evaluated_model": "THUDM/glm-4-9b",
+      "model_revision": "main",
+      "precision": "torch.bfloat16",
+      "metrics": {
+        "leaderboard_ifeval": {
+          "prompt_level_strict_acc,none": 0.10536044362292052,
+          "inst_level_strict_acc,none": 0.17985611510791366
+        }
+      }
+    }
+  ],
+  "full_math": [
+    {
+      "card": "models/anthropic/claude-3-5-sonnet-20241022.md",
+      "value": 78.3,
+      "source": "https://www.anthropic.com/news/3-5-models-and-computer-use",
+      "read_date": "2026-09-24",
+      "method": "0-shot CoT"
+    },
+    {
+      "card": "models/meta/llama-3-1-405b-instruct.md",
+      "value": 73.8,
+      "source": "https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md",
+      "read_date": "2026-09-24",
+      "method": "0-shot CoT, final_em"
+    },
+    {
+      "card": "models/openai/gpt-4o-2024-05-13.md",
+      "value": 76.6,
+      "source": "https://github.com/openai/simple-evals/blob/main/README.md",
+      "read_date": "2026-09-24",
+      "method": "assistant prompt; full MATH for models before o1, per footnote 6"
+    }
+  ]
+}

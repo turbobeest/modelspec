@@ -665,16 +665,14 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 13.6
-    bbh: 31.9
-    musr: 33.8
-    mmlu_pro: 10.9
+  scores: {}
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 0.8 and gpqa_diamond 25.2. They were the Open LLM Leaderboard
     v2 MATH Lvl 5 and GPQA values for ministral/Ministral-3b-instruct, a different repository from this card''s (no
-    Hugging Face repo).'
+    Hugging Face repo). MODEL-154, read 2026-09-24: Set ifeval, bbh, musr and mmlu_pro to null. Card has no Hugging
+    Face repository; similarly named community models are not its evidence. No evidence is transferred from a mirror,
+    quantization, base or instruction-tuned variant. Source inventory: https://huggingface.co/datasets/open-llm-leaderboard/contents/blob/9c09a7cae43334062a82cb164f2ef255013dafa2/data/train-00000-of-00001.parquet.'
 deployment:
   api_only: false
   local_inference: false
