@@ -56,7 +56,7 @@ _offline.snapshot_app.command("build", cls=_offline.ContractCommand)(_snapshot_b
 # Two-key verification (MODEL-140): re-reads queued values from their sources.
 from . import verify_cmd as _verify_cmd  # noqa: E402
 
-app.command("verify")(_verify_cmd.verify)
+app.add_typer(_verify_cmd.app, name="verify")
 
 console = Console()
 

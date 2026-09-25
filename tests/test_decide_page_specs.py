@@ -16,7 +16,9 @@ import json
 from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
+from cli.modelspec import cli as cli_mod
 from decision.contract import parse_spec
 from decision.registry import facet as registry_facet
 
@@ -64,15 +66,17 @@ def test_the_web_fixture_has_the_shape_the_builder_writes():
         assert set(row) <= fixture_facets[row["id"]] | {"range", "values", "literals"}, row["id"]
 
 
+PAGE_SNAPSHOT_KEY = b"model-111-page-parity"
+
+
 @pytest.fixture(scope="module")
-def worker_snapshot():
+def page_snapshot_bytes():
     """A signed snapshot that knows every benchmark the fixture vocabulary names."""
     from datetime import date
 
-    from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+    from decision.snapshot import SnapshotInputs, build_snapshot
     from tests.snapshot_records import SOURCES, evidence, model
 
-    key = b"model-153-page-specs"
     benchmarks = [row["id"] for row in VOCABULARY["benchmarks"]]
     built = build_snapshot(SnapshotInputs(
         models=[model("lab/a"), model("lab/b")],
@@ -83,7 +87,16 @@ def worker_snapshot():
         benchmark_domains={row["id"]: [(d["id"], d["directness"]) for d in row["domains"]]
                            for row in VOCABULARY["benchmarks"]},
     ), gate=False, as_of=date(2026, 9, 25))
-    return load_snapshot_bytes(built.to_bytes(key=key), key=key, source="page specs")
+    return built.to_bytes(key=PAGE_SNAPSHOT_KEY)
+
+
+@pytest.fixture(scope="module")
+def worker_snapshot(page_snapshot_bytes):
+    from decision.snapshot import load_snapshot_bytes
+
+    return load_snapshot_bytes(
+        page_snapshot_bytes, key=PAGE_SNAPSHOT_KEY, source="page specs"
+    )
 
 
 @pytest.fixture(scope="module")
@@ -111,3 +124,24 @@ def test_the_worker_answers_the_page_spec(row, worker_snapshot, decide_service):
     """
     status, body = decide_service.decide(row["spec"], worker_snapshot)
     assert status == 200, body.get("error")
+
+
+@pytest.mark.parametrize("row", GOLDEN, ids=[row["name"] for row in GOLDEN])
+def test_the_page_spec_has_byte_identical_cli_and_worker_output(
+    row, page_snapshot_bytes, worker_snapshot, decide_service, tmp_path
+):
+    """The page mapping, CLI, and Worker meet at one byte-identical decision."""
+    snapshot_path = tmp_path / "snapshot.json.gz"
+    snapshot_path.write_bytes(page_snapshot_bytes)
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(row["spec"]), encoding="utf-8")
+
+    cli = CliRunner().invoke(
+        cli_mod.app,
+        ["decide", str(spec_path), "--snapshot-file", str(snapshot_path), "--json"],
+        env={"MODELSPEC_SNAPSHOT_KEY": PAGE_SNAPSHOT_KEY.decode()},
+    )
+    assert cli.exit_code == 0, cli.output
+    status, body = decide_service.decide(row["spec"], worker_snapshot)
+    assert status == 200, body.get("error")
+    assert decide_service.serialise(body) == cli.stdout.encode("utf-8")
