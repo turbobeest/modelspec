@@ -191,13 +191,13 @@ it("can soften and remove an added condition without a reload", () => {
     target: { value: "context" },
   });
   fireEvent.keyDown(screen.getByLabelText("Search facets"), { key: "Enter" });
-  fireEvent.click(screen.getByRole("button", { name: "Soft", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Soft" }));
   expect(
     screen.getByText(
       "Soft: models outside this are kept and flagged. It never adds points.",
     ),
   ).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Remove", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Remove" }));
   expect(screen.queryByText("Edit condition")).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: /Edit condition: Context/ }),
