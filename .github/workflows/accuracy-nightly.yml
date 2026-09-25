@@ -52,9 +52,26 @@ jobs:
               '',
               'Download the decision-accuracy-nightly artifact for the Markdown and JSON reports.'
             ].join('\n');
-            await github.rest.issues.create({
+            // One open issue collects every failing night; don't file a new one each run.
+            const { data: open } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title,
-              body
+              state: 'open',
+              per_page: 100
             });
+            const existing = open.find((issue) => !issue.pull_request && issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body
+              });
+            }
