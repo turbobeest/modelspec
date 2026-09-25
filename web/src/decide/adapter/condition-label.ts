@@ -83,6 +83,18 @@ export function registerBenchmarks(
     BENCHMARKS.set(row.id, { name: row.name, percent: row.unit === "percent" });
 }
 
+const PROVIDERS = new Map<string, string>();
+
+/** Provider display names from the published vocabulary (real mode). */
+export function registerProviders(names: Readonly<Record<string, string>>): void {
+  PROVIDERS.clear();
+  for (const [id, name] of Object.entries(names)) PROVIDERS.set(id, name);
+}
+
+export function providerName(id: string): string {
+  return PROVIDERS.get(id) ?? id;
+}
+
 export function facetName(id: string): string {
   return (
     BENCHMARKS.get(id)?.name ??
@@ -99,7 +111,13 @@ function humanValue(value: string): string {
     .join(" or ");
 }
 
-function valueWithUnit(facet: string, value: string): string {
+export function valueWithUnit(facet: string, value: string): string {
+  if (facet === "offering.provider")
+    return value
+      .replace(/^\{(.*)\}$/, "$1")
+      .split(/,\s*/)
+      .map(providerName)
+      .join(" or ");
   const numeric = /^-?\d+(\.\d+)?(e-?\d+)?$/.test(value);
   const unitId = FACETS[facet]?.unitId;
   if (numeric && unitId === "usd_per_task") return `$${Number(value)} per task`;

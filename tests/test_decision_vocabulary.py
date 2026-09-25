@@ -142,6 +142,51 @@ def test_coverage_counts_what_the_snapshot_actually_knows(vocabulary):
     assert facets["model.release_date"]["range"] is None
 
 
+def test_lineup_coverage_is_counted_per_class_and_per_domain(vocabulary):
+    """What an empty answer is measured against (MODEL-153): counted, never written."""
+    coverage = vocabulary["coverage"]
+    assert coverage["as_of"] == AS_OF.isoformat()
+    # lab/old is retired; lab/c's only evidence failed verification.
+    assert (coverage["models"], coverage["verified"]) == (3, 2)
+    classes = by_id(coverage["classes"])
+    assert set(classes) == set(registry().allowed_values(registry().facet("model.class")))
+    assert classes["text-generator"] == {
+        "id": "text-generator", "models": 3, "verified": 2,
+        "domains": [{"id": "software_engineering", "verified": 2},
+                    {"id": "agentic_tool_use", "verified": 1}]}
+    assert classes["transcriber"] == {
+        "id": "transcriber", "models": 0, "verified": 0, "domains": []}
+    domains = by_id(coverage["domains"])
+    assert {d.id for d in registry().domains()} == set(domains)
+    assert domains["software_engineering"] == {
+        "id": "software_engineering", "name": "Software engineering",
+        "verified": 2, "direct": 2}
+    # Terminal-Bench is direct for agentic tool use, a proxy for engineering.
+    assert domains["agentic_tool_use"] == {
+        "id": "agentic_tool_use", "name": "Agentic and tool use", "verified": 1, "direct": 1}
+    assert domains["retrieval"] == {
+        "id": "retrieval", "name": registry().domain("retrieval").name,
+        "verified": 0, "direct": 0}
+
+
+def test_proxy_evidence_counts_toward_a_domain_but_not_as_direct():
+    built = build_snapshot(SnapshotInputs(
+        models=[generator("lab/x")], offerings=[],
+        evidence=[evidence("lab/x", "terminal_bench_v4_0", 40.0)],
+        sources=SOURCES, benchmark_domains=DOMAINS,
+    ), gate=False, as_of=AS_OF)
+    coverage = build_vocabulary(load_snapshot_bytes(built.to_bytes(key=None), key=None))["coverage"]
+    engineering = by_id(coverage["domains"])["software_engineering"]
+    assert (engineering["verified"], engineering["direct"]) == (1, 0)
+
+
+def test_providers_are_named_as_the_registry_names_them(vocabulary):
+    providers = vocabulary["providers"]
+    assert providers == {p.id: p.name for p in registry().providers()}
+    assert providers["anthropic"] == "Anthropic API"
+    assert providers["zai"] == "Z.ai API"
+
+
 def test_cost_per_task_is_listed_as_computed_from_both_prices(vocabulary):
     cost = by_id(vocabulary["facets"])["offering.cost_per_task"]
     assert cost["computed_by"] == "MODEL-153"

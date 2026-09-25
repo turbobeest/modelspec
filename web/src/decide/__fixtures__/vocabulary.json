@@ -1929,5 +1929,252 @@
       "lab": "zhipu",
       "lab_name": "Z.ai (Zhipu AI)"
     }
+  },
+  "providers": {
+    "openai": "OpenAI API",
+    "anthropic": "Anthropic API",
+    "google-gemini-api": "Gemini API (Google AI Studio)",
+    "xai": "xAI API",
+    "mistral": "Mistral AI La Plateforme",
+    "cohere": "Cohere API",
+    "deepseek": "DeepSeek Open Platform",
+    "alibaba-model-studio": "Alibaba Cloud Model Studio",
+    "moonshot": "Kimi Open Platform (Moonshot AI)",
+    "zai": "Z.ai API",
+    "minimax": "MiniMax API Platform",
+    "ai21": "AI21 Studio",
+    "meta-model-api": "Meta Model API",
+    "typesafe": "TypeSafe API",
+    "aws-bedrock": "Amazon Bedrock",
+    "google-vertex-ai": "Vertex AI (Google Cloud)",
+    "azure-ai-foundry": "Azure AI Foundry",
+    "groq": "GroqCloud",
+    "together-ai": "Together AI",
+    "fireworks-ai": "Fireworks AI",
+    "deepinfra": "DeepInfra",
+    "cerebras": "Cerebras Inference",
+    "sambanova": "SambaNova Cloud",
+    "nvidia-nim": "NVIDIA NIM (build.nvidia.com)",
+    "replicate": "Replicate",
+    "openrouter": "OpenRouter"
+  },
+  "coverage": {
+    "as_of": "2026-09-25",
+    "models": 32,
+    "verified": 29,
+    "classes": [
+      {
+        "id": "actor",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "analyser",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "decider",
+        "models": 1,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "forecaster",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "labeller",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "media-generator",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "orderer",
+        "models": 2,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "scorer",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "simulator",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "text-generator",
+        "models": 25,
+        "verified": 25,
+        "domains": [
+          {
+            "id": "chat_preference",
+            "verified": 25
+          },
+          {
+            "id": "software_engineering",
+            "verified": 25
+          },
+          {
+            "id": "agentic_tool_use",
+            "verified": 18
+          },
+          {
+            "id": "engineering_stem",
+            "verified": 18
+          },
+          {
+            "id": "legal",
+            "verified": 18
+          },
+          {
+            "id": "maths",
+            "verified": 18
+          },
+          {
+            "id": "medical",
+            "verified": 18
+          },
+          {
+            "id": "multilingual",
+            "verified": 18
+          },
+          {
+            "id": "reasoning",
+            "verified": 18
+          },
+          {
+            "id": "writing",
+            "verified": 18
+          },
+          {
+            "id": "vision_documents",
+            "verified": 12
+          }
+        ]
+      },
+      {
+        "id": "transcriber",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "vectoriser",
+        "models": 4,
+        "verified": 4,
+        "domains": [
+          {
+            "id": "retrieval",
+            "verified": 4
+          },
+          {
+            "id": "multilingual",
+            "verified": 2
+          }
+        ]
+      }
+    ],
+    "domains": [
+      {
+        "id": "software_engineering",
+        "name": "Software engineering",
+        "verified": 25,
+        "direct": 22
+      },
+      {
+        "id": "engineering_stem",
+        "name": "Engineering and STEM",
+        "verified": 18,
+        "direct": 18
+      },
+      {
+        "id": "maths",
+        "name": "Maths",
+        "verified": 18,
+        "direct": 17
+      },
+      {
+        "id": "reasoning",
+        "name": "General reasoning",
+        "verified": 18,
+        "direct": 0
+      },
+      {
+        "id": "legal",
+        "name": "Legal",
+        "verified": 18,
+        "direct": 0
+      },
+      {
+        "id": "medical",
+        "name": "Medical",
+        "verified": 18,
+        "direct": 0
+      },
+      {
+        "id": "finance",
+        "name": "Finance",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "writing",
+        "name": "Writing",
+        "verified": 18,
+        "direct": 0
+      },
+      {
+        "id": "marketing_seo",
+        "name": "Marketing and SEO",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "agentic_tool_use",
+        "name": "Agentic and tool use",
+        "verified": 18,
+        "direct": 18
+      },
+      {
+        "id": "vision_documents",
+        "name": "Vision and documents",
+        "verified": 12,
+        "direct": 0
+      },
+      {
+        "id": "multilingual",
+        "name": "Multilingual",
+        "verified": 20,
+        "direct": 0
+      },
+      {
+        "id": "chat_preference",
+        "name": "Chat and preference",
+        "verified": 25,
+        "direct": 25
+      },
+      {
+        "id": "retrieval",
+        "name": "Retrieval",
+        "verified": 4,
+        "direct": 2
+      }
+    ]
   }
 }

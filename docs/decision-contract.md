@@ -591,6 +591,17 @@ it instead of carrying its own list of facets or benchmarks. Built by
   admits), the `range` of those values, and its `domains` with `directness`.
 - `domains`: every registered domain with a listed benchmark, its `benchmarks`
   ordered direct first, then by `models`.
+- `providers`: every registered provider's display name by ID
+  (`registry/providers.yaml`), so a client shows "Anthropic API", not
+  `anthropic`.
+- `coverage`: what the lineup holds, so a client can say what an empty answer
+  was measured against without writing it per question: `as_of` (the snapshot
+  date), `models` (lineup size) and `verified` (lineup models with at least one
+  verified evidence row); `classes`, every registered model class with the same
+  two counts, zeros included, and per domain how many of its models have
+  verified evidence there; `domains`, every registered domain with the lineup
+  models that have verified evidence on any benchmark tagged to it (`verified`)
+  and on a direct one (`direct`).
 
 The field set is additive: a client ignores fields it does not know.
 
