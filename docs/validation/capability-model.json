@@ -59,13 +59,14 @@
   },
   "items": 35,
   "models": 32,
-  "not_separable_point_orders": 34,
+  "not_separable_point_orders": 33,
   "observations": 462,
   "snapshot": "snap_be03a066f9c574aa",
   "summary_latency_ms": {
     "environment": "local Worker-equivalent Python decision path",
-    "max": 19.443875004071742,
-    "median": 13.882208499126136,
+    "max": 19.289666030090302,
+    "median": 13.659270975040272,
     "runs": 12
-  }
+  },
+  "unestimated_point_orders": 1
 }

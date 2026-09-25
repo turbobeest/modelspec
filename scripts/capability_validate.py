@@ -60,11 +60,12 @@ def _observations(snapshot: LoadedSnapshot) -> list[CapabilityObservation]:
 
 def _disagreements(
     snapshot: LoadedSnapshot, metadata: Mapping[str, Mapping[str, Any]]
-) -> tuple[list[dict[str, Any]], int]:
+) -> tuple[list[dict[str, Any]], int, int]:
     tags = snapshot.benchmark_domain_tags()
     models = [cid for cid in snapshot.candidates() if snapshot.kind(cid) == "model"]
     rows = []
     not_separable = 0
+    unestimated = 0
     fitted_benchmarks = {
         str(item["benchmark"])
         for item in snapshot.capability_items.values()
@@ -110,10 +111,11 @@ def _disagreements(
                 continue
             estimate = snapshot.capability_estimate(estimate_top, domain)
             benchmark_leader_estimate = snapshot.capability_estimate(single_top, domain)
+            if estimate is None or benchmark_leader_estimate is None:
+                unestimated += 1
+                continue
             if (
-                estimate is None
-                or benchmark_leader_estimate is None
-                or max(estimate.low, benchmark_leader_estimate.low)
+                max(estimate.low, benchmark_leader_estimate.low)
                 <= min(estimate.high, benchmark_leader_estimate.high)
             ):
                 not_separable += 1
@@ -143,7 +145,7 @@ def _disagreements(
                     "supporting_direct_benchmarks": direct_support,
                 }
             )
-    return rows, not_separable
+    return rows, not_separable, unestimated
 
 
 def validate(root: Path, report_date: date) -> dict[str, Any]:
@@ -185,7 +187,7 @@ def validate(root: Path, report_date: date) -> dict[str, Any]:
         decide(spec, loaded, facets=registry.facet)
         timings.append((time.perf_counter() - started) * 1000)
 
-    disagreements, not_separable_point_orders = _disagreements(
+    disagreements, not_separable_point_orders, unestimated_point_orders = _disagreements(
         loaded, inputs.benchmark_metadata
     )
     return {
@@ -205,6 +207,7 @@ def validate(root: Path, report_date: date) -> dict[str, Any]:
         },
         "disagreements": disagreements,
         "not_separable_point_orders": not_separable_point_orders,
+        "unestimated_point_orders": unestimated_point_orders,
     }
 
 
@@ -240,8 +243,10 @@ def _markdown(result: dict[str, Any]) -> str:
         "Each row compares the estimate leader with the best admitted raw score on one tagged "
         "benchmark. Point-order differences whose estimate intervals overlap are not listed "
         "as disagreements. The report found "
-        f"{result['not_separable_point_orders']} such not-separable point orders. Every "
-        "listed disagreement names the other direct evidence that can explain it.",
+        f"{result['not_separable_point_orders']} such not-separable point orders. Raw "
+        f"leaders lacked estimates in {result['unestimated_point_orders']} other "
+        "comparisons. Every listed disagreement names the other direct evidence that can "
+        "explain it.",
         "",
         "| Domain | Benchmark | Tag | Estimate leader | Single-benchmark leader | "
         "Other direct evidence | Reading |",

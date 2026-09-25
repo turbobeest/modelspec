@@ -13,11 +13,11 @@ Errors are RMSE after scaling each held-out value by its benchmark's spread.
 
 ## Request latency
 
-`explain: summary` over all 12 domain objectives: median 13.9 ms; maximum 19.4 ms. Measured on the local Worker-equivalent Python decision path; this is not a deployed-Worker network timing.
+`explain: summary` over all 12 domain objectives: median 13.7 ms; maximum 19.3 ms. Measured on the local Worker-equivalent Python decision path; this is not a deployed-Worker network timing.
 
 ## Separable estimate/single-benchmark disagreements
 
-Each row compares the estimate leader with the best admitted raw score on one tagged benchmark. Point-order differences whose estimate intervals overlap are not listed as disagreements. The report found 34 such not-separable point orders. Every listed disagreement names the other direct evidence that can explain it.
+Each row compares the estimate leader with the best admitted raw score on one tagged benchmark. Point-order differences whose estimate intervals overlap are not listed as disagreements. The report found 33 such not-separable point orders. Raw leaders lacked estimates in 1 other comparisons. Every listed disagreement names the other direct evidence that can explain it.
 
 | Domain | Benchmark | Tag | Estimate leader | Single-benchmark leader | Other direct evidence | Reading |
 |---|---|---|---|---|---|---|

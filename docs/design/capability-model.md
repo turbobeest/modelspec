@@ -80,10 +80,10 @@ models and 12 domains.
   0.7060, versus 1.1049 for the benchmark-mean baseline.
 - Holding out each model's newest eligible score produced 20 predictions: scaled RMSE
   0.8326, versus 1.2245 for the same baseline.
-- The report finds 3 separable estimate/single-benchmark leader disagreements and 34
-  point-order differences whose intervals overlap. Every separable disagreement names
-  other fitted direct evidence for the estimate leader and links the dated source behind
-  the single-benchmark leader.
+- The report finds 3 separable estimate/single-benchmark leader disagreements, 33
+  point-order differences whose intervals overlap, and 1 comparison whose raw leader
+  has no domain estimate. Every separable disagreement names other fitted direct evidence
+  for the estimate leader and links the dated source behind the single-benchmark leader.
 
 The approved recall specs remain byte-identical to main. The generated recall report
 compares those same benchmark objectives before and after this change; domain objectives
