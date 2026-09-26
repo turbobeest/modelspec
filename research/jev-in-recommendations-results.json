@@ -1,6 +1,6 @@
 {
   "ticket": "MODEL-112",
-  "measurement_date": "2026-09-25",
+  "measurement_date": "2026-09-26",
   "model": "jev-1.13.0",
   "baseline": "openai/gpt-5-mini",
   "bands": {"act": 0.9, "flag": 0.6, "null": "below 0.6 or no_match"},
@@ -11,11 +11,12 @@
       "n": 60,
       "domain_accuracy": 0.85,
       "class_accuracy": 0.8833,
-      "conditions_exact_accuracy": 0.9,
+      "conditions_exact_accuracy": 0.8667,
       "joint_exact_accuracy": 0.7667,
       "p50_latency_ms": 0.0,
       "p95_latency_ms": 0.1,
-      "total_cost_usd": 0.0
+      "total_cost_usd": 0.0,
+      "label_status": "tuned_after_paid_run"
     },
     {
       "candidate": "task_routing",
@@ -23,13 +24,14 @@
       "n": 60,
       "domain_accuracy": 0.6,
       "class_accuracy": 0.45,
-      "conditions_exact_accuracy": 0.9667,
-      "joint_exact_accuracy": 0.25,
+      "conditions_exact_accuracy": 1.0,
+      "joint_exact_accuracy": 0.2833,
       "p50_latency_ms": 169.2,
       "p95_latency_ms": 240.2,
       "total_cost_usd": 0.004076,
-      "cost_per_1000_joint_correct_usd": 0.2717,
-      "bands": {"act": {"n": 8, "correct": 4}, "flag": {"n": 16, "correct": 4}, "null": {"n": 36, "correct": 7}}
+      "cost_per_1000_joint_correct_usd": 0.2398,
+      "bands": {"act": {"n": 8, "correct": 4}, "flag": {"n": 16, "correct": 4}, "null": {"n": 36, "correct": 9}},
+      "label_status": "tuned_after_paid_run"
     },
     {
       "candidate": "task_routing",
@@ -37,15 +39,90 @@
       "n": 60,
       "domain_accuracy": 0.4833,
       "class_accuracy": 0.4333,
-      "conditions_exact_accuracy": 0.85,
-      "joint_exact_accuracy": 0.25,
+      "conditions_exact_accuracy": 0.8833,
+      "joint_exact_accuracy": 0.2667,
       "p50_latency_ms": 8081.6,
       "p95_latency_ms": 11880.3,
       "total_cost_usd": 0.104715,
-      "cost_per_1000_joint_correct_usd": 6.981
+      "cost_per_1000_joint_correct_usd": 6.5447,
+      "label_status": "tuned_after_paid_run"
+    },
+    {
+      "candidate": "task_routing_blind",
+      "arm": "parseRealTask",
+      "n": 24,
+      "domain_accuracy": 0.5833,
+      "class_accuracy": 0.7083,
+      "conditions_exact_accuracy": 0.7917,
+      "joint_exact_accuracy": 0.3333,
+      "p50_latency_ms": 0.0,
+      "p95_latency_ms": 1.1,
+      "total_cost_usd": 0.0,
+      "cost_per_1000_joint_correct_usd": 0.0,
+      "label_status": "blind"
+    },
+    {
+      "candidate": "task_routing_blind",
+      "arm": "jev",
+      "n": 24,
+      "domain_accuracy": 0.75,
+      "class_accuracy": 0.625,
+      "conditions_exact_accuracy": 1.0,
+      "joint_exact_accuracy": 0.4167,
+      "p50_latency_ms": 196.7,
+      "p95_latency_ms": 245.1,
+      "total_cost_usd": 0.001631,
+      "cost_per_1000_joint_correct_usd": 0.1631,
+      "bands": {"act": {"n": 9, "correct": 6}, "flag": {"n": 4, "correct": 2}, "null": {"n": 11, "correct": 2}},
+      "label_status": "blind"
+    },
+    {
+      "candidate": "task_routing_blind",
+      "arm": "gpt-5-mini",
+      "n": 24,
+      "domain_accuracy": 0.75,
+      "class_accuracy": 0.5417,
+      "conditions_exact_accuracy": 1.0,
+      "joint_exact_accuracy": 0.3333,
+      "p50_latency_ms": 6888.7,
+      "p95_latency_ms": 9825.4,
+      "total_cost_usd": 0.045533,
+      "cost_per_1000_joint_correct_usd": 5.6916,
+      "label_status": "blind"
     },
     {
       "candidate": "evidence_attribution",
+      "arm": "jev",
+      "n": 61,
+      "accuracy": 0.5246,
+      "verified_correct": "0/27",
+      "mismatched_correct": "9/9",
+      "hard_negative_correct": "23/25",
+      "p50_latency_ms": 170.9,
+      "p95_latency_ms": 213.5,
+      "total_cost_usd": 0.003173,
+      "cost_per_1000_correct_usd": 0.0992,
+      "bands": {"null": {"n": 61, "correct": 32}},
+      "decision": "drop",
+      "label_status": "blind"
+    },
+    {
+      "candidate": "evidence_attribution",
+      "arm": "gpt-5-mini",
+      "n": 61,
+      "accuracy": 0.6066,
+      "verified_correct": "3/27",
+      "mismatched_correct": "9/9",
+      "hard_negative_correct": "25/25",
+      "p50_latency_ms": 8228.1,
+      "p95_latency_ms": 13656.4,
+      "total_cost_usd": 0.108741,
+      "cost_per_1000_correct_usd": 2.939,
+      "decision": "drop",
+      "label_status": "blind"
+    },
+    {
+      "candidate": "creator_attribution_tuned",
       "arm": "jev",
       "n": 1010,
       "accuracy": 0.9386,
@@ -59,7 +136,7 @@
       "bands": {"act": {"n": 452, "correct": 452}, "flag": {"n": 61, "correct": 61}, "null": {"n": 497, "correct": 435}}
     },
     {
-      "candidate": "evidence_attribution",
+      "candidate": "creator_attribution_tuned",
       "arm": "gpt-5-mini",
       "n": 1010,
       "accuracy": 0.9802,
@@ -72,7 +149,7 @@
       "misattributions": 7
     },
     {
-      "candidate": "evidence_attribution",
+      "candidate": "creator_attribution_tuned",
       "arm": "cascade",
       "n": 1010,
       "accuracy": 0.9792,
@@ -134,12 +211,12 @@
     }
   ],
   "spend": {
-    "runs": 5,
-    "openrouter_provider_reported_usd": 0.556201,
-    "jev_from_actual_tokens_at_posted_price_usd": 0.030024,
-    "actual_total_usd": 0.586224,
-    "conservative_list_price_ledger_usd": 0.656265,
+    "runs": 7,
+    "openrouter_provider_reported_usd": 0.705176,
+    "jev_from_actual_tokens_at_posted_price_usd": 0.034828,
+    "actual_total_usd": 0.740004,
+    "conservative_list_price_ledger_usd": 0.815344,
     "cap_usd": 5.0,
-    "note": "Three superseded harness runs remain included in spend. The round-2 routing run supports the task result. Attribution re-analyses committed MODEL-99/102 outcomes and added no MODEL-112 spend."
+    "note": "Three superseded harness runs remain included. The original routing labels changed after paid inference and are tuned, not blind. The separately committed blind routing and Evidence-attribution runs added $0.153779 actual spend. The MODEL-99/102 creator-attribution re-analysis added no MODEL-112 spend."
   }
 }

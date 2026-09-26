@@ -10,6 +10,7 @@ row followed by a summary. Re-analysis needs no key and spends nothing.
 from __future__ import annotations
 
 import argparse
+import copy
 import gzip
 import json
 import os
@@ -34,7 +35,9 @@ from scripts.attribution import TypeSafeJudge, load_config
 
 ROOT = Path(__file__).resolve().parents[2]
 TASK_LABELS = ROOT / "tests/fixtures/jev_task_routing.yaml"
+BLIND_TASK_LABELS = ROOT / "tests/fixtures/jev_task_routing_blind.yaml"
 JUDGMENT_LABELS = ROOT / "tests/fixtures/jev_judgment_labels.yaml"
+BLIND_ATTRIBUTION_LABELS = ROOT / "tests/fixtures/jev_evidence_attribution_blind.yaml"
 VOCABULARY = ROOT / "web/src/decide/__fixtures__/vocabulary.json"
 FIXTURE_URL = (
     "https://github.com/turbobeest/modelspec/blob/main/tests/fixtures/verification/leaderboard.html"
@@ -157,8 +160,8 @@ def choice(question: str, options: list[str], descriptions: dict[str, str] | Non
     }
 
 
-def task_cases() -> list[Case]:
-    labels = yaml.safe_load(TASK_LABELS.read_text(encoding="utf-8"))
+def task_cases(labels_path: Path = TASK_LABELS, *, candidate: str = "task_routing") -> list[Case]:
+    labels = yaml.safe_load(labels_path.read_text(encoding="utf-8"))
     registry = default_registry()
     registered_domains = registry.domains()
     domains = [row.id for row in registered_domains] + [NO_MATCH]
@@ -207,15 +210,20 @@ def task_cases() -> list[Case]:
         cases.append(
             Case(
                 row["id"],
-                "task_routing",
+                candidate,
                 {"task": row["text"]},
                 questions,
                 expected,
-                "https://github.com/turbobeest/modelspec/blob/main/tests/recall/questions.yaml",
+                labels.get("source_url")
+                or "https://github.com/turbobeest/modelspec/blob/main/tests/recall/questions.yaml",
                 labels["read_date"],
             )
         )
     return cases
+
+
+def blind_task_cases() -> list[Case]:
+    return task_cases(BLIND_TASK_LABELS, candidate="task_routing_blind")
 
 
 def fixture_region() -> str:
@@ -281,7 +289,7 @@ def _published_row(
 
 
 def published_attribution_rows(labels: dict[str, Any]) -> list[dict[str, Any]]:
-    """Load the labelled MODEL-99/102 ingestion outcomes as three arms."""
+    """Load the earlier, tuned MODEL-99/102 creator-attribution comparison."""
     group = labels["attribution"]
     source_url = group["source_url"]
     read_date = group["source_read_date"]
@@ -357,6 +365,103 @@ def published_attribution_rows(labels: dict[str, Any]) -> list[dict[str, Any]]:
             )
         )
     return rows
+
+
+def _benchmark_version(benchmark_id: str) -> str | None:
+    """Return a version only when the registered ID states one exactly."""
+    if benchmark_id == "terminal_bench_v4_0":
+        return "4.0"
+    return None
+
+
+def _evidence_state(
+    claim: dict[str, Any],
+    regions: StoredRegions,
+    sources: dict[str, Any],
+) -> tuple[dict[str, Any], str]:
+    cited_regions: list[dict[str, str]] = []
+    urls: list[str] = []
+    for source_ref in claim["sources"]:
+        source = sources[source_ref["source_id"]]
+        urls.append(str(source.url))
+        for region_id in source_ref["cited_regions"]:
+            text = regions.text(source_ref["source_id"], source_ref["snapshot_ref"], region_id)
+            if text:
+                cited_regions.append(
+                    {
+                        "source_id": source_ref["source_id"],
+                        "region": region_id,
+                        "text": text,
+                    }
+                )
+    if not cited_regions:
+        raise ValueError(f"no retained cited region for {claim['target']['id']}")
+    conditions = claim.get("conditions") or {}
+    row = {
+        "subject": claim["subject"],
+        "model_id_as_evaluated": (claim.get("names") or [None])[0],
+        "benchmark_id": claim["field"],
+        "benchmark_version": _benchmark_version(claim["field"]),
+        "value": claim["value"],
+        "unit": claim["unit"],
+        "effort": conditions.get("effort"),
+        "harness": conditions.get("harness"),
+    }
+    return {"evidence_row": row, "cited_regions": cited_regions}, urls[0]
+
+
+def blind_attribution_cases() -> list[Case]:
+    """Build the frozen blind set from production Evidence and retained sources."""
+    labels = yaml.safe_load(BLIND_ATTRIBUTION_LABELS.read_text(encoding="utf-8"))
+    claims, latest = _claims_and_latest()
+    sources = load_sources(ROOT / "registry/sources.yaml")
+    regions = StoredRegions(CopyStore(), sources)
+    cases: list[Case] = []
+
+    def add_case(
+        case_id: str,
+        target: str,
+        cohort: str,
+        expected: str,
+        mutation: dict[str, Any] | None = None,
+    ) -> None:
+        claim = claims[f"evidence:{target}"]
+        verification = latest[f"evidence:{target}"]
+        state, source_url = _evidence_state(claim, regions, sources)
+        state["source_target"] = target
+        state["cohort"] = cohort
+        state["verification_outcome"] = verification["outcome"]
+        state["mutation"] = mutation["mutation"] if mutation else None
+        if mutation:
+            state["evidence_row"] = copy.deepcopy(state["evidence_row"])
+            state["evidence_row"][mutation["field"]] = mutation["value"]
+        cases.append(
+            Case(
+                case_id,
+                "evidence_attribution",
+                state,
+                {
+                    "attribution": choice(
+                        "Do the cited regions attribute this exact numeric Evidence value to "
+                        "the stated subject and evaluated model variant, benchmark version, "
+                        "effort, harness, and unit? Choose no_match if any identity or "
+                        "qualifier differs or is not established.",
+                        ["supported", NO_MATCH],
+                    )
+                },
+                {"attribution": expected},
+                source_url,
+                verification["date"],
+            )
+        )
+
+    for index, target in enumerate(labels["positive_targets"], start=1):
+        add_case(f"blind-verified-{index:02d}", target, "verified", "supported")
+    for index, target in enumerate(labels["negative_targets"], start=1):
+        add_case(f"blind-mismatch-{index:02d}", target, "mismatch", NO_MATCH)
+    for mutation in labels["hard_negatives"]:
+        add_case(mutation["id"], mutation["target"], "hard_negative", NO_MATCH, mutation)
+    return cases
 
 
 def _claims_and_latest() -> tuple[dict[str, dict], dict[str, dict]]:
@@ -464,13 +569,15 @@ def all_cases() -> list[Case]:
     labels = yaml.safe_load(JUDGMENT_LABELS.read_text(encoding="utf-8"))
     return [
         *task_cases(),
+        *blind_task_cases(),
+        *blind_attribution_cases(),
         *second_key_cases(labels),
         *explanation_cases(labels),
     ]
 
 
 def parse_real_task_baseline(cases: list[Case]) -> list[dict[str, Any]]:
-    tasks = [c for c in cases if c.candidate == "task_routing"]
+    tasks = [c for c in cases if c.candidate in {"task_routing", "task_routing_blind"}]
     payload = {
         "vocabulary": str(VOCABULARY),
         "tasks": [{"id": c.id, "text": c.state["task"]} for c in tasks],
@@ -639,20 +746,22 @@ def summarise(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def run(args: argparse.Namespace) -> None:
     labels = yaml.safe_load(JUDGMENT_LABELS.read_text(encoding="utf-8"))
     cases = all_cases()
-    include_attribution = True
+    include_tuned_attribution = True
     if args.candidates:
         selected = {value.strip() for value in args.candidates.split(",") if value.strip()}
-        known = {case.candidate for case in cases} | {"evidence_attribution"}
+        known = {case.candidate for case in cases} | {"creator_attribution_tuned"}
         if unknown := selected - known:
             raise SystemExit(f"unknown candidates: {', '.join(sorted(unknown))}")
         cases = [case for case in cases if case.candidate in selected]
-        include_attribution = "evidence_attribution" in selected
+        include_tuned_attribution = "creator_attribution_tuned" in selected
     parser_rows = parse_real_task_baseline(cases)
-    attribution_rows = published_attribution_rows(labels) if include_attribution else []
+    attribution_rows = published_attribution_rows(labels) if include_tuned_attribution else []
+    for row in attribution_rows:
+        row["candidate"] = "creator_attribution_tuned"
     if args.plan:
         case_counts = dict(Counter(c.candidate for c in cases))
-        if include_attribution:
-            case_counts["evidence_attribution"] = sum(
+        if include_tuned_attribution:
+            case_counts["creator_attribution_tuned"] = sum(
                 cohort["rows"] for cohort in labels["attribution"]["cohorts"].values()
             )
         plan = {
@@ -752,6 +861,10 @@ def run(args: argparse.Namespace) -> None:
             "source_url": case.source_url,
             "source_read_date": case.source_read_date,
         }
+        if cohort := case.state.get("cohort"):
+            row["cohort"] = cohort
+        if mutation := case.state.get("mutation"):
+            row["mutation"] = mutation
         budget.reconcile(reserve, cost)
         with row_lock:
             paid_rows.append(row)
@@ -792,6 +905,12 @@ def analyse(path: Path) -> None:
             rows.append(row)
         else:
             summary = row
+    blind = {case.id: case for case in blind_attribution_cases()}
+    for row in rows:
+        if case := blind.get(row.get("case_id")):
+            row.setdefault("cohort", case.state["cohort"])
+            if case.state.get("mutation"):
+                row.setdefault("mutation", case.state["mutation"])
     print(json.dumps({"stored": summary, "recomputed": summarise(rows)}, indent=2))
 
 

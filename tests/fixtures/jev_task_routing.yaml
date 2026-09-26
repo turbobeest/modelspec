@@ -27,8 +27,8 @@ cases:
   - {id: Q07b, text: "Pick a model for olympiad algebra and proof problems.", domain: maths, class: text-generator, conditions: []}
   - {id: Q07c, text: "I need accurate answers to contest math questions.", domain: maths, class: text-generator, conditions: []}
   - {id: Q08a, text: "Generate grounded answers over retrieved documents totaling 200,000 tokens.", domain: retrieval, class: text-generator, conditions: [context_200k]}
-  - {id: Q08b, text: "Choose the generator for RAG across a very large document collection.", domain: retrieval, class: text-generator, conditions: [context_200k]}
-  - {id: Q08c, text: "Answer from a long retrieval context without choosing an embedding model.", domain: retrieval, class: text-generator, conditions: [context_200k]}
+  - {id: Q08b, text: "Choose the generator for RAG across a very large document collection.", domain: retrieval, class: text-generator, conditions: []}
+  - {id: Q08c, text: "Answer from a long retrieval context without choosing an embedding model.", domain: retrieval, class: text-generator, conditions: []}
   - {id: Q09a, text: "Summarize a long technical document faithfully.", domain: writing, class: text-generator, conditions: []}
   - {id: Q09b, text: "Write an accurate summary of a large engineering report.", domain: writing, class: text-generator, conditions: []}
   - {id: Q09c, text: "Condense a lengthy scientific document without inventing details.", domain: writing, class: text-generator, conditions: []}
