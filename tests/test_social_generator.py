@@ -1,0 +1,193 @@
+"""Social drafts are deterministic views of an approved decision snapshot."""
+
+from __future__ import annotations
+
+import ast
+import hashlib
+import json
+from datetime import date
+from pathlib import Path
+
+import pytest
+
+from decision.snapshot import SnapshotInputs, build_snapshot
+from scripts.social import generator
+from scripts.social.generator import PLATFORM_SIZES, generate
+from tests.snapshot_records import SOURCES, evidence, fact, model, offering
+
+KEY = b"social-fixture-signing-key"
+AS_OF = date(2026, 9, 26)
+DEVICE = "nvidia_rtx_4090"
+
+
+def _model(model_id: str, *, fits: bool = True) -> dict:
+    facts = [
+        fact("model", model_id, "model.class", "text-generator"),
+        fact("model", model_id, "model.fits_hardware", [DEVICE] if fits else []),
+    ]
+    return model(model_id, facts=facts)
+
+
+def _offering(model_id: str, price: float) -> dict:
+    row = offering(model_id, provider="openai")
+    offering_id = f"openai/{model_id}/global/standard"
+    row["facts"] = [
+        fact("offering", offering_id, "offering.price.input", price, source="src-pricing"),
+        fact("offering", offering_id, "offering.price.output", price * 2, source="src-pricing"),
+    ]
+    return row
+
+
+def _snapshot(path: Path, scores: dict[str, float]) -> str:
+    model_ids = ["lab/alpha", "lab/beta", "lab/gamma", "lab/delta"]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[_model(model_id, fits=model_id != "lab/delta") for model_id in model_ids],
+            offerings=[
+                _offering("lab/alpha", 1.0),
+                _offering("lab/beta", 5.0),
+                _offering("lab/gamma", 4.0),
+                _offering("lab/delta", 0.5),
+            ],
+            evidence=[
+                evidence(model_id, "swe_bench_pro", score, day=AS_OF.isoformat())
+                for model_id, score in scores.items()
+            ],
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        gate=False,
+        as_of=AS_OF,
+    )
+    built.write(path, key=KEY)
+    return built.snapshot_id
+
+
+def _accuracy(path: Path, snapshot_id: str) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "generated_at": "2026-09-26T12:00:00Z",
+                "profile": "pr",
+                "snapshot": snapshot_id,
+                "status": "pass",
+                "layers": [
+                    {"name": "freshness", "status": "pass", "gating": True},
+                    {"name": "golden_answers", "status": "pass", "gating": True},
+                ],
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _tree_digest(root: Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        digest.update(path.relative_to(root).as_posix().encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def test_fixture_snapshot_is_deterministic_and_has_no_unsourced_numbers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    previous = tmp_path / "previous.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 90.0, "lab/beta": 80.0, "lab/gamma": 70.0},
+    )
+    _snapshot(
+        previous,
+        {"lab/alpha": 60.0, "lab/beta": 90.0, "lab/gamma": 80.0},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    first = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        previous_snapshot_path=previous,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "first",
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+    second = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        previous_snapshot_path=previous,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "second",
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+
+    assert {draft["angle"] for draft in first["drafts"]} == {
+        "new_entrant",
+        "value",
+        "local",
+        "honest_gaps",
+        "weekly_movers",
+    }
+    assert first == second
+    assert _tree_digest(tmp_path / "first") == _tree_digest(tmp_path / "second")
+
+    for draft in first["drafts"]:
+        assert draft["claims"]
+        assert all(claim["source"].startswith("https://") for claim in draft["claims"])
+        assert all(date.fromisoformat(claim["date"]) <= AS_OF for claim in draft["claims"])
+        for platform, (width, height) in PLATFORM_SIZES.items():
+            files = draft["platforms"][platform]
+            text = (tmp_path / "first" / files["text"]).read_text(encoding="utf-8")
+            svg = (tmp_path / "first" / files["svg"]).read_text(encoding="utf-8")
+            assert "No referral fees, no paid placement, no provider-paid visibility" in text
+            assert f'width="{width}" height="{height}"' in svg
+            if platform == "x":
+                assert len(text.rstrip("\n")) <= 280
+                assert "attached card" in text
+            else:
+                for claim in draft["claims"]:
+                    assert claim["citation"] in text
+
+
+def test_failed_or_mismatched_accuracy_report_is_refused(tmp_path: Path) -> None:
+    current = tmp_path / "current.json.gz"
+    snapshot_id = _snapshot(current, {"lab/alpha": 90.0})
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+    payload = json.loads(report.read_text())
+    payload["status"] = "fail"
+    report.write_text(json.dumps(payload))
+
+    try:
+        generate(
+            model_id="lab/alpha",
+            snapshot_path=current,
+            accuracy_report_path=report,
+            output_dir=tmp_path / "out",
+            snapshot_key=KEY,
+        )
+    except ValueError as exc:
+        assert "accuracy report did not pass" in str(exc)
+    else:  # pragma: no cover - makes the refusal explicit without pytest coupling
+        raise AssertionError("a failed accuracy report was accepted")
+
+
+def test_social_generator_has_no_network_or_posting_client() -> None:
+    root = Path(__file__).resolve().parents[1] / "scripts" / "social"
+    forbidden_imports = {"httpx", "requests", "urllib", "socket", "tweepy", "linkedin"}
+    for path in root.glob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                assert not ({alias.name.split(".")[0] for alias in node.names} & forbidden_imports)
+            if isinstance(node, ast.ImportFrom):
+                assert (node.module or "").split(".")[0] not in forbidden_imports
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                assert node.func.attr not in {"post", "put", "patch"}
