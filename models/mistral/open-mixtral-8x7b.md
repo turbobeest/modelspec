@@ -666,14 +666,90 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    bbh: 50.9
-    ifeval: 24.2
-    mmlu_pro: 38.5
-    musr: 43.2
+  scores: {}
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Mixtral-8x7B-v0.1
+    score: 50.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5c0a6e0ea9dd
+      snapshot_ref: sha256:f91bcb0befead55025963cb054a7997ee6ce10622ebe3c6fb1c2fdc5134a64fb
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x7b#bbh#3643ae8c9313
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Mixtral-8x7B-v0.1
+    score: 24.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5c0a6e0ea9dd
+      snapshot_ref: sha256:f91bcb0befead55025963cb054a7997ee6ce10622ebe3c6fb1c2fdc5134a64fb
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x7b#ifeval#afe5a3be0249
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Mixtral-8x7B-v0.1
+    score: 38.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5c0a6e0ea9dd
+      snapshot_ref: sha256:f91bcb0befead55025963cb054a7997ee6ce10622ebe3c6fb1c2fdc5134a64fb
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x7b#mmlu_pro#8f0052c6e26d
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Mixtral-8x7B-v0.1
+    score: 43.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5c0a6e0ea9dd
+      snapshot_ref: sha256:f91bcb0befead55025963cb054a7997ee6ce10622ebe3c6fb1c2fdc5134a64fb
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x7b#musr#417205e313d2
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: open-mixtral-8x7b
     score: 29.83

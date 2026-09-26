@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 44.8
-    bbh: 42.9
-    math_lvl5: 22.1
-    gpqa_pooled: 25.6
-    musr: 36.6
-    mmlu_pro: 28.0
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: Qwen/Qwen2.5-1.5B-Instruct
+    score: 42.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-8c1538d4a058
+      snapshot_ref: sha256:cb588d159d17a699681f96c5822894e0d0d09076e53054aab032142329cb4a6d
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-1-5b-instruct#bbh#781575c18e6e
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: Qwen/Qwen2.5-1.5B-Instruct
+    score: 25.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-8c1538d4a058
+      snapshot_ref: sha256:cb588d159d17a699681f96c5822894e0d0d09076e53054aab032142329cb4a6d
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-1-5b-instruct#gpqa_pooled#f25c4e9cb3b3
+  - benchmark_id: ifeval
+    model_id_as_evaluated: Qwen/Qwen2.5-1.5B-Instruct
+    score: 44.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-8c1538d4a058
+      snapshot_ref: sha256:cb588d159d17a699681f96c5822894e0d0d09076e53054aab032142329cb4a6d
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-1-5b-instruct#ifeval#007512368b11
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: Qwen/Qwen2.5-1.5B-Instruct
+    score: 22.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-8c1538d4a058
+      snapshot_ref: sha256:cb588d159d17a699681f96c5822894e0d0d09076e53054aab032142329cb4a6d
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-1-5b-instruct#math_lvl5#194192b6925d
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: Qwen/Qwen2.5-1.5B-Instruct
+    score: 28.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-8c1538d4a058
+      snapshot_ref: sha256:cb588d159d17a699681f96c5822894e0d0d09076e53054aab032142329cb4a6d
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-1-5b-instruct#mmlu_pro#c2f2ce8bc7f8
+  - benchmark_id: musr
+    model_id_as_evaluated: Qwen/Qwen2.5-1.5B-Instruct
+    score: 36.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-8c1538d4a058
+      snapshot_ref: sha256:cb588d159d17a699681f96c5822894e0d0d09076e53054aab032142329cb4a6d
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-1-5b-instruct#musr#bcefe1791b2b
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

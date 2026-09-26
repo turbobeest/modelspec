@@ -666,75 +666,1368 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    arc_challenge: 55.5
-    gsm8k: 12.1
-    hellaswag: 76.6
-    truthfulqa: 42.0
-    winogrande: 74.2
-    mmlu_abstract_algebra: 30.0
-    mmlu_anatomy: 61.5
-    mmlu_astronomy: 65.8
-    mmlu_business_ethics: 67.0
-    mmlu_clinical_knowledge: 66.8
-    mmlu_college_biology: 66.0
-    mmlu_college_chemistry: 43.0
-    mmlu_college_computer_science: 51.0
-    mmlu_college_mathematics: 42.0
-    mmlu_college_medicine: 60.7
-    mmlu_college_physics: 34.3
-    mmlu_computer_security: 75.0
-    mmlu_conceptual_physics: 60.4
-    mmlu_econometrics: 35.1
-    mmlu_electrical_engineering: 64.1
-    mmlu_elementary_mathematics: 45.0
-    mmlu_formal_logic: 43.7
-    mmlu_global_facts: 45.0
-    mmlu_high_school_biology: 77.4
-    mmlu_high_school_chemistry: 53.2
-    mmlu_high_school_computer_science: 65.0
-    mmlu_high_school_european_history: 75.2
-    mmlu_high_school_geography: 82.3
-    mmlu_high_school_government_and_politics: 89.6
-    mmlu_high_school_macroeconomics: 64.9
-    mmlu_high_school_mathematics: 32.6
-    mmlu_high_school_microeconomics: 73.9
-    mmlu_high_school_physics: 39.1
-    mmlu_high_school_psychology: 82.8
-    mmlu_high_school_statistics: 51.9
-    mmlu_high_school_us_history: 80.9
-    mmlu_high_school_world_history: 78.9
-    mmlu_human_aging: 67.3
-    mmlu_human_sexuality: 74.0
-    mmlu_international_law: 76.9
-    mmlu_jurisprudence: 79.6
-    mmlu_logical_fallacies: 79.1
-    mmlu_machine_learning: 42.0
-    mmlu_management: 80.6
-    mmlu_marketing: 90.2
-    mmlu_medical_genetics: 79.0
-    mmlu_miscellaneous: 80.7
-    mmlu_moral_disputes: 69.9
-    mmlu_moral_scenarios: 42.5
-    mmlu_nutrition: 71.6
-    mmlu_philosophy: 69.1
-    mmlu_prehistory: 71.0
-    mmlu_professional_accounting: 47.9
-    mmlu_professional_law: 49.5
-    mmlu_professional_medicine: 67.3
-    mmlu_professional_psychology: 66.0
-    mmlu_public_relations: 73.6
-    mmlu_security_studies: 75.9
-    mmlu_sociology: 82.1
-    mmlu_us_foreign_policy: 85.0
-    mmlu_virology: 46.4
-    mmlu_world_religions: 83.0
-    ifeval: 28.9
-    bbh: 43.1
-    math_lvl5: 1.6
-    gpqa_pooled: 26.9
-    musr: 39.4
-    mmlu_pro: 29.9
+  scores: {}
+  evidence:
+  - benchmark_id: arc_challenge
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 55.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#arc_challenge#926b4470c641
+  - benchmark_id: bbh
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 43.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5eab82af5137
+      snapshot_ref: sha256:4bfad262bfc8b542de09d9fb977796556c205175fb2903febb2b4f657f37638b
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#bbh#196da53101c6
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 26.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5eab82af5137
+      snapshot_ref: sha256:4bfad262bfc8b542de09d9fb977796556c205175fb2903febb2b4f657f37638b
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#gpqa_pooled#96a2b04a9ecb
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 12.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#gsm8k#bd5832c84baf
+  - benchmark_id: hellaswag
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 76.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#hellaswag#0de4981ccd06
+  - benchmark_id: ifeval
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 28.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5eab82af5137
+      snapshot_ref: sha256:4bfad262bfc8b542de09d9fb977796556c205175fb2903febb2b4f657f37638b
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#ifeval#3cd364befd8a
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 1.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5eab82af5137
+      snapshot_ref: sha256:4bfad262bfc8b542de09d9fb977796556c205175fb2903febb2b4f657f37638b
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#math_lvl5#a581eb3561a7
+  - benchmark_id: mmlu_abstract_algebra
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 30.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_abstract_algebra#3507576c1bbe
+  - benchmark_id: mmlu_anatomy
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 61.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_anatomy#6a002864ad83
+  - benchmark_id: mmlu_astronomy
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 65.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_astronomy#fb9f58cfa9dd
+  - benchmark_id: mmlu_business_ethics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 67.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_business_ethics#3d718464c8ed
+  - benchmark_id: mmlu_clinical_knowledge
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 66.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_clinical_knowledge#35a3ae756fe3
+  - benchmark_id: mmlu_college_biology
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 66.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_college_biology#35b5dc2fffe3
+  - benchmark_id: mmlu_college_chemistry
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 43.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_college_chemistry#e48604affb50
+  - benchmark_id: mmlu_college_computer_science
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 51.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_college_computer_science#08b002c9b2cc
+  - benchmark_id: mmlu_college_mathematics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 42.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_college_mathematics#d5ab091520ff
+  - benchmark_id: mmlu_college_medicine
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 60.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_college_medicine#7e9723f81b25
+  - benchmark_id: mmlu_college_physics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 34.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_college_physics#3bf5bdf2e8e8
+  - benchmark_id: mmlu_computer_security
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 75.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_computer_security#1738ac34ffdf
+  - benchmark_id: mmlu_conceptual_physics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 60.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_conceptual_physics#ea4d9ae924fc
+  - benchmark_id: mmlu_econometrics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 35.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_econometrics#cb92940ac8b2
+  - benchmark_id: mmlu_electrical_engineering
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 64.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_electrical_engineering#4854c8d69d63
+  - benchmark_id: mmlu_elementary_mathematics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 45.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_elementary_mathematics#c6686852d70f
+  - benchmark_id: mmlu_formal_logic
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 43.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_formal_logic#9da5a39d7039
+  - benchmark_id: mmlu_global_facts
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 45.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_global_facts#df70f71baec7
+  - benchmark_id: mmlu_high_school_biology
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 77.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_biology#0d5b52418f19
+  - benchmark_id: mmlu_high_school_chemistry
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 53.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_chemistry#8b31e8bc2c63
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 65.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_computer_science#591c8a745bc7
+  - benchmark_id: mmlu_high_school_european_history
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 75.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_european_history#055c44749f36
+  - benchmark_id: mmlu_high_school_geography
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 82.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_geography#1e46c1fa1226
+  - benchmark_id: mmlu_high_school_government_and_politics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 89.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_government_and_politics#ddb858846778
+  - benchmark_id: mmlu_high_school_macroeconomics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 64.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_macroeconomics#a068d279d007
+  - benchmark_id: mmlu_high_school_mathematics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 32.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_mathematics#f6e87c9a466c
+  - benchmark_id: mmlu_high_school_microeconomics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 73.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_microeconomics#63e6e5e79c09
+  - benchmark_id: mmlu_high_school_physics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 39.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_physics#d2f6592dcd81
+  - benchmark_id: mmlu_high_school_psychology
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 82.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_psychology#2d2dc55a1380
+  - benchmark_id: mmlu_high_school_statistics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 51.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_statistics#d7ecd5ca5489
+  - benchmark_id: mmlu_high_school_us_history
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 80.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_us_history#6f09f6208d23
+  - benchmark_id: mmlu_high_school_world_history
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 78.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_high_school_world_history#63ab95798c51
+  - benchmark_id: mmlu_human_aging
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 67.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_human_aging#05f74b469cf1
+  - benchmark_id: mmlu_human_sexuality
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 74.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_human_sexuality#802f80e8589c
+  - benchmark_id: mmlu_international_law
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 76.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_international_law#eb762744ed87
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 79.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_jurisprudence#2674b79715ef
+  - benchmark_id: mmlu_logical_fallacies
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 79.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_logical_fallacies#c169cc2b0346
+  - benchmark_id: mmlu_machine_learning
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 42.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_machine_learning#7d3f8d798a7c
+  - benchmark_id: mmlu_management
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 80.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_management#70b7ea225349
+  - benchmark_id: mmlu_marketing
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 90.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_marketing#10c3ac5a91a7
+  - benchmark_id: mmlu_medical_genetics
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 79.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_medical_genetics#72bdd0c734e1
+  - benchmark_id: mmlu_miscellaneous
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 80.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_miscellaneous#e5f607ad5bdf
+  - benchmark_id: mmlu_moral_disputes
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 69.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_moral_disputes#965b97e6e737
+  - benchmark_id: mmlu_moral_scenarios
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 42.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_moral_scenarios#26e61c59dc9e
+  - benchmark_id: mmlu_nutrition
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 71.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_nutrition#8575ba79a6b5
+  - benchmark_id: mmlu_philosophy
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 69.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_philosophy#c57d63294d0a
+  - benchmark_id: mmlu_prehistory
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 71.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_prehistory#4819f7030b9d
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 29.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5eab82af5137
+      snapshot_ref: sha256:4bfad262bfc8b542de09d9fb977796556c205175fb2903febb2b4f657f37638b
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_pro#0fc43cefd044
+  - benchmark_id: mmlu_professional_accounting
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 47.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_professional_accounting#b2cf0048a6ab
+  - benchmark_id: mmlu_professional_law
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 49.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_professional_law#2e27d9d9074e
+  - benchmark_id: mmlu_professional_medicine
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 67.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_professional_medicine#50ad804c9690
+  - benchmark_id: mmlu_professional_psychology
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 66.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_professional_psychology#cfbee0aa055f
+  - benchmark_id: mmlu_public_relations
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 73.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_public_relations#600f6e6f3e9e
+  - benchmark_id: mmlu_security_studies
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 75.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_security_studies#50132faab2e1
+  - benchmark_id: mmlu_sociology
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 82.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_sociology#a88f40955002
+  - benchmark_id: mmlu_us_foreign_policy
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 85.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_us_foreign_policy#a2639be9a73b
+  - benchmark_id: mmlu_virology
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 46.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_virology#d103483f5e59
+  - benchmark_id: mmlu_world_religions
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 83.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#mmlu_world_religions#d116c4b1ced3
+  - benchmark_id: musr
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 39.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-5eab82af5137
+      snapshot_ref: sha256:4bfad262bfc8b542de09d9fb977796556c205175fb2903febb2b4f657f37638b
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#musr#8c4d334ee32d
+  - benchmark_id: truthfulqa
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 42.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#truthfulqa#6ea1032630a1
+  - benchmark_id: winogrande
+    model_id_as_evaluated: 01-ai/Yi-6B
+    score: 74.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+    source_kind: benchmark_author
+    evidence_date: '2023-11-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-8cb931b2eb81
+      snapshot_ref: sha256:724b044d68c9441bbb7fc9d13849373838f84e4ae1d6989ce17c8b3d97c9370f
+      cited_regions:
+      - rows
+    id: 01-ai/yi-6b#winogrande#5cf2ad6c0df4
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: ''

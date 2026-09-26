@@ -689,12 +689,127 @@ benchmarks:
     multipl_e_lua: 45.5
     multipl_e_scala: 47.5
     multipl_e_kotlin: 56.8
-    ifeval: 69.1
-    bbh: 61.4
-    math_lvl5: 32.5
-    gpqa_pooled: 30.5
-    musr: 39.1
-    mmlu_pro: 39.4
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: Qwen/Qwen2.5-Coder-14B-Instruct
+    score: 61.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-14B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-11-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-7745ba9849a8
+      snapshot_ref: sha256:510bb53aabd37fccde42fa1a002d42d5f13846e0ede515c08efdc856a272f100
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-coder-14b-instruct#bbh#14ca87117ed5
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: Qwen/Qwen2.5-Coder-14B-Instruct
+    score: 30.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-14B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-11-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-7745ba9849a8
+      snapshot_ref: sha256:510bb53aabd37fccde42fa1a002d42d5f13846e0ede515c08efdc856a272f100
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-coder-14b-instruct#gpqa_pooled#71e82fd71831
+  - benchmark_id: ifeval
+    model_id_as_evaluated: Qwen/Qwen2.5-Coder-14B-Instruct
+    score: 69.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-14B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-11-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-7745ba9849a8
+      snapshot_ref: sha256:510bb53aabd37fccde42fa1a002d42d5f13846e0ede515c08efdc856a272f100
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-coder-14b-instruct#ifeval#e3b7ee7cba46
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: Qwen/Qwen2.5-Coder-14B-Instruct
+    score: 32.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-14B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-11-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-7745ba9849a8
+      snapshot_ref: sha256:510bb53aabd37fccde42fa1a002d42d5f13846e0ede515c08efdc856a272f100
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-coder-14b-instruct#math_lvl5#56583f7017fc
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: Qwen/Qwen2.5-Coder-14B-Instruct
+    score: 39.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-14B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-11-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-7745ba9849a8
+      snapshot_ref: sha256:510bb53aabd37fccde42fa1a002d42d5f13846e0ede515c08efdc856a272f100
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-coder-14b-instruct#mmlu_pro#c194e497bbf8
+  - benchmark_id: musr
+    model_id_as_evaluated: Qwen/Qwen2.5-Coder-14B-Instruct
+    score: 39.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-14B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-11-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-7745ba9849a8
+      snapshot_ref: sha256:510bb53aabd37fccde42fa1a002d42d5f13846e0ede515c08efdc856a272f100
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-coder-14b-instruct#musr#25c14061c651
   benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''

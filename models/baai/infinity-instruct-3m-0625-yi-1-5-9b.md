@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 51.9
-    bbh: 55.1
-    math_lvl5: 16.4
-    gpqa_pooled: 35.4
-    musr: 45.8
-    mmlu_pro: 41.2
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B
+    score: 55.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-21'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d8f8f3f1e41f
+      snapshot_ref: sha256:c9aba6913817ddcfd803593a37c5c4bbd85d773e8fbc8d7b4c0529acc85e27ce
+      cited_regions:
+      - rows
+    id: baai/infinity-instruct-3m-0625-yi-1-5-9b#bbh#36624308a804
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B
+    score: 35.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-21'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d8f8f3f1e41f
+      snapshot_ref: sha256:c9aba6913817ddcfd803593a37c5c4bbd85d773e8fbc8d7b4c0529acc85e27ce
+      cited_regions:
+      - rows
+    id: baai/infinity-instruct-3m-0625-yi-1-5-9b#gpqa_pooled#889fb70a2d47
+  - benchmark_id: ifeval
+    model_id_as_evaluated: BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B
+    score: 51.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-21'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d8f8f3f1e41f
+      snapshot_ref: sha256:c9aba6913817ddcfd803593a37c5c4bbd85d773e8fbc8d7b4c0529acc85e27ce
+      cited_regions:
+      - rows
+    id: baai/infinity-instruct-3m-0625-yi-1-5-9b#ifeval#e36eba76b46c
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B
+    score: 16.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-21'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d8f8f3f1e41f
+      snapshot_ref: sha256:c9aba6913817ddcfd803593a37c5c4bbd85d773e8fbc8d7b4c0529acc85e27ce
+      cited_regions:
+      - rows
+    id: baai/infinity-instruct-3m-0625-yi-1-5-9b#math_lvl5#51cf870b12a8
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B
+    score: 41.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-21'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d8f8f3f1e41f
+      snapshot_ref: sha256:c9aba6913817ddcfd803593a37c5c4bbd85d773e8fbc8d7b4c0529acc85e27ce
+      cited_regions:
+      - rows
+    id: baai/infinity-instruct-3m-0625-yi-1-5-9b#mmlu_pro#d5d4d8859e54
+  - benchmark_id: musr
+    model_id_as_evaluated: BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B
+    score: 45.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-08-21'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d8f8f3f1e41f
+      snapshot_ref: sha256:c9aba6913817ddcfd803593a37c5c4bbd85d773e8fbc8d7b4c0529acc85e27ce
+      cited_regions:
+      - rows
+    id: baai/infinity-instruct-3m-0625-yi-1-5-9b#musr#4445822571f2
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

@@ -665,13 +665,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 15.2
-    bbh: 32.8
-    math_lvl5: 0.8
-    gpqa_pooled: 26.1
-    musr: 41.2
-    mmlu_pro: 12.3
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: google/flan-t5-small
+    score: 32.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-07-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-41b051f264a1
+      snapshot_ref: sha256:61391dfb331cbff2faf8b677415020407f0989833882a419c999bb770e183098
+      cited_regions:
+      - rows
+    id: google/flan-t5-small#bbh#2a4dff31138f
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: google/flan-t5-small
+    score: 26.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-07-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-41b051f264a1
+      snapshot_ref: sha256:61391dfb331cbff2faf8b677415020407f0989833882a419c999bb770e183098
+      cited_regions:
+      - rows
+    id: google/flan-t5-small#gpqa_pooled#d393d8c4ac60
+  - benchmark_id: ifeval
+    model_id_as_evaluated: google/flan-t5-small
+    score: 15.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-07-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-41b051f264a1
+      snapshot_ref: sha256:61391dfb331cbff2faf8b677415020407f0989833882a419c999bb770e183098
+      cited_regions:
+      - rows
+    id: google/flan-t5-small#ifeval#7b6c727f0222
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: google/flan-t5-small
+    score: 0.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-07-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-41b051f264a1
+      snapshot_ref: sha256:61391dfb331cbff2faf8b677415020407f0989833882a419c999bb770e183098
+      cited_regions:
+      - rows
+    id: google/flan-t5-small#math_lvl5#653ea0613e06
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: google/flan-t5-small
+    score: 12.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-07-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-41b051f264a1
+      snapshot_ref: sha256:61391dfb331cbff2faf8b677415020407f0989833882a419c999bb770e183098
+      cited_regions:
+      - rows
+    id: google/flan-t5-small#mmlu_pro#553e828cb4ca
+  - benchmark_id: musr
+    model_id_as_evaluated: google/flan-t5-small
+    score: 41.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-07-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-41b051f264a1
+      snapshot_ref: sha256:61391dfb331cbff2faf8b677415020407f0989833882a419c999bb770e183098
+      cited_regions:
+      - rows
+    id: google/flan-t5-small#musr#462e19397797
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

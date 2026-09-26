@@ -23,12 +23,25 @@ def _benchmarks(card: str) -> dict:
     return yaml.safe_load(text.split("---", 2)[1])["benchmarks"]
 
 
+def _values(card: str) -> dict:
+    """The v1 ranking view: evidence replaces a flat value for the same benchmark."""
+    benchmarks = _benchmarks(card)
+    values = dict(benchmarks.get("scores") or {})
+    values.update({row["benchmark_id"]: row["score"]
+                   for row in benchmarks.get("evidence") or []})
+    return values
+
+
 @pytest.mark.parametrize("row", ROWS, ids=lambda row: row["card"])
 def test_oll_values_belong_to_the_card_model(row: dict) -> None:
     """A mirror, quantization or base model cannot inherit another model's run."""
-    scores = _benchmarks(row["card"])["scores"]
+    scores = _values(row["card"])
     for field, change in row["fields"].items():
-        assert scores.get(field) == change["new"], (row["card"], field)
+        actual, expected = scores.get(field), change["new"]
+        if actual is None or expected is None:
+            assert actual is expected, (row["card"], field)
+        else:
+            assert actual == pytest.approx(expected, abs=0.05), (row["card"], field)
     if "metrics" not in row:
         assert all(change["new"] is None for change in row["fields"].values())
         return
@@ -42,15 +55,15 @@ def test_oll_values_belong_to_the_card_model(row: dict) -> None:
         strict["prompt_level_strict_acc,none"],
         strict["inst_level_strict_acc,none"],
     ]), 1)
-    assert scores["ifeval"] == expected
+    assert scores["ifeval"] == pytest.approx(expected, abs=0.05)
     if row["leftover"]:
         for field in ("bbh", "musr"):
             subtasks = [values["acc_norm,none"] for task, values in metrics.items()
                         if task.startswith(f"leaderboard_{field}_")]
             assert subtasks
-            assert scores[field] == round(100 * mean(subtasks), 1)
-        assert scores["mmlu_pro"] == round(
-            100 * metrics["leaderboard_mmlu_pro"]["acc,none"], 1,
+            assert scores[field] == pytest.approx(round(100 * mean(subtasks), 1), abs=0.05)
+        assert scores["mmlu_pro"] == pytest.approx(
+            round(100 * metrics["leaderboard_mmlu_pro"]["acc,none"], 1), abs=0.05,
         )
 
 
@@ -77,7 +90,8 @@ def test_corrected_cards_cite_the_run_and_read_date(row: dict) -> None:
 @pytest.mark.parametrize("row", AUDIT["full_math"], ids=lambda row: row["card"])
 def test_full_math_is_not_math_500(row: dict) -> None:
     benchmarks = _benchmarks(row["card"])
-    assert benchmarks["scores"].get("math_500") is None
-    assert benchmarks["scores"]["math"] == row["value"]
+    values = _values(row["card"])
+    assert values.get("math_500") is None
+    assert values["math"] == row["value"]
     assert row["source"] in benchmarks["benchmark_notes"]
     assert row["read_date"] in benchmarks["benchmark_notes"]

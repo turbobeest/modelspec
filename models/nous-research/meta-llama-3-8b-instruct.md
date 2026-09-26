@@ -669,7 +669,6 @@ benchmarks:
   scores:
     arc_challenge: 60.8
     gsm8k: 68.7
-    hellaswag: 78.6
     truthfulqa: 51.6
     winogrande: 74.5
     mmlu_abstract_algebra: 32.0
@@ -678,12 +677,10 @@ benchmarks:
     mmlu_business_ethics: 69.0
     mmlu_clinical_knowledge: 74.7
     mmlu_college_biology: 79.9
-    mmlu_college_chemistry: 47.0
     mmlu_college_computer_science: 59.0
     mmlu_college_mathematics: 39.0
     mmlu_college_medicine: 63.6
     mmlu_college_physics: 50.0
-    mmlu_computer_security: 77.0
     mmlu_conceptual_physics: 60.4
     mmlu_econometrics: 60.5
     mmlu_electrical_engineering: 62.8
@@ -692,43 +689,408 @@ benchmarks:
     mmlu_global_facts: 40.0
     mmlu_high_school_biology: 78.4
     mmlu_high_school_chemistry: 50.7
-    mmlu_high_school_computer_science: 75.0
     mmlu_high_school_european_history: 74.5
-    mmlu_high_school_geography: 84.3
-    mmlu_high_school_government_and_politics: 91.2
     mmlu_high_school_macroeconomics: 65.9
     mmlu_high_school_mathematics: 40.0
-    mmlu_high_school_microeconomics: 76.5
     mmlu_high_school_physics: 44.4
     mmlu_high_school_psychology: 83.7
     mmlu_high_school_statistics: 53.7
-    mmlu_high_school_us_history: 85.8
     mmlu_high_school_world_history: 84.4
     mmlu_human_aging: 72.2
-    mmlu_human_sexuality: 77.9
     mmlu_international_law: 81.8
-    mmlu_jurisprudence: 77.8
     mmlu_logical_fallacies: 76.7
-    mmlu_machine_learning: 54.5
-    mmlu_management: 78.6
-    mmlu_marketing: 90.6
     mmlu_medical_genetics: 80.0
     mmlu_miscellaneous: 79.8
     mmlu_moral_disputes: 74.9
     mmlu_moral_scenarios: 43.7
     mmlu_nutrition: 74.5
     mmlu_philosophy: 71.4
-    mmlu_prehistory: 74.1
-    mmlu_professional_accounting: 52.8
     mmlu_professional_law: 47.8
     mmlu_professional_medicine: 71.7
     mmlu_professional_psychology: 70.6
-    mmlu_public_relations: 64.5
-    mmlu_security_studies: 73.9
-    mmlu_sociology: 86.6
-    mmlu_us_foreign_policy: 86.0
     mmlu_virology: 51.2
     mmlu_world_religions: 77.8
+  evidence:
+  - benchmark_id: hellaswag
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 78.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#hellaswag#0e38705adb12
+  - benchmark_id: mmlu_college_chemistry
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 47.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_college_chemistry#b8d7aa8e6e6e
+  - benchmark_id: mmlu_computer_security
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 77.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_computer_security#1f324b08a798
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 75.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_high_school_computer_science#3db785765071
+  - benchmark_id: mmlu_high_school_geography
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 84.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_high_school_geography#d1e2073eac90
+  - benchmark_id: mmlu_high_school_government_and_politics
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 91.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_high_school_government_and_politics#eda06680432a
+  - benchmark_id: mmlu_high_school_microeconomics
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 76.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_high_school_microeconomics#c84a2252a6c3
+  - benchmark_id: mmlu_high_school_us_history
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 85.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_high_school_us_history#0b6e36d7037b
+  - benchmark_id: mmlu_human_sexuality
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 77.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_human_sexuality#369e828c3bc4
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 77.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_jurisprudence#9454b90dfefc
+  - benchmark_id: mmlu_machine_learning
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 54.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_machine_learning#3750e964af3e
+  - benchmark_id: mmlu_management
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 78.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_management#a8d0711c9088
+  - benchmark_id: mmlu_marketing
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 90.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_marketing#58ab02a8ce87
+  - benchmark_id: mmlu_prehistory
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 74.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_prehistory#ae557913b961
+  - benchmark_id: mmlu_professional_accounting
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 52.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_professional_accounting#0140934e1a9e
+  - benchmark_id: mmlu_public_relations
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 64.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_public_relations#87117a880123
+  - benchmark_id: mmlu_security_studies
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 73.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_security_studies#3c75a4bcd3ff
+  - benchmark_id: mmlu_sociology
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 86.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_sociology#8d224861a1b7
+  - benchmark_id: mmlu_us_foreign_policy
+    model_id_as_evaluated: NousResearch/Meta-Llama-3-8B-Instruct
+    score: 86.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-19'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-5a1fd131eab1
+      snapshot_ref: sha256:2c1671aea87b8c3fcb064326fb3345f1fe11bb4cfd8de27935be55fd22b9311e
+      cited_regions:
+      - rows
+    id: nous-research/meta-llama-3-8b-instruct#mmlu_us_foreign_policy#d9c83382b1c3
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 9.1 and gpqa_diamond 29.3. They were the Open LLM Leaderboard

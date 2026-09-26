@@ -667,11 +667,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 57.0
-    bbh: 35.0
-    musr: 33.3
-    mmlu_pro: 16.8
+  scores: {}
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: llama-3.2-1b-instruct
@@ -931,6 +927,86 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-30T22:39:11.000Z; effort default; highest-effort
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.63 points.
     limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: bbh
+    model_id_as_evaluated: meta-llama/Llama-3.2-1B-Instruct
+    score: 35.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-f6ed5ac64efd
+      snapshot_ref: sha256:b74a5d691c4ca3e7894a515fbc26542d8198ddefde491800de0951662f04d0de
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-1b-instruct#bbh#e02599c9cc14
+  - benchmark_id: ifeval
+    model_id_as_evaluated: meta-llama/Llama-3.2-1B-Instruct
+    score: 57.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-f6ed5ac64efd
+      snapshot_ref: sha256:b74a5d691c4ca3e7894a515fbc26542d8198ddefde491800de0951662f04d0de
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-1b-instruct#ifeval#df8b6f83fde7
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: meta-llama/Llama-3.2-1B-Instruct
+    score: 16.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-f6ed5ac64efd
+      snapshot_ref: sha256:b74a5d691c4ca3e7894a515fbc26542d8198ddefde491800de0951662f04d0de
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-1b-instruct#mmlu_pro#ab50afd0aed1
+  - benchmark_id: musr
+    model_id_as_evaluated: meta-llama/Llama-3.2-1B-Instruct
+    score: 33.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-09-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-f6ed5ac64efd
+      snapshot_ref: sha256:b74a5d691c4ca3e7894a515fbc26542d8198ddefde491800de0951662f04d0de
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-1b-instruct#musr#da104a404cc2
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 8.2 and gpqa_diamond 26.8. They were the Open LLM Leaderboard

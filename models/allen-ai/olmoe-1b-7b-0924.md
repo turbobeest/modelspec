@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 21.8
-    bbh: 33.9
-    math_lvl5: 1.7
-    gpqa_pooled: 24.7
-    musr: 34.9
-    mmlu_pro: 17.4
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: allenai/OLMoE-1B-7B-0924
+    score: 33.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0924/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-10-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-e82235f7b81a
+      snapshot_ref: sha256:820007155db03d0c56d72f9c1159b3c9ad25de5154559ad731123fa7e45656cc
+      cited_regions:
+      - rows
+    id: allen-ai/olmoe-1b-7b-0924#bbh#d1bd342c0a2b
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: allenai/OLMoE-1B-7B-0924
+    score: 24.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0924/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-10-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-e82235f7b81a
+      snapshot_ref: sha256:820007155db03d0c56d72f9c1159b3c9ad25de5154559ad731123fa7e45656cc
+      cited_regions:
+      - rows
+    id: allen-ai/olmoe-1b-7b-0924#gpqa_pooled#341c0876e12d
+  - benchmark_id: ifeval
+    model_id_as_evaluated: allenai/OLMoE-1B-7B-0924
+    score: 21.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0924/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-10-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-e82235f7b81a
+      snapshot_ref: sha256:820007155db03d0c56d72f9c1159b3c9ad25de5154559ad731123fa7e45656cc
+      cited_regions:
+      - rows
+    id: allen-ai/olmoe-1b-7b-0924#ifeval#20888a685811
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: allenai/OLMoE-1B-7B-0924
+    score: 1.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0924/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-10-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-e82235f7b81a
+      snapshot_ref: sha256:820007155db03d0c56d72f9c1159b3c9ad25de5154559ad731123fa7e45656cc
+      cited_regions:
+      - rows
+    id: allen-ai/olmoe-1b-7b-0924#math_lvl5#44ff987dda0a
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: allenai/OLMoE-1B-7B-0924
+    score: 17.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0924/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-10-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-e82235f7b81a
+      snapshot_ref: sha256:820007155db03d0c56d72f9c1159b3c9ad25de5154559ad731123fa7e45656cc
+      cited_regions:
+      - rows
+    id: allen-ai/olmoe-1b-7b-0924#mmlu_pro#c0fa31df1f45
+  - benchmark_id: musr
+    model_id_as_evaluated: allenai/OLMoE-1B-7B-0924
+    score: 34.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0924/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-10-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-e82235f7b81a
+      snapshot_ref: sha256:820007155db03d0c56d72f9c1159b3c9ad25de5154559ad731123fa7e45656cc
+      cited_regions:
+      - rows
+    id: allen-ai/olmoe-1b-7b-0924#musr#b258ba9ba63b
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

@@ -666,9 +666,48 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    gsm8k: 2.8
-    winogrande: 66.8
+  scores: {}
+  evidence:
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: baichuan-inc/Baichuan-7B
+    score: 2.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/baichuan-inc/Baichuan-7B/results_2023-09-22T17-53-01.811068.json
+    source_kind: benchmark_author
+    evidence_date: '2023-09-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-7c13b2412d43
+      snapshot_ref: sha256:b5af826f31c131cf2feb283ed3bc41d10dabc4fce573fe1fcd4db903a72a17a9
+      cited_regions:
+      - rows
+    id: baichuan/baichuan-7b#gsm8k#c1958631de1d
+  - benchmark_id: winogrande
+    model_id_as_evaluated: baichuan-inc/Baichuan-7B
+    score: 66.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/baichuan-inc/Baichuan-7B/results_2023-09-22T17-53-01.811068.json
+    source_kind: benchmark_author
+    evidence_date: '2023-09-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-7c13b2412d43
+      snapshot_ref: sha256:b5af826f31c131cf2feb283ed3bc41d10dabc4fce573fe1fcd4db903a72a17a9
+      cited_regions:
+      - rows
+    id: baichuan/baichuan-7b#winogrande#8845656b38ea
   benchmark_source: open-llm-leaderboard-v1
   benchmark_as_of: 2024-07
   benchmark_notes: ''

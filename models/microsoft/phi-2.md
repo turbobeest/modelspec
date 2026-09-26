@@ -666,75 +666,1368 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    arc_challenge: 61.0
-    gsm8k: 55.0
-    hellaswag: 74.9
-    truthfulqa: 44.2
-    winogrande: 73.5
-    mmlu_abstract_algebra: 29.0
-    mmlu_anatomy: 44.4
-    mmlu_astronomy: 58.6
-    mmlu_business_ethics: 56.0
-    mmlu_clinical_knowledge: 60.4
-    mmlu_college_biology: 66.7
-    mmlu_college_chemistry: 40.0
-    mmlu_college_computer_science: 41.0
-    mmlu_college_mathematics: 38.0
-    mmlu_college_medicine: 59.0
-    mmlu_college_physics: 37.3
-    mmlu_computer_security: 74.0
-    mmlu_conceptual_physics: 52.3
-    mmlu_econometrics: 38.6
-    mmlu_electrical_engineering: 55.2
-    mmlu_elementary_mathematics: 46.0
-    mmlu_formal_logic: 35.7
-    mmlu_global_facts: 38.0
-    mmlu_high_school_biology: 67.1
-    mmlu_high_school_chemistry: 47.3
-    mmlu_high_school_computer_science: 64.0
-    mmlu_high_school_european_history: 64.8
-    mmlu_high_school_geography: 75.3
-    mmlu_high_school_government_and_politics: 80.8
-    mmlu_high_school_macroeconomics: 58.2
-    mmlu_high_school_mathematics: 33.0
-    mmlu_high_school_microeconomics: 62.2
-    mmlu_high_school_physics: 38.4
-    mmlu_high_school_psychology: 79.3
-    mmlu_high_school_statistics: 47.2
-    mmlu_high_school_us_history: 66.7
-    mmlu_high_school_world_history: 74.3
-    mmlu_human_aging: 65.9
-    mmlu_human_sexuality: 70.2
-    mmlu_international_law: 72.7
-    mmlu_jurisprudence: 73.1
-    mmlu_logical_fallacies: 73.0
-    mmlu_machine_learning: 48.2
-    mmlu_management: 70.9
-    mmlu_marketing: 82.5
-    mmlu_medical_genetics: 64.0
-    mmlu_miscellaneous: 69.2
-    mmlu_moral_disputes: 66.5
-    mmlu_moral_scenarios: 29.9
-    mmlu_nutrition: 62.1
-    mmlu_philosophy: 62.1
-    mmlu_prehistory: 62.0
-    mmlu_professional_accounting: 44.0
-    mmlu_professional_law: 43.7
-    mmlu_professional_medicine: 48.2
-    mmlu_professional_psychology: 56.4
-    mmlu_public_relations: 62.7
-    mmlu_security_studies: 71.8
-    mmlu_sociology: 80.1
-    mmlu_us_foreign_policy: 77.0
-    mmlu_virology: 47.0
-    mmlu_world_religions: 69.6
-    ifeval: 27.4
-    bbh: 48.8
-    math_lvl5: 2.9
-    gpqa_pooled: 27.2
-    musr: 41.0
-    mmlu_pro: 26.3
+  scores: {}
+  evidence:
+  - benchmark_id: arc_challenge
+    model_id_as_evaluated: microsoft/phi-2
+    score: 61.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#arc_challenge#75fd273b536d
+  - benchmark_id: bbh
+    model_id_as_evaluated: microsoft/phi-2
+    score: 48.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/phi-2/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-9111785434bf
+      snapshot_ref: sha256:aa2ee9567298b96595c08d559288b5d02eff34671741f2aec611d59a9f3fc882
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#bbh#13001dbbb423
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: microsoft/phi-2
+    score: 27.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/phi-2/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-9111785434bf
+      snapshot_ref: sha256:aa2ee9567298b96595c08d559288b5d02eff34671741f2aec611d59a9f3fc882
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#gpqa_pooled#3ed41bc6a772
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: microsoft/phi-2
+    score: 55.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#gsm8k#1aaf9b0a9591
+  - benchmark_id: hellaswag
+    model_id_as_evaluated: microsoft/phi-2
+    score: 74.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#hellaswag#50d621d70198
+  - benchmark_id: ifeval
+    model_id_as_evaluated: microsoft/phi-2
+    score: 27.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/phi-2/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-9111785434bf
+      snapshot_ref: sha256:aa2ee9567298b96595c08d559288b5d02eff34671741f2aec611d59a9f3fc882
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#ifeval#cef9fc120774
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: microsoft/phi-2
+    score: 2.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/phi-2/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-9111785434bf
+      snapshot_ref: sha256:aa2ee9567298b96595c08d559288b5d02eff34671741f2aec611d59a9f3fc882
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#math_lvl5#190bcb79a836
+  - benchmark_id: mmlu_abstract_algebra
+    model_id_as_evaluated: microsoft/phi-2
+    score: 29.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_abstract_algebra#bdc5ec81529c
+  - benchmark_id: mmlu_anatomy
+    model_id_as_evaluated: microsoft/phi-2
+    score: 44.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_anatomy#40fb6f887f46
+  - benchmark_id: mmlu_astronomy
+    model_id_as_evaluated: microsoft/phi-2
+    score: 58.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_astronomy#339a9c2234dd
+  - benchmark_id: mmlu_business_ethics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 56.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_business_ethics#42798b4737c4
+  - benchmark_id: mmlu_clinical_knowledge
+    model_id_as_evaluated: microsoft/phi-2
+    score: 60.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_clinical_knowledge#7ef956502313
+  - benchmark_id: mmlu_college_biology
+    model_id_as_evaluated: microsoft/phi-2
+    score: 66.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_college_biology#13c84401e8ac
+  - benchmark_id: mmlu_college_chemistry
+    model_id_as_evaluated: microsoft/phi-2
+    score: 40.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_college_chemistry#5e54eb828f42
+  - benchmark_id: mmlu_college_computer_science
+    model_id_as_evaluated: microsoft/phi-2
+    score: 41.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_college_computer_science#96e8ffbad996
+  - benchmark_id: mmlu_college_mathematics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 38.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_college_mathematics#098c3b413b82
+  - benchmark_id: mmlu_college_medicine
+    model_id_as_evaluated: microsoft/phi-2
+    score: 59.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_college_medicine#b03469b73aec
+  - benchmark_id: mmlu_college_physics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 37.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_college_physics#c30142a06b34
+  - benchmark_id: mmlu_computer_security
+    model_id_as_evaluated: microsoft/phi-2
+    score: 74.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_computer_security#03bd4b5ab8ef
+  - benchmark_id: mmlu_conceptual_physics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 52.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_conceptual_physics#2622ed8decc7
+  - benchmark_id: mmlu_econometrics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 38.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_econometrics#763a18b0f135
+  - benchmark_id: mmlu_electrical_engineering
+    model_id_as_evaluated: microsoft/phi-2
+    score: 55.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_electrical_engineering#bcd63b7845b3
+  - benchmark_id: mmlu_elementary_mathematics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 46.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_elementary_mathematics#0a94f41d9f67
+  - benchmark_id: mmlu_formal_logic
+    model_id_as_evaluated: microsoft/phi-2
+    score: 35.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_formal_logic#bc1f1337064c
+  - benchmark_id: mmlu_global_facts
+    model_id_as_evaluated: microsoft/phi-2
+    score: 38.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_global_facts#f4b098717f9c
+  - benchmark_id: mmlu_high_school_biology
+    model_id_as_evaluated: microsoft/phi-2
+    score: 67.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_biology#32df13576a3b
+  - benchmark_id: mmlu_high_school_chemistry
+    model_id_as_evaluated: microsoft/phi-2
+    score: 47.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_chemistry#0491ba0c28b4
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: microsoft/phi-2
+    score: 64.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_computer_science#a4f339793588
+  - benchmark_id: mmlu_high_school_european_history
+    model_id_as_evaluated: microsoft/phi-2
+    score: 64.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_european_history#41a03e3efc19
+  - benchmark_id: mmlu_high_school_geography
+    model_id_as_evaluated: microsoft/phi-2
+    score: 75.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_geography#f254f352d04f
+  - benchmark_id: mmlu_high_school_government_and_politics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 80.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_government_and_politics#09cd542db2ba
+  - benchmark_id: mmlu_high_school_macroeconomics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 58.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_macroeconomics#f23842c9c2a3
+  - benchmark_id: mmlu_high_school_mathematics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 33.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_mathematics#8b2d6ae15ea9
+  - benchmark_id: mmlu_high_school_microeconomics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 62.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_microeconomics#f71a16e804fa
+  - benchmark_id: mmlu_high_school_physics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 38.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_physics#431b9e239118
+  - benchmark_id: mmlu_high_school_psychology
+    model_id_as_evaluated: microsoft/phi-2
+    score: 79.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_psychology#8d2ad70be466
+  - benchmark_id: mmlu_high_school_statistics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 47.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_statistics#5999283d389a
+  - benchmark_id: mmlu_high_school_us_history
+    model_id_as_evaluated: microsoft/phi-2
+    score: 66.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_us_history#d062596a6a8f
+  - benchmark_id: mmlu_high_school_world_history
+    model_id_as_evaluated: microsoft/phi-2
+    score: 74.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_high_school_world_history#8e12bb7cdae2
+  - benchmark_id: mmlu_human_aging
+    model_id_as_evaluated: microsoft/phi-2
+    score: 65.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_human_aging#26c9284a60f3
+  - benchmark_id: mmlu_human_sexuality
+    model_id_as_evaluated: microsoft/phi-2
+    score: 70.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_human_sexuality#b35cbec9eff5
+  - benchmark_id: mmlu_international_law
+    model_id_as_evaluated: microsoft/phi-2
+    score: 72.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_international_law#5d70a5d58e4b
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: microsoft/phi-2
+    score: 73.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_jurisprudence#cc14c93a5a10
+  - benchmark_id: mmlu_logical_fallacies
+    model_id_as_evaluated: microsoft/phi-2
+    score: 73.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_logical_fallacies#7a69026b6c62
+  - benchmark_id: mmlu_machine_learning
+    model_id_as_evaluated: microsoft/phi-2
+    score: 48.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_machine_learning#229d6c689eea
+  - benchmark_id: mmlu_management
+    model_id_as_evaluated: microsoft/phi-2
+    score: 70.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_management#20468af7df03
+  - benchmark_id: mmlu_marketing
+    model_id_as_evaluated: microsoft/phi-2
+    score: 82.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_marketing#75c7755012fd
+  - benchmark_id: mmlu_medical_genetics
+    model_id_as_evaluated: microsoft/phi-2
+    score: 64.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_medical_genetics#6d8c2b6a3b2c
+  - benchmark_id: mmlu_miscellaneous
+    model_id_as_evaluated: microsoft/phi-2
+    score: 69.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_miscellaneous#ef63a6d8eb35
+  - benchmark_id: mmlu_moral_disputes
+    model_id_as_evaluated: microsoft/phi-2
+    score: 66.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_moral_disputes#339c55d7f6a9
+  - benchmark_id: mmlu_moral_scenarios
+    model_id_as_evaluated: microsoft/phi-2
+    score: 29.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_moral_scenarios#f349ac1c61de
+  - benchmark_id: mmlu_nutrition
+    model_id_as_evaluated: microsoft/phi-2
+    score: 62.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_nutrition#b4ce490195e3
+  - benchmark_id: mmlu_philosophy
+    model_id_as_evaluated: microsoft/phi-2
+    score: 62.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_philosophy#6f0e6c8f9aa0
+  - benchmark_id: mmlu_prehistory
+    model_id_as_evaluated: microsoft/phi-2
+    score: 62.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_prehistory#a800e013bbab
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: microsoft/phi-2
+    score: 26.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/phi-2/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-9111785434bf
+      snapshot_ref: sha256:aa2ee9567298b96595c08d559288b5d02eff34671741f2aec611d59a9f3fc882
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_pro#7c19c7a926e3
+  - benchmark_id: mmlu_professional_accounting
+    model_id_as_evaluated: microsoft/phi-2
+    score: 44.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_professional_accounting#1f3d95fed6ce
+  - benchmark_id: mmlu_professional_law
+    model_id_as_evaluated: microsoft/phi-2
+    score: 43.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_professional_law#7e0d5feac5f5
+  - benchmark_id: mmlu_professional_medicine
+    model_id_as_evaluated: microsoft/phi-2
+    score: 48.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_professional_medicine#e02e8817dbb7
+  - benchmark_id: mmlu_professional_psychology
+    model_id_as_evaluated: microsoft/phi-2
+    score: 56.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_professional_psychology#7bda93eb0de0
+  - benchmark_id: mmlu_public_relations
+    model_id_as_evaluated: microsoft/phi-2
+    score: 62.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_public_relations#4baa047aa99d
+  - benchmark_id: mmlu_security_studies
+    model_id_as_evaluated: microsoft/phi-2
+    score: 71.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_security_studies#e2bde27de0cb
+  - benchmark_id: mmlu_sociology
+    model_id_as_evaluated: microsoft/phi-2
+    score: 80.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_sociology#8cc45b0fd513
+  - benchmark_id: mmlu_us_foreign_policy
+    model_id_as_evaluated: microsoft/phi-2
+    score: 77.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_us_foreign_policy#4b83bbb9ac9f
+  - benchmark_id: mmlu_virology
+    model_id_as_evaluated: microsoft/phi-2
+    score: 47.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_virology#14e1b03a5eda
+  - benchmark_id: mmlu_world_religions
+    model_id_as_evaluated: microsoft/phi-2
+    score: 69.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#mmlu_world_religions#7a2be64cd2fe
+  - benchmark_id: musr
+    model_id_as_evaluated: microsoft/phi-2
+    score: 41.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/phi-2/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-9111785434bf
+      snapshot_ref: sha256:aa2ee9567298b96595c08d559288b5d02eff34671741f2aec611d59a9f3fc882
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#musr#c7b05f5c1864
+  - benchmark_id: truthfulqa
+    model_id_as_evaluated: microsoft/phi-2
+    score: 44.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#truthfulqa#2d35932ef508
+  - benchmark_id: winogrande
+    model_id_as_evaluated: microsoft/phi-2
+    score: 73.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-4c6c85818b06
+      snapshot_ref: sha256:f64b6234cbace292aa5d9d0c9c267f3e00f702645615241cce8ea80d9073e53b
+      cited_regions:
+      - rows
+    id: microsoft/phi-2#winogrande#46dcc10e49b0
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: ''

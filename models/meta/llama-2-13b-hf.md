@@ -666,14 +666,148 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    gsm8k: 22.8
-    ifeval: 24.8
-    bbh: 41.3
-    math_lvl5: 1.5
-    gpqa_pooled: 28.1
-    musr: 35.4
-    mmlu_pro: 23.8
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: meta-llama/Llama-2-13b-hf
+    score: 41.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-baad7eadbc7a
+      snapshot_ref: sha256:81da2607858b4d035f6bf11a7ed9a582a0c96ad80c17de61b88656240a826bd6
+      cited_regions:
+      - rows
+    id: meta/llama-2-13b-hf#bbh#b2d7fc679701
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: meta-llama/Llama-2-13b-hf
+    score: 28.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-baad7eadbc7a
+      snapshot_ref: sha256:81da2607858b4d035f6bf11a7ed9a582a0c96ad80c17de61b88656240a826bd6
+      cited_regions:
+      - rows
+    id: meta/llama-2-13b-hf#gpqa_pooled#971f95be7fd1
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: meta-llama/Llama-2-13b-hf
+    score: 22.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-13b-hf/results_2023-12-02T13-11-49.394544.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-6998cf83690a
+      snapshot_ref: sha256:afd1148b37cf963259ee6bf82457127960a1da36ea3b240df1abf8df669fd190
+      cited_regions:
+      - rows
+    id: meta/llama-2-13b-hf#gsm8k#0534f093c5bf
+  - benchmark_id: ifeval
+    model_id_as_evaluated: meta-llama/Llama-2-13b-hf
+    score: 24.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-baad7eadbc7a
+      snapshot_ref: sha256:81da2607858b4d035f6bf11a7ed9a582a0c96ad80c17de61b88656240a826bd6
+      cited_regions:
+      - rows
+    id: meta/llama-2-13b-hf#ifeval#4f9576ad6a24
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: meta-llama/Llama-2-13b-hf
+    score: 1.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-baad7eadbc7a
+      snapshot_ref: sha256:81da2607858b4d035f6bf11a7ed9a582a0c96ad80c17de61b88656240a826bd6
+      cited_regions:
+      - rows
+    id: meta/llama-2-13b-hf#math_lvl5#7886da9a5191
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: meta-llama/Llama-2-13b-hf
+    score: 23.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-baad7eadbc7a
+      snapshot_ref: sha256:81da2607858b4d035f6bf11a7ed9a582a0c96ad80c17de61b88656240a826bd6
+      cited_regions:
+      - rows
+    id: meta/llama-2-13b-hf#mmlu_pro#59280f781e49
+  - benchmark_id: musr
+    model_id_as_evaluated: meta-llama/Llama-2-13b-hf
+    score: 35.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-baad7eadbc7a
+      snapshot_ref: sha256:81da2607858b4d035f6bf11a7ed9a582a0c96ad80c17de61b88656240a826bd6
+      cited_regions:
+      - rows
+    id: meta/llama-2-13b-hf#musr#434d3e506a4e
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: ''

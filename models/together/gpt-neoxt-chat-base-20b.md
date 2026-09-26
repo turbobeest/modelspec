@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 18.3
-    bbh: 33.2
-    math_lvl5: 2.3
-    gpqa_pooled: 25.0
-    musr: 34.6
-    mmlu_pro: 11.5
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: togethercomputer/GPT-NeoXT-Chat-Base-20B
+    score: 33.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-NeoXT-Chat-Base-20B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-6618c8e8af38
+      snapshot_ref: sha256:314172f8c2f469d193012f40c4900c7b7fb462534a53da06bc3cf6b3c73dc2a0
+      cited_regions:
+      - rows
+    id: together/gpt-neoxt-chat-base-20b#bbh#c309c5bd4062
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: togethercomputer/GPT-NeoXT-Chat-Base-20B
+    score: 25.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-NeoXT-Chat-Base-20B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-6618c8e8af38
+      snapshot_ref: sha256:314172f8c2f469d193012f40c4900c7b7fb462534a53da06bc3cf6b3c73dc2a0
+      cited_regions:
+      - rows
+    id: together/gpt-neoxt-chat-base-20b#gpqa_pooled#8ef6db2d7a67
+  - benchmark_id: ifeval
+    model_id_as_evaluated: togethercomputer/GPT-NeoXT-Chat-Base-20B
+    score: 18.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-NeoXT-Chat-Base-20B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-6618c8e8af38
+      snapshot_ref: sha256:314172f8c2f469d193012f40c4900c7b7fb462534a53da06bc3cf6b3c73dc2a0
+      cited_regions:
+      - rows
+    id: together/gpt-neoxt-chat-base-20b#ifeval#39f851e5058d
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: togethercomputer/GPT-NeoXT-Chat-Base-20B
+    score: 2.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-NeoXT-Chat-Base-20B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-6618c8e8af38
+      snapshot_ref: sha256:314172f8c2f469d193012f40c4900c7b7fb462534a53da06bc3cf6b3c73dc2a0
+      cited_regions:
+      - rows
+    id: together/gpt-neoxt-chat-base-20b#math_lvl5#64676104ca43
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: togethercomputer/GPT-NeoXT-Chat-Base-20B
+    score: 11.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-NeoXT-Chat-Base-20B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-6618c8e8af38
+      snapshot_ref: sha256:314172f8c2f469d193012f40c4900c7b7fb462534a53da06bc3cf6b3c73dc2a0
+      cited_regions:
+      - rows
+    id: together/gpt-neoxt-chat-base-20b#mmlu_pro#44a90929e420
+  - benchmark_id: musr
+    model_id_as_evaluated: togethercomputer/GPT-NeoXT-Chat-Base-20B
+    score: 34.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-NeoXT-Chat-Base-20B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-6618c8e8af38
+      snapshot_ref: sha256:314172f8c2f469d193012f40c4900c7b7fb462534a53da06bc3cf6b3c73dc2a0
+      cited_regions:
+      - rows
+    id: together/gpt-neoxt-chat-base-20b#musr#768ecefb0b09
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

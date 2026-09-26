@@ -697,12 +697,50 @@ benchmarks:
     multipl_e_kotlin: 64.8
     live_code_bench: 29.5
     aider_polyglot: 16.4
-    bbh: 66.3
-    musr: 43.9
   benchmark_source: provider-reports, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: Qwen/Qwen2.5-Coder-32B-Instruct
+    score: 66.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-32B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-11'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-75e7f5ee9805
+      snapshot_ref: sha256:96382f90cc1907b0188b731fbd7bebce1dbe9e1ba782511491b9cafbffcf8610
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-coder-32b-instruct#bbh#2790557a164f
+  - benchmark_id: musr
+    model_id_as_evaluated: Qwen/Qwen2.5-Coder-32B-Instruct
+    score: 43.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-32B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-11'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-75e7f5ee9805
+      snapshot_ref: sha256:96382f90cc1907b0188b731fbd7bebce1dbe9e1ba782511491b9cafbffcf8610
+      cited_regions:
+      - rows
+    id: qwen/qwen2-5-coder-32b-instruct#musr#4bcf7b11a1a6
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: qwen2.5-coder-32b-instruct
     score: 1270.47

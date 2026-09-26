@@ -667,13 +667,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 52.9
-    bbh: 49.5
-    math_lvl5: 4.5
-    gpqa_pooled: 28.4
-    musr: 45.2
-    mmlu_pro: 29.3
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: teknium/OpenHermes-2-Mistral-7B
+    score: 49.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2-Mistral-7B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-c106b23f2e93
+      snapshot_ref: sha256:545afd5e46ef4f44deb2c28b522a601e38fd6fd7bbb63d5e8726498e05cf0c93
+      cited_regions:
+      - rows
+    id: teknium/openhermes-2-mistral-7b#bbh#b5e7ac876c1c
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: teknium/OpenHermes-2-Mistral-7B
+    score: 28.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2-Mistral-7B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-c106b23f2e93
+      snapshot_ref: sha256:545afd5e46ef4f44deb2c28b522a601e38fd6fd7bbb63d5e8726498e05cf0c93
+      cited_regions:
+      - rows
+    id: teknium/openhermes-2-mistral-7b#gpqa_pooled#e56d58a286b0
+  - benchmark_id: ifeval
+    model_id_as_evaluated: teknium/OpenHermes-2-Mistral-7B
+    score: 52.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2-Mistral-7B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-c106b23f2e93
+      snapshot_ref: sha256:545afd5e46ef4f44deb2c28b522a601e38fd6fd7bbb63d5e8726498e05cf0c93
+      cited_regions:
+      - rows
+    id: teknium/openhermes-2-mistral-7b#ifeval#f02d7e4f8b37
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: teknium/OpenHermes-2-Mistral-7B
+    score: 4.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2-Mistral-7B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-c106b23f2e93
+      snapshot_ref: sha256:545afd5e46ef4f44deb2c28b522a601e38fd6fd7bbb63d5e8726498e05cf0c93
+      cited_regions:
+      - rows
+    id: teknium/openhermes-2-mistral-7b#math_lvl5#4aeaef0fcd29
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: teknium/OpenHermes-2-Mistral-7B
+    score: 29.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2-Mistral-7B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-c106b23f2e93
+      snapshot_ref: sha256:545afd5e46ef4f44deb2c28b522a601e38fd6fd7bbb63d5e8726498e05cf0c93
+      cited_regions:
+      - rows
+    id: teknium/openhermes-2-mistral-7b#mmlu_pro#13caffd1dd40
+  - benchmark_id: musr
+    model_id_as_evaluated: teknium/OpenHermes-2-Mistral-7B
+    score: 45.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2-Mistral-7B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-c106b23f2e93
+      snapshot_ref: sha256:545afd5e46ef4f44deb2c28b522a601e38fd6fd7bbb63d5e8726498e05cf0c93
+      cited_regions:
+      - rows
+    id: teknium/openhermes-2-mistral-7b#musr#9e557a73a997
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

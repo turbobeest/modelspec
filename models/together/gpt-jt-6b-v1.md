@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 20.6
-    bbh: 33.0
-    math_lvl5: 1.1
-    gpqa_pooled: 26.1
-    musr: 37.4
-    mmlu_pro: 16.3
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: togethercomputer/GPT-JT-6B-v1
+    score: 33.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-JT-6B-v1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-24'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-46e0a09eb840
+      snapshot_ref: sha256:fdb846c3402beb3af07e51188cbe07102d624db9bb0bd13854593fa85200ee46
+      cited_regions:
+      - rows
+    id: together/gpt-jt-6b-v1#bbh#bc93e3c02f86
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: togethercomputer/GPT-JT-6B-v1
+    score: 26.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-JT-6B-v1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-24'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-46e0a09eb840
+      snapshot_ref: sha256:fdb846c3402beb3af07e51188cbe07102d624db9bb0bd13854593fa85200ee46
+      cited_regions:
+      - rows
+    id: together/gpt-jt-6b-v1#gpqa_pooled#38bb52bb7f89
+  - benchmark_id: ifeval
+    model_id_as_evaluated: togethercomputer/GPT-JT-6B-v1
+    score: 20.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-JT-6B-v1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-24'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-46e0a09eb840
+      snapshot_ref: sha256:fdb846c3402beb3af07e51188cbe07102d624db9bb0bd13854593fa85200ee46
+      cited_regions:
+      - rows
+    id: together/gpt-jt-6b-v1#ifeval#427161b0e091
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: togethercomputer/GPT-JT-6B-v1
+    score: 1.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-JT-6B-v1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-24'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-46e0a09eb840
+      snapshot_ref: sha256:fdb846c3402beb3af07e51188cbe07102d624db9bb0bd13854593fa85200ee46
+      cited_regions:
+      - rows
+    id: together/gpt-jt-6b-v1#math_lvl5#89bcaa60135c
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: togethercomputer/GPT-JT-6B-v1
+    score: 16.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-JT-6B-v1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-24'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-46e0a09eb840
+      snapshot_ref: sha256:fdb846c3402beb3af07e51188cbe07102d624db9bb0bd13854593fa85200ee46
+      cited_regions:
+      - rows
+    id: together/gpt-jt-6b-v1#mmlu_pro#3bfb255a0aef
+  - benchmark_id: musr
+    model_id_as_evaluated: togethercomputer/GPT-JT-6B-v1
+    score: 37.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-JT-6B-v1/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-24'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-46e0a09eb840
+      snapshot_ref: sha256:fdb846c3402beb3af07e51188cbe07102d624db9bb0bd13854593fa85200ee46
+      cited_regions:
+      - rows
+    id: together/gpt-jt-6b-v1#musr#3d23f4568019
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 11.6
-    bbh: 33.8
-    math_lvl5: 0.8
-    gpqa_pooled: 24.8
-    musr: 38.8
-    mmlu_pro: 14.6
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: stabilityai/stablelm-2-1_6b
+    score: 33.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-2-1_6b/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-ab8a90e29d5c
+      snapshot_ref: sha256:7b046cd8ae0b7bda2b519a98ee765b0fdefd9fade731e7885be053959e8b63d6
+      cited_regions:
+      - rows
+    id: stability/stablelm-2-1-6b#bbh#fa1a2d391c4b
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: stabilityai/stablelm-2-1_6b
+    score: 24.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-2-1_6b/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-ab8a90e29d5c
+      snapshot_ref: sha256:7b046cd8ae0b7bda2b519a98ee765b0fdefd9fade731e7885be053959e8b63d6
+      cited_regions:
+      - rows
+    id: stability/stablelm-2-1-6b#gpqa_pooled#22b7bc08ddf8
+  - benchmark_id: ifeval
+    model_id_as_evaluated: stabilityai/stablelm-2-1_6b
+    score: 11.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-2-1_6b/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-ab8a90e29d5c
+      snapshot_ref: sha256:7b046cd8ae0b7bda2b519a98ee765b0fdefd9fade731e7885be053959e8b63d6
+      cited_regions:
+      - rows
+    id: stability/stablelm-2-1-6b#ifeval#fc8a6fe1049d
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: stabilityai/stablelm-2-1_6b
+    score: 0.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-2-1_6b/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-ab8a90e29d5c
+      snapshot_ref: sha256:7b046cd8ae0b7bda2b519a98ee765b0fdefd9fade731e7885be053959e8b63d6
+      cited_regions:
+      - rows
+    id: stability/stablelm-2-1-6b#math_lvl5#cec54129677d
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: stabilityai/stablelm-2-1_6b
+    score: 14.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-2-1_6b/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-ab8a90e29d5c
+      snapshot_ref: sha256:7b046cd8ae0b7bda2b519a98ee765b0fdefd9fade731e7885be053959e8b63d6
+      cited_regions:
+      - rows
+    id: stability/stablelm-2-1-6b#mmlu_pro#b20f84f873cc
+  - benchmark_id: musr
+    model_id_as_evaluated: stabilityai/stablelm-2-1_6b
+    score: 38.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-2-1_6b/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-ab8a90e29d5c
+      snapshot_ref: sha256:7b046cd8ae0b7bda2b519a98ee765b0fdefd9fade731e7885be053959e8b63d6
+      cited_regions:
+      - rows
+    id: stability/stablelm-2-1-6b#musr#dd8afa0affc7
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

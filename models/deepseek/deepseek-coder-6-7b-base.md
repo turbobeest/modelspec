@@ -666,69 +666,1248 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    arc_challenge: 37.0
-    gsm8k: 18.0
-    hellaswag: 53.5
-    truthfulqa: 40.3
-    winogrande: 58.1
-    mmlu_abstract_algebra: 33.0
-    mmlu_anatomy: 40.0
-    mmlu_astronomy: 35.5
-    mmlu_business_ethics: 40.0
-    mmlu_clinical_knowledge: 41.1
-    mmlu_college_biology: 30.6
-    mmlu_college_chemistry: 39.0
-    mmlu_college_computer_science: 43.0
-    mmlu_college_mathematics: 32.0
-    mmlu_college_medicine: 34.7
-    mmlu_college_physics: 25.5
-    mmlu_computer_security: 62.0
-    mmlu_conceptual_physics: 35.3
-    mmlu_econometrics: 29.8
-    mmlu_electrical_engineering: 45.5
-    mmlu_elementary_mathematics: 31.2
-    mmlu_formal_logic: 29.4
-    mmlu_global_facts: 28.0
-    mmlu_high_school_biology: 36.5
-    mmlu_high_school_chemistry: 29.6
-    mmlu_high_school_computer_science: 52.0
-    mmlu_high_school_european_history: 37.0
-    mmlu_high_school_geography: 40.4
-    mmlu_high_school_government_and_politics: 42.5
-    mmlu_high_school_macroeconomics: 34.6
-    mmlu_high_school_mathematics: 28.9
-    mmlu_high_school_microeconomics: 36.1
-    mmlu_high_school_physics: 27.8
-    mmlu_high_school_psychology: 38.5
-    mmlu_high_school_statistics: 37.0
-    mmlu_high_school_us_history: 34.8
-    mmlu_high_school_world_history: 32.1
-    mmlu_human_aging: 38.1
-    mmlu_human_sexuality: 46.6
-    mmlu_international_law: 52.9
-    mmlu_jurisprudence: 34.3
-    mmlu_logical_fallacies: 42.3
-    mmlu_machine_learning: 27.7
-    mmlu_management: 42.7
-    mmlu_marketing: 63.7
-    mmlu_medical_genetics: 47.0
-    mmlu_miscellaneous: 40.2
-    mmlu_moral_disputes: 40.5
-    mmlu_moral_scenarios: 28.9
-    mmlu_nutrition: 40.2
-    mmlu_philosophy: 44.1
-    mmlu_prehistory: 28.1
-    mmlu_professional_accounting: 34.8
-    mmlu_professional_law: 28.8
-    mmlu_professional_medicine: 44.9
-    mmlu_professional_psychology: 31.7
-    mmlu_public_relations: 50.9
-    mmlu_security_studies: 42.9
-    mmlu_sociology: 45.3
-    mmlu_us_foreign_policy: 49.0
-    mmlu_virology: 41.0
-    mmlu_world_religions: 38.6
+  scores: {}
+  evidence:
+  - benchmark_id: arc_challenge
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 37.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#arc_challenge#b642a008b852
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 18.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#gsm8k#6b6fc424e0d2
+  - benchmark_id: hellaswag
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 53.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#hellaswag#3c0b3955b9dd
+  - benchmark_id: mmlu_abstract_algebra
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 33.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_abstract_algebra#347d078ea139
+  - benchmark_id: mmlu_anatomy
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 40.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_anatomy#ebce317717d9
+  - benchmark_id: mmlu_astronomy
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 35.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_astronomy#030b4fb8c039
+  - benchmark_id: mmlu_business_ethics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 40.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_business_ethics#e6dcda18dd6c
+  - benchmark_id: mmlu_clinical_knowledge
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 41.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_clinical_knowledge#4ee00078a4f4
+  - benchmark_id: mmlu_college_biology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 30.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_college_biology#16532f246700
+  - benchmark_id: mmlu_college_chemistry
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 39.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_college_chemistry#f493b3692efc
+  - benchmark_id: mmlu_college_computer_science
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 43.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_college_computer_science#85251b721cea
+  - benchmark_id: mmlu_college_mathematics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 32.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_college_mathematics#b3ff0dda0a9d
+  - benchmark_id: mmlu_college_medicine
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 34.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_college_medicine#ed9e50c26600
+  - benchmark_id: mmlu_college_physics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 25.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_college_physics#e3acc0dbd330
+  - benchmark_id: mmlu_computer_security
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 62.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_computer_security#f601ea00d8e2
+  - benchmark_id: mmlu_conceptual_physics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 35.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_conceptual_physics#6b38a3a3fe22
+  - benchmark_id: mmlu_econometrics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 29.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_econometrics#aa9823070a7f
+  - benchmark_id: mmlu_electrical_engineering
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 45.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_electrical_engineering#c362101dd4cf
+  - benchmark_id: mmlu_elementary_mathematics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 31.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_elementary_mathematics#89f972269412
+  - benchmark_id: mmlu_formal_logic
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 29.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_formal_logic#797c84c87317
+  - benchmark_id: mmlu_global_facts
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 28.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_global_facts#6fff2506c929
+  - benchmark_id: mmlu_high_school_biology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 36.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_biology#ec0ce99a2278
+  - benchmark_id: mmlu_high_school_chemistry
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 29.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_chemistry#b8302e6312e4
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 52.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_computer_science#afcb7595dcb5
+  - benchmark_id: mmlu_high_school_european_history
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 37.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_european_history#b80f0bc4331a
+  - benchmark_id: mmlu_high_school_geography
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 40.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_geography#a6d6a79141d7
+  - benchmark_id: mmlu_high_school_government_and_politics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 42.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_government_and_politics#5f6180214478
+  - benchmark_id: mmlu_high_school_macroeconomics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 34.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_macroeconomics#7d70cc5bc95c
+  - benchmark_id: mmlu_high_school_mathematics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 28.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_mathematics#376fc6c9238e
+  - benchmark_id: mmlu_high_school_microeconomics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 36.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_microeconomics#a5a22ba6a10e
+  - benchmark_id: mmlu_high_school_physics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 27.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_physics#3363a911adac
+  - benchmark_id: mmlu_high_school_psychology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 38.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_psychology#d28a538eb57e
+  - benchmark_id: mmlu_high_school_statistics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 37.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_statistics#8cb840da53dd
+  - benchmark_id: mmlu_high_school_us_history
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 34.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_us_history#f19094aa23ec
+  - benchmark_id: mmlu_high_school_world_history
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 32.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_high_school_world_history#9b57ee283890
+  - benchmark_id: mmlu_human_aging
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 38.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_human_aging#eb1e8c5b92e0
+  - benchmark_id: mmlu_human_sexuality
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 46.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_human_sexuality#c3a362ec3d91
+  - benchmark_id: mmlu_international_law
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 52.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_international_law#d7361ab1f75a
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 34.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_jurisprudence#2756150929ad
+  - benchmark_id: mmlu_logical_fallacies
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 42.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_logical_fallacies#871c3da1553b
+  - benchmark_id: mmlu_machine_learning
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 27.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_machine_learning#53700415c8df
+  - benchmark_id: mmlu_management
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 42.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_management#558df888553d
+  - benchmark_id: mmlu_marketing
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 63.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_marketing#155f8fb73be9
+  - benchmark_id: mmlu_medical_genetics
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 47.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_medical_genetics#48af49402a86
+  - benchmark_id: mmlu_miscellaneous
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 40.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_miscellaneous#66c06410b031
+  - benchmark_id: mmlu_moral_disputes
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 40.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_moral_disputes#8138a9339463
+  - benchmark_id: mmlu_moral_scenarios
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 28.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_moral_scenarios#6157f3d268e2
+  - benchmark_id: mmlu_nutrition
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 40.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_nutrition#769e5a778ff2
+  - benchmark_id: mmlu_philosophy
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 44.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_philosophy#13cab8929f0c
+  - benchmark_id: mmlu_prehistory
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 28.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_prehistory#2f6fe47180e6
+  - benchmark_id: mmlu_professional_accounting
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 34.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_professional_accounting#a04664fa7fbc
+  - benchmark_id: mmlu_professional_law
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 28.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_professional_law#5910120b96ea
+  - benchmark_id: mmlu_professional_medicine
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 44.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_professional_medicine#9c63e29ea5d8
+  - benchmark_id: mmlu_professional_psychology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 31.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_professional_psychology#039f3aa1eb1d
+  - benchmark_id: mmlu_public_relations
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 50.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_public_relations#fbd42225b26e
+  - benchmark_id: mmlu_security_studies
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 42.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_security_studies#bd2c9806dad0
+  - benchmark_id: mmlu_sociology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 45.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_sociology#ec58c3831d8e
+  - benchmark_id: mmlu_us_foreign_policy
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 49.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_us_foreign_policy#47b11c31d4c6
+  - benchmark_id: mmlu_virology
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 41.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_virology#94c9ec70ae27
+  - benchmark_id: mmlu_world_religions
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 38.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#mmlu_world_religions#c72d1920d8b1
+  - benchmark_id: truthfulqa
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 40.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#truthfulqa#e518d499b3bc
+  - benchmark_id: winogrande
+    model_id_as_evaluated: deepseek-ai/deepseek-coder-6.7b-base
+    score: 58.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+    source_kind: benchmark_author
+    evidence_date: '2024-04-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-b411691a236c
+      snapshot_ref: sha256:7d618dec145bc3d2f6ea2906a9f71121bbb9d88f85bc937f810d5d8e8e443292
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-coder-6-7b-base#winogrande#0e5ffee404bf
   benchmark_source: open-llm-leaderboard-v1
   benchmark_as_of: 2024-07
   benchmark_notes: ''

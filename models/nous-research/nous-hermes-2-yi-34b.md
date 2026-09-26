@@ -666,69 +666,1248 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    arc_challenge: 66.9
-    gsm8k: 70.1
-    hellaswag: 85.5
-    truthfulqa: 60.4
-    winogrande: 83.0
-    mmlu_abstract_algebra: 49.0
-    mmlu_anatomy: 71.9
-    mmlu_astronomy: 89.5
-    mmlu_business_ethics: 78.0
-    mmlu_clinical_knowledge: 80.0
-    mmlu_college_biology: 90.3
-    mmlu_college_chemistry: 51.0
-    mmlu_college_computer_science: 65.0
-    mmlu_college_mathematics: 49.0
-    mmlu_college_medicine: 69.9
-    mmlu_college_physics: 52.9
-    mmlu_computer_security: 83.0
-    mmlu_conceptual_physics: 79.1
-    mmlu_econometrics: 57.0
-    mmlu_electrical_engineering: 77.2
-    mmlu_elementary_mathematics: 69.0
-    mmlu_formal_logic: 57.9
-    mmlu_global_facts: 51.0
-    mmlu_high_school_biology: 89.7
-    mmlu_high_school_chemistry: 62.1
-    mmlu_high_school_computer_science: 84.0
-    mmlu_high_school_european_history: 87.9
-    mmlu_high_school_geography: 89.9
-    mmlu_high_school_government_and_politics: 97.9
-    mmlu_high_school_macroeconomics: 82.8
-    mmlu_high_school_mathematics: 41.5
-    mmlu_high_school_microeconomics: 85.3
-    mmlu_high_school_physics: 50.3
-    mmlu_high_school_psychology: 92.1
-    mmlu_high_school_statistics: 66.2
-    mmlu_high_school_us_history: 91.2
-    mmlu_high_school_world_history: 90.7
-    mmlu_human_aging: 79.4
-    mmlu_human_sexuality: 89.3
-    mmlu_international_law: 90.9
-    mmlu_jurisprudence: 89.8
-    mmlu_logical_fallacies: 87.1
-    mmlu_machine_learning: 60.7
-    mmlu_management: 92.2
-    mmlu_marketing: 91.9
-    mmlu_medical_genetics: 86.0
-    mmlu_miscellaneous: 91.1
-    mmlu_moral_disputes: 83.5
-    mmlu_moral_scenarios: 71.1
-    mmlu_nutrition: 84.3
-    mmlu_philosophy: 81.4
-    mmlu_prehistory: 88.9
-    mmlu_professional_accounting: 64.9
-    mmlu_professional_law: 61.7
-    mmlu_professional_medicine: 83.1
-    mmlu_professional_psychology: 82.4
-    mmlu_public_relations: 71.8
-    mmlu_security_studies: 84.1
-    mmlu_sociology: 87.6
-    mmlu_us_foreign_policy: 92.0
-    mmlu_virology: 57.2
-    mmlu_world_religions: 87.1
+  scores: {}
+  evidence:
+  - benchmark_id: arc_challenge
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 66.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#arc_challenge#58e96f968952
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 70.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#gsm8k#3fe7f54b4dc1
+  - benchmark_id: hellaswag
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 85.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#hellaswag#9502035fc51a
+  - benchmark_id: mmlu_abstract_algebra
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 49.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_abstract_algebra#641b22eb9613
+  - benchmark_id: mmlu_anatomy
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 71.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_anatomy#a1a48043201f
+  - benchmark_id: mmlu_astronomy
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 89.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_astronomy#dc7c886dbfdb
+  - benchmark_id: mmlu_business_ethics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 78.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_business_ethics#a3f4ce25264b
+  - benchmark_id: mmlu_clinical_knowledge
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 80.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_clinical_knowledge#35d8fba5ab14
+  - benchmark_id: mmlu_college_biology
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 90.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_college_biology#3cd61b93f57b
+  - benchmark_id: mmlu_college_chemistry
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 51.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_college_chemistry#989fabb35a23
+  - benchmark_id: mmlu_college_computer_science
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 65.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_college_computer_science#24b1871ea35d
+  - benchmark_id: mmlu_college_mathematics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 49.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_college_mathematics#da25d09181b1
+  - benchmark_id: mmlu_college_medicine
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 69.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_college_medicine#51d8a292cf00
+  - benchmark_id: mmlu_college_physics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 52.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_college_physics#9d4f4e6584a0
+  - benchmark_id: mmlu_computer_security
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 83.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_computer_security#507bf99500c7
+  - benchmark_id: mmlu_conceptual_physics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 79.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_conceptual_physics#179097c3b82f
+  - benchmark_id: mmlu_econometrics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 57.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_econometrics#c7ea4557cf7b
+  - benchmark_id: mmlu_electrical_engineering
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 77.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_electrical_engineering#f519ea02f51c
+  - benchmark_id: mmlu_elementary_mathematics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 69.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_elementary_mathematics#b6752d376ad8
+  - benchmark_id: mmlu_formal_logic
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 57.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_formal_logic#190ed2739080
+  - benchmark_id: mmlu_global_facts
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 51.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_global_facts#fb646876f19a
+  - benchmark_id: mmlu_high_school_biology
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 89.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_biology#70d778e4aa4f
+  - benchmark_id: mmlu_high_school_chemistry
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 62.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_chemistry#8be90e346f46
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 84.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_computer_science#222e9c692b5b
+  - benchmark_id: mmlu_high_school_european_history
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 87.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_european_history#c0eb3bf6ca67
+  - benchmark_id: mmlu_high_school_geography
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 89.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_geography#3df80005e62e
+  - benchmark_id: mmlu_high_school_government_and_politics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 97.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_government_and_politics#ca183be0a91d
+  - benchmark_id: mmlu_high_school_macroeconomics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 82.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_macroeconomics#2fbeb2b0c422
+  - benchmark_id: mmlu_high_school_mathematics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 41.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_mathematics#1fce477984b8
+  - benchmark_id: mmlu_high_school_microeconomics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 85.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_microeconomics#e01388f120b3
+  - benchmark_id: mmlu_high_school_physics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 50.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_physics#ef6dab5c19b8
+  - benchmark_id: mmlu_high_school_psychology
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 92.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_psychology#9010a0fe5479
+  - benchmark_id: mmlu_high_school_statistics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 66.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_statistics#f657080003ae
+  - benchmark_id: mmlu_high_school_us_history
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 91.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_us_history#2cd3bd0aeb1f
+  - benchmark_id: mmlu_high_school_world_history
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 90.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_high_school_world_history#376968a124bb
+  - benchmark_id: mmlu_human_aging
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 79.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_human_aging#bf187a25d1ee
+  - benchmark_id: mmlu_human_sexuality
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 89.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_human_sexuality#72b699be262b
+  - benchmark_id: mmlu_international_law
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 90.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_international_law#b57ae17f8b9a
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 89.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_jurisprudence#0ae8621f1c93
+  - benchmark_id: mmlu_logical_fallacies
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 87.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_logical_fallacies#fd16e4a4910f
+  - benchmark_id: mmlu_machine_learning
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 60.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_machine_learning#f791e6cbbaf4
+  - benchmark_id: mmlu_management
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 92.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_management#5d17dcd2423a
+  - benchmark_id: mmlu_marketing
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 91.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_marketing#9e4c36428882
+  - benchmark_id: mmlu_medical_genetics
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 86.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_medical_genetics#66a2eb2d91b4
+  - benchmark_id: mmlu_miscellaneous
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 91.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_miscellaneous#a50471aebc41
+  - benchmark_id: mmlu_moral_disputes
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 83.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_moral_disputes#a18042f2c687
+  - benchmark_id: mmlu_moral_scenarios
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 71.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_moral_scenarios#ace2d27a299a
+  - benchmark_id: mmlu_nutrition
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 84.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_nutrition#ee308a1346c9
+  - benchmark_id: mmlu_philosophy
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 81.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_philosophy#73ebeef53623
+  - benchmark_id: mmlu_prehistory
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 88.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_prehistory#c7d38e02e002
+  - benchmark_id: mmlu_professional_accounting
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 64.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_professional_accounting#158ac5cf7f19
+  - benchmark_id: mmlu_professional_law
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 61.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_professional_law#4aa3c86e2380
+  - benchmark_id: mmlu_professional_medicine
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 83.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_professional_medicine#3a3ea1d082e6
+  - benchmark_id: mmlu_professional_psychology
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 82.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_professional_psychology#9b6965a9c40c
+  - benchmark_id: mmlu_public_relations
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 71.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_public_relations#35aa8642dbca
+  - benchmark_id: mmlu_security_studies
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 84.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_security_studies#0375c3fe492b
+  - benchmark_id: mmlu_sociology
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 87.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_sociology#2c9b5e07abfc
+  - benchmark_id: mmlu_us_foreign_policy
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 92.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_us_foreign_policy#1f39ec14d202
+  - benchmark_id: mmlu_virology
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 57.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_virology#a2ca090411df
+  - benchmark_id: mmlu_world_religions
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 87.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#mmlu_world_religions#8dac5a78cd20
+  - benchmark_id: truthfulqa
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 60.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#truthfulqa#5379ff6b54a1
+  - benchmark_id: winogrande
+    model_id_as_evaluated: NousResearch/Nous-Hermes-2-Yi-34B
+    score: 83.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+    source_kind: benchmark_author
+    evidence_date: '2023-12-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v1-e21c0e7ff1d6
+      snapshot_ref: sha256:0facdd02bf2db1a62703421936a62b7411800c9463f3ac5c5f1da5c5c020ef62
+      cited_regions:
+      - rows
+    id: nous-research/nous-hermes-2-yi-34b#winogrande#7e8ee3f2ce4e
   benchmark_source: open-llm-leaderboard-v1
   benchmark_as_of: 2024-07
   benchmark_notes: ''

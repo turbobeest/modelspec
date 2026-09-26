@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 59.0
-    bbh: 47.6
-    math_lvl5: 19.6
-    gpqa_pooled: 28.4
-    musr: 41.4
-    mmlu_pro: 32.9
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Ministral-8B-Instruct-2410
+    score: 47.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Ministral-8B-Instruct-2410/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d0eb128abed6
+      snapshot_ref: sha256:8431aac2ea1165421c3672229cabf90dd913713d0895407244dcc9255e7fd73f
+      cited_regions:
+      - rows
+    id: mistral/ministral-8b-instruct-2410#bbh#2fcf4eac8a56
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: mistralai/Ministral-8B-Instruct-2410
+    score: 28.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Ministral-8B-Instruct-2410/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d0eb128abed6
+      snapshot_ref: sha256:8431aac2ea1165421c3672229cabf90dd913713d0895407244dcc9255e7fd73f
+      cited_regions:
+      - rows
+    id: mistral/ministral-8b-instruct-2410#gpqa_pooled#b00fb1745ac1
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Ministral-8B-Instruct-2410
+    score: 59.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Ministral-8B-Instruct-2410/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d0eb128abed6
+      snapshot_ref: sha256:8431aac2ea1165421c3672229cabf90dd913713d0895407244dcc9255e7fd73f
+      cited_regions:
+      - rows
+    id: mistral/ministral-8b-instruct-2410#ifeval#49ca1c77a86a
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: mistralai/Ministral-8B-Instruct-2410
+    score: 19.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Ministral-8B-Instruct-2410/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d0eb128abed6
+      snapshot_ref: sha256:8431aac2ea1165421c3672229cabf90dd913713d0895407244dcc9255e7fd73f
+      cited_regions:
+      - rows
+    id: mistral/ministral-8b-instruct-2410#math_lvl5#3ac509dfa4ae
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Ministral-8B-Instruct-2410
+    score: 32.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Ministral-8B-Instruct-2410/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d0eb128abed6
+      snapshot_ref: sha256:8431aac2ea1165421c3672229cabf90dd913713d0895407244dcc9255e7fd73f
+      cited_regions:
+      - rows
+    id: mistral/ministral-8b-instruct-2410#mmlu_pro#be0a02a67d86
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Ministral-8B-Instruct-2410
+    score: 41.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Ministral-8B-Instruct-2410/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-02'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-d0eb128abed6
+      snapshot_ref: sha256:8431aac2ea1165421c3672229cabf90dd913713d0895407244dcc9255e7fd73f
+      cited_regions:
+      - rows
+    id: mistral/ministral-8b-instruct-2410#musr#0aa0e041125b
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

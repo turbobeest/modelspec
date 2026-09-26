@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 71.7
-    bbh: 46.8
-    math_lvl5: 30.1
-    gpqa_pooled: 30.4
-    musr: 38.7
-    mmlu_pro: 33.7
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: tiiuae/Falcon3-Mamba-7B-Instruct
+    score: 46.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-Mamba-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-13'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-2440b37b7637
+      snapshot_ref: sha256:4d536ccc5f625c5bf70dc92ad29ebec6615b6278a26ad7b5f0813e3ce429f492
+      cited_regions:
+      - rows
+    id: tii/falcon3-mamba-7b-instruct#bbh#7ceaaa32a72c
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: tiiuae/Falcon3-Mamba-7B-Instruct
+    score: 30.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-Mamba-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-13'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-2440b37b7637
+      snapshot_ref: sha256:4d536ccc5f625c5bf70dc92ad29ebec6615b6278a26ad7b5f0813e3ce429f492
+      cited_regions:
+      - rows
+    id: tii/falcon3-mamba-7b-instruct#gpqa_pooled#ccf2d3e7f69f
+  - benchmark_id: ifeval
+    model_id_as_evaluated: tiiuae/Falcon3-Mamba-7B-Instruct
+    score: 71.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-Mamba-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-13'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-2440b37b7637
+      snapshot_ref: sha256:4d536ccc5f625c5bf70dc92ad29ebec6615b6278a26ad7b5f0813e3ce429f492
+      cited_regions:
+      - rows
+    id: tii/falcon3-mamba-7b-instruct#ifeval#82979ddddbef
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: tiiuae/Falcon3-Mamba-7B-Instruct
+    score: 30.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-Mamba-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-13'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-2440b37b7637
+      snapshot_ref: sha256:4d536ccc5f625c5bf70dc92ad29ebec6615b6278a26ad7b5f0813e3ce429f492
+      cited_regions:
+      - rows
+    id: tii/falcon3-mamba-7b-instruct#math_lvl5#5fb1ad9e9e8b
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: tiiuae/Falcon3-Mamba-7B-Instruct
+    score: 33.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-Mamba-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-13'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-2440b37b7637
+      snapshot_ref: sha256:4d536ccc5f625c5bf70dc92ad29ebec6615b6278a26ad7b5f0813e3ce429f492
+      cited_regions:
+      - rows
+    id: tii/falcon3-mamba-7b-instruct#mmlu_pro#2a37f07e4309
+  - benchmark_id: musr
+    model_id_as_evaluated: tiiuae/Falcon3-Mamba-7B-Instruct
+    score: 38.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-Mamba-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-12-13'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-2440b37b7637
+      snapshot_ref: sha256:4d536ccc5f625c5bf70dc92ad29ebec6615b6278a26ad7b5f0813e3ce429f492
+      cited_regions:
+      - rows
+    id: tii/falcon3-mamba-7b-instruct#musr#6c47f38c1e9e
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

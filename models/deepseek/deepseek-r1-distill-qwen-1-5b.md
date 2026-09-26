@@ -667,17 +667,131 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 34.6
-    bbh: 32.4
-    math_lvl5: 16.9
-    gpqa_pooled: 25.6
-    musr: 36.3
-    mmlu_pro: 11.9
+  scores: {}
   benchmark_source: bigcode-leaderboard, provider-reports, open-llm-leaderboard, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+    score: 32.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2025-01-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-257576f61eeb
+      snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-r1-distill-qwen-1-5b#bbh#78fb69dc327e
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+    score: 25.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2025-01-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-257576f61eeb
+      snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-r1-distill-qwen-1-5b#gpqa_pooled#7b6db0c9d788
+  - benchmark_id: ifeval
+    model_id_as_evaluated: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+    score: 34.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2025-01-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-257576f61eeb
+      snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-r1-distill-qwen-1-5b#ifeval#f17c231d5e39
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+    score: 16.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2025-01-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-257576f61eeb
+      snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-r1-distill-qwen-1-5b#math_lvl5#f786e4ca33d4
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+    score: 11.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2025-01-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-257576f61eeb
+      snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-r1-distill-qwen-1-5b#mmlu_pro#db78aa380e4e
+  - benchmark_id: musr
+    model_id_as_evaluated: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+    score: 36.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2025-01-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-257576f61eeb
+      snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-r1-distill-qwen-1-5b#musr#4cbba8c8ba32
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: DeepSeek-R1-Distill-Qwen-1.5B
     score: 33.59

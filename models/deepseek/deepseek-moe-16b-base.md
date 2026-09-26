@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 24.5
-    bbh: 34.1
-    math_lvl5: 2.4
-    gpqa_pooled: 25.4
-    musr: 36.6
-    mmlu_pro: 15.1
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: deepseek-ai/deepseek-moe-16b-base
+    score: 34.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-moe-16b-base/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-406ddda96121
+      snapshot_ref: sha256:7282aa9a4afb8788c0f14f00cd1fb52db208c2f0d1da1ba4f68de678f78d3cfb
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-moe-16b-base#bbh#9b29aa8bea05
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: deepseek-ai/deepseek-moe-16b-base
+    score: 25.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-moe-16b-base/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-406ddda96121
+      snapshot_ref: sha256:7282aa9a4afb8788c0f14f00cd1fb52db208c2f0d1da1ba4f68de678f78d3cfb
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-moe-16b-base#gpqa_pooled#7c37e37db6bb
+  - benchmark_id: ifeval
+    model_id_as_evaluated: deepseek-ai/deepseek-moe-16b-base
+    score: 24.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-moe-16b-base/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-406ddda96121
+      snapshot_ref: sha256:7282aa9a4afb8788c0f14f00cd1fb52db208c2f0d1da1ba4f68de678f78d3cfb
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-moe-16b-base#ifeval#7f5733899ece
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: deepseek-ai/deepseek-moe-16b-base
+    score: 2.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-moe-16b-base/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-406ddda96121
+      snapshot_ref: sha256:7282aa9a4afb8788c0f14f00cd1fb52db208c2f0d1da1ba4f68de678f78d3cfb
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-moe-16b-base#math_lvl5#42573625dadd
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: deepseek-ai/deepseek-moe-16b-base
+    score: 15.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-moe-16b-base/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-406ddda96121
+      snapshot_ref: sha256:7282aa9a4afb8788c0f14f00cd1fb52db208c2f0d1da1ba4f68de678f78d3cfb
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-moe-16b-base#mmlu_pro#b0dc80a619ad
+  - benchmark_id: musr
+    model_id_as_evaluated: deepseek-ai/deepseek-moe-16b-base
+    score: 36.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-moe-16b-base/results_2025-02-13T18-27-04.338360.json
+    source_kind: benchmark_author
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: benchmark_author
+    sources:
+    - source_id: oll-v2-406ddda96121
+      snapshot_ref: sha256:7282aa9a4afb8788c0f14f00cd1fb52db208c2f0d1da1ba4f68de678f78d3cfb
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-moe-16b-base#musr#c2f7e7a1596d
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''
