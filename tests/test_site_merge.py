@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 from pipeline import build as builder  # noqa: E402
 
 REDIRECTS = (
-    "/   https://modelspec.dev/benchmarks/  301\n"
+    "/   https://modelspec.dev/             301\n"
     "/*  https://modelspec.dev/:splat       301\n"
 )
 NEEDLE = b"https://benchgraph.dev"

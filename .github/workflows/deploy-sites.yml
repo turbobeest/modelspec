@@ -237,7 +237,7 @@ jobs:
           if files != ["_redirects"]:
               raise SystemExit(f"dist/benchgraph should be only _redirects, found {files}")
           expected = (
-              "/   https://modelspec.dev/benchmarks/  301\n"
+              "/   https://modelspec.dev/             301\n"
               "/*  https://modelspec.dev/:splat       301\n"
           )
           got = (root / "_redirects").read_text(encoding="utf-8")
