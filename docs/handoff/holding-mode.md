@@ -44,8 +44,9 @@ modelspec.dev:
   account review and past purchasers rely on the legal pages.
 - `X-Robots-Tag: noindex` on every response, and no `Link` header. robots.txt
   allows crawling (a crawler must fetch a page to see its noindex) and names
-  no sitemap. There is no sitemap, llms.txt, Markdown twin, `.well-known`
-  file or Pages Function.
+  no sitemap. The holding page has a matching robots meta tag and no canonical,
+  because no URL that shows it should be indexed. There is no sitemap, llms.txt,
+  Markdown twin, `.well-known` file or Pages Function.
 
 `api.modelspec.dev` (rank, policy-check, credits, MCP) is unchanged. Nothing on
 the holding page links to it.
