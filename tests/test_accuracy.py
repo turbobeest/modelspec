@@ -256,6 +256,7 @@ def test_recorded_recall_improvement_passes() -> None:
         (_recall_question("Q01", "pass"),),
         gating=True,
         update_command="unused",
+        approved_baseline={"Q01": "partial"},
     )
 
     assert result.status == "pass"
@@ -264,9 +265,31 @@ def test_recorded_recall_improvement_passes() -> None:
         "pass": 1,
         "partial": 0,
         "fail": 0,
+        "baseline_regressions": 0,
         "regressions": 0,
         "improvements": 0,
     }
+
+
+def test_recall_baseline_cannot_hide_a_regression() -> None:
+    result = accuracy.recall_ratchet(
+        {"Q01": "fail"},
+        (_recall_question("Q01", "fail"),),
+        gating=True,
+        update_command="unused",
+        approved_baseline={"Q01": "pass"},
+    )
+
+    assert result.status == "fail"
+    assert result.counts["baseline_regressions"] == 1
+    assert result.details == [
+        {
+            "id": "Q01",
+            "change": "baseline_regression",
+            "transition": "pass -> fail",
+            "causes": ["proposed baseline"],
+        }
+    ]
 
 
 def test_nightly_reports_recall_regressions_without_gating() -> None:
@@ -470,6 +493,14 @@ def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
     assert "if: failure()" in nightly
     assert "github.rest.issues.create" in nightly
     assert "--check-recall-approval" in pr
+    assert "labeled" in pr
+    assert "unlabeled" in pr
+    assert "pulls/${{ github.event.pull_request.number }}" in pr
+    assert "github.event.pull_request.labels" not in pr
+    assert "git merge-base" in pr
+    assert "--approved-recall-baseline" in pr
+    assert 'cp tests/recall/baseline.json' not in pr
+    assert 'scripts/recall_run.py' in pr
     assert "Decision accuracy" in refresh
     assert "gh run watch" in refresh
     assert refresh.index("gh run watch") < refresh.index("gh pr merge --auto --squash")

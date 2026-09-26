@@ -362,10 +362,24 @@ def recall_ratchet(
     *,
     gating: bool,
     update_command: str,
+    approved_baseline: Mapping[str, RecallVerdict] | None = None,
 ) -> LayerResult:
     current = {row.id: row for row in questions}
     details: list[dict[str, Any]] = []
-    regressions = improvements = 0
+    baseline_regressions = regressions = improvements = 0
+    for question_id, before in sorted((approved_baseline or {}).items()):
+        after = baseline.get(question_id)
+        if after is not None and _VERDICT_LEVEL[after] >= _VERDICT_LEVEL[before]:
+            continue
+        baseline_regressions += 1
+        details.append(
+            {
+                "id": question_id,
+                "change": "baseline_regression",
+                "transition": f"{before} -> {after or 'missing'}",
+                "causes": ["proposed baseline"],
+            }
+        )
     for question_id in sorted(set(baseline) | set(current)):
         before = baseline.get(question_id)
         row = current.get(question_id)
@@ -401,10 +415,11 @@ def recall_ratchet(
     }
     counts = {
         **verdict_counts,
+        "baseline_regressions": baseline_regressions,
         "regressions": regressions,
         "improvements": improvements,
     }
-    changed = regressions + improvements
+    changed = baseline_regressions + regressions + improvements
     if changed == 0:
         return LayerResult(
             "golden_answers",
@@ -415,6 +430,8 @@ def recall_ratchet(
             details,
         )
     messages = []
+    if baseline_regressions:
+        messages.append(f"{baseline_regressions} proposed baseline regression(s)")
     if regressions:
         messages.append(f"{regressions} recall regression(s)")
     if improvements:
@@ -548,7 +565,14 @@ def _recall_update_command(as_of: date) -> str:
     )
 
 
-def run_golden(root: Path, snapshot_file: Path | None, as_of: date, *, gating: bool) -> LayerResult:
+def run_golden(
+    root: Path,
+    snapshot_file: Path | None,
+    as_of: date,
+    *,
+    gating: bool,
+    approved_baseline_path: Path | None = None,
+) -> LayerResult:
     from scripts.recall_run import run
 
     with tempfile.TemporaryDirectory(prefix="modelspec-recall-") as temporary:
@@ -559,11 +583,17 @@ def run_golden(root: Path, snapshot_file: Path | None, as_of: date, *, gating: b
             report_date=as_of,
         )
         baseline = load_recall_baseline(root / "tests" / "recall" / "baseline.json")
+        approved = (
+            load_recall_baseline(approved_baseline_path)
+            if approved_baseline_path is not None
+            else None
+        )
         return recall_ratchet(
             baseline.verdicts,
             result.questions,
             gating=gating,
             update_command=_recall_update_command(as_of),
+            approved_baseline=None if approved is None else approved.verdicts,
         )
 
 
@@ -1099,6 +1129,7 @@ def run_profile(
     llm_reader: str | None = None,
     sample_size: int | None = None,
     random_seed: str | None = None,
+    approved_recall_baseline: Path | None = None,
 ) -> AccuracyReport:
     del output_dir
     root = Path(root).resolve()
@@ -1118,7 +1149,15 @@ def run_profile(
             snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
             results.append(check_freshness(snapshot, as_of=as_of, config=config.freshness))
         elif layer == "golden_answers":
-            results.append(run_golden(root, snapshot_file, as_of, gating=profile == "pr"))
+            results.append(
+                run_golden(
+                    root,
+                    snapshot_file,
+                    as_of,
+                    gating=profile == "pr",
+                    approved_baseline_path=approved_recall_baseline,
+                )
+            )
         elif layer == "output_parity":
             results.append(output_parity(root, config.parity))
         elif layer == "data_fidelity":
@@ -1157,6 +1196,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--snapshot-file", type=Path)
+    parser.add_argument(
+        "--approved-recall-baseline",
+        type=Path,
+        help="Reject a proposed recall baseline below this merge-base baseline.",
+    )
     parser.add_argument("--date", type=date.fromisoformat, default=date.today())
     parser.add_argument("--llm-reader", choices=("claude", "mistral"))
     parser.add_argument("--sample-size", type=int)
@@ -1218,6 +1262,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         llm_reader=args.llm_reader,
         sample_size=args.sample_size,
         random_seed=args.seed,
+        approved_recall_baseline=args.approved_recall_baseline,
     )
     markdown, payload = write_report(report, args.output_dir)
     print(markdown.read_text(encoding="utf-8"), end="")

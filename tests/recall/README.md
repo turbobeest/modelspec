@@ -22,8 +22,13 @@ The allowed transitions only raise the recorded minimum:
 A regression fails the PR accuracy profile. Its report identifies the question,
 the verdict transition, and whether the current finding came from missing data
 or engine behavior. An improvement also fails until the contributor records the
-higher verdict. The failure prints the update command. That command refuses to
-record any regression.
+higher verdict. The failure prints the update command. CI also compares the
+proposed baseline with the baseline at the pull request's Git merge base, so a
+pull request cannot hide a regression by lowering `baseline.json`. The update
+command refuses to record any regression against the checked-out baseline.
+For MODEL-160 itself, whose merge base predates `baseline.json`, CI runs recall
+in a detached merge-base checkout and uses those verdicts as the approved
+baseline.
 
 The nightly accuracy profile runs the same comparison as a report-only layer.
 Weekly leaderboard refresh pull requests wait for the `Decision accuracy`
@@ -50,7 +55,9 @@ ID and date, and keeps every existing verdict at the same level or higher.
 
 A pull request that changes `specs/**`, `expected.yaml`, or this approval record
 must have the `recall-approved` label. CI reads the pull request's labels and
-changed-file list from GitHub. Only Jamie applies that label. Updating
+changed-file list from GitHub. Label and unlabel events rerun the workflow, so
+adding `recall-approved` after a failed run checks the live label state. Only
+Jamie applies that label. Updating
 `baseline.json` after an engine or data improvement does not change an approved
 spec or expected answer and does not require the label.
 

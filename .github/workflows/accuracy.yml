@@ -2,6 +2,7 @@ name: Decision accuracy
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
       - 'decision/**'
       - 'registry/**'
@@ -28,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -52,19 +55,64 @@ jobs:
       - name: Guard approved recall inputs
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
         run: |
           gh api --paginate \
             "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
             --jq '.[].filename' > "$RUNNER_TEMP/changed-files.txt"
+          PR_LABELS="$(gh api \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
+            --jq '[.labels[].name]')"
           python scripts/accuracy.py \
             --check-recall-approval \
             --changed-files "$RUNNER_TEMP/changed-files.txt" \
             --labels-json "$PR_LABELS"
 
+      - name: Load merge-base recall baseline
+        run: |
+          MERGE_BASE="$(git merge-base \
+            "${{ github.event.pull_request.head.sha }}" \
+            "${{ github.event.pull_request.base.sha }}")"
+          if git cat-file -e "$MERGE_BASE:tests/recall/baseline.json"; then
+            git show "$MERGE_BASE:tests/recall/baseline.json" \
+              > "$RUNNER_TEMP/approved-recall-baseline.json"
+          else
+            # MODEL-160 introduces the first baseline, so derive it from the merge-base checkout.
+            BASE_CHECKOUT="$RUNNER_TEMP/recall-merge-base"
+            BASE_REPORT="$RUNNER_TEMP/recall-merge-base-report"
+            git worktree add --detach "$BASE_CHECKOUT" "$MERGE_BASE"
+            PYTHONPATH="$BASE_CHECKOUT" python "$BASE_CHECKOUT/scripts/recall_run.py" \
+              --root "$BASE_CHECKOUT" \
+              --output-dir "$BASE_REPORT" \
+              --date 2026-09-25
+            python - "$BASE_REPORT" "$RUNNER_TEMP/approved-recall-baseline.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          report_dir, output_path = map(Path, sys.argv[1:])
+          report_path = next(report_dir.glob("*.json"))
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          baseline = {
+              "schema_version": 1,
+              "as_of": report["report_date"],
+              "snapshot": report["snapshot"],
+              "generated_by": "merge-base recall run",
+              "verdicts": {
+                  question["id"]: question["verdict"] for question in report["questions"]
+              },
+          }
+          output_path.write_text(
+              json.dumps(baseline, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          PY
+          fi
+
       - name: Run PR accuracy layers
         # Layers 1, 3, 5 (recall limit), and 6. The harness publishes both formats.
-        run: python scripts/accuracy.py --profile pr --output-dir accuracy-report
+        run: |
+          python scripts/accuracy.py --profile pr \
+            --approved-recall-baseline "$RUNNER_TEMP/approved-recall-baseline.json" \
+            --output-dir accuracy-report
 
       - name: Upload accuracy report
         if: always()
