@@ -1,0 +1,68 @@
+# MODEL-112 round-5 independently labelled routing holdout.
+# Frozen before any parser, Jev, or baseline inference on these task texts.
+# These descriptions do not occur in either earlier routing set. Domain and
+# class labels use the accepted registries as read on 2026-09-26.
+read_date: "2026-09-26"
+source_url: https://github.com/turbobeest/modelspec/blob/main/registry/domains.yaml
+conditions: [context_200k, open_weights, commercial_use, low_latency]
+cases:
+  - {id: C01, text: "Implement the missing pagination logic and make the repository's integration tests pass.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: C02, text: "Translate this Java service to Go while preserving the behaviour checked by its test suite.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: C03, text: "Trace a race condition in this Rust project and propose a tested correction.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: C04, text: "Derive the voltage across each component in this objectively graded circuit problem.", domain: engineering_stem, class: text-generator, conditions: []}
+  - {id: C05, text: "Determine the reaction products for these graduate-level organic chemistry questions.", domain: engineering_stem, class: text-generator, conditions: []}
+  - {id: C06, text: "Find all integer solutions to this Diophantine equation and prove completeness.", domain: maths, class: text-generator, conditions: []}
+  - {id: C07, text: "Solve these probability word problems and return the exact fractions.", domain: maths, class: text-generator, conditions: []}
+  - {id: C08, text: "Infer which inhabitant is lying in a new knights-and-knaves puzzle.", domain: reasoning, class: text-generator, conditions: []}
+  - {id: C09, text: "Complete an unfamiliar sequence of abstract shapes using multi-step deduction.", domain: reasoning, class: text-generator, conditions: []}
+  - {id: C10, text: "Answer a question from retrieved case files whose combined input is at least 200,000 tokens.", domain: retrieval, class: text-generator, conditions: [context_200k]}
+  - {id: C11, text: "Compose a grounded answer from a broad archive of retrieved policy documents.", domain: retrieval, class: text-generator, conditions: []}
+  - {id: C12, text: "Encode catalogue descriptions as vectors for nearest-neighbour product search.", domain: retrieval, class: vectoriser, conditions: []}
+  - {id: C13, text: "Reorder ten retrieved passages by their relevance to a user's question.", domain: retrieval, class: orderer, conditions: []}
+  - {id: C14, text: "Rewrite this memoir chapter so the prose flows while retaining its tone.", domain: writing, class: text-generator, conditions: []}
+  - {id: C15, text: "Produce a concise executive summary of the attached board report.", domain: writing, class: text-generator, conditions: []}
+  - {id: C16, text: "Read the axes and values in a photographed laboratory chart and explain the trend.", domain: vision_documents, class: text-generator, conditions: []}
+  - {id: C17, text: "Answer questions about controls visible in a mobile-app screenshot.", domain: vision_documents, class: text-generator, conditions: []}
+  - {id: C18, text: "Identify the legal issues raised by these facts under the supplied statute.", domain: legal, class: text-generator, conditions: []}
+  - {id: C19, text: "Select the most likely diagnosis for each vignette using a clinician-authored rubric.", domain: medical, class: text-generator, conditions: []}
+  - {id: C20, text: "Compute free cash flow from the figures in this annual filing.", domain: finance, class: text-generator, conditions: []}
+  - {id: C21, text: "Draft landing-page copy targeted at the supplied search keywords.", domain: marketing_seo, class: text-generator, conditions: []}
+  - {id: C22, text: "Operate a browser to update records in a simulated back-office system and finish the workflow.", domain: agentic_tool_use, class: actor, conditions: []}
+  - {id: C23, text: "Call the available APIs in sequence until the simulated travel booking reaches the requested end state.", domain: agentic_tool_use, class: actor, conditions: []}
+  - {id: C24, text: "Answer these customer questions naturally in Swahili and Vietnamese.", domain: multilingual, class: text-generator, conditions: []}
+  - {id: C25, text: "Map Japanese queries and English documents into vectors for cross-language search.", domain: multilingual, class: vectoriser, conditions: []}
+  - {id: C26, text: "Power an open-ended conversational assistant whose replies human raters prefer.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: C27, text: "Choose which of two assistant replies a person is more likely to prefer.", domain: chat_preference, class: orderer, conditions: []}
+  - {id: C28, text: "Convert a recorded courtroom hearing into a time-aligned transcript.", domain: no_match, class: transcriber, conditions: []}
+  - {id: C29, text: "Create a square product photograph from a written art direction brief.", domain: no_match, class: media-generator, conditions: []}
+  - {id: C30, text: "Assign each incoming message one of the supplied sentiment labels.", domain: no_match, class: labeller, conditions: []}
+  - {id: C31, text: "Label every clause in this lease as obligation, permission, prohibition, or none.", domain: legal, class: labeller, conditions: []}
+  - {id: C32, text: "Classify each photographed road sign into the provided sign taxonomy.", domain: vision_documents, class: labeller, conditions: []}
+  - {id: C33, text: "Explain the variance between budgeted and actual operating expenses.", domain: finance, class: text-generator, conditions: []}
+  - {id: C34, text: "Write a patient-facing explanation of the treatment options using the supplied clinical guidance.", domain: medical, class: text-generator, conditions: []}
+  - {id: C35, text: "Run an open-weight model on our servers to answer graded materials-science questions.", domain: engineering_stem, class: text-generator, conditions: [open_weights]}
+  - {id: C36, text: "Self-host an open-weight model for solving formal algebra proofs.", domain: maths, class: text-generator, conditions: [open_weights]}
+  - {id: C37, text: "Use an open-weight coding model entirely on premises to repair our C++ builds.", domain: software_engineering, class: text-generator, conditions: [open_weights]}
+  - {id: C38, text: "Deploy open-weight embeddings inside our private network for document retrieval.", domain: retrieval, class: vectoriser, conditions: [open_weights]}
+  - {id: C39, text: "Reply in a live support chat with low latency so the conversation feels immediate.", domain: chat_preference, class: text-generator, conditions: [low_latency]}
+  - {id: C40, text: "Provide interactive code-completion suggestions with explicitly low response latency.", domain: software_engineering, class: text-generator, conditions: [low_latency]}
+  - {id: C41, text: "Control a voice-operated browser workflow where low-latency actions are required.", domain: agentic_tool_use, class: actor, conditions: [low_latency]}
+  - {id: C42, text: "Edit advertising copy that we are explicitly licensed to publish commercially.", domain: writing, class: text-generator, conditions: [commercial_use]}
+  - {id: C43, text: "Serve a paid conversational product, with commercial-use rights required for every response.", domain: chat_preference, class: text-generator, conditions: [commercial_use]}
+  - {id: C44, text: "Generate SEO campaign text for resale; the offering must permit commercial use.", domain: marketing_seo, class: text-generator, conditions: [commercial_use]}
+  - {id: C45, text: "Rerank search results inside a sold enterprise product, and require commercial-use rights.", domain: retrieval, class: orderer, conditions: [commercial_use]}
+  - {id: C46, text: "Answer questions over scanned exhibits whose total input exceeds 200,000 tokens.", domain: vision_documents, class: text-generator, conditions: [context_200k]}
+  - {id: C47, text: "Summarise a manuscript that is exactly 210,000 tokens long in one request.", domain: writing, class: text-generator, conditions: [context_200k]}
+  - {id: C48, text: "Compare provisions across contracts totaling no fewer than 200,000 input tokens.", domain: legal, class: text-generator, conditions: [context_200k]}
+  - {id: C49, text: "Translate product guidance into Arabic for paid distribution, with commercial-use rights required.", domain: multilingual, class: text-generator, conditions: [commercial_use]}
+  - {id: C50, text: "Answer clinician triage questions interactively with a strict low-latency requirement.", domain: medical, class: text-generator, conditions: [low_latency]}
+  - {id: C51, text: "Calculate bond metrics during a live trading workflow where low latency is mandatory.", domain: finance, class: text-generator, conditions: [low_latency]}
+  - {id: C52, text: "Solve a huge collection of independent logic riddles one at a time.", domain: reasoning, class: text-generator, conditions: []}
+  - {id: C53, text: "Polish a long novel without any stated minimum context window.", domain: writing, class: text-generator, conditions: []}
+  - {id: C54, text: "Modify code in a locally checked-out repository using a hosted model.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: C55, text: "Moderate an open discussion by writing helpful conversational replies.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: C56, text: "Prepare an internal profitability analysis for a commercial company.", domain: finance, class: text-generator, conditions: []}
+  - {id: C57, text: "Select one deployment route from structured constraints and return the chosen route ID.", domain: no_match, class: decider, conditions: []}
+  - {id: C58, text: "Assign a numeric quality value to each supplied response using a fixed rubric.", domain: no_match, class: scorer, conditions: []}
+  - {id: C59, text: "Forecast next quarter's default rate from the supplied banking time series.", domain: finance, class: forecaster, conditions: []}
+  - {id: C60, text: "Simulate customer arrivals under the given queue parameters and emit synthetic event traces.", domain: no_match, class: simulator, conditions: []}
