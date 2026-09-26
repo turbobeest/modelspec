@@ -6,6 +6,7 @@ import json
 from datetime import date
 from pathlib import Path
 
+import yaml
 from typer.testing import CliRunner
 
 from cli.modelspec import cli as cli_mod
@@ -13,6 +14,7 @@ from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.sources import Source
 from decision.verify import Claim, KeyValueExtractor, Queue, VerificationLog
 from scripts import accuracy
+from scripts.recall_run import Finding, QuestionResult
 
 
 class FakeFact:
@@ -207,13 +209,129 @@ def test_freshness_uses_registered_source_volatility() -> None:
     assert result.details[0]["reason"] == "stale_live_leaderboard"
 
 
-def test_golden_findings_are_report_only() -> None:
-    result = accuracy.golden_result({"pass": 12, "partial": 3, "fail": 5})
+def _recall_question(
+    question_id: str, verdict: str, cause: str = "engine_behavior"
+) -> QuestionResult:
+    return QuestionResult(
+        id=question_id,
+        question=f"Question {question_id}",
+        verdict=verdict,
+        decision=None,
+        findings=(Finding(cause, verdict, "test finding"),),
+    )
+
+
+def test_recall_regression_fails_and_names_its_cause() -> None:
+    result = accuracy.recall_ratchet(
+        {"Q01": "pass", "Q02": "partial"},
+        (_recall_question("Q01", "partial", "missing_data"), _recall_question("Q02", "fail")),
+        gating=True,
+        update_command="python scripts/accuracy.py --update-recall-baseline --date 2026-09-25",
+    )
+
+    assert result.status == "fail"
+    assert result.gating is True
+    assert result.counts["regressions"] == 2
+    assert result.details[0]["transition"] == "pass -> partial"
+    assert result.details[0]["causes"] == ["missing data"]
+    assert result.details[1]["causes"] == ["engine behavior"]
+
+
+def test_unrecorded_recall_improvement_fails_with_update_command() -> None:
+    command = "python scripts/accuracy.py --update-recall-baseline --date 2026-09-25"
+    result = accuracy.recall_ratchet(
+        {"Q01": "partial"},
+        (_recall_question("Q01", "pass"),),
+        gating=True,
+        update_command=command,
+    )
+
+    assert result.status == "fail"
+    assert result.details[0]["transition"] == "partial -> pass"
+    assert command in result.summary
+
+
+def test_recorded_recall_improvement_passes() -> None:
+    result = accuracy.recall_ratchet(
+        {"Q01": "pass"},
+        (_recall_question("Q01", "pass"),),
+        gating=True,
+        update_command="unused",
+        approved_baseline={"Q01": "partial"},
+    )
+
+    assert result.status == "pass"
+    assert result.gating is True
+    assert result.counts == {
+        "pass": 1,
+        "partial": 0,
+        "fail": 0,
+        "baseline_regressions": 0,
+        "regressions": 0,
+        "improvements": 0,
+    }
+
+
+def test_recall_baseline_cannot_hide_a_regression() -> None:
+    result = accuracy.recall_ratchet(
+        {"Q01": "fail"},
+        (_recall_question("Q01", "fail"),),
+        gating=True,
+        update_command="unused",
+        approved_baseline={"Q01": "pass"},
+    )
+
+    assert result.status == "fail"
+    assert result.counts["baseline_regressions"] == 1
+    assert result.details == [
+        {
+            "id": "Q01",
+            "change": "baseline_regression",
+            "transition": "pass -> fail",
+            "causes": ["proposed baseline"],
+        }
+    ]
+
+
+def test_nightly_reports_recall_regressions_without_gating() -> None:
+    result = accuracy.recall_ratchet(
+        {"Q01": "pass"},
+        (_recall_question("Q01", "fail"),),
+        gating=False,
+        update_command="unused",
+    )
 
     assert result.status == "report"
     assert result.gating is False
-    assert result.counts == {"pass": 12, "partial": 3, "fail": 5}
-    assert "approved; report-only until MODEL-129" in result.summary
+    assert result.counts["regressions"] == 1
+
+
+def test_recall_approval_guard_requires_the_label_for_spec_edits() -> None:
+    changed = ["tests/recall/specs/Q01.yaml", "decision/engine.py"]
+
+    denied = accuracy.check_recall_approval(changed, labels=[])
+    allowed = accuracy.check_recall_approval(changed, labels=["recall-approved"])
+
+    assert denied.status == "fail"
+    assert denied.details == ["tests/recall/specs/Q01.yaml"]
+    assert "recall-approved" in denied.summary
+    assert allowed.status == "pass"
+
+
+def test_recall_approval_guard_covers_answers_and_approval_record() -> None:
+    changed = ["tests/recall/expected.yaml", "tests/recall/README.md"]
+
+    result = accuracy.check_recall_approval(changed, labels=[])
+
+    assert result.status == "fail"
+    assert result.details == sorted(changed)
+
+
+def test_recall_approval_guard_does_not_cover_ratchet_documentation() -> None:
+    result = accuracy.check_recall_approval(["tests/recall/RATCHET.md"], labels=[])
+
+    assert result.status == "pass"
+    assert result.details == []
 
 
 def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
@@ -367,14 +485,33 @@ def test_reference_correlation_is_null_when_two_ranks_cannot_be_compared() -> No
 
 def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
     pr = Path(".github/workflows/accuracy.yml").read_text()
+    pr_workflow = yaml.load(pr, Loader=yaml.BaseLoader)
+    pr_paths = pr_workflow["on"]["pull_request"]["paths"]
     nightly = Path(".github/workflows/accuracy-nightly.yml").read_text()
+    refresh = Path(".github/workflows/leaderboard-refresh.yml").read_text()
 
     for path in ("decision/**", "registry/**", "models/**", "offerings/**", "verification/**"):
         assert path in pr
     assert "scripts/accuracy.py --profile pr" in pr
     assert "scripts/accuracy.py --profile nightly" in nightly
+    assert (
+        '"nightly": ("data_fidelity", "reference_agreement", "golden_answers")'
+        in Path("scripts/accuracy.py").read_text()
+    )
     assert "cron:" in nightly
     assert "issues: write" in nightly
     assert "if: failure()" in nightly
     assert "github.rest.issues.create" in nightly
+    assert "--check-recall-approval" in pr
+    assert "labeled" in pr
+    assert "unlabeled" in pr
+    assert "pulls/${{ github.event.pull_request.number }}" in pr
+    assert "github.event.pull_request.labels" not in pr
+    assert "git merge-base" in pr
+    assert "--approved-recall-baseline" in pr
+    assert 'cp tests/recall/baseline.json' not in pr
+    assert "scripts/recall_run.py" in pr_paths
+    assert "Decision accuracy" in refresh
+    assert "gh run watch" in refresh
+    assert refresh.index("gh run watch") < refresh.index("gh pr merge --auto --squash")
     assert "continue-on-error" not in pr + nightly

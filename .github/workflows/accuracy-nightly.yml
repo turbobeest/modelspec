@@ -31,7 +31,7 @@ jobs:
         run: python -m pip install -e '.[dev]'
 
       - name: Run network accuracy layers
-        # Layers 2 and 4. Source readers enforce family independence themselves.
+        # Layers 2 and 4 gate. Recall regressions are included as a report-only layer.
         run: python scripts/accuracy.py --profile nightly --output-dir accuracy-report
 
       - name: Upload accuracy report
