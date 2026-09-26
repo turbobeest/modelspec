@@ -188,7 +188,7 @@ def test_the_compact_decision_round_trips_through_the_contract(index):
     decision = decide(spec(), index, facets=facets)
     again = Decision.model_validate(json.loads(decision.model_dump_json()))
     assert again == decision
-    assert decision.contract_version == "1.7"
+    assert decision.contract_version == "1.8"
 
 
 def test_summary_carries_no_sources_table(index):

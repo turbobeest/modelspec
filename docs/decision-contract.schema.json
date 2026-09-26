@@ -508,8 +508,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.7",
-          "default": "1.7",
+          "const": "1.8",
+          "default": "1.8",
           "title": "Contract Version",
           "type": "string"
         },
@@ -820,6 +820,28 @@
           "title": "Harness Unregistered",
           "type": "boolean"
         },
+        "interval": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
         "loading": {
           "anyOf": [
             {
@@ -855,6 +877,17 @@
           ],
           "default": null,
           "title": "N"
+        },
+        "quality_flags": {
+          "items": {
+            "enum": [
+              "deprecated",
+              "contamination_warning"
+            ],
+            "type": "string"
+          },
+          "title": "Quality Flags",
+          "type": "array"
         },
         "recency_weight": {
           "anyOf": [
@@ -2865,5 +2898,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.7"
+  "x-contract-version": "1.8"
 }

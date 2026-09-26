@@ -1118,10 +1118,27 @@ facts:
   checked_sources:
   - model-143-jcorners-ingot-8b-r3
   - model-143-hf-metadata-jcorners-ingot-8b-r3
+- id: jcorners/ingot-8b-r3#model.languages
+  subject:
+    kind: model
+    id: jcorners/ingot-8b-r3
+  facet: model.languages
+  value:
+  - en
+  state: known
+  sources:
+  - source_id: model-161-jcorners-ingot-8b-r3-model-card
+    snapshot_ref: sha256:4b07711217c682172c00f21615a4d19eea52efc0923bb7a27effc5d7fd0b5380
+    cited_regions:
+    - rows
+  - source_id: model-161-jcorners-ingot-8b-r3-mteb
+    snapshot_ref: sha256:76d62afee853b619884488423f708a5726d7eb427800e1a1bae4fab74bdb42c2
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
-card_updated: '2026-09-24'
+card_updated: '2026-09-26'
 ---
 
 # Ingot 8B R3

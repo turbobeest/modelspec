@@ -42,6 +42,19 @@ CASES = [
 ]
 
 
+def test_model_161_quality_metadata_is_structured_on_premier_cards() -> None:
+    fable = _load("anthropic/claude-fable-5-1.md")
+    arena = next(
+        row for row in fable.benchmarks.evidence if row.benchmark_id == "arena_elo_overall"
+    )
+    assert arena.interval == (1499.43, 1515.73)
+    assert arena.n == 5783
+
+    opus = _load("anthropic/claude-opus-4-7.md")
+    aime = next(row for row in opus.benchmarks.evidence if row.benchmark_id == "aime_2026")
+    assert set(aime.quality_flags) == {"deprecated", "contamination_warning"}
+
+
 def _load(rel: str) -> ModelCard:
     return ModelCard.from_yaml_file(ROOT / "models" / rel)
 
