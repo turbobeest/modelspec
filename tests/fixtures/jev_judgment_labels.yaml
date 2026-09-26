@@ -1,29 +1,24 @@
 # MODEL-112 labels for the three evidence-side candidates, fixed before inference.
-# The attribution and explanation cases use the MODEL-140 verification fixture.
+# Attribution reuses the labelled MODEL-99/MODEL-102 ingestion corpus and its
+# published cascade result. Explanation cases use the MODEL-140 fixture.
 # The second-key cases name production claims whose latest two-key outcome was
 # produced by an LLM extractor and whose retained cited region is available.
 read_date: "2026-09-25"
 attribution:
-  source: tests/fixtures/verification/leaderboard.html
-  benchmark: seeded-coding
-  benchmark_version: "2026-08-14"
-  cases:
-    - {id: attr-01, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 64.0, unit: percent, expected: belongs}
-    - {id: attr-02, model: "GPT-6 Sol", effort: max, harness: "codex-cli@1.4", value: 71.2, unit: percent, expected: belongs}
-    - {id: attr-03, model: "GPT-6 Astra", effort: default, harness: "codex-cli@1.4", value: 58.3, unit: percent, expected: belongs}
-    - {id: attr-04, model: "Nimbus 3", effort: max, harness: "codex-cli@1.4", value: 66.6, unit: percent, expected: belongs}
-    - {id: attr-05, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 0.64, unit: fraction, expected: belongs}
-    - {id: attr-06, model: "GPT-6 Astra", effort: default, harness: "codex-cli@1.4", value: 58, unit: percent, expected: belongs}
-    - {id: attr-07, model: "Nimbus 3 Mini", effort: default, harness: "codex-cli@1.4", value: 49.5, unit: percent, expected: belongs}
-    - {id: attr-08, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 58.3, unit: percent, expected: no_match}
-    - {id: attr-09, model: "Nimbus 3", effort: default, harness: "codex-cli@1.4", value: 49.5, unit: percent, expected: no_match}
-    - {id: attr-10, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 71.2, unit: percent, expected: no_match}
-    - {id: attr-11, model: "GPT-6 Sol", effort: max, harness: "codex-cli@1.4", value: 64.0, unit: percent, expected: no_match}
-    - {id: attr-12, model: "Nimbus 3", effort: null, harness: "codex-cli@1.4", value: 66.6, unit: percent, expected: no_match}
-    - {id: attr-13, model: "Orion 2", effort: default, harness: "codex-cli@1.4", value: 61.0, unit: percent, expected: no_match}
-    - {id: attr-14, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.3", value: 64.0, unit: percent, expected: no_match}
-    - {id: attr-15, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 64.0, unit: fraction, expected: no_match}
-    - {id: attr-16, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 64.0, unit: percent, benchmark_version: "2026-03-02", expected: no_match}
+  source_url: https://models.dev/api.json
+  source_read_date: "2026-09-20"
+  cohorts:
+    verified:
+      source: scripts/cost_to_correct_2026-09-20.jsonl.gz
+      cascade_source: scripts/cascade_real_2026-09-20.jsonl.gz
+      variant: real
+      expected: creator named by the labelled card
+      rows: 627
+    quarantined:
+      source: scripts/cascade_guard_2026-09-20.jsonl.gz
+      variant: relisted_withheld
+      expected: cannot_establish
+      rows: 383
 
 second_key:
   cases:

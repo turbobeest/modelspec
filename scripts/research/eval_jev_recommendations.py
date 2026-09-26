@@ -10,6 +10,7 @@ row followed by a summary. Re-analysis needs no key and spends nothing.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import subprocess
@@ -18,7 +19,7 @@ import threading
 import time
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -36,8 +37,7 @@ TASK_LABELS = ROOT / "tests/fixtures/jev_task_routing.yaml"
 JUDGMENT_LABELS = ROOT / "tests/fixtures/jev_judgment_labels.yaml"
 VOCABULARY = ROOT / "web/src/decide/__fixtures__/vocabulary.json"
 FIXTURE_URL = (
-    "https://github.com/turbobeest/modelspec/blob/main/"
-    "tests/fixtures/verification/leaderboard.html"
+    "https://github.com/turbobeest/modelspec/blob/main/tests/fixtures/verification/leaderboard.html"
 )
 JEV_PRICE = 0.042 / 1_000_000
 JEV_PRICE_SOURCE = "https://docs.typesafe.ai/models"
@@ -46,6 +46,7 @@ BASELINE_MODEL = "openai/gpt-5-mini"
 ACT = 0.90
 FLAG = 0.60
 NO_MATCH = "no_match"
+_UNSET = object()
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,30 @@ class Arm:
 
     def cost(self, input_tokens: int, output_tokens: int) -> float:
         return input_tokens * self.input_price + output_tokens * self.output_price
+
+
+@dataclass
+class SpendBudget:
+    """Reserve worst-case call costs before workers may spend them."""
+
+    maximum: float
+    spent: float = 0.0
+    reserved: float = 0.0
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    def reserve(self, maximum_cost: float) -> bool:
+        with self._lock:
+            if self.spent + self.reserved + maximum_cost > self.maximum:
+                return False
+            self.reserved += maximum_cost
+            return True
+
+    def reconcile(self, maximum_cost: float, actual_cost: float) -> None:
+        with self._lock:
+            self.reserved -= maximum_cost
+            self.spent += actual_cost
+            if self.spent + self.reserved > self.maximum:
+                raise RuntimeError("provider usage exceeded the hard spend cap")
 
 
 def confidence_band(confidence: float, *, no_match: bool = False) -> str:
@@ -197,39 +222,141 @@ def fixture_region() -> str:
     return (ROOT / "tests/fixtures/verification/leaderboard.html").read_text(encoding="utf-8")
 
 
-def evidence_attribution_cases(labels: dict[str, Any]) -> list[Case]:
+def _gzip_rows(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    summary: dict[str, Any] = {}
+    with gzip.open(path, "rt", encoding="utf-8") as handle:
+        for line in handle:
+            row = json.loads(line)
+            if row.get("record") == "item":
+                rows.append(row)
+            elif row.get("record") == "summary":
+                summary = row
+    return rows, summary
+
+
+def _published_row(
+    row: dict[str, Any],
+    *,
+    arm: str,
+    cohort: str,
+    source_url: str,
+    source_read_date: str,
+    choice_value: Any = _UNSET,
+    latency_ms: float | None = None,
+    tokens_in: int | None = None,
+    tokens_out: int | None = None,
+    cost_usd: float | None = None,
+    failure: str | None = None,
+) -> dict[str, Any]:
+    choice_value = row.get("choice") if choice_value is _UNSET else choice_value
+    confidence = float(row.get("confidence") or 0.0)
+    correct = choice_value == row["expected"] and failure is None
+    return {
+        "record": "item",
+        "candidate": "evidence_attribution",
+        "arm": arm,
+        "case_id": row["case_id"],
+        "cohort": cohort,
+        "correct": correct,
+        "expected": row["expected"],
+        "actual": choice_value,
+        "confidence": confidence,
+        "band": (
+            confidence_band(confidence, no_match=choice_value == "cannot_establish")
+            if arm == "jev"
+            else "act"
+        ),
+        "failure": failure,
+        "latency_ms": float(row["latency_ms"] if latency_ms is None else latency_ms),
+        "tokens_in": int(row["tokens_in"] if tokens_in is None else tokens_in),
+        "tokens_out": int(row["tokens_out"] if tokens_out is None else tokens_out),
+        "cost_usd": float(row["cost_usd"] if cost_usd is None else cost_usd),
+        "misattribution": bool(
+            choice_value is not None and choice_value not in (row["expected"], "cannot_establish")
+        ),
+        "source_url": source_url,
+        "source_read_date": source_read_date,
+    }
+
+
+def published_attribution_rows(labels: dict[str, Any]) -> list[dict[str, Any]]:
+    """Load the labelled MODEL-99/102 ingestion outcomes as three arms."""
     group = labels["attribution"]
-    cases = []
-    for row in group["cases"]:
-        proposed = {k: v for k, v in row.items() if k not in ("id", "expected")}
-        proposed.setdefault("benchmark", group["benchmark"])
-        proposed.setdefault("benchmark_version", group["benchmark_version"])
-        cases.append(
-            Case(
-                row["id"],
-                "evidence_attribution",
-                {
-                    "registered_source": {
-                        "benchmark": group["benchmark"],
-                        "version": group["benchmark_version"],
-                    },
-                    "proposed_evidence": proposed,
-                    "cited_region": fixture_region(),
-                },
-                {
-                    "attribution": choice(
-                        "Does the cited region support this exact number for this model variant, "
-                        "benchmark version, effort, harness, and unit? Select no_match if any "
-                        "identity or condition is absent or differs.",
-                        ["belongs", NO_MATCH],
-                    )
-                },
-                {"attribution": row["expected"]},
-                FIXTURE_URL,
-                labels["read_date"],
+    source_url = group["source_url"]
+    read_date = group["source_read_date"]
+    verified = group["cohorts"]["verified"]
+    quarantined = group["cohorts"]["quarantined"]
+
+    base_rows, _ = _gzip_rows(ROOT / verified["source"])
+    rows = [
+        _published_row(
+            row,
+            arm="jev" if row["arm"] == "jev" else "gpt-5-mini",
+            cohort="verified",
+            source_url=source_url,
+            source_read_date=read_date,
+        )
+        for row in base_rows
+        if row["arm"] in ("jev", BASELINE_MODEL)
+    ]
+
+    cascade_rows, _ = _gzip_rows(ROOT / verified["cascade_source"])
+    rows.extend(
+        _published_row(
+            row,
+            arm="cascade",
+            cohort="verified",
+            source_url=source_url,
+            source_read_date=read_date,
+        )
+        for row in cascade_rows
+    )
+
+    guard_rows, guard_summary = _gzip_rows(ROOT / quarantined["source"])
+    guard_arm = guard_summary["arms"][0]
+    llm_price_in = guard_arm["escalation_price_in_usd_per_mtok"] / 1_000_000
+    llm_price_out = guard_arm["escalation_price_out_usd_per_mtok"] / 1_000_000
+    for row in guard_rows:
+        rows.append(
+            _published_row(
+                row,
+                arm="jev",
+                cohort="quarantined",
+                source_url=source_url,
+                source_read_date=read_date,
+                choice_value=row["jev_choice"],
+                latency_ms=row["jev_latency_ms"],
+                cost_usd=int(row["tokens_in"]) * JEV_PRICE,
             )
         )
-    return cases
+        llm_tokens_in = int(row.get("escalation_tokens_in") or 0)
+        llm_tokens_out = int(row.get("escalation_tokens_out") or 0)
+        rows.append(
+            _published_row(
+                row,
+                arm="gpt-5-mini",
+                cohort="quarantined",
+                source_url=source_url,
+                source_read_date=read_date,
+                choice_value=row.get("llm_choice"),
+                latency_ms=row.get("llm_latency_ms") or 0.0,
+                tokens_in=llm_tokens_in,
+                tokens_out=llm_tokens_out,
+                cost_usd=(llm_tokens_in * llm_price_in + llm_tokens_out * llm_price_out),
+                failure=row.get("llm_failure"),
+            )
+        )
+        rows.append(
+            _published_row(
+                row,
+                arm="cascade",
+                cohort="quarantined",
+                source_url=source_url,
+                source_read_date=read_date,
+            )
+        )
+    return rows
 
 
 def _claims_and_latest() -> tuple[dict[str, dict], dict[str, dict]]:
@@ -337,7 +464,6 @@ def all_cases() -> list[Case]:
     labels = yaml.safe_load(JUDGMENT_LABELS.read_text(encoding="utf-8"))
     return [
         *task_cases(),
-        *evidence_attribution_cases(labels),
         *second_key_cases(labels),
         *explanation_cases(labels),
     ]
@@ -349,12 +475,7 @@ def parse_real_task_baseline(cases: list[Case]) -> list[dict[str, Any]]:
         "vocabulary": str(VOCABULARY),
         "tasks": [{"id": c.id, "text": c.state["task"]} for c in tasks],
     }
-    scratch = Path(
-        "/private/tmp/claude-501/-Users-terbeest-dev-modelspec/"
-        "6b307b20-b183-41a5-91e6-14f65d035cbc/scratchpad/slice1/112"
-    )
-    scratch.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=scratch) as temporary:
+    with tempfile.TemporaryDirectory(dir=None) as temporary:
         input_path = Path(temporary) / "task-input.json"
         output_path = Path(temporary) / "task-output.json"
         input_path.write_text(json.dumps(payload), encoding="utf-8")
@@ -420,8 +541,8 @@ def llm_body(case: Case, model: str) -> dict[str, Any]:
             {
                 "role": "user",
                 "content": payload
-                + "\n\nReturn one JSON object: {\"answers\": {question_id: "
-                + "{\"choice\": option} or {\"noul\": number}}}. "
+                + '\n\nReturn one JSON object: {"answers": {question_id: '
+                + '{"choice": option} or {"noul": number}}}. '
                 + "Use exactly the question IDs and criteria keys supplied.",
             },
         ],
@@ -486,37 +607,58 @@ def summarise(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for (candidate, arm), group in sorted(groups.items()):
         correct = sum(bool(row["correct"]) for row in group)
         cost = sum(float(row["cost_usd"]) for row in group)
-        output.append(
-            {
-                "candidate": candidate,
-                "arm": arm,
-                "n": len(group),
-                "correct": correct,
-                "accuracy": round(correct / len(group), 4),
-                "p50_latency_ms": round(percentile([row["latency_ms"] for row in group], 0.5), 1),
-                "p95_latency_ms": round(percentile([row["latency_ms"] for row in group], 0.95), 1),
-                "total_cost_usd": round(cost, 6),
-                "cost_per_1000_correct_usd": round(cost / correct * 1000, 4) if correct else None,
-                "bands": dict(Counter(row["band"] for row in group)),
-                "failures": dict(Counter(row.get("failure") or "none" for row in group)),
-            }
-        )
+        result = {
+            "candidate": candidate,
+            "arm": arm,
+            "n": len(group),
+            "correct": correct,
+            "accuracy": round(correct / len(group), 4),
+            "p50_latency_ms": round(percentile([row["latency_ms"] for row in group], 0.5), 1),
+            "p95_latency_ms": round(percentile([row["latency_ms"] for row in group], 0.95), 1),
+            "total_cost_usd": round(cost, 6),
+            "cost_per_1000_correct_usd": round(cost / correct * 1000, 4) if correct else None,
+            "bands": dict(Counter(row["band"] for row in group)),
+            "failures": dict(Counter(row.get("failure") or "none" for row in group)),
+        }
+        cohorts = sorted({row["cohort"] for row in group if row.get("cohort")})
+        if cohorts:
+            result["cohorts"] = {}
+            for cohort in cohorts:
+                cohort_rows = [row for row in group if row.get("cohort") == cohort]
+                cohort_correct = sum(bool(row["correct"]) for row in cohort_rows)
+                result["cohorts"][cohort] = {
+                    "n": len(cohort_rows),
+                    "correct": cohort_correct,
+                    "accuracy": round(cohort_correct / len(cohort_rows), 4),
+                }
+            result["misattributions"] = sum(bool(row.get("misattribution")) for row in group)
+        output.append(result)
     return output
 
 
 def run(args: argparse.Namespace) -> None:
+    labels = yaml.safe_load(JUDGMENT_LABELS.read_text(encoding="utf-8"))
     cases = all_cases()
+    include_attribution = True
     if args.candidates:
         selected = {value.strip() for value in args.candidates.split(",") if value.strip()}
-        known = {case.candidate for case in cases}
+        known = {case.candidate for case in cases} | {"evidence_attribution"}
         if unknown := selected - known:
             raise SystemExit(f"unknown candidates: {', '.join(sorted(unknown))}")
         cases = [case for case in cases if case.candidate in selected]
+        include_attribution = "evidence_attribution" in selected
     parser_rows = parse_real_task_baseline(cases)
+    attribution_rows = published_attribution_rows(labels) if include_attribution else []
     if args.plan:
+        case_counts = dict(Counter(c.candidate for c in cases))
+        if include_attribution:
+            case_counts["evidence_attribution"] = sum(
+                cohort["rows"] for cohort in labels["attribution"]["cohorts"].values()
+            )
         plan = {
-            "cases": dict(Counter(c.candidate for c in cases)),
+            "cases": case_counts,
             "paid_calls": len(cases) * 2,
+            "published_attribution_rows": len(attribution_rows),
         }
         print(json.dumps(plan, indent=2))
         return
@@ -539,8 +681,7 @@ def run(args: argparse.Namespace) -> None:
         datetime.now(UTC).isoformat(timespec="seconds"),
     )
     estimated_chars = sum(
-        len(json.dumps({"state": case.state, "questions": case.questions}))
-        for case in cases
+        len(json.dumps({"state": case.state, "questions": case.questions})) for case in cases
     )
     projection = estimated_chars / 4 * (jev.input_price + baseline.input_price)
     projection += len(cases) * 4000 * baseline.output_price
@@ -548,20 +689,18 @@ def run(args: argparse.Namespace) -> None:
         raise SystemExit(
             f"projected ${projection:.4f} exceeds cap ${args.max_usd:.2f}; nothing called"
         )
-    lock = threading.Lock()
-    spent = 0.0
+    budget = SpendBudget(args.max_usd)
+    row_lock = threading.Lock()
     paid_rows: list[dict[str, Any]] = []
     client = httpx.Client(base_url=base_url, timeout=180)
 
     def ask(case: Case, arm: Arm) -> None:
-        nonlocal spent
         reserve = arm.cost(
             len(json.dumps(case.state)) // 2 + len(json.dumps(case.questions)) // 2,
             4000,
         )
-        with lock:
-            if spent + reserve > args.max_usd:
-                raise RuntimeError("hard spend cap reached before call")
+        if not budget.reserve(reserve):
+            raise RuntimeError("hard spend cap reached before call")
         started = time.perf_counter()
         failure = None
         body: dict[str, Any] = {}
@@ -613,18 +752,18 @@ def run(args: argparse.Namespace) -> None:
             "source_url": case.source_url,
             "source_read_date": case.source_read_date,
         }
-        with lock:
-            spent += cost
-            if spent > args.max_usd:
-                raise RuntimeError("provider usage exceeded the hard spend cap")
+        budget.reconcile(reserve, cost)
+        with row_lock:
             paid_rows.append(row)
 
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = [pool.submit(ask, case, arm) for arm in (jev, baseline) for case in cases]
         for future in futures:
             future.result()
-    rows = parser_rows + sorted(
-        paid_rows, key=lambda row: (row["arm"], row["candidate"], row["case_id"])
+    rows = (
+        parser_rows
+        + attribution_rows
+        + sorted(paid_rows, key=lambda row: (row["arm"], row["candidate"], row["case_id"]))
     )
     summary = {
         "record": "summary",
@@ -633,7 +772,7 @@ def run(args: argparse.Namespace) -> None:
         "started_and_finished_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "thresholds": {"act": ACT, "flag": FLAG, "null": f"below {FLAG} or no_match"},
         "max_usd": args.max_usd,
-        "spent_usd": round(spent, 6),
+        "spent_usd": round(budget.spent, 6),
         "prices": [jev.__dict__, baseline.__dict__],
         "results": summarise(rows),
     }
