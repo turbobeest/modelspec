@@ -1345,6 +1345,8 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         unit_differs = claim.unit is not None and claim.unit != q.unit
         return Diff("unit" if unit_differs else "value", expected, q.show())
     if isinstance(value, list):
+        if not value and normalise_name(reading.value) in _FALSE:
+            return None
         found_items = {s.strip().casefold()
                        for s in re.split(r",|;|\band\b", reading.value) if s.strip()}
         claimed_items = {str(v).strip().casefold() for v in value}

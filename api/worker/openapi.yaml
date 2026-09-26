@@ -2919,8 +2919,8 @@ components:
           title: Sources
           type: array
         contract_version:
-          const: '1.7'
-          default: '1.7'
+          const: '1.8'
+          default: '1.8'
           title: Contract Version
           type: string
         decision_id:
@@ -3122,6 +3122,25 @@ components:
           - type: 'null'
           default: null
           title: N
+        interval:
+          anyOf:
+          - maxItems: 2
+            minItems: 2
+            prefixItems:
+            - type: number
+            - type: number
+            type: array
+          - type: 'null'
+          default: null
+          title: Interval
+        quality_flags:
+          items:
+            enum:
+            - deprecated
+            - contamination_warning
+            type: string
+          title: Quality Flags
+          type: array
         measured_by:
           enum:
           - benchmark_author
@@ -4326,7 +4345,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.7'
+          - '1.8'
         endpoint:
           type: string
           enum:
@@ -4377,7 +4396,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.7'
+          - '1.8'
         endpoint:
           type: string
           enum:

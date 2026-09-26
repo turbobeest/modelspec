@@ -808,7 +808,12 @@ benchmarks:
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, raw (not style-controlled)
-    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13 is the stated date. Row claude-opus-4-6-high: rating 1502.96 (95% CI 1499.47-1506.45), 71993 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row claude-opus-4-6 (1497.54); dataset re-read 2026-09-24."
+    configuration: 'LMArena''s official leaderboard dataset, split latest, subset `text`
+      (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
+      is the stated date. Row claude-opus-4-6-high: rating 1502.96 (95% CI 1499.47-1506.45),
+      71993 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching
+      this card''s style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken
+      the default-effort row claude-opus-4-6 (1497.54); dataset re-read 2026-09-24.'
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
     id: anthropic/claude-opus-4-6#arena_elo_overall#c0c3b2aa7ff0
@@ -817,9 +822,13 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      snapshot_ref: sha256:b2143e53db27d7506c982ed4a7fe246289fd9ba5d181149507f0ee86bae47c18
       cited_regions:
       - rows
+    interval:
+    - 1499.47
+    - 1506.45
+    n: 71993
   - benchmark_id: arena_elo_coding
     model_id_as_evaluated: claude-opus-4-6-high
     score: 1535.27
@@ -1463,23 +1472,29 @@ benchmarks:
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-26'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-26'
     benchmark_version: AIME 2026, MathArena final-answer table
-    configuration: MathArena competition table read 2026-09-24; the table states no run date,
-      so the reading is dated by the observation. Effort high; highest-effort row for the model.
-      MathArena lists final-answer competitions as deprecated.
+    configuration: MathArena competition table read 2026-09-26; the table states no run
+      date, so the reading is dated by the observation. Effort high; highest-effort row
+      for the model. MathArena lists final-answer competitions as deprecated.
     limitations: ''
     id: anthropic/claude-opus-4-6#aime_2026#cbafd0c85858
     measured_by: independent_evaluator
     effort: high
     harness: null
     sources:
-    - source_id: model-160-matharena-aime-2026
-      snapshot_ref: sha256:f7e2ee1441375d33b08d553c6ddda60da7f3b453145ab0eeb26d5ca4a49484e9
+    - source_id: model-161-matharena-aime-2026
+      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
       cited_regions:
       - rows
+    - source_id: model-161-matharena-aime-2026-quality
+      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+      cited_regions:
+      - rows
+    quality_flags:
+    - deprecated
   - benchmark_id: tau3_banking
     model_id_as_evaluated: Claude Opus 4.6 (max)
     score: 27.32
@@ -2159,7 +2174,7 @@ facts:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-26'
 authoring_guide:
   applies_to:
     model_id: anthropic/claude-opus-4-6

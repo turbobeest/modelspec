@@ -1220,13 +1220,13 @@ benchmarks:
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-26'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-26'
     benchmark_version: AIME 2026, MathArena final-answer table
-    configuration: MathArena competition table read 2026-09-24; the table states no run date,
-      so the reading is dated by the observation. Effort thinking; highest-effort row for the
-      model. MathArena lists final-answer competitions as deprecated.
+    configuration: MathArena competition table read 2026-09-26; the table states no run
+      date, so the reading is dated by the observation. Effort thinking; highest-effort
+      row for the model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
     id: moonshot/kimi-k3#aime_2026#6c9811642c61
@@ -1234,10 +1234,17 @@ benchmarks:
     effort: null
     harness: null
     sources:
-    - source_id: model-160-matharena-aime-2026
-      snapshot_ref: sha256:f7e2ee1441375d33b08d553c6ddda60da7f3b453145ab0eeb26d5ca4a49484e9
+    - source_id: model-161-matharena-aime-2026
+      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
       cited_regions:
       - rows
+    - source_id: model-161-matharena-aime-2026-quality
+      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+      cited_regions:
+      - rows
+    quality_flags:
+    - deprecated
+    - contamination_warning
   - benchmark_id: tau3_banking
     model_id_as_evaluated: Kimi K3 (max)
     score: 37.11
@@ -1800,10 +1807,38 @@ facts:
     snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
     cited_regions:
     - audit
+- id: moonshot/kimi-k3#model.parameters_total
+  subject:
+    kind: model
+    id: moonshot/kimi-k3
+  facet: model.parameters_total
+  value: 2779931837184
+  state: known
+  sources:
+  - source_id: model-161-kimi-k3-rtx-4090-fit
+    snapshot_ref: sha256:9ca75a16dfd64b9af44ca339ba4be8fe66e9eed1466808c9a8e9560fdb859111
+    cited_regions:
+    - rows
+- id: moonshot/kimi-k3#model.fits_hardware
+  subject:
+    kind: model
+    id: moonshot/kimi-k3
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-161-kimi-k3-rtx-4090-fit
+    snapshot_ref: sha256:9ca75a16dfd64b9af44ca339ba4be8fe66e9eed1466808c9a8e9560fdb859111
+    cited_regions:
+    - rows
+  - source_id: model-161-nvidia-rtx-4090-memory
+    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-26'
 ---
 
 # Kimi K3

@@ -112,6 +112,29 @@ def test_the_archive_is_decided_only_when_the_spec_asks_for_retired_models():
     assert [r.offering.model for r in with_archive.results] == ["lab/old", "lab/premier"]
 
 
+def test_full_explanation_surfaces_an_empty_set_without_contract_failure():
+    no_fit = generator("lab/no-fit")
+    no_fit["facts"].append(fact(
+        "model", "lab/no-fit", "model.fits_hardware", [],
+    ))
+    fits = generator("lab/fits")
+    fits["facts"].append(fact(
+        "model", "lab/fits", "model.fits_hardware", ["nvidia_rtx_4090"],
+    ))
+    _, index = snapshot([no_fit, fits])
+
+    decision = decide(spec(
+        where=("model.class = text-generator",
+               "model.fits_hardware in {nvidia_rtx_4090}"),
+        objective={"max": "model.context_window"},
+        explain="full",
+    ), index, facets=facets)
+
+    eliminated = next(row for row in decision.eliminated.models if row.model == "lab/no-fit")
+    assert eliminated.value is None
+    assert eliminated.values == []
+
+
 def test_the_gate_still_runs_when_asked_and_can_be_skipped():
     from decision.snapshot import CompletenessError
 

@@ -773,6 +773,14 @@ class BenchmarkEvidence(BaseModel):
     benchmark_version: str = ""
     configuration: str = ""
     limitations: str = ""
+    #: A published uncertainty interval on the same scale as ``score``.
+    interval: tuple[float, float] | None = None
+    #: The published observation count behind the measurement, when disclosed.
+    n: int | None = Field(default=None, ge=1)
+    #: Structured reasons this measurement is not a clean direct answer.
+    quality_flags: list[Literal["deprecated", "contamination_warning"]] = Field(
+        default_factory=list
+    )
 
     @field_validator("source_url")
     @classmethod
@@ -790,6 +798,20 @@ class BenchmarkEvidence(BaseModel):
         except ValueError as exc:
             raise ValueError(f"must be an exact ISO date YYYY-MM-DD, got {value!r}") from exc
         return value
+
+    @model_validator(mode="after")
+    def _valid_uncertainty_and_quality(self) -> BenchmarkEvidence:
+        if self.interval is not None:
+            low, high = self.interval
+            if not all(float("-inf") < value < float("inf") for value in (low, high)):
+                raise ValueError("interval bounds must be finite")
+            if low > high:
+                raise ValueError("interval lower bound must not exceed the upper bound")
+            if not low <= self.score <= high:
+                raise ValueError("evidence score must fall within its interval")
+        if len(self.quality_flags) != len(set(self.quality_flags)):
+            raise ValueError("quality_flags must not contain duplicates")
+        return self
 
 
 class Benchmarks(BaseModel):

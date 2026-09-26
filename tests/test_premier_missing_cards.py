@@ -12,6 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import yaml
 
 from schema.card import ModelCard
 
@@ -40,6 +41,41 @@ CASES = [
     ("codefuse/f2llm-v2-14b", "codefuse/f2llm-v2-14b.md", "embedding-text", "mteb_multilingual_v2", 68.74),
     ("codefuse/f2llm-v2-8b", "codefuse/f2llm-v2-8b.md", "embedding-text", "mteb_multilingual_v2", 68.09),
 ]
+
+
+def test_model_161_quality_metadata_is_structured_on_premier_cards() -> None:
+    fable = _load("anthropic/claude-fable-5-1.md")
+    arena = next(
+        row for row in fable.benchmarks.evidence if row.benchmark_id == "arena_elo_overall"
+    )
+    assert arena.interval == (1499.43, 1515.73)
+    assert arena.n == 5783
+
+    opus = _load("anthropic/claude-opus-4-7.md")
+    aime = next(row for row in opus.benchmarks.evidence if row.benchmark_id == "aime_2026")
+    assert set(aime.quality_flags) == {"deprecated", "contamination_warning"}
+
+
+@pytest.mark.parametrize(
+    "rel,parameters",
+    [
+        ("deepseek/deepseek-v4-pro.md", 1_598_839_674_782),
+        ("moonshot/kimi-k2-6.md", 1_026_879_376_368),
+        ("moonshot/kimi-k3.md", 2_779_931_837_184),
+        ("zhipu/glm-5-2.md", 753_329_940_480),
+        ("zhipu/glm-5-3.md", 753_329_940_480),
+    ],
+)
+def test_model_161_large_open_models_do_not_fit_an_rtx_4090(rel, parameters) -> None:
+    path = ROOT / "models" / rel
+    data = yaml.safe_load(path.read_text(encoding="utf-8").split("---", 2)[1])
+    facts = {row["facet"]: row for row in data["facts"] if row.get("id")}
+
+    assert facts["model.parameters_total"]["value"] == parameters
+    assert facts["model.parameters_total"]["state"] == "known"
+    assert facts["model.fits_hardware"]["value"] == []
+    assert facts["model.fits_hardware"]["state"] == "known"
+    assert len(facts["model.fits_hardware"]["sources"]) == 2
 
 
 def _load(rel: str) -> ModelCard:

@@ -1166,10 +1166,27 @@ facts:
   - model-143-microsoft-harrier-oss-v1-27b
   - model-143-mit-license
   - model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+- id: microsoft/harrier-oss-v1-27b#model.languages
+  subject:
+    kind: model
+    id: microsoft/harrier-oss-v1-27b
+  facet: model.languages
+  value:
+  - en
+  state: known
+  sources:
+  - source_id: model-161-microsoft-harrier-oss-v1-27b-model-card
+    snapshot_ref: sha256:47d4dacc223fc8e8625b19b01b83f1c33f23b7d1738e194a8830cd5243a33961
+    cited_regions:
+    - rows
+  - source_id: model-161-microsoft-harrier-oss-v1-27b-mteb
+    snapshot_ref: sha256:a2e833cbb9725dfcac56f298b865bf7f5d8b101b4e7113f8b4581dc4bd936ab9
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: Claude Opus 5.5
 card_created: '2026-09-24'
-card_updated: '2026-09-24'
+card_updated: '2026-09-26'
 ---
 
 # harrier-oss-v1-27b

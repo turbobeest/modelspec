@@ -79,6 +79,28 @@ def run_optimise(snapshot, filtered, spec, selectors, domains):
     )
 
 
+def _overlaps_raw_evidence(row, others) -> bool:
+    """Whether a selected measurement overlaps another candidate's interval."""
+    for contribution in row.contributions:
+        if len(contribution.evidence) != 1:
+            continue
+        interval = contribution.evidence[0].interval
+        if interval is None:
+            continue
+        for other in others:
+            if other.candidate_id == row.candidate_id:
+                continue
+            for compared in other.contributions:
+                if compared.dimension != contribution.dimension or len(compared.evidence) != 1:
+                    continue
+                other_interval = compared.evidence[0].interval
+                if other_interval is not None and max(interval[0], other_interval[0]) <= min(
+                    interval[1], other_interval[1]
+                ):
+                    return True
+    return False
+
+
 def decide(
     spec: Spec,
     snapshot: ExplanationIndex,
@@ -171,6 +193,12 @@ def decide(
             other_id != model_id
             and max(current.low, other.low) <= min(current.high, other.high)
             for other_id, other in model_estimates.items()
+        ):
+            warnings.append("not_separable")
+        if (
+            len(names) == 1
+            and _overlaps_raw_evidence(row, ordered.results)
+            and "not_separable" not in warnings
         ):
             warnings.append("not_separable")
         p_best, top3 = probabilities.get(model_id, (None, None))

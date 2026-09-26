@@ -141,6 +141,9 @@ class EvidenceValue:
     record_id: str | None = field(default=None, compare=False)
     date_type: str | None = None
     source_snapshot: str | None = None
+    interval: tuple[float, float] | None = None
+    n: int | None = None
+    quality_flags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -579,6 +582,7 @@ class _Compiler:
             self._retain("evidence", e), e.get("date_type"),
             next((r.get("snapshot_ref") for r in e.get("sources", [])
                   if r["source_id"] == source_ids[0]), None),
+            e.get("interval"), e.get("n"), sorted(e.get("quality_flags") or []),
         ])
 
     # output ------------------------------------------------------------------
@@ -1086,7 +1090,10 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
                           date=_date(r[8]), source_ids=tuple(r[9]),
                           record_id=r[10] if len(r) > 10 else None,
                           date_type=r[11] if len(r) > 11 else None,
-                          source_snapshot=r[12] if len(r) > 12 else None)
+                          source_snapshot=r[12] if len(r) > 12 else None,
+                          interval=tuple(r[13]) if len(r) > 13 and r[13] is not None else None,
+                          n=r[14] if len(r) > 14 else None,
+                          quality_flags=tuple(r[15]) if len(r) > 15 else ())
             for r in self._rows(cid))
         return self[cid]
 

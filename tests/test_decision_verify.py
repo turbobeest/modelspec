@@ -135,6 +135,24 @@ def test_registered_enum_spelling_matches_provider_prose(registered, published) 
     assert verify.compare(claim, [verify.Reading("Provider API", published)]) == []
 
 
+def test_empty_set_matches_an_explicit_none_reading() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="model#fits_hardware"),
+        subject="lab/model",
+        names=("Model",),
+        field="model.fits_hardware",
+        value=[],
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="hardware-fit",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["fit"],
+        ),),
+    )
+
+    assert verify.compare(claim, [verify.Reading("Model", "none")]) == []
+
+
 def test_currency_with_mtok_header_is_a_per_million_token_price() -> None:
     quantity = verify.parse_quantity("$4", "MTok")
     assert quantity is not None

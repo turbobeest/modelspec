@@ -695,9 +695,13 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      snapshot_ref: sha256:b2143e53db27d7506c982ed4a7fe246289fd9ba5d181149507f0ee86bae47c18
       cited_regions:
       - rows
+    interval:
+    - 1480.91
+    - 1498.57
+    n: 4723
   - benchmark_id: arena_elo_vision
     model_id_as_evaluated: muse-spark-1.3-max
     score: 1314.56
@@ -1486,7 +1490,7 @@ facts:
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
-card_updated: '2026-09-24'
+card_updated: '2026-09-26'
 ---
 
 # Muse Spark 1.3
