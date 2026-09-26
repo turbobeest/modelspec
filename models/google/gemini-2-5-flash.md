@@ -714,7 +714,7 @@ benchmarks:
       above clip.
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemini-2.5-flash
-    score: 1417.2705574952797
+    score: 1409.69
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -728,13 +728,13 @@ benchmarks:
       votes, rank 138.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
-    id: google/gemini-2-5-flash#arena_elo_style_control#d74c9ce7e35d
+    id: google/gemini-2-5-flash#arena_elo_style_control#98abbe6efc8b
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding

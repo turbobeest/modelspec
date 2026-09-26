@@ -37,11 +37,15 @@ COLLECTOR = VerificationActor(
 SELECTED = {
     "bytedance/seed1-5-embedding": ("mteb_eng_v2", "mteb-eng-v2.json", "mean_task"),
     "google/gemini-2-5-flash": ("arena_elo_style_control", "arena-text.json", "rating"),
-    "google/gemma-4-26b-a4b-it": ("arena_elo_style_control", "arena-text.json", "rating"),
     "google/gemma-4-31b-it": ("gpqa_diamond", "epoch-gpqa_diamond.csv", "mean_score"),
     "microsoft/phi-4": ("arena_elo_style_control", "arena-text.json", "rating"),
     "qwen/qwen3-embedding-8b": ("mteb_eng_v2", "mteb-eng-v2.json", "mean_task"),
 }
+ARENA_STYLE_REF = SourceRef(
+    source_id="model-160-arena-text-style-control",
+    snapshot_ref="sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550",
+    cited_regions=["rows"],
+)
 
 
 def frontmatter(path: Path) -> tuple[dict, str]:
@@ -102,7 +106,30 @@ def main() -> None:
             raise SystemExit(f"{model_id}: expected one {benchmark} row, got {len(candidates)}")
         row = dict(candidates[0])
         original = evidence_key(row)
-        matched = source_row(filename, row)
+        ref = ARENA_STYLE_REF if filename == "arena-text.json" else SourceRef(
+            source_id=source_id(filename), snapshot_ref=snapshots[filename],
+            cited_regions=["rows"],
+        )
+        if filename == "arena-text.json":
+            source_rows = StructuredDataExtractor._rows(
+                store.get(ref.snapshot_ref).decode("utf-8")
+            ) or []
+            expected = normalise_name(str(row.get("model_id_as_evaluated") or ""))
+            exact = []
+            for source_candidate in source_rows:
+                candidate_normal = {
+                    normalise_name(str(key)): value
+                    for key, value in source_candidate.items()
+                }
+                candidate_subject = next((
+                    candidate_normal.get(key) for key in StructuredDataExtractor._SUBJECTS
+                    if candidate_normal.get(key)
+                ), None)
+                if candidate_subject and normalise_name(str(candidate_subject)) == expected:
+                    exact.append(source_candidate)
+            matched = exact[0] if len(exact) == 1 else None
+        else:
+            matched = source_row(filename, row)
         if matched is None:
             raise SystemExit(f"{model_id}: no exact retained row in {filename}")
         normal = {normalise_name(str(key)): value for key, value in matched.items()}
@@ -119,11 +146,6 @@ def main() -> None:
         effort_match = re.search(r"_(minimal|low|medium|high|xhigh|max)$", str(subject))
         row["effort"] = effort_match.group(1) if effort_match else None
         row["harness"] = None
-        ref = SourceRef(
-            source_id=source_id(filename),
-            snapshot_ref=snapshots[filename],
-            cited_regions=["rows"],
-        )
         if ref.source_id not in registered:
             raise SystemExit(f"unregistered retained source: {ref.source_id}")
         row["sources"] = [ref.model_dump(mode="json")]

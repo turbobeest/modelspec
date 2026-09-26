@@ -679,9 +679,9 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemma-4-26b-a4b
-    score: 1434.473302772797
-    unit: Arena score (Elo scale)
-    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    score: 1438.45
+    unit: elo
+    source_url: https://lmarena.ai/leaderboard
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
@@ -691,15 +691,6 @@ benchmarks:
       style-controlled. Style-control overall is not raw overall and is not a category
       Elo. evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
-    id: google/gemma-4-26b-a4b-it#arena_elo_style_control#a7ddcd1a2563
-    measured_by: independent_evaluator
-    effort: null
-    harness: null
-    sources:
-    - source_id: model-143-evidence-arena-text-json
-      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
-      cited_regions:
-      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: gemma-4-26b-a4b-it_minimal
     score: 73.23
