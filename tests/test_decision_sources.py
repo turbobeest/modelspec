@@ -71,6 +71,25 @@ sources:
         load_sources(path)
 
 
+def test_source_registry_loads_live_volatility_and_defaults_to_static(tmp_path: Path) -> None:
+    path = tmp_path / "sources.yaml"
+    path.write_text(
+        """schema_version: 1
+sources:
+  - id: live-board
+    url: https://example.test/live
+    volatility: live
+  - id: static-paper
+    url: https://example.test/paper
+"""
+    )
+
+    sources = load_sources(path)
+
+    assert sources["live-board"].volatility == "live"
+    assert sources["static-paper"].volatility == "static"
+
+
 def fixture(name: str) -> bytes:
     return (FIXTURES / name).read_bytes()
 

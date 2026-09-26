@@ -278,6 +278,9 @@ class CitedRegion(Record):
 class Source(Record):
     id: Text
     url: HttpUrl
+    #: Whether values read from this source age from the day it was observed.
+    #: Static is the safe default for papers, system cards, and launch posts.
+    volatility: Literal["static", "live"] = "static"
     fetch: Literal["http", "conditional_http", "rendered"] = "conditional_http"
     normaliser: Text = "html-default"
     cited_regions: list[CitedRegion] = Field(default_factory=list)
