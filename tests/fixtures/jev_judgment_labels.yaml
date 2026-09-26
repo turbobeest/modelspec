@@ -1,0 +1,70 @@
+# MODEL-112 labels for the three evidence-side candidates, fixed before inference.
+# The attribution and explanation cases use the MODEL-140 verification fixture.
+# The second-key cases name production claims whose latest two-key outcome was
+# produced by an LLM extractor and whose retained cited region is available.
+read_date: "2026-09-25"
+attribution:
+  source: tests/fixtures/verification/leaderboard.html
+  benchmark: seeded-coding
+  benchmark_version: "2026-08-14"
+  cases:
+    - {id: attr-01, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 64.0, unit: percent, expected: belongs}
+    - {id: attr-02, model: "GPT-6 Sol", effort: max, harness: "codex-cli@1.4", value: 71.2, unit: percent, expected: belongs}
+    - {id: attr-03, model: "GPT-6 Astra", effort: default, harness: "codex-cli@1.4", value: 58.3, unit: percent, expected: belongs}
+    - {id: attr-04, model: "Nimbus 3", effort: max, harness: "codex-cli@1.4", value: 66.6, unit: percent, expected: belongs}
+    - {id: attr-05, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 0.64, unit: fraction, expected: belongs}
+    - {id: attr-06, model: "GPT-6 Astra", effort: default, harness: "codex-cli@1.4", value: 58, unit: percent, expected: belongs}
+    - {id: attr-07, model: "Nimbus 3 Mini", effort: default, harness: "codex-cli@1.4", value: 49.5, unit: percent, expected: belongs}
+    - {id: attr-08, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 58.3, unit: percent, expected: no_match}
+    - {id: attr-09, model: "Nimbus 3", effort: default, harness: "codex-cli@1.4", value: 49.5, unit: percent, expected: no_match}
+    - {id: attr-10, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 71.2, unit: percent, expected: no_match}
+    - {id: attr-11, model: "GPT-6 Sol", effort: max, harness: "codex-cli@1.4", value: 64.0, unit: percent, expected: no_match}
+    - {id: attr-12, model: "Nimbus 3", effort: null, harness: "codex-cli@1.4", value: 66.6, unit: percent, expected: no_match}
+    - {id: attr-13, model: "Orion 2", effort: default, harness: "codex-cli@1.4", value: 61.0, unit: percent, expected: no_match}
+    - {id: attr-14, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.3", value: 64.0, unit: percent, expected: no_match}
+    - {id: attr-15, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 64.0, unit: fraction, expected: no_match}
+    - {id: attr-16, model: "GPT-6 Sol", effort: default, harness: "codex-cli@1.4", value: 64.0, unit: percent, benchmark_version: "2026-03-02", expected: no_match}
+
+second_key:
+  cases:
+    - {id: verify-01, target: "evidence:anthropic/claude-fable-5-1#terminal_bench_v4_0#be4c454ede6e", expected: no_match}
+    - {id: verify-02, target: "fact:zai/zhipu/glm-5-3/global/standard#offering.data.zero_retention", expected: supported}
+    - {id: verify-03, target: "fact:zai/zhipu/glm-5-3/global/standard#offering.data.trains_on_customer_data", expected: supported}
+    - {id: verify-04, target: "fact:zai/zhipu/glm-5-3/global/standard#offering.data.retention", expected: supported}
+    - {id: verify-05, target: "fact:zai/zhipu/glm-5-3/global/standard#offering.attestation.soc2", expected: supported}
+    - {id: verify-06, target: "fact:zai/zhipu/glm-5-3/global/standard#offering.attestation.baa", expected: supported}
+    - {id: verify-07, target: "fact:zai/zhipu/glm-5-2/global/standard#offering.data.zero_retention", expected: supported}
+    - {id: verify-08, target: "fact:zai/zhipu/glm-5-2/global/standard#offering.data.trains_on_customer_data", expected: supported}
+    - {id: verify-09, target: "fact:zai/zhipu/glm-5-2/global/standard#offering.data.retention", expected: supported}
+    - {id: verify-10, target: "fact:zai/zhipu/glm-5-2/global/standard#offering.attestation.soc2", expected: supported}
+    - {id: verify-11, target: "fact:zai/zhipu/glm-5-2/global/standard#offering.attestation.baa", expected: supported}
+    - {id: verify-12, target: "fact:alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.data.zero_retention", expected: supported}
+    - {id: verify-13, target: "fact:alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.data.retention", expected: supported}
+    - {id: verify-14, target: "fact:aws-bedrock/anthropic/claude-opus-5/global/standard#offering.data.zero_retention", expected: no_match}
+    - {id: verify-15, target: "fact:aws-bedrock/anthropic/claude-opus-4-7/global/standard#offering.data.zero_retention", expected: no_match}
+    - {id: verify-16, target: "fact:aws-bedrock/anthropic/claude-fable-5-1/global/standard#offering.data.zero_retention", expected: no_match}
+    - {id: verify-17, target: "fact:aws-bedrock/anthropic/claude-fable-5-1/global/standard#offering.data.retention", expected: no_match}
+    - {id: verify-18, target: "fact:aws-bedrock/anthropic/claude-fable-5/global/standard#offering.data.zero_retention", expected: no_match}
+    - {id: verify-19, target: "fact:aws-bedrock/anthropic/claude-fable-5/global/standard#offering.data.retention", expected: no_match}
+    - {id: verify-20, target: "fact:aws-bedrock/anthropic/claude-opus-5-5/global/standard#offering.data.zero_retention", expected: no_match}
+    - {id: verify-21, target: "fact:aws-bedrock/anthropic/claude-opus-4-6/global/standard#offering.data.zero_retention", expected: no_match}
+
+explanation:
+  source: tests/fixtures/verification/leaderboard.html
+  cases:
+    - {id: why-01, sentence: "GPT-6 Sol scored 64.0% at default effort.", evidence_model: "GPT-6 Sol", evidence_effort: default, evidence_value: 64.0, expected: supported}
+    - {id: why-02, sentence: "GPT-6 Sol scored 71.2% at maximum effort.", evidence_model: "GPT-6 Sol", evidence_effort: max, evidence_value: 71.2, expected: supported}
+    - {id: why-03, sentence: "GPT-6 Astra scored 58.3% at default effort.", evidence_model: "GPT-6 Astra", evidence_effort: default, evidence_value: 58.3, expected: supported}
+    - {id: why-04, sentence: "Nimbus 3 scored 66.6% at maximum effort.", evidence_model: "Nimbus 3", evidence_effort: max, evidence_value: 66.6, expected: supported}
+    - {id: why-05, sentence: "Nimbus 3 Mini scored 49.5% at default effort.", evidence_model: "Nimbus 3 Mini", evidence_effort: default, evidence_value: 49.5, expected: supported}
+    - {id: why-06, sentence: "GPT-6 Sol used codex-cli@1.4 for its 64.0% result.", evidence_model: "GPT-6 Sol", evidence_effort: default, evidence_value: 64.0, expected: supported}
+    - {id: why-07, sentence: "The board reports scores as the mean of five runs.", evidence_model: "GPT-6 Sol", evidence_effort: default, evidence_value: 64.0, expected: supported}
+    - {id: why-08, sentence: "Nimbus 3 had no default-effort submission.", evidence_model: "Nimbus 3", evidence_effort: max, evidence_value: 66.6, expected: supported}
+    - {id: why-09, sentence: "GPT-6 Sol scored 71.2% at default effort.", evidence_model: "GPT-6 Sol", evidence_effort: default, evidence_value: 64.0, expected: no_match}
+    - {id: why-10, sentence: "GPT-6 Astra scored 64.0% at default effort.", evidence_model: "GPT-6 Astra", evidence_effort: default, evidence_value: 58.3, expected: no_match}
+    - {id: why-11, sentence: "Nimbus 3 Mini scored 66.6% at default effort.", evidence_model: "Nimbus 3 Mini", evidence_effort: default, evidence_value: 49.5, expected: no_match}
+    - {id: why-12, sentence: "GPT-6 Sol used codex-cli@2.0 for its result.", evidence_model: "GPT-6 Sol", evidence_effort: default, evidence_value: 64.0, expected: no_match}
+    - {id: why-13, sentence: "GPT-6 Sol was evaluated on 2026-09-14.", evidence_model: "GPT-6 Sol", evidence_effort: default, evidence_value: 64.0, expected: no_match}
+    - {id: why-14, sentence: "Orion 2 scored 61.0% on the board.", evidence_model: "GPT-6 Sol", evidence_effort: default, evidence_value: 64.0, expected: no_match}
+    - {id: why-15, sentence: "Nimbus 3 submitted a 49.5% default-effort result.", evidence_model: "Nimbus 3", evidence_effort: max, evidence_value: 66.6, expected: no_match}
+    - {id: why-16, sentence: "GPT-6 Sol was the highest-scoring model overall.", evidence_model: "GPT-6 Sol", evidence_effort: default, evidence_value: 64.0, expected: no_match}
