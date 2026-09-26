@@ -282,6 +282,69 @@ benchmarks:
     assert log["verifier"]["model_family"] == "deterministic"
 
 
+def test_signal_refresh_changes_only_the_resolved_model(monkeypatch, tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "registry" / "sources.yaml").write_text(
+        """schema_version: 1
+sources:
+- id: fixture-source
+  url: https://example.test/leaderboard.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {kind: page, value: ''}
+""",
+        encoding="utf-8",
+    )
+    target = root / "models" / "lab" / "target.md"
+    other = root / "models" / "lab" / "other.md"
+    target.write_text(
+        _card("2026-08-01").replace("lab/model", "lab/target").replace(
+            "Stable Model", "Target Model"
+        ).replace("prose\n", ""),
+        encoding="utf-8",
+    )
+    other.write_text(
+        _card("2026-08-01").replace("lab/model", "lab/other").replace(
+            "Stable Model", "Other Model"
+        ).replace("prose\n", ""),
+        encoding="utf-8",
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [
+            {"model": "Target Model", "score": "73.0%", "date": "2026-09-01"},
+            {"model": "Other Model", "score": "99.0%", "date": "2026-09-01"},
+        ],
+        url="https://example.test/leaderboard.json",
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-25",
+        note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url="https://example.test/leaderboard.json", projected=projection,
+        observed_at="2026-09-25", value_field="score", store=store,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    other_before = other.read_bytes()
+
+    report = refresh.run(
+        observed_at="2026-09-25", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/target",),
+    )
+
+    assert [(change.model_id, change.new_value) for change in report.changes] == [
+        ("lab/target", 73.0)
+    ]
+    assert other.read_bytes() == other_before
+
+
 def test_confirmed_row_advances_observation_date_and_freshness(monkeypatch, tmp_path: Path) -> None:
     root = tmp_path / "repo"
     cache = tmp_path / "copies"

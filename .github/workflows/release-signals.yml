@@ -15,9 +15,54 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  pending:
+    name: Build pending-work matrix
+    if: vars.SIGNALS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    env:
+      SIGNALS_ORIGIN: https://api.modelspec.dev
+      MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
+      RESEARCH_PR_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
+    steps:
+      - name: Refuse missing repository credentials
+        run: |
+          if [ -z "$MODELSPEC_SIGNALS_READ_KEY" ] || [ -z "$RESEARCH_PR_TOKEN" ]; then
+            echo "::error::MODELSPEC_SIGNALS_READ_KEY and RESEARCH_PR_TOKEN are required."
+            exit 1
+          fi
+
+      - name: Pull all pending signals and due re-checks
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $MODELSPEC_SIGNALS_READ_KEY" \
+            "$SIGNALS_ORIGIN/v1/signals/pending" \
+            --output "$RUNNER_TEMP/pending.json"
+
+      - name: Build the isolated-work matrix
+        id: matrix
+        run: |
+          matrix="$(jq -c '{work: (
+            [.signals[]? | {signal_id: .signal_id, recheck_day: 0}] +
+            [.rechecks[]? | {signal_id: .signal.signal_id, recheck_day: .day}]
+          )}' "$RUNNER_TEMP/pending.json")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+      - name: Preserve pending work for each isolated job
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-signals-pending
+          path: ${{ runner.temp }}/pending.json
+          if-no-files-found: error
+
   process:
     name: Release signal to card change
-    if: vars.SIGNALS_ENABLED == 'true'
+    needs: pending
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.pending.outputs.matrix) }}
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ${{ github.workspace }}
@@ -46,25 +91,26 @@ jobs:
       - name: Install pipeline dependencies
         run: python -m pip install -e '.[dev]' pyarrow
 
-      - name: Pull pending signals and due re-checks
-        run: |
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer $MODELSPEC_SIGNALS_READ_KEY" \
-            "$SIGNALS_ORIGIN/v1/signals/pending" \
-            --output "$RUNNER_TEMP/pending.json"
+      - name: Download the pending-work snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: release-signals-pending
+          path: ${{ runner.temp }}
 
       - name: Preserve the mechanically checked baseline
         run: |
           mkdir -p "$RUNNER_TEMP/before"
           cp -R models verification "$RUNNER_TEMP/before/"
 
-      - name: Process one signal
+      - name: Process one isolated work item
         run: |
           python scripts/process_release_signals.py \
             --pending "$RUNNER_TEMP/pending.json" \
             --result "$RUNNER_TEMP/result.json" \
             --audit-json "$RUNNER_TEMP/audit.json" \
-            --report-json "$RUNNER_TEMP/refresh-report.json"
+            --report-json "$RUNNER_TEMP/refresh-report.json" \
+            --signal-id "${{ matrix.work.signal_id }}" \
+            --recheck-day "${{ matrix.work.recheck_day }}"
           cat "$RUNNER_TEMP/result.json" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Classify the generated change

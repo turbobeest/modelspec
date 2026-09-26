@@ -26,6 +26,7 @@ SUPPORTING_URL_FIELDS = (
     "documentation_url", "docs_url", "api_docs_url", "model_card_url",
     "huggingface_url", "repository_url",
 )
+SIGNAL_ONLY_HOSTS = frozenset({"x.com", "twitter.com", "t.co"})
 IDENTITY_FIELDS = frozenset({
     "model_id", "display_name", "provider", "provider_display", "family", "version",
     "release_date", "last_updated", "status", "model_type", "model_subtypes", "tags",
@@ -55,6 +56,19 @@ class DraftResult:
     evidence_urls: tuple[str, ...]
     firecrawl_credits: int = 0
     gather_failures: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class GatherResult:
+    resolution: Resolution
+    display_name: str = ""
+    release_date: str = ""
+    provider_id: str = ""
+    primary_url: str = ""
+    supporting_urls: tuple[str, ...] = ()
+    evidence_urls: tuple[str, ...] = ()
+    gather_failures: tuple[str, ...] = ()
+    pricing: Mapping[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -153,11 +167,23 @@ def resolve_signal(signal, root: Path) -> Resolution:
 
 
 def require_allowed_source(url: str) -> str:
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError(f"source is not an HTTP URL: {url}")
+    host = (parsed.hostname or "").casefold().removeprefix("www.")
+    if any(host == blocked or host.endswith(f".{blocked}") for blocked in SIGNAL_ONLY_HOSTS):
+        raise ValueError(f"signal-only source cannot be card evidence: {url}")
     if excluded_sources().url(url):
         raise ValueError(f"excluded source: {url}")
-    if urlsplit(url).scheme not in {"http", "https"}:
-        raise ValueError(f"source is not an HTTP URL: {url}")
     return url
+
+
+def _fetch_allowed(fetch: Callable[[str], FetchResult], url: str) -> FetchResult:
+    """Validate both the requested URL and the final URL after redirects."""
+    requested = require_allowed_source(url)
+    response = fetch(requested)
+    require_allowed_source(response.url)
+    return response
 
 
 def _models_dev_listing(payload: object, provider: str, model_name: str) -> tuple[str, dict]:
@@ -312,7 +338,7 @@ def _huggingface_repo(
         "search": model_name, "limit": 20,
     })
     try:
-        payload = json.loads(fetch(search_url).body)
+        payload = json.loads(_fetch_allowed(fetch, search_url).body)
     except Exception as exc:  # the optional source never blocks a provider-backed card
         return "", f"Hugging Face search failed: {type(exc).__name__}: {exc}"
     wanted_model = attribution.normalise(model_name)
@@ -331,29 +357,27 @@ def _huggingface_repo(
         return "", None
     repo_url = require_allowed_source(f"https://huggingface.co/{matches[0]}")
     try:
-        fetch(repo_url)
+        _fetch_allowed(fetch, repo_url)
     except Exception as exc:
         return "", f"Hugging Face repository failed: {type(exc).__name__}: {exc}"
     return repo_url, None
 
 
-def draft_signal(
+def gather_signal(
     signal,
     *,
     root: Path,
     fetch: Callable[[str], FetchResult],
-    read_date: date,
     models_dev_url: str = MODELS_DEV_URL,
-    firecrawl_budget: FirecrawlBudget | None = None,
     discover_huggingface: bool = False,
-) -> DraftResult:
-    """Draft one new card. X is never fetched or written as a source."""
+) -> GatherResult:
+    """Gather allowed primary sources for one resolved model identity."""
     resolution = resolve_signal(signal, root)
-    if resolution.status != "new" or resolution.model_id is None:
-        return DraftResult(resolution, None, (), (firecrawl_budget or FirecrawlBudget()).spent)
+    if resolution.status == "uncertain" or resolution.model_id is None:
+        return GatherResult(resolution)
 
     models_dev_url = require_allowed_source(models_dev_url)
-    listing_response = fetch(models_dev_url)
+    listing_response = _fetch_allowed(fetch, models_dev_url)
     models_dev_payload = json.loads(listing_response.body)
     provider_id, listing = _models_dev_listing(
         models_dev_payload, signal.provider, signal.model_name
@@ -380,14 +404,109 @@ def draft_signal(
     if not primary_candidates:
         raise ValueError("the listing does not name a primary provider source")
     primary_url = primary_candidates[0]
-    primary = fetch(primary_url)
+    primary = _fetch_allowed(fetch, primary_url)
     display_name, release_date = _primary_identity(primary, signal.model_name, signal.provider)
     supporting_urls = list(dict.fromkeys(
         require_allowed_source(str(listing[field]))
         for field in SUPPORTING_URL_FIELDS if listing.get(field)
     ))
     for url in supporting_urls:
-        fetch(url)
+        _fetch_allowed(fetch, url)
+
+    failures: list[str] = []
+    huggingface_url = next((url for url in supporting_urls if "huggingface.co" in url), "")
+    if discover_huggingface and not huggingface_url:
+        huggingface_url, failure = _huggingface_repo(
+            fetch=fetch, model_name=display_name, provider=resolution.model_id.split("/", 1)[0]
+        )
+        if failure:
+            failures.append(failure)
+        if huggingface_url:
+            supporting_urls.append(huggingface_url)
+    return GatherResult(
+        resolution=resolution,
+        display_name=display_name,
+        release_date=release_date,
+        provider_id=provider_id,
+        primary_url=primary_url,
+        supporting_urls=tuple(supporting_urls),
+        evidence_urls=tuple(dict.fromkeys((primary_url, models_dev_url, *supporting_urls))),
+        gather_failures=tuple(failures),
+        pricing=dict(listing.get("cost") or {}),
+    )
+
+
+def update_existing_card(gathered: GatherResult, *, root: Path, read_date: date) -> Path:
+    """Update gathered source metadata and published pricing on one resolved card."""
+    model_id = gathered.resolution.model_id
+    if gathered.resolution.status != "existing" or model_id is None:
+        raise ValueError("an existing resolved model is required")
+    matches = [
+        path for path in sorted((root / "models").glob("*/*.md"))
+        if str(_front(path).get("model_id") or "") == model_id
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"existing card is not unique: {model_id}")
+    path = matches[0]
+    text = path.read_text(encoding="utf-8")
+    parts = text.split("---", 2)
+    if len(parts) != 3:
+        raise ValueError(f"card has no YAML front matter: {path}")
+    front = yaml.safe_load(parts[1]) or {}
+    sources = dict(front.get("sources") or {})
+    supporting = list(gathered.supporting_urls)
+    huggingface_url = next((url for url in supporting if "huggingface.co" in url), "")
+    api_docs_url = next((url for url in supporting if url != huggingface_url),
+                        gathered.primary_url)
+    accessed = read_date.isoformat()
+    sources.update({
+        "models_dev_url": f"https://models.dev/{gathered.provider_id}",
+        "provider_docs_url": api_docs_url,
+        "last_scraped_models_dev": accessed,
+        "last_scraped_pricing": accessed,
+    })
+    if huggingface_url:
+        sources["huggingface_url"] = huggingface_url
+        sources["last_scraped_huggingface"] = accessed
+    front["sources"] = sources
+    published_cost = {
+        key: value for key, value in (gathered.pricing or {}).items()
+        if key in {"input", "output", "cache_read", "cache_write"} and value is not None
+    }
+    if published_cost:
+        cost = dict(front.get("cost") or {})
+        cost.update(published_cost)
+        front["cost"] = cost
+    front["card_updated"] = accessed
+    content = "---\n" + yaml.dump(front, sort_keys=False, allow_unicode=True) + "---" + parts[2]
+    ModelCard.from_yaml_string(content)
+    path.write_text(content, encoding="utf-8")
+    return path
+
+
+def draft_signal(
+    signal,
+    *,
+    root: Path,
+    fetch: Callable[[str], FetchResult],
+    read_date: date,
+    models_dev_url: str = MODELS_DEV_URL,
+    firecrawl_budget: FirecrawlBudget | None = None,
+    discover_huggingface: bool = False,
+) -> DraftResult:
+    """Draft one new card. X is never fetched or written as a source."""
+    gathered = gather_signal(
+        signal,
+        root=root,
+        fetch=fetch,
+        models_dev_url=models_dev_url,
+        discover_huggingface=discover_huggingface,
+    )
+    resolution = gathered.resolution
+    if resolution.status != "new" or resolution.model_id is None:
+        return DraftResult(resolution, None, gathered.evidence_urls,
+                           (firecrawl_budget or FirecrawlBudget()).spent,
+                           gathered.gather_failures)
 
     provider, slug = resolution.model_id.split("/", 1)
     provider_display = signal.provider
@@ -395,16 +514,11 @@ def draft_signal(
         provider_display = str(_front(existing).get("provider_display") or provider_display)
         break
     accessed = read_date.isoformat()
-    failures: list[str] = []
+    display_name = gathered.display_name
+    release_date = gathered.release_date
+    primary_url = gathered.primary_url
+    supporting_urls = list(gathered.supporting_urls)
     huggingface_url = next((url for url in supporting_urls if "huggingface.co" in url), "")
-    if discover_huggingface and not huggingface_url:
-        huggingface_url, failure = _huggingface_repo(
-            fetch=fetch, model_name=display_name, provider=provider
-        )
-        if failure:
-            failures.append(failure)
-        if huggingface_url:
-            supporting_urls.append(huggingface_url)
     api_docs_url = next((url for url in supporting_urls if url != huggingface_url), primary_url)
     front = {
         "model_id": resolution.model_id,
@@ -414,7 +528,7 @@ def draft_signal(
         "release_date": release_date,
         "benchmarks": {"scores": {}, "evidence": []},
         "sources": {
-            "models_dev_url": f"https://models.dev/{provider_id}",
+            "models_dev_url": f"https://models.dev/{gathered.provider_id}",
             "provider_docs_url": api_docs_url,
             "huggingface_url": huggingface_url,
             "last_scraped_models_dev": accessed,
@@ -440,9 +554,9 @@ def draft_signal(
     return DraftResult(
         resolution,
         card_path,
-        tuple(dict.fromkeys((primary_url, models_dev_url, *supporting_urls))),
+        gathered.evidence_urls,
         (firecrawl_budget or FirecrawlBudget()).spent,
-        tuple(failures),
+        gathered.gather_failures,
     )
 
 

@@ -366,10 +366,27 @@ def _premier_cards(root: Path) -> dict[str, Path]:
     return cards
 
 
+def _selected_cards(root: Path, model_ids: Iterable[str] | None) -> dict[str, Path]:
+    """Load the premier set by default, or an explicit release-signal scope."""
+    if model_ids is None:
+        return _premier_cards(root)
+    selected = set(model_ids)
+    cards: dict[str, Path] = {}
+    for path in sorted((root / "models").glob("*/*.md")):
+        model_id = str(_front(path).get("model_id") or "")
+        if model_id in selected:
+            cards[model_id] = path
+    missing = selected - cards.keys()
+    if missing:
+        raise ValueError(f"selected cards missing: {', '.join(sorted(missing))}")
+    return cards
+
+
 def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
-        source_cache: Path | None = None) -> RefreshReport:
+        source_cache: Path | None = None,
+        model_ids: Iterable[str] | None = None) -> RefreshReport:
     date.fromisoformat(observed_at)
-    cards = _premier_cards(root)
+    cards = _selected_cards(root, model_ids)
     fronts = {model: _front(path) for model, path in cards.items()}
     tau_urls = {
         str(row["source_url"])

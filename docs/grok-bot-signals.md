@@ -4,9 +4,10 @@ Grok Bot reports a possible model release to ModelSpec. The report starts the
 research pipeline. It does not supply a fact or a piece of evidence for a card.
 
 The Worker accepts the report, stores it in the existing `ACCESS` Workers KV
-namespace, and returns `202`. An hourly GitHub Action reads one pending signal,
-resolves its identity, gathers sources, and opens a pull request. Grok Bot has
-no GitHub credential.
+namespace, and returns `202`. An hourly GitHub Action drains every pending
+signal and due re-check through isolated jobs, with at most four running at
+once. Each job resolves one identity, gathers sources, and opens a pull
+request. Grok Bot has no GitHub credential.
 
 ## Release signal contract
 
@@ -85,11 +86,14 @@ The pipeline performs these steps:
    workflow opens a `new-model` issue and writes no card.
 2. It reads models.dev to locate pricing and source URLs. It fetches provider
    pages, API documentation, and a Hugging Face repository when the listing
-   names one. Plain HTTP runs first. A run can spend at most 20 Firecrawl
-   credits.
+   names one. Existing cards receive only the gathered pricing and source
+   metadata for the resolved model. Plain HTTP runs first. A run can spend at
+   most 20 Firecrawl credits.
 3. It rejects every excluded source named by `decision.excluded` and
-   `tests/test_removed_sources.py` before fetching it. Arena evidence comes
-   only from `lmarena-ai/leaderboard-dataset` at its pinned revision.
+   `tests/test_removed_sources.py` before fetching it. X and Twitter URLs are
+   signal-only and are also rejected. The pipeline checks both the requested
+   URL and the final URL after redirects. Arena evidence comes only from
+   `lmarena-ai/leaderboard-dataset` at its pinned revision.
 4. It drafts through `schema.card.ModelCard` and validates the round trip. New
    benchmark values can appear only as `benchmarks.evidence` rows. Missing
    facts stay empty.
@@ -100,7 +104,9 @@ The pipeline performs these steps:
    passes MODEL-124's score-only guard gets an audit artifact and may enable
    auto-merge after its checks pass.
 7. After the workflow acknowledges a signal, the Worker schedules re-checks
-   for 1, 7, and 30 days after the first pull request.
+   for 1, 7, and 30 days after the first pull request. Every queued signal and
+   every due re-check gets its own branch and job, so neither can starve the
+   other.
 
 The HTTP gatherer does not use Firecrawl today. `FirecrawlBudget` enforces the
 20-credit ceiling before a rendered fetch can be added. If a source cannot be
@@ -139,8 +145,8 @@ The hourly workflow uses two endpoints that require
 `Authorization: Bearer <MODELSPEC_SIGNALS_READ_KEY>`:
 
 - `GET /v1/signals/pending` returns pending signals and due re-checks.
-- `POST /v1/signals/ack` records the pull request or issue URL, removes the
-  pending item, and schedules the three re-checks.
+- `POST /v1/signals/ack` records each pull request or issue URL, removes that
+  pending item, and schedules its three re-checks.
 
 These endpoints are for the repository workflow. Grok Bot cannot read or
 acknowledge the queue.

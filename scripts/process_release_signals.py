@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Process one pending Grok Bot release signal.
+"""Process one pending Grok Bot release-signal work item.
 
-The hourly workflow calls this script once. Processing one signal per branch
-keeps a new-card change out of a score-only pull request.
+The hourly workflow calls this script once per matrix item. Processing one item
+per branch keeps unrelated card changes out of the same pull request.
 """
 
 from __future__ import annotations
@@ -17,7 +17,14 @@ import httpx
 
 from decision.sources import CopyStore
 from release_signals.contract import ReleaseSignal
-from release_signals.pipeline import FetchResult, draft_signal, resolve_signal
+from release_signals.pipeline import (
+    FetchResult,
+    draft_signal,
+    gather_signal,
+    require_allowed_source,
+    resolve_signal,
+    update_existing_card,
+)
 from scripts import model_160_evidence as leaderboard_readers
 from scripts import refresh_leaderboards
 
@@ -25,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _fetch(url: str) -> FetchResult:
+    require_allowed_source(url)
     response = httpx.get(
         url,
         headers={"User-Agent": "ModelSpec-Release-Signals/1.0"},
@@ -32,22 +40,54 @@ def _fetch(url: str) -> FetchResult:
         timeout=60,
     )
     response.raise_for_status()
-    return FetchResult(
+    result = FetchResult(
         url=str(response.url),
         body=response.content,
         content_type=response.headers.get("content-type", "application/octet-stream"),
     )
+    require_allowed_source(result.url)
+    return result
 
 
-def _next_signal(payload: dict) -> tuple[ReleaseSignal | None, dict | None]:
-    signals = payload.get("signals") or []
-    if signals:
-        return ReleaseSignal.parse(signals[0]), None
-    rechecks = payload.get("rechecks") or []
-    if rechecks:
-        row = rechecks[0]
-        return ReleaseSignal.parse(row["signal"]), row
-    return None, None
+def work_items(payload: dict) -> list[dict[str, object]]:
+    """Return every pending signal and due re-check as an isolated work item."""
+    items = [
+        {"signal_id": ReleaseSignal.parse(row).signal_id, "recheck_day": 0}
+        for row in payload.get("signals") or []
+    ]
+    items.extend(
+        {
+            "signal_id": ReleaseSignal.parse(row["signal"]).signal_id,
+            "recheck_day": int(row["day"]),
+        }
+        for row in payload.get("rechecks") or []
+    )
+    return items
+
+
+def _select_signal(
+    payload: dict, *, signal_id: str | None, recheck_day: int | None,
+) -> tuple[ReleaseSignal | None, dict | None]:
+    candidates: list[tuple[ReleaseSignal, dict | None]] = [
+        (ReleaseSignal.parse(row), None) for row in payload.get("signals") or []
+    ]
+    candidates.extend(
+        (ReleaseSignal.parse(row["signal"]), row)
+        for row in payload.get("rechecks") or []
+    )
+    if signal_id is None:
+        return candidates[0] if candidates else (None, None)
+    matches = [
+        (signal, recheck) for signal, recheck in candidates
+        if signal.signal_id == signal_id
+        and (0 if recheck is None else int(recheck["day"])) == (recheck_day or 0)
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"pending work item is not unique: signal_id={signal_id!r}, "
+            f"recheck_day={recheck_day or 0}"
+        )
+    return matches[0]
 
 
 def process(
@@ -57,9 +97,13 @@ def process(
     root: Path = ROOT,
     audit_path: Path | None = None,
     report_path: Path | None = None,
+    signal_id: str | None = None,
+    recheck_day: int | None = None,
 ) -> dict:
     payload = json.loads(pending.read_text(encoding="utf-8"))
-    signal, recheck = _next_signal(payload)
+    signal, recheck = _select_signal(
+        payload, signal_id=signal_id, recheck_day=recheck_day
+    )
     if signal is None:
         result = {"status": "empty"}
     else:
@@ -105,6 +149,17 @@ def process(
             result["live_board_matches"] = board_matches
             result["live_board_failures"] = [failure.__dict__ for failure in failures]
         elif resolution.status == "existing":
+            gathered = gather_signal(
+                signal,
+                root=root,
+                fetch=_fetch,
+                discover_huggingface=True,
+            )
+            result["sources"] = list(gathered.evidence_urls)
+            result["gather_failures"] = list(gathered.gather_failures)
+            result["card"] = str(update_existing_card(
+                gathered, root=root, read_date=date.today()
+            ).relative_to(root))
             report = refresh_leaderboards.run(
                 observed_at=date.today().isoformat(),
                 dry_run=False,
@@ -112,6 +167,7 @@ def process(
                 source_cache=Path(
                     os.environ.get("MODELSPEC_SOURCE_CACHE", "/tmp/modelspec-source-copies")
                 ),
+                model_ids=(resolution.model_id,),
             )
             if audit_path:
                 refresh_leaderboards.write_audit(audit_path, report.changes)
@@ -134,6 +190,8 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--audit-json", type=Path)
     parser.add_argument("--report-json", type=Path)
+    parser.add_argument("--signal-id")
+    parser.add_argument("--recheck-day", type=int)
     args = parser.parse_args()
     result = process(
         args.pending,
@@ -141,6 +199,8 @@ def main() -> int:
         root=args.root,
         audit_path=args.audit_json,
         report_path=args.report_json,
+        signal_id=args.signal_id,
+        recheck_day=args.recheck_day,
     )
     print(json.dumps(result, sort_keys=True))
     return 0

@@ -23,6 +23,7 @@ from release_signals.pipeline import (
     require_allowed_source,
     resolve_signal,
 )
+from scripts import process_release_signals as processor
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = Path(__file__).parent / "fixtures" / "release_signals"
@@ -179,6 +180,144 @@ def test_fake_provider_page_drafts_a_valid_card_and_never_cites_x(tmp_path: Path
     assert result.firecrawl_credits == 0
 
 
+def test_models_dev_cannot_make_x_a_card_source(tmp_path: Path) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    models_dev_url = "https://models.dev/api.json"
+    x_url = "https://x.com/acme/status/123456789"
+    payload = {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-2": {"id": "orbit-2", "name": "Orbit 2", "release_url": x_url}
+            },
+        }
+    }
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchResult:
+        requested.append(url)
+        return FetchResult(
+            url=url,
+            body=json.dumps(payload).encode(),
+            content_type="application/json",
+        )
+
+    with pytest.raises(ValueError, match="signal-only source"):
+        draft_signal(
+            ReleaseSignal.parse(signal()), root=tmp_path, fetch=fetch,
+            read_date=date(2026, 9, 26), models_dev_url=models_dev_url,
+        )
+
+    assert requested == [models_dev_url]
+    assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
+
+
+def test_allowed_source_redirecting_to_x_is_rejected(tmp_path: Path) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    models_dev_url = "https://models.dev/api.json"
+    primary_url = "https://acme.example/models/orbit-2"
+    payload = {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-2": {
+                    "id": "orbit-2", "name": "Orbit 2", "release_url": primary_url,
+                }
+            },
+        }
+    }
+    replies = {
+        models_dev_url: FetchResult(
+            url=models_dev_url, body=json.dumps(payload).encode(),
+            content_type="application/json",
+        ),
+        primary_url: FetchResult(
+            url="https://twitter.com/acme/status/123456789",
+            body=(FIXTURES / "acme-orbit.html").read_bytes(), content_type="text/html",
+        ),
+    }
+
+    with pytest.raises(ValueError, match="signal-only source"):
+        draft_signal(
+            ReleaseSignal.parse(signal()), root=tmp_path, fetch=lambda url: replies[url],
+            read_date=date(2026, 9, 26), models_dev_url=models_dev_url,
+        )
+
+    assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
+
+
+def test_pending_work_includes_every_signal_and_due_recheck() -> None:
+    payload = {
+        "signals": [signal(signal_id="new-a"), signal(signal_id="new-b")],
+        "rechecks": [
+            {"day": 1, "due": "2026-09-27", "signal": signal(signal_id="old-a")},
+            {"day": 7, "due": "2026-10-03", "signal": signal(signal_id="old-b")},
+        ],
+    }
+
+    assert processor.work_items(payload) == [
+        {"signal_id": "new-a", "recheck_day": 0},
+        {"signal_id": "new-b", "recheck_day": 0},
+        {"signal_id": "old-a", "recheck_day": 1},
+        {"signal_id": "old-b", "recheck_day": 7},
+    ]
+
+
+def test_existing_signal_gathers_sources_and_refreshes_only_its_model(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1")]}))
+    models_dev_url = "https://models.dev/api.json"
+    primary_url = "https://acme.example/models/orbit-1"
+    hf_search = "https://huggingface.co/api/models?search=Orbit+1&limit=20"
+    payload = {
+        "acme": {
+            "name": "Acme",
+            "models": {
+                "orbit-1": {
+                    "id": "orbit-1", "name": "Orbit 1", "release_url": primary_url,
+                    "cost": {"input": 1.25, "output": 5.0},
+                }
+            },
+        }
+    }
+    replies = {
+        models_dev_url: FetchResult(
+            url=models_dev_url, body=json.dumps(payload).encode(),
+            content_type="application/json",
+        ),
+        primary_url: FetchResult(
+            url=primary_url, body=b"<html><body>Acme Orbit 1</body></html>",
+            content_type="text/html",
+        ),
+        hf_search: FetchResult(
+            url=hf_search, body=b"[]", content_type="application/json",
+        ),
+    }
+    refreshed: dict[str, object] = {}
+
+    def run_refresh(**kwargs: object):
+        refreshed.update(kwargs)
+        return processor.refresh_leaderboards.RefreshReport()
+
+    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
+    monkeypatch.setattr(processor.refresh_leaderboards, "run", run_refresh)
+
+    result = processor.process(pending, result_path, root=tmp_path)
+
+    assert result["status"] == "existing"
+    assert result["sources"] == [primary_url, models_dev_url]
+    assert refreshed["model_ids"] == ("acme/orbit-1",)
+    updated = yaml.safe_load(
+        (tmp_path / "models" / "acme" / "orbit-1.md").read_text().split("---", 2)[1]
+    )
+    assert updated["cost"] == {"input": 1.25, "output": 5.0}
+    assert updated["sources"]["provider_docs_url"] == primary_url
+
+
 def test_new_cards_and_identity_or_licence_changes_require_human_merge(tmp_path: Path) -> None:
     before = tmp_path / "before"
     after = tmp_path / "after"
@@ -327,6 +466,11 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "steps.classify.outputs.failures == '0'" in workflow
     assert "steps.classify.outputs.quarantined == '0'" in workflow
     assert "1, 7, and 30 day re-checks" in workflow
+    assert "strategy:" in workflow
+    assert "max-parallel: 4" in workflow
+    assert "matrix: ${{ fromJSON(needs.pending.outputs.matrix) }}" in workflow
+    assert "--signal-id \"${{ matrix.work.signal_id }}\"" in workflow
+    assert "--recheck-day \"${{ matrix.work.recheck_day }}\"" in workflow
 
 
 def test_worker_endpoint_ships_off_and_vendors_the_shared_contract() -> None:
