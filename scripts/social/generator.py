@@ -244,6 +244,7 @@ def _new_entrant(
     model_id: str,
     current: Sequence[Standing],
     previous: Mapping[str, Standing],
+    previous_snapshot: LoadedSnapshot | None,
     snapshot: LoadedSnapshot,
     model_class: str,
 ) -> dict[str, Any] | None:
@@ -254,7 +255,7 @@ def _new_entrant(
             continue
         prior = previous.get(standing.domain.id)
         prior_rank = None if prior is None else prior.rank(model_id)
-        entered = prior_rank is not None and prior_rank > 5
+        entered = previous_snapshot is not None and (prior_rank is None or prior_rank > 5)
         if rank == 1 or entered:
             eligible.append((rank, standing.domain.id, standing, entered))
     if not eligible:
@@ -267,10 +268,9 @@ def _new_entrant(
         f"{_display_class(model_class)} class.",
         str(rank),
     )
-    prior = previous.get(standing.domain.id)
-    if entered and prior is not None and prior.snapshot.as_of is not None:
+    if entered and previous_snapshot is not None and previous_snapshot.as_of is not None:
         rank_claim["citation"] += (
-            f"; prior snapshot: {SNAPSHOT_URL} (read {prior.snapshot.as_of.isoformat()})"
+            f"; prior snapshot: {SNAPSHOT_URL} (read {previous_snapshot.as_of.isoformat()})"
         )
     claims = [
         rank_claim,
@@ -379,8 +379,8 @@ def _local_angle(
         ),
         _snapshot_claim(
             snapshot,
-            f"{model_id} ranks #1 for {standing.domain.name} within the "
-            f"{_display_class(model_class)} class.",
+            f"{model_id} ranks #1 among models fitting {device} for "
+            f"{standing.domain.name} within the {_display_class(model_class)} class.",
             "1",
         ),
         _evidence_claim(standing, model_id),
@@ -388,21 +388,25 @@ def _local_angle(
     return {"angle": "local", "title": "Local angle", "claims": claims}
 
 
-def _honest_gaps(standings: Sequence[Standing], snapshot: LoadedSnapshot) -> dict[str, Any] | None:
-    gaps: dict[str, set[str]] = {}
+def _honest_gaps(
+    model_id: str,
+    standings: Sequence[Standing],
+    snapshot: LoadedSnapshot,
+) -> dict[str, Any] | None:
+    unknowns: set[str] = set()
     for standing in standings:
         for row in standing.decision.may_qualify:
-            gaps.setdefault(row.model, set()).update(row.unknown)
-    if not gaps:
+            if row.model == model_id:
+                unknowns.update(row.unknown)
+    if not unknowns:
         return None
-    models = len(gaps)
-    outstanding = sum(len(values) for values in gaps.values())
+    outstanding = len(unknowns)
     claim = _snapshot_claim(
         snapshot,
-        f"Not yet ranked: {models} model{'s' if models != 1 else ''}, with "
-        f"{outstanding} outstanding fact{'s' if outstanding != 1 else ''} or benchmark "
+        f"{model_id} is not yet ranked: {outstanding} outstanding "
+        f"fact{'s' if outstanding != 1 else ''} or benchmark "
         f"reading{'s' if outstanding != 1 else ''}.",
-        f"{models},{outstanding}",
+        str(outstanding),
     )
     return {"angle": "honest_gaps", "title": "Honest gaps", "claims": [claim]}
 
@@ -607,10 +611,17 @@ def generate(
     }
     primary = next((row for row in current_rows if row.rank(model_id) is not None), current_rows[0])
     drafts = [
-        _new_entrant(model_id, current_rows, previous_rows, current, model_class),
+        _new_entrant(
+            model_id,
+            current_rows,
+            previous_rows,
+            previous,
+            current,
+            model_class,
+        ),
         _value_angle(model_id, primary, current, model_class),
         _local_angle(model_id, primary, current, device, model_class),
-        _honest_gaps(current_rows, current),
+        _honest_gaps(model_id, current_rows, current),
         _weekly_movers(model_id, current_rows, previous_rows, current),
     ]
     kept = [draft for draft in drafts if draft is not None]

@@ -38,11 +38,17 @@ def _offering(model_id: str, price: float) -> dict:
     return row
 
 
-def _snapshot(path: Path, scores: dict[str, float]) -> str:
+def _snapshot(
+    path: Path,
+    scores: dict[str, float],
+    *,
+    non_fitting: set[str] | None = None,
+) -> str:
     model_ids = ["lab/alpha", "lab/beta", "lab/gamma", "lab/delta"]
+    non_fitting = {"lab/delta"} if non_fitting is None else non_fitting
     built = build_snapshot(
         SnapshotInputs(
-            models=[_model(model_id, fits=model_id != "lab/delta") for model_id in model_ids],
+            models=[_model(model_id, fits=model_id not in non_fitting) for model_id in model_ids],
             offerings=[
                 _offering("lab/alpha", 1.0),
                 _offering("lab/beta", 5.0),
@@ -134,7 +140,6 @@ def test_fixture_snapshot_is_deterministic_and_has_no_unsourced_numbers(
         "new_entrant",
         "value",
         "local",
-        "honest_gaps",
         "weekly_movers",
     }
     assert first == second
@@ -223,6 +228,34 @@ def test_rank_two_without_history_is_not_called_a_new_entrant(
     assert "new_entrant" not in {draft["angle"] for draft in manifest["drafts"]}
 
 
+def test_previously_unranked_model_entering_top_five_is_a_new_entrant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    previous = tmp_path / "previous.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 80.0, "lab/beta": 90.0, "lab/gamma": 70.0},
+    )
+    _snapshot(previous, {"lab/beta": 90.0, "lab/gamma": 70.0})
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    manifest = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        previous_snapshot_path=previous,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+
+    entrant = next(draft for draft in manifest["drafts"] if draft["angle"] == "new_entrant")
+    assert entrant["claims"][0]["text"].startswith("lab/alpha enters #2")
+
+
 def test_price_claim_cites_each_contributing_fact_with_its_date(tmp_path: Path) -> None:
     current = tmp_path / "current.json.gz"
     row = _offering("lab/alpha", 1.0)
@@ -282,6 +315,83 @@ def test_local_fit_and_rank_are_separately_sourced(
     rank = next(claim for claim in local["claims"] if "ranks #1" in claim["text"])
     assert fit["source"] == SOURCES["src-lab-docs"]
     assert rank["source"] == generator.SNAPSHOT_URL
+
+
+def test_local_angle_calls_a_filtered_winner_number_one_among_fitting_models(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 80.0, "lab/beta": 90.0, "lab/gamma": 70.0},
+        non_fitting={"lab/beta", "lab/delta"},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    manifest = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+
+    local = next(draft for draft in manifest["drafts"] if draft["angle"] == "local")
+    rank = next(claim for claim in local["claims"] if "ranks #1" in claim["text"])
+    assert rank["text"] == (
+        "lab/alpha ranks #1 among models fitting nvidia_rtx_4090 for Software engineering "
+        "within the text generator class."
+    )
+
+
+def test_honest_gaps_omit_unknowns_belonging_to_an_unrelated_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 90.0, "lab/beta": 80.0, "lab/gamma": 70.0},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    manifest = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        snapshot_key=KEY,
+    )
+
+    assert "honest_gaps" not in {draft["angle"] for draft in manifest["drafts"]}
+
+
+def test_honest_gaps_report_unknowns_for_the_requested_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 90.0, "lab/beta": 80.0, "lab/gamma": 70.0},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    manifest = generate(
+        model_id="lab/delta",
+        snapshot_path=current,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        snapshot_key=KEY,
+    )
+
+    gaps = next(draft for draft in manifest["drafts"] if draft["angle"] == "honest_gaps")
+    assert gaps["claims"][0]["text"].startswith("lab/delta is not yet ranked: 1 outstanding")
 
 
 def test_weekly_mover_requires_the_targets_move_to_be_globally_largest(
