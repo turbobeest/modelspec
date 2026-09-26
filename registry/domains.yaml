@@ -125,3 +125,6 @@ domains:
       Ranking documents or passages by relevance to a query, as an embedding or
       reranking model does, graded against relevance judgements with ranking
       metrics such as nDCG or recall at k.
+    # Orchestrator, 2026-09-25: the retrieval task type itself, not the
+    # reranking one, which ties it on coverage and would otherwise lead by name.
+    default_benchmark: mteb_v2_retrieval

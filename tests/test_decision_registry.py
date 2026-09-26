@@ -456,3 +456,9 @@ def test_chat_preference_defaults_to_the_overall_text_board(registry):
     """A general assistant ranks on Arena's overall board, not a category board."""
     domains = {d.id: d for d in registry.domains()}
     assert domains["chat_preference"].default_benchmark == "arena_elo_style_control"
+
+
+def test_retrieval_defaults_to_the_retrieval_task_type(registry):
+    """Embedding search ranks on MTEB Retrieval, not on the reranking tie."""
+    domains = {d.id: d for d in registry.domains()}
+    assert domains["retrieval"].default_benchmark == "mteb_v2_retrieval"
