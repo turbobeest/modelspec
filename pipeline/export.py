@@ -107,6 +107,7 @@ def _coverage_row(model: Model, score: float, as_of: Any, source: Any,
         "as_of": as_of,
         "source": source,
         "attribution": attribution,
+        "release_date": str(model.front.get("release_date") or "") or None,
         **{key: record.get(key) for key in _EVIDENCE_ROW_KEYS},
     }
 

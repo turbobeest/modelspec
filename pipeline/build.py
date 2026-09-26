@@ -482,7 +482,8 @@ def main(argv: list[str] | None = None) -> int:
         (ms / "m" / model.model_id).mkdir(parents=True, exist_ok=True)
         (ms / "m" / model.model_id / "index.html").write_text(
             r.model_page(model, build, bench_by_id, catalogue,
-                         relations.for_model(model.model_id), pages=pages),
+                         relations.for_model(model.model_id), pages=pages,
+                         evidence_coverage=coverage),
             encoding="utf-8")
         ms_paths.append(f"/m/{model.model_id}/")
     wizard = root / "web3d/downselect.v2.html"

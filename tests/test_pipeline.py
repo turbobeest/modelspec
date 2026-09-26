@@ -31,7 +31,11 @@ from pipeline.load import (  # noqa: E402
     load_models,
     split_front_matter,
 )
-from pipeline.render import format_score  # noqa: E402
+from pipeline.render import (  # noqa: E402
+    benchmark_chart,
+    format_score,
+    model_benchmark_strips,
+)
 
 # Parsing 1,143 cards and 1,106 pages costs seconds; the corpus does not change
 # during a run, so load each once for the whole module.
@@ -192,7 +196,7 @@ def test_a_benchmark_reported_only_in_evidence_records_has_coverage(tmp_path: Pa
         "source": "https://src.example/astra", "source_kind": "provider_self_report",
         "model_id_as_evaluated": "Astra", "benchmark_version": "DemoBench",
         "configuration": "launch table", "verified_at": "2026-09-11",
-        "attribution": "verified",
+        "attribution": "verified", "release_date": None,
     }]
 
 
@@ -289,6 +293,126 @@ def test_benchmark_page_shows_each_score_with_its_date_and_attribution(
          "verified provider self report source"],
         ["Old", "Demo Lab", "30.0", "2026-01-01 card", "unverified-legacy"],
     ]
+
+
+def _chart_row(model_id: str, score: float, *, benchmark_id: str = "b",
+               release_date: str = "2026-01-01", source: str | None = None,
+               source_kind: str = "independent_evaluator", version: str = "v1",
+               configuration: str = "default") -> dict:
+    return {
+        "model_id": model_id,
+        "display_name": model_id.rsplit("/", 1)[-1],
+        "provider": "demo",
+        "provider_display": "Demo Lab",
+        "score": score,
+        "unit": "percent",
+        "as_of": "2026-09-01",
+        "date_type": "evaluated",
+        "source": source or f"https://src.example/{model_id.replace('/', '-')}/{benchmark_id}",
+        "source_kind": source_kind,
+        "model_id_as_evaluated": model_id,
+        "benchmark_version": version,
+        "configuration": configuration,
+        "verified_at": "2026-09-02",
+        "attribution": "verified",
+        "release_date": release_date,
+    }
+
+
+def test_benchmark_chart_uses_only_sourced_evidence_and_splits_series() -> None:
+    rows = [
+        _chart_row(
+            f"demo/model-{i}", float(i),
+            release_date=f"2025-{(i % 12) + 1:02d}-01",
+            source_kind=(
+                "benchmark_author", "independent_evaluator", "provider_self_report"
+            )[i % 3],
+            version="v1" if i < 10 else "v2",
+            configuration="default" if i % 2 else "tools",
+        )
+        for i in range(20)
+    ]
+    rows.append({**rows[0], "model_id": "demo/legacy", "attribution": "unverified-legacy"})
+
+    chart = benchmark_chart(_page("b"), rows)
+
+    assert chart.count('class="chart-point') == 20
+    assert "demo/legacy" not in chart
+    assert "benchmark author" in chart
+    assert "independent evaluator" in chart
+    assert "provider self report" in chart
+    assert "source-benchmark-author" in chart
+    assert "source-independent-evaluator" in chart
+    assert "source-provider-self-report" in chart
+    assert chart.count("<g>") == 4
+    assert "Benchmark version: v1" in chart and "Benchmark version: v2" in chart
+    assert "Evidence date: 2026-09-01 (evaluated)" in chart
+    assert "Configuration: default" in chart
+    assert '<a href="https://src.example/demo-model-0/b"' in chart
+    assert "Sources drawn:" in chart
+    assert ">source 20</a>" in chart
+
+
+def test_benchmark_chart_needs_twenty_plottable_points() -> None:
+    assert benchmark_chart(_page("b"), [
+        _chart_row(f"demo/model-{i}", float(i)) for i in range(19)
+    ]) == ""
+
+
+def test_benchmark_chart_refuses_to_plot_evidence_without_a_source() -> None:
+    rows = [_chart_row(f"demo/model-{i}", float(i)) for i in range(20)]
+    rows[7]["source"] = ""
+    with pytest.raises(ValueError, match="source_url"):
+        benchmark_chart(_page("b"), rows)
+
+
+def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
+    model = _card("demo/focus", evidence=(
+        _evidence("mmlu_anatomy", 70.0),
+        _evidence("mmlu_marketing", 80.0),
+        _evidence("multipl_e_rust", 60.0),
+    ))
+    pages = {
+        "mmlu_anatomy": Benchmark(
+            "mmlu_anatomy", Path("benchmarks/mmlu_anatomy.md"),
+            {"id": "mmlu_anatomy", "name": "MMLU: Anatomy", "page_kind": "subset",
+             "summary": "MMLU subject subset."}, ""),
+        "mmlu_marketing": Benchmark(
+            "mmlu_marketing", Path("benchmarks/mmlu_marketing.md"),
+            {"id": "mmlu_marketing", "name": "MMLU: Marketing", "page_kind": "subset",
+             "summary": "MMLU subject subset."}, ""),
+        "multipl_e_rust": Benchmark(
+            "multipl_e_rust", Path("benchmarks/multipl_e_rust.md"),
+            {"id": "multipl_e_rust", "name": "MultiPL-E: Rust", "page_kind": "subset",
+             "subcategory": "multilingual code generation",
+             "summary": "The Rust language subset of MultiPL-E."}, ""),
+    }
+    coverage = {
+        "mmlu_anatomy": [_chart_row("demo/focus", 70.0, benchmark_id="mmlu_anatomy")]
+                        + [_chart_row(f"demo/a-{i}", float(i), benchmark_id="mmlu_anatomy")
+                           for i in range(9)],
+        "mmlu_marketing": [_chart_row("demo/focus", 80.0, benchmark_id="mmlu_marketing")]
+                          + [_chart_row(f"demo/m-{i}", float(i), benchmark_id="mmlu_marketing")
+                             for i in range(4)],
+        "multipl_e_rust": [_chart_row("demo/focus", 60.0, benchmark_id="multipl_e_rust")]
+                          + [_chart_row(f"demo/r-{i}", float(i), benchmark_id="multipl_e_rust")
+                             for i in range(6)],
+    }
+
+    strips = model_benchmark_strips(model, pages, coverage)
+
+    assert strips.count('class="benchmark-strip"') == 3
+    assert strips.count('class="strip-point') == 22
+    assert "MMLU subjects" in strips
+    assert "MultiPL-E languages" in strips
+    assert strips.index("MMLU: Anatomy") < strips.index("MMLU: Marketing")
+    assert strips.index("MMLU: Marketing") < strips.index("MultiPL-E: Rust")
+    assert 'href="/b/mmlu_anatomy/"' in strips
+    assert 'class="strip-point focus ' in strips
+
+
+def test_model_without_evidence_has_no_benchmark_strip_frame() -> None:
+    assert model_benchmark_strips(_card("demo/empty"), {}, {}) == ""
 
 
 # ── presentation ─────────────────────────────────────────────────────────────
