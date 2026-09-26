@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 26.7
-    bbh: 42.1
-    math_lvl5: 1.2
-    gpqa_pooled: 27.3
-    musr: 40.4
-    mmlu_pro: 23.9
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: teknium/OpenHermes-13B
+    score: 42.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-13B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-b15cb033af45
+      snapshot_ref: sha256:21ce8eec92ff27cf499c111d95301883f94b3447ef61dcd574041d0560dab568
+      cited_regions:
+      - rows
+    id: teknium/openhermes-13b#bbh#c515a16b7304
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: teknium/OpenHermes-13B
+    score: 27.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-13B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-b15cb033af45
+      snapshot_ref: sha256:21ce8eec92ff27cf499c111d95301883f94b3447ef61dcd574041d0560dab568
+      cited_regions:
+      - rows
+    id: teknium/openhermes-13b#gpqa_pooled#e6e87e338bec
+  - benchmark_id: ifeval
+    model_id_as_evaluated: teknium/OpenHermes-13B
+    score: 26.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-13B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-b15cb033af45
+      snapshot_ref: sha256:21ce8eec92ff27cf499c111d95301883f94b3447ef61dcd574041d0560dab568
+      cited_regions:
+      - rows
+    id: teknium/openhermes-13b#ifeval#e43153149f37
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: teknium/OpenHermes-13B
+    score: 1.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-13B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-b15cb033af45
+      snapshot_ref: sha256:21ce8eec92ff27cf499c111d95301883f94b3447ef61dcd574041d0560dab568
+      cited_regions:
+      - rows
+    id: teknium/openhermes-13b#math_lvl5#8c3fba35be4f
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: teknium/OpenHermes-13B
+    score: 23.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-13B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-b15cb033af45
+      snapshot_ref: sha256:21ce8eec92ff27cf499c111d95301883f94b3447ef61dcd574041d0560dab568
+      cited_regions:
+      - rows
+    id: teknium/openhermes-13b#mmlu_pro#bac1c4c24584
+  - benchmark_id: musr
+    model_id_as_evaluated: teknium/OpenHermes-13B
+    score: 40.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-13B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-b15cb033af45
+      snapshot_ref: sha256:21ce8eec92ff27cf499c111d95301883f94b3447ef61dcd574041d0560dab568
+      cited_regions:
+      - rows
+    id: teknium/openhermes-13b#musr#3c03c007f41b
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 34.2
-    bbh: 51.0
-    math_lvl5: 19.4
-    gpqa_pooled: 34.6
-    musr: 47.0
-    mmlu_pro: 39.1
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: tiiuae/Falcon3-7B-Base
+    score: 51.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Base/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-73654f57858e
+      snapshot_ref: sha256:a4abd799844ce36972bcaee5423de05a5a66b2dc9c67b096d2d05fce4584fbb5
+      cited_regions:
+      - rows
+    id: tii/falcon3-7b-base#bbh#6ced7c2e1697
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: tiiuae/Falcon3-7B-Base
+    score: 34.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Base/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-73654f57858e
+      snapshot_ref: sha256:a4abd799844ce36972bcaee5423de05a5a66b2dc9c67b096d2d05fce4584fbb5
+      cited_regions:
+      - rows
+    id: tii/falcon3-7b-base#gpqa_pooled#0f6440f4aa5c
+  - benchmark_id: ifeval
+    model_id_as_evaluated: tiiuae/Falcon3-7B-Base
+    score: 34.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Base/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-73654f57858e
+      snapshot_ref: sha256:a4abd799844ce36972bcaee5423de05a5a66b2dc9c67b096d2d05fce4584fbb5
+      cited_regions:
+      - rows
+    id: tii/falcon3-7b-base#ifeval#cad12d49a6c6
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: tiiuae/Falcon3-7B-Base
+    score: 19.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Base/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-73654f57858e
+      snapshot_ref: sha256:a4abd799844ce36972bcaee5423de05a5a66b2dc9c67b096d2d05fce4584fbb5
+      cited_regions:
+      - rows
+    id: tii/falcon3-7b-base#math_lvl5#2941a5327a56
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: tiiuae/Falcon3-7B-Base
+    score: 39.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Base/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-73654f57858e
+      snapshot_ref: sha256:a4abd799844ce36972bcaee5423de05a5a66b2dc9c67b096d2d05fce4584fbb5
+      cited_regions:
+      - rows
+    id: tii/falcon3-7b-base#mmlu_pro#f3df95728c34
+  - benchmark_id: musr
+    model_id_as_evaluated: tiiuae/Falcon3-7B-Base
+    score: 47.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Base/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-12-12'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-73654f57858e
+      snapshot_ref: sha256:a4abd799844ce36972bcaee5423de05a5a66b2dc9c67b096d2d05fce4584fbb5
+      cited_regions:
+      - rows
+    id: tii/falcon3-7b-base#musr#15739cb35f67
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

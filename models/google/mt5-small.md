@@ -665,13 +665,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 17.2
-    bbh: 27.7
-    math_lvl5: 0.0
-    gpqa_pooled: 24.2
-    musr: 38.6
-    mmlu_pro: 11.2
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: google/mt5-small
+    score: 27.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-423a5645182d
+      snapshot_ref: sha256:a721f648c85bd474278f6e366f4390bdb3fde48c17fdcdd9a9f292d8c2e944dd
+      cited_regions:
+      - rows
+    id: google/mt5-small#bbh#a9b0ae406e47
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: google/mt5-small
+    score: 24.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-423a5645182d
+      snapshot_ref: sha256:a721f648c85bd474278f6e366f4390bdb3fde48c17fdcdd9a9f292d8c2e944dd
+      cited_regions:
+      - rows
+    id: google/mt5-small#gpqa_pooled#5ec8003ee29f
+  - benchmark_id: ifeval
+    model_id_as_evaluated: google/mt5-small
+    score: 17.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-423a5645182d
+      snapshot_ref: sha256:a721f648c85bd474278f6e366f4390bdb3fde48c17fdcdd9a9f292d8c2e944dd
+      cited_regions:
+      - rows
+    id: google/mt5-small#ifeval#bac18095671c
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: google/mt5-small
+    score: 0.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-423a5645182d
+      snapshot_ref: sha256:a721f648c85bd474278f6e366f4390bdb3fde48c17fdcdd9a9f292d8c2e944dd
+      cited_regions:
+      - rows
+    id: google/mt5-small#math_lvl5#c19b2898340b
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: google/mt5-small
+    score: 11.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-423a5645182d
+      snapshot_ref: sha256:a721f648c85bd474278f6e366f4390bdb3fde48c17fdcdd9a9f292d8c2e944dd
+      cited_regions:
+      - rows
+    id: google/mt5-small#mmlu_pro#b0a01fdff179
+  - benchmark_id: musr
+    model_id_as_evaluated: google/mt5-small
+    score: 38.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-small/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-10'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-423a5645182d
+      snapshot_ref: sha256:a721f648c85bd474278f6e366f4390bdb3fde48c17fdcdd9a9f292d8c2e944dd
+      cited_regions:
+      - rows
+    id: google/mt5-small#musr#0b5265f94975
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

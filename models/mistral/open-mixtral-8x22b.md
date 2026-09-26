@@ -667,10 +667,6 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    bbh: 62.4
-    ifeval: 25.8
-    mmlu_pro: 46.4
-    musr: 40.4
     gsm8k: 88.0
   benchmark_source: open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
@@ -682,6 +678,86 @@ benchmarks:
     accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages rounded
     to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json.'
   evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-v0.1
+    score: 62.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-16b7b22edf8d
+      snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x22b#bbh#e072aa6ff7d3
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-v0.1
+    score: 25.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-16b7b22edf8d
+      snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x22b#ifeval#c17188b57bc9
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-v0.1
+    score: 46.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-16b7b22edf8d
+      snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x22b#mmlu_pro#a6545c6f5d29
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-v0.1
+    score: 40.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-16b7b22edf8d
+      snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x22b#musr#1a744a2d0654
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: open-mixtral-8x22b
     score: 34.06

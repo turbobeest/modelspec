@@ -718,12 +718,50 @@ benchmarks:
     multipl_e_scala: 38.2
     multipl_e_kotlin: 50.5
     live_code_bench: 23.1
-    bbh: 56.9
-    musr: 38.7
   benchmark_source: lmarena.ai, provider-reports, preference-evals, llm-stats, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
-  evidence: []
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: microsoft/Phi-4-mini-instruct
+    score: 56.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-4-mini-instruct/results_2025-02-28T12-41-07.003145.json
+    source_kind: independent_evaluator
+    evidence_date: '2025-02-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-d92e847cb221
+      snapshot_ref: sha256:140f6d822dcbf47b69a1d67c68ecf3dc98b3aaca281f5e75800207350cfd166f
+      cited_regions:
+      - rows
+    id: microsoft/phi-4-mini-instruct#bbh#5a9897d59652
+  - benchmark_id: musr
+    model_id_as_evaluated: microsoft/Phi-4-mini-instruct
+    score: 38.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-4-mini-instruct/results_2025-02-28T12-41-07.003145.json
+    source_kind: independent_evaluator
+    evidence_date: '2025-02-28'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-d92e847cb221
+      snapshot_ref: sha256:140f6d822dcbf47b69a1d67c68ecf3dc98b3aaca281f5e75800207350cfd166f
+      cited_regions:
+      - rows
+    id: microsoft/phi-4-mini-instruct#musr#10d8caead0a7
 deployment:
   api_only: false
   local_inference: true

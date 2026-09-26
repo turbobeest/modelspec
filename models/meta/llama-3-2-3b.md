@@ -670,12 +670,127 @@ benchmarks:
   scores:
     mgsm: 58.2
     gsm8k: 77.7
-    ifeval: 13.4
-    bbh: 39.1
-    math_lvl5: 1.9
-    gpqa_pooled: 26.8
-    musr: 35.8
-    mmlu_pro: 24.9
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: meta-llama/Llama-3.2-3B
+    score: 39.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-27'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9310e2c6868
+      snapshot_ref: sha256:54685a7c901c9f53f42081f31b0fb0eb510447b3066f922ed8eb6a978ce2dd3a
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-3b#bbh#7545de9f4bae
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: meta-llama/Llama-3.2-3B
+    score: 26.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-27'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9310e2c6868
+      snapshot_ref: sha256:54685a7c901c9f53f42081f31b0fb0eb510447b3066f922ed8eb6a978ce2dd3a
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-3b#gpqa_pooled#a88f05494d9b
+  - benchmark_id: ifeval
+    model_id_as_evaluated: meta-llama/Llama-3.2-3B
+    score: 13.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-27'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9310e2c6868
+      snapshot_ref: sha256:54685a7c901c9f53f42081f31b0fb0eb510447b3066f922ed8eb6a978ce2dd3a
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-3b#ifeval#0beaddaa0905
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: meta-llama/Llama-3.2-3B
+    score: 1.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-27'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9310e2c6868
+      snapshot_ref: sha256:54685a7c901c9f53f42081f31b0fb0eb510447b3066f922ed8eb6a978ce2dd3a
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-3b#math_lvl5#bda39a40d808
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: meta-llama/Llama-3.2-3B
+    score: 24.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-27'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9310e2c6868
+      snapshot_ref: sha256:54685a7c901c9f53f42081f31b0fb0eb510447b3066f922ed8eb6a978ce2dd3a
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-3b#mmlu_pro#c63c48f59687
+  - benchmark_id: musr
+    model_id_as_evaluated: meta-llama/Llama-3.2-3B
+    score: 35.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-27'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9310e2c6868
+      snapshot_ref: sha256:54685a7c901c9f53f42081f31b0fb0eb510447b3066f922ed8eb6a978ce2dd3a
+      cited_regions:
+      - rows
+    id: meta/llama-3-2-3b#musr#977a805f4aba
   benchmark_source: llm-stats, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''

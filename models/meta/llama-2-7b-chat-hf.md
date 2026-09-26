@@ -666,19 +666,171 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    gsm8k: 7.4
-    winogrande: 71.7
-    ifeval: 39.9
-    bbh: 31.1
-    math_lvl5: 2.0
-    gpqa_pooled: 25.3
-    musr: 36.8
-    mmlu_pro: 16.9
+  scores: {}
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: ''
-  evidence: []
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: meta-llama/Llama-2-7b-chat-hf
+    score: 31.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-chat-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-03'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9f5c91e3b09
+      snapshot_ref: sha256:5159294e54f79772353358674605597891ab9d3f58f664ed5dc22d3346f856ad
+      cited_regions:
+      - rows
+    id: meta/llama-2-7b-chat-hf#bbh#e267c8ba808b
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: meta-llama/Llama-2-7b-chat-hf
+    score: 25.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-chat-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-03'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9f5c91e3b09
+      snapshot_ref: sha256:5159294e54f79772353358674605597891ab9d3f58f664ed5dc22d3346f856ad
+      cited_regions:
+      - rows
+    id: meta/llama-2-7b-chat-hf#gpqa_pooled#b3eafcfc6d35
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: meta-llama/Llama-2-7b-chat-hf
+    score: 7.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-7b-chat-hf/results_2023-10-15T02-34-15.484281.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-10-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-4b985ffc3a77
+      snapshot_ref: sha256:f4127bda6cebc933a060e9c3acb3d8fa16a6b13708f92c7b73aa0f42f4917d69
+      cited_regions:
+      - rows
+    id: meta/llama-2-7b-chat-hf#gsm8k#8d28ea43c971
+  - benchmark_id: ifeval
+    model_id_as_evaluated: meta-llama/Llama-2-7b-chat-hf
+    score: 39.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-chat-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-03'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9f5c91e3b09
+      snapshot_ref: sha256:5159294e54f79772353358674605597891ab9d3f58f664ed5dc22d3346f856ad
+      cited_regions:
+      - rows
+    id: meta/llama-2-7b-chat-hf#ifeval#a015e7e1e22b
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: meta-llama/Llama-2-7b-chat-hf
+    score: 2.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-chat-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-03'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9f5c91e3b09
+      snapshot_ref: sha256:5159294e54f79772353358674605597891ab9d3f58f664ed5dc22d3346f856ad
+      cited_regions:
+      - rows
+    id: meta/llama-2-7b-chat-hf#math_lvl5#c3632722de21
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: meta-llama/Llama-2-7b-chat-hf
+    score: 16.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-chat-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-03'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9f5c91e3b09
+      snapshot_ref: sha256:5159294e54f79772353358674605597891ab9d3f58f664ed5dc22d3346f856ad
+      cited_regions:
+      - rows
+    id: meta/llama-2-7b-chat-hf#mmlu_pro#c1ae08fc7e30
+  - benchmark_id: musr
+    model_id_as_evaluated: meta-llama/Llama-2-7b-chat-hf
+    score: 36.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-chat-hf/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-03'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a9f5c91e3b09
+      snapshot_ref: sha256:5159294e54f79772353358674605597891ab9d3f58f664ed5dc22d3346f856ad
+      cited_regions:
+      - rows
+    id: meta/llama-2-7b-chat-hf#musr#0e4509778ddf
+  - benchmark_id: winogrande
+    model_id_as_evaluated: meta-llama/Llama-2-7b-chat-hf
+    score: 71.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-7b-chat-hf/results_2023-10-15T02-34-15.484281.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-10-15'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-4b985ffc3a77
+      snapshot_ref: sha256:f4127bda6cebc933a060e9c3acb3d8fa16a6b13708f92c7b73aa0f42f4917d69
+      cited_regions:
+      - rows
+    id: meta/llama-2-7b-chat-hf#winogrande#79b016384299
 deployment:
   api_only: false
   local_inference: true

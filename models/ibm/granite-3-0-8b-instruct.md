@@ -666,13 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 53.1
-    bbh: 51.9
-    math_lvl5: 14.2
-    gpqa_pooled: 33.2
-    musr: 39.0
-    mmlu_pro: 34.6
+  scores: {}
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: granite-3.0-8b-instruct
@@ -918,6 +912,126 @@ benchmarks:
       votes, rank 351.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+  - benchmark_id: bbh
+    model_id_as_evaluated: ibm-granite/granite-3.0-8b-instruct
+    score: 51.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-8b-instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-261ff26b1a6c
+      snapshot_ref: sha256:9a95f122616bd40f3f165644fb731ff00f86b69c9ac6a6cf9813ede6fe31fb10
+      cited_regions:
+      - rows
+    id: ibm/granite-3-0-8b-instruct#bbh#679b957ebbff
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: ibm-granite/granite-3.0-8b-instruct
+    score: 33.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-8b-instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-261ff26b1a6c
+      snapshot_ref: sha256:9a95f122616bd40f3f165644fb731ff00f86b69c9ac6a6cf9813ede6fe31fb10
+      cited_regions:
+      - rows
+    id: ibm/granite-3-0-8b-instruct#gpqa_pooled#4dbd2cb8a34d
+  - benchmark_id: ifeval
+    model_id_as_evaluated: ibm-granite/granite-3.0-8b-instruct
+    score: 53.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-8b-instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-261ff26b1a6c
+      snapshot_ref: sha256:9a95f122616bd40f3f165644fb731ff00f86b69c9ac6a6cf9813ede6fe31fb10
+      cited_regions:
+      - rows
+    id: ibm/granite-3-0-8b-instruct#ifeval#05ed54b2e051
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: ibm-granite/granite-3.0-8b-instruct
+    score: 14.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-8b-instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-261ff26b1a6c
+      snapshot_ref: sha256:9a95f122616bd40f3f165644fb731ff00f86b69c9ac6a6cf9813ede6fe31fb10
+      cited_regions:
+      - rows
+    id: ibm/granite-3-0-8b-instruct#math_lvl5#0d1e896d4d43
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: ibm-granite/granite-3.0-8b-instruct
+    score: 34.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-8b-instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-261ff26b1a6c
+      snapshot_ref: sha256:9a95f122616bd40f3f165644fb731ff00f86b69c9ac6a6cf9813ede6fe31fb10
+      cited_regions:
+      - rows
+    id: ibm/granite-3-0-8b-instruct#mmlu_pro#0aa471a81b17
+  - benchmark_id: musr
+    model_id_as_evaluated: ibm-granite/granite-3.0-8b-instruct
+    score: 39.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-8b-instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-20'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-261ff26b1a6c
+      snapshot_ref: sha256:9a95f122616bd40f3f165644fb731ff00f86b69c9ac6a6cf9813ede6fe31fb10
+      cited_regions:
+      - rows
+    id: ibm/granite-3-0-8b-instruct#musr#f017514cf021
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

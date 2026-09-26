@@ -667,72 +667,7 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    bbh: 61.2
-    ifeval: 71.8
-    mmlu_pro: 44.8
-    musr: 43.1
     gsm8k: 88.0
-    arc_challenge: 72.7
-    hellaswag: 89.1
-    truthfulqa: 68.1
-    winogrande: 85.2
-    mmlu_abstract_algebra: 54.0
-    mmlu_anatomy: 74.8
-    mmlu_astronomy: 86.2
-    mmlu_business_ethics: 77.0
-    mmlu_clinical_knowledge: 82.3
-    mmlu_college_biology: 89.6
-    mmlu_college_chemistry: 56.0
-    mmlu_college_computer_science: 70.0
-    mmlu_college_mathematics: 49.0
-    mmlu_college_medicine: 76.3
-    mmlu_college_physics: 57.8
-    mmlu_computer_security: 81.0
-    mmlu_conceptual_physics: 79.1
-    mmlu_econometrics: 63.2
-    mmlu_electrical_engineering: 75.9
-    mmlu_elementary_mathematics: 62.4
-    mmlu_formal_logic: 59.5
-    mmlu_global_facts: 54.0
-    mmlu_high_school_biology: 90.0
-    mmlu_high_school_chemistry: 69.5
-    mmlu_high_school_computer_science: 86.0
-    mmlu_high_school_european_history: 85.5
-    mmlu_high_school_geography: 89.4
-    mmlu_high_school_government_and_politics: 96.9
-    mmlu_high_school_macroeconomics: 81.3
-    mmlu_high_school_mathematics: 50.7
-    mmlu_high_school_microeconomics: 87.8
-    mmlu_high_school_physics: 50.3
-    mmlu_high_school_psychology: 92.7
-    mmlu_high_school_statistics: 69.4
-    mmlu_high_school_us_history: 89.7
-    mmlu_high_school_world_history: 91.6
-    mmlu_human_aging: 80.3
-    mmlu_human_sexuality: 88.5
-    mmlu_international_law: 90.1
-    mmlu_jurisprudence: 86.1
-    mmlu_logical_fallacies: 87.1
-    mmlu_machine_learning: 61.6
-    mmlu_management: 87.4
-    mmlu_marketing: 92.7
-    mmlu_medical_genetics: 84.0
-    mmlu_miscellaneous: 89.9
-    mmlu_moral_disputes: 84.7
-    mmlu_moral_scenarios: 66.0
-    mmlu_nutrition: 87.9
-    mmlu_philosophy: 82.6
-    mmlu_prehistory: 87.0
-    mmlu_professional_accounting: 66.3
-    mmlu_professional_law: 60.3
-    mmlu_professional_medicine: 88.6
-    mmlu_professional_psychology: 84.0
-    mmlu_public_relations: 77.3
-    mmlu_security_studies: 84.5
-    mmlu_sociology: 91.5
-    mmlu_us_foreign_policy: 96.0
-    mmlu_virology: 59.0
-    mmlu_world_religions: 90.6
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: mixtral-8x22b-instruct-v0.1
@@ -978,6 +913,1306 @@ benchmarks:
       votes, rank 317.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+  - benchmark_id: arc_challenge
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 72.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#arc_challenge#29dd1242f5da
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 61.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-06-26T15-18-07.434042.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-8fee2c3f372b
+      snapshot_ref: sha256:f97330c37d9afa4698c9c2a2d2f121ce2f923a8d9afe59b5014746f539833dd1
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#bbh#d87d849e0279
+  - benchmark_id: hellaswag
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 89.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#hellaswag#f7c062f182e1
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 71.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-06-26T15-18-07.434042.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-8fee2c3f372b
+      snapshot_ref: sha256:f97330c37d9afa4698c9c2a2d2f121ce2f923a8d9afe59b5014746f539833dd1
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#ifeval#16e67442d033
+  - benchmark_id: mmlu_abstract_algebra
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 54.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_abstract_algebra#f20da49c2937
+  - benchmark_id: mmlu_anatomy
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 74.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_anatomy#a515ef4b09d9
+  - benchmark_id: mmlu_astronomy
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 86.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_astronomy#8e16d798dace
+  - benchmark_id: mmlu_business_ethics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 77.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_business_ethics#7658e0c1dfce
+  - benchmark_id: mmlu_clinical_knowledge
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 82.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_clinical_knowledge#d38b2a1c75d3
+  - benchmark_id: mmlu_college_biology
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 89.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_college_biology#560ec990d8d1
+  - benchmark_id: mmlu_college_chemistry
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 56.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_college_chemistry#b9ccffe6cadf
+  - benchmark_id: mmlu_college_computer_science
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 70.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_college_computer_science#e88a7d435450
+  - benchmark_id: mmlu_college_mathematics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 49.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_college_mathematics#4548344a665d
+  - benchmark_id: mmlu_college_medicine
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 76.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_college_medicine#7a79d7abf1f7
+  - benchmark_id: mmlu_college_physics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 57.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_college_physics#7ba0b1d43a29
+  - benchmark_id: mmlu_computer_security
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 81.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_computer_security#e1e570e4ec68
+  - benchmark_id: mmlu_conceptual_physics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 79.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_conceptual_physics#408e21edc922
+  - benchmark_id: mmlu_econometrics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 63.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_econometrics#e7a79c8b12af
+  - benchmark_id: mmlu_electrical_engineering
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 75.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_electrical_engineering#e29939415453
+  - benchmark_id: mmlu_elementary_mathematics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 62.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_elementary_mathematics#556b91b33361
+  - benchmark_id: mmlu_formal_logic
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 59.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_formal_logic#a0c60438e0a5
+  - benchmark_id: mmlu_global_facts
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 54.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_global_facts#5850bcc7dc21
+  - benchmark_id: mmlu_high_school_biology
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 90.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_biology#a8e7d967de94
+  - benchmark_id: mmlu_high_school_chemistry
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 69.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_chemistry#d9a745722d59
+  - benchmark_id: mmlu_high_school_computer_science
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 86.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_computer_science#4d3e7741fd24
+  - benchmark_id: mmlu_high_school_european_history
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 85.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_european_history#3641f2523946
+  - benchmark_id: mmlu_high_school_geography
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 89.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_geography#5acd7477f0dc
+  - benchmark_id: mmlu_high_school_government_and_politics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 96.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_government_and_politics#251bdcc7f660
+  - benchmark_id: mmlu_high_school_macroeconomics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 81.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_macroeconomics#555e664b3576
+  - benchmark_id: mmlu_high_school_mathematics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 50.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_mathematics#5c19ded59f69
+  - benchmark_id: mmlu_high_school_microeconomics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 87.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_microeconomics#d6c786355dcd
+  - benchmark_id: mmlu_high_school_physics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 50.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_physics#0e2840fb413b
+  - benchmark_id: mmlu_high_school_psychology
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 92.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_psychology#1a4422ddefd4
+  - benchmark_id: mmlu_high_school_statistics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 69.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_statistics#ea63ca4cfe75
+  - benchmark_id: mmlu_high_school_us_history
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 89.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_us_history#76dcf55e29ce
+  - benchmark_id: mmlu_high_school_world_history
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 91.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_high_school_world_history#4618a95151b3
+  - benchmark_id: mmlu_human_aging
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 80.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_human_aging#a5bf594d9b0e
+  - benchmark_id: mmlu_human_sexuality
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 88.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_human_sexuality#d98a07e62970
+  - benchmark_id: mmlu_international_law
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 90.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_international_law#608b1a92f2fc
+  - benchmark_id: mmlu_jurisprudence
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 86.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_jurisprudence#13128623b91b
+  - benchmark_id: mmlu_logical_fallacies
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 87.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_logical_fallacies#373c27af8f21
+  - benchmark_id: mmlu_machine_learning
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 61.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_machine_learning#3ae1714dd97f
+  - benchmark_id: mmlu_management
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 87.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_management#02de32bf5515
+  - benchmark_id: mmlu_marketing
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 92.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_marketing#8c7952d3e6cf
+  - benchmark_id: mmlu_medical_genetics
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 84.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_medical_genetics#a8fa4f4b06d9
+  - benchmark_id: mmlu_miscellaneous
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 89.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_miscellaneous#09813818a0e3
+  - benchmark_id: mmlu_moral_disputes
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 84.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_moral_disputes#e88a9c96956a
+  - benchmark_id: mmlu_moral_scenarios
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 66.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_moral_scenarios#2809e0f77fe1
+  - benchmark_id: mmlu_nutrition
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 87.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_nutrition#7cec9b6c23ce
+  - benchmark_id: mmlu_philosophy
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 82.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_philosophy#3086876393ef
+  - benchmark_id: mmlu_prehistory
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 87.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_prehistory#6ce2e5ab5fcb
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 44.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-06-26T15-18-07.434042.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-8fee2c3f372b
+      snapshot_ref: sha256:f97330c37d9afa4698c9c2a2d2f121ce2f923a8d9afe59b5014746f539833dd1
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_pro#5ece498947d7
+  - benchmark_id: mmlu_professional_accounting
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 66.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_professional_accounting#f0a588713084
+  - benchmark_id: mmlu_professional_law
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 60.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_professional_law#58292b783012
+  - benchmark_id: mmlu_professional_medicine
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 88.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_professional_medicine#8cac97337a1c
+  - benchmark_id: mmlu_professional_psychology
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 84.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_professional_psychology#56781f1a8571
+  - benchmark_id: mmlu_public_relations
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 77.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_public_relations#749229a6f1ea
+  - benchmark_id: mmlu_security_studies
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 84.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_security_studies#800d3590a045
+  - benchmark_id: mmlu_sociology
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 91.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_sociology#e955e3659cbb
+  - benchmark_id: mmlu_us_foreign_policy
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 96.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_us_foreign_policy#2160f8c80cd6
+  - benchmark_id: mmlu_virology
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 59.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_virology#e75378097b65
+  - benchmark_id: mmlu_world_religions
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 90.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#mmlu_world_religions#71db51b148d2
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 43.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-06-26T15-18-07.434042.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-8fee2c3f372b
+      snapshot_ref: sha256:f97330c37d9afa4698c9c2a2d2f121ce2f923a8d9afe59b5014746f539833dd1
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#musr#0f88a1d2a5d6
+  - benchmark_id: truthfulqa
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 68.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#truthfulqa#da6be110a62a
+  - benchmark_id: winogrande
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-Instruct-v0.1
+    score: 85.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-04-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-f056592ff29d
+      snapshot_ref: sha256:ec95427554c3fded8bb4b0273223b736f03ec66f0104c473844ab83b95beb260
+      cited_regions:
+      - rows
+    id: mistral/mixtral-8x22b-instruct-v0-1#winogrande#a5f4b4059511
   benchmark_source: open-llm-leaderboard-v2, llm-stats, open-llm-leaderboard-v1
   benchmark_as_of: 2026-04
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 56.2 and gpqa_diamond 36.1. They came from a hand-typed

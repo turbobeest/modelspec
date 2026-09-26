@@ -666,11 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 56.7
-    bbh: 42.0
-    musr: 39.3
-    mmlu_pro: 25.5
+  scores: {}
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemma-2-2b-it
@@ -916,6 +912,86 @@ benchmarks:
       votes, rank 327.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+  - benchmark_id: bbh
+    model_id_as_evaluated: google/gemma-2-2b-it
+    score: 42.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-db2ef33d2032
+      snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
+      cited_regions:
+      - rows
+    id: google/gemma-2-2b-it#bbh#653c64a18bb5
+  - benchmark_id: ifeval
+    model_id_as_evaluated: google/gemma-2-2b-it
+    score: 56.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-db2ef33d2032
+      snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
+      cited_regions:
+      - rows
+    id: google/gemma-2-2b-it#ifeval#a0393f468763
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: google/gemma-2-2b-it
+    score: 25.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-db2ef33d2032
+      snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
+      cited_regions:
+      - rows
+    id: google/gemma-2-2b-it#mmlu_pro#27ecae94fbb1
+  - benchmark_id: musr
+    model_id_as_evaluated: google/gemma-2-2b-it
+    score: 39.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-db2ef33d2032
+      snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
+      cited_regions:
+      - rows
+    id: google/gemma-2-2b-it#musr#e9b392a0b308
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 3.4 and gpqa_diamond 29.7. They were the Open LLM Leaderboard

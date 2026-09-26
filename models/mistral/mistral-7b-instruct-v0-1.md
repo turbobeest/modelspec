@@ -667,15 +667,168 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    gsm8k: 14.3
-    winogrande: 73.7
-    ifeval: 44.9
-    bbh: 33.5
-    math_lvl5: 2.3
-    gpqa_pooled: 25.0
-    musr: 38.5
-    mmlu_pro: 24.1
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.1
+    score: 33.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ac29aae4cee
+      snapshot_ref: sha256:dc98a65b99feb83f458300b7d38e1170d20d668b7a0befa7865ecb10fc804a36
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-1#bbh#966d8593a922
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.1
+    score: 25.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ac29aae4cee
+      snapshot_ref: sha256:dc98a65b99feb83f458300b7d38e1170d20d668b7a0befa7865ecb10fc804a36
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-1#gpqa_pooled#b8bab48d27d7
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.1
+    score: 14.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mistral-7B-Instruct-v0.1/results_2023-10-24T09-43-48.997990.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-10-24'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-3a39feefc6e7
+      snapshot_ref: sha256:dbf5519042f58150f14dedea2326016390321ba457646b10fabd4a82ee858dcb
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-1#gsm8k#85630230967e
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.1
+    score: 44.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ac29aae4cee
+      snapshot_ref: sha256:dc98a65b99feb83f458300b7d38e1170d20d668b7a0befa7865ecb10fc804a36
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-1#ifeval#af2010ae4c22
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.1
+    score: 2.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ac29aae4cee
+      snapshot_ref: sha256:dc98a65b99feb83f458300b7d38e1170d20d668b7a0befa7865ecb10fc804a36
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-1#math_lvl5#bf7d7e076973
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.1
+    score: 24.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ac29aae4cee
+      snapshot_ref: sha256:dc98a65b99feb83f458300b7d38e1170d20d668b7a0befa7865ecb10fc804a36
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-1#mmlu_pro#069984f79145
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.1
+    score: 38.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ac29aae4cee
+      snapshot_ref: sha256:dc98a65b99feb83f458300b7d38e1170d20d668b7a0befa7865ecb10fc804a36
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-1#musr#95bc649bf474
+  - benchmark_id: winogrande
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.1
+    score: 73.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mistral-7B-Instruct-v0.1/results_2023-10-24T09-43-48.997990.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-10-24'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-3a39feefc6e7
+      snapshot_ref: sha256:dbf5519042f58150f14dedea2326016390321ba457646b10fabd4a82ee858dcb
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-1#winogrande#c34a78b8bb08
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: ''

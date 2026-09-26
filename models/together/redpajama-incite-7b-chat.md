@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 15.6
-    bbh: 31.8
-    math_lvl5: 0.7
-    gpqa_pooled: 25.3
-    musr: 34.5
-    mmlu_pro: 11.2
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: togethercomputer/RedPajama-INCITE-7B-Chat
+    score: 31.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Chat/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-591313014365
+      snapshot_ref: sha256:02fb6774446831a43dd8cad4ab78ae288740c50eee55e74e3d79d8e2ff2d79a3
+      cited_regions:
+      - rows
+    id: together/redpajama-incite-7b-chat#bbh#6c6d790853b4
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: togethercomputer/RedPajama-INCITE-7B-Chat
+    score: 25.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Chat/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-591313014365
+      snapshot_ref: sha256:02fb6774446831a43dd8cad4ab78ae288740c50eee55e74e3d79d8e2ff2d79a3
+      cited_regions:
+      - rows
+    id: together/redpajama-incite-7b-chat#gpqa_pooled#6422772e85ca
+  - benchmark_id: ifeval
+    model_id_as_evaluated: togethercomputer/RedPajama-INCITE-7B-Chat
+    score: 15.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Chat/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-591313014365
+      snapshot_ref: sha256:02fb6774446831a43dd8cad4ab78ae288740c50eee55e74e3d79d8e2ff2d79a3
+      cited_regions:
+      - rows
+    id: together/redpajama-incite-7b-chat#ifeval#c597fb3660d4
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: togethercomputer/RedPajama-INCITE-7B-Chat
+    score: 0.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Chat/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-591313014365
+      snapshot_ref: sha256:02fb6774446831a43dd8cad4ab78ae288740c50eee55e74e3d79d8e2ff2d79a3
+      cited_regions:
+      - rows
+    id: together/redpajama-incite-7b-chat#math_lvl5#f695884ccee7
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: togethercomputer/RedPajama-INCITE-7B-Chat
+    score: 11.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Chat/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-591313014365
+      snapshot_ref: sha256:02fb6774446831a43dd8cad4ab78ae288740c50eee55e74e3d79d8e2ff2d79a3
+      cited_regions:
+      - rows
+    id: together/redpajama-incite-7b-chat#mmlu_pro#25b8637a2287
+  - benchmark_id: musr
+    model_id_as_evaluated: togethercomputer/RedPajama-INCITE-7B-Chat
+    score: 34.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Chat/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-591313014365
+      snapshot_ref: sha256:02fb6774446831a43dd8cad4ab78ae288740c50eee55e74e3d79d8e2ff2d79a3
+      cited_regions:
+      - rows
+    id: together/redpajama-incite-7b-chat#musr#62f85dbd9518
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

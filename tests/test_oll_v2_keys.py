@@ -153,9 +153,10 @@ CONFIRMED_ZEROS = {
 
 def test_every_exact_zero_score_is_confirmed_at_source() -> None:
     zeros = {
-        (str(p.relative_to(ROOT)), key)
+        (str(p.relative_to(ROOT)), row["benchmark_id"])
         for p, fm in _cards()
-        for key, value in (((fm.get("benchmarks") or {}).get("scores")) or {}).items()
-        if value == 0
+        for row in ((fm.get("benchmarks") or {}).get("evidence") or [])
+        if row.get("score") == 0
+        and "open-llm-leaderboard" in str(row.get("source_url") or "")
     }
     assert zeros == CONFIRMED_ZEROS

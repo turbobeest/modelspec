@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 7.7
-    bbh: 33.1
-    math_lvl5: 0.5
-    gpqa_pooled: 22.9
-    musr: 39.5
-    mmlu_pro: 11.5
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: RWKV/rwkv-raven-14b
+    score: 33.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/RWKV/rwkv-raven-14b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-136769cb5ced
+      snapshot_ref: sha256:636b84a87f898f82bce12d246154a6b3e8728aa87b8e1df5cf5a40ffa9fa8750
+      cited_regions:
+      - rows
+    id: rwkv/rwkv-raven-14b#bbh#b1db8cc62a8b
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: RWKV/rwkv-raven-14b
+    score: 22.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/RWKV/rwkv-raven-14b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-136769cb5ced
+      snapshot_ref: sha256:636b84a87f898f82bce12d246154a6b3e8728aa87b8e1df5cf5a40ffa9fa8750
+      cited_regions:
+      - rows
+    id: rwkv/rwkv-raven-14b#gpqa_pooled#e6e497ab1fee
+  - benchmark_id: ifeval
+    model_id_as_evaluated: RWKV/rwkv-raven-14b
+    score: 7.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/RWKV/rwkv-raven-14b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-136769cb5ced
+      snapshot_ref: sha256:636b84a87f898f82bce12d246154a6b3e8728aa87b8e1df5cf5a40ffa9fa8750
+      cited_regions:
+      - rows
+    id: rwkv/rwkv-raven-14b#ifeval#1b3b8e07143d
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: RWKV/rwkv-raven-14b
+    score: 0.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/RWKV/rwkv-raven-14b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-136769cb5ced
+      snapshot_ref: sha256:636b84a87f898f82bce12d246154a6b3e8728aa87b8e1df5cf5a40ffa9fa8750
+      cited_regions:
+      - rows
+    id: rwkv/rwkv-raven-14b#math_lvl5#cb384681839b
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: RWKV/rwkv-raven-14b
+    score: 11.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/RWKV/rwkv-raven-14b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-136769cb5ced
+      snapshot_ref: sha256:636b84a87f898f82bce12d246154a6b3e8728aa87b8e1df5cf5a40ffa9fa8750
+      cited_regions:
+      - rows
+    id: rwkv/rwkv-raven-14b#mmlu_pro#eae4c5a1b533
+  - benchmark_id: musr
+    model_id_as_evaluated: RWKV/rwkv-raven-14b
+    score: 39.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/RWKV/rwkv-raven-14b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-136769cb5ced
+      snapshot_ref: sha256:636b84a87f898f82bce12d246154a6b3e8728aa87b8e1df5cf5a40ffa9fa8750
+      cited_regions:
+      - rows
+    id: rwkv/rwkv-raven-14b#musr#82f0d6deb0c3
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

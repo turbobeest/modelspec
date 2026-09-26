@@ -665,11 +665,88 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 49.2
-    bbh: 50.9
-    musr: 39.7
-    mmlu_pro: 38.0
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: meta-llama/Llama-3.1-8B-Instruct
+    score: 50.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.1-8B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2025-02-06'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-af12f1f21a63
+      snapshot_ref: sha256:30e0e0d2186321b5a4b4f2e6f03ab6ad2dd316ea5511232c6de089ca3b647ddb
+      cited_regions:
+      - rows
+    id: cerebras/llama3-1-8b#bbh#69e687f449f3
+  - benchmark_id: ifeval
+    model_id_as_evaluated: meta-llama/Llama-3.1-8B-Instruct
+    score: 49.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.1-8B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2025-02-06'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-af12f1f21a63
+      snapshot_ref: sha256:30e0e0d2186321b5a4b4f2e6f03ab6ad2dd316ea5511232c6de089ca3b647ddb
+      cited_regions:
+      - rows
+    id: cerebras/llama3-1-8b#ifeval#e3f0241929df
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: meta-llama/Llama-3.1-8B-Instruct
+    score: 38.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.1-8B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2025-02-06'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-af12f1f21a63
+      snapshot_ref: sha256:30e0e0d2186321b5a4b4f2e6f03ab6ad2dd316ea5511232c6de089ca3b647ddb
+      cited_regions:
+      - rows
+    id: cerebras/llama3-1-8b#mmlu_pro#9e8b0a77fa6c
+  - benchmark_id: musr
+    model_id_as_evaluated: meta-llama/Llama-3.1-8B-Instruct
+    score: 39.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.1-8B-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2025-02-06'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-af12f1f21a63
+      snapshot_ref: sha256:30e0e0d2186321b5a4b4f2e6f03ab6ad2dd316ea5511232c6de089ca3b647ddb
+      cited_regions:
+      - rows
+    id: cerebras/llama3-1-8b#musr#27ad1bc3d18b
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 5.7 and gpqa_diamond 31.0. They were the Open LLM Leaderboard

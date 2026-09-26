@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 21.3
-    bbh: 34.4
-    math_lvl5: 1.6
-    gpqa_pooled: 25.2
-    musr: 40.6
-    mmlu_pro: 17.8
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: togethercomputer/Llama-2-7B-32K-Instruct
+    score: 34.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/Llama-2-7B-32K-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-fba6bc317570
+      snapshot_ref: sha256:808043e6a98c9a69ee473f6cb0b984bcf033f0af8791439d6ed81b21ebc866f7
+      cited_regions:
+      - rows
+    id: together/llama-2-7b-32k-instruct#bbh#02c7110ad94b
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: togethercomputer/Llama-2-7B-32K-Instruct
+    score: 25.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/Llama-2-7B-32K-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-fba6bc317570
+      snapshot_ref: sha256:808043e6a98c9a69ee473f6cb0b984bcf033f0af8791439d6ed81b21ebc866f7
+      cited_regions:
+      - rows
+    id: together/llama-2-7b-32k-instruct#gpqa_pooled#07d5fcd35900
+  - benchmark_id: ifeval
+    model_id_as_evaluated: togethercomputer/Llama-2-7B-32K-Instruct
+    score: 21.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/Llama-2-7B-32K-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-fba6bc317570
+      snapshot_ref: sha256:808043e6a98c9a69ee473f6cb0b984bcf033f0af8791439d6ed81b21ebc866f7
+      cited_regions:
+      - rows
+    id: together/llama-2-7b-32k-instruct#ifeval#e2368b24acec
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: togethercomputer/Llama-2-7B-32K-Instruct
+    score: 1.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/Llama-2-7B-32K-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-fba6bc317570
+      snapshot_ref: sha256:808043e6a98c9a69ee473f6cb0b984bcf033f0af8791439d6ed81b21ebc866f7
+      cited_regions:
+      - rows
+    id: together/llama-2-7b-32k-instruct#math_lvl5#8b41bb3c89c8
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: togethercomputer/Llama-2-7B-32K-Instruct
+    score: 17.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/Llama-2-7B-32K-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-fba6bc317570
+      snapshot_ref: sha256:808043e6a98c9a69ee473f6cb0b984bcf033f0af8791439d6ed81b21ebc866f7
+      cited_regions:
+      - rows
+    id: together/llama-2-7b-32k-instruct#mmlu_pro#50f9b7724e80
+  - benchmark_id: musr
+    model_id_as_evaluated: togethercomputer/Llama-2-7B-32K-Instruct
+    score: 40.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/Llama-2-7B-32K-Instruct/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-fba6bc317570
+      snapshot_ref: sha256:808043e6a98c9a69ee473f6cb0b984bcf033f0af8791439d6ed81b21ebc866f7
+      cited_regions:
+      - rows
+    id: together/llama-2-7b-32k-instruct#musr#7f553c1ce255
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

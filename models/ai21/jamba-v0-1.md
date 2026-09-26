@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 20.3
-    bbh: 36.0
-    math_lvl5: 1.6
-    gpqa_pooled: 26.8
-    musr: 35.9
-    mmlu_pro: 24.9
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: ai21labs/Jamba-v0.1
+    score: 36.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ai21labs/Jamba-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a3fc9fde34b9
+      snapshot_ref: sha256:9900e81d063c785266ece23e1d68c099356acb1ef51a019a00b13c6ccd9e7b1e
+      cited_regions:
+      - rows
+    id: ai21/jamba-v0-1#bbh#7f85a2c65871
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: ai21labs/Jamba-v0.1
+    score: 26.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ai21labs/Jamba-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a3fc9fde34b9
+      snapshot_ref: sha256:9900e81d063c785266ece23e1d68c099356acb1ef51a019a00b13c6ccd9e7b1e
+      cited_regions:
+      - rows
+    id: ai21/jamba-v0-1#gpqa_pooled#911863764edb
+  - benchmark_id: ifeval
+    model_id_as_evaluated: ai21labs/Jamba-v0.1
+    score: 20.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ai21labs/Jamba-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a3fc9fde34b9
+      snapshot_ref: sha256:9900e81d063c785266ece23e1d68c099356acb1ef51a019a00b13c6ccd9e7b1e
+      cited_regions:
+      - rows
+    id: ai21/jamba-v0-1#ifeval#3cf1766cd62e
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: ai21labs/Jamba-v0.1
+    score: 1.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ai21labs/Jamba-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a3fc9fde34b9
+      snapshot_ref: sha256:9900e81d063c785266ece23e1d68c099356acb1ef51a019a00b13c6ccd9e7b1e
+      cited_regions:
+      - rows
+    id: ai21/jamba-v0-1#math_lvl5#755c9bcc52dd
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: ai21labs/Jamba-v0.1
+    score: 24.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ai21labs/Jamba-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a3fc9fde34b9
+      snapshot_ref: sha256:9900e81d063c785266ece23e1d68c099356acb1ef51a019a00b13c6ccd9e7b1e
+      cited_regions:
+      - rows
+    id: ai21/jamba-v0-1#mmlu_pro#a06fd77870c3
+  - benchmark_id: musr
+    model_id_as_evaluated: ai21labs/Jamba-v0.1
+    score: 35.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ai21labs/Jamba-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-09-18'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a3fc9fde34b9
+      snapshot_ref: sha256:9900e81d063c785266ece23e1d68c099356acb1ef51a019a00b13c6ccd9e7b1e
+      cited_regions:
+      - rows
+    id: ai21/jamba-v0-1#musr#0dabc989c9e2
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

@@ -666,14 +666,148 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    gsm8k: 4.6
-    ifeval: 18.2
-    bbh: 32.9
-    math_lvl5: 1.0
-    gpqa_pooled: 24.5
-    musr: 37.8
-    mmlu_pro: 11.3
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: tiiuae/falcon-7b
+    score: 32.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-cb8d93614572
+      snapshot_ref: sha256:d5d5f167707f9bd99265b45c3566777fa5f05baedc2152b7cb9b6e9f00749abc
+      cited_regions:
+      - rows
+    id: tii/falcon-7b#bbh#528d8c9d4dbe
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: tiiuae/falcon-7b
+    score: 24.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-cb8d93614572
+      snapshot_ref: sha256:d5d5f167707f9bd99265b45c3566777fa5f05baedc2152b7cb9b6e9f00749abc
+      cited_regions:
+      - rows
+    id: tii/falcon-7b#gpqa_pooled#07092c1b7835
+  - benchmark_id: gsm8k
+    model_id_as_evaluated: tiiuae/falcon-7b
+    score: 4.6
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/tiiuae/falcon-7b/results_2023-12-03T17-58-16.188347.json
+    source_kind: independent_evaluator
+    evidence_date: '2023-12-03'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v1
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v1-a865328e0b66
+      snapshot_ref: sha256:4da639ab6a42469ca27e65c2a7e5bc5bb9c82f67ff20370779746d13dbafc709
+      cited_regions:
+      - rows
+    id: tii/falcon-7b#gsm8k#e9fb75545616
+  - benchmark_id: ifeval
+    model_id_as_evaluated: tiiuae/falcon-7b
+    score: 18.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-cb8d93614572
+      snapshot_ref: sha256:d5d5f167707f9bd99265b45c3566777fa5f05baedc2152b7cb9b6e9f00749abc
+      cited_regions:
+      - rows
+    id: tii/falcon-7b#ifeval#b17b8be3b7e7
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: tiiuae/falcon-7b
+    score: 1.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-cb8d93614572
+      snapshot_ref: sha256:d5d5f167707f9bd99265b45c3566777fa5f05baedc2152b7cb9b6e9f00749abc
+      cited_regions:
+      - rows
+    id: tii/falcon-7b#math_lvl5#a35d9616bd58
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: tiiuae/falcon-7b
+    score: 11.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-cb8d93614572
+      snapshot_ref: sha256:d5d5f167707f9bd99265b45c3566777fa5f05baedc2152b7cb9b6e9f00749abc
+      cited_regions:
+      - rows
+    id: tii/falcon-7b#mmlu_pro#135a15d8ea31
+  - benchmark_id: musr
+    model_id_as_evaluated: tiiuae/falcon-7b
+    score: 37.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-cb8d93614572
+      snapshot_ref: sha256:d5d5f167707f9bd99265b45c3566777fa5f05baedc2152b7cb9b6e9f00749abc
+      cited_regions:
+      - rows
+    id: tii/falcon-7b#musr#a6d83e7bb2b1
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
   benchmark_notes: ''

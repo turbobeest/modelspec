@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 14.8
-    bbh: 30.1
-    math_lvl5: 0.0
-    gpqa_pooled: 25.4
-    musr: 42.9
-    mmlu_pro: 11.2
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: microsoft/DialoGPT-medium
+    score: 30.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/DialoGPT-medium/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a125e4bb5978
+      snapshot_ref: sha256:54ad1e91edfcd975f21e787545ec12a2377e75e1135fe0c145988d8eb53235d4
+      cited_regions:
+      - rows
+    id: microsoft/dialogpt-medium#bbh#ac1339053610
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: microsoft/DialoGPT-medium
+    score: 25.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/DialoGPT-medium/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a125e4bb5978
+      snapshot_ref: sha256:54ad1e91edfcd975f21e787545ec12a2377e75e1135fe0c145988d8eb53235d4
+      cited_regions:
+      - rows
+    id: microsoft/dialogpt-medium#gpqa_pooled#4783adc3ddb2
+  - benchmark_id: ifeval
+    model_id_as_evaluated: microsoft/DialoGPT-medium
+    score: 14.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/DialoGPT-medium/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a125e4bb5978
+      snapshot_ref: sha256:54ad1e91edfcd975f21e787545ec12a2377e75e1135fe0c145988d8eb53235d4
+      cited_regions:
+      - rows
+    id: microsoft/dialogpt-medium#ifeval#8ed8e20839b6
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: microsoft/DialoGPT-medium
+    score: 0.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/DialoGPT-medium/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a125e4bb5978
+      snapshot_ref: sha256:54ad1e91edfcd975f21e787545ec12a2377e75e1135fe0c145988d8eb53235d4
+      cited_regions:
+      - rows
+    id: microsoft/dialogpt-medium#math_lvl5#c2261530daf8
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: microsoft/DialoGPT-medium
+    score: 11.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/DialoGPT-medium/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a125e4bb5978
+      snapshot_ref: sha256:54ad1e91edfcd975f21e787545ec12a2377e75e1135fe0c145988d8eb53235d4
+      cited_regions:
+      - rows
+    id: microsoft/dialogpt-medium#mmlu_pro#3b7b8cbca26e
+  - benchmark_id: musr
+    model_id_as_evaluated: microsoft/DialoGPT-medium
+    score: 42.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/DialoGPT-medium/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-a125e4bb5978
+      snapshot_ref: sha256:54ad1e91edfcd975f21e787545ec12a2377e75e1135fe0c145988d8eb53235d4
+      cited_regions:
+      - rows
+    id: microsoft/dialogpt-medium#musr#bf990dbd4f4d
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

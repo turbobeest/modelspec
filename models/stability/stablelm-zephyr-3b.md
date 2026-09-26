@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 36.8
-    bbh: 38.7
-    math_lvl5: 4.3
-    gpqa_pooled: 23.9
-    musr: 41.8
-    mmlu_pro: 17.7
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: stabilityai/stablelm-zephyr-3b
+    score: 38.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-zephyr-3b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-2058284a7643
+      snapshot_ref: sha256:ea793c51e1ef9e6e16c9b283831fc69bf248afbf9be266f0874406a364e6ebd0
+      cited_regions:
+      - rows
+    id: stability/stablelm-zephyr-3b#bbh#faaab2145a5f
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: stabilityai/stablelm-zephyr-3b
+    score: 23.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-zephyr-3b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-2058284a7643
+      snapshot_ref: sha256:ea793c51e1ef9e6e16c9b283831fc69bf248afbf9be266f0874406a364e6ebd0
+      cited_regions:
+      - rows
+    id: stability/stablelm-zephyr-3b#gpqa_pooled#4ab90854541d
+  - benchmark_id: ifeval
+    model_id_as_evaluated: stabilityai/stablelm-zephyr-3b
+    score: 36.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-zephyr-3b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-2058284a7643
+      snapshot_ref: sha256:ea793c51e1ef9e6e16c9b283831fc69bf248afbf9be266f0874406a364e6ebd0
+      cited_regions:
+      - rows
+    id: stability/stablelm-zephyr-3b#ifeval#97febc6fbe4d
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: stabilityai/stablelm-zephyr-3b
+    score: 4.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-zephyr-3b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-2058284a7643
+      snapshot_ref: sha256:ea793c51e1ef9e6e16c9b283831fc69bf248afbf9be266f0874406a364e6ebd0
+      cited_regions:
+      - rows
+    id: stability/stablelm-zephyr-3b#math_lvl5#4160fbbd741a
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: stabilityai/stablelm-zephyr-3b
+    score: 17.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-zephyr-3b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-2058284a7643
+      snapshot_ref: sha256:ea793c51e1ef9e6e16c9b283831fc69bf248afbf9be266f0874406a364e6ebd0
+      cited_regions:
+      - rows
+    id: stability/stablelm-zephyr-3b#mmlu_pro#a98e77b9879b
+  - benchmark_id: musr
+    model_id_as_evaluated: stabilityai/stablelm-zephyr-3b
+    score: 41.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-zephyr-3b/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-2058284a7643
+      snapshot_ref: sha256:ea793c51e1ef9e6e16c9b283831fc69bf248afbf9be266f0874406a364e6ebd0
+      cited_regions:
+      - rows
+    id: stability/stablelm-zephyr-3b#musr#2ed8fdf3f84b
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

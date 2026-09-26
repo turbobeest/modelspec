@@ -666,13 +666,128 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 22.0
-    bbh: 35.0
-    math_lvl5: 1.1
-    gpqa_pooled: 23.7
-    musr: 37.8
-    mmlu_pro: 16.7
+  scores: {}
+  evidence:
+  - benchmark_id: bbh
+    model_id_as_evaluated: stabilityai/stablelm-3b-4e1t
+    score: 35.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-3b-4e1t/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-3a2971acf094
+      snapshot_ref: sha256:3357b00e8209b15d06fe764d2be6aad262599afde961dd37f339f8f2b20e69ea
+      cited_regions:
+      - rows
+    id: stability/stablelm-3b-4e1t#bbh#c159e163e27e
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: stabilityai/stablelm-3b-4e1t
+    score: 23.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-3b-4e1t/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-3a2971acf094
+      snapshot_ref: sha256:3357b00e8209b15d06fe764d2be6aad262599afde961dd37f339f8f2b20e69ea
+      cited_regions:
+      - rows
+    id: stability/stablelm-3b-4e1t#gpqa_pooled#8c6dcec8fe38
+  - benchmark_id: ifeval
+    model_id_as_evaluated: stabilityai/stablelm-3b-4e1t
+    score: 22.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-3b-4e1t/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-3a2971acf094
+      snapshot_ref: sha256:3357b00e8209b15d06fe764d2be6aad262599afde961dd37f339f8f2b20e69ea
+      cited_regions:
+      - rows
+    id: stability/stablelm-3b-4e1t#ifeval#e99ca8640448
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: stabilityai/stablelm-3b-4e1t
+    score: 1.1
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-3b-4e1t/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-3a2971acf094
+      snapshot_ref: sha256:3357b00e8209b15d06fe764d2be6aad262599afde961dd37f339f8f2b20e69ea
+      cited_regions:
+      - rows
+    id: stability/stablelm-3b-4e1t#math_lvl5#53a7fe3dfd4a
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: stabilityai/stablelm-3b-4e1t
+    score: 16.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-3b-4e1t/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-3a2971acf094
+      snapshot_ref: sha256:3357b00e8209b15d06fe764d2be6aad262599afde961dd37f339f8f2b20e69ea
+      cited_regions:
+      - rows
+    id: stability/stablelm-3b-4e1t#mmlu_pro#353d748f9fbe
+  - benchmark_id: musr
+    model_id_as_evaluated: stabilityai/stablelm-3b-4e1t
+    score: 37.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-3b-4e1t/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-3a2971acf094
+      snapshot_ref: sha256:3357b00e8209b15d06fe764d2be6aad262599afde961dd37f339f8f2b20e69ea
+      cited_regions:
+      - rows
+    id: stability/stablelm-3b-4e1t#musr#cb9d32a3b56e
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''

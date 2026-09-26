@@ -666,13 +666,7 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 54.7
-    bbh: 47.2
-    math_lvl5: 3.9
-    gpqa_pooled: 27.9
-    musr: 37.4
-    mmlu_pro: 30.8
+  scores: {}
   evidence:
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: Mistral-7B-Instruct-v0.3
@@ -688,6 +682,126 @@ benchmarks:
       read 2026-09-24. Run started 2025-01-27T00:00:00.000Z; effort default; highest-effort
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.01 points.
     limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.3
+    score: 47.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.3/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ec632238071
+      snapshot_ref: sha256:6dc0ee285b9d64681ae9857fa7c9cd1525cd7e5a0683a1a821aecdbce735eee2
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-3#bbh#2a43d5332b88
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.3
+    score: 27.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.3/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ec632238071
+      snapshot_ref: sha256:6dc0ee285b9d64681ae9857fa7c9cd1525cd7e5a0683a1a821aecdbce735eee2
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-3#gpqa_pooled#d4de63e3d50b
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.3
+    score: 54.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.3/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ec632238071
+      snapshot_ref: sha256:6dc0ee285b9d64681ae9857fa7c9cd1525cd7e5a0683a1a821aecdbce735eee2
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-3#ifeval#0ae019d3d09e
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.3
+    score: 3.9
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.3/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ec632238071
+      snapshot_ref: sha256:6dc0ee285b9d64681ae9857fa7c9cd1525cd7e5a0683a1a821aecdbce735eee2
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-3#math_lvl5#60d17d45285f
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.3
+    score: 30.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.3/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ec632238071
+      snapshot_ref: sha256:6dc0ee285b9d64681ae9857fa7c9cd1525cd7e5a0683a1a821aecdbce735eee2
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-3#mmlu_pro#3ffbbbe19468
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Mistral-7B-Instruct-v0.3
+    score: 37.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.3/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-17'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-9ec632238071
+      snapshot_ref: sha256:6dc0ee285b9d64681ae9857fa7c9cd1525cd7e5a0683a1a821aecdbce735eee2
+      cited_regions:
+      - rows
+    id: mistral/mistral-7b-instruct-v0-3#musr#b8bea985f0c7
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
   benchmark_notes: ''
