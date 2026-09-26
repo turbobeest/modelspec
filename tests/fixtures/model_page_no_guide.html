@@ -195,7 +195,15 @@ padding:10px}
 .chart-axis{stroke:var(--dim);stroke-width:1}.chart-grid{stroke:var(--line);stroke-width:1}
 .chart-label{fill:var(--mute);font-family:var(--mono);font-size:11px}
 .chart-point,.strip-point{stroke:var(--ground);stroke-width:1.5}
-.chart-point:hover,.chart-point:focus,.strip-point:hover,.strip-point:focus{stroke:var(--ink);stroke-width:3}
+.point-trigger:focus-visible .chart-point,.point-trigger:focus-visible .strip-point,
+.point-pair:hover .chart-point,.point-pair:hover .strip-point{stroke:var(--ink);stroke-width:3}
+.point-detail{display:none;pointer-events:none}
+.point-pair:hover>.point-detail,.point-pair:focus-within>.point-detail,
+.point-trigger:focus-visible~.point-detail,
+.point-detail:target,.point-detail:hover{display:block;pointer-events:auto}
+.point-detail rect{fill:var(--surface);stroke:var(--accent);stroke-width:1.5}
+.point-detail text{fill:var(--ink);font-family:var(--mono);font-size:10px}
+.point-detail .point-source-label{fill:var(--accent);text-decoration:underline}
 .chart-credit{font-family:var(--mono);font-size:11px;color:var(--dim);max-width:none;
 margin:7px 2px 0}
 .chart-credit a{margin-right:8px}

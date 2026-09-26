@@ -33,7 +33,9 @@ from pipeline.load import (  # noqa: E402
 )
 from pipeline.render import (  # noqa: E402
     benchmark_chart,
+    benchmark_page,
     format_score,
+    model_page,
     model_benchmark_strips,
 )
 
@@ -366,6 +368,31 @@ def test_benchmark_chart_refuses_to_plot_evidence_without_a_source() -> None:
         benchmark_chart(_page("b"), rows)
 
 
+def test_benchmark_page_points_disclose_details_without_javascript() -> None:
+    rows = [
+        _chart_row(
+            f"demo/model-{i}", float(i),
+            release_date=f"2025-{(i % 12) + 1:02d}-01",
+        )
+        for i in range(20)
+    ]
+
+    html = benchmark_page(
+        _page("b"), _BUILD, Catalogue(as_of=date(2026, 9, 15)), rows,
+    )
+
+    assert 'class="point-trigger" href="#p1"' in html
+    assert 'aria-controls="p1"' in html
+    detail = html.split('id="p1" class="point-detail"', 1)[1]
+    detail = detail.split("</g></g>", 1)[0]
+    assert "Evidence date: 2026-09-01 (evaluated)" in detail
+    assert "Configuration: default" in detail
+    assert 'href="https://src.example/' in detail
+    assert ".point-trigger:focus-visible~.point-detail" in html
+    assert ".point-pair:focus-within>.point-detail" in html
+    assert ".point-detail:target" in html
+
+
 def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
     model = _card("demo/focus", evidence=(
         _evidence("mmlu_anatomy", 70.0),
@@ -413,6 +440,44 @@ def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
 
 def test_model_without_evidence_has_no_benchmark_strip_frame() -> None:
     assert model_benchmark_strips(_card("demo/empty"), {}, {}) == ""
+
+
+def test_model_page_passes_coverage_to_benchmark_strips() -> None:
+    model = _card("demo/focus", evidence=(_evidence("b", 70.0),))
+    benchmark = _page("b")
+    coverage = {
+        "b": [
+            _chart_row("demo/focus", 70.0),
+            _chart_row("demo/other", 65.0),
+        ],
+    }
+
+    html = model_page(
+        model,
+        _BUILD,
+        {"b": benchmark},
+        Catalogue(as_of=date(2026, 9, 15)),
+        evidence_coverage=coverage,
+    )
+
+    assert "Benchmark standing" in html
+    assert 'href="/b/b/"' in html
+    assert html.count('class="strip-point') == 2
+    assert 'class="point-trigger" href="#s1p1"' in html
+    assert 'id="s1p1" class="point-detail"' in html
+
+
+def test_model_page_without_evidence_omits_benchmark_strip_frame() -> None:
+    html = model_page(
+        _card("demo/empty"),
+        _BUILD,
+        {"b": _page("b")},
+        Catalogue(as_of=date(2026, 9, 15)),
+        evidence_coverage={"b": [_chart_row("demo/other", 65.0)]},
+    )
+
+    assert "Benchmark standing" not in html
+    assert 'class="strip-groups"' not in html
 
 
 # ── presentation ─────────────────────────────────────────────────────────────

@@ -226,7 +226,15 @@ padding:10px}
 .chart-axis{stroke:var(--dim);stroke-width:1}.chart-grid{stroke:var(--line);stroke-width:1}
 .chart-label{fill:var(--mute);font-family:var(--mono);font-size:11px}
 .chart-point,.strip-point{stroke:var(--ground);stroke-width:1.5}
-.chart-point:hover,.chart-point:focus,.strip-point:hover,.strip-point:focus{stroke:var(--ink);stroke-width:3}
+.point-trigger:focus-visible .chart-point,.point-trigger:focus-visible .strip-point,
+.point-pair:hover .chart-point,.point-pair:hover .strip-point{stroke:var(--ink);stroke-width:3}
+.point-detail{display:none;pointer-events:none}
+.point-pair:hover>.point-detail,.point-pair:focus-within>.point-detail,
+.point-trigger:focus-visible~.point-detail,
+.point-detail:target,.point-detail:hover{display:block;pointer-events:auto}
+.point-detail rect{fill:var(--surface);stroke:var(--accent);stroke-width:1.5}
+.point-detail text{fill:var(--ink);font-family:var(--mono);font-size:10px}
+.point-detail .point-source-label{fill:var(--accent);text-decoration:underline}
 .chart-credit{font-family:var(--mono);font-size:11px;color:var(--dim);max-width:none;
 margin:7px 2px 0}
 .chart-credit a{margin-right:8px}
@@ -334,14 +342,38 @@ def _marker(kind: str, x: float, y: float, colour: str, css_class: str) -> str:
     return f'<rect {attrs} x="{x - 5:.1f}" y="{y - 5:.1f}" width="10" height="10"/>'
 
 
-def _point_title(row: dict[str, Any]) -> str:
-    return (f'{row.get("display_name") or row.get("model_id")}: '
-            f'{format_score(row.get("score"), row.get("unit"))}\n'
-            f'Evidence date: {row.get("as_of") or "unknown"} '
-            f'({row.get("date_type") or "date type not stated"})\n'
-            f'Source kind: {str(row.get("source_kind") or "not stated").replace("_", " ")}\n'
-            f'Configuration: {row.get("configuration") or "not stated"}\n'
-            f'Benchmark version: {row.get("benchmark_version") or "not stated"}')
+def _point_markup(row: dict[str, Any], marker: str, point_id: str, *,
+                  panel_x: float, panel_y: float, panel_width: float,
+                  panel_height: float) -> str:
+    """A marker whose details work with hover, keyboard focus, and a URL fragment."""
+    source = _source_url(row)
+    name = row.get("display_name") or row.get("model_id")
+    score = format_score(row.get("score"), row.get("unit"))
+    evidence_date = row.get("as_of") or "unknown"
+    date_type = row.get("date_type") or "date type not stated"
+    configuration = row.get("configuration") or "not stated"
+    version = row.get("benchmark_version") or "not stated"
+    source_kind = str(row.get("source_kind") or "not stated").replace("_", " ")
+    line_one = f"{name}: {score} | Evidence date: {evidence_date} ({date_type})"
+    line_two = f"Configuration: {configuration} | Benchmark version: {version}"
+    source_y = panel_y + panel_height - 7
+    return (
+        f'<g class="point-pair">'
+        f'<a class="point-trigger" href="#{esc(point_id)}" '
+        f'aria-controls="{esc(point_id)}" '
+        f'aria-label="Show evidence details for {esc(name)}">{marker}</a>'
+        f'<g id="{esc(point_id)}" class="point-detail" role="tooltip">'
+        f'<rect x="{panel_x:.1f}" y="{panel_y:.1f}" width="{panel_width:.1f}" '
+        f'height="{panel_height:.1f}" rx="3"/>'
+        f'<text x="{panel_x + 8:.1f}" y="{panel_y + 13:.1f}">{esc(line_one)}</text>'
+        f'<text x="{panel_x + 8:.1f}" y="{panel_y + 27:.1f}">{esc(line_two)}</text>'
+        f'<text x="{panel_x + 8:.1f}" y="{source_y:.1f}">Source kind: '
+        f'{esc(source_kind)}</text>'
+        f'<a href="{esc(source)}" rel="nofollow noopener" aria-label="Open evidence source">'
+        f'<text class="point-source-label" x="{panel_x + panel_width - 83:.1f}" '
+        f'y="{source_y:.1f}">Open source</text></a>'
+        f'</g></g>'
+    )
 
 
 def _credit_line(rows: list[dict[str, Any]]) -> str:
@@ -419,15 +451,19 @@ def benchmark_chart(bench: Benchmark, covered: list[dict[str, Any]]) -> str:
     for row, released in points:
         grouped[_series_key(row)].append((row, released))
     marks: list[str] = []
+    point_number = 0
     for index, key in enumerate(sorted(grouped)):
         colour = SERIES_COLOURS[index % len(SERIES_COLOURS)]
         series_marks = []
         for row, released in grouped[key]:
+            point_number += 1
             kind = str(row.get("source_kind") or "")
             marker = _marker(kind, x(released.toordinal()), y(float(row["score"])), colour,
                              "chart-point")
-            series_marks.append(f'<a href="{esc(_source_url(row))}" rel="nofollow noopener">'
-                                f'<title>{esc(_point_title(row))}</title>{marker}</a>')
+            series_marks.append(_point_markup(
+                row, marker, f"p{point_number}",
+                panel_x=left + 4, panel_y=top + 4, panel_width=650, panel_height=52,
+            ))
         marks.append("<g>" + "".join(series_marks) + "</g>")
 
     kinds = "● benchmark author · ■ independent evaluator · ◆ provider self report"
@@ -475,7 +511,7 @@ def _benchmark_group(bench: Benchmark) -> str:
     return f"{parent} {suffix}"
 
 
-def _strip_svg(rows: list[dict[str, Any]], model_id: str) -> str:
+def _strip_svg(rows: list[dict[str, Any]], model_id: str, point_prefix: str) -> str:
     sourced = [row for row in rows if row.get("attribution") == "verified"
                and isinstance(row.get("score"), (int, float))]
     for row in sourced:
@@ -502,15 +538,19 @@ def _strip_svg(rows: list[dict[str, Any]], model_id: str) -> str:
         f'<text class="chart-label" x="{width-right}" y="39" '
         f'text-anchor="end">{hi:g}</text>',
     ]
+    point_number = 0
     for index, key in enumerate(sorted(grouped)):
         colour = SERIES_COLOURS[index % len(SERIES_COLOURS)]
         series_marks: list[str] = []
         for row in grouped[key]:
+            point_number += 1
             focus = " focus" if row.get("model_id") == model_id else ""
             marker = _marker(str(row.get("source_kind") or ""), x(float(row["score"])), 17,
                              colour, f"strip-point{focus}")
-            series_marks.append(f'<a href="{esc(_source_url(row))}" rel="nofollow noopener">'
-                                f'<title>{esc(_point_title(row))}</title>{marker}</a>')
+            series_marks.append(_point_markup(
+                row, marker, f"{point_prefix}p{point_number}",
+                panel_x=0, panel_y=0, panel_width=width, panel_height=43,
+            ))
         content.append("<g>" + "".join(series_marks) + "</g>")
     return (f'<svg viewBox="0 0 {width} {height}" role="img" '
             f'aria-label="Sourced evidence distribution">{"".join(content)}</svg>')
@@ -521,12 +561,13 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
     """Compact evidence distributions for every benchmark this model reports."""
     ids = {str(row.get("benchmark_id")) for row in model.evidence}
     entries: list[tuple[str, Benchmark, list[dict[str, Any]], str]] = []
-    for benchmark_id in ids:
+    for strip_number, benchmark_id in enumerate(sorted(ids), 1):
         bench = benchmarks.get(benchmark_id)
         rows = coverage.get(benchmark_id, [])
         if bench is None or not any(row.get("attribution") == "verified" for row in rows):
             continue
-        entries.append((_benchmark_group(bench), bench, rows, _strip_svg(rows, model.model_id)))
+        entries.append((_benchmark_group(bench), bench, rows,
+                        _strip_svg(rows, model.model_id, f"s{strip_number}")))
     entries = [entry for entry in entries if entry[3]]
     if not entries:
         return ""
