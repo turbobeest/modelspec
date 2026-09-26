@@ -1,0 +1,28 @@
+model,accuracy,date,reasoning_effort,agent,snapshot_read_date
+GPT-6 Astra,58.18,2026-09-03,max,Codex,2026-09-24
+Fable 5.1,57.88,2026-09-01,max,Claude Code,2026-09-24
+GPT-6 Astra,57.88,2026-09-03,xhigh,Codex,2026-09-24
+GPT-6 Astra,57.88,2026-09-03,high,Codex,2026-09-24
+Fable 5.1,57.88,2026-09-01,xhigh,Claude Code,2026-09-24
+Fable 5.1,54.55,2026-09-01,high,Claude Code,2026-09-24
+GPT-6 Astra,54.24,2026-09-03,medium,Codex,2026-09-24
+Fable 5.1,53.94,2026-09-01,medium,Claude Code,2026-09-24
+Opus 5,53.94,2026-07-24,xhigh,Claude Code,2026-09-24
+Opus 5,51.82,2026-07-24,max,Claude Code,2026-09-24
+GPT-6 Astra,50.61,2026-09-03,low,Codex,2026-09-24
+Opus 5,50.3,2026-07-24,high,Claude Code,2026-09-24
+Opus 5,44.85,2026-07-24,medium,Claude Code,2026-09-24
+Fable 5,44.55,2026-06-09,max,Claude Code,2026-09-24
+Fable 5.1,43.33,2026-09-01,low,Claude Code,2026-09-24
+GLM-5.3,41.82,2026-08-14,max,Claude Code,2026-09-24
+Grok 4.7,37.58,2026-09-21,xhigh,Grok Build,2026-09-24
+GPT-5.6 Sol,37.27,2026-06-26,max,Codex,2026-09-24
+Opus 5,34.85,2026-07-24,low,Claude Code,2026-09-24
+Opus 4.8,23.64,2026-05-28,max,Claude Code,2026-09-24
+GPT-5.6 Terra,21.52,2026-06-26,max,Codex,2026-09-24
+Grok 4.6,20.3,2026-08-12,high,Grok Build,2026-09-24
+Gemini 3.8 Flash,19.09,2026-09-02,high,mini-SWE-agent,2026-09-24
+GPT-5.6 Luna,17.27,2026-06-26,max,Codex,2026-09-24
+Grok 4.5,12.42,2026-07-16,high,Grok Build,2026-09-24
+Sonnet 5,12.42,2026-06-30,max,Claude Code,2026-09-24
+Gemini 3.7 Flash,11.21,2026-08-13,high,mini-SWE-agent,2026-09-24

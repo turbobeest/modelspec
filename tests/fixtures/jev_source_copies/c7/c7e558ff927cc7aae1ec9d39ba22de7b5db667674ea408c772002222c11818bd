@@ -1,0 +1,22 @@
+model,accuracy,snapshot_read_date
+GPT 6 Astra,54.8,2026-09-24
+Fable 5.1 (xhigh),46.5,2026-09-24
+gemini-3.1-pro-preview (thinking high),46.44,2026-09-24
+Gemini 3.8 Flash,44.52,2026-09-24
+gpt-5.4-pro-2026-03-05,44.32,2026-09-24
+Muse Spark,40.56,2026-09-24
+gemini-3-pro-preview,37.52,2026-09-24
+gpt-5.4-2026-03-05 (xhigh thinking),36.24,2026-09-24
+claude-opus-4-7,36.2,2026-09-24
+claude-opus-4-6-thinking-max,34.44,2026-09-24
+gpt-5-pro-2025-10-06,31.64,2026-09-24
+gpt-5.2-2025-12-11,27.8,2026-09-24
+gpt-5-2025-08-07,25.32,2026-09-24
+claude-opus-4-5-20251101-thinking,25.2,2026-09-24
+kimi-k2.5,24.37,2026-09-24
+gpt-5.1-thinking,23.68,2026-09-24
+gemini-2.5-pro-preview-06-05,21.64,2026-09-24
+o3 (high) (April 2025),20.32,2026-09-24
+gpt-5-mini-2025-08-07,19.44,2026-09-24
+o3 (medium) (April 2025),19.2,2026-09-24
+claude-opus-4-6 (Non-Thinking),19.0,2026-09-24

@@ -29,7 +29,7 @@ import httpx
 import yaml
 
 from decision.registry import default as default_registry
-from decision.sources import CopyStore, load_sources
+from decision.sources import CopyStore, fingerprint_bytes, load_sources
 from decision.verify import Claim, StoredRegions
 from scripts.attribution import TypeSafeJudge, load_config
 
@@ -38,6 +38,7 @@ TASK_LABELS = ROOT / "tests/fixtures/jev_task_routing.yaml"
 BLIND_TASK_LABELS = ROOT / "tests/fixtures/jev_task_routing_blind.yaml"
 JUDGMENT_LABELS = ROOT / "tests/fixtures/jev_judgment_labels.yaml"
 BLIND_ATTRIBUTION_LABELS = ROOT / "tests/fixtures/jev_evidence_attribution_blind.yaml"
+FROZEN_SOURCE_COPIES = ROOT / "tests/fixtures/jev_source_copies"
 VOCABULARY = ROOT / "web/src/decide/__fixtures__/vocabulary.json"
 FIXTURE_URL = (
     "https://github.com/turbobeest/modelspec/blob/main/tests/fixtures/verification/leaderboard.html"
@@ -374,6 +375,20 @@ def _benchmark_version(benchmark_id: str) -> str | None:
     return None
 
 
+def frozen_evidence_store() -> CopyStore:
+    """Return the committed source copies after checking their content addresses."""
+    store = CopyStore(FROZEN_SOURCE_COPIES)
+    copies = [path for path in FROZEN_SOURCE_COPIES.rglob("*") if path.is_file()]
+    if not copies:
+        raise ValueError(f"no frozen source copies in {FROZEN_SOURCE_COPIES}")
+    for path in copies:
+        expected = f"sha256:{path.name}"
+        actual = fingerprint_bytes(path.read_bytes())
+        if actual != expected:
+            raise ValueError(f"frozen source copy hash mismatch: {path}")
+    return store
+
+
 def _evidence_state(
     claim: dict[str, Any],
     regions: StoredRegions,
@@ -415,7 +430,7 @@ def blind_attribution_cases() -> list[Case]:
     labels = yaml.safe_load(BLIND_ATTRIBUTION_LABELS.read_text(encoding="utf-8"))
     claims, latest = _claims_and_latest()
     sources = load_sources(ROOT / "registry/sources.yaml")
-    regions = StoredRegions(CopyStore(), sources)
+    regions = StoredRegions(frozen_evidence_store(), sources)
     cases: list[Case] = []
 
     def add_case(
@@ -486,7 +501,7 @@ def _claims_and_latest() -> tuple[dict[str, dict], dict[str, dict]]:
 def second_key_cases(labels: dict[str, Any]) -> list[Case]:
     claims, latest = _claims_and_latest()
     sources = load_sources(ROOT / "registry/sources.yaml")
-    regions = StoredRegions(CopyStore(), sources)
+    regions = StoredRegions(frozen_evidence_store(), sources)
     cases = []
     for row in labels["second_key"]["cases"]:
         claim_data = claims[row["target"]]

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import yaml
 
+from decision.sources import fingerprint_bytes
 from scripts.research import eval_jev_recommendations as research
 
 
@@ -87,6 +88,27 @@ def test_blind_attribution_cases_exercise_exact_evidence_identity() -> None:
         assert case.state["cited_regions"]
         assert case.source_url.startswith("https://")
         assert case.source_read_date
+
+
+def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(tmp_path / "empty-source-cache"))
+
+    blind_cases = research.blind_attribution_cases()
+    second_key = research.second_key_cases(
+        yaml.safe_load(research.JUDGMENT_LABELS.read_text(encoding="utf-8"))
+    )
+
+    assert len(blind_cases) == 61
+    assert len(second_key) == 21
+    store = research.frozen_evidence_store()
+    copies = [path for path in research.FROZEN_SOURCE_COPIES.rglob("*") if path.is_file()]
+    assert copies
+    for path in copies:
+        ref = f"sha256:{path.name}"
+        assert store.has(ref)
+        assert fingerprint_bytes(store.get(ref)) == ref
 
 
 def test_blind_routing_labels_are_separate_and_do_not_infer_conditions() -> None:
