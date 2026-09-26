@@ -28,6 +28,7 @@ from api.classes import class_for_model_type  # noqa: E402
 
 INPUTS = ROOT / "premier" / "inputs"
 OUTPUT = ROOT / "premier" / "slice-1.yaml"
+SLICE2_INPUT = INPUTS / "slice-2.yaml"
 
 READ_DATE = "2026-09-24"
 RELEASE_WINDOW_START = "2026-06-26"  # 90 days before the read date
@@ -38,7 +39,7 @@ PAST_YEAR_START = "2025-09-24"
 QUOTA = {
     "frontier-generation": 12,
     "open-weights-generation": 6,
-    "embedding": 4,
+    "embedding": 6,
     "rerank": 2,
     "vision": 4,
     "decision": 1,
@@ -378,33 +379,45 @@ def load_cards() -> dict[str, dict]:
         text = path.read_text(encoding="utf-8", errors="replace")
         if not text.startswith("---"):
             continue
-        try:
-            front = yaml.safe_load(text.split("---", 2)[1]) or {}
-        except yaml.YAMLError:
-            continue
-        model_id = str(front.get("model_id") or "")
+        frontmatter = text.split("---", 2)[1]
+
+        def scalar(name: str) -> str:
+            match = re.search(rf"(?m)^{re.escape(name)}:\s*['\"]?([^\n'\"]*)", frontmatter)
+            return match.group(1).strip() if match else ""
+
+        model_id = scalar("model_id")
         if not model_id:
             continue
-        licensing = front.get("licensing") or {}
-        availability = front.get("availability") or {}
-        primary = availability.get("primary_provider") or {}
         platforms = []
-        if (primary.get("api_endpoint") or primary.get("model_id_on_platform") or "").strip():
+        availability = frontmatter.partition("\navailability:")[2].partition("\nbenchmarks:")[0]
+        primary = re.search(
+            r"(?ms)^  primary_provider:\n(.*?)(?=^  [a-z][a-z0-9_]*:|\Z)", availability
+        )
+        if primary and re.search(
+            r"(?m)^    (?:api_endpoint|model_id_on_platform):\s*\S+", primary.group(1)
+        ):
             platforms.append("lab_api")
         for name in MAJOR_PLATFORMS:
-            entry = availability.get(name) or {}
-            if isinstance(entry, dict) and entry.get("available") is True:
+            entry = re.search(
+                rf"(?ms)^  {re.escape(name)}:\n(.*?)(?=^  [a-z][a-z0-9_]*:|\Z)",
+                availability,
+            )
+            if entry and re.search(r"(?m)^    available:\s*true\s*$", entry.group(1)):
                 platforms.append(name)
-        release = str(front.get("release_date") or "")[:10]
-        retirement = front.get("retirement_date") or front.get("deprecation_date") or None
+        open_match = re.search(
+            r"(?ms)^licensing:\n.*?^  open_weights:\s*(true|false)\s*$", frontmatter
+        )
+        release = scalar("release_date")[:10]
+        retirement = scalar("retirement_date") or scalar("deprecation_date") or None
+        model_type = scalar("model_type")
         cards[model_id] = {
             "model_id": model_id,
-            "display_name": str(front.get("display_name") or ""),
-            "provider": str(front.get("provider") or ""),
-            "status": str(front.get("status") or ""),
-            "model_type": str(front.get("model_type") or ""),
-            "class_id": class_for_model_type(str(front.get("model_type") or "")) or "",
-            "open_weights": licensing.get("open_weights") is True,
+            "display_name": scalar("display_name"),
+            "provider": scalar("provider"),
+            "status": scalar("status"),
+            "model_type": model_type,
+            "class_id": class_for_model_type(model_type) or "",
+            "open_weights": bool(open_match and open_match.group(1) == "true"),
             "release_date": release,
             "retirement_date": str(retirement)[:10] if retirement else None,
             "platforms": platforms,
@@ -477,6 +490,7 @@ def build() -> dict:
     aliases = json.loads((INPUTS / "aliases.json").read_text())
     cards = load_cards()
     index = match_index(cards, aliases)
+    slice2 = yaml.safe_load(SLICE2_INPUT.read_text(encoding="utf-8"))
 
     missing: list[dict] = []
     by_model: dict[str, dict] = {}
@@ -545,6 +559,49 @@ def build() -> dict:
         )
         entry["clauses"].add(4)
 
+    budget_quota = int(slice2["budget"]["quota_per_class"])
+    budget_by_class: dict[str, list[dict]] = {}
+    for candidate in slice2["budget"]["candidates"]:
+        model_id = candidate["model_id"]
+        if model_id not in cards or cards[model_id]["status"] == "sunset":
+            continue
+        budget_by_class.setdefault(candidate["class"], []).append(candidate)
+    for candidates in budget_by_class.values():
+        candidates.sort(
+            key=lambda row: (
+                row["input_price_per_million"],
+                row["output_price_per_million"],
+                row["model_id"],
+            )
+        )
+        for candidate in candidates[:budget_quota]:
+            model_id = candidate["model_id"]
+            entry = by_model.setdefault(
+                model_id, {"card": cards[model_id], "evidence": [], "clauses": set()}
+            )
+            entry["clauses"].add(5)
+            entry["budget"] = candidate
+
+    local_limit = float(slice2["local"]["max_memory_gb"])
+    for candidate in slice2["local"]["candidates"]:
+        model_id = candidate["model_id"]
+        if model_id not in cards or cards[model_id]["status"] == "sunset":
+            continue
+        if float(candidate["published_memory_gb"]) > local_limit:
+            continue
+        entry = by_model.setdefault(
+            model_id, {"card": cards[model_id], "evidence": [], "clauses": set()}
+        )
+        entry["clauses"].add(6)
+        entry["local"] = candidate
+
+    verified_wide = {
+        candidate["model_id"]
+        for candidate in slice2["widely_offered"]["candidates"]
+        if len(set(candidate["providers"]))
+        >= int(slice2["widely_offered"]["minimum_major_providers"])
+    }
+
     def release_key(model_id: str) -> int:
         raw = by_model[model_id]["card"]["release_date"]
         digits = raw.replace("-", "") if raw else ""
@@ -605,14 +662,31 @@ def build() -> dict:
     for group in ("vision", "frontier-generation", "open-weights-generation", "embedding", "rerank", "decision"):
         take(group, grouped[group])
 
+    # Slice 2 clauses are additions to the balanced frontier cut. Clause 3 is
+    # no longer suppressed by a full quota: continued sale by three major
+    # providers is the evidence that keeps an older model in the live lineup.
+    supplemental = [
+        model_id
+        for model_id, entry in by_model.items()
+        if entry["card"]["status"] != "sunset"
+        and (entry["clauses"].intersection({5, 6}) or model_id in verified_wide)
+    ]
+    supplemental.sort()
+    for model_id in supplemental:
+        if model_id not in selected_set:
+            selected.append(model_id)
+            selected_set.add(model_id)
+
     # A model that reached a top 10 and shipped in the last three weeks is not
     # cut to honour the quota. Grok 4.7 is the case this is here for.
     protected = [
         model_id
         for model_id, entry in by_model.items()
-        if 1 in entry["clauses"]
-        and entry["card"]["status"] != "sunset"
-        and entry["card"]["release_date"] >= "2026-09-01"
+        if entry["card"]["status"] != "sunset"
+        and (
+            (1 in entry["clauses"] and entry["card"]["release_date"] >= "2026-09-01")
+            or (2 in entry["clauses"] and entry["card"]["release_date"] >= "2026-09-19")
+        )
     ]
     protected.sort(key=sort_key)
     for model_id in protected:
@@ -685,6 +759,33 @@ def build() -> dict:
                         "Reviewer addition. The MODEL-136 brief requires one "
                         "decision model, and this card is the TypeSafe Jev card."
                     ),
+                }
+            )
+        if 5 in entry["clauses"]:
+            candidate = entry["budget"]
+            clauses.append(
+                {
+                    "clause": 5,
+                    "class": candidate["class"],
+                    "input_price_per_million": candidate["input_price_per_million"],
+                    "output_price_per_million": candidate["output_price_per_million"],
+                    "benchmark": candidate["benchmark_id"],
+                    "url": candidate["source_url"],
+                    "read_date": candidate["read_date"],
+                    "note": "Within the cheapest verified, benchmarked candidates in its class.",
+                }
+            )
+        if 6 in entry["clauses"]:
+            candidate = entry["local"]
+            clauses.append(
+                {
+                    "clause": 6,
+                    "quantisation": candidate["quantisation"],
+                    "published_memory_gb": candidate["published_memory_gb"],
+                    "max_memory_gb": slice2["local"]["max_memory_gb"],
+                    "url": candidate["source_url"],
+                    "read_date": candidate["read_date"],
+                    "note": "The published quantised artifact fits the consumer-hardware limit.",
                 }
             )
         row = {
@@ -775,6 +876,8 @@ def build() -> dict:
             "Released on or after the window start by a lab that has a model in the first clause.",
             "At least three major providers recorded on the card.",
             "A reviewer added it. Slice 1 adds the TypeSafe Jev card.",
+            "Among the cheapest verified candidates in its class with admitted benchmark evidence.",
+            "A published quantisation fits in at most 24 GB of memory.",
         ],
         "quota": QUOTA,
         "models": models,

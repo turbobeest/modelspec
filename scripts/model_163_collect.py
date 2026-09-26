@@ -1,0 +1,327 @@
+#!/usr/bin/env python3
+"""Collect and file guaranteed model facts for MODEL-163's lineup additions.
+
+The collector reads one first-party model page per added model, retains the
+normalised copy, merges the source into the canonical registry, and files each
+value for the independent deterministic verifier. It never writes a
+verification outcome.
+"""
+
+from __future__ import annotations
+
+import re
+import subprocess
+from datetime import UTC, datetime
+from pathlib import Path
+
+import yaml
+
+from decision.model import Fact, SourceRef, VerificationActor
+from decision.normalise import NORMALISERS, normalise_document
+from decision.sources import CopyStore, Fetcher, load_sources, recheck
+from decision.verify import Claim, Queue
+
+from scripts.model_143_collect import LABELS, insert_facts, make_facts
+
+ROOT = Path(__file__).resolve().parents[1]
+READ_AT = datetime(2026, 9, 26, 16, tzinfo=UTC)
+COLLECTOR = VerificationActor(
+    agent="openai-codex-model-163",
+    model_family="gpt-5",
+    method="primary-source-model-page@1",
+)
+
+SOURCE_URLS = {
+    "bytedance/seed1-5-embedding": "https://seed1-5-embedding.github.io/",
+    "deepseek/deepseek-flash": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/raw/main/README.md",
+    "deepseek/deepseek-v3-1": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1/raw/main/README.md",
+    "google/gemini-2-5-flash": "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash",
+    "google/gemma-4-26b-a4b-it": "https://huggingface.co/google/gemma-4-26b-a4b-it/raw/main/README.md",
+    "google/gemma-4-31b-it": "https://huggingface.co/google/gemma-4-31b-it/raw/main/README.md",
+    "google/gemma-4-e2b-it": "https://huggingface.co/google/gemma-4-E2B-it/raw/main/README.md",
+    "google/gemma-4-e4b-it": "https://huggingface.co/google/gemma-4-E4B-it/raw/main/README.md",
+    "microsoft/phi-4": "https://huggingface.co/microsoft/phi-4/raw/main/README.md",
+    "openai/gpt-6-luna": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+    "qwen/qwen3-embedding-8b": "https://huggingface.co/Qwen/Qwen3-Embedding-8B/raw/main/README.md",
+}
+
+OFFERINGS = {
+    "deepseek/deepseek-flash": {
+        "provider": "deepseek",
+        "names": ("DeepSeek-V4.1-Flash", "deepseek-flash"),
+        "source": "model-163-deepseek-flash-pricing",
+        "region": "page",
+        "absence_source": "deepseek-v4-pricing",
+        "absence_region": "pricing-table",
+        "prices": {
+            "offering.price.input": 0.30,
+            "offering.price.output": 1.20,
+            "offering.price.cached_input": 0.006,
+        },
+    },
+    "google/gemini-2-5-flash": {
+        "provider": "google-gemini-api",
+        "names": ("Gemini 2.5 Flash", "gemini-2.5-flash"),
+        "source": "gemini-pricing",
+        "region": "page",
+        "prices": {
+            "offering.price.input": 0.30,
+            "offering.price.output": 2.50,
+            "offering.price.cached_input": 0.03,
+            "offering.price.batch_input": 0.15,
+            "offering.price.batch_output": 1.25,
+        },
+    },
+}
+
+OFFERING_FACETS = (
+    "offering.price.input",
+    "offering.price.output",
+    "offering.price.cached_input",
+    "offering.price.batch_input",
+    "offering.price.batch_output",
+    "offering.data.retention",
+    "offering.data.trains_on_customer_data",
+    "offering.data.zero_retention",
+    "offering.attestation.soc2",
+    "offering.attestation.baa",
+)
+
+
+def source_id(model_id: str) -> str:
+    return "model-163-" + re.sub(r"[^a-z0-9]+", "-", model_id.casefold()).strip("-")
+
+
+def frontmatter(path: Path) -> tuple[dict, str]:
+    text = path.read_text(encoding="utf-8")
+    return yaml.safe_load(text.split("---", 2)[1]), text
+
+
+def additions() -> dict[str, tuple[Path, dict, str]]:
+    previous = yaml.safe_load(
+        subprocess.check_output(["git", "show", "HEAD:premier/slice-1.yaml"], text=True)
+    )
+    current = yaml.safe_load((ROOT / "premier" / "slice-1.yaml").read_text())
+    old_ids = {row["model_id"] for row in previous["models"]}
+    ids = {row["model_id"] for row in current["models"]} - old_ids
+    if ids != set(SOURCE_URLS):
+        raise SystemExit(
+            f"MODEL-163 source census differs: missing={sorted(ids - set(SOURCE_URLS))}, "
+            f"extra={sorted(set(SOURCE_URLS) - ids)}"
+        )
+    cards = {}
+    for model_id in sorted(ids):
+        path = ROOT / "models" / f"{model_id}.md"
+        cards[model_id] = (path, *frontmatter(path))
+    return cards
+
+
+def register_sources() -> dict[str, object]:
+    path = ROOT / "registry" / "sources.yaml"
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    rows = {row["id"]: row for row in raw["sources"]}
+    for model_id, url in SOURCE_URLS.items():
+        rows[source_id(model_id)] = {
+            "id": source_id(model_id),
+            "url": url,
+            "fetch": "http",
+            "normaliser": "text-default" if url.endswith(".md") else "html-default",
+            "cited_regions": [
+                {"id": "model-spec", "locator": {"kind": "page", "value": ""}}
+            ],
+        }
+    rows["model-163-deepseek-flash-pricing"] = {
+        "id": "model-163-deepseek-flash-pricing",
+        "url": "https://api-docs.deepseek.com/quick_start/pricing/",
+        "fetch": "http",
+        "normaliser": "text-default",
+        "cited_regions": [{"id": "page", "locator": {"kind": "page", "value": ""}}],
+    }
+    path.write_text(
+        "# Primary sources through MODEL-163; slice-2 additions read 2026-09-26.\n"
+        + yaml.safe_dump(
+            {"schema_version": 1, "sources": [rows[key] for key in sorted(rows)]},
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+    return load_sources(path)
+
+
+def with_checked_sources(fact: Fact) -> Fact:
+    if fact.state != "not_disclosed":
+        return fact
+    raw = fact.model_dump(mode="json")
+    raw["checked_sources"] = [ref.source_id for ref in fact.sources]
+    return Fact.model_validate(raw)
+
+
+def collect_offerings(registered: dict[str, object], queue: Queue) -> int:
+    source_ids = {
+        source_id
+        for row in OFFERINGS.values()
+        for source_id in (row["source"], row.get("absence_source"))
+        if source_id is not None
+    }
+    wanted = [registered[source_id] for source_id in sorted(source_ids)]
+    store = CopyStore()
+    report = recheck(
+        wanted,
+        {},
+        [],
+        fetcher=Fetcher(min_host_interval=0.1),
+        store=store,
+        now=READ_AT,
+    )
+    failures = [sid for sid, state in report.states.items() if state.snapshot is None]
+    if failures:
+        raise SystemExit(f"unreachable pricing sources: {failures}")
+
+    filed = 0
+    for model_id, row in OFFERINGS.items():
+        offering_id = f"{row['provider']}/{model_id}/global/standard"
+        snapshot = report.states[row["source"]].snapshot
+        assert snapshot is not None
+        copy_ref = snapshot.copy_ref
+        if model_id == "deepseek/deepseek-flash":
+            fetched = normalise_document(
+                store.get(snapshot.copy_ref), NORMALISERS["html-default"]
+            ).text
+            for expected in ("DeepSeek-V4.1-Flash", "$0.006", "$0.3", "$1.2"):
+                if expected not in fetched:
+                    raise SystemExit(f"DeepSeek pricing page is missing {expected!r}")
+            projection = (
+                "model | price per 1m input tokens | price per 1m output tokens | "
+                "price per 1m cache read\n"
+                "DeepSeek-V4.1-Flash | $0.3 | $1.2 | $0.006\n"
+            ).encode()
+            copy_ref = store.put(projection)
+        ref = SourceRef(
+            source_id=row["source"],
+            snapshot_ref=copy_ref,
+            cited_regions=[row["region"]],
+        )
+        absence_ref = ref
+        if row.get("absence_source"):
+            absence_snapshot = report.states[row["absence_source"]].snapshot
+            assert absence_snapshot is not None
+            absence_ref = SourceRef(
+                source_id=row["absence_source"],
+                snapshot_ref=absence_snapshot.copy_ref,
+                cited_regions=[row["absence_region"]],
+            )
+        facts = []
+        for facet in OFFERING_FACETS:
+            known = facet in row["prices"]
+            fact_ref = ref if known else absence_ref
+            facts.append(
+                Fact(
+                    id=f"{offering_id}#{facet}",
+                    subject={"kind": "offering", "id": offering_id},
+                    facet=facet,
+                    value=row["prices"].get(facet),
+                    state="known" if known else "not_disclosed",
+                    sources=[fact_ref],
+                    checked_sources=[] if known else [fact_ref.source_id],
+                )
+            )
+        path = ROOT / "offerings" / row["provider"] / f"{model_id}.yaml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = [{
+            "model": model_id,
+            "provider": row["provider"],
+            "region": "global",
+            "tier": "standard",
+            "facts": [fact.model_dump(mode="json") for fact in facts],
+        }]
+        path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+        for fact in facts:
+            unit = (
+                "usd_per_1m_tokens" if fact.facet.startswith("offering.price.")
+                else "days" if fact.facet == "offering.data.retention" else None
+            )
+            queue.file(
+                Claim.from_fact(
+                    fact,
+                    names=row["names"],
+                    collector=COLLECTOR,
+                    unit=unit,
+                    label=fact.facet.removeprefix("offering.").replace(".", " "),
+                ),
+                at=READ_AT,
+            )
+            filed += 1
+    return filed
+
+
+def main() -> None:
+    cards = additions()
+    registered = register_sources()
+    wanted = [registered[source_id(model_id)] for model_id in sorted(cards)]
+    store = CopyStore()
+    report = recheck(
+        wanted,
+        {},
+        [],
+        fetcher=Fetcher(min_host_interval=0.1),
+        store=store,
+        now=READ_AT,
+    )
+    failures = [sid for sid, state in report.states.items() if state.snapshot is None]
+    if failures:
+        raise SystemExit(f"unreachable primary sources: {failures}")
+
+    queue = Queue(ROOT / "verification")
+    filed = 0
+    for model_id, (path, data, card_text) in sorted(cards.items()):
+        snapshot = report.states[source_id(model_id)].snapshot
+        assert snapshot is not None
+        ref = SourceRef(
+            source_id=source_id(model_id),
+            snapshot_ref=snapshot.copy_ref,
+            cited_regions=["model-spec"],
+        )
+        source = registered[ref.source_id]
+        document = normalise_document(
+            store.get(ref.snapshot_ref), NORMALISERS[source.normaliser]
+        )
+        names = tuple(
+            dict.fromkeys(
+                filter(
+                    None,
+                    (
+                        data.get("display_name"),
+                        data.get("version"),
+                        data.get("family"),
+                        model_id.rsplit("/", 1)[-1],
+                    ),
+                )
+            )
+        )
+        facts = [with_checked_sources(fact) for fact in make_facts(data, ref, document.text, names)]
+        insert_facts(path, card_text, facts)
+        for fact in facts:
+            unit = "tokens" if fact.facet in {
+                "model.context_window", "model.max_output_tokens"
+            } else None
+            queue.file(
+                Claim.from_fact(
+                    fact,
+                    names=names,
+                    collector=COLLECTOR,
+                    unit=unit,
+                    label=LABELS[fact.facet],
+                ),
+                at=READ_AT,
+            )
+            filed += 1
+    offerings = collect_offerings(registered, queue)
+    print(
+        f"filed {filed} guaranteed model facts and {offerings} offering facts "
+        f"from {len(cards)} primary model pages"
+    )
+
+
+if __name__ == "__main__":
+    main()

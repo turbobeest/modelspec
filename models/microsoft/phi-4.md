@@ -730,7 +730,7 @@ benchmarks:
   evidence:
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: phi-4
-    score: 1256.13
+    score: 1216.6030849323192
     unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
@@ -744,6 +744,15 @@ benchmarks:
       votes, rank 306.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    id: microsoft/phi-4#arena_elo_style_control#33a248d2c594
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-text-json
+      snapshot_ref: sha256:6510886ccfba969d8ab1ff66187f4c7c1a9814b648aa15a755d45da30981f63d
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: phi-4
     score: 1306.3
@@ -1139,6 +1148,204 @@ sources:
   last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.input_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.output_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.context_window
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.release_date
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

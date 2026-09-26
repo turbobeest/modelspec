@@ -1,5 +1,33 @@
+# Primary sources through MODEL-163; slice-2 additions read 2026-09-26.
 schema_version: 1
 sources:
+- id: alibaba-model-studio-pricing
+  url: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: singapore-qwen-max
+    locator:
+      kind: table
+      value: '0'
+- id: alibaba-model-studio-privacy
+  url: https://www.alibabacloud.com/help/en/model-studio/privacy-notice
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-attestations
+  url: https://privacy.claude.com/en/articles/10015870-what-certifications-has-anthropic-obtained
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
 - id: anthropic-pricing
   url: https://platform.claude.com/docs/en/about-claude/pricing
   fetch: conditional_http
@@ -48,8 +76,8 @@ sources:
     locator:
       kind: page
       value: ''
-- id: anthropic-attestations
-  url: https://privacy.claude.com/en/articles/10015870-what-certifications-has-anthropic-obtained
+- id: aws-attestations
+  url: https://aws.amazon.com/bedrock/security-compliance/
   fetch: conditional_http
   normaliser: html-default
   cited_regions:
@@ -88,8 +116,8 @@ sources:
     locator:
       kind: page
       value: ''
-- id: aws-attestations
-  url: https://aws.amazon.com/bedrock/security-compliance/
+- id: azure-baa
+  url: https://learn.microsoft.com/en-us/azure/compliance/offerings/offering-hipaa-us
   fetch: conditional_http
   normaliser: html-default
   cited_regions:
@@ -97,38 +125,8 @@ sources:
     locator:
       kind: page
       value: ''
-- id: vertex-pricing
-  url: https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-  - id: gemini-standard
-    locator:
-      kind: table
-      value: '0'
-  - id: gemini-batch
-    locator:
-      kind: table
-      value: '2'
-  - id: partner-anthropic-regional
-    locator:
-      kind: table
-      value: '38'
-- id: vertex-data
-  url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/vertex-ai-zero-data-retention
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: google-attestations
-  url: https://cloud.google.com/security/compliance/hipaa-compliance
+- id: azure-data
+  url: https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/openai/data-privacy
   fetch: conditional_http
   normaliser: html-default
   cited_regions:
@@ -157,24 +155,6 @@ sources:
     locator:
       kind: table
       value: '4'
-- id: azure-data
-  url: https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/openai/data-privacy
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: azure-baa
-  url: https://learn.microsoft.com/en-us/azure/compliance/offerings/offering-hipaa-us
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
 - id: azure-soc2
   url: https://learn.microsoft.com/en-us/compliance/regulatory/offering-soc-2
   fetch: conditional_http
@@ -184,24 +164,20 @@ sources:
     locator:
       kind: page
       value: ''
-- id: openai-data
-  url: https://platform.openai.com/docs/models/default-usage-policies-by-endpoint
+- id: deepseek-v4-pricing
+  url: https://api-docs.deepseek.com/quick_start/pricing/
   fetch: conditional_http
   normaliser: html-default
   cited_regions:
-  - id: page
+  - id: pricing-table
     locator:
-      kind: page
-      value: ''
+      kind: table
+      value: '0'
 - id: gemini-pricing
   url: https://ai.google.dev/gemini-api/docs/pricing
   fetch: conditional_http
   normaliser: html-default
   cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
   - id: gemini-3-1-pro-preview
     locator:
       kind: heading
@@ -218,6 +194,10 @@ sources:
     locator:
       kind: heading
       value: gemini-3.8-flash
+  - id: page
+    locator:
+      kind: page
+      value: ''
 - id: gemini-retention
   url: https://ai.google.dev/gemini-api/docs/usage-policies
   fetch: conditional_http
@@ -236,8 +216,8 @@ sources:
     locator:
       kind: page
       value: ''
-- id: openai-gpt-5-4-pricing
-  url: https://developers.openai.com/api/docs/models/gpt-5.4
+- id: google-attestations
+  url: https://cloud.google.com/security/compliance/hipaa-compliance
   fetch: conditional_http
   normaliser: html-default
   cited_regions:
@@ -245,28 +225,10 @@ sources:
     locator:
       kind: page
       value: ''
-- id: openai-gpt-5-6-sol-pricing
-  url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+- id: meta-model-api-pricing
+  url: https://ai.developer.meta.com/docs/pricing-rate-limits.md
   fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: openai-gpt-6-astra-pricing
-  url: https://developers.openai.com/api/docs/models/gpt-6-astra
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: openai-gpt-6-sol-pricing
-  url: https://developers.openai.com/api/docs/models/gpt-6-sol
-  fetch: conditional_http
-  normaliser: html-default
+  normaliser: text-default
   cited_regions:
   - id: page
     locator:
@@ -1128,89 +1090,6 @@ sources:
     locator:
       kind: page
       value: ''
-- id: deepseek-v4-pricing
-  url: https://api-docs.deepseek.com/quick_start/pricing/
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: pricing-table
-    locator:
-      kind: table
-      value: '0'
-- id: xai-grok-4-7
-  url: https://docs.x.ai/developers/models/grok-4.7
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: xai-security
-  url: https://docs.x.ai/developers/faq/security
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: zai-pricing
-  url: https://docs.z.ai/guides/overview/pricing.md
-  fetch: conditional_http
-  normaliser: text-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: zai-privacy
-  url: https://docs.z.ai/legal-agreement/privacy-policy.md
-  fetch: conditional_http
-  normaliser: text-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: alibaba-model-studio-pricing
-  url: https://www.alibabacloud.com/help/en/model-studio/model-pricing
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: singapore-qwen-max
-    locator:
-      kind: table
-      value: '0'
-- id: alibaba-model-studio-privacy
-  url: https://www.alibabacloud.com/help/en/model-studio/privacy-notice
-  fetch: conditional_http
-  normaliser: html-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: meta-model-api-pricing
-  url: https://ai.developer.meta.com/docs/pricing-rate-limits.md
-  fetch: conditional_http
-  normaliser: text-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: typesafe-models
-  url: https://docs.typesafe.ai/models.md
-  fetch: conditional_http
-  normaliser: text-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-# MODEL-158: the Fable 5.1 system card is a PDF, which the normaliser cannot read
-# yet; its retained copy is the pypdf text of section 8.6 (Terminal-Bench 4.0).
 - id: model-158-anthropic-claude-fable-5-1-system-card
   url: https://www.anthropic.com/claude-fable-5-1-system-card
   fetch: http
@@ -1220,7 +1099,6 @@ sources:
     locator:
       kind: page
       value: ''
-# MODEL-160: board projections (JSON rows) of machine-readable boards; read 2026-09-25.
 - id: model-160-arena-text
   volatility: live
   url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet
@@ -1491,8 +1369,114 @@ sources:
     locator:
       kind: page
       value: ''
-
-# MODEL-118: pinned Open LLM Leaderboard result files; read 2026-09-25.
+- id: model-163-bytedance-seed1-5-embedding
+  url: https://seed1-5-embedding.github.io/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-deepseek-deepseek-flash
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-deepseek-deepseek-v3-1
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V3.1/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-deepseek-flash-pricing
+  url: https://api-docs.deepseek.com/quick_start/pricing/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: model-163-google-gemini-2-5-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-google-gemma-4-26b-a4b-it
+  url: https://huggingface.co/google/gemma-4-26b-a4b-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-google-gemma-4-31b-it
+  url: https://huggingface.co/google/gemma-4-31b-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-google-gemma-4-e2b-it
+  url: https://huggingface.co/google/gemma-4-E2B-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-google-gemma-4-e4b-it
+  url: https://huggingface.co/google/gemma-4-E4B-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-microsoft-phi-4
+  url: https://huggingface.co/microsoft/phi-4/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-openai-gpt-6-luna
+  url: https://developers.openai.com/api/docs/models/gpt-6-luna
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-163-qwen-qwen3-embedding-8b
+  url: https://huggingface.co/Qwen/Qwen3-Embedding-8B/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
 - id: oll-v1-045da3eb1e87
   url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/tiiuae/falcon-40b-instruct/results_2023-12-03T19-30-05.245215.json
   fetch: conditional_http
@@ -3249,6 +3233,123 @@ sources:
   normaliser: text-default
   cited_regions:
   - id: rows
+- id: openai-data
+  url: https://platform.openai.com/docs/models/default-usage-policies-by-endpoint
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-5-4-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-5.4
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-5-6-sol-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-6-astra-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-6-astra
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-6-sol-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-6-sol
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: typesafe-models
+  url: https://docs.typesafe.ai/models.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: vertex-data
+  url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/vertex-ai-zero-data-retention
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: vertex-pricing
+  url: https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+  - id: gemini-standard
+    locator:
+      kind: table
+      value: '0'
+  - id: gemini-batch
+    locator:
+      kind: table
+      value: '2'
+  - id: partner-anthropic-regional
+    locator:
+      kind: table
+      value: '38'
+- id: xai-grok-4-7
+  url: https://docs.x.ai/developers/models/grok-4.7
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: xai-security
+  url: https://docs.x.ai/developers/faq/security
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: zai-pricing
+  url: https://docs.z.ai/guides/overview/pricing.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: zai-privacy
+  url: https://docs.z.ai/legal-agreement/privacy-policy.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
     locator:
       kind: page
       value: ''

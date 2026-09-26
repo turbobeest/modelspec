@@ -822,6 +822,202 @@ sources:
   last_scraped_huggingface: '2026-04-05'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.input_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.output_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.context_window
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.release_date
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
