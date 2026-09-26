@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
@@ -47,7 +48,32 @@ MTEB_MULTI = (
     "MTEB(Multilingual,%20v2)/scores"
 )
 NVIDIA_4090 = "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/"
-QWEN_API = "https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next"
+HARDWARE_MODELS = {
+    "deepseek/deepseek-v4-pro": (
+        "DeepSeek V4 Pro",
+        "https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Pro",
+    ),
+    "moonshot/kimi-k2-6": (
+        "Kimi K2.6",
+        "https://huggingface.co/api/models/moonshotai/Kimi-K2.6",
+    ),
+    "moonshot/kimi-k3": (
+        "Kimi K3",
+        "https://huggingface.co/api/models/moonshotai/Kimi-K3",
+    ),
+    "qwen/qwen3-8-flash-next": (
+        "Qwen3.8-Flash-Next",
+        "https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next",
+    ),
+    "zhipu/glm-5-2": (
+        "GLM-5.2",
+        "https://huggingface.co/api/models/zai-org/GLM-5.2",
+    ),
+    "zhipu/glm-5-3": (
+        "GLM-5.3",
+        "https://huggingface.co/api/models/zai-org/GLM-5.3",
+    ),
+}
 
 VECTORISERS = {
     "jcorners/ingot-8b-r3": (
@@ -252,6 +278,90 @@ def fact_claim(
     )
 
 
+def collect_hardware_facts(
+    store: CopyStore,
+    registrations: list[dict[str, Any]],
+    claims: list[Claim],
+) -> None:
+    """File parameter counts and derived RTX 4090 fit facts."""
+    capacity_gb = 24.0
+    nvidia_html = fetch(NVIDIA_4090).decode(errors="replace")
+    if not re.search(r"24\s*GB", nvidia_html, re.IGNORECASE):
+        raise RuntimeError("NVIDIA RTX 4090 page no longer discloses 24 GB")
+    nvidia_body = projection(
+        NVIDIA_4090,
+        [{"model": "NVIDIA GeForce RTX 4090", "memory": "24 GB"}],
+        {"selector": "RTX 4090 specifications; Standard Memory Config"},
+    )
+    nvidia_ref = retain(store, nvidia_body)
+    nvidia_source = "model-161-nvidia-rtx-4090-memory"
+    registrations.append(source(nvidia_source, NVIDIA_4090))
+
+    for model_id, (display_name, api_url) in HARDWARE_MODELS.items():
+        metadata = json.loads(fetch(api_url))
+        params = int(metadata["safetensors"]["total"])
+        quants = fitting_quants(params, capacity_gb)
+        if quants:
+            raise RuntimeError(f"{model_id} unexpectedly fits the RTX 4090 at {quants}")
+
+        fit_body = projection(
+            api_url,
+            [{
+                "model": display_name,
+                "parameters_total": f"{params} parameters",
+                "fits_hardware": "none",
+                "nvidia_rtx_4090_capacity_gb": capacity_gb,
+                "usable_capacity_gb": capacity_gb * (1 - WORKING_ALLOWANCE),
+                "q4_weights_gb": weights_gb(params, "q4"),
+            }],
+            {
+                "safetensors.total": params,
+                "hardware_source": NVIDIA_4090,
+                "formula": "pipeline.hardware.fitting_quants",
+                "working_allowance": WORKING_ALLOWANCE,
+            },
+        )
+        fit_ref = retain(store, fit_body)
+        slug = model_id.split("/", 1)[1]
+        fit_source = f"model-161-{slug}-rtx-4090-fit"
+        registrations.append(source(fit_source, api_url))
+        parameter_fact = {
+            "id": f"{model_id}#model.parameters_total",
+            "subject": {"kind": "model", "id": model_id},
+            "facet": "model.parameters_total",
+            "value": params,
+            "state": "known",
+            "sources": [{
+                "source_id": fit_source,
+                "snapshot_ref": fit_ref,
+                "cited_regions": ["rows"],
+            }],
+        }
+        fit_fact = {
+            "id": f"{model_id}#model.fits_hardware",
+            "subject": {"kind": "model", "id": model_id},
+            "facet": "model.fits_hardware",
+            "value": [],
+            "state": "known",
+            "sources": [
+                {"source_id": fit_source, "snapshot_ref": fit_ref,
+                 "cited_regions": ["rows"]},
+                {"source_id": nvidia_source, "snapshot_ref": nvidia_ref,
+                 "cited_regions": ["rows"]},
+            ],
+        }
+        path = card_path(model_id)
+        append_fact(path, parameter_fact)
+        append_fact(path, fit_fact)
+        update_fact_sources(path, fit_fact["id"], fit_fact["sources"])
+        claims.extend([
+            fact_claim(model_id, parameter_fact, label="parameters_total",
+                       unit="parameters", names_extra=(display_name,)),
+            fact_claim(model_id, fit_fact, label="fits_hardware",
+                       names_extra=(display_name,)),
+        ])
+
+
 def main() -> None:
     store = CopyStore()
     queue = Queue(ROOT / "verification")
@@ -405,73 +515,7 @@ def main() -> None:
             model_id, fact, label="languages", names_extra=(published_name,),
         ))
 
-    # Qwen parameter count and the deterministic RTX 4090 fit estimate.
-    qwen = json.loads(fetch(QWEN_API))
-    params = int(qwen["safetensors"]["total"])
-    capacity_gb = 24.0
-    nvidia_html = fetch(NVIDIA_4090).decode(errors="replace")
-    if not re.search(r"24\s*GB", nvidia_html, re.IGNORECASE):
-        raise RuntimeError("NVIDIA RTX 4090 page no longer discloses 24 GB")
-    nvidia_body = projection(
-        NVIDIA_4090,
-        [{"model": "NVIDIA GeForce RTX 4090", "memory": "24 GB"}],
-        {"selector": "RTX 4090 specifications; Standard Memory Config"},
-    )
-    nvidia_ref = retain(store, nvidia_body)
-    nvidia_source = "model-161-nvidia-rtx-4090-memory"
-    registrations.append(source(nvidia_source, NVIDIA_4090))
-    quants = fitting_quants(params, capacity_gb)
-    if quants:
-        raise RuntimeError(f"Qwen unexpectedly fits the RTX 4090 at {quants}")
-    fit_body = projection(
-        QWEN_API,
-        [{
-            "model": "Qwen3.8-Flash-Next",
-            "parameters_total": f"{params} parameters",
-            "fits_hardware": "none",
-            "nvidia_rtx_4090_capacity_gb": capacity_gb,
-            "usable_capacity_gb": capacity_gb * (1 - WORKING_ALLOWANCE),
-            "q4_weights_gb": weights_gb(params, "q4"),
-        }],
-        {
-            "safetensors.total": params,
-            "hardware_source": NVIDIA_4090,
-            "formula": "pipeline.hardware.fitting_quants",
-            "working_allowance": WORKING_ALLOWANCE,
-        },
-    )
-    fit_ref = retain(store, fit_body)
-    fit_source = "model-161-qwen3-8-flash-next-rtx-4090-fit"
-    registrations.append(source(fit_source, QWEN_API))
-    parameter_fact = {
-        "id": "qwen/qwen3-8-flash-next#model.parameters_total",
-        "subject": {"kind": "model", "id": "qwen/qwen3-8-flash-next"},
-        "facet": "model.parameters_total",
-        "value": params,
-        "state": "known",
-        "sources": [{"source_id": fit_source, "snapshot_ref": fit_ref,
-                     "cited_regions": ["rows"]}],
-    }
-    fit_fact = {
-        "id": "qwen/qwen3-8-flash-next#model.fits_hardware",
-        "subject": {"kind": "model", "id": "qwen/qwen3-8-flash-next"},
-        "facet": "model.fits_hardware",
-        "value": [],
-        "state": "known",
-        "sources": [{"source_id": fit_source, "snapshot_ref": fit_ref,
-                     "cited_regions": ["rows"]},
-                    {"source_id": nvidia_source, "snapshot_ref": nvidia_ref,
-                     "cited_regions": ["rows"]}],
-    }
-    qwen_path = card_path("qwen/qwen3-8-flash-next")
-    append_fact(qwen_path, parameter_fact)
-    append_fact(qwen_path, fit_fact)
-    update_fact_sources(qwen_path, fit_fact["id"], fit_fact["sources"])
-    claims.extend([
-        fact_claim("qwen/qwen3-8-flash-next", parameter_fact,
-                   label="parameters_total", unit="parameters"),
-        fact_claim("qwen/qwen3-8-flash-next", fit_fact, label="fits_hardware"),
-    ])
+    collect_hardware_facts(store, registrations, claims)
 
     register(registrations)
     for claim in claims:
@@ -479,5 +523,23 @@ def main() -> None:
     print(f"filed {len(claims)} claims from {len(registrations)} registered sources")
 
 
+def hardware_only() -> None:
+    store = CopyStore()
+    registrations: list[dict[str, Any]] = []
+    claims: list[Claim] = []
+    collect_hardware_facts(store, registrations, claims)
+    register(registrations)
+    queue = Queue(ROOT / "verification")
+    filed_at = datetime.now(UTC)
+    for claim in claims:
+        queue.file(claim, at=filed_at)
+    print(f"filed {len(claims)} hardware claims from {len(registrations)} registered sources")
+
+
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--hardware-only"]:
+        hardware_only()
+    elif sys.argv[1:]:
+        raise SystemExit("usage: model_161_data.py [--hardware-only]")
+    else:
+        main()
