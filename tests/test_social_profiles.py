@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import struct
 from pathlib import Path
 
 import pytest
 
+from pipeline import build as builder
 from pipeline import social_profiles
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -48,6 +50,49 @@ def test_filled_profile_config_adds_canonical_urls(tmp_path: Path) -> None:
     assert "https://www.linkedin.com/company/modelspec-dev/" in result
 
 
+def test_site_build_publishes_configured_profiles_in_homepage_json_ld(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    for source in ROOT.iterdir():
+        if source.name != "brand":
+            os.symlink(source, repo / source.name)
+
+    brand = repo / "brand"
+    brand.mkdir()
+    for source in (ROOT / "brand").iterdir():
+        if source.name != "social":
+            os.symlink(source, brand / source.name)
+
+    profiles = brand / "social" / "profiles.json"
+    profiles.parent.mkdir()
+    profiles.write_text(json.dumps({
+        "x": "modelspecdev",
+        "instagram": "modelspec.dev",
+        "tiktok": "modelspec_dev",
+        "linkedin": "modelspec-dev",
+    }), encoding="utf-8")
+
+    out = tmp_path / "dist"
+    assert builder.main(["--root", str(repo), "--out", str(out)]) == 0
+
+    homepage = (out / "modelspec" / "index.html").read_text(encoding="utf-8")
+    match = re.search(
+        r'<script\s+type="application/ld\+json"\s*>(.*?)</script>',
+        homepage,
+        re.DOTALL,
+    )
+    assert match is not None
+    structured_data = json.loads(match.group(1))
+    assert structured_data["sameAs"] == [
+        "https://x.com/modelspecdev",
+        "https://www.instagram.com/modelspec.dev/",
+        "https://www.tiktok.com/@modelspec_dev",
+        "https://www.linkedin.com/company/modelspec-dev/",
+    ]
+
+
 @pytest.mark.parametrize("platform,handle", [
     ("x", "modelspec.ai"),
     ("instagram", "model spec"),
@@ -83,3 +128,5 @@ def test_profile_kit_has_the_documented_pixel_sizes() -> None:
     }
     for name, size in expected.items():
         assert _png_size(root / name) == size
+    for name in ("x-banner.svg", "linkedin-cover.svg"):
+        assert "<text" not in (root / name).read_text(encoding="utf-8")
