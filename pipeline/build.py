@@ -4,7 +4,8 @@
 
 Pages, the benchmark catalogue and the JSON export are one tree under
 modelspec.dev. benchgraph.dev deploys `_redirects` only: `/` goes to the
-catalogue, and every other path goes to the same path on modelspec.dev.
+modelspec.dev homepage, and every other path goes to the same path on
+modelspec.dev.
 """
 
 from __future__ import annotations
@@ -24,8 +25,8 @@ from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_model
 
 ROBOTS = "User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
 
-#: Cloudflare Pages redirects. `/` is the catalogue; every other path keeps
-#: its path on modelspec.dev. Order matters: the first match wins.
+#: Cloudflare Pages redirects. `/` is the modelspec.dev homepage; every other
+#: path keeps its path on modelspec.dev. Order matters: the first match wins.
 BENCHGRAPH_REDIRECTS = (
     "/   https://modelspec.dev/             301\n"
     "/*  https://modelspec.dev/:splat       301\n"
