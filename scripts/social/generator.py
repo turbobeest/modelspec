@@ -39,6 +39,10 @@ PLATFORM_SIZES: dict[str, tuple[int, int]] = {
     "tiktok_cover": (1080, 1920),
 }
 
+PR_ACCURACY_LAYERS = frozenset(
+    {"deterministic_correctness", "freshness", "golden_answers", "output_parity"}
+)
+
 
 @dataclass(frozen=True)
 class Standing:
@@ -68,13 +72,17 @@ def _accuracy(path: Path, snapshot_id: str) -> dict[str, Any]:
         raise ValueError("accuracy report did not pass")
     if report.get("snapshot") != snapshot_id:
         raise ValueError(f"accuracy report covers {report.get('snapshot')!r}, not {snapshot_id!r}")
-    failed = [
-        row.get("name", "unnamed")
-        for row in report.get("layers", [])
-        if row.get("gating") and row.get("status") != "pass"
-    ]
+    if report.get("profile") != "pr":
+        raise ValueError("accuracy report must use the pr profile")
+    layers = report.get("layers")
+    if not isinstance(layers, list) or any(not isinstance(row, Mapping) for row in layers):
+        raise ValueError("accuracy report must contain the exact pr layers")
+    names = [str(row.get("name", "")) for row in layers]
+    if len(names) != len(PR_ACCURACY_LAYERS) or set(names) != PR_ACCURACY_LAYERS:
+        raise ValueError("accuracy report must contain the exact pr layers")
+    failed = [row.get("name", "unnamed") for row in layers if row.get("status") != "pass"]
     if failed:
-        raise ValueError("accuracy report has failing gates: " + ", ".join(failed))
+        raise ValueError("accuracy report did not pass layers: " + ", ".join(failed))
     return dict(report)
 
 
@@ -246,8 +254,8 @@ def _new_entrant(
             continue
         prior = previous.get(standing.domain.id)
         prior_rank = None if prior is None else prior.rank(model_id)
-        entered = prior_rank is None or prior_rank > 5
-        if rank == 1 or entered or not previous:
+        entered = prior_rank is not None and prior_rank > 5
+        if rank == 1 or entered:
             eligible.append((rank, standing.domain.id, standing, entered))
     if not eligible:
         return None
@@ -274,25 +282,27 @@ def _new_entrant(
 def _price_claim(snapshot: LoadedSnapshot, cid: str, value: float) -> dict[str, str]:
     inputs = snapshot.fact(cid, "offering.price.input")
     outputs = snapshot.fact(cid, "offering.price.output")
-    source_ids = tuple(dict.fromkeys((*inputs.sources, *outputs.sources)))
-    if not source_ids:
-        raise ValueError(f"{cid}: cost per task has no source")
-    dates = [
-        day
-        for day in (
-            _record_date(snapshot, inputs.record_id),
-            _record_date(snapshot, outputs.record_id),
+    provenance: list[tuple[str, str, str]] = []
+    for label, fact in (("input", inputs), ("output", outputs)):
+        if not fact.sources:
+            raise ValueError(f"{cid}: {label} price fact has no source")
+        day = _record_date(snapshot, fact.record_id)
+        if day is None:
+            raise ValueError(f"{cid}: {label} price fact has no verification date")
+        provenance.extend(
+            (label, snapshot.source_url(source_id), day) for source_id in fact.sources
         )
-        if day
-    ]
-    if not dates:
-        raise ValueError(f"{cid}: price facts have no verification date")
     amount = f"{value:.4f}".rstrip("0").rstrip(".")
+    citation = "; ".join(
+        f"{label.capitalize()} price source: {source} (read {day})"
+        for label, source, day in provenance
+    )
     return _claim(
         f"Default task cost at list price: ${amount}.",
         amount,
-        snapshot.source_url(source_ids[0]),
-        max(dates),
+        provenance[0][1],
+        provenance[0][2],
+        citation=citation,
     )
 
 
@@ -362,11 +372,16 @@ def _local_angle(
         raise ValueError(f"{model_id}: model.fits_hardware has no verification date")
     claims = [
         _claim(
-            f"{model_id} is estimated to fit {device} and ranks #1 for "
-            f"{standing.domain.name} within the {_display_class(model_class)} class.",
-            "1",
+            f"{model_id} is estimated to fit {device}.",
+            device,
             snapshot.source_url(fact.sources[0]),
             day,
+        ),
+        _snapshot_claim(
+            snapshot,
+            f"{model_id} ranks #1 for {standing.domain.name} within the "
+            f"{_display_class(model_class)} class.",
+            "1",
         ),
         _evidence_claim(standing, model_id),
     ]
@@ -403,12 +418,19 @@ def _weekly_movers(
         prior = previous.get(standing.domain.id)
         if prior is None:
             continue
-        now, before = standing.rank(model_id), prior.rank(model_id)
-        if now is not None and before is not None and now != before:
-            moves.append((abs(before - now), standing.domain.id, before, now, standing))
+        for candidate in standing.ordered_models:
+            now, before = standing.rank(candidate), prior.rank(candidate)
+            if now is not None and before is not None and now != before:
+                moves.append(
+                    (abs(before - now), standing.domain.id, candidate, before, now, standing)
+                )
     if not moves:
         return None
-    change, _, before, now, standing = max(moves, key=lambda row: (row[0], row[1]))
+    largest = max(row[0] for row in moves)
+    target_moves = [row for row in moves if row[0] == largest and row[2] == model_id]
+    if not target_moves:
+        return None
+    change, _, _, before, now, standing = max(target_moves, key=lambda row: (row[0], row[1]))
     direction = "up" if now < before else "down"
     claim = _snapshot_claim(
         snapshot,

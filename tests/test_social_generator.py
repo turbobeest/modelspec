@@ -73,8 +73,10 @@ def _accuracy(path: Path, snapshot_id: str) -> None:
                 "snapshot": snapshot_id,
                 "status": "pass",
                 "layers": [
+                    {"name": "deterministic_correctness", "status": "pass", "gating": True},
                     {"name": "freshness", "status": "pass", "gating": True},
                     {"name": "golden_answers", "status": "pass", "gating": True},
+                    {"name": "output_parity", "status": "pass", "gating": True},
                 ],
             },
             sort_keys=True,
@@ -156,16 +158,38 @@ def test_fixture_snapshot_is_deterministic_and_has_no_unsourced_numbers(
                     assert claim["citation"] in text
 
 
-def test_failed_or_mismatched_accuracy_report_is_refused(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda payload: payload.update(status="fail"), "did not pass"),
+        (lambda payload: payload.update(snapshot="snap_wrong"), "covers 'snap_wrong'"),
+        (lambda payload: payload.update(profile="nightly"), "must use the pr profile"),
+        (lambda payload: payload.update(layers=[]), "exact pr layers"),
+        (
+            lambda payload: payload["layers"].__setitem__(
+                0,
+                {
+                    "name": "deterministic_correctness",
+                    "status": "fail",
+                    "gating": True,
+                },
+            ),
+            "did not pass",
+        ),
+    ],
+)
+def test_incomplete_or_mismatched_accuracy_report_is_refused(
+    tmp_path: Path, mutate, message: str
+) -> None:
     current = tmp_path / "current.json.gz"
     snapshot_id = _snapshot(current, {"lab/alpha": 90.0})
     report = tmp_path / "accuracy.json"
     _accuracy(report, snapshot_id)
     payload = json.loads(report.read_text())
-    payload["status"] = "fail"
+    mutate(payload)
     report.write_text(json.dumps(payload))
 
-    try:
+    with pytest.raises(ValueError, match=message):
         generate(
             model_id="lab/alpha",
             snapshot_path=current,
@@ -173,10 +197,121 @@ def test_failed_or_mismatched_accuracy_report_is_refused(tmp_path: Path) -> None
             output_dir=tmp_path / "out",
             snapshot_key=KEY,
         )
-    except ValueError as exc:
-        assert "accuracy report did not pass" in str(exc)
-    else:  # pragma: no cover - makes the refusal explicit without pytest coupling
-        raise AssertionError("a failed accuracy report was accepted")
+
+
+def test_rank_two_without_history_is_not_called_a_new_entrant(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 80.0, "lab/beta": 90.0, "lab/gamma": 70.0},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    manifest = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+
+    assert "new_entrant" not in {draft["angle"] for draft in manifest["drafts"]}
+
+
+def test_price_claim_cites_each_contributing_fact_with_its_date(tmp_path: Path) -> None:
+    current = tmp_path / "current.json.gz"
+    row = _offering("lab/alpha", 1.0)
+    input_fact, output_fact = row["facts"]
+    input_fact["sources"][0]["source_id"] = "src-input-price"
+    input_fact["verification"]["date"] = "2026-09-21"
+    output_fact["sources"][0]["source_id"] = "src-output-price"
+    output_fact["verification"]["date"] = "2026-09-22"
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[_model("lab/alpha")],
+            offerings=[row],
+            evidence=[evidence("lab/alpha", "swe_bench_pro", 90.0, day=AS_OF.isoformat())],
+            sources={
+                **SOURCES,
+                "src-input-price": "https://prices.example.org/input",
+                "src-output-price": "https://prices.example.org/output",
+            },
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        gate=False,
+        as_of=AS_OF,
+    )
+    built.write(current, key=KEY)
+    snapshot = generator._load_signed(current, KEY)
+    offering_id = "openai/lab/alpha/global/standard"
+
+    claim = generator._price_claim(snapshot, offering_id, 0.1234)
+
+    assert "https://prices.example.org/input (read 2026-09-21)" in claim["citation"]
+    assert "https://prices.example.org/output (read 2026-09-22)" in claim["citation"]
+
+
+def test_local_fit_and_rank_are_separately_sourced(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 90.0, "lab/beta": 80.0, "lab/gamma": 70.0},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    manifest = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+
+    local = next(draft for draft in manifest["drafts"] if draft["angle"] == "local")
+    fit = next(claim for claim in local["claims"] if "estimated to fit" in claim["text"])
+    rank = next(claim for claim in local["claims"] if "ranks #1" in claim["text"])
+    assert fit["source"] == SOURCES["src-lab-docs"]
+    assert rank["source"] == generator.SNAPSHOT_URL
+
+
+def test_weekly_mover_requires_the_targets_move_to_be_globally_largest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    previous = tmp_path / "previous.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/delta": 95.0, "lab/alpha": 90.0, "lab/beta": 80.0, "lab/gamma": 70.0},
+    )
+    _snapshot(
+        previous,
+        {"lab/beta": 95.0, "lab/gamma": 90.0, "lab/alpha": 80.0, "lab/delta": 70.0},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    manifest = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        previous_snapshot_path=previous,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+
+    assert "weekly_movers" not in {draft["angle"] for draft in manifest["drafts"]}
 
 
 def test_social_generator_has_no_network_or_posting_client() -> None:
