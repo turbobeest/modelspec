@@ -381,8 +381,11 @@ def test_benchmark_page_points_disclose_details_without_javascript() -> None:
         _page("b"), _BUILD, Catalogue(as_of=date(2026, 9, 15)), rows,
     )
 
-    assert 'class="point-trigger" href="#p1"' in html
-    assert 'aria-controls="p1"' in html
+    assert (
+        'class="point-trigger" href="https://src.example/demo-model-0/b"'
+        in html
+    )
+    assert 'aria-describedby="p1"' in html
     detail = html.split('id="p1" class="point-detail"', 1)[1]
     detail = detail.split("</g></g>", 1)[0]
     assert "Evidence date: 2026-09-01 (evaluated)" in detail
@@ -390,7 +393,6 @@ def test_benchmark_page_points_disclose_details_without_javascript() -> None:
     assert 'href="https://src.example/' in detail
     assert ".point-trigger:focus-visible~.point-detail" in html
     assert ".point-pair:focus-within>.point-detail" in html
-    assert ".point-detail:target" in html
 
 
 def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
@@ -438,6 +440,32 @@ def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
     assert 'class="strip-point focus ' in strips
 
 
+def test_model_strips_count_distinct_reporting_models_for_coverage() -> None:
+    model = _card("demo/focus", evidence=(
+        _evidence("low_coverage", 70.0),
+        _evidence("high_coverage", 80.0),
+    ))
+    pages = {
+        "low_coverage": _page("low_coverage"),
+        "high_coverage": _page("high_coverage"),
+    }
+    coverage = {
+        "low_coverage": [
+            _chart_row("demo/focus", float(score), benchmark_id="low_coverage")
+            for score in range(5)
+        ] + [_chart_row("demo/other", 50.0, benchmark_id="low_coverage")],
+        "high_coverage": [
+            _chart_row("demo/focus", 80.0, benchmark_id="high_coverage"),
+            _chart_row("demo/other", 75.0, benchmark_id="high_coverage"),
+            _chart_row("demo/third", 70.0, benchmark_id="high_coverage"),
+        ],
+    }
+
+    strips = model_benchmark_strips(model, pages, coverage)
+
+    assert strips.index("high_coverage") < strips.index("low_coverage")
+
+
 def test_model_without_evidence_has_no_benchmark_strip_frame() -> None:
     assert model_benchmark_strips(_card("demo/empty"), {}, {}) == ""
 
@@ -463,7 +491,7 @@ def test_model_page_passes_coverage_to_benchmark_strips() -> None:
     assert "Benchmark standing" in html
     assert 'href="/b/b/"' in html
     assert html.count('class="strip-point') == 2
-    assert 'class="point-trigger" href="#s1p1"' in html
+    assert 'class="point-trigger" href="https://src.example/demo-focus/b"' in html
     assert 'id="s1p1" class="point-detail"' in html
 
 

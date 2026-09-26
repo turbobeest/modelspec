@@ -345,7 +345,7 @@ def _marker(kind: str, x: float, y: float, colour: str, css_class: str) -> str:
 def _point_markup(row: dict[str, Any], marker: str, point_id: str, *,
                   panel_x: float, panel_y: float, panel_width: float,
                   panel_height: float) -> str:
-    """A marker whose details work with hover, keyboard focus, and a URL fragment."""
+    """A source link whose details work with hover and keyboard focus."""
     source = _source_url(row)
     name = row.get("display_name") or row.get("model_id")
     score = format_score(row.get("score"), row.get("unit"))
@@ -359,9 +359,9 @@ def _point_markup(row: dict[str, Any], marker: str, point_id: str, *,
     source_y = panel_y + panel_height - 7
     return (
         f'<g class="point-pair">'
-        f'<a class="point-trigger" href="#{esc(point_id)}" '
-        f'aria-controls="{esc(point_id)}" '
-        f'aria-label="Show evidence details for {esc(name)}">{marker}</a>'
+        f'<a class="point-trigger" href="{esc(source)}" rel="nofollow noopener" '
+        f'aria-describedby="{esc(point_id)}" '
+        f'aria-label="Open evidence source for {esc(name)}">{marker}</a>'
         f'<g id="{esc(point_id)}" class="point-detail" role="tooltip">'
         f'<rect x="{panel_x:.1f}" y="{panel_y:.1f}" width="{panel_width:.1f}" '
         f'height="{panel_height:.1f}" rx="3"/>'
@@ -576,21 +576,23 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
     for group, bench, rows, strip in entries:
         groups[group].append((bench, rows, strip))
 
-    def sourced_count(rows: list[dict[str, Any]]) -> int:
-        return sum(row.get("attribution") == "verified" for row in rows)
+    def sourced_model_count(rows: list[dict[str, Any]]) -> int:
+        return len({row["model_id"] for row in rows
+                    if row.get("attribution") == "verified"})
 
     ordered_groups = sorted(
         groups.items(),
-        key=lambda item: max(sourced_count(rows) for _, rows, _ in item[1]),
+        key=lambda item: max(sourced_model_count(rows) for _, rows, _ in item[1]),
         reverse=True,
     )
     blocks: list[str] = []
     for group, items in ordered_groups:
-        items.sort(key=lambda item: (-sourced_count(item[1]), item[0].name.lower()))
+        items.sort(key=lambda item: (-sourced_model_count(item[1]), item[0].name.lower()))
         strips = "".join(
             '<article class="benchmark-strip">'
             f'<h4><a href="/b/{esc(bench.benchmark_id)}/">{esc(bench.name)}</a> '
-            f'<span class="meta">{sourced_count(rows)} sourced points</span></h4>{strip}</article>'
+            f'<span class="meta">{sourced_model_count(rows)} reporting models</span>'
+            f'</h4>{strip}</article>'
             for bench, rows, strip in items
         )
         heading = f'<h3>{esc(group)}</h3>' if group else ""
