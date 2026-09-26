@@ -9,6 +9,11 @@ answers in `expected.yaml` are the reference for slice 1. The specs in
 `specs/` encode the questions (contract 1.x); `scripts/recall_run.py` scores
 the engine against them and writes `docs/recall/<date>-<snapshot>.md`.
 
+**Approved by Jamie on 2026-09-26** (MODEL-164): the eleven expected-answer
+changes documented in
+[`docs/recall/2026-09-25-model-161-triage.md`](../../docs/recall/2026-09-25-model-161-triage.md)
+are approved.
+
 The runner **reports; it does not gate CI yet.** At approval the engine scored
 1 pass, 6 partial, 13 fail. The fails are "cannot separate a single winner"
 (intervals arrive with MODEL-129) and questions outside the slice-1 lineup.
