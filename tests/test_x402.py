@@ -143,6 +143,11 @@ def test_unfunded_request_returns_well_formed_402_naming_price_and_how_to_pay():
     assert error["code"] == "payment_required"
     assert error["price"]["amount"] == "1000"
     assert error["price"]["credits"] == 1
+    assert error["price"]["placeholder"] is False
+    assert error["price"]["placeholder_note"] == (
+        "Live price: keyed requests show the smallest offered pack; "
+        "keyless requests show this call's weighted price."
+    )
     assert error["payTo"] == PAY_TO
     assert error["resource"] == RESOURCE
     assert error["accepts"][0]["network"] == x402.NETWORK_BASE_SEPOLIA
@@ -175,6 +180,11 @@ def test_keyed_402_offers_every_card_pack_with_atomic_usdc_fields():
     offers = body["error"]["packs"]
     assert body["error"]["price"]["atomic"] == 5_000_000
     assert body["error"]["price"]["credits"] == 1250
+    assert body["error"]["price"]["placeholder"] is False
+    assert body["error"]["price"]["placeholder_note"] == (
+        "Live price: keyed requests show the smallest offered pack; "
+        "keyless requests show this call's weighted price."
+    )
     assert [(offer["credits"], offer["price"]["atomic"]) for offer in offers] == [
         (1250, 5_000_000),
         (7500, 25_000_000),
@@ -227,6 +237,11 @@ def test_keyless_per_call_price_uses_smallest_pack_rate_times_weight():
         "network": cfg.network,
         "currency": "USDC",
         "credits": 5,
+        "placeholder": False,
+        "placeholder_note": (
+            "Live price: keyed requests show the smallest offered pack; "
+            "keyless requests show this call's weighted price."
+        ),
     }
 
 

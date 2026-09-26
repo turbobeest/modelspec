@@ -144,6 +144,8 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
 def test_payment_required_schema_accepts_keyed_and_keyless_offers(
         spec: dict[str, Any]) -> None:
     schema = spec["components"]["schemas"]["PaymentRequired"]
+    price_schema = schema["properties"]["error"]["properties"]["price"]
+    assert {"placeholder", "placeholder_note"} <= set(price_schema["required"])
     config = generator.x402.Config(
         enabled=True,
         mainnet=False,

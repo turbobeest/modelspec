@@ -70,6 +70,10 @@ USDC_EXTRA = {"name": "USDC", "version": "2"}
 #: fallback for a policy that cannot be loaded while x402 is disabled.
 DEFAULT_PRICE_ATOMIC = 4000
 MAX_TIMEOUT_SECONDS = 60
+PRICE_COMPATIBILITY_NOTE = (
+    "Live price: keyed requests show the smallest offered pack; "
+    "keyless requests show this call's weighted price."
+)
 
 _SWITCH_OFF = frozenset({"", "0", "false", "no", "off"})
 _ADDR = re.compile(r"^0x[0-9a-fA-F]{40}$")
@@ -310,6 +314,8 @@ def payment_required_body(config: Config, envelope: dict[str, Any], resource_url
                 "network": config.network,
                 "currency": "USDC",
                 "credits": quoted_credits,
+                "placeholder": False,
+                "placeholder_note": PRICE_COMPATIBILITY_NOTE,
             },
             **({"packs": packs} if offer_packs and packs else {}),
             "payTo": config.pay_to,

@@ -5902,6 +5902,8 @@ components:
               - credits
               - currency
               - network
+              - placeholder
+              - placeholder_note
               - usd
               properties:
                 amount:
@@ -5915,6 +5917,10 @@ components:
                 currency:
                   type: string
                 network:
+                  type: string
+                placeholder:
+                  type: boolean
+                placeholder_note:
                   type: string
                 usd:
                   type: number
