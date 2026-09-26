@@ -1841,6 +1841,23 @@ def build_spec() -> dict[str, Any]:
             },
         }
 
+    payment_required_error = _infer(x402.payment_required_body(
+        x402.Config(
+            enabled=True, mainnet=False,
+            network=x402.NETWORK_BASE_SEPOLIA,
+            asset=x402._norm_addr(x402.USDC_BASE_SEPOLIA),
+            pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
+            price_atomic=4000,
+            facilitator_url=x402.DEFAULT_ORIGIN,
+            resource_origin=_ORIGIN,
+            packs=x402.packs_from_policy(access_config.load_policy()),
+        ),
+        {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
+        "https://api.modelspec.dev/v1/rank",
+        offer_packs=True,
+    ))["properties"]["error"]
+    payment_required_error["required"].remove("packs")
+
     def transport(status: int, description: str) -> tuple[str, dict[str, Any]]:
         return str(status), _json_body(description,
                                        {"$ref": "#/components/schemas/TransportError"})
@@ -2172,23 +2189,7 @@ def build_spec() -> dict[str, Any]:
                 "RequestRefused": error_envelope(refused_schema),
                 **decision_schemas,
                 **policy_schemas,
-                "PaymentRequired": error_envelope(_infer(
-                    x402.payment_required_body(
-                        x402.Config(
-                            enabled=True, mainnet=False,
-                            network=x402.NETWORK_BASE_SEPOLIA,
-                            asset=x402._norm_addr(x402.USDC_BASE_SEPOLIA),
-                            pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
-                            price_atomic=4000,
-                            facilitator_url=x402.DEFAULT_ORIGIN,
-                            resource_origin=_ORIGIN,
-                            packs=x402.packs_from_policy(access_config.load_policy()),
-                        ),
-                        {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
-                        "https://api.modelspec.dev/v1/rank",
-                        offer_packs=True,
-                    )
-                )["properties"]["error"]),
+                "PaymentRequired": error_envelope(payment_required_error),
                 "CreditsBalance": _infer(x402.balance_body(
                     {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
                     __import__("credits").Balance("key:" + "a" * 64, 3, 1),

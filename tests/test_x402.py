@@ -116,7 +116,12 @@ def test_sepolia_smoke_runs_only_against_the_stub_in_the_suite():
         [sys.executable, str(REPO_ROOT / "scripts" / "x402_sepolia_smoke.py"), "--stub"],
         cwd=REPO_ROOT, check=True, capture_output=True, text=True,
     )
-    assert json.loads(completed.stdout) == {"stub": True, "pack_credits": 1250}
+    assert json.loads(completed.stdout) == {
+        "stub": True,
+        "statuses": [402, 400, 200, 200],
+        "pack_credits": 1250,
+        "remaining_credits": 1249,
+    }
 
 
 # ── 402 discovery ────────────────────────────────────────────────────────────
@@ -181,6 +186,28 @@ def test_keyed_402_offers_every_card_pack_with_atomic_usdc_fields():
     assert all(offer["payTo"] == PAY_TO for offer in offers)
     assert len(body["accepts"]) == 4
     assert len(policy.billing.prices) > len(offers)
+
+
+def test_enabled_keyed_request_discovers_packs_before_the_free_answer():
+    policy = __import__("access_config").load_policy()
+    cfg = _cfg(price_atomic=4_000, packs=x402.packs_from_policy(policy))
+    holder = "key:" + "7" * 64
+    produced: list[str] = []
+
+    async def unfunded():
+        produced.append("free")
+        return 400, {"error": {"code": "invalid_spec"}, "results": []}
+
+    status, body = _run(x402.charge(
+        config=cfg, ledger=credits.MemoryLedger(), facilitator=StubFacilitator(),
+        get_header=_get_header({}), holder=holder, resource_url=RESOURCE,
+        envelope=ENVELOPE, produce=_ok, produce_unfunded=unfunded))
+
+    assert status == 402
+    assert produced == []
+    assert [row["credits"] for row in body["error"]["packs"]] == [
+        1250, 7500, 20000, 50000,
+    ]
 
 
 def test_keyless_per_call_price_uses_smallest_pack_rate_times_weight():
@@ -487,6 +514,53 @@ def test_drive_by_replay_does_not_get_a_second_result():
         get_header=_get_header(headers), holder=None, resource_url=RESOURCE,
         envelope=ENVELOPE, produce=_ok))
     assert second[0] == 402
+
+
+def test_weighted_keyless_verification_failure_requotes_the_full_call_price():
+    cfg = _cfg(price_atomic=4_000)
+    status, body = _run(x402.charge(
+        config=cfg, ledger=credits.MemoryLedger(),
+        facilitator=StubFacilitator(valid=False),
+        get_header=_get_header(_header(_payload(value="8000"))), holder=None,
+        resource_url=RESOURCE, envelope=ENVELOPE, produce=_ok, units=2))
+
+    assert status == 402
+    assert body["error"]["code"] == "payment_failed"
+    assert body["error"]["price"]["amount"] == "8000"
+    assert body["error"]["price"]["credits"] == 2
+
+
+def test_weighted_keyless_settlement_failure_requotes_the_full_call_price():
+    cfg = _cfg(price_atomic=4_000)
+    status, body = _run(x402.charge(
+        config=cfg, ledger=credits.MemoryLedger(),
+        facilitator=StubFacilitator(settle_ok=False),
+        get_header=_get_header(_header(_payload(value="8000"))), holder=None,
+        resource_url=RESOURCE, envelope=ENVELOPE, produce=_ok, units=2))
+
+    assert status == 402
+    assert body["error"]["code"] == "payment_failed"
+    assert body["error"]["price"]["amount"] == "8000"
+    assert body["error"]["price"]["credits"] == 2
+
+
+def test_weighted_keyless_replay_requotes_the_full_call_price():
+    cfg = _cfg(price_atomic=4_000)
+    ledger = credits.MemoryLedger()
+    headers = _header(_payload(value="8000", nonce="0x" + "ef" * 32))
+    first = _run(x402.charge(
+        config=cfg, ledger=ledger, facilitator=StubFacilitator(),
+        get_header=_get_header(headers), holder=None, resource_url=RESOURCE,
+        envelope=ENVELOPE, produce=_ok, units=2))
+    second = _run(x402.charge(
+        config=cfg, ledger=ledger, facilitator=StubFacilitator(),
+        get_header=_get_header(headers), holder=None, resource_url=RESOURCE,
+        envelope=ENVELOPE, produce=_ok, units=2))
+
+    assert first[0] == 200
+    assert second[0] == 402
+    assert second[1]["error"]["price"]["amount"] == "8000"
+    assert second[1]["error"]["price"]["credits"] == 2
 
 
 def test_balance_is_queryable_by_the_holder():

@@ -465,9 +465,9 @@ async def charge(
 ) -> tuple[int, dict[str, Any]]:
     """Verify and settle, then produce. Returns (status, body). Headers via http_headers.
 
-    A keyed request that cannot reserve `units` credits is a free answer plus
-    an exhausted field when `produce_unfunded` is supplied; otherwise (and for
-    keyless callers) it is HTTP 402 while the flag is on.
+    While x402 is disabled, a keyed request that cannot reserve `units`
+    credits can use `produce_unfunded`. While x402 is enabled, every unfunded
+    keyed request receives the pack offer needed to buy credits.
     """
     log = trace or ChargeTrace()
     weight = max(1, int(units))
@@ -477,7 +477,7 @@ async def charge(
     clock = moment.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     async def _unfunded(available: int) -> tuple[int, dict[str, Any]]:
-        if produce_unfunded is not None and holder:
+        if not config.enabled and produce_unfunded is not None and holder:
             log.note("unfunded_free")
             status, body = await produce_unfunded()
             return status, attach_exhausted(
@@ -645,7 +645,8 @@ async def _settle_and_credit(
             if holder is None:
                 return HTTP_PAYMENT_REQUIRED, payment_required_body(
                     config, envelope, resource_url,
-                    message="that payment has already been settled"), False
+                    message="that payment has already been settled",
+                    offer_packs=False, units=units), False
             return None, {}, False
     except credits.StoreNotConfigured:
         pass
@@ -665,7 +666,7 @@ async def _settle_and_credit(
         return HTTP_PAYMENT_REQUIRED, payment_required_body(
             config, envelope, resource_url,
             message=f"payment verification failed: {verified.invalid_reason or 'invalid'}",
-            code=PAYMENT_FAILED), False
+            code=PAYMENT_FAILED, offer_packs=bool(holder), units=units), False
 
     log.note("settle")
     try:
@@ -678,7 +679,7 @@ async def _settle_and_credit(
         return HTTP_PAYMENT_REQUIRED, payment_required_body(
             config, envelope, resource_url,
             message=f"payment settlement failed: {settled.error_reason or 'failed'}",
-            code=PAYMENT_FAILED), False
+            code=PAYMENT_FAILED, offer_packs=bool(holder), units=units), False
 
     log.settlement = {
         "success": True,
@@ -706,7 +707,8 @@ async def _settle_and_credit(
         log.note("replay")
         return HTTP_PAYMENT_REQUIRED, payment_required_body(
             config, envelope, resource_url,
-            message="that payment has already been settled"), False
+            message="that payment has already been settled",
+            offer_packs=bool(holder), units=units), False
 
     if holder is None:
         burned = await ledger.reserve(credit_holder, bought_units)

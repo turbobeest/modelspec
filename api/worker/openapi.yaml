@@ -5792,7 +5792,6 @@ components:
           - code
           - how_to_pay
           - message
-          - packs
           - payTo
           - price
           - resource

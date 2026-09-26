@@ -172,32 +172,58 @@ async def _stub() -> None:
                       x402._norm_addr(x402.USDC_BASE_SEPOLIA), pay_to, 4000,
                       "https://stub.invalid", "https://stub.invalid",
                       x402.packs_from_policy(policy))
-    smallest = cfg.packs[0]
-    payload = {
-        "x402Version": 2,
-        "accepted": x402.requirements_for(
-            cfg, "https://stub.invalid/v1/decide", smallest.name,
-            amount_atomic=smallest.atomic, credits_bought=smallest.credits),
-        "payload": {"signature": "0x" + "ab" * 65, "authorization": {
-            "from": "0x857b06519e91e3a54538791bdbb0e22373e36b66", "to": pay_to,
-            "value": str(smallest.atomic), "validAfter": "0", "validBefore": "9999999999",
-            "nonce": "0x" + "11" * 32}},
-    }
-    header = base64.b64encode(json.dumps(payload).encode()).decode()
     ledger = credits.MemoryLedger()
     holder = x402.holder_from_key("live_stub")
+    resource = "https://stub.invalid/v1/decide"
 
     async def invalid():
         return 400, {"error": {"code": "invalid_spec"}, "results": []}
 
-    status, _ = await x402.charge(
+    async def decision():
+        return 200, {"results": [{"model_id": "example/ok"}]}
+
+    discovery_status, offer = await x402.charge(
+        config=cfg, ledger=ledger, facilitator=StubFacilitator(),
+        get_header=lambda _name: None, holder=holder, resource_url=resource,
+        envelope={}, produce=invalid, produce_unfunded=invalid, units=1)
+    assert discovery_status == 402
+    packs = offer.get("error", {}).get("packs") or []
+    assert packs
+    smallest = min(packs, key=lambda row: int(row["price"]["atomic"]))
+    requirement = next(
+        row for row in offer["accepts"]
+        if row["amount"] == smallest["price"]["amount"]
+    )
+    payload = {
+        "x402Version": 2,
+        "accepted": requirement,
+        "payload": {"signature": "0x" + "ab" * 65, "authorization": {
+            "from": "0x857b06519e91e3a54538791bdbb0e22373e36b66", "to": pay_to,
+            "value": requirement["amount"], "validAfter": "0",
+            "validBefore": "9999999999", "nonce": "0x" + "11" * 32}},
+    }
+    header = base64.b64encode(json.dumps(payload).encode()).decode()
+    settlement_status, _ = await x402.charge(
         config=cfg, ledger=ledger, facilitator=StubFacilitator(),
         get_header=lambda name: header if name.lower() == "payment-signature" else None,
-        holder=holder, resource_url="https://stub.invalid/v1/decide", envelope={},
+        holder=holder, resource_url=resource, envelope={},
         produce=invalid, units=1)
-    balance = await ledger.balance(holder)
-    assert status == 400 and balance.available == smallest.credits
-    print(json.dumps({"stub": True, "pack_credits": balance.available}))
+    credits_status, before = await x402.balance_query(
+        config=cfg, ledger=ledger, api_key="live_stub", envelope={})
+    decision_status, _ = await x402.charge(
+        config=cfg, ledger=ledger, facilitator=StubFacilitator(),
+        get_header=lambda _name: None, holder=holder, resource_url=resource,
+        envelope={}, produce=decision, units=1)
+    after = await ledger.balance(holder)
+    assert settlement_status == 400
+    assert before["available"] == smallest["credits"]
+    assert decision_status == 200
+    print(json.dumps({
+        "stub": True,
+        "statuses": [discovery_status, settlement_status, credits_status, decision_status],
+        "pack_credits": before["available"],
+        "remaining_credits": after.available,
+    }))
 
 
 def main() -> None:

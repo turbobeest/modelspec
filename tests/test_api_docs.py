@@ -141,6 +141,34 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
         "`python api/worker/openapi.py` and commit the result.")
 
 
+def test_payment_required_schema_accepts_keyed_and_keyless_offers(
+        spec: dict[str, Any]) -> None:
+    schema = spec["components"]["schemas"]["PaymentRequired"]
+    config = generator.x402.Config(
+        enabled=True,
+        mainnet=False,
+        network=generator.x402.NETWORK_BASE_SEPOLIA,
+        asset=generator.x402._norm_addr(generator.x402.USDC_BASE_SEPOLIA),
+        pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
+        price_atomic=4_000,
+        facilitator_url=generator.x402.DEFAULT_ORIGIN,
+        resource_origin="https://api.modelspec.dev",
+        packs=generator.x402.packs_from_policy(generator.access_config.load_policy()),
+    )
+    envelope = {"schema_version": "1.0", "service_commit": "test"}
+    keyed = generator.x402.payment_required_body(
+        config, envelope, "https://api.modelspec.dev/v1/decide",
+        offer_packs=True,
+    )
+    keyless = generator.x402.payment_required_body(
+        config, envelope, "https://api.modelspec.dev/v1/decide",
+        offer_packs=False, units=2,
+    )
+
+    assert generator._validate(keyed, schema, spec) == []
+    assert generator._validate(keyless, schema, spec) == []
+
+
 def test_the_spec_describes_exactly_the_endpoints_the_worker_routes(spec: dict[str, Any]) -> None:
     """Read from `entry.ACCEPTED_ENDPOINTS`, the list every 404 names back."""
     import ast
