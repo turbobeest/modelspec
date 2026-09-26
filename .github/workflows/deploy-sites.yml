@@ -197,6 +197,9 @@ jobs:
         run: |
           set -e
           test -s dist/modelspec/index.html
+          grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
+          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html
+          ! grep -Fiq 'X-Robots-Tag' dist/modelspec/_headers
           test -s dist/modelspec/sitemap.xml
           test -s dist/modelspec/404.html
           test -s dist/modelspec/api/index.json

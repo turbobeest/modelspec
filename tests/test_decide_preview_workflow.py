@@ -12,6 +12,7 @@ from pipeline import brand  # noqa: E402
 
 
 WORKFLOW = Path(__file__).resolve().parents[1] / '.github/workflows/deploy-sites.yml'
+DECIDE = Path(__file__).resolve().parents[1] / 'web' / 'decide.html'
 
 
 def workflow():
@@ -41,7 +42,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist-holding/modelspec/api/index.json': b'{"live":true}',
         'dist-holding/modelspec/legal/terms/index.html': b'terms',
         'web/dist/index.html': b'old graph app, do not replace the site',
-        'web/dist/decide.html': b'<script src="/assets/decide-abc.js"></script>',
+        'web/dist/decide.html': DECIDE.read_bytes(),
         'web/dist/assets/decide-abc.js': b'decide bundle',
         'web/dist/assets/decide-abc.css': b'decide styles',
         'web/dist/assets/main-old.js': b'old graph bundle, harmless but unreachable',
@@ -61,6 +62,11 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     live = files(tmp_path / 'dist')
     assert live['modelspec/index.html'] == fixture['web/dist/decide.html']
     assert live['modelspec/404.html'] == fixture['web/dist/decide.html']
+    index = live['modelspec/index.html'].decode()
+    headers = live['modelspec/_headers'].decode()
+    assert '<link rel="canonical" href="https://modelspec.dev/" />' in index
+    assert 'noindex' not in index.lower()
+    assert 'x-robots-tag' not in headers.lower()
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
     assert live['modelspec/legal/terms/index.html'] == b'terms'
     assert live['modelspec/openapi.yaml'] == b'openapi'
@@ -83,6 +89,14 @@ def test_live_workflow_keeps_api_and_legal_but_has_no_v1_navigation():
     for old_path in ('downselect', 'models', 'providers', 'benchmarks', 'graph', 'pricing'):
         assert f'test -s dist/modelspec/{old_path}' not in text
         assert f'test ! -e dist/modelspec/{old_path}' in text
+
+
+def test_live_build_checks_canonical_and_indexability():
+    checks = next(step['run'] for step in workflow()['jobs']['build']['steps']
+                  if step.get('name') == 'Check the pages we promise actually exist')
+    assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/\"'" in checks
+    assert "! grep -Eiq '<meta[^>]+noindex'" in checks
+    assert "! grep -Fiq 'X-Robots-Tag'" in checks
 
 
 def test_preview_artifact_keeps_hidden_files_and_reaches_deploy():
