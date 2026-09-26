@@ -125,6 +125,9 @@ def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
         source = sources[row["source_id"]]
         assert row["source_url"] == str(source.url)
         assert row["retrieved_at"]
+        assert row["licence"]
+        assert row["licence_url"].startswith("https://")
+        assert row["permitted_use"]
         assert row["region_id"] in {region.id for region in source.cited_regions}
         assert row["snapshot_ref"].startswith("sha256:")
         assert store.has(row["snapshot_ref"])
@@ -159,13 +162,17 @@ def test_blind_routing_labels_are_separate_and_do_not_infer_conditions() -> None
         condition for row in blind_labels["cases"] for condition in row.get("conditions", [])
     } <= set(blind_labels["conditions"])
 
-    cases = research.task_cases(
-        research.ROOT / "tests/fixtures/jev_task_routing_blind_round5.yaml",
-        candidate="task_routing_blind",
-    )
+    cases = research.blind_task_cases()
+    expected_ids_and_texts = [(row["id"], row["text"]) for row in blind_labels["cases"]]
 
     assert len(cases) == 60
     assert all(case.candidate == "task_routing_blind" for case in cases)
+    assert [(case.id, case.state["task"]) for case in cases] == expected_ids_and_texts
+    assert [
+        (case.id, case.state["task"])
+        for case in research.all_cases()
+        if case.candidate == "task_routing_blind"
+    ] == expected_ids_and_texts
     by_id = {case.id: case for case in cases}
     assert by_id["C10"].expected["condition_context_200k"] is True
     assert by_id["C11"].expected["condition_context_200k"] is False

@@ -42,7 +42,8 @@ Putting a TypeSafe key in the static page would expose it. Any later task-text s
 would therefore run in the Worker with a server-side secret. It should return a draft
 Spec for the caller to inspect and submit, not alter `/v1/decide` or its Decision. At
 the measured mean, the Jev routing call cost $0.0000679 per request. This candidate is
-dropped because its accuracy was worse than the local parser, not because of cost.
+dropped because 61.7% joint exact is unusable for task-to-Spec routing, even though
+Jev beat the local parser's 26.7%. Cost did not decide the result.
 
 Ingestion attribution and explanation checks belong in offline ingestion and report
 generation. They can select or refuse among supplied rows. The cited row remains the
@@ -186,8 +187,9 @@ result. The earlier 24-case pilot is superseded and is not used in this table.
 
 Jev led every arm but remained far below a usable task-to-Spec threshold. Eighteen of
 its 20 `act` answers were jointly correct; the `flag` band was 11/22 and `null` was
-8/18. Keep the deterministic parser while improving it against the holdout; do not
-add either paid arm to `/v1/decide`.
+8/18. Drop Jev because 61.7% joint exact is unusable for task-to-Spec routing, even
+though it beat the local parser's 26.7%. Keep the deterministic parser while improving
+it against the holdout; do not add either paid arm to `/v1/decide`.
 
 #### Earlier tuned set
 
