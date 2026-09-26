@@ -772,9 +772,13 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      snapshot_ref: sha256:b2143e53db27d7506c982ed4a7fe246289fd9ba5d181149507f0ee86bae47c18
       cited_regions:
       - rows
+    interval:
+    - 1432.08
+    - 1455.37
+    n: 2693
   - benchmark_id: arena_elo_coding
     model_id_as_evaluated: gpt-6-astra-max
     score: 1488.58
@@ -2003,7 +2007,7 @@ facts:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-11'
+card_updated: '2026-09-26'
 authoring_guide:
   applies_to:
     model_id: openai/gpt-6-astra

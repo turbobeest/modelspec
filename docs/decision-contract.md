@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.7**
+Contract version: **1.8**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -327,7 +327,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.7",
+  "contract_version": "1.8",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -389,7 +389,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.7"`. |
+| `contract_version` | `"1.8"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
@@ -439,7 +439,8 @@ never listed as a candidate or in `may_qualify`.
 | `warnings` | Codes about this result. |
 
 **An evidence item** carries `benchmark`, `version`, `sub_category`, `value`,
-`unit`, `n` (a count, for outcome rates), `measured_by`, `effort`, `harness`,
+`unit`, `n` (a sample or vote count), `interval` (the source-published
+measurement interval, or null), `quality_flags`, `measured_by`, `effort`, `harness`,
 `harness_unregistered`, `date`, `date_type`, `source` (the URL it was read
 from), `source_snapshot` (the content hash of the retained copy), and
 `directness`. Evidence used in a capability estimate also carries its
@@ -458,6 +459,8 @@ directness `loading`, its `estimate_weight`, and its age-based
   `false`.
 
 Only verified evidence reaches a decision; quarantined values never do.
+Evidence with a `deprecated` or `contamination_warning` quality flag remains
+visible in provenance but does not count as the direct answer to an objective.
 When every fitted benchmark for an estimate is tagged `proxy`, the result's
 `warnings` includes `proxy_evidence_only`. Its contribution formula also names
 the estimate as proxy-only.
@@ -647,6 +650,11 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.8 — MODEL-161:** Evidence items add the optional source-published
+  `interval` and the always-present `quality_flags` list. Deprecated or
+  contamination-warned observations remain visible but are not direct answers.
+  Overlapping selected measurement intervals add `not_separable`. The additions
+  are compatible.
 - **1.7 — MODEL-129:** The estimate stage fills `estimates`, `p_best`, and
   `top3_stability`. Estimate evidence adds the optional `loading`,
   `estimate_weight`, and `recency_weight` fields. The additions are compatible.

@@ -156,7 +156,9 @@ def evidence_item(
         source=snapshot.source_url(row.source_ids[0]),
         source_snapshot=row.source_snapshot,
         directness=row.directness,
-        n=record.get("n"),
+        n=row.n,
+        interval=row.interval,
+        quality_flags=list(row.quality_flags),
         loading=loading,
         estimate_weight=estimate_weight,
         recency_weight=recency_weight,
@@ -408,8 +410,9 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             )
         )
         for reason in single.eliminated:
-            values = list(reason.value) if isinstance(reason.value, (tuple, list)) else []
-            value = None if values else reason.value
+            is_collection = isinstance(reason.value, (tuple, list))
+            values = list(reason.value) if is_collection else []
+            value = None if is_collection else reason.value
             ref = offering_ref(snapshot, reason.candidate)
             records = []
             unit = None
@@ -464,12 +467,14 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
         for reason in filtered.eliminated:
             ref = offering_ref(snapshot, reason.candidate)
             if ref.model_dump_json() not in already:
+                is_collection = isinstance(reason.value, (tuple, list))
                 decision.eliminated.models.append(
                     ModelElimination(
                         model=ref.model,
                         offering=ref,
                         condition=reason.condition,
-                        value=reason.value,
+                        value=None if is_collection else reason.value,
+                        values=list(reason.value) if is_collection else [],
                     )
                 )
         for cid, dominators in ordered.dominance.items():

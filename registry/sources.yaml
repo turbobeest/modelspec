@@ -3057,3 +3057,95 @@ sources:
     locator:
       kind: page
       value: ''
+# MODEL-161: in-lineup recall data, read 2026-09-26.
+- id: model-161-matharena-aime-2026
+  url: https://matharena.ai/competition_tables/aime--aime_2026
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-matharena-aime-2026-quality
+  url: https://matharena.ai/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-jcorners-ingot-8b-r3-model-card
+  url: https://huggingface.co/api/models/JCorners/Ingot-8B-R3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-jcorners-ingot-8b-r3-mteb
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-kingsoft-qzhou-embedding-model-card
+  url: https://huggingface.co/api/models/Kingsoft-LLM/QZhou-Embedding
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-kingsoft-qzhou-embedding-mteb
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-microsoft-harrier-oss-v1-27b-model-card
+  url: https://huggingface.co/api/models/microsoft/harrier-oss-v1-27b
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-microsoft-harrier-oss-v1-27b-mteb
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-qwen3-8-flash-next-rtx-4090-fit
+  url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+# MODEL-161: in-lineup recall data, read 2026-09-26.
+- id: model-161-nvidia-rtx-4090-memory
+  url: https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''

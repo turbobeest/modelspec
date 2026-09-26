@@ -558,6 +558,23 @@ def test_evidence_with_qualifiers(tmp_path):
     assert index.evidence("lab/alpha", "nonexistent") == ()
 
 
+def test_evidence_keeps_structured_uncertainty_and_quality_flags(tmp_path):
+    row = evidence(
+        "lab/alpha",
+        "swe_bench_pro",
+        55.0,
+        interval=[51.2, 58.8],
+        n=500,
+        quality_flags=["contamination_warning"],
+    )
+    index = load(build(tmp_path, evidence=[row]))
+
+    [stored] = index.evidence("lab/alpha", "swe_bench_pro")
+    assert stored.interval == (51.2, 58.8)
+    assert stored.n == 500
+    assert stored.quality_flags == ("contamination_warning",)
+
+
 def test_evidence_for_a_domain_carries_directness(tmp_path):
     index = load(build(tmp_path))
     reasoning = index.evidence_for_domain("lab/alpha", "reasoning")

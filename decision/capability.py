@@ -250,7 +250,9 @@ class CapabilityFit:
 
 
 def _round(value: float) -> float:
-    return round(float(value), 12)
+    # CPython's summation changed in 3.14; discard noise below the precision
+    # the learned fit can justify so snapshot hashes remain runtime-independent.
+    return round(float(value), 10)
 
 
 def _sigmoid(value: float) -> float:

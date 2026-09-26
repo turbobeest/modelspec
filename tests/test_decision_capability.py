@@ -11,6 +11,7 @@ import pytest
 from decision.capability import (
     BenchmarkSpec,
     CapabilityObservation,
+    _round,
     backtest_capabilities,
     backtest_newest_capabilities,
     fit_capabilities,
@@ -99,6 +100,11 @@ def test_fit_is_deterministic_and_saturation_reduces_frontier_information() -> N
     assert first.to_payload() == second.to_payload()
     item = first.items["novel_repo_work"]
     assert item.information(4.0) < item.information(0.0)
+
+
+def test_payload_precision_absorbs_runtime_float_noise() -> None:
+    assert _round(1470.799444444444) == _round(1470.799444444445)
+    assert _round(0.443113861508) == _round(0.443113861509)
 
 
 def test_fractional_random_baseline_is_not_divided_twice() -> None:
@@ -361,6 +367,37 @@ def test_overlapping_intervals_are_reported_as_not_separable() -> None:
         if "not_separable" in result.warnings
     ]
     assert len(groups) >= 2
+
+
+def test_overlapping_raw_evidence_intervals_are_reported_as_not_separable() -> None:
+    rows = [
+        evidence("lab/alpha", "swe_bench_pro", 55.0, interval=[51.0, 59.0]),
+        evidence("lab/beta", "swe_bench_pro", 54.0, interval=[50.0, 58.0]),
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/alpha"), model("lab/beta")],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "swe_bench_pro @independent"},
+            "limit": 2,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert [row.offering.model for row in decision.results] == ["lab/alpha", "lab/beta"]
+    assert all("not_separable" in row.warnings for row in decision.results)
 
 
 def test_identical_snapshot_inputs_remain_byte_identical_with_estimates() -> None:

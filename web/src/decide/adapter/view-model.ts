@@ -731,7 +731,7 @@ export function mapDecisionToViewModel(
 ): AdapterDecision {
   const sources = sourceRecords(decision);
   const names: Names = { models: options.models ?? {}, providers: options.providers ?? {} };
-  const modelGrained = ["1.6", "1.7"].includes(decision.contract_version);
+  const modelGrained = ["1.6", "1.7", "1.8"].includes(decision.contract_version);
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
     row: rankedRow(decision, result, spec, sources, names),
     hasOffering: result.offering.provider !== null,
