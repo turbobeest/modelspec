@@ -1,0 +1,67 @@
+# MODEL-112 task-routing labels, written before either model was run.
+# Sources: tests/recall/questions.yaml and the decide-page task templates.
+# Labels use registry domain and class IDs. Conditions are the four conditions
+# parseRealTask can currently infer from prose.
+read_date: "2026-09-25"
+conditions: [context_200k, open_weights, commercial_use, low_latency]
+cases:
+  - {id: Q01a, text: "Pick a model for a multi-day coding agent editing a large monorepo.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q01b, text: "I need an autonomous programmer to work across a big repository for days.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q01c, text: "Choose the strongest long-horizon codebase editing model.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q02a, text: "Choose a reliable autonomous agent for shell tools and multi-step engineering work.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q02b, text: "Which model can operate a terminal and complete a sequence of engineering tasks?", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q02c, text: "I need an assistant that uses shell tools to diagnose and fix software.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q03a, text: "Review a complex pull request and identify defects without writing a patch.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q03b, text: "Find subtle bugs in this PR.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q03c, text: "Select a model for rigorous code review across a TypeScript repository.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: Q04a, text: "Which model should power a high-quality general assistant?", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q04b, text: "Pick the best all-purpose conversational assistant.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q04c, text: "I want a helpful general-purpose chat model.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q05a, text: "Choose a model for natural and helpful conversation.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q05b, text: "What should power a friendly support conversation?", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q05c, text: "Find a model whose chat responses people prefer.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q06a, text: "Which model should solve difficult reasoning problems?", domain: reasoning, class: text-generator, conditions: []}
+  - {id: Q06b, text: "Pick a model for novel logic puzzles and multi-step inference.", domain: reasoning, class: text-generator, conditions: []}
+  - {id: Q06c, text: "I need strong general reasoning, not specialist knowledge.", domain: reasoning, class: text-generator, conditions: []}
+  - {id: Q07a, text: "Which model should solve competition mathematics such as AIME?", domain: maths, class: text-generator, conditions: []}
+  - {id: Q07b, text: "Pick a model for olympiad algebra and proof problems.", domain: maths, class: text-generator, conditions: []}
+  - {id: Q07c, text: "I need accurate answers to contest math questions.", domain: maths, class: text-generator, conditions: []}
+  - {id: Q08a, text: "Generate grounded answers over retrieved documents totaling 200,000 tokens.", domain: retrieval, class: text-generator, conditions: [context_200k]}
+  - {id: Q08b, text: "Choose the generator for RAG across a very large document collection.", domain: retrieval, class: text-generator, conditions: []}
+  - {id: Q08c, text: "Answer from a long retrieval context without choosing an embedding model.", domain: retrieval, class: text-generator, conditions: []}
+  - {id: Q09a, text: "Summarize a long technical document faithfully.", domain: writing, class: text-generator, conditions: []}
+  - {id: Q09b, text: "Write an accurate summary of a large engineering report.", domain: writing, class: text-generator, conditions: []}
+  - {id: Q09c, text: "Condense a lengthy scientific document without inventing details.", domain: writing, class: text-generator, conditions: []}
+  - {id: Q10a, text: "Choose a cheap high-volume assistant.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q10b, text: "Pick a low-cost model for millions of general-assistant requests.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q10c, text: "I need a budget conversational model for heavy traffic.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q11a, text: "Choose a low-cost support chatbot.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q11b, text: "What budget model should answer customer-support chats?", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q11c, text: "Find an inexpensive conversational assistant for a help desk.", domain: chat_preference, class: text-generator, conditions: []}
+  - {id: Q12a, text: "Choose the best open-weights coding model to self-host.", domain: software_engineering, class: text-generator, conditions: [open_weights]}
+  - {id: Q12b, text: "Pick a local open model for software development.", domain: software_engineering, class: text-generator, conditions: [open_weights]}
+  - {id: Q12c, text: "I need private on-prem code generation with open weights.", domain: software_engineering, class: text-generator, conditions: [open_weights]}
+  - {id: Q13a, text: "Choose an open-weights reasoning model to self-host.", domain: reasoning, class: text-generator, conditions: [open_weights]}
+  - {id: Q13b, text: "Pick a local open model for difficult logic problems.", domain: reasoning, class: text-generator, conditions: [open_weights]}
+  - {id: Q13c, text: "I need private on-prem reasoning with open weights.", domain: reasoning, class: text-generator, conditions: [open_weights]}
+  - {id: Q14a, text: "Interpret charts and technical screenshots.", domain: vision_documents, class: text-generator, conditions: []}
+  - {id: Q14b, text: "Choose a vision model to explain diagrams in a PDF.", domain: vision_documents, class: text-generator, conditions: []}
+  - {id: Q14c, text: "Read screenshots and answer questions about the interface.", domain: vision_documents, class: text-generator, conditions: []}
+  - {id: Q15a, text: "Choose an embedding model for semantic search over English documents.", domain: retrieval, class: vectoriser, conditions: []}
+  - {id: Q15b, text: "Create vectors for English passage retrieval.", domain: retrieval, class: vectoriser, conditions: []}
+  - {id: Q15c, text: "Which embedder should index an English knowledge base?", domain: retrieval, class: vectoriser, conditions: []}
+  - {id: Q16a, text: "Choose open-weights embeddings for multilingual semantic search.", domain: multilingual, class: vectoriser, conditions: [open_weights]}
+  - {id: Q16b, text: "Self-host a multilingual embedding model for cross-language retrieval.", domain: multilingual, class: vectoriser, conditions: [open_weights]}
+  - {id: Q16c, text: "I need local open vectors for searching documents in many languages.", domain: multilingual, class: vectoriser, conditions: [open_weights]}
+  - {id: Q17a, text: "Choose a local coding model for one RTX 4090.", domain: software_engineering, class: text-generator, conditions: [open_weights]}
+  - {id: Q17b, text: "Pick an open model for Python work that I can self-host on 24 GB VRAM.", domain: software_engineering, class: text-generator, conditions: [open_weights]}
+  - {id: Q17c, text: "Run a private code assistant on my local 4090.", domain: software_engineering, class: text-generator, conditions: [open_weights]}
+  - {id: Q18a, text: "Choose a local chat model for a base Apple M4 device.", domain: chat_preference, class: text-generator, conditions: [open_weights]}
+  - {id: Q18b, text: "What open conversational model can I self-host on an entry-level M4 Mac?", domain: chat_preference, class: text-generator, conditions: [open_weights]}
+  - {id: Q18c, text: "I want a private assistant that runs locally on Apple silicon.", domain: chat_preference, class: text-generator, conditions: [open_weights]}
+  - {id: Q19a, text: "Choose a scientific research assistant that can search and use tools.", domain: engineering_stem, class: text-generator, conditions: []}
+  - {id: Q19b, text: "Pick a model for chemistry research with browser and tool access.", domain: engineering_stem, class: text-generator, conditions: []}
+  - {id: Q19c, text: "I need an assistant for scientific literature research and multi-step tool use.", domain: engineering_stem, class: text-generator, conditions: []}
+  - {id: Q20a, text: "Choose a speech recognition model for transcription.", domain: no_match, class: transcriber, conditions: []}
+  - {id: Q20b, text: "Turn a recorded meeting into text.", domain: no_match, class: transcriber, conditions: []}
+  - {id: Q20c, text: "I need accurate audio transcription for spoken English.", domain: no_match, class: transcriber, conditions: []}

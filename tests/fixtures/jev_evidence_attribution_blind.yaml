@@ -1,0 +1,70 @@
+# MODEL-112 independently labelled blind Evidence-attribution set.
+# Frozen before either paid arm saw these cases. Labels come from the existing
+# two-key verification outcomes in verification/log.jsonl, not from inference.
+# Every base row is a real collected Evidence claim in verification/queue/events.jsonl.
+read_date: "2026-09-26"
+label_source_url: https://github.com/turbobeest/modelspec/blob/main/verification/log.jsonl
+positive_targets:
+  - openai/gpt-5-4#tau3_banking#9abcb4f58352
+  - moonshot/kimi-k3#tau3_banking#f6ca45252a49
+  - zhipu/glm-5-2#tau3_banking#a1fd7b3fddb7
+  - anthropic/claude-opus-4-6#tau3_banking#a98df2cc1036
+  - openai/gpt-5-6-sol#tau3_banking#7cb7bb016661
+  - anthropic/claude-opus-5#tau3_banking#d7bd2b8b72c4
+  - anthropic/claude-fable-5#tau3_banking#5c6b6916124d
+  - anthropic/claude-opus-4-7#tau3_banking#13c937b46d58
+  - google/gemini-3-1-pro-preview#tau3_banking#366500218804
+  - anthropic/claude-fable-5-1#hle#e5aeb03e5dac
+  - anthropic/claude-opus-4-6#hle#9fe368fbe04a
+  - anthropic/claude-opus-4-7#hle#aff1adc86f38
+  - google/gemini-3-1-pro-preview#hle#a2ee666a88ee
+  - google/gemini-3-8-flash#hle#304a122ff2ec
+  - meta/muse-spark#hle#eb29f8f780ed
+  - openai/gpt-5-4#hle#7ff3c64eaebc
+  - openai/gpt-6-astra#hle#db4d9ccdc6ff
+  - anthropic/claude-opus-4-6#swe_bench_multilingual#444da90309b1
+  - anthropic/claude-fable-5#terminal_bench_v4_0#6d3dc7a08de0
+  - anthropic/claude-fable-5-1#terminal_bench_v4_0#18b78bc593ca
+  - anthropic/claude-opus-5#terminal_bench_v4_0#a090a71994a0
+  - google/gemini-3-7-flash#terminal_bench_v4_0#60947f594915
+  - google/gemini-3-8-flash#terminal_bench_v4_0#c675a933902c
+  - openai/gpt-5-6-sol#terminal_bench_v4_0#50865cdbb3be
+  - openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f
+  - xai/grok-4-7#terminal_bench_v4_0#70be49bf8c2a
+  - zhipu/glm-5-3#terminal_bench_v4_0#0721891a6173
+negative_targets:
+  - anthropic/claude-fable-5-1#hle#4d1f057c72f3
+  - anthropic/claude-opus-4-6#hle#0f6cbaf9afd5
+  - anthropic/claude-opus-4-7#hle#7905a0e7f1c2
+  - google/gemini-3-1-pro-preview#hle#926df75a51d7
+  - google/gemini-3-8-flash#hle#b97e4634294e
+  - meta/muse-spark#hle#061acdb22c38
+  - openai/gpt-5-4#hle#0c578d655a85
+  - openai/gpt-6-astra#hle#4071073242df
+  - anthropic/claude-fable-5-1#terminal_bench_v4_0#be4c454ede6e
+hard_negatives:
+  - {id: sibling-01, target: anthropic/claude-fable-5-1#hle#e5aeb03e5dac, field: subject, value: anthropic/claude-fable-5, mutation: sibling_variant}
+  - {id: sibling-02, target: anthropic/claude-opus-4-6#tau3_banking#a98df2cc1036, field: subject, value: anthropic/claude-opus-4-7, mutation: sibling_variant}
+  - {id: sibling-03, target: google/gemini-3-7-flash#terminal_bench_v4_0#60947f594915, field: subject, value: google/gemini-3-8-flash, mutation: sibling_variant}
+  - {id: sibling-04, target: openai/gpt-5-4#tau3_banking#9abcb4f58352, field: subject, value: openai/gpt-5-6-sol, mutation: sibling_variant}
+  - {id: sibling-05, target: moonshot/kimi-k3#tau3_banking#f6ca45252a49, field: subject, value: moonshot/kimi-k2-6, mutation: sibling_variant}
+  - {id: version-01, target: anthropic/claude-fable-5#terminal_bench_v4_0#6d3dc7a08de0, field: benchmark_version, value: terminal_bench_v3_0, mutation: benchmark_version}
+  - {id: version-02, target: anthropic/claude-fable-5-1#terminal_bench_v4_0#18b78bc593ca, field: benchmark_version, value: terminal_bench_v3_0, mutation: benchmark_version}
+  - {id: version-03, target: google/gemini-3-8-flash#terminal_bench_v4_0#c675a933902c, field: benchmark_version, value: terminal_bench_v3_0, mutation: benchmark_version}
+  - {id: version-04, target: openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f, field: benchmark_version, value: terminal_bench_v3_0, mutation: benchmark_version}
+  - {id: version-05, target: zhipu/glm-5-3#terminal_bench_v4_0#0721891a6173, field: benchmark_version, value: terminal_bench_v3_0, mutation: benchmark_version}
+  - {id: effort-01, target: openai/gpt-5-4#tau3_banking#9abcb4f58352, field: effort, value: high, mutation: effort}
+  - {id: effort-02, target: moonshot/kimi-k3#tau3_banking#f6ca45252a49, field: effort, value: default, mutation: effort}
+  - {id: effort-03, target: anthropic/claude-fable-5-1#hle#e5aeb03e5dac, field: effort, value: default, mutation: effort}
+  - {id: effort-04, target: google/gemini-3-8-flash#terminal_bench_v4_0#c675a933902c, field: effort, value: default, mutation: effort}
+  - {id: effort-05, target: xai/grok-4-7#terminal_bench_v4_0#70be49bf8c2a, field: effort, value: high, mutation: effort}
+  - {id: harness-01, target: anthropic/claude-fable-5#terminal_bench_v4_0#6d3dc7a08de0, field: harness, value: codex-cli@1.4, mutation: harness}
+  - {id: harness-02, target: anthropic/claude-opus-5#terminal_bench_v4_0#a090a71994a0, field: harness, value: claude-code@2.1, mutation: harness}
+  - {id: harness-03, target: google/gemini-3-7-flash#terminal_bench_v4_0#60947f594915, field: harness, value: openhands@1.2, mutation: harness}
+  - {id: harness-04, target: openai/gpt-5-6-sol#terminal_bench_v4_0#50865cdbb3be, field: harness, value: codex-cli@1.4, mutation: harness}
+  - {id: harness-05, target: zhipu/glm-5-3#terminal_bench_v4_0#0721891a6173, field: harness, value: aider@0.9, mutation: harness}
+  - {id: unit-01, target: openai/gpt-5-4#tau3_banking#9abcb4f58352, field: unit, value: fraction, mutation: unit}
+  - {id: unit-02, target: anthropic/claude-opus-4-6#tau3_banking#a98df2cc1036, field: unit, value: fraction, mutation: unit}
+  - {id: unit-03, target: anthropic/claude-fable-5-1#hle#e5aeb03e5dac, field: unit, value: fraction, mutation: unit}
+  - {id: unit-04, target: openai/gpt-6-astra#hle#db4d9ccdc6ff, field: unit, value: fraction, mutation: unit}
+  - {id: unit-05, target: anthropic/claude-fable-5#terminal_bench_v4_0#6d3dc7a08de0, field: unit, value: fraction, mutation: unit}
