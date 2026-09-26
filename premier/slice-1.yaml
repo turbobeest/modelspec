@@ -9,7 +9,7 @@ rule:
 - At least three major providers recorded on the card.
 - A reviewer added it. Slice 1 adds the TypeSafe Jev card.
 - Among the cheapest verified candidates in its class with admitted benchmark evidence.
-- A published quantisation fits in at most 24 GB of memory.
+- A published quantised artifact is no larger than 24 GB.
 quota:
   frontier-generation: 12
   open-weights-generation: 6
@@ -671,12 +671,12 @@ models:
     quantisation: Q4_K_M
     parameter_count: 25805936206
     published_size_bytes: 16947541728
-    published_memory_gb: 16.947541728
-    max_memory_gb: 24
+    published_size_gb: 16.947541728
+    max_artifact_size_gb: 24
     parameter_url: https://huggingface.co/api/models/google/gemma-4-26b-a4b-it
     url: https://huggingface.co/api/models/unsloth/gemma-4-26B-A4B-it-GGUF/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
-    note: The published quantised artifact fits the consumer-hardware limit.
+    note: The published quantised artifact is no larger than the 24 GB limit.
 - model_id: google/gemma-4-31b-it
   display_name: gemma 4 31B it
   class: text-generator
@@ -698,12 +698,12 @@ models:
     quantisation: Q4_K_M
     parameter_count: 31273088876
     published_size_bytes: 18323733440
-    published_memory_gb: 18.32373344
-    max_memory_gb: 24
+    published_size_gb: 18.32373344
+    max_artifact_size_gb: 24
     parameter_url: https://huggingface.co/api/models/google/gemma-4-31B-it
     url: https://huggingface.co/api/models/unsloth/gemma-4-31B-it-GGUF/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
-    note: The published quantised artifact fits the consumer-hardware limit.
+    note: The published quantised artifact is no larger than the 24 GB limit.
 - model_id: google/gemma-4-e2b-it
   display_name: gemma 4 E2B it
   class: text-generator
@@ -718,12 +718,12 @@ models:
     quantisation: Q4_K_M
     parameter_count: 5123178051
     published_size_bytes: 3106738272
-    published_memory_gb: 3.106738272
-    max_memory_gb: 24
+    published_size_gb: 3.106738272
+    max_artifact_size_gb: 24
     parameter_url: https://huggingface.co/api/models/google/gemma-4-E2B-it
     url: https://huggingface.co/api/models/unsloth/gemma-4-E2B-it-GGUF/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
-    note: The published quantised artifact fits the consumer-hardware limit.
+    note: The published quantised artifact is no larger than the 24 GB limit.
 - model_id: google/gemma-4-e4b-it
   display_name: gemma 4 E4B it
   class: text-generator
@@ -738,12 +738,12 @@ models:
     quantisation: Q4_K_M
     parameter_count: 7996156490
     published_size_bytes: 4977171584
-    published_memory_gb: 4.977171584
-    max_memory_gb: 24
+    published_size_gb: 4.977171584
+    max_artifact_size_gb: 24
     parameter_url: https://huggingface.co/api/models/google/gemma-4-E4B-it
     url: https://huggingface.co/api/models/unsloth/gemma-4-E4B-it-GGUF/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
-    note: The published quantised artifact fits the consumer-hardware limit.
+    note: The published quantised artifact is no larger than the 24 GB limit.
 - model_id: microsoft/phi-4
   display_name: phi 4
   class: text-generator
@@ -758,12 +758,12 @@ models:
     quantisation: Q4_K_S
     parameter_count: 14659507200
     published_size_bytes: 8440762560
-    published_memory_gb: 8.44076256
-    max_memory_gb: 24
+    published_size_gb: 8.44076256
+    max_artifact_size_gb: 24
     parameter_url: https://huggingface.co/api/models/microsoft/phi-4
     url: https://huggingface.co/api/models/microsoft/phi-4-gguf/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
-    note: The published quantised artifact fits the consumer-hardware limit.
+    note: The published quantised artifact is no larger than the 24 GB limit.
 - model_id: moonshot/kimi-k2-6
   display_name: Kimi K2.6
   class: text-generator

@@ -582,12 +582,12 @@ def build() -> dict:
             entry["clauses"].add(5)
             entry["budget"] = candidate
 
-    local_limit = float(slice2["local"]["max_memory_gb"])
+    local_limit = float(slice2["local"]["max_artifact_size_gb"])
     for candidate in slice2["local"]["candidates"]:
         model_id = candidate["model_id"]
         if model_id not in cards or cards[model_id]["status"] == "sunset":
             continue
-        if float(candidate["published_memory_gb"]) > local_limit:
+        if float(candidate["published_size_gb"]) > local_limit:
             continue
         entry = by_model.setdefault(
             model_id, {"card": cards[model_id], "evidence": [], "clauses": set()}
@@ -783,12 +783,12 @@ def build() -> dict:
                     "quantisation": candidate["quantisation"],
                     "parameter_count": candidate["parameter_count"],
                     "published_size_bytes": candidate["published_size_bytes"],
-                    "published_memory_gb": candidate["published_memory_gb"],
-                    "max_memory_gb": slice2["local"]["max_memory_gb"],
+                    "published_size_gb": candidate["published_size_gb"],
+                    "max_artifact_size_gb": slice2["local"]["max_artifact_size_gb"],
                     "parameter_url": candidate["parameter_source_url"],
                     "url": candidate["size_source_url"],
                     "read_date": candidate["read_date"],
-                    "note": "The published quantised artifact fits the consumer-hardware limit.",
+                    "note": "The published quantised artifact is no larger than the 24 GB limit.",
                 }
             )
         row = {
@@ -881,7 +881,7 @@ def build() -> dict:
             "At least three major providers recorded on the card.",
             "A reviewer added it. Slice 1 adds the TypeSafe Jev card.",
             "Among the cheapest verified candidates in its class with admitted benchmark evidence.",
-            "A published quantisation fits in at most 24 GB of memory.",
+            "A published quantised artifact is no larger than 24 GB.",
         ],
         "quota": QUOTA,
         "models": models,

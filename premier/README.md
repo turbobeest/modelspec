@@ -10,7 +10,8 @@ The rule is the one in the decision-engine design, section 5. A model is in the 
 4. A reviewer added it. The MODEL-136 brief requires one decision model, so the set includes `typesafe/jev-1-13`.
 5. It is among the cheapest verified candidates in its class, has verified input
    and output token prices, and has at least one admitted benchmark.
-6. A published quantised artifact is no larger than 24 GB.
+6. A published quantised artifact is no larger than 24 GB. This is an artifact-size
+   rule, not a claim about runtime memory at an unspecified context length.
 
 Slice 2 stays in `premier/slice-1.yaml` because every snapshot and recall
 consumer already reads that path. `premier/inputs/slice-2.yaml` holds the dated

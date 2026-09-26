@@ -41,7 +41,7 @@ def test_local_rule_uses_exact_sourced_parameter_and_artifact_sizes(slice_2) -> 
     for row in rows:
         assert row["parameter_count"] > 0
         assert row["published_size_bytes"] > 0
-        assert row["published_memory_gb"] == pytest.approx(
+        assert row["published_size_gb"] == pytest.approx(
             row["published_size_bytes"] / 1_000_000_000
         )
         assert row["parameter_source_url"].startswith("https://huggingface.co/api/models/")
