@@ -249,28 +249,16 @@ def _score(
     acceptable_entries = expected.get("acceptable") or []
     acceptable = _models(acceptable_entries)
     rule_only = bool(acceptable_entries) and not acceptable
-    candidates = _model_ids(snapshot)
-    missing_acceptable = acceptable - candidates
 
     unexpected = [model for model in top if model not in acceptable]
     if unexpected:
-        if missing_acceptable:
-            findings.append(
-                Finding(
-                    "missing_data",
-                    "partial",
-                    "unexpected lower-ranked result(s) may be displaced by acceptable models "
-                    "missing from the snapshot: " + ", ".join(unexpected),
-                )
+        findings.append(
+            Finding(
+                "engine_behavior",
+                "fail",
+                "top result(s) outside the acceptable set: " + ", ".join(unexpected),
             )
-        else:
-            findings.append(
-                Finding(
-                    "engine_behavior",
-                    "fail",
-                    "top result(s) outside the acceptable set: " + ", ".join(unexpected),
-                )
-            )
+        )
     elif not top and acceptable and not rule_only:
         if _direct_objective_has_a_value(spec, snapshot, acceptable, registry):
             findings.append(
@@ -312,6 +300,7 @@ def _score(
             )
         )
 
+    candidates = _model_ids(snapshot)
     must_flag_entries = expected.get("must_flag") or []
     required_flags = _models(must_flag_entries) | _rule_flag_models(must_flag_entries, snapshot)
     for model in sorted(required_flags - flagged):
@@ -341,6 +330,7 @@ def _score(
                 )
             )
 
+    missing_acceptable = acceptable - candidates
     if acceptable and missing_acceptable == acceptable:
         findings.append(
             Finding(

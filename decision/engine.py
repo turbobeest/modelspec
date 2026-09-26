@@ -195,7 +195,11 @@ def decide(
             for other_id, other in model_estimates.items()
         ):
             warnings.append("not_separable")
-        if _overlaps_raw_evidence(row, ordered.results) and "not_separable" not in warnings:
+        if (
+            len(names) == 1
+            and _overlaps_raw_evidence(row, ordered.results)
+            and "not_separable" not in warnings
+        ):
             warnings.append("not_separable")
         p_best, top3 = probabilities.get(model_id, (None, None))
         results.append(Result(

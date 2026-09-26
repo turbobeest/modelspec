@@ -1,8 +1,8 @@
 {
-  "as_of": "2026-09-26",
-  "generated_by": "PYTHONPATH=$PWD python scripts/accuracy.py --update-recall-baseline --date 2026-09-26",
+  "as_of": "2026-09-25",
+  "generated_by": "PYTHONPATH=$PWD python scripts/accuracy.py --update-recall-baseline --date 2026-09-25",
   "schema_version": 1,
-  "snapshot": "snap_1f0b81b67eda8319",
+  "snapshot": "snap_b5622feaf611736a",
   "verdicts": {
     "Q01": "pass",
     "Q02": "pass",
@@ -10,8 +10,8 @@
     "Q04": "fail",
     "Q05": "fail",
     "Q06": "pass",
-    "Q07": "partial",
-    "Q08": "partial",
+    "Q07": "fail",
+    "Q08": "fail",
     "Q09": "fail",
     "Q10": "partial",
     "Q11": "partial",

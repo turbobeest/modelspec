@@ -1783,6 +1783,34 @@ facts:
     snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
     cited_regions:
     - audit
+- id: moonshot/kimi-k2-6#model.parameters_total
+  subject:
+    kind: model
+    id: moonshot/kimi-k2-6
+  facet: model.parameters_total
+  value: 1026879376368
+  state: known
+  sources:
+  - source_id: model-161-kimi-k2-6-rtx-4090-fit
+    snapshot_ref: sha256:3ba8c9403c6503b48f5f5dc3f1a8fc4d1da9a41718c7ac30a09682c696e89090
+    cited_regions:
+    - rows
+- id: moonshot/kimi-k2-6#model.fits_hardware
+  subject:
+    kind: model
+    id: moonshot/kimi-k2-6
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-161-kimi-k2-6-rtx-4090-fit
+    snapshot_ref: sha256:3ba8c9403c6503b48f5f5dc3f1a8fc4d1da9a41718c7ac30a09682c696e89090
+    cited_regions:
+    - rows
+  - source_id: model-161-nvidia-rtx-4090-memory
+    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

@@ -4,7 +4,7 @@
   "questions": [
     {
       "decision": {
-        "decision_id": "dec_cbfda7e241f4c7a935f428e4",
+        "decision_id": "dec_993aaead2ac64b6b0eb54127",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -189,7 +189,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_b416530554ea6315a6d36631",
+        "decision_id": "dec_d834122d5654927d9c32a8d4",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -374,7 +374,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_c616e8d760906abfb8aa2c4a",
+        "decision_id": "dec_d27406e0b7ec340eb46f3c0c",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -595,7 +595,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_02b0900269ef9b1d3a4cae31",
+        "decision_id": "dec_36567c9e13ce0b38a8507fe5",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -797,7 +797,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_02b0900269ef9b1d3a4cae31",
+        "decision_id": "dec_36567c9e13ce0b38a8507fe5",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -994,7 +994,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_9578b8e1b704d36735c53e58",
+        "decision_id": "dec_77e4c35033f8ca7a71f327c4",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1128,7 +1128,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_151bab64e3e44ca2ab2c5a5e",
+        "decision_id": "dec_c0bf44959f65ad32593069ba",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1383,7 +1383,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_b165ace283b510d772d69e8f",
+        "decision_id": "dec_08ab2300e461381770ee6765",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1497,18 +1497,18 @@
       "error": null,
       "findings": [
         {
-          "cause": "missing_data",
-          "message": "unexpected lower-ranked result(s) may be displaced by acceptable models missing from the snapshot: anthropic/claude-fable-5, anthropic/claude-opus-4-7",
-          "severity": "partial"
+          "cause": "engine_behavior",
+          "message": "top result(s) outside the acceptable set: anthropic/claude-fable-5, anthropic/claude-opus-4-7",
+          "severity": "fail"
         }
       ],
       "id": "Q08",
       "question": "Choose the generator for retrieval-augmented generation over a collection of documents that runs to 200,000 tokens.",
-      "verdict": "partial"
+      "verdict": "fail"
     },
     {
       "decision": {
-        "decision_id": "dec_b9d9a3247d1910f2bd7fc66a",
+        "decision_id": "dec_eccf1eac27113d9d0da30ad7",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1633,7 +1633,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_919a0159b36e0dce04535f88",
+        "decision_id": "dec_fdb63d65fd734456b9feb8b8",
         "may_qualify": [
           {
             "model": "meta/muse-spark",
@@ -1692,7 +1692,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_1122c92a5b663de225ce92c3",
+        "decision_id": "dec_a58dc95555325aae516caced",
         "may_qualify": [
           {
             "model": "meta/muse-spark",
@@ -1746,7 +1746,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_b2d6ff06702b8f636fa6017f",
+        "decision_id": "dec_7e39d1f0586af43f5880b2c9",
         "may_qualify": [
           {
             "model": "deepseek/deepseek-v4-pro",
@@ -1845,7 +1845,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_6bc8bba6cf67fde561226b43",
+        "decision_id": "dec_45d9c5045e1ef985e72c6180",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-flash-next",
@@ -1912,7 +1912,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_e03431c2c0c111ec75ac8aa8",
+        "decision_id": "dec_3990533908c428aab2ec3968",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -2160,7 +2160,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_ca6989c5dcadf535c45cb26c",
+        "decision_id": "dec_001672c69f7ee3e6a488d72e",
         "may_qualify": [
           {
             "model": "microsoft/harrier-oss-v1-27b",
@@ -2215,18 +2215,18 @@
       "error": null,
       "findings": [
         {
-          "cause": "missing_data",
-          "message": "unexpected lower-ranked result(s) may be displaced by acceptable models missing from the snapshot: kingsoft/qzhou-embedding",
-          "severity": "partial"
+          "cause": "engine_behavior",
+          "message": "top result(s) outside the acceptable set: kingsoft/qzhou-embedding",
+          "severity": "fail"
         }
       ],
       "id": "Q15",
       "question": "Choose an embedding model for semantic search over English documents.",
-      "verdict": "partial"
+      "verdict": "fail"
     },
     {
       "decision": {
-        "decision_id": "dec_0d231bd18c164602956411ff",
+        "decision_id": "dec_5f04aa85368adfb241685cb8",
         "may_qualify": [
           {
             "model": "kingsoft/qzhou-embedding",
@@ -2285,70 +2285,9 @@
     },
     {
       "decision": {
-        "decision_id": "dec_c06639f4e76622a27d880597",
-        "may_qualify": [
-          {
-            "model": "deepseek/deepseek-v4-pro",
-            "offering": {
-              "model": "deepseek/deepseek-v4-pro",
-              "provider": "deepseek",
-              "region": "global",
-              "tier": "standard"
-            },
-            "unknown": [
-              "model.fits_hardware"
-            ]
-          },
-          {
-            "model": "moonshot/kimi-k2-6",
-            "offering": {
-              "model": "moonshot/kimi-k2-6",
-              "provider": null,
-              "region": null,
-              "tier": null
-            },
-            "unknown": [
-              "model.fits_hardware"
-            ]
-          },
-          {
-            "model": "moonshot/kimi-k3",
-            "offering": {
-              "model": "moonshot/kimi-k3",
-              "provider": null,
-              "region": null,
-              "tier": null
-            },
-            "unknown": [
-              "model.fits_hardware"
-            ]
-          },
-          {
-            "model": "zhipu/glm-5-2",
-            "offering": {
-              "model": "zhipu/glm-5-2",
-              "provider": "zai",
-              "region": "global",
-              "tier": "standard"
-            },
-            "unknown": [
-              "model.fits_hardware"
-            ]
-          },
-          {
-            "model": "zhipu/glm-5-3",
-            "offering": {
-              "model": "zhipu/glm-5-3",
-              "provider": "zai",
-              "region": "global",
-              "tier": "standard"
-            },
-            "unknown": [
-              "model.fits_hardware"
-            ]
-          }
-        ],
-        "may_qualify_count": 5,
+        "decision_id": "dec_68891cb4ea3e7d07d55f0dba",
+        "may_qualify": [],
+        "may_qualify_count": 0,
         "out_of_lineup": 1334,
         "relax": [
           "model.fits_hardware in {nvidia_rtx_4090}"
@@ -2387,7 +2326,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_67f3994af2c8b2b0197860f5",
+        "decision_id": "dec_5f1001505a31d4213f0a8878",
         "may_qualify": [
           {
             "model": "deepseek/deepseek-v4-pro",
@@ -2501,7 +2440,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_6a0fee1aebd6c2a772b31679",
+        "decision_id": "dec_15c288683b78ee82624d8e76",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -2686,7 +2625,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_5d8937a898a4f5d2a1b86428",
+        "decision_id": "dec_ff8fecf971cd371e3e333be5",
         "may_qualify": [],
         "may_qualify_count": 0,
         "out_of_lineup": 1334,
@@ -2712,7 +2651,7 @@
     }
   ],
   "report_date": "2026-09-26",
-  "snapshot": "snap_1f0b81b67eda8319",
+  "snapshot": "snap_2a7fb32c60229cb4",
   "snapshot_as_of": "2026-09-26",
   "snapshot_excluded": {
     "quarantined": 30

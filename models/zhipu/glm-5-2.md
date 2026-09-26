@@ -1829,6 +1829,34 @@ facts:
     snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
     cited_regions:
     - audit
+- id: zhipu/glm-5-2#model.parameters_total
+  subject:
+    kind: model
+    id: zhipu/glm-5-2
+  facet: model.parameters_total
+  value: 753329940480
+  state: known
+  sources:
+  - source_id: model-161-glm-5-2-rtx-4090-fit
+    snapshot_ref: sha256:b15ce5b57ac3641116c3a60959d62f3539ab5be9b1cee6a0d224283bbaac235f
+    cited_regions:
+    - rows
+- id: zhipu/glm-5-2#model.fits_hardware
+  subject:
+    kind: model
+    id: zhipu/glm-5-2
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-161-glm-5-2-rtx-4090-fit
+    snapshot_ref: sha256:b15ce5b57ac3641116c3a60959d62f3539ab5be9b1cee6a0d224283bbaac235f
+    cited_regions:
+    - rows
+  - source_id: model-161-nvidia-rtx-4090-memory
+    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

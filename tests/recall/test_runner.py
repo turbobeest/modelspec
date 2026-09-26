@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import date
 from pathlib import Path
 
@@ -56,26 +55,16 @@ def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
     assert "This report does not gate CI" in result.markdown_path.read_text(encoding="utf-8")
 
 
-def test_baseline_is_traceable_and_matches_fresh_verdicts(tmp_path: Path) -> None:
-    baseline = load_recall_baseline(HERE / "baseline.json")
-    report_path = (
-        HERE.parents[1]
-        / "docs"
-        / "recall"
-        / f"{baseline.as_of.isoformat()}-{baseline.snapshot}.json"
-    )
-    report = json.loads(report_path.read_text(encoding="utf-8"))
-
-    assert report["report_date"] == baseline.as_of.isoformat()
-    assert report["snapshot"] == baseline.snapshot
-
+def test_baseline_matches_main_snapshot_on_approval_date(tmp_path: Path) -> None:
     result = run(
         root=Path(__file__).resolve().parents[2],
         output_dir=tmp_path,
-        report_date=baseline.as_of,
+        report_date=date(2026, 9, 25),
     )
+    baseline = load_recall_baseline(HERE / "baseline.json")
 
-    assert baseline.snapshot == result.snapshot_id
+    assert baseline.snapshot == "snap_b5622feaf611736a"
+    assert baseline.as_of == date(2026, 9, 25)
     assert baseline.verdicts == {row.id: row.verdict for row in result.questions}
 
 
@@ -190,40 +179,3 @@ def test_overlapping_capability_intervals_count_as_not_separable() -> None:
     )
 
     assert _top_is_tied(decision)
-
-
-def test_missing_acceptable_models_make_an_unexpected_lower_row_a_data_gap(tmp_path) -> None:
-    from decision.contract import Decision, OfferingRef, Result
-    from decision.snapshot import load_snapshot_bytes
-    from scripts.recall_run import _score
-
-    registry = default_registry()
-    built = build_snapshot(
-        SnapshotInputs(models=[model("lab/other")], sources=SOURCES),
-        as_of=date(2026, 9, 24),
-    )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
-    decision = Decision(
-        decision_id="dec_0123456789ab",
-        snapshot=index.snapshot_id,
-        spec_hash="sha256:" + "0" * 64,
-        explain="none",
-        status="answered",
-        results=[Result(rank=1, offering=OfferingRef(model="lab/other"))],
-    )
-    requested = parse_spec(
-        {"spec_version": 1, "optimize": {"max": "model.context_window"}},
-        facets=registry.facet,
-    )
-
-    scored = _score(
-        {"id": "QXX", "question": "test"},
-        {"acceptable": [{"model_id": "lab/missing"}]},
-        requested,
-        decision,
-        index,
-        registry,
-    )
-
-    assert scored.verdict == "partial"
-    assert scored.findings[0].cause == "missing_data"

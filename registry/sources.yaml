@@ -3149,3 +3149,49 @@ sources:
     locator:
       kind: page
       value: ''
+# MODEL-161: in-lineup recall data, read 2026-09-26.
+- id: model-161-deepseek-v4-pro-rtx-4090-fit
+  url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Pro
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-kimi-k2-6-rtx-4090-fit
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K2.6
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-kimi-k3-rtx-4090-fit
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-glm-5-2-rtx-4090-fit
+  url: https://huggingface.co/api/models/zai-org/GLM-5.2
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-glm-5-3-rtx-4090-fit
+  url: https://huggingface.co/api/models/zai-org/GLM-5.3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''

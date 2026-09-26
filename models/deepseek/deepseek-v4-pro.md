@@ -1906,6 +1906,34 @@ facts:
     snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
     cited_regions:
     - audit
+- id: deepseek/deepseek-v4-pro#model.parameters_total
+  subject:
+    kind: model
+    id: deepseek/deepseek-v4-pro
+  facet: model.parameters_total
+  value: 1598839674782
+  state: known
+  sources:
+  - source_id: model-161-deepseek-v4-pro-rtx-4090-fit
+    snapshot_ref: sha256:ede7381cf57ed2b3699b9df7a8a74800a9051d2ac313c90c35b4b0b47a62a96d
+    cited_regions:
+    - rows
+- id: deepseek/deepseek-v4-pro#model.fits_hardware
+  subject:
+    kind: model
+    id: deepseek/deepseek-v4-pro
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-161-deepseek-v4-pro-rtx-4090-fit
+    snapshot_ref: sha256:ede7381cf57ed2b3699b9df7a8a74800a9051d2ac313c90c35b4b0b47a62a96d
+    cited_regions:
+    - rows
+  - source_id: model-161-nvidia-rtx-4090-memory
+    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
