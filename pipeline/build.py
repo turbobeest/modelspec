@@ -27,7 +27,7 @@ ROBOTS = "User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
 #: Cloudflare Pages redirects. `/` is the catalogue; every other path keeps
 #: its path on modelspec.dev. Order matters: the first match wins.
 BENCHGRAPH_REDIRECTS = (
-    "/   https://modelspec.dev/benchmarks/  301\n"
+    "/   https://modelspec.dev/             301\n"
     "/*  https://modelspec.dev/:splat       301\n"
 )
 
