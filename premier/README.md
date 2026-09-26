@@ -1,6 +1,6 @@
 # Slice-1 premier set
 
-Status: pending Jamie's approval. This list is a proposal. It is not the premier set until Jamie says so.
+Status: approved by Jamie on 2026-09-26.
 
 The rule is the one in the decision-engine design, section 5. A model is in the set if any of these holds:
 

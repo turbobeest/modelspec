@@ -118,35 +118,14 @@ def additions() -> dict[str, tuple[Path, dict, str]]:
 
 def register_sources() -> dict[str, object]:
     path = ROOT / "registry" / "sources.yaml"
-    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    rows = {row["id"]: row for row in raw["sources"]}
+    registered = load_sources(path)
     for model_id, url in SOURCE_URLS.items():
-        rows[source_id(model_id)] = {
-            "id": source_id(model_id),
-            "url": url,
-            "fetch": "http",
-            "normaliser": "text-default" if url.endswith(".md") else "html-default",
-            "cited_regions": [
-                {"id": "model-spec", "locator": {"kind": "page", "value": ""}}
-            ],
-        }
-    rows["model-163-deepseek-flash-pricing"] = {
-        "id": "model-163-deepseek-flash-pricing",
-        "url": "https://api-docs.deepseek.com/quick_start/pricing/",
-        "fetch": "http",
-        "normaliser": "text-default",
-        "cited_regions": [{"id": "page", "locator": {"kind": "page", "value": ""}}],
-    }
-    path.write_text(
-        "# Primary sources through MODEL-163; slice-2 additions read 2026-09-26.\n"
-        + yaml.safe_dump(
-            {"schema_version": 1, "sources": [rows[key] for key in sorted(rows)]},
-            sort_keys=False,
-            allow_unicode=True,
-        ),
-        encoding="utf-8",
-    )
-    return load_sources(path)
+        registered_source = registered.get(source_id(model_id))
+        if registered_source is None or str(registered_source.url) != url:
+            raise SystemExit(f"unregistered MODEL-163 source: {source_id(model_id)}")
+    if "model-163-deepseek-flash-pricing" not in registered:
+        raise SystemExit("unregistered MODEL-163 DeepSeek pricing source")
+    return registered
 
 
 def with_checked_sources(fact: Fact) -> Fact:

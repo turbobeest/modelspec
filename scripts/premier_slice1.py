@@ -781,9 +781,12 @@ def build() -> dict:
                 {
                     "clause": 6,
                     "quantisation": candidate["quantisation"],
+                    "parameter_count": candidate["parameter_count"],
+                    "published_size_bytes": candidate["published_size_bytes"],
                     "published_memory_gb": candidate["published_memory_gb"],
                     "max_memory_gb": slice2["local"]["max_memory_gb"],
-                    "url": candidate["source_url"],
+                    "parameter_url": candidate["parameter_source_url"],
+                    "url": candidate["size_source_url"],
                     "read_date": candidate["read_date"],
                     "note": "The published quantised artifact fits the consumer-hardware limit.",
                 }
@@ -868,7 +871,8 @@ def build() -> dict:
 
     return {
         "schema_version": 1,
-        "status": "pending-jamie-approval",
+        "status": "approved",
+        "approved_date": "2026-09-26",
         "read_date": READ_DATE,
         "release_window_start": RELEASE_WINDOW_START,
         "rule": [

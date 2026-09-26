@@ -26,7 +26,8 @@ def test_script_reproduces_the_yaml() -> None:
 
 def test_every_entry_has_a_card_and_evidence() -> None:
     document = yaml.safe_load(YAML_PATH.read_text())
-    assert document["status"] == "pending-jamie-approval"
+    assert document["status"] == "approved"
+    assert document["approved_date"] == "2026-09-26"
     models = document["models"]
     assert 24 <= len(models) <= 50
     ids = [row["model_id"] for row in models]

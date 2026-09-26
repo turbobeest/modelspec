@@ -36,26 +36,46 @@ local:
   candidates:
   - model_id: google/gemma-4-e2b-it
     quantisation: Q4_K_M
+    artifact: gemma-4-E2B-it-Q4_K_M.gguf
+    parameter_count: 5123178051
+    published_size_bytes: 3106738272
     published_memory_gb: 3.106738272
-    source_url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
+    parameter_source_url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+    size_source_url: https://huggingface.co/api/models/unsloth/gemma-4-E2B-it-GGUF/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
   - model_id: google/gemma-4-e4b-it
     quantisation: Q4_K_M
+    artifact: gemma-4-E4B-it-Q4_K_M.gguf
+    parameter_count: 7996156490
+    published_size_bytes: 4977171584
     published_memory_gb: 4.977171584
-    source_url: https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF
+    parameter_source_url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+    size_source_url: https://huggingface.co/api/models/unsloth/gemma-4-E4B-it-GGUF/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
   - model_id: microsoft/phi-4
     quantisation: Q4_K_S
+    artifact: phi-4-Q4_K_S.gguf
+    parameter_count: 14659507200
+    published_size_bytes: 8440762560
     published_memory_gb: 8.44076256
-    source_url: https://huggingface.co/microsoft/phi-4-gguf
+    parameter_source_url: https://huggingface.co/api/models/microsoft/phi-4
+    size_source_url: https://huggingface.co/api/models/microsoft/phi-4-gguf/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
   - model_id: google/gemma-4-26b-a4b-it
     quantisation: Q4_K_M
+    artifact: gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
+    parameter_count: 25805936206
+    published_size_bytes: 16947541728
     published_memory_gb: 16.947541728
-    source_url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
+    parameter_source_url: https://huggingface.co/api/models/google/gemma-4-26b-a4b-it
+    size_source_url: https://huggingface.co/api/models/unsloth/gemma-4-26B-A4B-it-GGUF/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'
   - model_id: google/gemma-4-31b-it
     quantisation: Q4_K_M
+    artifact: gemma-4-31B-it-Q4_K_M.gguf
+    parameter_count: 31273088876
+    published_size_bytes: 18323733440
     published_memory_gb: 18.32373344
-    source_url: https://huggingface.co/unsloth/gemma-4-31B-it-GGUF
+    parameter_source_url: https://huggingface.co/api/models/google/gemma-4-31B-it
+    size_source_url: https://huggingface.co/api/models/unsloth/gemma-4-31B-it-GGUF/tree/main?recursive=true&expand=false
     read_date: '2026-09-26'

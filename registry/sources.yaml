@@ -1369,15 +1369,6 @@ sources:
     locator:
       kind: page
       value: ''
-- id: model-163-bytedance-seed1-5-embedding
-  url: https://seed1-5-embedding.github.io/
-  fetch: http
-  normaliser: html-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
 - id: model-163-deepseek-deepseek-flash
   url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/raw/main/README.md
   fetch: http
@@ -3353,3 +3344,117 @@ sources:
     locator:
       kind: page
       value: ''
+
+# MODEL-163: slice-2 lineup additions, read 2026-09-26.
+- id: model-163-bytedance-seed1-5-embedding
+  url: https://seed1-5-embedding.github.io/
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-deepseek-deepseek-flash
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-deepseek-deepseek-v3-1
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V3.1/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-deepseek-flash-pricing
+  url: https://api-docs.deepseek.com/quick_start/pricing/
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: page, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemini-2-5-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemma-4-26b-a4b-it
+  url: https://huggingface.co/google/gemma-4-26b-a4b-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemma-4-31b-it
+  url: https://huggingface.co/google/gemma-4-31b-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemma-4-e2b-it
+  url: https://huggingface.co/google/gemma-4-E2B-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemma-4-e4b-it
+  url: https://huggingface.co/google/gemma-4-E4B-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-microsoft-phi-4
+  url: https://huggingface.co/microsoft/phi-4/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-openai-gpt-6-luna
+  url: https://developers.openai.com/api/docs/models/gpt-6-luna
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-qwen-qwen3-embedding-8b
+  url: https://huggingface.co/Qwen/Qwen3-Embedding-8B/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+
+# MODEL-163: exact model parameter and quantised-artifact metadata, read 2026-09-26.
+- id: model-163-local-google-gemma-4-26b-a4b-it-parameters
+  url: https://huggingface.co/api/models/google/gemma-4-26b-a4b-it
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-26b-a4b-it-artifact
+  url: https://huggingface.co/api/models/unsloth/gemma-4-26B-A4B-it-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-31b-it-parameters
+  url: https://huggingface.co/api/models/google/gemma-4-31B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-31b-it-artifact
+  url: https://huggingface.co/api/models/unsloth/gemma-4-31B-it-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e2b-it-parameters
+  url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e2b-it-artifact
+  url: https://huggingface.co/api/models/unsloth/gemma-4-E2B-it-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e4b-it-parameters
+  url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e4b-it-artifact
+  url: https://huggingface.co/api/models/unsloth/gemma-4-E4B-it-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-microsoft-phi-4-parameters
+  url: https://huggingface.co/api/models/microsoft/phi-4
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-microsoft-phi-4-artifact
+  url: https://huggingface.co/api/models/microsoft/phi-4-gguf/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
