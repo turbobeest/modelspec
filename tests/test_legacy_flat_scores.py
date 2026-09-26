@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from pipeline.load import split_front_matter
 from scripts.migrate_oll_evidence import extract_v1_scores, extract_v2_scores
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,12 +20,16 @@ MIGRATION = ROOT / "docs" / "audits" / "model-118-oll-migration.csv"
 
 
 def _scores(path: Path) -> dict:
-    match = re.search(
-        r"(?m)^  scores:\n(?P<body>(?:    [^\n]*\n)*?)(?=^  [a-z_]+:|^---$)",
-        path.read_text(encoding="utf-8"),
-    )
-    return (yaml.safe_load("scores:\n" + match.group("body")) or {}).get("scores") or {} \
-        if match else {}
+    front, _ = split_front_matter(path.read_text(encoding="utf-8"))
+    benchmarks = front.get("benchmarks") or {}
+    return benchmarks.get("scores") or {} if isinstance(benchmarks, dict) else {}
+
+
+def test_inline_flat_score_is_visible_to_the_guard(tmp_path: Path) -> None:
+    card = tmp_path / "inline.md"
+    card.write_text("---\nbenchmarks:\n  scores: {new_flat: 42}\n---\n", encoding="utf-8")
+
+    assert _scores(card) == {"new_flat": 42}
 
 
 @lru_cache(maxsize=None)
@@ -141,6 +146,8 @@ def test_oll_audit_accounts_for_every_migrated_and_legacy_value() -> None:
             item = evidence[row["evidence_id"]]
             assert item["benchmark_id"] == row["benchmark_id"]
             assert item["source_url"] == row["source_url"]
+            assert item["source_kind"] == "independent_evaluator"
+            assert item["measured_by"] == "independent_evaluator"
             assert item["date_type"] == "evaluated"
             assert item["evidence_date"] == row["evidence_date"]
         else:

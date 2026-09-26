@@ -727,7 +727,7 @@ benchmarks:
     score: 56.9
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-4-mini-instruct/results_2025-02-28T12-41-07.003145.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2025-02-28'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -735,7 +735,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-d92e847cb221
       snapshot_ref: sha256:140f6d822dcbf47b69a1d67c68ecf3dc98b3aaca281f5e75800207350cfd166f
@@ -747,7 +747,7 @@ benchmarks:
     score: 38.7
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-4-mini-instruct/results_2025-02-28T12-41-07.003145.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2025-02-28'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -755,7 +755,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-d92e847cb221
       snapshot_ref: sha256:140f6d822dcbf47b69a1d67c68ecf3dc98b3aaca281f5e75800207350cfd166f

@@ -672,7 +672,7 @@ benchmarks:
     score: 50.8
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-09-02'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -680,7 +680,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-6c0337986cee
       snapshot_ref: sha256:846f1e704725f6b1c390ac44ac98db5b365c825b90dd9b6eb5b416d65e6f3d5c
@@ -692,7 +692,7 @@ benchmarks:
     score: 29.3
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-09-02'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -700,7 +700,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-6c0337986cee
       snapshot_ref: sha256:846f1e704725f6b1c390ac44ac98db5b365c825b90dd9b6eb5b416d65e6f3d5c
@@ -712,7 +712,7 @@ benchmarks:
     score: 61.3
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-09-02'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -720,7 +720,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-6c0337986cee
       snapshot_ref: sha256:846f1e704725f6b1c390ac44ac98db5b365c825b90dd9b6eb5b416d65e6f3d5c
@@ -732,7 +732,7 @@ benchmarks:
     score: 12.8
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-09-02'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -740,7 +740,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-6c0337986cee
       snapshot_ref: sha256:846f1e704725f6b1c390ac44ac98db5b365c825b90dd9b6eb5b416d65e6f3d5c
@@ -752,7 +752,7 @@ benchmarks:
     score: 32.2
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-09-02'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -760,7 +760,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-6c0337986cee
       snapshot_ref: sha256:846f1e704725f6b1c390ac44ac98db5b365c825b90dd9b6eb5b416d65e6f3d5c
@@ -772,7 +772,7 @@ benchmarks:
     score: 35.8
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-09-02'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -780,7 +780,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-6c0337986cee
       snapshot_ref: sha256:846f1e704725f6b1c390ac44ac98db5b365c825b90dd9b6eb5b416d65e6f3d5c

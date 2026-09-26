@@ -917,7 +917,7 @@ benchmarks:
     score: 42.0
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-07-29'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -925,7 +925,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-db2ef33d2032
       snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
@@ -937,7 +937,7 @@ benchmarks:
     score: 56.7
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-07-29'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -945,7 +945,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-db2ef33d2032
       snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
@@ -957,7 +957,7 @@ benchmarks:
     score: 25.5
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-07-29'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -965,7 +965,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-db2ef33d2032
       snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
@@ -977,7 +977,7 @@ benchmarks:
     score: 39.3
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-07-29'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -985,7 +985,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-db2ef33d2032
       snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0

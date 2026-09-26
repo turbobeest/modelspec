@@ -683,7 +683,7 @@ benchmarks:
     score: 62.4
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-06-23'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -691,7 +691,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-16b7b22edf8d
       snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
@@ -703,7 +703,7 @@ benchmarks:
     score: 25.8
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-06-23'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -711,7 +711,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-16b7b22edf8d
       snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
@@ -723,7 +723,7 @@ benchmarks:
     score: 46.4
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-06-23'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -731,7 +731,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-16b7b22edf8d
       snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
@@ -743,7 +743,7 @@ benchmarks:
     score: 40.4
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-06-23'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -751,7 +751,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-16b7b22edf8d
       snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d

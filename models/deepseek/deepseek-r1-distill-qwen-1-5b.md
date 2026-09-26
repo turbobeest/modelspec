@@ -677,7 +677,7 @@ benchmarks:
     score: 32.4
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2025-01-20'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -685,7 +685,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-257576f61eeb
       snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
@@ -697,7 +697,7 @@ benchmarks:
     score: 25.6
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2025-01-20'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -705,7 +705,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-257576f61eeb
       snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
@@ -717,7 +717,7 @@ benchmarks:
     score: 34.6
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2025-01-20'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -725,7 +725,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-257576f61eeb
       snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
@@ -737,7 +737,7 @@ benchmarks:
     score: 16.9
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2025-01-20'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -745,7 +745,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-257576f61eeb
       snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
@@ -757,7 +757,7 @@ benchmarks:
     score: 11.9
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2025-01-20'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -765,7 +765,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-257576f61eeb
       snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc
@@ -777,7 +777,7 @@ benchmarks:
     score: 36.3
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2025-01-20'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -785,7 +785,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-257576f61eeb
       snapshot_ref: sha256:35d87890090b478ce21eebacbedb8cf2ffff6022ac4797635ab8fc0ec3f446bc

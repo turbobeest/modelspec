@@ -2,10 +2,30 @@
 
 Read on 2026-09-25 from the primary Hugging Face datasets:
 
-- OLL v1: `open-llm-leaderboard-old/results` at revision
-  `23474373f8874f9057d23b97e5a41e911d2721c5`.
-- OLL v2: `open-llm-leaderboard/results` at revision
-  `aa81ecc38fdc5708254b833923368970efdf5ef5`.
+- OLL v1: [`open-llm-leaderboard-old/results`](https://huggingface.co/datasets/open-llm-leaderboard-old/results)
+  at revision `23474373f8874f9057d23b97e5a41e911d2721c5`.
+- OLL v2: [`open-llm-leaderboard/results`](https://huggingface.co/datasets/open-llm-leaderboard/results)
+  at revision `aa81ecc38fdc5708254b833923368970efdf5ef5`.
+
+## Licence and reuse basis
+
+Neither dataset declares a licence. Their Hugging Face API records returned
+`cardData.license: null` on 2026-09-25, and the pinned repositories contain no
+licence grant. This migration therefore does not rely on a dataset licence and
+does not redistribute the result files or their prose. It records only the
+model identity, evaluation date, benchmark key and numerical measurement from
+each cited file.
+
+Those individual data points are uncopyrightable facts under United States
+law. The [U.S. Copyright Office's database guidance](https://www.copyright.gov/register/tx-databases.html)
+states that copyright does not protect individual plain facts. The Copyright
+Act also limits compilation copyright to the compiler's contribution and does
+not create an exclusive right in the underlying material
+([17 U.S.C. § 103(b)](https://www.copyright.gov/title17/92chap1.html#103)).
+That public-domain status is the governing reuse basis for the imported facts;
+no licence applies. Each evidence row attributes its exact source URL and read
+date. ModelSpec does not copy Hugging Face's selection, arrangement or
+expressive text.
 
 The collector required the card's Hugging Face repository to match the model
 named in the result file. It derived each value from that file and compared it

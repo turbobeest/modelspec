@@ -672,7 +672,7 @@ benchmarks:
     score: 45.4
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-xl/results_2024-10-24T00-00-00.000000.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-08-12'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -680,7 +680,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-71cc8bcbe701
       snapshot_ref: sha256:e70f5dee536235933bfdbe8ace6ffc8f3eaab391d9cede0e3db6914da1619bd3
@@ -692,7 +692,7 @@ benchmarks:
     score: 24.6
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-xl/results_2024-10-24T00-00-00.000000.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-08-12'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -700,7 +700,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-71cc8bcbe701
       snapshot_ref: sha256:e70f5dee536235933bfdbe8ace6ffc8f3eaab391d9cede0e3db6914da1619bd3
@@ -712,7 +712,7 @@ benchmarks:
     score: 22.1
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-xl/results_2024-10-24T00-00-00.000000.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-08-12'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -720,7 +720,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-71cc8bcbe701
       snapshot_ref: sha256:e70f5dee536235933bfdbe8ace6ffc8f3eaab391d9cede0e3db6914da1619bd3
@@ -732,7 +732,7 @@ benchmarks:
     score: 0.1
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-xl/results_2024-10-24T00-00-00.000000.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-08-12'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -740,7 +740,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-71cc8bcbe701
       snapshot_ref: sha256:e70f5dee536235933bfdbe8ace6ffc8f3eaab391d9cede0e3db6914da1619bd3
@@ -752,7 +752,7 @@ benchmarks:
     score: 21.4
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-xl/results_2024-10-24T00-00-00.000000.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-08-12'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -760,7 +760,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-71cc8bcbe701
       snapshot_ref: sha256:e70f5dee536235933bfdbe8ace6ffc8f3eaab391d9cede0e3db6914da1619bd3
@@ -772,7 +772,7 @@ benchmarks:
     score: 42.2
     unit: percent
     source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-xl/results_2024-10-24T00-00-00.000000.json
-    source_kind: benchmark_author
+    source_kind: independent_evaluator
     evidence_date: '2024-08-12'
     date_type: evaluated
     verified_at: '2026-09-25'
@@ -780,7 +780,7 @@ benchmarks:
     configuration: Published per-model result; leaderboard metric converted from fraction to percent.
     limitations: Static leaderboard result. The source file identifies the evaluated repository and run
       date.
-    measured_by: benchmark_author
+    measured_by: independent_evaluator
     sources:
     - source_id: oll-v2-71cc8bcbe701
       snapshot_ref: sha256:e70f5dee536235933bfdbe8ace6ffc8f3eaab391d9cede0e3db6914da1619bd3
