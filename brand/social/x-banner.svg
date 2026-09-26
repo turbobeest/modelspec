@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500">
+  <rect width="1500" height="500" fill="#111D33"/>
+  <g transform="translate(300 142) scale(4.5)">
+    <rect width="200" height="48" fill="#111D33"/>
+    <g transform="translate(8 8) scale(0.8)">
+      <rect width="40" height="40" rx="3" fill="#0B1426"/>
+      <line x1="6.5" y1="3" x2="6.5" y2="37.5" stroke="#F2C94C" stroke-width="0.9"/>
+      <line x1="3" y1="34" x2="37" y2="34" stroke="#3FB68B" stroke-width="2.2"/>
+      <path d="M11 29L16 11L21 23L26 11L31 29" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+      <g fill="#5AA9EC" stroke="#0B1426" stroke-width="1">
+        <circle cx="11" cy="29" r="1.9"/><circle cx="16" cy="11" r="1.9"/><circle cx="21" cy="23" r="1.9"/><circle cx="26" cy="11" r="1.9"/><circle cx="31" cy="29" r="1.9"/>
+      </g>
+    </g>
+    <text x="50" y="31.5" font-family="Segoe UI,Arial,sans-serif" font-size="20" letter-spacing="-0.4" fill="#F3F2F1"><tspan font-weight="600">Model</tspan><tspan font-weight="300">Spec</tspan></text>
+  </g>
+</svg>
