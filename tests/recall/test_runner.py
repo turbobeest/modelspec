@@ -59,12 +59,12 @@ def test_baseline_matches_main_snapshot_on_approval_date(tmp_path: Path) -> None
     result = run(
         root=Path(__file__).resolve().parents[2],
         output_dir=tmp_path,
-        report_date=date(2026, 9, 25),
+        report_date=date(2026, 9, 26),
     )
     baseline = load_recall_baseline(HERE / "baseline.json")
 
-    assert baseline.snapshot == "snap_b5622feaf611736a"
-    assert baseline.as_of == date(2026, 9, 25)
+    assert baseline.snapshot == "snap_8033b05900383a53"
+    assert baseline.as_of == date(2026, 9, 26)
     assert baseline.verdicts == {row.id: row.verdict for row in result.questions}
 
 

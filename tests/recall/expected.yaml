@@ -130,7 +130,9 @@ questions:
       Claude Opus 4.6 high at 1535.27, and that interval does not overlap
       GPT-6 Astra max (upper 1512.2). Repository-editing boards put newer
       models first. Those are different measurements. A refusal to order
-      them is the accurate decision.
+      them is the accurate decision. The MODEL-161 triage at
+      docs/recall/2026-09-25-model-161-triage.md records the approved
+      additional Arena coding evidence (read 2026-09-25).
     acceptable:
       - model_id: anthropic/claude-opus-4-6
         reason: >
@@ -160,6 +162,11 @@ questions:
             read: "2026-09-24"
           - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
             read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Arena coding rating 1513.97, second in the current decision.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
     must_never:
       - model_id: openai/text-embedding-3-large
         reason: An embedding model does not review a pull request.
@@ -183,6 +190,8 @@ questions:
       high (1504.92) and Opus 4.6 high (1502.96). Style control changes the
       leader to Fable 5 (1505.68) and the intervals still overlap. This is
       preference, not a tool-use score. GPT-6 Astra max is overall rank 59.
+      The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+      records the approved additional Arena overall evidence (read 2026-09-25).
     acceptable:
       - model_id: anthropic/claude-fable-5-1
         reason: Highest raw Arena overall rating. The interval overlaps Opus 5 and Opus 4.6 high.
@@ -204,6 +213,11 @@ questions:
         sources:
           - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
             read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Arena overall rating 1494.67, third in the current decision.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
     must_never:
       - model_id: openai/text-embedding-3-large
         reason: An embedding model is not a general assistant.
@@ -237,6 +251,8 @@ questions:
       Same Arena snapshot as Q04. Raw overall and style control do not
       agree on a winner, and the leading intervals overlap. GPT-4.1
       (2025-04-14) is overall rank 157 at 1382.77, far below that cluster.
+      The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+      records the approved additional Arena overall evidence (read 2026-09-25).
     acceptable:
       - model_id: anthropic/claude-fable-5-1
         reason: Highest raw Arena overall rating, not separated by its interval from Opus 5 or Opus 4.6 high.
@@ -258,6 +274,11 @@ questions:
         sources:
           - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
             read: "2026-09-24"
+      - model_id: google/gemini-3-8-flash
+        reason: Arena overall rating 1494.67, third in the current decision.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
     must_never:
       - model_id: openai/gpt-4-1
         reason: >
@@ -426,7 +447,9 @@ questions:
       tokens. No allowed board measures grounded answer quality over a
       200,000-token collection. Arena's document split is a preference
       board, published 2026-09-13, and its leading intervals overlap.
-      Order among the generators below is not established.
+      Order among the generators below is not established. The MODEL-161
+      triage at docs/recall/2026-09-25-model-161-triage.md records the
+      approved longer-query evidence (read 2026-09-25).
     acceptable:
       - model_id: openai/gpt-6-astra
         reason: Published context window 1,050,000 tokens. It generates text.
@@ -465,6 +488,20 @@ questions:
         sources:
           - url: https://ai.google.dev/gemini-api/docs/pricing
             read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5
+        reason: Arena longer-query rating 1521.41 and a published context over 200,000 tokens.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
+      - model_id: anthropic/claude-opus-4-7
+        reason: Arena longer-query rating 1514.43 and a published context over 200,000 tokens.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
+          - url: https://platform.claude.com/docs/en/about-claude/pricing
+            read: "2026-09-24"
     must_never:
       - model_id: openai/text-embedding-3-large
         reason: The generator is not an embedding model.
@@ -499,6 +536,8 @@ questions:
       high (1516.3), Fable 5.1 max (1512.6) and Opus 4.6 high (1507.3).
       That is preference, not faithfulness. Models with a published context
       of at least the length of a long document may appear. Order is not established.
+      The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+      records the approved longer-query evidence (read 2026-09-25).
     acceptable:
       - model_id: anthropic/claude-opus-5
         reason: Arena document rating 1516.3, interval overlapping Fable 5.1 and Opus 4.6.
@@ -529,6 +568,16 @@ questions:
             read: "2026-09-24"
           - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
             read: "2026-09-24"
+      - model_id: anthropic/claude-fable-5
+        reason: Arena longer-query rating 1521.41; the evidence is preference, not faithfulness.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
+      - model_id: anthropic/claude-opus-4-7
+        reason: Arena longer-query rating 1514.43; the evidence is preference, not faithfulness.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
     must_never:
       - model_id: openai/text-embedding-3-large
         reason: An embedding model does not write a summary.
@@ -814,13 +863,30 @@ questions:
       intervals overlap. Open-weight reasoning models are not on that same
       top cluster in this download, and the September open releases are not
       in the file. Adequate hardware does not make different labs' harnesses
-      one comparison. No order is established.
+      one comparison. No order is established. The MODEL-161 triage at
+      docs/recall/2026-09-25-model-161-triage.md records the approved current
+      GPQA Diamond evidence (read 2026-09-25).
     acceptable:
       - rule: no separated open-weights reasoning winner
         reason: GPQA does not place the current open-weight releases in one ordered table.
         sources:
           - url: https://epoch.ai/data/benchmark_data.zip
             read: "2026-09-24"
+      - model_id: moonshot/kimi-k3
+        reason: Current verified GPQA Diamond evidence is 93.12%.
+        sources:
+          - url: https://epoch.ai/benchmarks/gpqa-diamond
+            read: "2026-09-25"
+      - model_id: zhipu/glm-5-2
+        reason: Current verified GPQA Diamond evidence is 91.86%.
+        sources:
+          - url: https://epoch.ai/benchmarks/gpqa-diamond
+            read: "2026-09-25"
+      - model_id: zhipu/glm-5-3
+        reason: Current verified GPQA Diamond evidence is 90.91%.
+        sources:
+          - url: https://epoch.ai/benchmarks/gpqa-diamond
+            read: "2026-09-25"
     must_never:
       - model_id: openai/gpt-6-astra
         reason: Closed weights. GPQA leader, but not self-hostable from a public download.
@@ -860,10 +926,11 @@ questions:
 
   - id: Q14
     notes: >
-      The Arena dataset has no vision category. Its document split is
-      preference, not chart reading, and the top intervals overlap. No
-      chart or screenshot benchmark was read on the allowed boards. A
-      chart-specific order is not established.
+      The approved Arena dataset now supplies vision rows. Those rows are
+      preference evidence, not a chart-reading benchmark, and the document
+      split remains only a proxy. A chart-specific order is not established.
+      The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+      records the approved vision evidence (read 2026-09-25).
     acceptable:
       - model_id: anthropic/claude-opus-5
         reason: Arena document rating 1516.3 at high effort. This is a document proxy, not a chart score.
@@ -880,6 +947,16 @@ questions:
         sources:
           - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
             read: "2026-09-24"
+      - model_id: meta/muse-spark-1-3
+        reason: Leading admitted Arena vision rating, 1314.56.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
+      - model_id: meta/muse-spark-1-1
+        reason: Second admitted Arena vision rating, 1294.16.
+        sources:
+          - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+            read: "2026-09-25"
     must_never:
       - model_id: openai/text-embedding-3-large
         reason: An embedding model does not interpret an image.
@@ -911,7 +988,9 @@ questions:
       tasks, is the comparison. The leading means are 0.7069, 0.7000 and
       0.6944. The gaps are about 0.006, so a unique winner is not
       established. Ingot's MTEB row lists training on datasets that overlap
-      retrieval tasks, and its openWeights field is false.
+      retrieval tasks, and its openWeights field is false. The MODEL-161
+      triage at docs/recall/2026-09-25-model-161-triage.md records the
+      approved QZhou addition (read 2026-09-25).
     acceptable:
       - name: IEITYuan/Yuan-embedding-2.0-en
         reason: English v2 retrieval mean 0.7069. Apache-2.0. Open weights. No catalogue card.
@@ -925,6 +1004,11 @@ questions:
             read: "2026-09-24"
       - model_id: qwen/qwen3-embedding-8b
         reason: English v2 retrieval mean 0.6944. Apache-2.0 and open weights.
+        sources:
+          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+            read: "2026-09-24"
+      - model_id: kingsoft/qzhou-embedding
+        reason: Verified English v2 retrieval evidence covers all ten retrieval tasks.
         sources:
           - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
             read: "2026-09-24"
@@ -953,9 +1037,13 @@ questions:
       models with all 18 retrieval tasks, harrier-oss-v1-27b (0.7827) and
       KaLM-Embedding-Gemma3-12B-2511 (0.7566) lead. Octen-Embedding-8B
       (0.7161), geevec-embeddings-1.0-lite (0.7091) and Qwen3-Embedding-8B
-      (0.7088) are not separated. The all-task public mean, a different
-      aggregate, puts Qwen3-Embedding-8B third and does not put Octen or
-      the geevec lite model in the top three.
+      (0.7088) form an unresolved third-place group. The all-task public
+      mean, a different aggregate, puts Qwen3-Embedding-8B third and does
+      not put Octen or the geevec lite model in the top three. Harrier is
+      first and KaLM is second; only the third-place group remains
+      unresolved. The MODEL-161
+      triage at docs/recall/2026-09-25-model-161-triage.md records the
+      approved separability and licence evidence (read 2026-09-25).
     acceptable:
       - name: microsoft/harrier-oss-v1-27b
         reason: Open-weight multilingual v2 retrieval mean 0.7827. MIT on the MTEB row. Also first on the all-task mean.
@@ -963,10 +1051,12 @@ questions:
           - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
             read: "2026-09-24"
       - model_id: tencent/kalm-embedding-gemma3-12b-2511
-        reason: Open-weight retrieval mean 0.7566. The MTEB licence field is empty.
+        reason: Open-weight retrieval mean 0.7566. Verified licence facts identify the MIT licence.
         sources:
           - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
             read: "2026-09-24"
+          - url: https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/raw/main/LICENSE.txt
+            read: "2026-09-25"
       - name: Octen/Octen-Embedding-8B
         reason: Open-weight retrieval mean 0.7161. Not separated from the next two.
         sources:
@@ -993,12 +1083,7 @@ questions:
         sources:
           - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
             read: "2026-09-24"
-    must_flag:
-      - model_id: tencent/kalm-embedding-gemma3-12b-2511
-        reason: Open weights are declared. The licence string on the MTEB row is empty, so rights are unknown.
-        sources:
-          - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
-            read: "2026-09-24"
+    must_flag: []
     missing_cards:
       - name: microsoft/harrier-oss-v1-27b
         reason: Leading open-weight multilingual retrieval mean. No card under models/.
@@ -1134,6 +1219,9 @@ questions:
       is a science exam, not a tool-using research workflow. End-to-end
       research accuracy was not measured. The terminal-agent leaders are a
       proxy for tool use only, and must not be presented as a science ranking.
+      The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+      records Gemini 3.8 Flash as a ranked candidate below the three-row
+      response limit (read 2026-09-25).
     acceptable:
       - model_id: openai/gpt-6-astra
         reason: Strongest tool-use proxy on Terminal-Bench 4.0. Not a science-workflow score.
@@ -1163,11 +1251,6 @@ questions:
           - url: https://www.tbench.ai/leaderboard
             read: "2026-09-24"
           - url: https://matharena.ai/models
-            read: "2026-09-24"
-      - model_id: google/gemini-3-8-flash
-        reason: Epoch GPQA Diamond 0.9539 is an exam score, not evidence it can run a research workflow.
-        sources:
-          - url: https://epoch.ai/data/benchmark_data.zip
             read: "2026-09-24"
     missing_cards: []
 
