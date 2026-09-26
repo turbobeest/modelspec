@@ -118,7 +118,7 @@ def test_profile_kit_has_the_documented_pixel_sizes() -> None:
         "instagram-avatar.png": (320, 320),
         "tiktok-avatar.png": (200, 200),
         "linkedin-logo.png": (400, 400),
-        "linkedin-cover.png": (1128, 191),
+        "linkedin-cover.png": (1512, 256),
     }
     root = ROOT / "brand" / "social"
 
