@@ -151,8 +151,25 @@ x-modelspec-x402:
   enabled: false
   mainnet: false
   network: eip155:84532
-  price_atomic: 1000
-  placeholder_price: true
+  per_credit_atomic: 4000
+  keyless_price_rule: 4000 atomic USDC per endpoint credit
+  packs:
+  - name: 1,250-credit pack
+    credits: 1250
+    usd: 5
+    atomic: 5000000
+  - name: 7,500-credit pack
+    credits: 7500
+    usd: 25
+    atomic: 25000000
+  - name: 20,000-credit pack
+    credits: 20000
+    usd: 50
+    atomic: 50000000
+  - name: 50,000-credit pack
+    credits: 50000
+    usd: 100
+    atomic: 100000000
   facilitator: https://api.cdp.coinbase.com/platform
   docs: docs/x402.md
 security:
@@ -398,7 +415,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/DecisionRequestRefused'
         '402':
-          description: Payment required when X402_ENABLED is on.
+          description: Payment required when X402_ENABLED is on. A keyed caller is offered the card packs.
+            A keyless caller pays 4,000 atomic USDC per credit, multiplied by this spec's explanation
+            weight.
           content:
             application/json:
               schema:
@@ -5773,6 +5792,7 @@ components:
           - code
           - how_to_pay
           - message
+          - packs
           - payTo
           - price
           - resource
@@ -5782,18 +5802,6 @@ components:
               type: array
               items:
                 type: object
-                required:
-                - amount
-                - asset
-                - description
-                - extra
-                - maxAmountRequired
-                - maxTimeoutSeconds
-                - mimeType
-                - network
-                - payTo
-                - resource
-                - scheme
                 properties:
                   amount:
                     type: string
@@ -5803,14 +5811,17 @@ components:
                     type: string
                   extra:
                     type: object
-                    required:
-                    - name
-                    - version
                     properties:
+                      credits:
+                        type: integer
                       name:
                         type: string
                       version:
                         type: string
+                    required:
+                    - credits
+                    - name
+                    - version
                   maxAmountRequired:
                     type: string
                   maxTimeoutSeconds:
@@ -5825,12 +5836,62 @@ components:
                     type: string
                   scheme:
                     type: string
+                required:
+                - amount
+                - asset
+                - description
+                - extra
+                - maxAmountRequired
+                - maxTimeoutSeconds
+                - mimeType
+                - network
+                - payTo
+                - resource
+                - scheme
             code:
               type: string
             how_to_pay:
               type: string
             message:
               type: string
+            packs:
+              type: array
+              items:
+                type: object
+                properties:
+                  credits:
+                    type: integer
+                  name:
+                    type: string
+                  payTo:
+                    type: string
+                  price:
+                    type: object
+                    properties:
+                      amount:
+                        type: string
+                      asset:
+                        type: string
+                      atomic:
+                        type: integer
+                      currency:
+                        type: string
+                      network:
+                        type: string
+                      usd:
+                        type: integer
+                    required:
+                    - amount
+                    - asset
+                    - atomic
+                    - currency
+                    - network
+                    - usd
+                required:
+                - credits
+                - name
+                - payTo
+                - price
             payTo:
               type: string
             price:
@@ -5839,10 +5900,9 @@ components:
               - amount
               - asset
               - atomic
+              - credits
               - currency
               - network
-              - placeholder
-              - placeholder_note
               - usd
               properties:
                 amount:
@@ -5851,13 +5911,11 @@ components:
                   type: string
                 atomic:
                   type: integer
+                credits:
+                  type: integer
                 currency:
                   type: string
                 network:
-                  type: string
-                placeholder:
-                  type: boolean
-                placeholder_note:
                   type: string
                 usd:
                   type: number

@@ -133,6 +133,7 @@ sandbox = _load("access_sandbox")
 #: imports (`access_keys`, `access_kv`, …) resolve through `sys.modules`, which
 #: `_load` put `src/` on the path for.
 access = importlib.import_module("access")
+access_config = importlib.import_module("access_config")
 billing_mod = importlib.import_module("billing")
 #: Same reason as `access`: `x402.Config` is a dataclass, and `_load` does not
 #: put the module in `sys.modules` before the decorator runs.
@@ -1054,13 +1055,17 @@ def _x402() -> dict[str, Any]:
         found = re.search(rf'"{name}"\s*:\s*"([^"]*)"', live)
         return found.group(1) if found else default
 
+    tier_policy = access_config.load_policy()
+    packs = x402.packs_from_policy(tier_policy)
     return {
         "wired": True,
         "enabled": x402_enabled(),
         "mainnet": x402.flag(var("X402_MAINNET", "false")),
         "network": var("X402_NETWORK", x402.NETWORK_BASE_SEPOLIA),
-        "price_atomic": int(var("X402_PRICE_ATOMIC", "1000")),
-        "placeholder_price": True,
+        "per_credit_atomic": packs[0].atomic // packs[0].credits,
+        "keyless_price_rule": "4000 atomic USDC per endpoint credit",
+        "packs": [{"name": row.name, "credits": row.credits,
+                   "usd": row.usd, "atomic": row.atomic} for row in packs],
         "facilitator": var("X402_FACILITATOR_URL", x402.DEFAULT_ORIGIN),
         "docs": "docs/x402.md",
     }
@@ -2095,7 +2100,9 @@ def build_spec() -> dict[str, Any]:
                             {"$ref": "#/components/schemas/DecisionRequestRefused"},
                         ),
                         str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
-                            "Payment required when X402_ENABLED is on.",
+                            "Payment required when X402_ENABLED is on. A keyed caller is "
+                            "offered the card packs. A keyless caller pays 4,000 atomic "
+                            "USDC per credit, multiplied by this spec's explanation weight.",
                             {"$ref": "#/components/schemas/PaymentRequired"},
                         ),
                         **access_responses(),
@@ -2172,12 +2179,14 @@ def build_spec() -> dict[str, Any]:
                             network=x402.NETWORK_BASE_SEPOLIA,
                             asset=x402._norm_addr(x402.USDC_BASE_SEPOLIA),
                             pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
-                            price_atomic=1000,
+                            price_atomic=4000,
                             facilitator_url=x402.DEFAULT_ORIGIN,
                             resource_origin=_ORIGIN,
+                            packs=x402.packs_from_policy(access_config.load_policy()),
                         ),
                         {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
                         "https://api.modelspec.dev/v1/rank",
+                        offer_packs=True,
                     )
                 )["properties"]["error"]),
                 "CreditsBalance": _infer(x402.balance_body(

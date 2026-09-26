@@ -639,8 +639,10 @@ class Default(WorkerEntrypoint):
         # is not wrapped. X402_ENABLED default off is a no-op.
         x402_trace = x402.ChargeTrace()
         anonymous = self._x402_wrap(_anonymous, request, path, api_key, envelope,
+                                    payload,
                                     x402_trace, keyed=False)
         live = self._x402_wrap(_live, request, path, api_key, envelope,
+                               payload,
                                x402_trace, keyed=True,
                                produce_unfunded=_live_unfunded)
 
@@ -668,10 +670,20 @@ class Default(WorkerEntrypoint):
             )
         return _json_response(outcome.status, outcome.body, headers)
 
-    def _credit_params(self, path: str) -> tuple[int, int, str]:
+    def _credit_params(self, path: str, payload=None) -> tuple[int, int, str]:
         try:
             policy = access_config.load_policy(self.env)
-            resource = "policy-check" if path.rstrip("/").endswith("policy-check") else "rank"
+            clean_path = path.rstrip("/")
+            if clean_path.endswith("policy-check"):
+                resource = "policy-check"
+            elif clean_path.endswith("decide"):
+                explain = (
+                    payload.get("explain", "summary")
+                    if isinstance(payload, dict) else "summary"
+                )
+                resource = f"decide.{explain}"
+            else:
+                resource = "rank"
             return (policy.credits.weight(resource), policy.credits.pack_expiry_days,
                     policy.url("get_a_key") or "https://modelspec.dev/pricing")
         except access_config.PolicyError:
@@ -704,10 +716,10 @@ class Default(WorkerEntrypoint):
 
         return limits_for
 
-    def _x402_wrap(self, produce, request, path, api_key, envelope, trace, *,
+    def _x402_wrap(self, produce, request, path, api_key, envelope, payload, trace, *,
                    keyed: bool, produce_unfunded=None):
         """MODEL-75/93 hook. `keyed` uses the presented API key as the credit holder."""
-        units, expiry_days, buy = self._credit_params(path)
+        units, expiry_days, buy = self._credit_params(path, payload)
 
         async def wrapped(*args, **kwargs):
             cfg = x402.load_config(self.env)

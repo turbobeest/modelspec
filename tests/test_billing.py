@@ -30,6 +30,7 @@ import access_keys as keys  # noqa: E402
 import billing  # noqa: E402
 import billing_stripe  # noqa: E402
 import credits  # noqa: E402
+import x402  # noqa: E402
 from access_kv import CloudflareKV, MemoryKV, UnboundKV  # noqa: E402
 
 T0 = datetime(2026, 9, 17, 14, 30, 0, tzinfo=UTC)
@@ -132,7 +133,24 @@ def test_the_shipped_price_map_is_real_test_mode_credits_not_limits(policy):
     assert policy.tier("paid").daily_limit is None
     assert policy.credits.weights["rank"] == 1
     assert policy.credits.weights["policy-check"] == 5
+    assert policy.credits.weights["decide.none"] == 1
+    assert policy.credits.weights["decide.summary"] == 1
+    assert policy.credits.weights["decide.full"] == 2
     assert policy.credits.pack_expiry_days == 365
+
+
+def test_x402_and_stripe_read_the_same_pack_table(policy):
+    card_packs = sorted(
+        ((row.name, row.credits, row.usd)
+        for row in policy.billing.prices.values()
+        if row.kind == "pack"),
+        key=lambda row: row[2],
+    )
+    x402_packs = [
+        (pack.name, pack.credits, pack.usd)
+        for pack in x402.packs_from_policy(policy)
+    ]
+    assert x402_packs == card_packs
     assert policy.billing.downgrade_tier == "free"
     assert "terms" in policy.billing.terms_url
     assert "subscriber" not in policy.tiers

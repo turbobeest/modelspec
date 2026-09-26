@@ -42,7 +42,10 @@
   "credits": {
     "weights": {
       "rank": 1,
-      "policy-check": 5
+      "policy-check": 5,
+      "decide.none": 1,
+      "decide.summary": 1,
+      "decide.full": 2
     },
     "burst_limit": 60,
     "pack_expiry_days": 365
