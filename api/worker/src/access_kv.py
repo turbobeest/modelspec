@@ -39,6 +39,8 @@ class AsyncKV(Protocol):
 
     async def delete(self, name: str) -> None: ...
 
+    async def list(self, options: dict[str, str] | None = None) -> dict[str, Any]: ...
+
 
 class MemoryKV:
     """An in-process store for tests and local development.
@@ -69,6 +71,12 @@ class MemoryKV:
         self.calls.append(("delete", name))
         self.data.pop(name, None)
         self.ttl.pop(name, None)
+
+    async def list(self, options: dict[str, str] | None = None) -> dict[str, Any]:
+        prefix = (options or {}).get("prefix", "")
+        return {"keys": [
+            {"name": name} for name in sorted(self.data) if name.startswith(prefix)
+        ]}
 
 
 class CloudflareKV:
@@ -104,6 +112,17 @@ class CloudflareKV:
     async def delete(self, name: str) -> None:
         await self._binding.delete(name)
 
+    async def list(self, options: dict[str, str] | None = None) -> dict[str, Any]:
+        prefix = (options or {}).get("prefix", "")
+        value = await self._binding.list(_options(prefix=prefix))
+        converted = value.to_py() if hasattr(value, "to_py") else value
+        if isinstance(converted, dict):
+            return converted
+        keys = getattr(value, "keys", ())
+        return {"keys": [
+            {"name": str(getattr(item, "name", ""))} for item in keys
+        ]}
+
 
 class StoreNotConfigured(RuntimeError):
     """The Worker has no key store bound, and a request needed one."""
@@ -134,6 +153,9 @@ class UnboundKV:
         raise self._refuse()
 
     async def delete(self, name: str) -> None:
+        raise self._refuse()
+
+    async def list(self, options: dict[str, str] | None = None) -> dict[str, Any]:
         raise self._refuse()
 
 

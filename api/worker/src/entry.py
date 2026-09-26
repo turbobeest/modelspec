@@ -8,9 +8,9 @@ What is left here is transport: route, read the body, fetch the published
 export, read the determination store, serialise, and report the deployed
 version.
 
-Four endpoints, and they differ in one way that matters. `POST /v1/rank`,
-`POST /v1/decide`, and `POST /v1/compare` hold
-no private data at all. `POST /v1/policy-check` (MODEL-80) answers from the
+The decision endpoints differ in one way that matters. `POST /v1/rank`,
+`POST /v1/decide`, and `POST /v1/compare` hold no private data at all.
+`POST /v1/policy-check` (MODEL-80) answers from the
 public export *plus*, for an entitled caller, the policy determinations — which
 are the paid product, are never in this repository, and reach the Worker only
 through Workers KV, staged by `api/worker/load_determinations.py`. See
@@ -18,7 +18,12 @@ through Workers KV, staged by `api/worker/load_determinations.py`. See
 one place a request is granted the private store, and it grants it by the tier
 MODEL-69's access gate resolved from a presented key.
 
-All POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
+`POST /v1/signals` (MODEL-113) is a separate intake path. It authenticates the
+exact body with a Grok Bot HMAC secret and writes a pending record to the
+existing `ACCESS` KV namespace. Its read and acknowledgement routes require a
+different secret held only by the repository workflow. The feature ships off.
+
+All decision POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
 after the body is read and before any export is fetched. It ships with
 enforcement OFF (`ACCESS_ENFORCED`): an unkeyed request is answered exactly as
 before, a presented key is checked, metered and served per its tier, and a bad
@@ -59,6 +64,7 @@ import credits
 import kv_value
 import policy_service
 import rank_service as service
+import signals_service
 import x402
 from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
 from js import fetch
@@ -79,6 +85,9 @@ DECISION_SNAPSHOT_PATH = "/api/decision/snapshot.json.gz"
 #: comparison requests report ``comparison_snapshot_unavailable`` on its 404.
 DECISION_HISTORY_TEMPLATE = "/api/decision/snapshots/{snapshot_id}.json.gz"
 SNAPSHOT_KEY_VAR = "MODELSPEC_SNAPSHOT_KEY"
+SIGNALS_ENABLED_VAR = "SIGNALS_ENABLED"
+SIGNALS_HMAC_SECRET_VAR = "SIGNALS_HMAC_SECRET"
+SIGNALS_READ_KEY_VAR = "SIGNALS_READ_KEY"
 
 #: KV keys holding the private determinations, staged by
 #: `api/worker/load_determinations.py`. The manifest is read first and verified
@@ -109,6 +118,7 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 ACCEPTED_ENDPOINTS = (
     "POST /v1/rank", "POST /v1/decide", "POST /v1/compare",
     "POST /v1/policy-check", "GET /v1/health",
+    "POST /v1/signals", "GET /v1/signals/pending", "POST /v1/signals/ack",
     "GET /v1/credits",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
@@ -507,6 +517,8 @@ class Default(WorkerEntrypoint):
             if method not in ("GET", "HEAD"):
                 return self._method_not_allowed(service_commit, path, "GET", method)
             return await self._health(service_commit, origin)
+        if path == "/v1/signals" or path.startswith("/v1/signals/"):
+            return await self._signals(request, path, method, service_commit)
         if path.startswith("/v1/billing/"):
             return await self._billing(request, path, method, service_commit)
         if path == "/v1/credits":
@@ -748,6 +760,55 @@ class Default(WorkerEntrypoint):
                 return tier
 
         return limits_for
+
+    async def _signals(self, request, path: str, method: str, service_commit: str):
+        """Release-signal intake and the repository-only pending queue."""
+        flag = signals_service.enabled(getattr(self.env, SIGNALS_ENABLED_VAR, None))
+        if not flag:
+            outcome = signals_service._error(
+                404, "not_found", "release-signal intake is disabled"
+            )
+        elif path == "/v1/signals":
+            if method != "POST":
+                return self._method_not_allowed(service_commit, path, "POST", method)
+            raw = (await request.text()).encode("utf-8")
+            outcome = await signals_service.intake(
+                raw=raw,
+                signature=request.headers.get("x-modelspec-signature"),
+                secret=str(getattr(self.env, SIGNALS_HMAC_SECRET_VAR, "") or "").encode(),
+                enabled=True,
+                kv=_access_store(self.env),
+            )
+        elif path == "/v1/signals/pending":
+            if method != "GET":
+                return self._method_not_allowed(service_commit, path, "GET", method)
+            outcome = await signals_service.pending(
+                authorization=request.headers.get("authorization"),
+                read_key=str(getattr(self.env, SIGNALS_READ_KEY_VAR, "") or "") or None,
+                kv=_access_store(self.env),
+                today=datetime.now(UTC).date(),
+            )
+        elif path == "/v1/signals/ack":
+            if method != "POST":
+                return self._method_not_allowed(service_commit, path, "POST", method)
+            try:
+                payload = json.loads(await request.text())
+            except ValueError as exc:
+                outcome = signals_service._error(
+                    400, "invalid_request", f"the body is not valid JSON: {exc}"
+                )
+            else:
+                outcome = await signals_service.acknowledge(
+                    authorization=request.headers.get("authorization"),
+                    read_key=str(getattr(self.env, SIGNALS_READ_KEY_VAR, "") or "") or None,
+                    kv=_access_store(self.env),
+                    payload=payload,
+                    today=datetime.now(UTC).date(),
+                )
+        else:
+            outcome = signals_service._error(404, "not_found", f"no endpoint at {path}")
+        outcome.body["service_commit"] = service_commit
+        return _json_response(outcome.status, outcome.body)
 
     def _x402_wrap(self, produce, request, path, api_key, envelope, payload, trace, *,
                    keyed: bool, produce_unfunded=None):

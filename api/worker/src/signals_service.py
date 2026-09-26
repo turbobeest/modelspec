@@ -1,0 +1,184 @@
+"""Authenticated release-signal storage for the Cloudflare Worker (MODEL-113)."""
+
+from __future__ import annotations
+
+import hmac
+import json
+from dataclasses import dataclass
+from datetime import UTC, date, datetime, timedelta
+from typing import Any
+
+from release_signals.contract import ReleaseSignal, SignalError
+
+SCHEMA_VERSION = "1"
+PENDING_PREFIX = "release-signals/v1/pending/"
+AUDIT_PREFIX = "release-signals/v1/audit/"
+RECHECK_PREFIX = "release-signals/v1/recheck/"
+MAX_AGE = timedelta(hours=24)
+MAX_FUTURE_SKEW = timedelta(minutes=5)
+MAX_BODY_BYTES = 4096
+
+
+@dataclass(frozen=True)
+class Outcome:
+    status: int
+    body: dict[str, Any]
+
+
+def enabled(value: object) -> bool:
+    return str(value or "").strip().casefold() not in {"", "0", "false", "no", "off"}
+
+
+def _error(status: int, code: str, message: str) -> Outcome:
+    return Outcome(status, {
+        "schema_version": SCHEMA_VERSION,
+        "endpoint": "signals",
+        "error": {"code": code, "message": message},
+    })
+
+
+def _authorised(authorization: str | None, read_key: str | None) -> bool:
+    if not read_key or not authorization:
+        return False
+    scheme, separator, value = authorization.partition(" ")
+    return separator == " " and scheme.casefold() == "bearer" and hmac.compare_digest(
+        value.strip(), read_key
+    )
+
+
+async def intake(
+    *,
+    raw: bytes,
+    signature: str | None,
+    secret: bytes,
+    enabled: bool,
+    kv: Any,
+    now: datetime | None = None,
+) -> Outcome:
+    if not enabled:
+        return _error(404, "not_found", "release-signal intake is disabled")
+    if kv is None:
+        return _error(503, "store_unavailable", "the release-signal store is not bound")
+    if not secret:
+        return _error(503, "secret_unavailable", "the release-signal secret is not configured")
+    if len(raw) > MAX_BODY_BYTES:
+        return _error(413, "payload_too_large", f"the body must be at most {MAX_BODY_BYTES} bytes")
+    try:
+        signal = ReleaseSignal.from_signed_body(raw, signature, secret)
+    except SignalError as exc:
+        return _error(401 if "signature" in str(exc) else 400, "invalid_signal", str(exc))
+    observed = (now or datetime.now(UTC)).astimezone(UTC)
+    if observed - signal.instant > MAX_AGE or signal.instant - observed > MAX_FUTURE_SKEW:
+        return _error(400, "stale_signal", "timestamp is outside the accepted intake window")
+
+    key = PENDING_PREFIX + signal.signal_id
+    serialised = json.dumps(signal.to_dict(), separators=(",", ":"), sort_keys=True)
+    existing = await kv.get(key)
+    if existing is not None:
+        if str(existing) != serialised:
+            return _error(409, "signal_id_conflict", "signal_id already names another payload")
+        return Outcome(200, {
+            "schema_version": SCHEMA_VERSION,
+            "endpoint": "signals",
+            "status": "duplicate",
+            "signal_id": signal.signal_id,
+        })
+    await kv.put(key, serialised)
+    return Outcome(202, {
+        "schema_version": SCHEMA_VERSION,
+        "endpoint": "signals",
+        "status": "accepted",
+        "signal_id": signal.signal_id,
+    })
+
+
+async def _keys(kv: Any, prefix: str) -> list[str]:
+    listed = await kv.list({"prefix": prefix})
+    rows = listed.get("keys", []) if isinstance(listed, dict) else getattr(listed, "keys", [])
+    names = []
+    for row in rows:
+        name = row.get("name") if isinstance(row, dict) else getattr(row, "name", None)
+        if name:
+            names.append(str(name))
+    return sorted(names)
+
+
+async def pending(
+    *, authorization: str | None, read_key: str | None, kv: Any, today: date
+) -> Outcome:
+    if not _authorised(authorization, read_key):
+        return _error(401, "unauthorised", "a valid signals read key is required")
+    if kv is None:
+        return _error(503, "store_unavailable", "the release-signal store is not bound")
+    signals = []
+    for key in await _keys(kv, PENDING_PREFIX):
+        raw = await kv.get(key)
+        if raw:
+            signals.append(json.loads(str(raw)))
+    rechecks = []
+    for key in await _keys(kv, RECHECK_PREFIX):
+        parts = key.removeprefix(RECHECK_PREFIX).split("/", 1)
+        if len(parts) != 2 or parts[0] > today.isoformat():
+            continue
+        raw = await kv.get(key)
+        if raw:
+            rechecks.append(json.loads(str(raw)))
+    return Outcome(200, {
+        "schema_version": SCHEMA_VERSION,
+        "endpoint": "signals.pending",
+        "signals": sorted(signals, key=lambda row: (row["timestamp"], row["signal_id"])),
+        "rechecks": rechecks,
+    })
+
+
+async def acknowledge(
+    *, authorization: str | None, read_key: str | None, kv: Any,
+    payload: dict[str, Any], today: date,
+) -> Outcome:
+    if not _authorised(authorization, read_key):
+        return _error(401, "unauthorised", "a valid signals read key is required")
+    if not isinstance(payload, dict):
+        return _error(400, "invalid_request", "the body must be a JSON object")
+    signal_id = str(payload.get("signal_id") or "")
+    recheck_due = str(payload.get("recheck_due") or "")
+    recheck_day = payload.get("recheck_day")
+    pending_key = PENDING_PREFIX + signal_id
+    source = await kv.get(pending_key)
+    recheck_key = f"{RECHECK_PREFIX}{recheck_due}/{signal_id}" if recheck_due else ""
+    recheck = await kv.get(recheck_key) if source is None and recheck_key else None
+    if source is None and recheck is not None:
+        source = json.dumps(json.loads(str(recheck))["signal"])
+    if not signal_id or source is None:
+        return _error(404, "signal_not_found", "the pending signal does not exist")
+    audit = {
+        "signal": json.loads(str(source)),
+        "processed_at": today.isoformat(),
+        "result": payload.get("result"),
+        "pr_url": payload.get("pr_url"),
+    }
+    audit_key = f"{AUDIT_PREFIX}{signal_id}/{today.isoformat()}/{recheck_day or 'initial'}"
+    await kv.put(audit_key, json.dumps(audit, separators=(",", ":")))
+    if recheck is None:
+        for days in (1, 7, 30):
+            due = (today + timedelta(days=days)).isoformat()
+            row = {
+                "signal_id": signal_id,
+                "due": due,
+                "day": days,
+                "pr_url": payload.get("pr_url"),
+                "signal": audit["signal"],
+            }
+            await kv.put(
+                f"{RECHECK_PREFIX}{due}/{signal_id}",
+                json.dumps(row, separators=(",", ":")),
+            )
+        await kv.delete(pending_key)
+    else:
+        await kv.delete(recheck_key)
+    return Outcome(200, {
+        "schema_version": SCHEMA_VERSION,
+        "endpoint": "signals.ack",
+        "status": "acknowledged",
+        "signal_id": signal_id,
+        "recheck_days": [] if recheck is not None else [1, 7, 30],
+    })

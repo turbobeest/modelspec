@@ -80,6 +80,7 @@ info:
     /v1/decide: 65536
     /v1/compare: 65536
     /v1/policy-check: 262144
+    /v1/signals: 4096
 x-modelspec-access:
   status: wired; enforcement off
   ticket: MODEL-69
@@ -685,6 +686,93 @@ paths:
                 oneOf:
                 - $ref: '#/components/schemas/DeterminationsUnavailable'
                 - $ref: '#/components/schemas/AccessRefused'
+  /v1/signals:
+    post:
+      operationId: releaseSignalIntake
+      summary: Accept an HMAC-authenticated Grok Bot release signal.
+      security:
+      - signalHmac: []
+      x-modelspec-probe: skip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseSignal'
+      responses:
+        '200':
+          description: The identical signal was already pending.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalMutation'
+        '202':
+          description: The signal was accepted into the pending queue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalMutation'
+        '400': &id004
+          description: The feature is off, authentication failed, the request is invalid, or storage is
+            unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalError'
+        '401': *id004
+        '404': *id004
+        '409': *id004
+        '413': *id004
+        '503': *id004
+        '405': &id005
+          description: Wrong method for this path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+  /v1/signals/pending:
+    get:
+      operationId: releaseSignalsPending
+      summary: List pending signals and due re-checks for repository automation.
+      security:
+      - signalReadKey: []
+      x-modelspec-probe: skip
+      responses:
+        '200':
+          description: Pending work, ordered deterministically.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalsPending'
+        '401': *id004
+        '404': *id004
+        '503': *id004
+        '405': *id005
+  /v1/signals/ack:
+    post:
+      operationId: releaseSignalAcknowledge
+      summary: Audit completed work and schedule or finish its re-checks.
+      security:
+      - signalReadKey: []
+      x-modelspec-probe: skip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignalAcknowledgement'
+      responses:
+        '200':
+          description: The work was audited and acknowledged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalMutation'
+        '400': *id004
+        '401': *id004
+        '404': *id004
+        '503': *id004
+        '405': *id005
   /v1/billing/checkout:
     post:
       operationId: billingCheckout
@@ -1663,6 +1751,15 @@ components:
       in: header
       name: X-API-Key
       description: 'X-API-Key: <key>. Never in the query string.'
+    signalHmac:
+      type: apiKey
+      in: header
+      name: X-ModelSpec-Signature
+      description: sha256=<HMAC-SHA256 of the exact request bytes>.
+    signalReadKey:
+      type: http
+      scheme: bearer
+      description: Repository-only key for pending and acknowledgement automation.
   schemas:
     AccessRefused:
       type: object
@@ -4670,12 +4767,12 @@ components:
         model:
           type: string
           pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
-        provider: &id004
+        provider: &id006
           anyOf:
           - type: string
           - type: 'null'
-        region: *id004
-        tier: *id004
+        region: *id006
+        tier: *id006
     ComparisonOfferingChange:
       type: object
       additionalProperties: false
@@ -4713,8 +4810,8 @@ components:
               - type: string
             type: array
           - type: 'null'
-        unit: *id004
-        records: &id005
+        unit: *id006
+        records: &id007
           type: array
           items:
             type: string
@@ -4729,8 +4826,8 @@ components:
         value:
           type: number
           nullable: true
-        unit: *id004
-        records: *id005
+        unit: *id006
+        records: *id007
     ComparisonCapabilityValue:
       type: object
       additionalProperties: false
@@ -4747,7 +4844,7 @@ components:
             type: number
           minItems: 2
           maxItems: 2
-        records: *id005
+        records: *id007
     ComparisonFacetChange:
       type: object
       additionalProperties: false
@@ -4764,7 +4861,7 @@ components:
           - facet
         facet:
           type: string
-        offering: &id006
+        offering: &id008
           oneOf:
           - $ref: '#/components/schemas/ComparisonOfferingRef'
           - $ref: '#/components/schemas/ComparisonOfferingChange'
@@ -4785,7 +4882,7 @@ components:
           type: string
           enum:
           - cost_per_task
-        offering: *id006
+        offering: *id008
         old:
           $ref: '#/components/schemas/ComparisonCostValue'
         new:
@@ -4806,7 +4903,7 @@ components:
           - capability
         domain:
           type: string
-        offering: *id006
+        offering: *id008
         old:
           $ref: '#/components/schemas/ComparisonCapabilityValue'
         new:
@@ -4901,7 +4998,7 @@ components:
           - old
           - new
           properties:
-            old: &id007
+            old: &id009
               type: object
               additionalProperties: false
               required:
@@ -4911,8 +5008,8 @@ components:
                 id:
                   type: string
                   pattern: ^snap_[A-Za-z0-9:._-]+$
-                as_of: *id004
-            new: *id007
+                as_of: *id006
+            new: *id009
         status:
           type: object
           additionalProperties: false
@@ -5474,7 +5571,7 @@ components:
       properties:
         checks:
           type: array
-          items: &id008
+          items: &id010
             $ref: '#/components/schemas/PolicyCheck'
         display_name:
           type: string
@@ -5548,7 +5645,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id008
+          items: *id010
         display_name:
           type: string
         failed:
@@ -5607,7 +5704,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id008
+          items: *id010
         display_name:
           type: string
         model_id:
@@ -6588,3 +6685,148 @@ components:
           type: array
           items: {}
           maxItems: 0
+    ReleaseSignal:
+      title: ModelSpec release signal v1
+      type: object
+      additionalProperties: false
+      required:
+      - model_name
+      - provider
+      - first_seen_url
+      - timestamp
+      - confidence
+      - signal_id
+      properties:
+        model_name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 300
+        first_seen_url:
+          type: string
+          format: uri
+          pattern: ^https://(www\.)?(x\.com|twitter\.com)/
+        timestamp:
+          type: string
+          format: date-time
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        signal_id: &id011
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$
+    SignalAcknowledgement:
+      type: object
+      additionalProperties: false
+      required:
+      - signal_id
+      - result
+      properties:
+        signal_id: *id011
+        result:
+          type: string
+          nullable: true
+        pr_url:
+          type: string
+          nullable: true
+          format: uri
+        recheck_due:
+          type: string
+          format: date
+        recheck_day:
+          type: integer
+          enum:
+          - 1
+          - 7
+          - 30
+    SignalMutation:
+      type: object
+      required:
+      - schema_version
+      - service_commit
+      - endpoint
+      - status
+      - signal_id
+      properties:
+        schema_version:
+          type: string
+          enum:
+          - '1'
+        service_commit:
+          type: string
+        endpoint:
+          type: string
+        status:
+          type: string
+          enum:
+          - accepted
+          - duplicate
+          - acknowledged
+        signal_id: *id011
+        recheck_days:
+          type: array
+          items:
+            type: integer
+            enum:
+            - 1
+            - 7
+            - 30
+    SignalsPending:
+      type: object
+      required:
+      - schema_version
+      - service_commit
+      - endpoint
+      - signals
+      - rechecks
+      properties:
+        schema_version:
+          type: string
+          enum:
+          - '1'
+        service_commit:
+          type: string
+        endpoint:
+          type: string
+          enum:
+          - signals.pending
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReleaseSignal'
+        rechecks:
+          type: array
+          items:
+            type: object
+    SignalError:
+      type: object
+      required:
+      - schema_version
+      - service_commit
+      - endpoint
+      - error
+      properties:
+        schema_version:
+          type: string
+          enum:
+          - '1'
+        service_commit:
+          type: string
+        endpoint:
+          type: string
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string

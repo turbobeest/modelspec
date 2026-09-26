@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modelspec.dev/schemas/release-signal-v1.schema.json",
+  "title": "ModelSpec release signal v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "model_name",
+    "provider",
+    "first_seen_url",
+    "timestamp",
+    "confidence",
+    "signal_id"
+  ],
+  "properties": {
+    "model_name": {"type": "string", "minLength": 1, "maxLength": 300},
+    "provider": {"type": "string", "minLength": 1, "maxLength": 300},
+    "first_seen_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://(www\\.)?(x\\.com|twitter\\.com)/"
+    },
+    "timestamp": {"type": "string", "format": "date-time"},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "signal_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    }
+  }
+}
