@@ -6,6 +6,7 @@ import json
 from datetime import date
 from pathlib import Path
 
+import yaml
 from typer.testing import CliRunner
 
 from cli.modelspec import cli as cli_mod
@@ -326,6 +327,13 @@ def test_recall_approval_guard_covers_answers_and_approval_record() -> None:
     assert result.details == sorted(changed)
 
 
+def test_recall_approval_guard_does_not_cover_ratchet_documentation() -> None:
+    result = accuracy.check_recall_approval(["tests/recall/RATCHET.md"], labels=[])
+
+    assert result.status == "pass"
+    assert result.details == []
+
+
 def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
     report = accuracy.AccuracyReport(
         generated_at="2026-09-25T12:00:00Z",
@@ -477,6 +485,8 @@ def test_reference_correlation_is_null_when_two_ranks_cannot_be_compared() -> No
 
 def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
     pr = Path(".github/workflows/accuracy.yml").read_text()
+    pr_workflow = yaml.load(pr, Loader=yaml.BaseLoader)
+    pr_paths = pr_workflow["on"]["pull_request"]["paths"]
     nightly = Path(".github/workflows/accuracy-nightly.yml").read_text()
     refresh = Path(".github/workflows/leaderboard-refresh.yml").read_text()
 
@@ -500,7 +510,7 @@ def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
     assert "git merge-base" in pr
     assert "--approved-recall-baseline" in pr
     assert 'cp tests/recall/baseline.json' not in pr
-    assert 'scripts/recall_run.py' in pr
+    assert "scripts/recall_run.py" in pr_paths
     assert "Decision accuracy" in refresh
     assert "gh run watch" in refresh
     assert refresh.index("gh run watch") < refresh.index("gh pr merge --auto --squash")

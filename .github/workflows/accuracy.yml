@@ -11,6 +11,7 @@ on:
       - 'verification/**'
       - 'tests/recall/**'
       - 'scripts/accuracy.py'
+      - 'scripts/recall_run.py'
       - 'accuracy.yaml'
       - '.github/workflows/accuracy.yml'
 
