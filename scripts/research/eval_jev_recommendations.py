@@ -35,10 +35,10 @@ from scripts.attribution import TypeSafeJudge, load_config
 
 ROOT = Path(__file__).resolve().parents[2]
 TASK_LABELS = ROOT / "tests/fixtures/jev_task_routing.yaml"
-BLIND_TASK_LABELS = ROOT / "tests/fixtures/jev_task_routing_blind.yaml"
+BLIND_TASK_LABELS = ROOT / "tests/fixtures/jev_task_routing_blind_round5.yaml"
 JUDGMENT_LABELS = ROOT / "tests/fixtures/jev_judgment_labels.yaml"
 BLIND_ATTRIBUTION_LABELS = ROOT / "tests/fixtures/jev_evidence_attribution_blind.yaml"
-FROZEN_SOURCE_COPIES = ROOT / "tests/fixtures/jev_source_copies"
+FROZEN_SOURCE_EXCERPTS = ROOT / "tests/fixtures/jev_source_excerpts.yaml"
 VOCABULARY = ROOT / "web/src/decide/__fixtures__/vocabulary.json"
 FIXTURE_URL = (
     "https://github.com/turbobeest/modelspec/blob/main/tests/fixtures/verification/leaderboard.html"
@@ -375,18 +375,37 @@ def _benchmark_version(benchmark_id: str) -> str | None:
     return None
 
 
+class FrozenExcerptStore(CopyStore):
+    """Map production snapshot refs to the minimal cited text used by this study."""
+
+    def __init__(self, fixture: Path) -> None:
+        self.root = fixture.parent
+        payload = yaml.safe_load(fixture.read_text(encoding="utf-8"))
+        rows = payload.get("excerpts") if isinstance(payload, dict) else None
+        if not isinstance(rows, list) or not rows:
+            raise ValueError(f"no frozen source excerpts in {fixture}")
+        self._bodies: dict[str, bytes] = {}
+        for index, row in enumerate(rows):
+            if not isinstance(row, dict):
+                raise ValueError(f"{fixture}: excerpts[{index}] is not an object")
+            snapshot_ref = str(row.get("snapshot_ref") or "")
+            body = str(row.get("text") or "").encode()
+            if fingerprint_bytes(body) != row.get("excerpt_ref"):
+                raise ValueError(f"frozen source excerpt hash mismatch: {snapshot_ref}")
+            if snapshot_ref in self._bodies:
+                raise ValueError(f"duplicate frozen snapshot ref: {snapshot_ref}")
+            self._bodies[snapshot_ref] = body
+
+    def get(self, ref: str) -> bytes:
+        return self._bodies[ref]
+
+    def has(self, ref: str) -> bool:
+        return ref in self._bodies
+
+
 def frozen_evidence_store() -> CopyStore:
-    """Return the committed source copies after checking their content addresses."""
-    store = CopyStore(FROZEN_SOURCE_COPIES)
-    copies = [path for path in FROZEN_SOURCE_COPIES.rglob("*") if path.is_file()]
-    if not copies:
-        raise ValueError(f"no frozen source copies in {FROZEN_SOURCE_COPIES}")
-    for path in copies:
-        expected = f"sha256:{path.name}"
-        actual = fingerprint_bytes(path.read_bytes())
-        if actual != expected:
-            raise ValueError(f"frozen source copy hash mismatch: {path}")
-    return store
+    """Return hash-checked factual excerpts keyed by their source snapshot refs."""
+    return FrozenExcerptStore(FROZEN_SOURCE_EXCERPTS)
 
 
 def _evidence_state(

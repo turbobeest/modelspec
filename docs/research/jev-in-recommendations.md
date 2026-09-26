@@ -5,8 +5,9 @@
 ## Decision
 
 Jev should not replace `parseRealTask`, enter `/v1/decide`, or become verification's
-second key. It did not improve task-to-spec accuracy and it failed to confirm prose
-claims that the existing two-key process had verified.
+second key. It led the 60-case blind routing comparison but reached only 61.7% joint
+exact accuracy, and it failed to confirm prose claims that the existing two-key
+process had verified.
 
 Jev also must not attribute numeric Evidence. On the independently labelled blind
 set it rejected all 27 verified rows and missed two of 25 constructed hard negatives.
@@ -96,17 +97,23 @@ is an experiment measurement, not an offering speed fact.
 
 ### Label sets
 
-Two independent blind sets were committed before either paid arm saw them:
+The decision-bearing blind sets were committed before either paid arm saw them:
 
-- `tests/fixtures/jev_task_routing_blind.yaml`, commit `0ba6aa0b`: 24 new task
-  descriptions labelled from the accepted domain and class registries. The set
-  separates explicit conditions from words such as “large” and “lengthy.”
+- `tests/fixtures/jev_task_routing_blind_round5.yaml`, commit `cd6517c8`: 60 new,
+  unique task descriptions labelled from the accepted domain and class registries.
+  None occurs in the tuned set or the earlier 24-case pilot. The set separates
+  explicit conditions from words such as “huge,” “long,” “local,” and “open.”
 - `tests/fixtures/jev_evidence_attribution_blind.yaml`, commit `1ce5b452`: 27 real
   Evidence claims already verified by the two-key process, all 9 available real
   mismatches, and 25 one-field hard negatives constructed from verified claims.
   The mutations cover sibling model variants, benchmark version, effort, harness,
   and unit. Every case loads the retained cited region, registered source URL, and
   verification date.
+
+The Evidence tests keep only the factual cited text they exercise in
+`tests/fixtures/jev_source_excerpts.yaml`. Each of its 17 entries records the source
+URL, retrieval date, production snapshot hash, region ID, and an independent hash of
+the short committed text. Complete third-party page copies are not redistributed.
 
 The earlier task-routing set is **tuned, not blind**. Its labels changed after paid
 inference: six Q01/Q09 cases were corrected after the first run, then Q08b and Q08c
@@ -167,19 +174,20 @@ to a result row.
 
 #### Blind holdout
 
-The independently labelled 24-case holdout is the decision-bearing routing result.
+The independently labelled 60-case round-5 holdout is the decision-bearing routing
+result. The earlier 24-case pilot is superseded and is not used in this table.
 “Conditions” means the exact four-condition set, not per-condition accuracy.
 
 | arm | domain | class | conditions | all exact | p50 | p95 | total cost | $ / 1,000 exact |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Jev | **75.0%** | 62.5% | **100%** | **41.7%** | 197 ms | 245 ms | $0.001631 | $0.163 |
-| `gpt-5-mini` | **75.0%** | 54.2% | **100%** | 33.3% | 6,889 ms | 9,825 ms | $0.045533 | $5.692 |
-| `parseRealTask` | 58.3% | **70.8%** | 79.2% | 33.3% | <0.1 ms | 1.1 ms | $0 | $0 |
+| Jev | **86.7%** | **75.0%** | **100%** | **61.7%** | 189 ms | 245 ms | $0.004084 | $0.110 |
+| `gpt-5-mini` | 71.7% | 60.0% | 81.7% | 51.7% | 6,651 ms | 10,875 ms | $0.092587 | $2.987 |
+| `parseRealTask` | 43.3% | 68.3% | 81.7% | 26.7% | <0.1 ms | 0.2 ms | $0 | $0 |
 
-Jev remained far below a usable task-to-Spec threshold. Six of its nine `act`
-answers were jointly correct; the `flag` band was 2/4 and `null` was 2/11. Keep the
-deterministic parser while improving it against the holdout; do not add either paid
-arm to `/v1/decide`.
+Jev led every arm but remained far below a usable task-to-Spec threshold. Eighteen of
+its 20 `act` answers were jointly correct; the `flag` band was 11/22 and `null` was
+8/18. Keep the deterministic parser while improving it against the holdout; do not
+add either paid arm to `/v1/decide`.
 
 #### Earlier tuned set
 
@@ -265,17 +273,18 @@ regenerate the sentence; it must never rewrite the evidence or invent a replacem
 
 ## Spend
 
-Seven paid runs were made. Three were superseded after the harness exposed a missing
+Eight paid runs were made. Three were superseded after the harness exposed a missing
 registry description, an LLM reply shape that did not match the established harness,
 and an output ceiling below the established 4,000-token baseline. Their costs remain
-in the total. The final two runs used the independently committed blind sets.
+in the total. The round-5 routing run used the separately committed 60-case set and
+cost $0.086302 as billed, or $0.096670 at list price.
 
 | charge | amount |
 | --- | ---: |
-| OpenRouter provider-reported cost | $0.705176 |
-| Jev, actual input tokens at the posted price | $0.034828 |
-| **Actual total** | **$0.740004** |
-| Conservative list-price ledger | $0.815344 |
+| OpenRouter provider-reported cost | $0.787395 |
+| Jev, actual input tokens at the posted price | $0.038912 |
+| **Actual total** | **$0.826306** |
+| Conservative list-price ledger | $0.912014 |
 | Spend cap | $5.00 |
 
 The provider-reported total plus Jev's token charge is the actual spend. The larger
@@ -287,7 +296,7 @@ appear in the attribution comparison but not in MODEL-112 spend.
 
 - The tuned task set has 60 authored descriptions, not live traffic. The three
   phrasings per recall question are related observations. The independent routing
-  holdout has 24 authored descriptions.
+  holdout has 60 authored descriptions.
 - The exact Evidence-attribution blind set has only 27 positives because it uses
   retained production Evidence whose two-key outcome was already verified. It is
   not a representative sample of all benchmarks or sources.
@@ -316,7 +325,7 @@ published; a failure only suppresses the sentence.
 
 ### Decide: extend and test `parseRealTask`
 
-Scope: use the 60 tuned routing labels as regression tests and the frozen 24-case
+Scope: use the 60 tuned routing labels as regression tests and the frozen 60-case
 holdout for the classes and conditions the parser misses. Add separate cases for
 numeric price caps and device fit.
 

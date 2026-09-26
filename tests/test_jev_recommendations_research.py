@@ -103,25 +103,75 @@ def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
     assert len(blind_cases) == 61
     assert len(second_key) == 21
     store = research.frozen_evidence_store()
-    copies = [path for path in research.FROZEN_SOURCE_COPIES.rglob("*") if path.is_file()]
-    assert copies
-    for path in copies:
-        ref = f"sha256:{path.name}"
-        assert store.has(ref)
-        assert fingerprint_bytes(store.get(ref)) == ref
+    fixture = yaml.safe_load(research.FROZEN_SOURCE_EXCERPTS.read_text(encoding="utf-8"))
+    sources = research.load_sources(research.ROOT / "registry/sources.yaml")
+    blind_labels = yaml.safe_load(research.BLIND_ATTRIBUTION_LABELS.read_text(encoding="utf-8"))
+    judgment_labels = yaml.safe_load(research.JUDGMENT_LABELS.read_text(encoding="utf-8"))
+    claims, _ = research._claims_and_latest()
+    selected_targets = {
+        *(f"evidence:{target}" for target in blind_labels["positive_targets"]),
+        *(f"evidence:{target}" for target in blind_labels["negative_targets"]),
+        *(row["target"] for row in judgment_labels["second_key"]["cases"]),
+    }
+    selected_refs = {
+        source_ref["snapshot_ref"]
+        for target in selected_targets
+        for source_ref in claims[target]["sources"]
+    }
+
+    assert len(fixture["excerpts"]) == 17
+    assert {row["snapshot_ref"] for row in fixture["excerpts"]} == selected_refs
+    for row in fixture["excerpts"]:
+        source = sources[row["source_id"]]
+        assert row["source_url"] == str(source.url)
+        assert row["retrieved_at"]
+        assert row["region_id"] in {region.id for region in source.cited_regions}
+        assert row["snapshot_ref"].startswith("sha256:")
+        assert store.has(row["snapshot_ref"])
+        assert fingerprint_bytes(store.get(row["snapshot_ref"])) == row["excerpt_ref"]
+        assert len(row["text"].split()) <= 90
 
 
 def test_blind_routing_labels_are_separate_and_do_not_infer_conditions() -> None:
-    cases = research.blind_task_cases()
+    blind_labels = yaml.safe_load(
+        (research.ROOT / "tests/fixtures/jev_task_routing_blind_round5.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    tuned_labels = yaml.safe_load(research.TASK_LABELS.read_text(encoding="utf-8"))
+    prior_blind_labels = yaml.safe_load(
+        (research.ROOT / "tests/fixtures/jev_task_routing_blind.yaml").read_text(encoding="utf-8")
+    )
 
-    assert len(cases) == 24
+    assert len(blind_labels["cases"]) == 60
+    assert len({row["text"] for row in blind_labels["cases"]}) == 60
+    assert {row["text"] for row in blind_labels["cases"]}.isdisjoint(
+        {row["text"] for row in tuned_labels["cases"]}
+        | {row["text"] for row in prior_blind_labels["cases"]}
+    )
+    registry = research.default_registry()
+    registered_domains = {row.id for row in registry.domains()} | {research.NO_MATCH}
+    class_facet = registry.facet("model.class")
+    registered_classes = set(registry.allowed_values(class_facet) or ())
+    assert {row["domain"] for row in blind_labels["cases"]} <= registered_domains
+    assert {row["class"] for row in blind_labels["cases"]} <= registered_classes
+    assert {
+        condition for row in blind_labels["cases"] for condition in row.get("conditions", [])
+    } <= set(blind_labels["conditions"])
+
+    cases = research.task_cases(
+        research.ROOT / "tests/fixtures/jev_task_routing_blind_round5.yaml",
+        candidate="task_routing_blind",
+    )
+
+    assert len(cases) == 60
     assert all(case.candidate == "task_routing_blind" for case in cases)
     by_id = {case.id: case for case in cases}
-    assert by_id["B06"].expected["condition_context_200k"] is True
-    assert by_id["B07"].expected["condition_context_200k"] is False
-    assert by_id["B19"].expected["condition_low_latency"] is True
-    assert by_id["B20"].expected["condition_commercial_use"] is True
-    assert by_id["B21"].expected["condition_open_weights"] is True
+    assert by_id["C10"].expected["condition_context_200k"] is True
+    assert by_id["C11"].expected["condition_context_200k"] is False
+    assert by_id["C39"].expected["condition_low_latency"] is True
+    assert by_id["C43"].expected["condition_commercial_use"] is True
+    assert by_id["C37"].expected["condition_open_weights"] is True
 
 
 def test_attribution_uses_model_102_ingestion_outcomes() -> None:

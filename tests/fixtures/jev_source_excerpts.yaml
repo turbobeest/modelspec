@@ -1,0 +1,154 @@
+# MODEL-112 factual source excerpts used by the hermetic Evidence tests.
+# snapshot_ref identifies the retained page read during collection; excerpt_ref
+# fingerprints only the short cited text committed here. No complete page copy
+# or copyrightable surrounding material is retained.
+schema_version: 1
+excerpts:
+  - source_id: alibaba-model-studio-privacy
+    source_url: https://www.alibabacloud.com/help/en/model-studio/privacy-notice
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:15440ae237e7ba352f8d48e96ed944bd5874adf7dec7c43a2a10ad542c8ce7e1
+    region_id: page
+    excerpt_ref: sha256:ced50f0610fdb92705a4451113e97e83e15cc6c411a0138872e5d24abfeca7b9
+    text: |-
+      Alibaba Cloud strictly protects your data privacy and will never use your data for model training. All data transmitted during application building and model training is encrypted with AES-256.
+  - source_id: model-143-evidence-scale-hle-json
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    retrieved_at: "2026-09-24"
+    snapshot_ref: sha256:20a0462137a1e398914d4d97c90cea2a7aa2079598dee34931fa3db4c41101bd
+    region_id: rows
+    excerpt_ref: sha256:694e575c97c488d1cb679257e8df543101702b43cd2bbd3aa2eb2da9569b776a
+    text: |-
+      model,accuracy,date,effort
+      Fable 5.1,46.5,2026-09-03,xhigh
+      Claude Opus 4.6,34.44,2026-02-17,max
+      Claude Opus 4.7,36.2,2026-04-22,default
+      Gemini 3.1 Pro Preview,46.44,2026-04-10,high
+      Gemini 3.8 Flash,44.52,2026-09-09,default
+      Muse Spark,40.56,2026-04-08,default
+      GPT-5.4,36.24,2026-03-10,xhigh
+      GPT 6 Astra,54.8,2026-09-09,default
+  - source_id: model-160-tau-bench-claude-opus-4-7-sierra-2026-05-05
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-opus-4-7_sierra_2026-05-05/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:30df0599dd45109246461e3fdde8439468021683f2b5b97f391777394daa0ef7
+    region_id: rows
+    excerpt_ref: sha256:d4e85f37450ecd521d41616ee8711cb388ae8b156090a2119b3594070201dc6a
+    text: Claude Opus 4.7; banking pass_1 40.20618556701031%; maximum effort; evaluation date 2026-07-23.
+  - source_id: model-160-swebench-leaderboard
+    source_url: https://www.swebench.com/
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:3dbcb657e2fb5983b8c3b1e7e6313e5bee861690df4286fb0ab3d5fed065de42
+    region_id: rows
+    excerpt_ref: sha256:4a17069fb897a346e948525d34b45e11527c34cb0035055ef4a54e191ee7b17e
+    text: "Multilingual leaderboard: Claude 4.6 Opus; resolve rate 72.0%; 2026-02-13; mini-SWE-agent."
+  - source_id: model-160-tau-bench-claude-fable-5-sierra-2026-08-04
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-fable-5_sierra_2026-08-04/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:48cd62ae6ca1b65e6c089c7748433bcca36f1efd0ace4d2661ec132c02a10c5f
+    region_id: rows
+    excerpt_ref: sha256:e6b5a6995fb50eebe69d9af8bc0a1beec8f797684eb8fa37df353688db30f5ff
+    text: Claude Fable 5; banking pass_1 39.69072164948454%; maximum effort; evaluation date 2026-07-23.
+  - source_id: model-143-evidence-terminal-bench-4-0-json
+    source_url: https://www.tbench.ai/
+    retrieved_at: "2026-09-24"
+    snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+    region_id: rows
+    excerpt_ref: sha256:aeba20864cd2fdedc3c3faca27a6e417ba40fd78d5fd2c507f24f215e8687a96
+    text: |-
+      model,accuracy,date,effort,harness
+      Fable 5,44.55,2026-06-09,max,unregistered
+      Fable 5.1,57.88,2026-09-01,max,unregistered
+      Opus 5,51.82,2026-07-24,max,unregistered
+      Gemini 3.7 Flash,11.21,2026-08-13,high,unregistered
+      Gemini 3.8 Flash,19.09,2026-09-02,high,unregistered
+      GPT-5.6 Sol,37.27,2026-06-26,max,unregistered
+      GPT-6 Astra,58.18,2026-09-03,max,unregistered
+      Grok 4.7,37.58,2026-09-21,xhigh,unregistered
+      GLM-5.3,41.82,2026-08-14,max,unregistered
+  - source_id: model-160-tau-bench-kimi-k3-sierra-2026-08-04
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/kimi-k3_sierra_2026-08-04/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:66629ae2c914f7656ca3a7e34aefba9af62ea20349b13c5f657e605f272047b1
+    region_id: rows
+    excerpt_ref: sha256:b4d2c6d00e9c962efe7b719c9e39cf7e4ac851d339bf5fe1f392e9c2f92a343b
+    text: Kimi K3; banking pass_1 37.11340206185567%; maximum effort; evaluation date 2026-07-24.
+  - source_id: model-160-tau-bench-claude-opus-4-6-sierra-2026-05-05
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-opus-4-6_sierra_2026-05-05/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:6f1953b32240938b7540f8ee8f5e559c044e72bdc33b208eb10eb941126ea895
+    region_id: rows
+    excerpt_ref: sha256:105912cd583f167867d245911d7905a6dcdc9a02dda4448daa6ecb1f0e711529
+    text: Claude Opus 4.6; banking pass_1 27.32%; maximum effort; evaluation date 2026-05-06.
+  - source_id: model-160-tau-bench-glm-5-2-sierra-2026-08-04
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/glm-5-2_sierra_2026-08-04/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:767cf5acce455604026d1c2298c1ca6cf55a3bea419d16f060e201867fd0d0f5
+    region_id: rows
+    excerpt_ref: sha256:cc21f693d572ac07b693fcdc70d632415ea6f1a676ad7d056f5fdf91adaa09ac
+    text: GLM-5.2; banking pass_1 37.11340206185567%; extra-high effort; evaluation date 2026-07-24.
+  - source_id: model-158-anthropic-claude-fable-5-1-system-card
+    source_url: https://www.anthropic.com/claude-fable-5-1-system-card
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:7aa537ec09dd282f94919a8dd407403be66d1b482b50a36effe46a42213b01b9
+    region_id: terminal-bench-4-0
+    excerpt_ref: sha256:690b22749180716ec56d4dd6a415c408b55fed7e7a65b852b9cfcd4d8f9a934e
+    text: Claude Fable 5.1 scored 55.8% on Terminal-Bench 4.0. The reported number uses Claude Code in bare mode and maximum thinking effort.
+  - source_id: model-160-tau-bench-gpt-5-6-sol-sierra-2026-08-04
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/gpt-5-6-sol_sierra_2026-08-04/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:8963e1136c111a3cb24756b31649ba8a72d7db55e6b44fce450a1a61787a8576
+    region_id: rows
+    excerpt_ref: sha256:df77858972d96723069e06a81694284f55c83f9c3abeb0baea67d96da487ba55
+    text: GPT-5.6-sol; banking pass_1 46.90721649484536%; extra-high effort; evaluation date 2026-07-22.
+  - source_id: model-160-tau-bench-claude-opus-5-sierra-2026-08-04
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-opus-5_sierra_2026-08-04/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:9425d1115d1469ca5845a12e5a265cb261b2340ecc433bfb03d07a033762e17d
+    region_id: rows
+    excerpt_ref: sha256:0a0cebfe83b462f90a2f910f76ee8318b1f1112c677e4c0e9eddc33def773409
+    text: Claude Opus 5; banking pass_1 48.71134020618557%; maximum effort; evaluation date 2026-08-03.
+  - source_id: aws-retention
+    source_url: https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:c60eb45259e46806cf865f318d5ce5487ff8a83106ead45ace1b613953de06d9
+    region_id: page
+    excerpt_ref: sha256:50a4dd62881252e022d4fd10d1050321fe36a486c79372c3d5f533c0352324a8
+    text: Amazon Bedrock lets an account configure a retention mode. Zero data retention means request and response data is not written to durable storage; actual availability depends on each model's allowed modes.
+  - source_id: model-143-evidence-scale-hle-json
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    retrieved_at: "2026-09-24"
+    snapshot_ref: sha256:c7e558ff927cc7aae1ec9d39ba22de7b5db667674ea408c772002222c11818bd
+    region_id: rows
+    excerpt_ref: sha256:ec84d20f14311472100d754ab307af2e9510ee434d9c36621b539ced193f1cee
+    text: |-
+      model,accuracy,snapshot_read_date
+      GPT 6 Astra,54.8,2026-09-24
+      Fable 5.1 (xhigh),46.5,2026-09-24
+      Gemini 3.1 Pro Preview (high),46.44,2026-09-24
+      Gemini 3.8 Flash,44.52,2026-09-24
+      Muse Spark,40.56,2026-09-24
+      GPT-5.4 (xhigh),36.24,2026-09-24
+      Claude Opus 4.7,36.2,2026-09-24
+      Claude Opus 4.6 (max),34.44,2026-09-24
+  - source_id: zai-privacy
+    source_url: https://docs.z.ai/legal-agreement/privacy-policy.md
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:cb15c98d8a625c21f6c13313f7eaf69f3219274c92048fac0c96d07636ff3010
+    region_id: page
+    excerpt_ref: sha256:0e7715b533687e077f31f48799697d11d49ffc6d1f4b67e5aa0bca59086d55a9
+    text: The policy says public Internet information may be used to train models. It retains personal data as needed for its services and other stated purposes; retention periods vary by data and purpose.
+  - source_id: model-160-tau-bench-gemini-3-1-pro-preview-sierra-2026-05-05
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/gemini-3-1-pro-preview_sierra_2026-05-05/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:de09c9441b6a53a6372abc80ea59f28599d2864c93dc00746266372bffa838b8
+    region_id: rows
+    excerpt_ref: sha256:5aa314d5b8aa9af177af281f9c3421fa5b4ac76838c926027b9ed4773f4aa521
+    text: Gemini 3.1 Pro Preview; banking pass_1 26.03%; high effort; evaluation date 2026-05-05.
+  - source_id: model-160-tau-bench-gpt-5-4-sierra-2026-03-25
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/gpt-5-4_sierra_2026-03-25/submission.json
+    retrieved_at: "2026-09-25"
+    snapshot_ref: sha256:f8e1aaa03827b9372ec0fdc105b859c61c09b13125cb91be8714043ed6d0967d
+    region_id: rows
+    excerpt_ref: sha256:28103f619ce109e1d5f3304df5a3d215b3c2db37f5e6b2c2dd401ac1c7d917b2
+    text: GPT-5.4; banking pass_1 39.43%; extra-high effort; evaluation date 2026-05-06.
