@@ -39,6 +39,9 @@ export const evidenceItemSchema = z
     source: z.url(),
     source_snapshot: nullableString,
     directness: z.enum(["direct", "proxy"]),
+    loading: z.number().finite().nullable().optional(),
+    estimate_weight: z.number().min(0).max(1).nullable().optional(),
+    recency_weight: z.number().min(0).max(1).nullable().optional(),
   })
   .strict();
 
@@ -167,7 +170,7 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
-    contract_version: z.enum(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6"]),
+    contract_version: z.enum(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),

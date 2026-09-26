@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.6"
+CONTRACT_VERSION = "1.7"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1033,6 +1033,12 @@ class EvidenceItem(_Strict):
     source: Url
     source_snapshot: str | None = None
     directness: Directness
+    #: Directness loading used in the capability estimate. Added in 1.7.
+    loading: float | None = None
+    #: Share of the estimate's tagged measurement precision. Added in 1.7.
+    estimate_weight: float | None = None
+    #: Precision multiplier from the observation's age. Added in 1.7.
+    recency_weight: float | None = Field(default=None, ge=0, le=1)
 
     @model_validator(mode="after")
     def _one_harness(self) -> EvidenceItem:
@@ -1238,7 +1244,7 @@ class Decision(_Strict):
     number_origins: list[NumberOrigin] = Field(default_factory=list)
     #: Every source the number origins cite, once each. Added in 1.4.
     sources: list[CitedSource] = Field(default_factory=list)
-    contract_version: Literal["1.6"] = CONTRACT_VERSION
+    contract_version: Literal["1.7"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     spec_hash: SpecHash

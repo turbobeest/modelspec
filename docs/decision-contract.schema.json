@@ -508,8 +508,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.6",
-          "default": "1.6",
+          "const": "1.7",
+          "default": "1.7",
           "title": "Contract Version",
           "type": "string"
         },
@@ -790,6 +790,18 @@
           "default": null,
           "title": "Effort"
         },
+        "estimate_weight": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Weight"
+        },
         "harness": {
           "anyOf": [
             {
@@ -807,6 +819,18 @@
           "default": false,
           "title": "Harness Unregistered",
           "type": "boolean"
+        },
+        "loading": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loading"
         },
         "measured_by": {
           "enum": [
@@ -831,6 +855,20 @@
           ],
           "default": null,
           "title": "N"
+        },
+        "recency_weight": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recency Weight"
         },
         "record_id": {
           "anyOf": [
@@ -2827,5 +2865,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.6"
+  "x-contract-version": "1.7"
 }

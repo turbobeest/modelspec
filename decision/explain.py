@@ -122,7 +122,15 @@ def checked_record(snapshot, rid):
     return record
 
 
-def evidence_item(snapshot, row, domain):
+def evidence_item(
+    snapshot,
+    row,
+    domain,
+    *,
+    loading=None,
+    estimate_weight=None,
+    recency_weight=None,
+):
     record = checked_record(snapshot, row.record_id)
     if not row.verified or row.date is None or row.directness is None:
         raise ExplanationError(f"{row.record_id}: missing evidence date or domain directness")
@@ -149,6 +157,9 @@ def evidence_item(snapshot, row, domain):
         source_snapshot=row.source_snapshot,
         directness=row.directness,
         n=record.get("n"),
+        loading=loading,
+        estimate_weight=estimate_weight,
+        recency_weight=recency_weight,
     )
 
 
@@ -170,6 +181,42 @@ def domain_evidence(snapshot, cid, domains, benchmarks=None):
     return groups
 
 
+def estimate_evidence(snapshot, cid, domain):
+    """The tagged measurements that drove one stored capability estimate."""
+    from dataclasses import replace
+
+    items = []
+    model_id = snapshot.model_of(cid)
+    for driver in snapshot.capability_drivers(cid, domain):
+        rows = {
+            row.record_id: row
+            for candidate in snapshot.candidates()
+            if snapshot.model_of(candidate) == model_id
+            for row in snapshot.evidence(candidate, driver.benchmark_id)
+            if row.record_id == driver.record_id
+        }
+        if driver.record_id not in rows:
+            raise ExplanationError(
+                f"{driver.record_id}: capability driver is not retained evidence"
+            )
+        directness = dict(
+            snapshot.benchmark_domain_tags().get(driver.benchmark_id, ())
+        ).get(domain)
+        if directness is None:
+            raise ExplanationError(
+                f"{driver.record_id}: capability driver is not tagged for {domain}"
+            )
+        items.append(evidence_item(
+            snapshot,
+            replace(rows[driver.record_id], directness=directness),
+            domain,
+            loading=driver.loading,
+            estimate_weight=driver.weight,
+            recency_weight=driver.recency_weight,
+        ))
+    return items
+
+
 def part_provenance(snapshot, cid, part):
     """Records, unit and formula behind one objective dimension's raw value."""
     if part.evidence:
@@ -177,6 +224,25 @@ def part_provenance(snapshot, cid, part):
         for rid in records:
             checked_record(snapshot, rid)
         return records, part.evidence[0].unit, None
+    if part.estimate is not None:
+        domain = part.dimension.removeprefix("-")
+        records = [driver.record_id for driver in snapshot.capability_drivers(
+            cid, domain
+        )]
+        for rid in records:
+            checked_record(snapshot, rid)
+        directness = {
+            kind
+            for item in snapshot.capability_items.values()
+            for tagged_domain, kind in item.get("domains", ())
+            if tagged_domain == domain
+        }
+        formula = (
+            "proxy-only monotone domain evidence estimate"
+            if directness == {"proxy"}
+            else "monotone domain evidence estimate"
+        )
+        return records, "latent capability", formula
     if part.raw_value is not None:
         return fact_provenance(snapshot, cid, part.dimension.removeprefix("-"))
     return [], None, None
@@ -197,6 +263,8 @@ def contributions(snapshot, cid, parts, evidence):
     for part in parts:
         records, unit, formula = part_provenance(snapshot, cid, part)
         items = []
+        if part.estimate is not None:
+            items = estimate_evidence(snapshot, cid, part.dimension.removeprefix("-"))
         if part.evidence:
             items = _items(evidence, set(records))
             # A benchmark objective may have no requested domain. Do not invent

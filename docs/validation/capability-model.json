@@ -1,0 +1,72 @@
+{
+  "date": "2026-09-25",
+  "disagreements": [
+    {
+      "benchmark": "metr_time_horizon_80",
+      "directness": "direct",
+      "domain": "agentic_tool_use",
+      "estimate_top": "openai/gpt-6-astra",
+      "single_benchmark_date": "2026-04-15",
+      "single_benchmark_top": "google/gemini-3-1-pro-preview",
+      "sources": [
+        "https://metr.org/assets/benchmark_results_1_1.yaml"
+      ],
+      "supporting_direct_benchmarks": [
+        "terminal_bench_v4_0",
+        "vending_bench_2"
+      ]
+    },
+    {
+      "benchmark": "arena_sc_science",
+      "directness": "proxy",
+      "domain": "engineering_stem",
+      "estimate_top": "openai/gpt-6-astra",
+      "single_benchmark_date": "2026-09-13",
+      "single_benchmark_top": "anthropic/claude-fable-5",
+      "sources": [
+        "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet"
+      ],
+      "supporting_direct_benchmarks": [
+        "gpqa_diamond",
+        "hle"
+      ]
+    },
+    {
+      "benchmark": "metr_time_horizon_80",
+      "directness": "proxy",
+      "domain": "software_engineering",
+      "estimate_top": "anthropic/claude-opus-5-5",
+      "single_benchmark_date": "2026-04-15",
+      "single_benchmark_top": "google/gemini-3-1-pro-preview",
+      "sources": [
+        "https://metr.org/assets/benchmark_results_1_1.yaml"
+      ],
+      "supporting_direct_benchmarks": [
+        "cursorbench_4"
+      ]
+    }
+  ],
+  "domains": 12,
+  "holdout_cells": {
+    "cells": 345,
+    "model_rmse": 0.7059991608479196,
+    "naive_rmse": 1.1048513223026948
+  },
+  "holdout_newest": {
+    "cells": 20,
+    "model_rmse": 0.8326373702959886,
+    "naive_rmse": 1.2245095511923692
+  },
+  "items": 35,
+  "models": 32,
+  "not_separable_point_orders": 33,
+  "observations": 462,
+  "snapshot": "snap_be03a066f9c574aa",
+  "summary_latency_ms": {
+    "environment": "local Worker-equivalent Python decision path",
+    "max": 19.289666030090302,
+    "median": 13.659270975040272,
+    "runs": 12
+  },
+  "unestimated_point_orders": 1
+}

@@ -443,10 +443,48 @@ function rankedRow(
     names,
   );
   const selected = evidence.find((item) => item.b === spec.bench) ?? null;
-  if (selected === null)
+  const estimate = spec.domain
+    ? result.estimates?.find((item) => item.domain === spec.domain) ?? null
+    : null;
+  const estimatePart = estimate
+    ? result.contributions.find(
+        (item) => item.dimension.replace(/^-/, "") === estimate.domain,
+      )
+    : null;
+  const estimateItems = estimatePart?.evidence ?? [];
+  const provenance =
+    estimateItems[0] ?? result.evidence.flatMap((group) => group.items)[0];
+  if (selected === null && estimate === null)
     throw new Error(
       `${result.offering.model} has no sourced ${spec.bench} evidence in this decision`,
     );
+  if (estimate !== null && selected === null && provenance === undefined)
+    throw new Error(`${result.offering.model} has an estimate without sourced evidence`);
+  const estimateEvidence = estimate
+    ? {
+        b: spec.bench,
+        v: estimate.value,
+        ci: Math.max(
+          estimate.value - estimate.interval[0],
+          estimate.interval[1] - estimate.value,
+        ),
+        by: (estimateItems.length > 0 &&
+          estimateItems.every(
+            (item) => item.measured_by === "provider_self_report",
+          )
+            ? "lab"
+            : "indep") as Evidence["by"],
+        date:
+          estimateItems.map((item) => item.date).sort().at(-1) ??
+          selected?.date ??
+          provenance!.date,
+        effort: estimate.effort ?? "mixed",
+        harness: estimate.harness ?? "mixed",
+        who: "capability model",
+        src: estimateItems[0]?.source ?? selected?.src ?? provenance!.source,
+      }
+    : null;
+  const capability = estimateEvidence ?? selected!;
   const norm = {
     cap:
       result.contributions.find((item) => item.dimension.replace(/^-/, "") === spec.bench)
@@ -492,11 +530,11 @@ function rankedRow(
       cost: costPerTask(offering, spec),
     },
     dropAt: -1,
-    capR: selected,
-    cap: selected.v,
+    capR: capability,
+    cap: capability.v,
     cost: costPerTask(offering, spec),
     tps: offering.tps,
-    labOnly: selected.by === "lab",
+    labOnly: capability.by === "lab",
     rank: result.rank,
     score: parts.cap + parts.cost + parts.speed,
     parts,
@@ -693,7 +731,7 @@ export function mapDecisionToViewModel(
 ): AdapterDecision {
   const sources = sourceRecords(decision);
   const names: Names = { models: options.models ?? {}, providers: options.providers ?? {} };
-  const modelGrained = decision.contract_version === "1.6";
+  const modelGrained = ["1.6", "1.7"].includes(decision.contract_version);
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
     row: rankedRow(decision, result, spec, sources, names),
     hasOffering: result.offering.provider !== null,
@@ -764,6 +802,20 @@ export function mapDecisionToViewModel(
     ),
   );
   if (!benchmarks[spec.bench]) benchmarks[spec.bench] = benchmarkDefinition(decision, spec.bench);
+  if (
+    spec.domain &&
+    decision.results.some((result) =>
+      result.estimates?.some((item) => item.domain === spec.domain),
+    )
+  ) {
+    benchmarks[spec.bench] = {
+      unit: "capability score",
+      pct: false,
+      d: 2,
+      hi: true,
+      types: ALL_TYPES,
+    };
+  }
   const bench = benchmarks[spec.bench];
   const frontier = pareto(feasible, options.axis, bench.hi);
   const firstStep = decision.eliminated.funnel[0];

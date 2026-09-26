@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Literal
 from decision.contract import EvidenceQualifiers, Objective, Tolerance
 
 if TYPE_CHECKING:
-    from decision.snapshot import EvidenceValue, SnapshotIndex
+    from decision.snapshot import CapabilityEstimateValue, EvidenceValue, SnapshotIndex
 
 
 @dataclass(frozen=True)
@@ -78,6 +78,7 @@ class DimensionContribution:
     normalisation: Normalisation
     sources: tuple[str, ...] = ()
     evidence: tuple[EvidenceValue, ...] = ()
+    estimate: CapabilityEstimateValue | None = None
 
 
 @dataclass(frozen=True)
@@ -196,14 +197,22 @@ def _tipping_points(rows: list[OptimisedResult]) -> tuple[WeightTippingPoint, ..
 
 
 def _read(snapshot: SnapshotIndex, cid: str, facet: str,
-          selector: EvidenceSelector | None
-          ) -> tuple[float | None, tuple[str, ...], tuple[EvidenceValue, ...]]:
+          selector: EvidenceSelector | None, domains: set[str] | frozenset[str]
+          ) -> tuple[
+              float | None,
+              tuple[str, ...],
+              tuple[EvidenceValue, ...],
+              CapabilityEstimateValue | None,
+          ]:
+    if facet in domains and selector is None:
+        estimate = snapshot.capability_estimate(cid, facet)
+        return (None, (), (), None) if estimate is None else (estimate.value, (), (), estimate)
     if selector is None:
         fact = snapshot.fact(cid, facet)
         value = _number(fact.value) if fact.state == "known" else None
-        return value, fact.sources, ()
+        return value, fact.sources, (), None
     if selector.direct and not snapshot.direct_for(selector.benchmark_id, selector.domains):
-        return None, (), ()
+        return None, (), (), None
     evidence = snapshot.evidence(
         cid, selector.benchmark_id,
         measured_by=set(selector.measured_by) if selector.measured_by is not None else None,
@@ -213,9 +222,9 @@ def _read(snapshot: SnapshotIndex, cid: str, facet: str,
                and e.subcategory == selector.subcategory]
     # Multiple measurements need a resolver decision, not an implicit max or average.
     if len(matches) != 1:
-        return None, (), ()
+        return None, (), (), None
     item = matches[0]
-    return float(item.value), tuple(item.source_ids), (item,)
+    return float(item.value), tuple(item.source_ids), (item,), None
 
 
 def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Objective, *,
@@ -234,17 +243,27 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
     """
     dimensions = _dimensions(objective)
     selectors = evidence_selectors or {}
-    if any(signed.removeprefix("-") in domains
-           and signed.removeprefix("-") not in selectors for signed, _, _ in dimensions):
-        return Optimisation("no_feasible", (),
-                            "specify a benchmark or wait for the capability model (MODEL-129)")
+    estimate_lookup = getattr(snapshot, "capability_estimate", None)
+    for signed, _, _ in dimensions:
+        facet = signed.removeprefix("-")
+        if facet not in domains or facet in selectors:
+            continue
+        if estimate_lookup is None or not any(
+            estimate_lookup(cid, facet) is not None for cid in candidates
+        ):
+            return Optimisation(
+                "no_feasible", (),
+                "specify a benchmark or wait for the capability model (MODEL-129)",
+            )
     cids = sorted(set(candidates))
     contributions: dict[str, list[DimensionContribution]] = {cid: [] for cid in cids}
     for signed, weight, _ in dimensions:
         if not isfinite(weight):
             raise ValueError("weights must be finite")
         facet = signed.removeprefix("-")
-        readings = {cid: _read(snapshot, cid, facet, selectors.get(facet)) for cid in cids}
+        readings = {
+            cid: _read(snapshot, cid, facet, selectors.get(facet), domains) for cid in cids
+        }
         raw = {cid: reading[0] for cid, reading in readings.items()}
         known = [v for v in raw.values() if v is not None]
         low, high = (min(known), max(known)) if known else (None, None)
@@ -256,7 +275,8 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                 if norm.direction == "min" and high != low:
                     normalised = 1 - normalised
             contributions[cid].append(DimensionContribution(
-                signed, value, normalised, weight, norm, readings[cid][1], readings[cid][2]))
+                signed, value, normalised, weight, norm, readings[cid][1], readings[cid][2],
+                readings[cid][3]))
     complete, missing = [], []
     for cid in cids:
         parts = tuple(sorted((penalties or {}).get(cid, {}).items()))

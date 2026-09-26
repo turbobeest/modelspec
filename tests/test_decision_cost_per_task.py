@@ -216,4 +216,4 @@ def test_the_worker_answers_a_spec_with_task_tokens():
         "explain": "none",
     }, index())
     assert status == 200, body
-    assert body["contract_version"] == "1.6"
+    assert body["contract_version"] == "1.7"

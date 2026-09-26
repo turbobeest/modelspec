@@ -75,6 +75,39 @@ describe("the hosted Decision view-model mapper", () => {
     expect(view.results.every((result) => result.p_best === null)).toBe(true);
   });
 
+  it("uses the stored domain estimate, interval and probabilities", () => {
+    const estimated = {
+      ...fixture,
+      contract_version: "1.7" as const,
+      results: fixture.results.map((result, index) => ({
+        ...result,
+        estimates: [
+          {
+            domain: "software_engineering",
+            value: 2 - index * 0.2,
+            interval: [1.6 - index * 0.2, 2.4 - index * 0.2] as [number, number],
+            harness: null,
+            effort: null,
+          },
+        ],
+        p_best: index === 0 ? 0.62 : 0.12,
+        top3_stability: index < 3 ? 0.91 : 0.18,
+      })),
+    };
+    const parsed = decisionSchema.parse(estimated);
+    const view = mapDecisionToViewModel(
+      parsed,
+      { ...baseSpec, bench: "quality", domain: "software_engineering" },
+      { axis: "task$", dismissed: [] },
+    );
+
+    expect(view.explanation.feasible[0].cap).toBe(2);
+    expect(view.explanation.feasible[0].capR?.ci).toBeCloseTo(0.4);
+    expect(view.results[0].p_best).toBe(0.62);
+    expect(view.results[0].top3_stability).toBe(0.91);
+    expect(view.explanation.insep(view.explanation.feasible[0]).length).toBeGreaterThan(0);
+  });
+
   it("presents candidate-grained decisions as models with offering variants", () => {
     const view = mapDecisionToViewModel(
       fixture,

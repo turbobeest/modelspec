@@ -10,6 +10,7 @@ from decision.computed import with_computed
 from decision.contract import (
     DEFAULT_TASK_TOKENS,
     Decision,
+    Estimate,
     FacetLookup,
     InventoryProfile,
     MayQualify,
@@ -23,6 +24,19 @@ from decision.optimise import EvidenceSelector, optimise
 from decision.relax import fewest, smallest_changes
 from decision.resolve import resolve
 from decision.snapshot import ExplanationIndex
+
+
+def _objective_names(spec: Spec) -> list[str]:
+    objective = spec.optimize
+    return (
+        [objective.max]
+        if objective.max
+        else [objective.min]
+        if objective.min
+        else [step.facet for step in objective.lexicographic]
+        if objective.lexicographic
+        else list(objective.weights or objective.pareto)
+    )
 
 
 def offering_ref(snapshot, cid: str) -> OfferingRef:
@@ -85,16 +99,7 @@ def decide(
     domains = frozenset(snapshot.domain_ids())
     requested = frozenset(spec.capabilities or {})
     selectors = dict(evidence_selectors or {})
-    objective = spec.optimize
-    names = (
-        [objective.max]
-        if objective.max
-        else [objective.min]
-        if objective.min
-        else [step.facet for step in objective.lexicographic]
-        if objective.lexicographic
-        else list(objective.weights or objective.pareto)
-    )
+    names = _objective_names(spec)
     for signed in names:
         name = signed.removeprefix("-")
         if resolved.facets(name).subject == "evidence" and name not in domains:
@@ -109,16 +114,75 @@ def decide(
         run_optimise(snapshot, filtered, spec, selectors, domains)
     )
     digest = spec_hash(spec)
-    results = [
-        Result(
+    objective_domains = [name.removeprefix("-") for name in names
+                         if name.removeprefix("-") in domains]
+    shown_domains = sorted(requested | set(objective_domains))
+    proxy_only_domains = {
+        domain
+        for domain in shown_domains
+        if {
+            directness
+            for item in snapshot.capability_items.values()
+            for tagged_domain, directness in item.get("domains", ())
+            if tagged_domain == domain
+        }
+        == {"proxy"}
+    }
+    probability_domain = (
+        objective_domains[0] if len(objective_domains) == 1 and len(names) == 1 else None
+    )
+    probabilities = {}
+    model_estimates = {}
+    if probability_domain is not None:
+        from decision.capability import CapabilityEstimate, deterministic_probabilities
+
+        for row in ordered.results:
+            model_id = snapshot.model_of(row.candidate_id)
+            stored = snapshot.capability_estimate(row.candidate_id, probability_domain)
+            if stored is not None:
+                model_estimates.setdefault(
+                    model_id,
+                    CapabilityEstimate(stored.value, stored.low, stored.high, stored.sd),
+                )
+        probabilities = deterministic_probabilities(
+            model_estimates,
+            seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain}",
+        )
+
+    results = []
+    for i, row in enumerate(ordered.results[: spec.limit]):
+        model_id = snapshot.model_of(row.candidate_id)
+        stored_estimates = [
+            (domain, snapshot.capability_estimate(row.candidate_id, domain))
+            for domain in shown_domains
+        ]
+        estimates = [
+            Estimate(domain=domain, value=estimate.value, interval=(estimate.low, estimate.high))
+            for domain, estimate in stored_estimates
+            if estimate is not None
+        ]
+        warnings = list(row.warnings)
+        if row.candidate_id in filtered.deprecated:
+            warnings.append("deprecated")
+        if any(estimate.domain in proxy_only_domains for estimate in estimates):
+            warnings.append("proxy_evidence_only")
+        current = model_estimates.get(model_id)
+        if current is not None and any(
+            other_id != model_id
+            and max(current.low, other.low) <= min(current.high, other.high)
+            for other_id, other in model_estimates.items()
+        ):
+            warnings.append("not_separable")
+        p_best, top3 = probabilities.get(model_id, (None, None))
+        results.append(Result(
             rank=i + 1,
             offering=offering_ref(snapshot, row.candidate_id),
+            estimates=estimates or None,
+            p_best=p_best,
+            top3_stability=top3,
             soft_penalty=row.soft_penalty,
-            warnings=list(row.warnings)
-            + (["deprecated"] if row.candidate_id in filtered.deprecated else []),
-        )
-        for i, row in enumerate(ordered.results[: spec.limit])
-    ]
+            warnings=warnings,
+        ))
     relax, relax_to = [], []
     if ordered.status == "no_feasible":
         # Never the class or a requested domain: that would change the question.

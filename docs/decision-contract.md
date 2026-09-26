@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.6**
+Contract version: **1.7**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -327,7 +327,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.6",
+  "contract_version": "1.7",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
@@ -389,7 +389,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.6"`. |
+| `contract_version` | `"1.7"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `spec_hash` | The canonical spec hash. |
@@ -430,10 +430,10 @@ never listed as a candidate or in `may_qualify`.
 | `offering` | `model`, and when the result is an offering, its `provider`, `region` and `tier`. |
 | `harness` | The harness the evidence and estimate apply to, or null. |
 | `effort` | The effort setting the evidence and estimate apply to, or null. |
-| `evidence` | For each requested `domain`, the evidence `items`, unblended. In slice 1 this is the capability answer. |
-| `estimates` | Capability estimates per `domain`, each a `value` and an `interval` `[low, high]`, with the `harness` and `effort` they apply to. **Null until slice 2** (the capability model, MODEL-129). |
-| `p_best` | The probability this result is the best choice. Null until slice 2. |
-| `top3_stability` | The share of resamples in which the result stays in the top 3. Null until slice 2. |
+| `evidence` | For each requested `domain`, the verified evidence `items`. |
+| `estimates` | Capability estimates per `domain`, each a `value` and an 80% `interval` `[low, high]`, with the `harness` and `effort` they apply to. Null when the snapshot has no fitted estimate. |
+| `p_best` | The probability this result is best among the feasible models for a single-domain objective. Null for other objective forms. |
+| `top3_stability` | The share of deterministic posterior resamples in which the result stays in the top three. Null for other objective forms. |
 | `soft_penalty` | The total penalty from violated soft conditions. |
 | `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. |
 | `warnings` | Codes about this result. |
@@ -441,8 +441,10 @@ never listed as a candidate or in `may_qualify`.
 **An evidence item** carries `benchmark`, `version`, `sub_category`, `value`,
 `unit`, `n` (a count, for outcome rates), `measured_by`, `effort`, `harness`,
 `harness_unregistered`, `date`, `date_type`, `source` (the URL it was read
-from), `source_snapshot` (the content hash of the retained copy) and
-`directness`.
+from), `source_snapshot` (the content hash of the retained copy), and
+`directness`. Evidence used in a capability estimate also carries its
+directness `loading`, its `estimate_weight`, and its age-based
+`recency_weight`. Those three fields are null for unblended evidence.
 
 - `measured_by` is one of `benchmark_author`, `independent`,
   `provider_self_report`, `modelspec`, `outcome_protocol`.
@@ -456,6 +458,9 @@ from), `source_snapshot` (the content hash of the retained copy) and
   `false`.
 
 Only verified evidence reaches a decision; quarantined values never do.
+When every fitted benchmark for an estimate is tagged `proxy`, the result's
+`warnings` includes `proxy_evidence_only`. Its contribution formula also names
+the estimate as proxy-only.
 
 ### Explanation levels
 
@@ -625,8 +630,8 @@ or accepting more in a spec, is compatible and keeps the major.
 
 Decided now, so that later slices do not widen anything:
 
-- `estimates`, `p_best` and `top3_stability` are **nullable from 1.0**. Slice 2
-  fills them without a bump.
+- `estimates`, `p_best` and `top3_stability` are **nullable from 1.0**. Version
+  1.7 fills them without a major bump.
 - Every list and object in a decision is **always present**. Explanation
   levels decide what is populated, not what is present.
 - `warnings` (on the decision and on each result) are **an open set of
@@ -642,6 +647,9 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.7 — MODEL-129:** The estimate stage fills `estimates`, `p_best`, and
+  `top3_stability`. Estimate evidence adds the optional `loading`,
+  `estimate_weight`, and `recency_weight` fields. The additions are compatible.
 - **1.6 — MODEL-155:** Funnel steps add model and offering counts beside the
   candidate counts. `near_misses` now has at most one row per model and names
   the best offering that fails exactly one condition. `model_groups` groups

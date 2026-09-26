@@ -167,6 +167,14 @@ def _raw_value(decision: Decision, rank: int) -> tuple[str, float | None, str | 
 def _top_is_tied(decision: Decision) -> bool:
     if len(decision.results) < 2:
         return False
+    first_result, second_result = decision.results[:2]
+    first_estimates = {estimate.domain: estimate for estimate in first_result.estimates or []}
+    for second in second_result.estimates or []:
+        first = first_estimates.get(second.domain)
+        if first is not None and max(first.interval[0], second.interval[0]) <= min(
+            first.interval[1], second.interval[1]
+        ):
+            return True
     first = _raw_value(decision, 1)
     second = _raw_value(decision, 2)
     return first[1] is not None and first == second
