@@ -1,0 +1,28 @@
+{
+  "as_of": "2026-09-25",
+  "generated_by": "PYTHONPATH=$PWD python scripts/accuracy.py --update-recall-baseline --date 2026-09-25",
+  "schema_version": 1,
+  "snapshot": "snap_b5622feaf611736a",
+  "verdicts": {
+    "Q01": "pass",
+    "Q02": "pass",
+    "Q03": "fail",
+    "Q04": "fail",
+    "Q05": "fail",
+    "Q06": "pass",
+    "Q07": "fail",
+    "Q08": "fail",
+    "Q09": "fail",
+    "Q10": "partial",
+    "Q11": "partial",
+    "Q12": "partial",
+    "Q13": "fail",
+    "Q14": "fail",
+    "Q15": "partial",
+    "Q16": "fail",
+    "Q17": "partial",
+    "Q18": "partial",
+    "Q19": "fail",
+    "Q20": "pass"
+  }
+}

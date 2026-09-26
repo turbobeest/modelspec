@@ -1,4 +1,4 @@
-"""The recall specs and reporting runner form one non-gating smoke test."""
+"""The recall specs, report generator, and approved baseline stay in sync."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 from decision.contract import parse_spec
 from decision.registry import default as default_registry
 from decision.snapshot import SnapshotInputs, build_snapshot
+from scripts.accuracy import load_recall_baseline
 from scripts.recall_run import run
 from tests.snapshot_records import SOURCES, evidence, model, offering
 
@@ -52,6 +53,19 @@ def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
     assert len(result.questions) == 20
     assert {row.verdict for row in result.questions} <= {"pass", "partial", "fail"}
     assert "This report does not gate CI" in result.markdown_path.read_text(encoding="utf-8")
+
+
+def test_baseline_matches_main_snapshot_on_approval_date(tmp_path: Path) -> None:
+    result = run(
+        root=Path(__file__).resolve().parents[2],
+        output_dir=tmp_path,
+        report_date=date(2026, 9, 25),
+    )
+    baseline = load_recall_baseline(HERE / "baseline.json")
+
+    assert baseline.snapshot == "snap_b5622feaf611736a"
+    assert baseline.as_of == date(2026, 9, 25)
+    assert baseline.verdicts == {row.id: row.verdict for row in result.questions}
 
 
 def test_the_ungated_fallback_keeps_the_premier_lineup(monkeypatch, tmp_path: Path) -> None:

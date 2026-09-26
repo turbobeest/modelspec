@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Publishable accuracy report for the decision engine (MODEL-111).
+"""Publishable accuracy report for the decision engine (MODEL-111 and MODEL-160).
 
-The harness has six independent layers. The PR profile runs deterministic
-correctness, freshness, the non-gating golden answers, and output parity. The
-nightly profile re-reads a random sample of verified values from their current
-sources and compares domain leaders with terms-compatible independent boards.
+The PR profile runs deterministic correctness, freshness, the approved recall
+limit, and output parity. The nightly profile re-reads verified values, compares
+domain leaders with permitted independent boards, and reports recall changes
+without gating on them.
 """
 
 from __future__ import annotations
@@ -29,11 +29,13 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "accuracy.yaml"
 DEFAULT_OUTPUT = ROOT / "accuracy-report"
+DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
 PROFILES = {
     "pr": ("deterministic_correctness", "freshness", "golden_answers", "output_parity"),
-    "nightly": ("data_fidelity", "reference_agreement"),
+    "nightly": ("data_fidelity", "reference_agreement", "golden_answers"),
 }
 Status = Literal["pass", "fail", "report", "undetermined"]
+RecallVerdict = Literal["pass", "partial", "fail"]
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,13 @@ class AccuracyConfig:
     reference: ReferenceConfig
     deterministic: SuiteConfig
     parity: SuiteConfig
+
+
+@dataclass(frozen=True)
+class RecallBaseline:
+    snapshot: str
+    as_of: date
+    verdicts: Mapping[str, RecallVerdict]
 
 
 @dataclass(frozen=True)
@@ -315,15 +324,136 @@ def check_freshness(
     )
 
 
-def golden_result(counts: Mapping[str, int], details: Any = None) -> LayerResult:
-    total = sum(counts.values())
+_VERDICT_LEVEL = {"fail": 0, "partial": 1, "pass": 2}
+
+
+def load_recall_baseline(path: str | Path = DEFAULT_RECALL_BASELINE) -> RecallBaseline:
+    path = Path(path)
+    raw = _mapping(json.loads(path.read_text(encoding="utf-8")), str(path))
+    if raw.get("schema_version") != 1:
+        raise ValueError(f"{path}: schema_version must be 1")
+    verdicts = _mapping(raw.get("verdicts"), f"{path}: verdicts")
+    invalid = sorted(
+        question_id
+        for question_id, verdict in verdicts.items()
+        if not isinstance(question_id, str) or verdict not in _VERDICT_LEVEL
+    )
+    if invalid:
+        raise ValueError(f"{path}: invalid recall verdicts for {', '.join(invalid)}")
+    as_of = _day(raw.get("as_of"))
+    if as_of is None:
+        raise ValueError(f"{path}: as_of must be an ISO date")
+    snapshot = raw.get("snapshot")
+    if not isinstance(snapshot, str) or not snapshot:
+        raise ValueError(f"{path}: snapshot must be a non-empty string")
+    return RecallBaseline(snapshot, as_of, dict(verdicts))
+
+
+def _recall_causes(question: Any) -> list[str]:
+    labels = {"missing_data": "missing data", "engine_behavior": "engine behavior"}
+    return sorted(
+        {labels[finding.cause] for finding in question.findings if finding.severity != "pass"}
+    )
+
+
+def recall_ratchet(
+    baseline: Mapping[str, RecallVerdict],
+    questions: Sequence[Any],
+    *,
+    gating: bool,
+    update_command: str,
+) -> LayerResult:
+    current = {row.id: row for row in questions}
+    details: list[dict[str, Any]] = []
+    regressions = improvements = 0
+    for question_id in sorted(set(baseline) | set(current)):
+        before = baseline.get(question_id)
+        row = current.get(question_id)
+        after = None if row is None else row.verdict
+        if before is None or after is None:
+            regressions += 1
+            details.append(
+                {
+                    "id": question_id,
+                    "change": "regression",
+                    "transition": f"{before or 'missing'} -> {after or 'missing'}",
+                    "causes": ["engine behavior"],
+                }
+            )
+            continue
+        delta = _VERDICT_LEVEL[after] - _VERDICT_LEVEL[before]
+        if delta == 0:
+            continue
+        change = "improvement" if delta > 0 else "regression"
+        regressions += int(delta < 0)
+        improvements += int(delta > 0)
+        details.append(
+            {
+                "id": question_id,
+                "change": change,
+                "transition": f"{before} -> {after}",
+                "causes": _recall_causes(row),
+            }
+        )
+    verdict_counts = {
+        verdict: sum(row.verdict == verdict for row in questions)
+        for verdict in ("pass", "partial", "fail")
+    }
+    counts = {
+        **verdict_counts,
+        "regressions": regressions,
+        "improvements": improvements,
+    }
+    changed = regressions + improvements
+    if changed == 0:
+        return LayerResult(
+            "golden_answers",
+            "pass",
+            gating,
+            f"All {len(questions)} approved recall verdicts match the baseline.",
+            counts,
+            details,
+        )
+    messages = []
+    if regressions:
+        messages.append(f"{regressions} recall regression(s)")
+    if improvements:
+        messages.append(
+            f"{improvements} unrecorded improvement(s); update the baseline with: {update_command}"
+        )
     return LayerResult(
         "golden_answers",
-        "report",
-        False,
-        f"Recall set approved; report-only until MODEL-129: {total} questions.",
-        dict(counts),
-        details or [],
+        "fail" if gating else "report",
+        gating,
+        "; ".join(messages) + ".",
+        counts,
+        details,
+    )
+
+
+_RECALL_APPROVAL_PATHS = frozenset({"tests/recall/expected.yaml", "tests/recall/README.md"})
+
+
+def check_recall_approval(changed_paths: Sequence[str], labels: Sequence[str]) -> LayerResult:
+    protected = sorted(
+        path
+        for path in changed_paths
+        if path in _RECALL_APPROVAL_PATHS or path.startswith("tests/recall/specs/")
+    )
+    approved = "recall-approved" in labels
+    failed = bool(protected) and not approved
+    return LayerResult(
+        "recall_approval",
+        "fail" if failed else "pass",
+        True,
+        (
+            "Protected recall inputs changed without the recall-approved label. "
+            "Only Jamie may apply recall-approved."
+            if failed
+            else "Protected recall inputs are unchanged or the recall-approved label is present."
+        ),
+        {"protected_files": len(protected), "approved": int(approved)},
+        protected,
     )
 
 
@@ -411,7 +541,14 @@ def _load_snapshot(root: Path, snapshot_file: Path | None, as_of: date):
     return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=False)
 
 
-def run_golden(root: Path, snapshot_file: Path | None, as_of: date) -> LayerResult:
+def _recall_update_command(as_of: date) -> str:
+    return (
+        "PYTHONPATH=$PWD python scripts/accuracy.py --update-recall-baseline "
+        f"--date {as_of.isoformat()}"
+    )
+
+
+def run_golden(root: Path, snapshot_file: Path | None, as_of: date, *, gating: bool) -> LayerResult:
     from scripts.recall_run import run
 
     with tempfile.TemporaryDirectory(prefix="modelspec-recall-") as temporary:
@@ -421,16 +558,50 @@ def run_golden(root: Path, snapshot_file: Path | None, as_of: date) -> LayerResu
             output_dir=Path(temporary),
             report_date=as_of,
         )
-        counts = {
-            verdict: sum(row.verdict == verdict for row in result.questions)
-            for verdict in ("pass", "partial", "fail")
-        }
-        details = [
-            {"id": row.id, "verdict": row.verdict, "error": row.error}
-            for row in result.questions
-            if row.verdict != "pass"
-        ]
-    return golden_result(counts, details)
+        baseline = load_recall_baseline(root / "tests" / "recall" / "baseline.json")
+        return recall_ratchet(
+            baseline.verdicts,
+            result.questions,
+            gating=gating,
+            update_command=_recall_update_command(as_of),
+        )
+
+
+def update_recall_baseline(
+    *, root: Path, snapshot_file: Path | None, as_of: date
+) -> RecallBaseline:
+    from scripts.recall_run import run
+
+    path = root / "tests" / "recall" / "baseline.json"
+    with tempfile.TemporaryDirectory(prefix="modelspec-recall-baseline-") as temporary:
+        result = run(
+            root=root,
+            snapshot_file=snapshot_file,
+            output_dir=Path(temporary),
+            report_date=as_of,
+        )
+    verdicts = {row.id: row.verdict for row in result.questions}
+    if path.is_file():
+        previous = load_recall_baseline(path)
+        comparison = recall_ratchet(
+            previous.verdicts,
+            result.questions,
+            gating=True,
+            update_command=_recall_update_command(as_of),
+        )
+        regressions = [row for row in comparison.details if row["change"] == "regression"]
+        if regressions:
+            transitions = ", ".join(f"{row['id']} {row['transition']}" for row in regressions)
+            raise ValueError(f"refusing to lower the recall baseline: {transitions}")
+    payload = {
+        "schema_version": 1,
+        "as_of": as_of.isoformat(),
+        "snapshot": result.snapshot_id,
+        "generated_by": _recall_update_command(as_of),
+        "verdicts": verdicts,
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return RecallBaseline(result.snapshot_id, as_of, verdicts)
 
 
 def claim_category(claim: Any) -> Literal["fact", "evidence", "offering"]:
@@ -947,7 +1118,7 @@ def run_profile(
             snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
             results.append(check_freshness(snapshot, as_of=as_of, config=config.freshness))
         elif layer == "golden_answers":
-            results.append(run_golden(root, snapshot_file, as_of))
+            results.append(run_golden(root, snapshot_file, as_of, gating=profile == "pr"))
         elif layer == "output_parity":
             results.append(output_parity(root, config.parity))
         elif layer == "data_fidelity":
@@ -990,7 +1161,52 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--llm-reader", choices=("claude", "mistral"))
     parser.add_argument("--sample-size", type=int)
     parser.add_argument("--seed")
+    parser.add_argument(
+        "--update-recall-baseline",
+        action="store_true",
+        help="Raise tests/recall/baseline.json to the current recall verdicts.",
+    )
+    parser.add_argument(
+        "--check-recall-approval",
+        action="store_true",
+        help="Check protected recall paths against pull-request labels.",
+    )
+    parser.add_argument("--changed-files", type=Path)
+    parser.add_argument("--labels-json")
     args = parser.parse_args(argv)
+    if args.update_recall_baseline and args.check_recall_approval:
+        parser.error("choose only one maintenance operation")
+    if args.update_recall_baseline:
+        try:
+            baseline = update_recall_baseline(
+                root=args.root.resolve(), snapshot_file=args.snapshot_file, as_of=args.date
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(
+            f"Updated {args.root / 'tests' / 'recall' / 'baseline.json'}: "
+            f"{len(baseline.verdicts)} verdicts from {baseline.snapshot}."
+        )
+        return 0
+    if args.check_recall_approval:
+        if args.changed_files is None or args.labels_json is None:
+            parser.error("--check-recall-approval requires --changed-files and --labels-json")
+        changed_paths = [
+            line.strip()
+            for line in args.changed_files.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        try:
+            labels = json.loads(args.labels_json)
+        except json.JSONDecodeError as exc:
+            parser.error(f"--labels-json is not valid JSON: {exc}")
+        if not isinstance(labels, list) or not all(isinstance(label, str) for label in labels):
+            parser.error("--labels-json must be a JSON list of strings")
+        result = check_recall_approval(changed_paths, labels)
+        print(result.summary)
+        for path in result.details:
+            print(path)
+        return 1 if result.status == "fail" else 0
     report = run_profile(
         root=args.root,
         config_path=args.config,
