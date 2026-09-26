@@ -551,6 +551,12 @@ def main(argv: list[str] | None = None) -> int:
         landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
                                          r.site_nav("ModelSpec", r.MS_NAV),
                                          "site/holding/index.html"), encoding="utf-8")
+        from pipeline.social_profiles import add_same_as
+        landing.write_text(
+            add_same_as(landing.read_text(encoding="utf-8"),
+                        root / "brand" / "social" / "profiles.json"),
+            encoding="utf-8",
+        )
     elif True:
         (ms / "index.html").write_text(_fallback_home(
             "ModelSpec", "ModelSpec",
