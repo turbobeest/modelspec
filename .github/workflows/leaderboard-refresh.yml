@@ -87,12 +87,14 @@ jobs:
           report = json.load(open(sys.argv[1]))
           with open(sys.argv[2], "a") as out:
               print(f"changes={len(report['changes'])}", file=out)
+              print(f"reconfirmed={len(report['reconfirmed'])}", file=out)
+              print(f"updates={len(report['changes']) + len(report['reconfirmed'])}", file=out)
               print(f"failures={len(report['failures'])}", file=out)
               print(f"quarantined={len(report['quarantined'])}", file=out)
           PY
 
       - name: Prepare the pull-request body
-        if: inputs.dry_run != true && steps.result.outputs.changes != '0'
+        if: inputs.dry_run != true && steps.result.outputs.updates != '0'
         run: |
           {
             echo 'This weekly job re-read the registered live boards for existing models in the premier set.'
@@ -106,7 +108,7 @@ jobs:
 
       - name: Open the score-only pull request
         id: pr
-        if: inputs.dry_run != true && steps.result.outputs.changes != '0'
+        if: inputs.dry_run != true && steps.result.outputs.updates != '0'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.RESEARCH_PR_TOKEN }}
@@ -118,10 +120,10 @@ jobs:
             verification/queue/events.jsonl
           signoff: true
           commit-message: |
-            data: refresh changed live-board readings (MODEL-124)
+            data: refresh live-board observations (MODEL-124)
 
             Co-Authored-By: GPT-5 Codex <noreply@openai.com>
-          title: 'data: refresh changed live-board readings (MODEL-124)'
+          title: 'data: refresh live-board observations (MODEL-124)'
           body-path: ${{ runner.temp }}/pr-body.md
 
       - name: Put the PR URL in the audit records and body
@@ -163,8 +165,8 @@ jobs:
           GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
         run: gh pr merge --auto --squash "${{ steps.pr.outputs.pull-request-number }}"
 
-      - name: Fail a no-change run that could not read every board
-        if: steps.result.outputs.changes == '0' && steps.result.outputs.failures != '0'
+      - name: Fail a no-update run that could not read every board
+        if: steps.result.outputs.updates == '0' && steps.result.outputs.failures != '0'
         run: |
           echo "::error::No score changed, but one or more live boards failed; see the run summary."
           exit 1

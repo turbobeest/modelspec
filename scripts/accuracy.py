@@ -208,7 +208,11 @@ def _observation_metadata_date(record: Mapping[str, Any]) -> date | None:
     return _day(record.get("verified_at"))
 
 
-def _live_observation_date(snapshot: Any, row: Any) -> tuple[bool, date | None]:
+def _live_observation_date(
+    snapshot: Any,
+    row: Any,
+    sources: Mapping[str, Any],
+) -> tuple[bool, date | None]:
     """Classify a reading and return when the live board was observed.
 
     ``evaluated`` is deliberately not a live marker: it is also used for fixed
@@ -219,6 +223,17 @@ def _live_observation_date(snapshot: Any, row: Any) -> tuple[bool, date | None]:
     record = _evidence_record(snapshot, row)
     date_type = getattr(row, "date_type", None) or record.get("date_type")
     source_kind = getattr(row, "source_kind", None) or record.get("source_kind")
+    source_ids = set(getattr(row, "source_ids", ()) or ())
+    refs = record.get("sources")
+    if isinstance(refs, Sequence) and not isinstance(refs, (str, bytes)):
+        source_ids.update(
+            str(ref["source_id"])
+            for ref in refs
+            if isinstance(ref, Mapping) and ref.get("source_id")
+        )
+    if any(getattr(sources.get(source_id), "volatility", "static") == "live"
+           for source_id in source_ids):
+        return True, _observation_metadata_date(record)
     if source_kind in _LIVE_SOURCE_KINDS:
         return True, _observation_metadata_date(record)
     if date_type == "observed":
@@ -226,8 +241,18 @@ def _live_observation_date(snapshot: Any, row: Any) -> tuple[bool, date | None]:
     return False, None
 
 
-def check_freshness(snapshot: Any, *, as_of: date, config: FreshnessConfig) -> LayerResult:
+def check_freshness(
+    snapshot: Any,
+    *,
+    as_of: date,
+    config: FreshnessConfig,
+    sources: Mapping[str, Any] | None = None,
+) -> LayerResult:
     """Gate lineup evidence and live-leaderboard observation age."""
+    if sources is None:
+        from decision.sources import load_sources
+
+        sources = load_sources(ROOT / "registry" / "sources.yaml")
     problems: list[dict[str, Any]] = []
     models = _model_candidates(snapshot)
     seen_records: set[str] = set()
@@ -255,7 +280,7 @@ def check_freshness(snapshot: Any, *, as_of: date, config: FreshnessConfig) -> L
             )
         for row in evidence:
             key = row.record_id or f"{model_id}:{row.benchmark_id}:{row.date}:{row.value}"
-            live, observed = _live_observation_date(snapshot, row)
+            live, observed = _live_observation_date(snapshot, row, sources)
             if key in seen_records or not live:
                 continue
             seen_records.add(key)

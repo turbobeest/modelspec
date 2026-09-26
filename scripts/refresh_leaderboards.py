@@ -3,9 +3,10 @@
 
 The refresh is deliberately narrower than a collector: it cannot add a card or
 an evidence row, and it never changes identity or licence facts.  Board readers
-produce one retained projection per board observation.  Existing rows are
-matched against that projection, changed values are filed through the normal
-two-key verification queue, and unchanged values cause no repository churn.
+produce one retained projection per board observation. Existing rows are
+matched against that projection. Changed and confirmed values both advance
+their observation metadata and pass through the normal two-key verification
+queue.
 """
 
 from __future__ import annotations
@@ -114,6 +115,25 @@ class ScoreChange:
 
 
 @dataclass(frozen=True)
+class RowObservation:
+    card: str
+    model_id: str
+    model: str
+    benchmark: str
+    old_value: float
+    new_value: float
+    source: str
+    observed_date: str
+
+    @property
+    def changed(self) -> bool:
+        return self.old_value != self.new_value
+
+    def score_change(self) -> ScoreChange:
+        return ScoreChange(**self.__dict__)
+
+
+@dataclass(frozen=True)
 class RowFailure:
     model_id: str
     benchmark: str
@@ -131,12 +151,16 @@ class ScoreOnlyResult:
 class RefreshReport:
     boards: dict[str, dict[str, Any]] = field(default_factory=dict)
     changes: list[ScoreChange] = field(default_factory=list)
+    reconfirmed: list[RowObservation] = field(default_factory=list)
     failures: list[RowFailure] = field(default_factory=list)
     quarantined: list[RowFailure] = field(default_factory=list)
 
     def board(self, key: str) -> dict[str, Any]:
-        return self.boards.setdefault(key, {"models_read": 0, "values_changed": 0,
-                                             "failures": []})
+        return self.boards.setdefault(
+            key,
+            {"models_read": 0, "models_reconfirmed": 0, "values_changed": 0,
+             "failures": []},
+        )
 
 
 def json_board(
@@ -222,14 +246,14 @@ def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any
     return candidates[0] if len(candidates) == 1 else None
 
 
-def plan_rows(
+def _plan_observations(
     model_id: str,
     card: str,
     evidence_rows: Sequence[Mapping[str, Any]],
     board: BoardReading,
-) -> tuple[list[ScoreChange], list[RowFailure]]:
-    """Plan value changes for existing rows; never add one."""
-    changes: list[ScoreChange] = []
+) -> tuple[list[RowObservation], list[RowFailure]]:
+    """Plan observations of existing rows; never add one."""
+    observations: list[RowObservation] = []
     failures: list[RowFailure] = []
     for evidence in evidence_rows:
         if evidence.get("benchmark_id") not in board.benchmark_ids:
@@ -250,8 +274,8 @@ def plan_rows(
         old = float(evidence["score"])
         if readers.numbers_agree(old, evidence.get("unit"),
                                  readers.parse_quantity(str(new), evidence.get("unit"))):
-            continue
-        changes.append(ScoreChange(
+            new = old
+        observations.append(RowObservation(
             card=card,
             model_id=model_id,
             model=str(evidence.get("model_id_as_evaluated")),
@@ -261,13 +285,25 @@ def plan_rows(
             source=board.source_url,
             observed_date=board.observed_at,
         ))
-    return changes, failures
+    return observations, failures
+
+
+def plan_rows(
+    model_id: str,
+    card: str,
+    evidence_rows: Sequence[Mapping[str, Any]],
+    board: BoardReading,
+) -> tuple[list[ScoreChange], list[RowFailure]]:
+    """Plan value changes for existing rows; never add one."""
+    observations, failures = _plan_observations(model_id, card, evidence_rows, board)
+    return [observation.score_change() for observation in observations
+            if observation.changed], failures
 
 
 def _rewrite_card(path: Path, updates: list[tuple[tuple[object, ...], dict[str, Any]]]) -> None:
     wanted = dict(updates)
     text = path.read_text(encoding="utf-8")
-    fields = ("score", "verified_at", "id", "sources")
+    fields = ("score", "observed_at", "verified_at", "id", "sources")
 
     def update(match: re.Match[str]) -> str:
         block = match.group(0).rstrip("\n")
@@ -370,17 +406,20 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
             for row in relevant:
                 if _match(board, row) is not None:
                     models_read.add(model_id)
-            changes, failures = plan_rows(model_id, path.relative_to(root).as_posix(),
-                                          relevant, board)
+            observations, failures = _plan_observations(
+                model_id, path.relative_to(root).as_posix(), relevant, board
+            )
             report.failures.extend(failures)
             summary["failures"].extend(failure.reason for failure in failures)
-            for change in changes:
+            reconfirmed_models: set[str] = set()
+            for observation in observations:
                 old = next(row for row in relevant
-                           if row["benchmark_id"] == change.benchmark
-                           and row.get("model_id_as_evaluated") == change.model
-                           and float(row["score"]) == change.old_value)
+                           if row["benchmark_id"] == observation.benchmark
+                           and row.get("model_id_as_evaluated") == observation.model
+                           and float(row["score"]) == observation.old_value)
                 new = dict(old)
-                new["score"] = change.new_value
+                new["score"] = observation.new_value
+                new["observed_at"] = observed_at
                 new["verified_at"] = observed_at
                 new["sources"] = [SourceRef(
                     source_id=board.source_id,
@@ -390,13 +429,18 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 new["id"] = evidence_id(model_id, new)
                 pending_updates.setdefault(path, []).append((evidence_key(old), new))
                 claims.append(_claim(model_id, fronts[model_id], new, board))
-                report.changes.append(change)
+                if observation.changed:
+                    report.changes.append(observation.score_change())
+                else:
+                    report.reconfirmed.append(observation)
+                    reconfirmed_models.add(model_id)
+            summary["models_reconfirmed"] += len(reconfirmed_models)
         summary["models_read"] = len(models_read)
         summary["values_changed"] = sum(1 for change in report.changes
                                          if change.source == board.source_url
                                          and change.benchmark in board.benchmark_ids)
 
-    if dry_run or not report.changes:
+    if dry_run or not pending_updates:
         return report
 
     for path, updates in pending_updates.items():
@@ -438,12 +482,14 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
 
 def render_report(report: RefreshReport) -> str:
     lines = [
-        "| Board | Models read | Values changed | Failures |",
-        "|---|---:|---:|---:|",
+        "| Board | Models read | Models re-confirmed | Values changed | Failures |",
+        "|---|---:|---:|---:|---:|",
     ]
     for board, result in sorted(report.boards.items()):
-        lines.append(f"| {board} | {result['models_read']} | {result['values_changed']} | "
-                     f"{len(result['failures'])} |")
+        lines.append(
+            f"| {board} | {result['models_read']} | {result['models_reconfirmed']} | "
+            f"{result['values_changed']} | {len(result['failures'])} |"
+        )
     lines.extend(["", "## Score changes", "", audit_markdown(report.changes)])
     if report.failures:
         lines.extend(["", "## Failures", "",
@@ -459,7 +505,7 @@ def render_report(report: RefreshReport) -> str:
 
 
 _ALLOWED_EVIDENCE_FIELDS = frozenset({
-    "score", "verified_at", "evidence_date", "id", "sources", "verification",
+    "score", "observed_at", "verified_at", "evidence_date", "id", "sources", "verification",
 })
 
 
@@ -545,6 +591,7 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
     payload = {
         "boards": report.boards,
         "changes": [change.to_dict() for change in report.changes],
+        "reconfirmed": [row.__dict__ for row in report.reconfirmed],
         "failures": [row.__dict__ for row in report.failures],
         "quarantined": [row.__dict__ for row in report.quarantined],
     }

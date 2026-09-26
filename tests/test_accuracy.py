@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 
 from cli.modelspec import cli as cli_mod
 from decision.model import SourceRef, TargetRef, VerificationActor
+from decision.sources import Source
 from decision.verify import Claim, KeyValueExtractor, Queue, VerificationLog
 from scripts import accuracy
 
@@ -29,6 +30,7 @@ class FakeEvidence:
         *,
         date_type="published",
         source_kind=None,
+        source_ids=(),
         verified_at=None,
     ):
         self.benchmark_id = benchmark
@@ -36,6 +38,7 @@ class FakeEvidence:
         self.date = when
         self.date_type = date_type
         self.source_kind = source_kind
+        self.source_ids = tuple(source_ids)
         self.verified_at = verified_at
         self.verified = True
         self.record_id = f"evidence:{benchmark}"
@@ -164,6 +167,44 @@ def test_freshness_exempts_an_old_static_evaluated_result() -> None:
     assert result.status == "pass"
     assert result.counts["live_readings"] == 0
     assert result.details == []
+
+
+def test_freshness_uses_registered_source_volatility() -> None:
+    live = Source(
+        id="live-board",
+        url="https://example.test/live",
+        volatility="live",
+    )
+    static = Source(
+        id="static-paper",
+        url="https://example.test/paper",
+    )
+    old_live = FakeEvidence(
+        "live_benchmark",
+        70,
+        date(2026, 7, 1),
+        source_ids=(live.id,),
+        verified_at=date(2026, 7, 1),
+    )
+    old_static = FakeEvidence(
+        "static_benchmark",
+        80,
+        date(2026, 7, 1),
+        source_ids=(static.id,),
+        verified_at=date(2026, 7, 1),
+    )
+
+    result = accuracy.check_freshness(
+        FakeSnapshot(evidence=(old_live, old_static)),
+        as_of=date(2026, 9, 25),
+        config=accuracy.load_config(Path("accuracy.yaml")).freshness,
+        sources={live.id: live, static.id: static},
+    )
+
+    assert result.status == "fail"
+    assert result.counts["live_readings"] == 1
+    assert [row["benchmark"] for row in result.details] == ["live_benchmark"]
+    assert result.details[0]["reason"] == "stale_live_leaderboard"
 
 
 def test_golden_findings_are_report_only() -> None:
