@@ -113,15 +113,23 @@ class CloudflareKV:
         await self._binding.delete(name)
 
     async def list(self, options: dict[str, str] | None = None) -> dict[str, Any]:
-        prefix = (options or {}).get("prefix", "")
-        value = await self._binding.list(_options(prefix=prefix))
+        requested = {"prefix": (options or {}).get("prefix", "")}
+        cursor = (options or {}).get("cursor")
+        if cursor:
+            requested["cursor"] = cursor
+        value = await self._binding.list(_options(**requested))
         converted = value.to_py() if hasattr(value, "to_py") else value
         if isinstance(converted, dict):
             return converted
         keys = getattr(value, "keys", ())
-        return {"keys": [
+        result: dict[str, Any] = {"keys": [
             {"name": str(getattr(item, "name", ""))} for item in keys
         ]}
+        result["list_complete"] = bool(getattr(value, "list_complete", True))
+        cursor_value = getattr(value, "cursor", None)
+        if not absent(cursor_value):
+            result["cursor"] = str(cursor_value)
+        return result
 
 
 class StoreNotConfigured(RuntimeError):

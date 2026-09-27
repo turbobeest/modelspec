@@ -93,13 +93,31 @@ async def intake(
 
 
 async def _keys(kv: Any, prefix: str) -> list[str]:
-    listed = await kv.list({"prefix": prefix})
-    rows = listed.get("keys", []) if isinstance(listed, dict) else getattr(listed, "keys", [])
     names = []
-    for row in rows:
-        name = row.get("name") if isinstance(row, dict) else getattr(row, "name", None)
-        if name:
-            names.append(str(name))
+    options = {"prefix": prefix}
+    seen_cursors: set[str] = set()
+    while True:
+        listed = await kv.list(options)
+        rows = listed.get("keys", []) if isinstance(listed, dict) else getattr(
+            listed, "keys", []
+        )
+        for row in rows:
+            name = row.get("name") if isinstance(row, dict) else getattr(row, "name", None)
+            if name:
+                names.append(str(name))
+        complete = listed.get("list_complete", True) if isinstance(
+            listed, dict
+        ) else getattr(listed, "list_complete", True)
+        if complete:
+            break
+        cursor_value = listed.get("cursor") if isinstance(listed, dict) else getattr(
+            listed, "cursor", None
+        )
+        cursor = str(cursor_value or "")
+        if not cursor or cursor in seen_cursors:
+            raise RuntimeError("Workers KV returned an incomplete page without a new cursor")
+        seen_cursors.add(cursor)
+        options = {"prefix": prefix, "cursor": cursor}
     return sorted(names)
 
 

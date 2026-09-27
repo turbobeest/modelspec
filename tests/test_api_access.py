@@ -581,6 +581,28 @@ class RawBinding:
         self.values.pop(name, None)
 
 
+def test_the_kv_adapter_preserves_list_pagination_metadata():
+    from access_kv import CloudflareKV
+
+    class Page:
+        keys = [type("Key", (), {"name": "release-signals/v1/pending/one"})()]
+        list_complete = False
+        cursor = "next-page"
+
+    class Binding:
+        async def list(self, options: dict[str, str]) -> Page:
+            assert options == {"prefix": "release-signals/v1/pending/"}
+            return Page()
+
+    assert run(CloudflareKV(Binding()).list({
+        "prefix": "release-signals/v1/pending/",
+    })) == {
+        "keys": [{"name": "release-signals/v1/pending/one"}],
+        "list_complete": False,
+        "cursor": "next-page",
+    }
+
+
 MISSING_SHAPES = pytest.mark.parametrize(
     "missing", [JsNull(), "", None], ids=["jsnull", "empty-string", "none"])
 

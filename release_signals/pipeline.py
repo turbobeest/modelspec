@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
@@ -285,6 +286,16 @@ def _primary_identity(
         normalised_provider = attribution.normalise(expected_provider)
         if normalised_name not in normalised_text:
             raise ValueError("the primary source does not name the model")
+        explicit_publishers = re.findall(
+            rf"\b{re.escape(expected_name)}\s+by\s+([^.!?;:\n]+)",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if any(
+            attribution.normalise(publisher) != normalised_provider
+            for publisher in explicit_publishers
+        ):
+            raise ValueError("the primary source does not identify the stated lab")
         relationships = (
             f"{normalised_name}-by-{normalised_provider}",
             f"{normalised_provider}-{normalised_name}",

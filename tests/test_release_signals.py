@@ -257,8 +257,15 @@ def test_production_shaped_models_dev_drafts_only_primary_source_facts(
     assert result.firecrawl_credits == 0
 
 
-def test_visible_primary_source_with_another_provider_stops_before_drafting(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    "body",
+    [
+        (FIXTURES / "evil-labs-orbit-visible.html").read_bytes(),
+        b"<html><body>Acme Orbit 2 by Evil Labs.</body></html>",
+    ],
+)
+def test_visible_primary_source_with_another_lab_stops_before_drafting(
+    tmp_path: Path, body: bytes,
 ) -> None:
     _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
     primary_url = "https://acme.example/models"
@@ -271,7 +278,7 @@ def test_visible_primary_source_with_another_provider_stops_before_drafting(
         ),
         primary_url: FetchResult(
             url=primary_url,
-            body=(FIXTURES / "evil-labs-orbit-visible.html").read_bytes(),
+            body=body,
             content_type="text/html",
         ),
     }
@@ -835,6 +842,78 @@ def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
         )
         assert rechecked.body["recheck_days"] == []
         assert after_recheck.body["rechecks"] == []
+
+    import asyncio
+
+    asyncio.run(scenario())
+
+
+def test_worker_pending_follows_every_kv_page_after_an_empty_page() -> None:
+    spec = importlib.util.spec_from_file_location(
+        "modelspec_paginated_signals_service",
+        ROOT / "api" / "worker" / "src" / "signals_service.py",
+    )
+    service = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = service
+    spec.loader.exec_module(service)
+
+    pending_key = service.PENDING_PREFIX + "grok-20260926-123456789"
+    recheck_key = service.RECHECK_PREFIX + "2026-09-27/grok-20260926-123456789"
+
+    class KV:
+        def __init__(self) -> None:
+            self.list_calls: list[dict[str, str]] = []
+            self.rows = {
+                pending_key: json.dumps(signal()),
+                recheck_key: json.dumps({
+                    "signal_id": "grok-20260926-123456789",
+                    "due": "2026-09-27",
+                    "day": 1,
+                    "pr_url": "https://github.com/example/repo/pull/1",
+                    "signal": signal(),
+                }),
+            }
+
+        async def get(self, key: str) -> str | None:
+            return self.rows.get(key)
+
+        async def list(self, options: dict[str, str]) -> dict[str, object]:
+            self.list_calls.append(dict(options))
+            prefix = options["prefix"]
+            cursor = options.get("cursor")
+            if prefix == service.PENDING_PREFIX and cursor is None:
+                return {"keys": [], "list_complete": False, "cursor": "pending-2"}
+            if prefix == service.PENDING_PREFIX and cursor == "pending-2":
+                return {"keys": [{"name": pending_key}], "list_complete": True}
+            if prefix == service.RECHECK_PREFIX and cursor is None:
+                return {
+                    "keys": [],
+                    "list_complete": False,
+                    "cursor": "recheck-2",
+                }
+            if prefix == service.RECHECK_PREFIX and cursor == "recheck-2":
+                return {"keys": [{"name": recheck_key}], "list_complete": True}
+            raise AssertionError(f"unexpected list options: {options}")
+
+    async def scenario() -> None:
+        kv = KV()
+        result = await service.pending(
+            authorization="Bearer read-secret",
+            read_key="read-secret",
+            kv=kv,
+            today=date(2026, 9, 27),
+        )
+
+        assert result.body["signals"] == [signal()]
+        assert [(row["day"], row["signal_id"]) for row in result.body["rechecks"]] == [
+            (1, "grok-20260926-123456789")
+        ]
+        assert kv.list_calls == [
+            {"prefix": service.PENDING_PREFIX},
+            {"prefix": service.PENDING_PREFIX, "cursor": "pending-2"},
+            {"prefix": service.RECHECK_PREFIX},
+            {"prefix": service.RECHECK_PREFIX, "cursor": "recheck-2"},
+        ]
 
     import asyncio
 
