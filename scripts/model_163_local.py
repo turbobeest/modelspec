@@ -112,6 +112,53 @@ def _normalise_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.casefold())
 
 
+_PAGE_MODEL_PATTERNS = (
+    re.compile(r"What (?:GPU|hardware) do I need to run (?P<model>.+?)\?", re.IGNORECASE),
+    re.compile(r"(?P<model>.+?): Local LLM VRAM Requirements(?: \|.+)?", re.IGNORECASE),
+    re.compile(r"(?P<model>.+?) VRAM Requirements(?::.+)?", re.IGNORECASE),
+)
+
+
+def _page_model(identity: str, wanted_names: set[str]) -> str | None:
+    candidates = [identity]
+    for pattern in _PAGE_MODEL_PATTERNS:
+        match = pattern.fullmatch(identity)
+        if match:
+            candidates.append(match.group("model"))
+    return next(
+        (candidate for candidate in candidates if _normalise_name(candidate) in wanted_names),
+        None,
+    )
+
+
+def _model_columns(headers: tuple[str, ...]) -> tuple[int, ...]:
+    return tuple(
+        index
+        for index, header in enumerate(headers)
+        if _normalise_name(header) in {"configuration", "model", "modelname"}
+    )
+
+
+def _row_model(
+    row: tuple[str, ...],
+    headers: tuple[str, ...],
+    model_columns: tuple[int, ...],
+    wanted_names: set[str],
+    quantisation: str,
+) -> str | None:
+    for index in model_columns:
+        if index >= len(row):
+            continue
+        candidate = row[index]
+        if _normalise_name(headers[index]) == "configuration":
+            configured = re.fullmatch(r"(.+?)\s*\(([^()]*)\)", candidate)
+            if configured and quantisation.casefold() in configured.group(2).casefold():
+                candidate = configured.group(1)
+        if _normalise_name(candidate) in wanted_names:
+            return candidate
+    return None
+
+
 def _markdown_tables(source: str) -> tuple[list[str], list[_Table]]:
     identity = [
         _normalise_text(line.lstrip("# ")) for line in source.splitlines() if line.startswith("# ")
@@ -177,22 +224,29 @@ def parse_memory_configuration(
         context = " ".join((*table.context, *table.headers))
         if not _context_matches(context, context_tokens):
             continue
+        model_columns = _model_columns(table.headers)
         memory_columns = [
             index
             for index, header in enumerate(table.headers)
             if "total" in header.casefold() or "vram" in header.casefold()
         ]
         for row in table.rows:
-            row_names = {_normalise_name(cell) for cell in row}
-            page_matches = any(
-                wanted in _normalise_name(identity)
-                for wanted in wanted_names
-                for identity in identities
+            page_identity = next(
+                (
+                    parsed
+                    for identity in identities
+                    if (parsed := _page_model(identity, wanted_names)) is not None
+                ),
+                None,
             )
-            row_matches = any(
-                wanted in row_name for wanted in wanted_names for row_name in row_names
+            row_model = _row_model(
+                row,
+                table.headers,
+                model_columns,
+                wanted_names,
+                quantisation,
             )
-            if not (page_matches or row_matches):
+            if page_identity is None and row_model is None:
                 continue
             if not any(
                 cell.casefold() == quantisation.casefold()
@@ -207,19 +261,7 @@ def parse_memory_configuration(
             ]
             if len(matching_memory) != 1:
                 continue
-            row_model = next(
-                (
-                    cell
-                    for cell in row
-                    if any(wanted in _normalise_name(cell) for wanted in wanted_names)
-                ),
-                None,
-            )
-            actual_model = row_model or next(
-                identity
-                for identity in identities
-                if any(wanted in _normalise_name(identity) for wanted in wanted_names)
-            )
+            actual_model = row_model or page_identity
             return {
                 "model": actual_model,
                 "quantisation": next(

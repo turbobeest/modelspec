@@ -67,6 +67,24 @@ def test_local_rule_uses_sourced_parameter_artifact_and_runtime_memory(slice_2) 
         </body></html>
         """,
         """
+        <html><head><title>Other Model vs Gemma 4 E2B hardware</title></head><body>
+          <h1>Other Model</h1>
+          <table><thead><tr><th>Quant</th><th>Total @ 8K</th></tr></thead>
+            <tbody><tr><td>Q4_K_M</td><td>3.5 GB</td></tr></tbody>
+          </table>
+        </body></html>
+        """,
+        """
+        <html><head><title>Other Model hardware requirements</title></head><body>
+          <h1>Other Model</h1>
+          <table><thead><tr><th>Notes</th><th>Quant</th><th>Total @ 8K</th></tr></thead>
+            <tbody>
+              <tr><td>Compared with Gemma 4 E2B</td><td>Q4_K_M</td><td>3.5 GB</td></tr>
+            </tbody>
+          </table>
+        </body></html>
+        """,
+        """
         <html><head><title>Gemma 4 E2B hardware requirements</title></head><body>
           <h1>Gemma 4 E2B</h1>
           <table><thead><tr><th>Quant</th><th>Total @ 8K</th></tr></thead>
@@ -78,9 +96,9 @@ def test_local_rule_uses_sourced_parameter_artifact_and_runtime_memory(slice_2) 
         </body></html>
         """,
     ],
-    ids=("cross-model", "cross-row"),
+    ids=("cross-model-body", "conflicting-title", "non-model-cell", "cross-row"),
 )
-def test_memory_reader_rejects_cross_model_and_cross_row_matches(source: str) -> None:
+def test_memory_reader_rejects_unbound_model_and_cross_row_matches(source: str) -> None:
     with pytest.raises(SourceRowMismatchError):
         parse_memory_configuration(
             source,
@@ -89,6 +107,30 @@ def test_memory_reader_rejects_cross_model_and_cross_row_matches(source: str) ->
             context_tokens=8192,
             runtime_memory_gb=3.5,
         )
+
+
+def test_memory_reader_accepts_an_exact_parsed_model_field() -> None:
+    source = """
+    <html><head><title>Consumer hardware comparison</title></head><body>
+      <h1>Consumer hardware comparison</h1>
+      <table><thead>
+        <tr><th>Model name</th><th>Quant</th><th>Total @ 8K</th></tr>
+      </thead><tbody>
+        <tr><td>Gemma 4 E2B</td><td>Q4_K_M</td><td>3.5 GB</td></tr>
+      </tbody></table>
+    </body></html>
+    """
+
+    parsed = parse_memory_configuration(
+        source,
+        model_names=("Gemma 4 E2B",),
+        quantisation="Q4_K_M",
+        context_tokens=8192,
+        runtime_memory_gb=3.5,
+    )
+
+    assert parsed["model"] == "Gemma 4 E2B"
+    assert parsed["cited_region"]["row"] == ["Gemma 4 E2B", "Q4_K_M", "3.5 GB"]
 
 
 def test_memory_reader_retains_the_exact_model_configuration_row() -> None:
@@ -109,7 +151,7 @@ def test_memory_reader_retains_the_exact_model_configuration_row() -> None:
         runtime_memory_gb=3.5,
     )
 
-    assert parsed["model"] == "Gemma 4 E2B hardware requirements"
+    assert parsed["model"] == "Gemma 4 E2B"
     assert parsed["cited_region"] == {
         "context": [
             "Gemma 4 E2B hardware requirements",
