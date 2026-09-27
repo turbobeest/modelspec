@@ -48,6 +48,10 @@ from . import decide_cmd as _decide_cmd  # noqa: E402
 
 app.command("decide")(_decide_cmd.decide)
 
+from . import vocab_cmd as _vocab_cmd  # noqa: E402
+
+app.command("vocab", cls=_offline.ContractCommand)(_vocab_cmd.vocab)
+
 # The decision snapshot (MODEL-138): a new subcommand beside `fetch` and `status`.
 from . import snapshot_build_cmd as _snapshot_build_cmd  # noqa: E402
 

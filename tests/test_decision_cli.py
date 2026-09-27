@@ -6,12 +6,14 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
+from decision.snapshot import Snapshot, content_hash, snapshot_id_for  # noqa: E402
 
 VALID = """
 spec_version: 1
@@ -21,6 +23,90 @@ where:
 optimize:
   max: swe_bench_pro
 """
+
+BUDGET_CODING = """
+spec_version: 1
+snapshot: latest
+task_type: new_feature
+capabilities: {software_engineering: required}
+where:
+  - model.class = text-generator
+  - model.context_window >= 200000
+  - offering.cost_per_task <= 0.25
+optimize:
+  weights: {software_engineering: 0.6, -offering.cost_per_task: 0.4}
+"""
+
+
+@pytest.fixture
+def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
+    content = {
+        "format_version": 1,
+        "as_of": "2026-09-27",
+        "facet_subjects": {},
+        "lineup": {"candidates": [], "facets": {}, "evidence": {}},
+        "archive": {"candidates": [], "facets": {}, "evidence": {}},
+        "out_of_lineup": 0,
+        "benchmark_domains": {},
+        "capability": {},
+        "sources": {},
+        "excluded": {},
+    }
+    digest = content_hash(content)
+    snapshot = Snapshot(content, digest, snapshot_id_for(digest))
+    vocabulary = {
+        "vocabulary_version": 1,
+        "contract_version": "1.7",
+        "snapshot": snapshot.snapshot_id,
+        "task_types": ["new_feature", "bug_fix"],
+        "facets": [
+            {"id": "model.class", "label": "Model class", "subject": "model",
+             "value_type": "enum", "operators": ["=", "!=", "in", "not in", "known"],
+             "known": 10, "of": 10},
+            {"id": "model.context_window", "label": "Context window", "subject": "model",
+             "value_type": "number",
+             "operators": ["=", "!=", "<", "<=", ">", ">=", "between", "known"],
+             "known": 8, "of": 10},
+            {"id": "offering.cost_per_task", "label": "Cost per task",
+             "subject": "offering", "value_type": "number",
+             "operators": ["=", "!=", "<", "<=", ">", ">=", "between", "known"],
+             "known": 6, "of": 12},
+            {"id": "offering.data.retention_days", "label": "Data retention",
+             "subject": "offering", "value_type": "number",
+             "operators": ["=", "!=", "<", "<=", ">", ">=", "between", "known"],
+             "known": 5, "of": 12},
+            {"id": "offering.provider", "label": "Provider", "subject": "offering",
+             "value_type": "enum", "operators": ["=", "!=", "in", "not in", "known"],
+             "known": 12, "of": 12},
+        ],
+        "benchmarks": [
+            {"id": "swe_bench_pro", "name": "SWE-bench Pro",
+             "domains": [{"id": "software_engineering", "directness": "direct"}]},
+            {"id": "gpqa", "name": "GPQA",
+             "domains": [{"id": "reasoning", "directness": "proxy"}]},
+        ],
+        "domains": [
+            {"id": "software_engineering", "name": "Software engineering",
+             "proxy_only": False, "estimate_models": 7},
+            {"id": "reasoning", "name": "Reasoning", "proxy_only": True,
+             "estimate_models": 4},
+        ],
+        "providers": {"anthropic": "Anthropic API", "openai": "OpenAI API"},
+        "coverage": {
+            "as_of": "2026-09-27", "models": 10, "verified": 8,
+            "classes": [{"id": "text-generator", "models": 8, "verified": 7,
+                         "domains": [{"id": "software_engineering", "verified": 6}]}],
+            "domains": [],
+        },
+    }
+    cache = tmp_path / "cache"
+    generation = cache / "decision" / snapshot.snapshot_id
+    generation.mkdir(parents=True)
+    (generation / "snapshot.json.gz").write_bytes(snapshot.to_bytes(key="test-key"))
+    (generation / "vocabulary.json").write_text(json.dumps(vocabulary))
+    (cache / "decision" / "current").write_text(snapshot.snapshot_id + "\n")
+    monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
+    return vocabulary
 
 
 def _run(tmp_path: Path, text: str, *args: str):
@@ -95,6 +181,85 @@ def test_unknown_facet_uses_the_registry_nearest_match(tmp_path) -> None:
 
 def test_the_existing_commands_are_all_still_there() -> None:
     names = {cmd.name for cmd in cli_mod.app.registered_commands}
-    assert "decide" in names
+    assert {"decide", "vocab"} <= names
     groups = {group.name for group in cli_mod.app.registered_groups}
     assert {"offline", "snapshot"} <= groups
+
+
+@pytest.mark.parametrize(
+    "section, marker",
+    [("facets", "model.context_window"), ("benchmarks", "swe_bench_pro"),
+     ("domains", "software_engineering"), ("providers", "anthropic"),
+     ("task-types", "new_feature"), ("coverage", "verified")],
+)
+def test_vocab_sections_have_human_and_json_output(
+    cached_vocabulary: dict, section: str, marker: str,
+) -> None:
+    human = CliRunner().invoke(cli_mod.app, ["vocab", section])
+    machine = CliRunner().invoke(cli_mod.app, ["vocab", section, "--json"])
+    assert human.exit_code == machine.exit_code == 0
+    assert marker in human.stdout
+    assert marker in machine.stdout
+    json.loads(machine.stdout)
+
+
+def test_vocab_overview_and_filters(cached_vocabulary: dict) -> None:
+    overview = CliRunner().invoke(cli_mod.app, ["vocab"])
+    search = CliRunner().invoke(cli_mod.app, ["vocab", "facets", "--search", "retention"])
+    domain = CliRunner().invoke(
+        cli_mod.app, ["vocab", "benchmarks", "--domain", "software_engineering", "--json"]
+    )
+    class_ = CliRunner().invoke(
+        cli_mod.app, ["vocab", "benchmarks", "--class", "text-generator", "--json"]
+    )
+    assert cached_vocabulary["snapshot"] in overview.stdout
+    assert "next: modelspec vocab facets" in overview.stdout
+    assert "offering.data.retention_days" in search.stdout
+    assert [row["id"] for row in json.loads(domain.stdout)] == ["swe_bench_pro"]
+    assert [row["id"] for row in json.loads(class_.stdout)] == ["swe_bench_pro"]
+
+
+def test_vocab_without_a_cache_exits_three(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MODELSPEC_CACHE", str(tmp_path / "empty"))
+    result = CliRunner().invoke(cli_mod.app, ["vocab"])
+    assert result.exit_code == 3
+    assert "modelspec snapshot fetch" in result.stderr
+
+
+def test_check_accepts_the_budget_coding_spec(tmp_path: Path, cached_vocabulary: dict) -> None:
+    result = _run(tmp_path, BUDGET_CODING, "--check")
+    assert result.exit_code == 0
+    assert "ok: musts: 3, prefers: 2, snapshot: latest" in result.stdout
+
+
+def test_check_suggests_a_misspelled_facet(tmp_path: Path, cached_vocabulary: dict) -> None:
+    result = _run(
+        tmp_path, BUDGET_CODING.replace("model.context_window", "model.context_windw"),
+        "--check",
+    )
+    assert result.exit_code == 1
+    assert "where[1]" in result.stderr
+    assert "did you mean 'model.context_window'" in result.stderr
+
+
+def test_check_rejects_an_unknown_benchmark(tmp_path: Path, cached_vocabulary: dict) -> None:
+    result = _run(
+        tmp_path, BUDGET_CODING.replace("model.context_window >= 200000", "swe_bench_plus >= 55"),
+        "--check",
+    )
+    assert result.exit_code == 1
+    assert "unknown facet 'swe_bench_plus'" in result.stderr
+    assert "swe_bench_pro" in result.stderr
+
+
+def test_check_json_is_machine_readable(tmp_path: Path, cached_vocabulary: dict) -> None:
+    good = _run(tmp_path, BUDGET_CODING, "--check", "--json")
+    assert good.exit_code == 0
+    assert json.loads(good.stdout)["ok"] is True
+
+    bad = _run(
+        tmp_path, BUDGET_CODING.replace("model.context_window", "model.context_windw"),
+        "--check", "--json",
+    )
+    assert bad.exit_code == 1
+    assert json.loads(bad.stderr)["error"]["code"] == "invalid_spec"

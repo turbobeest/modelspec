@@ -11,6 +11,8 @@ modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
                                           the decision snapshot and vocabulary
                                           (the only networked command)
 modelspec snapshot status [--json]        what is cached, how old, which build or decision
+modelspec vocab [SECTION] [--json]        inspect the cached decision vocabulary
+modelspec decide SPEC.yaml --check        validate a spec without running a decision
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
@@ -22,6 +24,27 @@ its own (`contract_version`) and documented in
 [`decision-contract.md`](decision-contract.md). With neither `--snapshot-file`
 nor `MODELSPEC_DECISION_SNAPSHOT`, it reads the decision snapshot cached by
 `modelspec snapshot fetch`. It makes no network request itself.
+
+`modelspec vocab` reads only the vocabulary selected by `decision/current`.
+With no section it prints the snapshot ID, section counts, and the next command
+to run. The sections are `facets`, `benchmarks`, `domains`, `providers`,
+`task-types`, and `coverage`. Human output uses compact tables. `--json` returns
+the selected section as published, or the complete vocabulary when no section
+is given. `--search TEXT` matches IDs and labels or names. `--domain DOMAIN`
+limits benchmarks to a domain. `--class CLASS` limits benchmarks to domains
+where that class has verified coverage. The vocabulary does not declare facet
+applicability by class, so `--class` does not remove facets. A missing cache
+exits 3 and tells the caller to run `modelspec snapshot fetch`.
+
+`modelspec decide SPEC.yaml --check` parses the spec with the decision parser,
+then checks every named facet, benchmark, domain, provider, and task type
+against that cached vocabulary. It also checks each condition operator against
+the facet's published operator list. It does not load or run the decision
+snapshot. Success exits 0 and reports the Must count, Prefer count, and snapshot
+pin. Invalid input exits 1 with `error.code: "invalid_spec"`; each issue names
+its spec path and gives close ID matches when available. If a spec pins another
+snapshot, the command warns but still succeeds. `--json` applies to both
+success and failure.
 
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,

@@ -491,7 +491,7 @@ checks structure only. A `SpecError` lists every issue; each names the `path`
 field) and the `reason`.
 
 ```
-modelspec decide SPEC.yaml [--explain none|summary|full] [--json]
+modelspec decide SPEC.yaml [--explain none|summary|full] [--check] [--json]
 ```
 
 `--explain` overrides the spec's `explain`. By default the command reads the
@@ -502,6 +502,17 @@ with an inline SVG contribution chart, light and dark styles, and source links.
 The command emits the decision as JSON. Invalid specs, unavailable snapshots,
 and unresolved explanation provenance exit **1** with a structured error when
 `--json` is set. Successful decisions, including `no_feasible`, exit **0**.
+
+`--check` stops after validation. It reads the vocabulary cached by
+`modelspec snapshot fetch` and treats it as the authority for facet, benchmark,
+domain, provider, and task-type IDs. The normal parser still checks the spec
+shape, value types, and ordered versus unordered operators. The command also
+checks operators against each facet's published `operators`. Human output is
+`ok` plus one line with the Must count, Prefer count, and snapshot pin. JSON
+success includes `ok`, `summary`, and the cached `snapshot`. A failure uses the
+normal `invalid_spec` error with one issue per path and close ID matches. A
+snapshot pin that differs from the cached vocabulary produces a warning, not a
+validation failure.
 
 ### Explanation provenance (MODEL-145)
 
