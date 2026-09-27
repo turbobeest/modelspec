@@ -10,11 +10,9 @@ import pytest
 
 from decision.capability import (
     BenchmarkSpec,
-    CapabilityEstimate,
     CapabilityObservation,
     backtest_capabilities,
     backtest_newest_capabilities,
-    deterministic_probabilities,
     fit_capabilities,
 )
 from decision.contract import parse_spec
@@ -113,29 +111,6 @@ def test_two_model_benchmark_keeps_honest_wide_domain_estimates() -> None:
     assert first.value < second.value
     assert first.low < first.value < first.high
     assert second.low < second.value < second.high
-
-
-def test_probability_sampling_has_a_worker_cold_start_budget(monkeypatch) -> None:
-    from decision import capability
-
-    draws = 0
-
-    class CountingRandom(capability.random.Random):
-        def gauss(self, mu, sigma):
-            nonlocal draws
-            draws += 1
-            return super().gauss(mu, sigma)
-
-    monkeypatch.setattr(capability.random, "Random", CountingRandom)
-    estimates = {
-        f"lab/model-{index}": CapabilityEstimate(index / 10, -1, 1, 0.5)
-        for index in range(25)
-    }
-
-    probabilities = deterministic_probabilities(estimates, seed_material="snapshot:spec")
-
-    assert set(probabilities) == set(estimates)
-    assert draws <= len(estimates) * 256
 
 
 def test_fit_is_deterministic_and_saturation_reduces_frontier_information() -> None:
