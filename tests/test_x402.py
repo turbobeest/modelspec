@@ -220,6 +220,15 @@ def test_enabled_keyed_request_discovers_packs_before_the_free_answer():
     ]
 
 
+def test_billing_docs_distinguish_exhausted_behavior_by_x402_flag():
+    text = (REPO_ROOT / "docs" / "billing.md").read_text(encoding="utf-8")
+    billing = " ".join(text.split())
+    assert "When `X402_ENABLED` is off" in billing
+    assert "When `X402_ENABLED` is on" in billing
+    assert "HTTP 402" in billing
+    assert "all four card-pack offers" in billing
+
+
 def test_keyless_per_call_price_uses_smallest_pack_rate_times_weight():
     cfg = x402.load_config(type("Env", (), {
         "TIER_POLICY": (REPO_ROOT / "api" / "worker" / "tiers.json").read_text(),

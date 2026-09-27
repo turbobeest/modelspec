@@ -34,10 +34,13 @@ allowance first, then pack credits, oldest expiry first. Weights live in
 explanation `none` or `summary` = 1 credit, and decision explanation `full` =
 2 credits.
 
-A key with zero remaining credits is not an error: it receives the free-tier
-answer (10 rank/day, 5/min, no determinations) plus a `credits.exhausted`
-field naming where to buy. Paid keys have no daily cap; the burst limit is
-configuration (`credits.burst_limit`, 60/min as shipped).
+A key with zero remaining credits depends on the x402 switch. When
+`X402_ENABLED` is off, it receives the free-tier answer (10 rank/day, 5/min,
+no determinations) plus a `credits.exhausted` field naming where to buy. When
+`X402_ENABLED` is on, it receives HTTP 402 with all four card-pack offers from
+`tiers.json`; it does not receive the free-tier answer. Paid keys have no daily
+cap; the burst limit is configuration (`credits.burst_limit`, 60/min as
+shipped).
 
 Cancellation, failed payment, or expiry **zeros the monthly allowance at
 once**. Pack credits are unaffected. That is MODEL-73's immediate-downgrade
