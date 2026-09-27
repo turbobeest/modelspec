@@ -111,9 +111,6 @@
     "X402_ASSET": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     // Receiving address. Empty until Jamie sets it. No private key belongs here.
     "X402_PAY_TO": "",
-    // PLACEHOLDER price, atomic USDC (6 decimals). 1000 = $0.001. Allowed
-    // range 1000–10000 ($0.001–$0.01). Not a live rate.
-    "X402_PRICE_ATOMIC": "1000",
     // Coinbase CDP facilitator origin. Paths /v2/x402/verify and /v2/x402/settle
     // are appended. https://docs.cdp.coinbase.com/api-reference/v2/rest-api/x402-facilitator/x402-facilitator
     "X402_FACILITATOR_URL": "https://api.cdp.coinbase.com/platform"

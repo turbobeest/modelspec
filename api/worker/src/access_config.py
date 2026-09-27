@@ -364,7 +364,8 @@ def _credits(raw: Any) -> CreditsConfig:
             raise PolicyError(
                 f"credits.weights[{name!r}] must be a positive integer")
         weights[str(name)] = value
-    for required in ("rank", "policy-check"):
+    for required in ("rank", "policy-check", "decide.none", "decide.summary",
+                     "decide.full"):
         if required not in weights:
             raise PolicyError(f"credits.weights must set {required!r}")
     expiry = _nonneg_int(raw, "pack_expiry_days", where="credits")
