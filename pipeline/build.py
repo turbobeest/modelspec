@@ -36,6 +36,17 @@ BENCHGRAPH_REDIRECTS = (
 API_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/api.md"
 RANK_API = "https://api.modelspec.dev/v1/rank"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
+MODEL_PAGE_MAX_BYTES = 512 * 1024
+
+
+def write_model_page(destination: Path, page: str) -> None:
+    """Write one model page only when it remains suitable for static delivery."""
+    size = len(page.encode("utf-8"))
+    if size > MODEL_PAGE_MAX_BYTES:
+        raise ValueError(
+            f"model page {destination} exceeds the {MODEL_PAGE_MAX_BYTES}-byte budget: {size}"
+        )
+    destination.write_text(page, encoding="utf-8")
 
 
 def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
@@ -473,6 +484,12 @@ def main(argv: list[str] | None = None) -> int:
 
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
     coverage = exporter.models_by_benchmark(models, benchmarks)
+    strip_assets = ms / "assets" / "benchmark-strips"
+    strip_assets.mkdir(parents=True, exist_ok=True)
+    for benchmark_id, rows in coverage.items():
+        asset = r.benchmark_strip_asset(rows)
+        if asset:
+            (strip_assets / f"{benchmark_id}.svg").write_text(asset, encoding="utf-8")
 
     # modelspec.dev
     pages = {m.model_id for m in models}
@@ -480,11 +497,12 @@ def main(argv: list[str] | None = None) -> int:
     ms_paths = ["/", "/models/", "/providers/"]
     for model in models:
         (ms / "m" / model.model_id).mkdir(parents=True, exist_ok=True)
-        (ms / "m" / model.model_id / "index.html").write_text(
+        write_model_page(
+            ms / "m" / model.model_id / "index.html",
             r.model_page(model, build, bench_by_id, catalogue,
                          relations.for_model(model.model_id), pages=pages,
                          evidence_coverage=coverage),
-            encoding="utf-8")
+        )
         ms_paths.append(f"/m/{model.model_id}/")
     wizard = root / "web3d/downselect.v2.html"
     if wizard.is_file():

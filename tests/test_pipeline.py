@@ -34,9 +34,10 @@ from pipeline.load import (  # noqa: E402
 from pipeline.render import (  # noqa: E402
     benchmark_chart,
     benchmark_page,
+    benchmark_strip_asset,
     format_score,
-    model_page,
     model_benchmark_strips,
+    model_page,
 )
 
 # Parsing 1,143 cards and 1,106 pages costs seconds; the corpus does not change
@@ -350,6 +351,7 @@ def test_benchmark_chart_uses_only_sourced_evidence_and_splits_series() -> None:
     assert "Benchmark version: v1" in chart and "Benchmark version: v2" in chart
     assert "Evidence date: 2026-09-01 (evaluated)" in chart
     assert "Configuration: default" in chart
+    assert '<a class="point-trigger" href="#p1"' in chart
     assert '<a href="https://src.example/demo-model-0/b"' in chart
     assert "Sources drawn:" in chart
     assert ">source 20</a>" in chart
@@ -382,7 +384,7 @@ def test_benchmark_page_points_disclose_details_without_javascript() -> None:
     )
 
     assert (
-        'class="point-trigger" href="https://src.example/demo-model-0/b"'
+        'class="point-trigger" href="#p1"'
         in html
     )
     assert 'aria-describedby="p1"' in html
@@ -393,6 +395,32 @@ def test_benchmark_page_points_disclose_details_without_javascript() -> None:
     assert 'href="https://src.example/' in detail
     assert ".point-trigger:focus-visible~.point-detail" in html
     assert ".point-pair:focus-within>.point-detail" in html
+
+
+def test_model_strip_compacts_comparison_points() -> None:
+    model = _card("demo/focus", evidence=(_evidence("b", 70.0),))
+    rows = [_chart_row("demo/focus", 70.0)] + [
+        _chart_row(f"demo/model-{i}", float(i % 100)) for i in range(2_000)
+    ]
+
+    strip = model_benchmark_strips(model, {"b": _page("b")}, {"b": rows})
+    asset = benchmark_strip_asset(rows)
+
+    assert len(strip.encode("utf-8")) < 5_000
+    assert strip.count('class="point-trigger"') == 1
+    assert "2001 reporting models" in strip
+    assert 'href="/assets/benchmark-strips/b.svg#points"' in strip
+    assert asset.count("M") == 2_001
+    assert "source-independent-evaluator" in asset
+
+
+def test_model_page_writer_enforces_byte_budget(tmp_path: Path) -> None:
+    destination = tmp_path / "index.html"
+
+    with pytest.raises(ValueError, match="model page.*byte budget"):
+        builder.write_model_page(destination, "x" * (builder.MODEL_PAGE_MAX_BYTES + 1))
+
+    assert not destination.exists()
 
 
 def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
@@ -431,7 +459,8 @@ def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
     strips = model_benchmark_strips(model, pages, coverage)
 
     assert strips.count('class="benchmark-strip"') == 3
-    assert strips.count('class="strip-point') == 22
+    assert strips.count('class="strip-point focus ') == 3
+    assert strips.count('<use href="/assets/benchmark-strips/') == 3
     assert "MMLU subjects" in strips
     assert "MultiPL-E languages" in strips
     assert strips.index("MMLU: Anatomy") < strips.index("MMLU: Marketing")
@@ -490,8 +519,9 @@ def test_model_page_passes_coverage_to_benchmark_strips() -> None:
 
     assert "Benchmark standing" in html
     assert 'href="/b/b/"' in html
-    assert html.count('class="strip-point') == 2
-    assert 'class="point-trigger" href="https://src.example/demo-focus/b"' in html
+    assert html.count('class="strip-point focus ') == 1
+    assert html.count('href="/assets/benchmark-strips/b.svg#points"') == 1
+    assert 'class="point-trigger" href="#s1p1"' in html
     assert 'id="s1p1" class="point-detail"' in html
 
 
