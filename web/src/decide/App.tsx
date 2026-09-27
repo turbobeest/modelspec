@@ -63,7 +63,7 @@ import type { Estate } from "./facet-board/model";
  */
 export const DECISION_WATCHDOG_MS = 20_000;
 
-function DesignedApp({
+export function DesignedApp({
   demo,
   board = false,
   simulate,
@@ -755,6 +755,25 @@ function DesignedApp({
             onSpec={changeSpec}
             estate={estate}
             onEstate={setEstate}
+            fit={decision?.explanation.feasible.length}
+            may={decision?.explanation.may.length}
+            answer={decision ? <>
+              <Field
+                decision={decision}
+                spec={shownSpec}
+                onAdd={add}
+                onDismiss={(id) => setDismissed([...dismissed, id])}
+                showQuestions={false}
+                vocabulary={vocabulary}
+              />
+              <section className="board-answer-head" aria-label="Facet board answer">
+                <span className="eyebrow">The answer</span>
+                <h2>Tied-group answer: coming (MODEL-170)</h2>
+                {decision.explanation.feasible.some((candidate) => decision.explanation.insep(candidate).length > 0) && <p>the evidence can't separate these</p>}
+                {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.results.length} ranked · ${estateDecision.may_qualify.length} may qualify` : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+              </section>
+              <Shortlist decision={decision} spec={shownSpec} selected={selectedId} onSelect={setSelected} />
+            </> : <section className="panel board-answer-loading" aria-live="polite">The live answer will appear here.</section>}
           /> : (decision || !demo) && <SpecPanel
             spec={shownSpec}
             decision={decision}
@@ -770,18 +789,12 @@ function DesignedApp({
             edit={edit}
             setEdit={setEdit}
           />}
-          {decision && <Field
+          {!board && decision && <Field
             decision={decision}
             spec={shownSpec}
             onAdd={add}
             onDismiss={(id) => setDismissed([...dismissed, id])}
           />}
-          {board && decision && <section className="board-answer-head" aria-label="Facet board answer">
-            <span className="eyebrow">The answer</span>
-            <h2>Tied-group answer: coming (MODEL-170)</h2>
-            {decision.explanation.feasible.some((candidate) => decision.explanation.insep(candidate).length > 0) && <p>the evidence can't separate these</p>}
-            {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.results.length} ranked · ${estateDecision.may_qualify.length} may qualify` : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} qualify · {decision.explanation.may.length} may qualify</span></div></div>}
-          </section>}
           {error ? (
             <div role="alert" className="error">
               <div>

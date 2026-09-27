@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type { Spec } from "../engine/types";
 import type { Vocabulary, VocabFacet } from "../vocabulary";
 import {
@@ -43,6 +44,7 @@ function ValueControl({ facet, choice, onChange }: {
 }
 
 function FacetRow({ facet, choice, onChange }: { facet: VocabFacet; choice: FacetSelection; onChange: (next: FacetSelection) => void }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   const unavailable = facet.known === 0;
   const preference = supportsPreference(facet.id);
   const setMode = (mode: FacetMode) => onChange({
@@ -53,7 +55,7 @@ function FacetRow({ facet, choice, onChange }: { facet: VocabFacet; choice: Face
   const must = choice.mode === "must" || choice.mode === "both";
   const prefer = choice.mode === "prefer" || choice.mode === "both";
   return <div className={`facet-row ${choice.mode === "off" ? "facet-off" : ""}`} data-facet={facet.id}>
-    <div className="facet-copy"><strong>{facet.label}</strong><small>{facet.definition}</small>{choice.mode === "off" && facet.values?.[0] && <small>Set to Must with {facet.values[0].label ?? String(facet.values[0].value)}: {facet.values[0].count} survive</small>}{choice.reason && <small className="template-reason">Why: {choice.reason}</small>}</div>
+    <div className="facet-copy"><span className="facet-label"><strong>{facet.label}</strong><button className="facet-info" aria-label={`About ${facet.label}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span>{infoOpen && <small className="facet-definition">{facet.definition}</small>}{choice.mode === "off" && facet.values?.[0] && <small>If Must: {facet.values[0].count} survive</small>}{choice.reason && <small className="template-reason">Why: {choice.reason}</small>}</div>
     <span className="facet-known">{facet.known}/{facet.of}</span>
     <div className="facet-controls">
       <div className="facet-state" role="radiogroup" aria-label={`State for ${facet.label}`}>
@@ -61,7 +63,6 @@ function FacetRow({ facet, choice, onChange }: { facet: VocabFacet; choice: Face
         <label><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={must && !prefer} onChange={() => setMode("must")} />Must</label>
         <label title={!preference ? "coming (MODEL-172)" : undefined}><input type="radio" name={`state-${facet.id}`} disabled={unavailable || !preference} checked={prefer && !must} onChange={() => setMode("prefer")} />Prefer</label>
       </div>
-      {!preference && !unavailable && <small>Prefer coming (MODEL-172)</small>}
       {unavailable && <small>Not yet tracked; Must and Prefer are unavailable.</small>}
       {(must || prefer) && !unavailable && <div className="facet-settings">
         {must && <ValueControl facet={facet} choice={choice} onChange={onChange} />}
@@ -82,26 +83,40 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, estate, onEstate }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; estate: Estate; onEstate: (estate: Estate) => void }) {
+export function FacetBoard({ vocabulary, spec, onSpec, estate, onEstate, answer, fit = 0, may = 0 }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number }) {
   const [selections, setSelections] = useState<BoardSelections>({});
   const [templatesOpen, setTemplatesOpen] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "What it's good at": true });
   const grouped = useMemo(() => groupFacets(vocabulary), [vocabulary]);
   const update = (id: string, next: FacetSelection) => {
     const all = { ...selections, [id]: next };
+    if (next.mode !== "off") setExpandedGroups((current) => ({ ...current, [grouped.groups.find((group) => group.facets.some((facet) => facet.id === id))?.name ?? "Other"]: true }));
     setSelections(all); onSpec(boardToSpec(spec, vocabulary, all));
   };
   const applyTemplate = (template: NonNullable<Vocabulary["templates"]>[number]) => {
     const all = Object.fromEntries(template.facets.map(({ id, ...choice }) => [id, { ...choice }]));
+    const activeGroups = grouped.groups.filter((group) => group.facets.some((facet) => ["must", "prefer", "both"].includes(all[facet.id]?.mode)));
+    setExpandedGroups((current) => Object.fromEntries(grouped.groups.map((group) => [group.name, group.name === "What it's good at" || activeGroups.some((active) => active.name === group.name) || current[group.name] === true])));
     setSelections(all); setTemplatesOpen(false); onSpec(boardToSpec(spec, vocabulary, all));
   };
   return <div className="facet-board">
     <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div>{vocabulary.templates?.length ? <button aria-expanded={templatesOpen} onClick={() => setTemplatesOpen(!templatesOpen)}>ⓘ Templates</button> : null}</div>
     {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.map((template) => <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.description}</span></button>)}</div></section> : null}
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
-    <section className="facet-list" aria-label="Facets"><header><span className="eyebrow">Facets</span><button onClick={() => { setSelections({}); onSpec(boardToSpec(spec, vocabulary, {})); }}>Reset all</button></header>
-      {grouped.groups.map((group) => <details key={group.name} open><summary>{group.name}</summary>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selections[facet.id] ?? { mode: "off" }} onChange={(choice) => update(facet.id, choice)} />)}</details>)}
-      {!!grouped.untracked.length && <details className="untracked"><summary>Not yet tracked · {grouped.untracked.length}</summary><p>No model in this snapshot has a value. Must and Prefer are disabled; a null beats a guess.</p>{grouped.untracked.map((facet) => <FacetRow key={facet.id} facet={facet} choice={{ mode: "off" }} onChange={() => undefined} />)}</details>}
-    </section>
+    <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
+    <div className="board-workspace">
+      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{Object.values(selections).filter((choice) => choice.mode !== "off").length} set</small></span><button onClick={() => { setSelections({}); setExpandedGroups({ "What it's good at": true }); onSpec(boardToSpec(spec, vocabulary, {})); }}>Reset all</button></header>
+        <div className="facet-columns" aria-hidden="true"><span>Facet</span><span>Known</span><span>State</span></div>
+        {grouped.groups.map((group) => {
+          const active = group.facets.filter((facet) => selections[facet.id]?.mode && selections[facet.id]?.mode !== "off");
+          const survival = active.flatMap((facet) => facet.values?.map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
+          const open = expandedGroups[group.name] === true;
+          return <section className="facet-group" key={group.name}><button className="facet-group-summary" aria-expanded={open} onClick={() => setExpandedGroups((current) => ({ ...current, [group.name]: !open }))}><span>{group.name}</span><small>{active.length ? `${active.length} set` : "all Doesn't matter"}{survival.length ? ` · → ${Math.min(...survival)} survive` : " · no change"}</small><b aria-hidden="true">{open ? "−" : "+"}</b></button>{open && <div>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selections[facet.id] ?? { mode: "off" }} onChange={(choice) => update(facet.id, choice)} />)}{group.facets.some((facet) => facet.known > 0 && !supportsPreference(facet.id)) && <p className="group-coming">Prefer on these facets: coming (MODEL-172)</p>}</div>}</section>;
+        })}
+        {!!grouped.untracked.length && <section className="facet-group untracked"><button className="facet-group-summary" aria-expanded={expandedGroups.untracked === true} onClick={() => setExpandedGroups((current) => ({ ...current, untracked: !current.untracked }))}><span>Not yet tracked</span><small>{grouped.untracked.length} facets · no values</small><b aria-hidden="true">{expandedGroups.untracked ? "−" : "+"}</b></button>{expandedGroups.untracked && <div><p>No model in this snapshot has a value. Must and Prefer are disabled; a null beats a guess.</p>{grouped.untracked.map((facet) => <FacetRow key={facet.id} facet={facet} choice={{ mode: "off" }} onChange={() => undefined} />)}</div>}</section>}
+      </section>
+      {answer && <aside className="board-answer" id="facet-board-answer">{answer}</aside>}
+    </div>
   </div>;
 }
 

@@ -51,7 +51,7 @@ it("separates not-yet-tracked facets", () => {
   expect(groupFacets(vocabulary).untracked.map((facet) => facet.id)).toContain(vocabulary.facets[0].id);
 });
 
-it("hides absent templates and applies vocabulary templates with reasons", () => {
+it("hides absent templates and expands groups with active template facets", () => {
   const base = realBaseSpec(smallVocabulary);
   const first = render(<FacetBoard vocabulary={smallVocabulary} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.queryByText("Start from a template")).not.toBeInTheDocument();
@@ -59,9 +59,12 @@ it("hides absent templates and applies vocabulary templates with reasons", () =>
   const onSpec = vi.fn();
   const vocabulary = { ...smallVocabulary, templates: [{ id: "budget", name: "Budget coding", description: "A practical start", facets: [{ id: "offering.cost_per_task", mode: "both" as const, op: "<=" as const, value: 0.25, weight: 0.4, reason: "Keep each run affordable" }] }] };
   render(<FacetBoard vocabulary={vocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+  expect(screen.getByRole("button", { name: /Budgetall Doesn't matter/ })).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(screen.getByRole("button", { name: /Budget coding/ }));
+  expect(screen.getByRole("button", { name: /Budget1 set/ })).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByText("Why: Keep each run affordable")).toBeInTheDocument();
   expect(onSpec).toHaveBeenCalledOnce();
-  const context = screen.getByText("Context window").closest<HTMLElement>(".facet-row")!;
-  expect(within(context).getByText("Prefer coming (MODEL-172)")).toBeInTheDocument();
+  const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
+  expect(within(cost).queryByText(/coming \(MODEL-172\)/)).not.toBeInTheDocument();
+  expect(screen.getAllByText("Prefer on these facets: coming (MODEL-172)").length).toBeGreaterThan(0);
 });

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
-import App from "../App";
+import App, { DesignedApp } from "../App";
 import { decisionSchema } from "../adapter";
 import { json, routeFetch, sentSpecs, smallVocabulary } from "./vocab-fixtures";
 import { VOCABULARY_URL } from "../vocabulary";
@@ -115,6 +115,14 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(dialog).toHaveTextContent(
     "modelspec snapshot fetch modelspec decide spec.yaml --json",
   );
+});
+
+it("does not render the Next-questions panel in the facet-board preview", async () => {
+  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+  expect(screen.queryByText("Next questions, most narrowing first")).not.toBeInTheDocument();
+  expect(screen.getByText("Narrowing, in the order you set conditions")).toBeInTheDocument();
 });
 
 it("switches the ranking benchmark in one click from the rank-by control", async () => {

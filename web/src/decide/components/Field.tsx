@@ -1,21 +1,35 @@
 import type { AdapterDecision, Cond, Spec } from "../adapter";
+import type { Vocabulary } from "../vocabulary";
+
+function objectiveLabel(id: string, vocabulary?: Vocabulary): string {
+  const facetId = id.startsWith("-") ? id.slice(1) : id;
+  const domain = vocabulary?.domains.find((item) => item.id === facetId);
+  const facet = vocabulary?.facets.find((item) => item.id === facetId);
+  const label = domain?.name ?? facet?.label ?? facetId.replaceAll("_", " ").replaceAll(".", " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export function Field({
   decision,
   spec,
   onAdd,
   onDismiss,
+  showQuestions = true,
+  vocabulary,
 }: {
   decision: AdapterDecision;
   spec?: Spec;
   onAdd: (c: Cond) => void;
   onDismiss: (id: string) => void;
+  showQuestions?: boolean;
+  vocabulary?: Vocabulary;
 }) {
   const e = decision.explanation,
     steps = [
       ...e.funnel,
       {
         label: spec?.boardWeights && Object.keys(spec.boardWeights).length
-          ? `Ranking on ${Object.keys(spec.boardWeights).join(" · ")}`
+          ? `Ranking on ${Object.entries(spec.boardWeights).map(([id, weight]) => `${objectiveLabel(id, vocabulary)} ${weight.toFixed(2)}`).join(" · ")}`
           : "Ranked on evidence",
         n: e.feasible.length,
         may: e.may.length,
@@ -69,7 +83,7 @@ export function Field({
           ))}
         </ol>
       </div>
-      <div className="panel questions">
+      {showQuestions && <div className="panel questions">
         <div className="eyebrow">Next questions, most narrowing first</div>
         {decision.questions.map((q) => (
           <div className="question" key={q.id}>
@@ -103,7 +117,7 @@ export function Field({
         {!decision.questions.length && (
           <p>No further question would narrow the field.</p>
         )}
-      </div>
+      </div>}
     </section>
   );
 }
