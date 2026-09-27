@@ -17,15 +17,20 @@ export function RankedAnswer({
 }) {
   const [expanded, setExpanded] = useState(false);
   const ranked = boardHasPreference(spec);
-  const rows = ranked
-    ? decision.explanation.feasible
-    : [...decision.explanation.feasible].sort((left, right) =>
-        left.m.name.localeCompare(right.m.name),
-      );
-  const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
+  const allCandidates = [
+    ...decision.explanation.feasible,
+    ...decision.explanation.may,
+  ];
   const capability = vocabulary.domains.find((domain) =>
     Object.keys(spec.boardWeights ?? {}).includes(domain.id),
   );
+  const rows = ranked
+    ? decision.explanation.feasible
+    : allCandidates.sort((left, right) =>
+        left.m.name.localeCompare(right.m.name),
+      );
+  const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
+  const may = ranked && capability ? decision.explanation.may : [];
   const extent = useMemo(() => {
     const values = rows.flatMap((row) => row.cap === null ? [] : [
       row.cap - (row.capR?.ci ?? 0),
@@ -40,7 +45,7 @@ export function RankedAnswer({
       .filter((result) => result.warnings.includes("not_separable"))
       .map((result) => result.offering.model),
   );
-  const inseparable = rows.filter((row) =>
+  const inseparable = decision.explanation.feasible.filter((row) =>
     warnedModels.has(`${row.m.lab}/${row.m.id}`) && decision.explanation.insep(row).length > 0,
   );
 
@@ -60,18 +65,22 @@ export function RankedAnswer({
         const radius = row.capR?.ci ?? 0;
         const left = 100 * (value - radius - extent.min) / extent.span;
         const width = Math.max(2, 100 * (radius * 2) / extent.span);
-        return <li className={capability ? "" : "without-capability"} key={`${row.m.lab}/${row.m.id}`}>
+        return <li className={capability ? "" : "without-capability"} key={row.best.o.id}>
           <div className="board-ranked-copy">
             <strong>{row.m.name}</strong>
             <small>{row.m.labName} · via {row.best.o.provider}</small>
           </div>
           <div className="board-ranked-cost"><small>Cost per task</small><span>{money(row.cost)}</span></div>
           {capability && <div className="board-capability">
-            <span className="board-interval-track" aria-label={`${row.m.name} capability interval`}>
-              <i style={{ left: `${Math.max(0, left)}%`, width: `${Math.min(100 - Math.max(0, left), width)}%` }} />
-              <b style={{ left: `${Math.max(0, Math.min(100, 100 * (value - extent.min) / extent.span))}%` }} />
-            </span>
-            <small>{row.cap === null ? "unknown" : `${row.cap.toFixed(2)} capability score`}</small>
+            {row.cap === null
+              ? <small>no evidence for {capability.name}</small>
+              : <>
+                <span className="board-interval-track" aria-label={`${row.m.name} capability interval`}>
+                  <i style={{ left: `${Math.max(0, left)}%`, width: `${Math.min(100 - Math.max(0, left), width)}%` }} />
+                  <b style={{ left: `${Math.max(0, Math.min(100, 100 * (value - extent.min) / extent.span))}%` }} />
+                </span>
+                <small>{row.cap.toFixed(2)} capability score</small>
+              </>}
           </div>}
         </li>;
       })}
@@ -79,6 +88,18 @@ export function RankedAnswer({
     {rows.length > COLLAPSED_COUNT && <button className="text-button board-show-all" onClick={() => setExpanded((current) => !current)}>
       {expanded ? "Show fewer" : `Show all ${rows.length}`}
     </button>}
+    {may.length > 0 && <section className="board-may-qualify">
+      <h3>May qualify — no {capability?.name} evidence ({may.length})</h3>
+      <ul>
+        {may.map((row) => <li key={row.best.o.id}>
+          <div className="board-ranked-copy">
+            <strong>{row.m.name}</strong>
+            <small>{row.m.labName} · via {row.best.o.provider}</small>
+          </div>
+          <div className="board-ranked-cost"><small>Cost per task</small><span>{money(row.cost)}</span></div>
+        </li>)}
+      </ul>
+    </section>}
     {rows.length === 0 && <small>No model qualifies yet.</small>}
   </section>;
 }

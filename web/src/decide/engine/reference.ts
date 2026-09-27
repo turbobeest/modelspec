@@ -300,10 +300,8 @@ export interface Row {
   _q?: number;
   unrankedWhy?: string;
 }
-/** A row that is ranked: it qualifies and has a primary-benchmark result. */
+/** A qualifying row in engine rank order; hosted decisions may lack capability data. */
 export type RankedRow = Row & {
-  capR: Evidence;
-  cap: number;
   rank: number;
   score: number;
   parts: Weights;
@@ -477,13 +475,13 @@ export function evaluate(
   const byCost = ranked
     .filter((x) => x.cost != null)
     .slice()
-    .sort((a, b) => a.cost! - b.cost! || (hiB ? b.cap - a.cap : a.cap - b.cap));
+    .sort((a, b) => a.cost! - b.cost! || (hiB ? b.cap! - a.cap! : a.cap! - b.cap!));
   let bestCap = hiB ? -Infinity : Infinity;
   const frontier: string[] = [];
   byCost.forEach((x) => {
-    if (hiB ? x.cap > bestCap : x.cap < bestCap) {
+    if (hiB ? x.cap! > bestCap : x.cap! < bestCap) {
       frontier.push(x.m.id);
-      bestCap = x.cap;
+      bestCap = x.cap!;
     }
   });
 
@@ -492,7 +490,7 @@ export function evaluate(
   const value = ranked
     .filter((x) => x.cost! > 0)
     .slice()
-    .sort((a, b) => b.cap / b.cost! - a.cap / a.cost!)[0];
+    .sort((a, b) => b.cap! / b.cost! - a.cap! / a.cost!)[0];
   const bar =
     spec.bar ??
     conds.find(
@@ -500,7 +498,7 @@ export function evaluate(
     )?.min ??
     null;
   const clears = ranked
-    .filter((x) => bar == null || cmpB(B, x.cap, bar))
+    .filter((x) => bar == null || cmpB(B, x.cap!, bar))
     .sort((a, b) => (a.cost as number) - (b.cost as number))[0];
   const open = ranked.find((x) => x.m.open);
   const shortlist: Shortlist = { top, value, clears, open, bar };
@@ -511,9 +509,9 @@ export function evaluate(
       : ranked.filter(
           (x) =>
             x !== r0 &&
-            x.capR.ci != null &&
-            r0.capR.ci != null &&
-            Math.abs(x.cap - r0.cap) < Math.hypot(x.capR.ci, r0.capR.ci) &&
+            x.capR?.ci != null &&
+            r0.capR?.ci != null &&
+            Math.abs(x.cap! - r0.cap!) < Math.hypot(x.capR.ci, r0.capR.ci) &&
             x.cost! / r0.cost! < 2 &&
             r0.cost! / x.cost! < 2,
         );
@@ -544,8 +542,8 @@ export function evaluate(
   const maxCap = (arr: RankedRow[]) =>
     arr.length
       ? hiB
-        ? Math.max(...arr.map((x) => x.cap))
-        : Math.min(...arr.map((x) => x.cap))
+        ? Math.max(...arr.map((x) => x.cap!))
+        : Math.min(...arr.map((x) => x.cap!))
       : null;
   const nowMax = maxCap(ranked);
   const costs = conds
@@ -559,7 +557,7 @@ export function evaluate(
       const altMax = maxCap(alt.feasible);
       const bestAlt = alt.feasible
         .slice()
-        .sort((a, b) => (hiB ? b.cap - a.cap : a.cap - b.cap))[0];
+        .sort((a, b) => (hiB ? b.cap! - a.cap! : a.cap! - b.cap!))[0];
       return {
         i,
         c,

@@ -633,6 +633,10 @@ body {
 .funnel .engine-added .funnel-track { opacity: .55; }
 .board-inseparable { margin: 6px 0; font-size: 12px; }
 .board-show-all { margin-top: 10px; }
+.board-may-qualify { margin-top: 14px; border-top: 1px solid var(--line); }
+.board-may-qualify h3 { margin: 0; padding: 12px 0 4px; font-size: 13px; }
+.board-may-qualify ul { list-style: none; margin: 0; padding: 0; }
+.board-may-qualify li { display: grid; grid-template-columns: minmax(150px, 1fr) 92px; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
 .mobile-answer-bar { display: none; }
 .answer-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .answer-pair > div { border: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 5px; }

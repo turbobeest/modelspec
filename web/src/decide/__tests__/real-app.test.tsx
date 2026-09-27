@@ -1,12 +1,22 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
+import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
+import liveSwePreferJson from "../__fixtures__/live-swe-prefer-full.json";
 import App, { DesignedApp } from "../App";
 import { decisionSchema } from "../adapter";
-import { json, routeFetch, sentSpecs, smallVocabulary } from "./vocab-fixtures";
+import {
+  json,
+  realVocabulary,
+  routeFetch,
+  sentSpecs,
+  smallVocabulary,
+} from "./vocab-fixtures";
 import { VOCABULARY_URL } from "../vocabulary";
 
 const fixture = decisionSchema.parse(fixtureJson);
+const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
+const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 
 /** Keep the legacy full fixture consistent with the objective a UI test sends. */
 function decisionFor(init: RequestInit | undefined, decision = fixture) {
@@ -185,6 +195,68 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 });
 
+it("renders every model from the live empty-board decision alphabetically", async () => {
+  const fetch = routeFetch({
+    vocabulary: () => json(realVocabulary),
+    decide: () => json(liveEmptyBoard),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+
+  const answer = (await screen.findByLabelText("Facet board answer"))
+    .closest<HTMLElement>(".board-answer")!;
+  fireEvent.click(within(answer).getByRole("button", { name: "Show all 32" }));
+  const rankedAnswer = answer.querySelector<HTMLElement>(".board-ranked-answer")!;
+  const modelNames = within(rankedAnswer).getAllByRole("listitem").map((item) =>
+    item.querySelector("strong")?.textContent ?? "",
+  );
+
+  expect(modelNames).toHaveLength(32);
+  expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
+  expect(within(answer).queryByText(/no capability data|no evidence for/i)).not.toBeInTheDocument();
+});
+
+it("keeps capability-unknown models outside the ranked board answer", async () => {
+  const fetch = routeFetch({
+    vocabulary: () => json(realVocabulary),
+    decide: (init) => "software_engineering" in JSON.parse(String(init?.body ?? "{}"))
+      .optimize.weights
+      ? json(liveSwePrefer)
+      : json(liveEmptyBoard),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+
+  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(capability).getByLabelText("Prefer"));
+
+  const mayHeading = await screen.findByRole("heading", {
+    name: "May qualify — no Software engineering evidence (7)",
+  });
+  const rankedAnswer = mayHeading.closest<HTMLElement>(".board-ranked-answer")!;
+  fireEvent.click(within(rankedAnswer).getByRole("button", { name: "Show all 41" }));
+
+  const rankedNames = [...rankedAnswer.querySelectorAll(":scope > ol > li strong")]
+    .map((node) => node.textContent);
+  expect(rankedNames).toEqual(liveSwePrefer.results.map((result) =>
+    realVocabulary.models[result.offering.model]?.display_name ?? result.offering.model.split("/").at(-1)
+  ));
+  expect(rankedAnswer.querySelectorAll(":scope > ol .board-interval-track")).toHaveLength(41);
+
+  const mayGroup = mayHeading.closest<HTMLElement>(".board-may-qualify")!;
+  expect(within(mayGroup).getAllByRole("listitem")).toHaveLength(7);
+  expect(mayGroup.querySelector(".board-interval-track")).toBeNull();
+  expect(mayGroup.querySelector(".board-capability")).toBeNull();
+
+  const table = screen.getByRole("region", { name: "Decision table" });
+  for (const candidate of liveSwePrefer.may_qualify) {
+    const name = realVocabulary.models[candidate.model]?.display_name ?? candidate.model.split("/").at(-1)!;
+    const row = within(table).getByRole("button", { name }).closest("tr")!;
+    expect(row.cells[0]).toBeEmptyDOMElement();
+  }
+});
+
 it("requests the estate once after the board decision settles", async () => {
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
@@ -236,7 +308,7 @@ it("labels capability intervals with their ranking basis and units", async () =>
   expect(await screen.findByText("Software engineering, estimated · 80% interval")).toBeInTheDocument();
   expect(screen.queryByText("Not ranked — set a Prefer to rank these")).not.toBeInTheDocument();
   expect(screen.getByText(/Ranking on Software engineering 0.50/)).toBeInTheDocument();
-  expect(screen.getAllByText(/capability score$/).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText(/capability score$/)).length).toBeGreaterThan(0);
   expect(screen.getByLabelText("Delta 4.7 capability interval")).toBeInTheDocument();
 });
 

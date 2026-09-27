@@ -275,14 +275,14 @@ export const fictionalEngine: SampleDecisionEngine = {
       .sort(
         (a, b) =>
           (ax.low ? 1 : -1) * ((ax.get(a) ?? 0) - (ax.get(b) ?? 0)) ||
-          (bd.hi ? -1 : 1) * (a.cap - b.cap),
+          (bd.hi ? -1 : 1) * (a.cap! - b.cap!),
       );
     let best = bd.hi ? -Infinity : Infinity;
     const frontier: Row[] = [];
     for (const r of ordered)
-      if (bd.hi ? r.cap > best : r.cap < best) {
+      if (bd.hi ? r.cap! > best : r.cap! < best) {
         frontier.push(r);
-        best = r.cap;
+        best = r.cap!;
       }
     const pd = plotDomain(e.inScope, spec, axis),
       winning_strip: AdapterDecision["winning_strip"] = [];
@@ -294,7 +294,7 @@ export const fictionalEngine: SampleDecisionEngine = {
               ? (ax.get(r) ?? Infinity) <= cap
               : (ax.get(r) ?? -Infinity) >= cap,
           )
-          .sort((a, b) => (bd.hi ? b.cap - a.cap : a.cap - b.cap))[0],
+          .sort((a, b) => (bd.hi ? b.cap! - a.cap! : a.cap! - b.cap!))[0],
         last = winning_strip.at(-1);
       if (last && last.row === row) last.count++;
       else winning_strip.push({ row, start: i, count: 1 });
@@ -323,7 +323,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         rank: r.rank,
         offering: ref(r),
         harness: null,
-        effort: r.capR.effort,
+        effort: r.capR!.effort,
         evidence: [{ domain, items: r.m.bench.map(ev) }],
         estimates: null,
         p_best: null,
@@ -343,7 +343,7 @@ export const fictionalEngine: SampleDecisionEngine = {
             key === "cost"
               ? "inverted log min-max over qualifiers"
               : "min-max over qualifiers",
-          evidence: key === "cap" ? [ev(r.capR)] : [],
+          evidence: key === "cap" ? [ev(r.capR!)] : [],
         })),
         warnings: [
           ...(r.labOnly ? ["lab_reported_fallback"] : []),
