@@ -84,7 +84,8 @@ export function Share({
         ...(contractSpec.capabilities
           ? [`capabilities: ${JSON.stringify(contractSpec.capabilities)}`]
           : []),
-        "where:",
+        // An empty list must print as [] — a bare "where:" parses as null.
+        (contractSpec.where ?? []).length ? "where:" : "where: []",
         ...(contractSpec.where ?? []).map(
           (condition) => `  - ${JSON.stringify(condition)}`,
         ),

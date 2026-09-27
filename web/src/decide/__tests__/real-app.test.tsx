@@ -170,6 +170,8 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(share).toHaveTextContent("# unranked: no Prefer set");
   // The shared spec keeps the objective so it runs as-is; the comment says it does not rank.
   expect(share).toHaveTextContent("it does not rank");
+  // An empty board's YAML must parse to a valid spec: where is [], not null.
+  expect(share).toHaveTextContent("where: []");
   expect(share).toHaveTextContent("optimize:");
   fireEvent.click(within(share).getByRole("button", { name: "Close Share or act" }));
 
