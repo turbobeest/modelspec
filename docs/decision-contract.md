@@ -503,16 +503,20 @@ The command emits the decision as JSON. Invalid specs, unavailable snapshots,
 and unresolved explanation provenance exit **1** with a structured error when
 `--json` is set. Successful decisions, including `no_feasible`, exit **0**.
 
-`--check` stops after validation. It reads the vocabulary cached by
-`modelspec snapshot fetch` and treats it as the authority for facet, benchmark,
-domain, provider, and task-type IDs. The normal parser still checks the spec
-shape, value types, and ordered versus unordered operators. The command also
-checks operators against each facet's published `operators`. Human output is
-`ok` plus one line with the Must count, Prefer count, and snapshot pin. JSON
-success includes `ok`, `summary`, and the cached `snapshot`. A failure uses the
-normal `invalid_spec` error with one issue per path and close ID matches. A
-snapshot pin that differs from the cached vocabulary produces a warning, not a
-validation failure.
+`--check` runs the same validation `decide` runs and stops before filtering and
+ranking: it parses the spec and resolves it against the same snapshot and
+registry, through the engine's `validate()`, which `run_decision` also calls.
+A spec that `--check` accepts is one `decide` accepts, and a spec it rejects,
+`decide` rejects with the same error code (`invalid_spec` for a parse error,
+`decision_failed` for a resolve error such as an unloaded profile). The cached
+vocabulary is advisory. It adds "did you mean" suggestions to an unknown facet
+or benchmark, and it warns, without failing, when the spec names something the
+vocabulary lacks but the engine accepts: a benchmark with no verified evidence
+in this snapshot, a parameterized facet family, an unknown provider value, or a
+capability domain with no coverage. Human output is `ok` plus one line with the
+Must count, Prefer count, and snapshot pin. JSON success includes `ok`,
+`summary`, `warnings`, and the cached `snapshot`. A snapshot pin that differs
+from the cached vocabulary produces a warning, not a failure.
 
 ### Explanation provenance (MODEL-145)
 
