@@ -51,6 +51,21 @@ These were learned expensively during 2026-09-09/10. Do not rediscover them.
 9. **Widening a contract range bumps its major** (MODEL-59): nullable, a new enum
    value, or may-be-absent. See the versioning rule in [`../cli-contract.md`](../cli-contract.md).
 
+## Pytest CI shards
+
+The required `Run pytest` check aggregates four file-level jobs. The splitter
+uses a stable greedy balance by test-file byte size and never divides a module,
+because several modules share process-wide fixtures. Inspect the balance after
+adding tests with:
+
+```bash
+python scripts/pytest_shards.py --shard-count 4 --summary
+```
+
+The workflow compares the combined shard node IDs with an unsharded
+`pytest --collect-only -q -m "not perf"` collection. The required check fails
+if a file is missing or duplicated.
+
 ## Three floors — stop treating these as backlog
 
 Of ~604 unrankable cards:

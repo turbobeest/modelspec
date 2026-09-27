@@ -49,6 +49,56 @@ def test_required_check_job_names_match_branch_protection() -> None:
     assert "    name: Build both sites\n" in deploy_workflow
 
 
+def test_pytest_aggregator_preserves_the_required_check_contract() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "test.yml").read_text(encoding="utf-8"))
+    jobs = workflow["jobs"]
+    required = jobs["required-pytest"]
+    assert [job.get("name") for job in jobs.values()].count("Run pytest") == 1
+    assert required["name"] == "Run pytest"
+    assert required["needs"] == "pytest-shards"
+    assert required["if"] == "always()"
+    gate = next(step for step in required["steps"]
+                if step.get("name") == "Require every shard to succeed")
+    assert gate["if"] == "always()"
+    assert gate["env"]["SHARD_RESULT"] == "${{ needs.pytest-shards.result }}"
+    assert gate["run"] == 'test "$SHARD_RESULT" = success'
+
+
+def test_pytest_matrix_matches_the_file_splitter() -> None:
+    import yaml
+
+    from scripts.pytest_shards import DEFAULT_SHARD_COUNT
+
+    workflow_text = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
+    workflow = yaml.safe_load(workflow_text)
+    matrix = workflow["jobs"]["pytest-shards"]["strategy"]["matrix"]["include"]
+    assert len(matrix) == DEFAULT_SHARD_COUNT
+    assert [entry["index"] for entry in matrix] == list(range(DEFAULT_SHARD_COUNT))
+    assert [entry["label"] for entry in matrix] == [f"{i}/{DEFAULT_SHARD_COUNT}"
+                                                     for i in range(1, 5)]
+    assert f"--shard-count {DEFAULT_SHARD_COUNT}" in workflow_text
+    assert "--shard-index ${{ matrix.index }}" in workflow_text
+    assert 'pytest -q -n auto --dist loadfile -m "not perf" $(< shard-files.txt)' in workflow_text
+
+
+def test_timing_tests_run_serially_exactly_once() -> None:
+    workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
+    assert workflow.count("name: Run timing tests serially") == 1
+    assert workflow.count("python -m pytest -q -p no:xdist -m perf") == 1
+
+
+def test_file_splitter_assigns_every_test_file_once() -> None:
+    from scripts.pytest_shards import DEFAULT_SHARD_COUNT, partition_files, test_files
+
+    files = test_files(REPO_ROOT)
+    assigned = [path for shard in partition_files(files, DEFAULT_SHARD_COUNT) for path in shard]
+    assert len(assigned) == len(set(assigned))
+    assert set(assigned) == set(files)
+    assert all(path.name.startswith("test_") for path in assigned)
+
+
 def test_required_workflows_run_on_every_pull_request() -> None:
     """A path filter on a required job leaves the check pending and deadlocks merge."""
     for name in ("test.yml", "deploy-sites.yml"):
