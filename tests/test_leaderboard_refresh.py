@@ -7,6 +7,7 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+import yaml
 
 from decision.excluded import REMOVED_HOSTS
 from scripts import accuracy
@@ -280,6 +281,78 @@ benchmarks:
     log = json.loads((root / "verification" / "log.jsonl").read_text(encoding="utf-8"))
     assert log["outcome"] == "verified"
     assert log["verifier"]["model_family"] == "deterministic"
+
+
+def test_new_card_gets_a_matching_registered_board_evidence_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "registry" / "sources.yaml").write_text(
+        """schema_version: 1
+sources:
+- id: fixture-source
+  url: https://example.test/leaderboard.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {kind: page, value: ''}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "new.md"
+    card.write_text(
+        """---
+model_id: lab/new
+display_name: New Model
+version: new-model
+benchmarks:
+  scores: {}
+  evidence: []
+---
+""",
+        encoding="utf-8",
+    )
+    template = root / "models" / "lab" / "template.md"
+    template.write_text(
+        _card("2026-09-25").replace("lab/model", "lab/template").replace(
+            "Stable Model", "Template Model"
+        ).replace("prose\n", ""),
+        encoding="utf-8",
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [{"model": "New Model", "score": "81.5%"}],
+        url="https://example.test/leaderboard.json",
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-26",
+        note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url="https://example.test/leaderboard.json", projected=projection,
+        observed_at="2026-09-26", value_field="score", store=store,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/new",), add_missing=True,
+    )
+
+    front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    assert len(front["benchmarks"]["evidence"]) == 1
+    row = front["benchmarks"]["evidence"][0]
+    assert (row["benchmark_id"], row["score"], row["unit"]) == (
+        "fixture_benchmark", 81.5, "percent"
+    )
+    assert row["source_url"] == "https://example.test/leaderboard.json"
+    assert report.added == 1
+    assert report.quarantined == []
 
 
 def test_signal_refresh_changes_only_the_resolved_model(monkeypatch, tmp_path: Path) -> None:

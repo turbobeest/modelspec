@@ -15,7 +15,6 @@ from pathlib import Path
 
 import httpx
 
-from decision.sources import CopyStore
 from release_signals.contract import ReleaseSignal
 from release_signals.pipeline import (
     FetchResult,
@@ -25,7 +24,6 @@ from release_signals.pipeline import (
     resolve_signal,
     update_existing_card,
 )
-from scripts import model_160_evidence as leaderboard_readers
 from scripts import refresh_leaderboards
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -128,26 +126,23 @@ def process(
             result["sources"] = list(drafted.evidence_urls)
             result["firecrawl_credits"] = drafted.firecrawl_credits
             result["gather_failures"] = list(drafted.gather_failures)
-            boards, failures = refresh_leaderboards.collect_readings(
-                date.today().isoformat(),
-                CopyStore(Path(os.environ.get(
+            report = refresh_leaderboards.run(
+                observed_at=date.today().isoformat(),
+                dry_run=False,
+                root=root,
+                source_cache=Path(os.environ.get(
                     "MODELSPEC_SOURCE_CACHE", "/tmp/modelspec-source-copies"
-                ))),
-                (),
+                )),
+                model_ids=(resolution.model_id,),
+                add_missing=True,
             )
-            board_matches = []
-            for board in boards:
-                for row in board.rows:
-                    if leaderboard_readers.normalise_name(
-                        refresh_leaderboards._subject(row)
-                    ) == leaderboard_readers.normalise_name(signal.model_name):
-                        board_matches.append({
-                            "board": board.key,
-                            "benchmarks": sorted(board.benchmark_ids),
-                            "source": board.source_url,
-                        })
-            result["live_board_matches"] = board_matches
-            result["live_board_failures"] = [failure.__dict__ for failure in failures]
+            if report_path:
+                refresh_leaderboards.write_report_json(report_path, report)
+            result.update({
+                "evidence_added": report.added,
+                "failures": len(report.failures),
+                "quarantined": len(report.quarantined),
+            })
         elif resolution.status == "existing":
             gathered = gather_signal(
                 signal,

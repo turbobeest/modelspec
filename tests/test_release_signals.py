@@ -22,6 +22,7 @@ from release_signals.pipeline import (
     draft_signal,
     require_allowed_source,
     resolve_signal,
+    update_existing_card,
 )
 from scripts import process_release_signals as processor
 
@@ -127,26 +128,17 @@ def test_resolve_distinguishes_existing_new_and_uncertain_without_fuzzy_matching
     assert uncertain.candidates == ("acme/shared-a", "acme/shared-b")
 
 
-def test_fake_provider_page_drafts_a_valid_card_and_never_cites_x(tmp_path: Path) -> None:
+def test_production_shaped_models_dev_drafts_pricing_and_provider_source(
+    tmp_path: Path,
+) -> None:
     _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
-    primary_url = "https://acme.example/models/orbit-2"
+    primary_url = "https://acme.example/models"
     models_dev_url = "https://models.dev/api.json"
-    models_dev = {
-        "acme": {
-            "name": "Acme",
-            "models": {
-                "orbit-2": {
-                    "id": "orbit-2",
-                    "name": "Orbit 2",
-                    "release_url": primary_url,
-                }
-            },
-        }
-    }
+    models_dev = (FIXTURES / "models-dev-production.json").read_bytes()
     replies = {
         models_dev_url: FetchResult(
             url=models_dev_url,
-            body=json.dumps(models_dev).encode(),
+            body=models_dev,
             content_type="application/json",
         ),
         primary_url: FetchResult(
@@ -172,12 +164,140 @@ def test_fake_provider_page_drafts_a_valid_card_and_never_cites_x(tmp_path: Path
     assert str(front["release_date"]) == "2026-09-26"
     assert front["benchmarks"]["scores"] == {}
     assert front["benchmarks"]["evidence"] == []
+    assert front["cost"] == {"input": 1.25, "output": 5.0, "cache_read": 0.25}
     assert front["sources"]["provider_docs_url"] == primary_url
     assert front["sources"]["models_dev_url"] == "https://models.dev/acme"
     assert front["sources"]["last_scraped_models_dev"] == "2026-09-26"
     assert "x.com" not in result.card_path.read_text(encoding="utf-8")
     assert result.evidence_urls == (primary_url, models_dev_url)
     assert result.firecrawl_credits == 0
+
+
+def test_unchanged_existing_metadata_does_not_block_a_score_only_refresh(
+    tmp_path: Path,
+) -> None:
+    card = _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    original = card.read_text(encoding="utf-8")
+    front = yaml.safe_load(original.split("---", 2)[1])
+    front.update({
+        "cost": {"input": 1.25, "output": 5.0},
+        "sources": {
+            "models_dev_url": "https://models.dev/acme",
+            "provider_docs_url": "https://acme.example/models",
+            "last_scraped_models_dev": "2026-09-25",
+            "last_scraped_pricing": "2026-09-25",
+        },
+        "card_updated": "2026-09-25",
+    })
+    card.write_text(
+        "---\n" + yaml.dump(front, sort_keys=False) + "---" + original.split("---", 2)[2],
+        encoding="utf-8",
+    )
+    before = card.read_bytes()
+    from release_signals.pipeline import GatherResult, Resolution
+
+    update_existing_card(
+        GatherResult(
+            resolution=Resolution("existing", "acme/orbit-1"),
+            provider_id="acme",
+            primary_url="https://acme.example/models",
+            supporting_urls=("https://acme.example/models",),
+            pricing={"input": 1.25, "output": 5.0},
+        ),
+        root=tmp_path,
+        read_date=date(2026, 9, 26),
+    )
+
+    assert card.read_bytes() == before
+
+
+def test_new_signal_processes_production_payload_into_board_evidence(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    existing = _write_card(root, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    existing_text = existing.read_text(encoding="utf-8")
+    existing_front = yaml.safe_load(existing_text.split("---", 2)[1])
+    existing_front["benchmarks"] = {"evidence": [{
+        "benchmark_id": "fixture_benchmark",
+        "model_id_as_evaluated": "Orbit 1",
+        "score": 72.0,
+        "unit": "percent",
+        "source_url": "https://example.test/leaderboard.json",
+        "source_kind": "independent_evaluator",
+        "evidence_date": "2026-09-25",
+        "date_type": "evaluated",
+        "verified_at": "2026-09-25",
+    }]}
+    existing.write_text(
+        "---\n" + yaml.dump(existing_front, sort_keys=False)
+        + "---" + existing_text.split("---", 2)[2],
+        encoding="utf-8",
+    )
+    (root / "registry").mkdir(parents=True)
+    (root / "registry" / "sources.yaml").write_text(
+        """schema_version: 1
+sources:
+- id: fixture-source
+  url: https://example.test/leaderboard.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {kind: page, value: ''}
+""",
+        encoding="utf-8",
+    )
+    (root / "verification").mkdir()
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal()]}), encoding="utf-8")
+    models_dev_url = "https://models.dev/api.json"
+    provider_url = "https://acme.example/models"
+    hf_search = "https://huggingface.co/api/models?search=Orbit+2&limit=20"
+    replies = {
+        models_dev_url: FetchResult(
+            url=models_dev_url,
+            body=(FIXTURES / "models-dev-production.json").read_bytes(),
+            content_type="application/json",
+        ),
+        provider_url: FetchResult(
+            url=provider_url,
+            body=(FIXTURES / "acme-orbit.html").read_bytes(),
+            content_type="text/html",
+        ),
+        hf_search: FetchResult(url=hf_search, body=b"[]", content_type="application/json"),
+    }
+    store = processor.refresh_leaderboards.CopyStore(cache)
+    projection = processor.refresh_leaderboards.readers.document(
+        [{"model": "Orbit 2", "score": "81.5%"}],
+        url="https://example.test/leaderboard.json",
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-26",
+        note="fixture",
+    )
+    board = processor.refresh_leaderboards._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url="https://example.test/leaderboard.json", projected=projection,
+        observed_at="2026-09-26", value_field="score", store=store,
+    )
+    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
+    monkeypatch.setattr(
+        processor.refresh_leaderboards, "collect_readings", lambda *_: ([board], [])
+    )
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(cache))
+
+    result = processor.process(pending, result_path, root=root)
+
+    assert result["evidence_added"] == 1
+    assert result["quarantined"] == 0
+    card = root / "models" / "acme" / "orbit-2.md"
+    front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
+    assert front["cost"] == {"input": 1.25, "output": 5.0, "cache_read": 0.25}
+    assert [(row["benchmark_id"], row["score"]) for row in front["benchmarks"]["evidence"]] == [
+        ("fixture_benchmark", 81.5)
+    ]
 
 
 def test_models_dev_cannot_make_x_a_card_source(tmp_path: Path) -> None:
@@ -344,6 +464,44 @@ def test_new_cards_and_identity_or_licence_changes_require_human_merge(tmp_path:
     unchanged = ChangePolicy.classify(after, after)
     assert not unchanged.changed
     assert not unchanged.score_only
+
+
+def test_score_only_evidence_refresh_is_auto_mergeable(tmp_path: Path) -> None:
+    before = tmp_path / "before"
+    after = tmp_path / "after"
+    card_before = _write_card(
+        before, "acme", "orbit-1", display="Orbit 1", version="orbit-1"
+    )
+    card_after = _write_card(
+        after, "acme", "orbit-1", display="Orbit 1", version="orbit-1"
+    )
+    evidence = """benchmarks:
+  evidence:
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Orbit 1
+    score: 72.0
+    unit: percent
+    source_url: https://example.test/leaderboard.json
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-25'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+"""
+    for path, observed in ((card_before, "2026-09-25"), (card_after, "2026-09-26")):
+        text = path.read_text(encoding="utf-8")
+        front = yaml.safe_load(text.split("---", 2)[1])
+        front.update(yaml.safe_load(evidence))
+        front["benchmarks"]["evidence"][0]["observed_at"] = observed
+        path.write_text(
+            "---\n" + yaml.dump(front, sort_keys=False) + "---" + text.split("---", 2)[2],
+            encoding="utf-8",
+        )
+
+    decision = ChangePolicy.classify(before, after)
+
+    assert decision.changed
+    assert decision.score_only
+    assert decision.merge == "auto"
 
 
 def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:

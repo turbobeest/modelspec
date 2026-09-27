@@ -459,22 +459,33 @@ def update_existing_card(gathered: GatherResult, *, root: Path, read_date: date)
     api_docs_url = next((url for url in supporting if url != huggingface_url),
                         gathered.primary_url)
     accessed = read_date.isoformat()
-    sources.update({
+    source_facts = {
         "models_dev_url": f"https://models.dev/{gathered.provider_id}",
         "provider_docs_url": api_docs_url,
-        "last_scraped_models_dev": accessed,
-        "last_scraped_pricing": accessed,
-    })
+    }
     if huggingface_url:
-        sources["huggingface_url"] = huggingface_url
-        sources["last_scraped_huggingface"] = accessed
-    front["sources"] = sources
+        source_facts["huggingface_url"] = huggingface_url
     published_cost = {
         key: value for key, value in (gathered.pricing or {}).items()
         if key in {"input", "output", "cache_read", "cache_write"} and value is not None
     }
+    cost = dict(front.get("cost") or {})
+    material_change = any(sources.get(key) != value for key, value in source_facts.items())
+    material_change = material_change or any(
+        cost.get(key) != value for key, value in published_cost.items()
+    )
+    if not material_change:
+        return path
+
+    sources.update(source_facts)
+    sources.update({
+        "last_scraped_models_dev": accessed,
+        "last_scraped_pricing": accessed,
+    })
+    if huggingface_url:
+        sources["last_scraped_huggingface"] = accessed
+    front["sources"] = sources
     if published_cost:
-        cost = dict(front.get("cost") or {})
         cost.update(published_cost)
         front["cost"] = cost
     front["card_updated"] = accessed
@@ -526,6 +537,11 @@ def draft_signal(
         "provider": provider,
         "provider_display": provider_display,
         "release_date": release_date,
+        "cost": {
+            key: value for key, value in (gathered.pricing or {}).items()
+            if key in {"input", "output", "cache_read", "cache_write"}
+            and value is not None
+        },
         "benchmarks": {"scores": {}, "evidence": []},
         "sources": {
             "models_dev_url": f"https://models.dev/{gathered.provider_id}",
