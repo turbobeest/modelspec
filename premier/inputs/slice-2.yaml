@@ -11,13 +11,6 @@ budget:
 
 widely_offered:
   minimum_major_providers: 3
-  candidates:
-  - model_id: deepseek/deepseek-v3-1
-    providers:
-    - together_ai
-    - fireworks_ai
-    - deepinfra
-    read_date: '2026-09-26'
 local:
   max_memory_gb: 24
   candidates:

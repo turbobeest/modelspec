@@ -17,9 +17,11 @@ Slice 2 stays in `premier/slice-1.yaml` because every snapshot and recall
 consumer already reads that path. The budget candidate universe comes from all
 repository offerings whose input and output price facts pass exact-value
 verification, joined to each card's actual class and at least one admitted piece
-of evidence. `premier/inputs/slice-2.yaml` holds only the budget quota plus dated
-provider and local-memory observations. It is evidence for the computation, not
-a second lineup.
+of evidence. `premier/inputs/slice-2.yaml` holds the budget quota, the
+wide-offering threshold, and dated local-memory observations. The generator
+derives the wide-offering candidates from every card whose guaranteed model
+facts pass exact-value verification. The input file contains no model
+allowlist, and unverified legacy availability rows cannot bypass a quota.
 
 The frontier-generation quota remains 12 and the embedding quota is 6. A model
 released in the last seven days under clause 2 is protected from the quota, as
@@ -62,8 +64,10 @@ overriding the rule by name.
 
 Clause 2 also protects a release from the final seven days even when the
 quality quota is full; this admits GPT-6 Luna without naming it in the rule.
-Clause 3 admits DeepSeek V3.1 from its three verified inference-provider
-offerings. Other older frontier cards do not record three qualifying providers.
+Clause 3 admits every active, complete, verified card with at least three
+recorded major providers, including DeepSeek V3.1. These models do not compete
+for the balanced frontier quota because the provider threshold is itself a
+premier-set clause.
 
 ## Inputs, read 2026-09-24
 

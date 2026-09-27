@@ -8,7 +8,11 @@ from pathlib import Path
 
 import yaml
 
-from scripts.premier_slice1 import select_budget_candidates, select_local_candidates
+from scripts.premier_slice1 import (
+    select_budget_candidates,
+    select_local_candidates,
+    select_widely_offered_candidates,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 YAML_PATH = ROOT / "premier" / "slice-1.yaml"
@@ -53,6 +57,8 @@ def test_every_entry_has_a_card_and_evidence() -> None:
 
 def test_slice_2_adds_budget_local_and_embedding_coverage_by_rule() -> None:
     document = yaml.safe_load(YAML_PATH.read_text())
+    inputs = yaml.safe_load((ROOT / "premier" / "inputs" / "slice-2.yaml").read_text())
+    assert "candidates" not in inputs["widely_offered"]
     assert document["rule"][5] == (
         "Verified parameter count, quantised artifact size, and runtime/peak memory "
         "at the stated quantisation and context all fit the 24 GB consumer-hardware limit."
@@ -128,6 +134,38 @@ def test_budget_rule_selects_verified_benchmarked_candidates_by_price_not_name()
     selected = select_budget_candidates(candidates, quota_per_class=1)
 
     assert [row["model_id"] for row in selected] == ["lab/cheap-eligible"]
+
+
+def test_widely_offered_rule_selects_every_qualifying_card_not_a_named_model() -> None:
+    cards = {
+        "lab/older-alpha": {
+            "model_id": "lab/older-alpha",
+            "platforms": ["aws_bedrock", "together_ai", "deepinfra"],
+            "guaranteed_facts_verified": True,
+        },
+        "lab/older-beta": {
+            "model_id": "lab/older-beta",
+            "platforms": ["azure_ai_foundry", "fireworks_ai", "replicate"],
+            "guaranteed_facts_verified": True,
+        },
+        "lab/two-providers": {
+            "model_id": "lab/two-providers",
+            "platforms": ["together_ai", "deepinfra"],
+            "guaranteed_facts_verified": True,
+        },
+        "lab/unverified": {
+            "model_id": "lab/unverified",
+            "platforms": ["aws_bedrock", "together_ai", "deepinfra"],
+            "guaranteed_facts_verified": False,
+        },
+    }
+
+    selected = select_widely_offered_candidates(cards, minimum_major_providers=3)
+
+    assert [row["model_id"] for row in selected] == [
+        "lab/older-alpha",
+        "lab/older-beta",
+    ]
 
 
 def test_local_rule_requires_runtime_memory_to_fit_not_only_the_artifact() -> None:

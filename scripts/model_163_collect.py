@@ -9,6 +9,7 @@ verification outcome.
 
 from __future__ import annotations
 
+import argparse
 import re
 import subprocess
 from datetime import UTC, datetime
@@ -20,10 +21,10 @@ from decision.model import Fact, SourceRef, VerificationActor
 from decision.normalise import NORMALISERS, normalise_document
 from decision.sources import CopyStore, Fetcher, load_sources, recheck
 from decision.verify import Claim, Queue
-
 from scripts.model_143_collect import LABELS, insert_facts, make_facts
 
 ROOT = Path(__file__).resolve().parents[1]
+MODEL_163_BASE_REF = "8c61376a2f936c5fbd5dff3b535108248503455f"
 READ_AT = datetime(2026, 9, 26, 16, tzinfo=UTC)
 COLLECTOR = VerificationActor(
     agent="openai-codex-model-163",
@@ -97,9 +98,11 @@ def frontmatter(path: Path) -> tuple[dict, str]:
     return yaml.safe_load(text.split("---", 2)[1]), text
 
 
-def additions() -> dict[str, tuple[Path, dict, str]]:
+def additions(base_ref: str) -> dict[str, tuple[Path, dict, str]]:
     previous = yaml.safe_load(
-        subprocess.check_output(["git", "show", "HEAD:premier/slice-1.yaml"], text=True)
+        subprocess.check_output(
+            ["git", "show", f"{base_ref}:premier/slice-1.yaml"], cwd=ROOT, text=True
+        )
     )
     current = yaml.safe_load((ROOT / "premier" / "slice-1.yaml").read_text())
     old_ids = {row["model_id"] for row in previous["models"]}
@@ -171,10 +174,10 @@ def collect_offerings(registered: dict[str, object], queue: Queue) -> int:
                 if expected not in fetched:
                     raise SystemExit(f"DeepSeek pricing page is missing {expected!r}")
             projection = (
-                "model | price per 1m input tokens | price per 1m output tokens | "
-                "price per 1m cache read\n"
-                "DeepSeek-V4.1-Flash | $0.3 | $1.2 | $0.006\n"
-            ).encode()
+                b"model | price per 1m input tokens | price per 1m output tokens | "
+                b"price per 1m cache read\n"
+                b"DeepSeek-V4.1-Flash | $0.3 | $1.2 | $0.006\n"
+            )
             copy_ref = store.put(projection)
         ref = SourceRef(
             source_id=row["source"],
@@ -234,8 +237,8 @@ def collect_offerings(registered: dict[str, object], queue: Queue) -> int:
     return filed
 
 
-def main() -> None:
-    cards = additions()
+def main(*, base_ref: str) -> None:
+    cards = additions(base_ref)
     registered = register_sources()
     wanted = [registered[source_id(model_id)] for model_id in sorted(cards)]
     store = CopyStore()
@@ -303,4 +306,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
+    parser.add_argument(
+        "--base-ref",
+        default=MODEL_163_BASE_REF,
+        help="git ref containing the lineup before MODEL-163",
+    )
+    args = parser.parse_args()
+    main(base_ref=args.base_ref)

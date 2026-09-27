@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT))
 from api.classes import class_for_model_type  # noqa: E402
 from decision.excluded import excluded_sources  # noqa: E402
 from decision.model import value_hash, verification_counts  # noqa: E402
+from decision.registry import default as default_registry  # noqa: E402
 from decision.sources import load_sources  # noqa: E402
 
 INPUTS = ROOT / "premier" / "inputs"
@@ -376,6 +377,14 @@ def rank_board(board: dict) -> list[dict]:
 
 def load_cards() -> dict[str, dict]:
     cards: dict[str, dict] = {}
+    verifications = _verification_index()
+    guaranteed = {
+        facet.id
+        for facet in default_registry().facets()
+        if facet.subject == "model"
+        and facet.tier == "guaranteed"
+        and facet.computed_by is None
+    }
     for path in sorted((ROOT / "models").glob("*/*.md")):
         text = path.read_text(encoding="utf-8", errors="replace")
         if not text.startswith("---"):
@@ -386,6 +395,7 @@ def load_cards() -> dict[str, dict]:
             match = re.search(rf"(?m)^{re.escape(name)}:\s*['\"]?([^\n'\"]*)", frontmatter)
             return match.group(1).strip() if match else ""
 
+        data = yaml.safe_load(frontmatter)
         model_id = scalar("model_id")
         if not model_id:
             continue
@@ -411,6 +421,22 @@ def load_cards() -> dict[str, dict]:
         release = scalar("release_date")[:10]
         retirement = scalar("retirement_date") or scalar("deprecation_date") or None
         model_type = scalar("model_type")
+        verified_facets = {
+            str(fact["facet"])
+            for fact in data.get("facts") or []
+            if fact.get("facet")
+            and fact.get("sources")
+            and (
+                verification := verifications.get(
+                    (
+                        "fact",
+                        f"{model_id}#{fact['facet']}",
+                        value_hash(fact.get("value")),
+                    )
+                )
+            )
+            and verification["outcome"] == "verified"
+        }
         cards[model_id] = {
             "model_id": model_id,
             "display_name": scalar("display_name"),
@@ -422,6 +448,7 @@ def load_cards() -> dict[str, dict]:
             "release_date": release,
             "retirement_date": str(retirement)[:10] if retirement else None,
             "platforms": platforms,
+            "guaranteed_facts_verified": guaranteed <= verified_facets,
             "path": str(path.relative_to(ROOT)),
         }
     return cards
@@ -495,6 +522,18 @@ def select_budget_candidates(candidates: list[dict], *, quota_per_class: int) ->
         )
         selected.extend(rows[:quota_per_class])
     return selected
+
+
+def select_widely_offered_candidates(
+    cards: dict[str, dict], *, minimum_major_providers: int
+) -> list[dict]:
+    """Select every card offered by the required number of major providers."""
+    selected = []
+    for model_id, card in cards.items():
+        providers = sorted(set(card.get("platforms") or []))
+        if card.get("guaranteed_facts_verified") and len(providers) >= minimum_major_providers:
+            selected.append({"model_id": model_id, "providers": providers})
+    return sorted(selected, key=lambda row: row["model_id"])
 
 
 def select_local_candidates(candidates: list[dict], *, max_memory_gb: float) -> list[dict]:
@@ -767,11 +806,12 @@ def build() -> dict:
         entry["clauses"].add(6)
         entry["local"] = candidate
 
-    verified_wide = {
+    widely_offered = {
         candidate["model_id"]
-        for candidate in slice2["widely_offered"]["candidates"]
-        if len(set(candidate["providers"]))
-        >= int(slice2["widely_offered"]["minimum_major_providers"])
+        for candidate in select_widely_offered_candidates(
+            cards,
+            minimum_major_providers=int(slice2["widely_offered"]["minimum_major_providers"]),
+        )
     }
 
     def release_key(model_id: str) -> int:
@@ -846,7 +886,7 @@ def build() -> dict:
         model_id
         for model_id, entry in by_model.items()
         if entry["card"]["status"] != "sunset"
-        and (entry["clauses"].intersection({5, 6}) or model_id in verified_wide)
+        and (entry["clauses"].intersection({5, 6}) or model_id in widely_offered)
     ]
     supplemental.sort()
     for model_id in supplemental:
