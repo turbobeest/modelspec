@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
-from decision.snapshot import Snapshot, content_hash, snapshot_id_for  # noqa: E402
+from decision.snapshot import SnapshotInputs, build_snapshot  # noqa: E402
+from tests.snapshot_records import SOURCES, evidence, model  # noqa: E402
 
 VALID = """
 spec_version: 1
@@ -40,20 +42,13 @@ optimize:
 
 @pytest.fixture
 def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
-    content = {
-        "format_version": 1,
-        "as_of": "2026-09-27",
-        "facet_subjects": {},
-        "lineup": {"candidates": [], "facets": {}, "evidence": {}},
-        "archive": {"candidates": [], "facets": {}, "evidence": {}},
-        "out_of_lineup": 0,
-        "benchmark_domains": {},
-        "capability": {},
-        "sources": {},
-        "excluded": {},
-    }
-    digest = content_hash(content)
-    snapshot = Snapshot(content, digest, snapshot_id_for(digest))
+    snapshot = build_snapshot(SnapshotInputs(
+        models=[model("lab/a")],
+        offerings=[],
+        evidence=[evidence("lab/a", "swe_bench_pro", 70.0)],
+        sources=SOURCES,
+        benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+    ), gate=False, as_of=date(2026, 9, 27))
     vocabulary = {
         "vocabulary_version": 1,
         "contract_version": "1.7",
@@ -102,7 +97,7 @@ def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
     cache = tmp_path / "cache"
     generation = cache / "decision" / snapshot.snapshot_id
     generation.mkdir(parents=True)
-    (generation / "snapshot.json.gz").write_bytes(snapshot.to_bytes(key="test-key"))
+    (generation / "snapshot.json.gz").write_bytes(snapshot.to_bytes(key=None))
     (generation / "vocabulary.json").write_text(json.dumps(vocabulary))
     (cache / "decision" / "current").write_text(snapshot.snapshot_id + "\n")
     monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
@@ -215,8 +210,12 @@ def test_vocab_overview_and_filters(cached_vocabulary: dict) -> None:
     assert cached_vocabulary["snapshot"] in overview.stdout
     assert "next: modelspec vocab facets" in overview.stdout
     assert "offering.data.retention_days" in search.stdout
-    assert [row["id"] for row in json.loads(domain.stdout)] == ["swe_bench_pro"]
-    assert [row["id"] for row in json.loads(class_.stdout)] == ["swe_bench_pro"]
+    domain_payload = json.loads(domain.stdout)
+    class_payload = json.loads(class_.stdout)
+    assert set(domain_payload) == {"schema_version", "command", "freshness", "result"}
+    assert domain_payload["command"] == class_payload["command"] == "vocab"
+    assert [row["id"] for row in domain_payload["result"]] == ["swe_bench_pro"]
+    assert [row["id"] for row in class_payload["result"]] == ["swe_bench_pro"]
 
 
 def test_vocab_without_a_cache_exits_three(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -224,6 +223,21 @@ def test_vocab_without_a_cache_exits_three(tmp_path: Path, monkeypatch: pytest.M
     result = CliRunner().invoke(cli_mod.app, ["vocab"])
     assert result.exit_code == 3
     assert "modelspec snapshot fetch" in result.stderr
+
+
+def test_vocab_and_check_report_the_same_corrupt_cache(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    from cli.modelspec.snapshot import decision_vocabulary_path
+
+    decision_vocabulary_path().write_text("not json", encoding="utf-8")
+    vocab = CliRunner().invoke(cli_mod.app, ["vocab", "--json"])
+    check = _run(tmp_path, BUDGET_CODING, "--check", "--json")
+    assert vocab.exit_code == check.exit_code == 1
+    vocab_message = json.loads(vocab.stderr)["error"]["message"]
+    check_message = json.loads(check.stderr)["error"]["message"]
+    assert vocab_message == check_message
+    assert vocab_message.startswith("cannot read the cached decision vocabulary:")
 
 
 def test_check_accepts_the_budget_coding_spec(tmp_path: Path, cached_vocabulary: dict) -> None:
@@ -242,7 +256,7 @@ def test_check_suggests_a_misspelled_facet(tmp_path: Path, cached_vocabulary: di
     assert "did you mean 'model.context_window'" in result.stderr
 
 
-def test_check_rejects_an_unknown_benchmark(tmp_path: Path, cached_vocabulary: dict) -> None:
+def test_check_rejects_an_unregistered_benchmark(tmp_path: Path, cached_vocabulary: dict) -> None:
     result = _run(
         tmp_path, BUDGET_CODING.replace("model.context_window >= 200000", "swe_bench_plus >= 55"),
         "--check",
@@ -263,3 +277,72 @@ def test_check_json_is_machine_readable(tmp_path: Path, cached_vocabulary: dict)
     )
     assert bad.exit_code == 1
     assert json.loads(bad.stderr)["error"]["code"] == "invalid_spec"
+
+
+@pytest.mark.parametrize(
+    "addition, warning",
+    [
+        ("capabilities: {made_up_domain: required}\n", "made_up_domain"),
+        (
+            "profile:\n  profile_version: 1\n  offerings:\n"
+            "    - {model: lab/a, provider: made-up-provider}\n",
+            "made-up-provider",
+        ),
+    ],
+)
+def test_check_accepts_advisory_vocabulary_gaps(
+    tmp_path: Path, cached_vocabulary: dict, addition: str, warning: str,
+) -> None:
+    text = "spec_version: 1\nwhere: []\noptimize: {max: model.context_window}\n" + addition
+    check = _run(tmp_path, text, "--check", "--json")
+    decide = _run(tmp_path, text, "--json")
+    assert check.exit_code == decide.exit_code == 0
+    assert warning in check.stderr
+
+
+@pytest.mark.parametrize("facet_id", ["evidence.outcome", "arena_elo_vision"])
+def test_check_accepts_registered_facets_absent_from_vocabulary(
+    tmp_path: Path, cached_vocabulary: dict, facet_id: str,
+) -> None:
+    text = (
+        "spec_version: 1\nwhere: []\noptimize:\n"
+        f"  max: {facet_id}\n"
+    )
+    check = _run(tmp_path, text, "--check", "--json")
+    decide = _run(tmp_path, text, "--json")
+    assert check.exit_code == decide.exit_code == 0
+    assert facet_id in check.stderr
+
+
+def test_check_and_decide_reject_an_unloaded_profile_with_the_same_code(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    text = (
+        "spec_version: 1\nprofile: profile:not-loaded\nwhere: []\n"
+        "optimize: {max: model.context_window}\n"
+    )
+    check = _run(tmp_path, text, "--check", "--json")
+    decide = _run(tmp_path, text, "--json")
+    assert check.exit_code == decide.exit_code == 1
+    assert json.loads(check.stderr)["error"]["code"] == "decision_failed"
+    assert json.loads(decide.stderr)["error"]["code"] == "decision_failed"
+
+
+def test_check_and_decide_agree_on_every_shipped_spec(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    recall = sorted((REPO_ROOT / "tests" / "recall" / "specs").glob("*.yaml"))
+    ui_rows = json.loads(
+        (REPO_ROOT / "web" / "src" / "decide" / "__fixtures__" / "ui-specs.json")
+        .read_text(encoding="utf-8")
+    )
+    cases = [(path.name, path.read_text(encoding="utf-8")) for path in recall]
+    cases += [(row["name"], json.dumps(row["spec"])) for row in ui_rows]
+    disagreements = []
+    for name, text in cases:
+        check = _run(tmp_path, text, "--check", "--json")
+        decide = _run(tmp_path, text, "--json")
+        if (check.exit_code == 0) != (decide.exit_code == 0):
+            disagreements.append((name, check.exit_code, decide.exit_code))
+    assert len(cases) == 223
+    assert disagreements == []

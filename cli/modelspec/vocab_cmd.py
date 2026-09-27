@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import Any, Optional
 
 import typer
@@ -10,31 +11,48 @@ from rich.console import Console
 from rich.table import Table
 
 from . import offline
+from . import snapshot as snap
 from .snapshot import decision_vocabulary_path
+from .vocabulary_cache import (
+    VocabularyInvalidError,
+    VocabularyMissingError,
+)
+from .vocabulary_cache import (
+    load_cached_vocabulary as _load_cached_vocabulary,
+)
 
 SECTIONS = ("facets", "benchmarks", "domains", "providers", "task-types", "coverage")
 
 
 def load_cached_vocabulary(*, as_json: bool = False) -> dict[str, Any]:
     """Read the current cached vocabulary, or exit like other offline commands."""
-    path = decision_vocabulary_path()
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        message = "no cached decision vocabulary. Run `modelspec snapshot fetch`."
-        offline._emit_error("vocab", message, as_json)
+        return _load_cached_vocabulary()
+    except VocabularyMissingError as exc:
+        offline._emit_error("vocab", str(exc), as_json)
         raise typer.Exit(offline.EXIT_NO_SNAPSHOT) from exc
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        offline._emit_error(
-            "vocab", f"cannot read the cached decision vocabulary: {exc}", as_json
-        )
+    except VocabularyInvalidError as exc:
+        offline._emit_error("vocab", str(exc), as_json)
         raise typer.Exit(offline.EXIT_ERROR) from exc
-    if not isinstance(value, dict):
-        offline._emit_error(
-            "vocab", "cached decision vocabulary is not a JSON object", as_json
-        )
-        raise typer.Exit(offline.EXIT_ERROR)
-    return value
+
+
+def _freshness(vocabulary: dict[str, Any]) -> dict[str, Any]:
+    """Use rank-cache metadata when present, with an offline decision fallback."""
+    try:
+        return snap.load().freshness()
+    except (snap.SnapshotMissing, snap.SnapshotInvalid):
+        path = decision_vocabulary_path()
+        fetched_at = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
+        age_days = (datetime.now(UTC) - fetched_at).total_seconds() / 86400
+        return {
+            "fetched_at": fetched_at.isoformat(),
+            "age_days": round(age_days, 2),
+            "stale": age_days > snap.STALE_AFTER_DAYS,
+            "stale_after_days": snap.STALE_AFTER_DAYS,
+            "origin": "local decision cache",
+            "build_commit": vocabulary.get("snapshot"),
+            "built_at": vocabulary.get("coverage", {}).get("as_of"),
+        }
 
 
 def _search(rows: list[dict[str, Any]], text: str | None) -> list[dict[str, Any]]:
@@ -139,7 +157,12 @@ def vocab(
     vocabulary = load_cached_vocabulary(as_json=as_json)
     if section is None:
         if as_json:
-            typer.echo(json.dumps(vocabulary, indent=2))
+            typer.echo(json.dumps({
+                "schema_version": offline.SCHEMA_VERSION,
+                "command": "vocab",
+                "freshness": _freshness(vocabulary),
+                "result": vocabulary,
+            }, indent=2))
             return
         providers = vocabulary.get("providers", {})
         typer.echo(f"snapshot: {vocabulary.get('snapshot', 'unknown')}")
@@ -160,6 +183,11 @@ def vocab(
     if as_json:
         if section == "providers":
             value = {row["id"]: row["name"] for row in value}
-        typer.echo(json.dumps(value, indent=2))
+        typer.echo(json.dumps({
+            "schema_version": offline.SCHEMA_VERSION,
+            "command": "vocab",
+            "freshness": _freshness(vocabulary),
+            "result": value,
+        }, indent=2))
         return
     Console(width=160).print(_table(section, value))

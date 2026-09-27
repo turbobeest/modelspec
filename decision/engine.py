@@ -22,7 +22,7 @@ from decision.contract import (
 from decision.filter import apply
 from decision.optimise import EvidenceSelector, optimise
 from decision.relax import fewest, smallest_changes
-from decision.resolve import resolve
+from decision.resolve import Resolved, resolve
 from decision.snapshot import ExplanationIndex
 
 
@@ -79,6 +79,22 @@ def run_optimise(snapshot, filtered, spec, selectors, domains):
     )
 
 
+def validate(
+    spec: Spec,
+    snapshot: ExplanationIndex,
+    *,
+    facets: FacetLookup | None = None,
+    profiles: Mapping[str, InventoryProfile] | None = None,
+) -> Resolved:
+    """Run the decision stages through resolve, stopping before filtering."""
+    if snapshot is None:
+        raise ValueError("a loaded decision snapshot is required")
+    snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
+    if spec.explain in ("summary", "full"):
+        snapshot.require_explanation_records()
+    return resolve(spec, facets=facets, profiles=profiles)
+
+
 def decide(
     spec: Spec,
     snapshot: ExplanationIndex,
@@ -88,14 +104,10 @@ def decide(
     evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
 ) -> Decision:
     """Return a reproducible decision. Explanation work is skipped at ``none``."""
-    if snapshot is None:
-        raise ValueError("a loaded decision snapshot is required")
+    resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
     # Computed facets (offering.cost_per_task) depend on the spec, so the
-    # snapshot answers them through a per-decision view.
+    # remaining stages use the same per-decision view validation prepared for.
     snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
-    if spec.explain in ("summary", "full"):
-        snapshot.require_explanation_records()
-    resolved = resolve(spec, facets=facets, profiles=profiles)
     domains = frozenset(snapshot.domain_ids())
     requested = frozenset(spec.capabilities or {})
     selectors = dict(evidence_selectors or {})
