@@ -113,6 +113,36 @@ def test_parser_accepts_rfc3339_and_rejects_instances_outside_the_contract() -> 
             ReleaseSignal.parse(bad)
 
 
+@pytest.mark.parametrize(
+    ("payload", "accepted"),
+    [
+        (signal(first_seen_url="https://x.com/acme/status/123"), True),
+        (signal(first_seen_url="https://x.com"), False),
+        (signal(first_seen_url="https://x.com:443/acme/status/123"), False),
+        (signal(model_name="   "), False),
+        (signal(provider="   "), False),
+    ],
+)
+def test_schema_and_parser_accept_the_same_url_and_text_boundaries(
+    payload: dict[str, object], accepted: bool,
+) -> None:
+    schema = json.loads(
+        (ROOT / "schemas" / "release-signal-v1.schema.json").read_text(encoding="utf-8")
+    )
+    schema_accepts = Draft202012Validator(
+        schema, format_checker=FormatChecker()
+    ).is_valid(payload)
+    try:
+        ReleaseSignal.parse(payload)
+    except SignalError:
+        parser_accepts = False
+    else:
+        parser_accepts = True
+
+    assert schema_accepts is accepted
+    assert parser_accepts is accepted
+
+
 def test_hmac_signature_covers_the_exact_request_body() -> None:
     raw = json.dumps(signal(), separators=(",", ":")).encode()
     signature = sign(b"shared-test-secret", raw)
@@ -214,6 +244,37 @@ def test_production_shaped_models_dev_drafts_pricing_and_provider_source(
     assert "x.com" not in result.card_path.read_text(encoding="utf-8")
     assert result.evidence_urls == (primary_url, models_dev_url)
     assert result.firecrawl_credits == 0
+
+
+def test_visible_primary_source_with_another_provider_stops_before_drafting(
+    tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    primary_url = "https://acme.example/models"
+    models_dev_url = "https://models.dev/api.json"
+    replies = {
+        models_dev_url: FetchResult(
+            url=models_dev_url,
+            body=(FIXTURES / "models-dev-production.json").read_bytes(),
+            content_type="application/json",
+        ),
+        primary_url: FetchResult(
+            url=primary_url,
+            body=(FIXTURES / "evil-labs-orbit-visible.html").read_bytes(),
+            content_type="text/html",
+        ),
+    }
+
+    with pytest.raises(ValueError, match="stated lab"):
+        draft_signal(
+            ReleaseSignal.parse(signal()),
+            root=tmp_path,
+            fetch=lambda url: replies[url],
+            read_date=date(2026, 9, 26),
+            models_dev_url=models_dev_url,
+        )
+
+    assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
 
 
 def test_unchanged_existing_metadata_does_not_block_a_score_only_refresh(

@@ -283,6 +283,8 @@ def _primary_identity(
         text = " ".join(" ".join(visible.parts).split())
         if attribution.normalise(expected_name) not in attribution.normalise(text):
             raise ValueError("the primary source does not name the model")
+        if attribution.normalise(expected_provider) not in attribution.normalise(text):
+            raise ValueError("the primary source does not identify the stated lab")
         return expected_name, ""
     if len(matches) != 1:
         raise ValueError("the primary source identifies more than one matching model")

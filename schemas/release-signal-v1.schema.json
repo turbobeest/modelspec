@@ -13,8 +13,18 @@
     "signal_id"
   ],
   "properties": {
-    "model_name": {"type": "string", "minLength": 1, "maxLength": 300},
-    "provider": {"type": "string", "minLength": 1, "maxLength": 300},
+    "model_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+    },
     "first_seen_url": {
       "type": "string",
       "format": "uri",

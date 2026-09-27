@@ -65,7 +65,11 @@ class ReleaseSignal:
         provider = _text(value["provider"], "provider")
         first_seen_url = _text(value["first_seen_url"], "first_seen_url")
         parsed_url = urlsplit(first_seen_url)
-        if parsed_url.scheme != "https" or parsed_url.hostname not in X_HOSTS:
+        if (
+            parsed_url.scheme != "https"
+            or parsed_url.netloc not in X_HOSTS
+            or not parsed_url.path.startswith("/")
+        ):
             raise SignalError("first_seen_url must be an https URL on x.com or twitter.com")
 
         timestamp = _text(value["timestamp"], "timestamp")
@@ -118,9 +122,14 @@ class ReleaseSignal:
 
 
 def _text(value: Any, field: str) -> str:
-    if not isinstance(value, str) or not value.strip() or len(value) > 300:
+    if (
+        not isinstance(value, str)
+        or not value
+        or value != value.strip()
+        or len(value) > 300
+    ):
         raise SignalError(f"{field} must be a non-empty string of at most 300 characters")
-    return value.strip()
+    return value
 
 
 def _normalise_utc_designator(value: str) -> str:
