@@ -216,6 +216,8 @@ class SnapshotIndex(Protocol):
         self, cid: str, domain_id: str
     ) -> Sequence[CapabilityDriverValue]: ...
 
+    def evidence_record(self, cid: str, record_id: str) -> EvidenceValue | None: ...
+
     def kind(self, cid: str) -> Literal["model", "offering"]: ...
 
     def model_of(self, cid: str) -> str: ...
@@ -1069,6 +1071,27 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         super().__init__()
         self.rows = rows
         self.model_of = model_of
+        self.records = {
+            (model_of.get(cid, cid), row[10]): row
+            for cid, candidate_rows in rows.items()
+            for row in candidate_rows
+            if len(row) > 10 and row[10] is not None
+        }
+
+    @staticmethod
+    def _value(row: Sequence[Any]) -> EvidenceValue:
+        return EvidenceValue(
+            benchmark_id=row[0], version=row[1], subcategory=row[2], value=row[3],
+            unit=row[4], measured_by=row[5], effort=row[6], harness=row[7],
+            date=_date(row[8]), source_ids=tuple(row[9]),
+            record_id=row[10] if len(row) > 10 else None,
+            date_type=row[11] if len(row) > 11 else None,
+            source_snapshot=row[12] if len(row) > 12 else None,
+        )
+
+    def record(self, cid: str, record_id: str) -> EvidenceValue | None:
+        row = self.records.get((self.model_of.get(cid, cid), record_id))
+        return None if row is None else self._value(row)
 
     def _rows(self, cid: str) -> list[Sequence[Any]]:
         own = list(self.rows.get(cid, ()))
@@ -1080,14 +1103,7 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         return sorted(own + inherited, key=lambda r: (r[0], r[8] or "", r[3], canonical_json(r)))
 
     def __missing__(self, cid: str) -> tuple[EvidenceValue, ...]:
-        self[cid] = tuple(
-            EvidenceValue(benchmark_id=r[0], version=r[1], subcategory=r[2], value=r[3],
-                          unit=r[4], measured_by=r[5], effort=r[6], harness=r[7],
-                          date=_date(r[8]), source_ids=tuple(r[9]),
-                          record_id=r[10] if len(r) > 10 else None,
-                          date_type=r[11] if len(r) > 11 else None,
-                          source_snapshot=r[12] if len(r) > 12 else None)
-            for r in self._rows(cid))
+        self[cid] = tuple(self._value(row) for row in self._rows(cid))
         return self[cid]
 
 
@@ -1159,8 +1175,27 @@ class LoadedSnapshot:
         self._evidence_bits: dict[tuple[Any, ...], _FacetBitsets] = {}
         self._benchmarks = tuple(sorted(content["benchmark_domains"]))
         capability = content.get("capability") or {}
-        self._capability_estimates = capability.get("estimates") or {}
-        self._capability_drivers = capability.get("drivers") or {}
+        # Parse the learned lookup once.  Domain objectives are the page's
+        # default, so reconstructing these values throughout filtering,
+        # optimisation and explanation made the first Worker request pay the
+        # same JSON-to-object cost repeatedly.
+        self._capability_estimates = {
+            (model_id, domain_id): CapabilityEstimateValue(*map(float, row))
+            for model_id, domains in (capability.get("estimates") or {}).items()
+            for domain_id, row in domains.items()
+        }
+        self._capability_drivers = {
+            (model_id, domain_id): tuple(
+                CapabilityDriverValue(
+                    record_id=row[0], benchmark_id=row[1], version=row[2],
+                    loading=float(row[3]), weight=float(row[4]),
+                    recency_weight=float(row[5]),
+                )
+                for row in rows
+            )
+            for model_id, domains in (capability.get("drivers") or {}).items()
+            for domain_id, rows in domains.items()
+        }
         self.capability_method = capability.get("method")
         self.capability_items = capability.get("items") or {}
         self.capability_source_offsets = capability.get("source_offsets") or {}
@@ -1307,23 +1342,19 @@ class LoadedSnapshot:
     ) -> CapabilityEstimateValue | None:
         self._check(cid)
         model_id = self._meta[cid]["model"]
-        row = self._capability_estimates.get(model_id, {}).get(domain_id)
-        if row is None:
-            return None
-        return CapabilityEstimateValue(*map(float, row))
+        return self._capability_estimates.get((model_id, domain_id))
 
     def capability_drivers(
         self, cid: str, domain_id: str
     ) -> Sequence[CapabilityDriverValue]:
         self._check(cid)
         model_id = self._meta[cid]["model"]
-        return tuple(
-            CapabilityDriverValue(
-                record_id=row[0], benchmark_id=row[1], version=row[2],
-                loading=float(row[3]), weight=float(row[4]), recency_weight=float(row[5]),
-            )
-            for row in self._capability_drivers.get(model_id, {}).get(domain_id, ())
-        )
+        return self._capability_drivers.get((model_id, domain_id), ())
+
+    def evidence_record(self, cid: str, record_id: str) -> EvidenceValue | None:
+        """Return retained model evidence by record ID in constant time."""
+        self._check(cid)
+        return self._evidence.record(self._meta[cid]["model"], record_id)
 
     # beyond the protocol -----------------------------------------------------
 

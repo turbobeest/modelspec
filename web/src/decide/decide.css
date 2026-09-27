@@ -2022,6 +2022,19 @@ body {
 .contribution-track {
   margin: 4px 0;
 }
+.estimate-drivers {
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--surface2);
+}
+.estimate-drivers ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.estimate-drivers li + li {
+  margin-top: 5px;
+}
 .evidence-row {
   position: relative;
   padding: 10px 115px 10px 0;

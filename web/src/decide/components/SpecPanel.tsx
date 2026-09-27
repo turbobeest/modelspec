@@ -7,7 +7,12 @@ import type { ParsedTask } from "../engine/reference";
 import type { FacetOp, FacetValue, TypeKey } from "../engine/types";
 import { valueLabel } from "../adapter/condition-label";
 import { useVocab } from "../vocabulary/context";
-import { domainForType, rankChoices, switchBenchmark } from "../vocabulary";
+import {
+  domainForType,
+  rankChoices,
+  switchBenchmark,
+  switchEstimate,
+} from "../vocabulary";
 import { issuesFor } from "../vocabulary/issues";
 import type { PlacedIssue } from "../vocabulary/issues";
 export function SpecPanel({
@@ -101,7 +106,7 @@ export function SpecPanel({
         return true;
     }
   };
-  const benchLabel = vocab.benchName(spec.bench);
+  const benchLabel = vocab.basisName(spec);
   const choices = vocab.vocabulary ? rankChoices(vocab.vocabulary, spec.domain) : [];
   const weightName = (k: "cap" | "cost" | "speed") =>
     k === "cap" ? benchLabel : k === "cost" ? "$ per task" : "Tok/s";
@@ -187,13 +192,20 @@ export function SpecPanel({
               </label>
             ))}
           </div>
-          {choices.length > 1 && (
-            <div className="rank-on" role="group" aria-label="Benchmark to rank on">
+          {choices.length > 0 && spec.domain && (
+            <div className="rank-on" role="group" aria-label="Measurement basis">
               <span>Measured by</span>
+              <button
+                aria-pressed={spec.basis === "estimate"}
+                title="Learned from all available benchmark evidence for this domain"
+                onClick={() => onSpec(switchEstimate(spec))}
+              >
+                {vocab.basisName({ ...spec, basis: "estimate" })}
+              </button>
               {choices.map((b) => (
                 <button
                   key={b.id}
-                  aria-pressed={b.id === spec.bench}
+                  aria-pressed={spec.basis === "benchmark" && b.id === spec.bench}
                   title={`${b.models} lineup models with verified results, ${b.independent_models} measured independently`}
                   onClick={() => onSpec(switchBenchmark(vocab.vocabulary!, spec, b.id))}
                 >

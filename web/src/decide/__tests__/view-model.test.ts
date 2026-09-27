@@ -97,7 +97,12 @@ describe("the hosted Decision view-model mapper", () => {
     const parsed = decisionSchema.parse(estimated);
     const view = mapDecisionToViewModel(
       parsed,
-      { ...baseSpec, bench: "quality", domain: "software_engineering" },
+      {
+        ...baseSpec,
+        bench: "quality",
+        domain: "software_engineering",
+        basis: "estimate",
+      },
       { axis: "task$", dismissed: [] },
     );
 
@@ -106,6 +111,38 @@ describe("the hosted Decision view-model mapper", () => {
     expect(view.results[0].p_best).toBe(0.62);
     expect(view.results[0].top3_stability).toBe(0.91);
     expect(view.explanation.insep(view.explanation.feasible[0]).length).toBeGreaterThan(0);
+  });
+
+  it("keeps an explicit benchmark drill-down on that benchmark", () => {
+    const estimated = decisionSchema.parse({
+      ...fixture,
+      contract_version: "1.7",
+      results: fixture.results.map((result) => ({
+        ...result,
+        estimates: [
+          {
+            domain: "software_engineering",
+            value: 99,
+            interval: [98, 100],
+            harness: null,
+            effort: null,
+          },
+        ],
+      })),
+    });
+    const view = mapDecisionToViewModel(
+      estimated,
+      {
+        ...baseSpec,
+        bench: "quality",
+        domain: "software_engineering",
+        basis: "benchmark",
+      },
+      { axis: "task$", dismissed: [] },
+    );
+
+    expect(view.explanation.feasible[0].cap).not.toBe(99);
+    expect(view.benchmarks.quality.unit).not.toBe("capability score");
   });
 
   it("presents candidate-grained decisions as models with offering variants", () => {

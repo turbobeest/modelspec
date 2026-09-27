@@ -8,6 +8,47 @@ import { VOCABULARY_URL } from "../vocabulary";
 
 const fixture = decisionSchema.parse(fixtureJson);
 
+/** Keep the legacy full fixture consistent with the objective a UI test sends. */
+function decisionFor(init: RequestInit | undefined, decision = fixture) {
+  const sent = JSON.parse(String(init?.body ?? "{}"));
+  const weights = sent.optimize?.weights ?? {};
+  const domain = smallVocabulary.domains.find((row) => row.id in weights)?.id;
+  if (!domain) return decision;
+  return {
+    ...decision,
+    results: decision.results.map((result, index) => {
+      const value = 2 - index * 0.2;
+      const driver = {
+        ...result.evidence[0].items[0],
+        requested_domain: domain,
+        loading: 1,
+        estimate_weight: 1,
+        recency_weight: 1,
+      };
+      return {
+        ...result,
+        estimates: [{ domain, value, interval: [value - 0.4, value + 0.4], harness: null, effort: null }],
+        p_best: index === 0 ? 0.5 : 0.1,
+        top3_stability: index < 3 ? 0.8 : 0.2,
+        contributions: [
+          ...result.contributions,
+          {
+            raw_value: value,
+            unit: "capability_score",
+            records: [driver.record_id],
+            dimension: domain,
+            weight: weights[domain],
+            value: 1 - index * 0.2,
+            normalisation: "feasible min-max; max",
+            evidence: [driver],
+            formula: "monotone domain evidence estimate",
+          },
+        ],
+      };
+    }),
+  };
+}
+
 beforeEach(() => history.replaceState(null, "", "/"));
 afterEach(() => vi.unstubAllGlobals());
 
@@ -15,10 +56,11 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   const fetch = routeFetch({
     decide: (init) => {
       const spec = JSON.parse(String(init?.body));
+      const decision = decisionFor(init);
       return json(
         spec.explain === "none"
-          ? { ...fixture, explain: "none", results: fixture.results.slice(0, 2) }
-          : fixture,
+          ? { ...decision, explain: "none", results: decision.results.slice(0, 2) }
+          : decision,
       );
     },
   });
@@ -43,7 +85,7 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(why).toHaveTextContent("Delta 4.7");
   expect(why).toHaveTextContent("Lab Inc.");
   expect(screen.getByRole("region", { name: "Trade-off canvas" })).toHaveTextContent(
-    "Gamma Max 0902",
+    "Beta-5.2",
   );
   expect(document.body).toHaveTextContent("lab/alpha");
   expect(document.body).not.toHaveTextContent(/Gamma Max 902|\bAlpha\b/);
@@ -53,13 +95,13 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(sent).not.toHaveProperty("task");
   expect(sent.where).toContain("model.class = text-generator");
   expect(sent.where).toContain("model.context_window >= 200000");
-  // The benchmark comes from the vocabulary, never a fixed name.
-  expect(sent.where).toContain("quality >= 68 @independent");
+  // The learned domain estimate is the default; benchmark floors are explicit only.
+  expect(sent.where.some((condition: string) => condition.startsWith("quality >="))).toBe(false);
   expect(sent.capabilities).toEqual({ software_engineering: "required" });
   expect(sent.task_tokens).toEqual({ input: 40000, output: 4000 });
   expect(Object.keys(sent.optimize.weights).sort()).toEqual([
     "-offering.cost_per_task",
-    "quality",
+    "software_engineering",
   ]);
   expect(sent.explain).toBe("full");
 
@@ -79,7 +121,10 @@ it("switches the ranking benchmark in one click from the rank-by control", async
       { ...smallVocabulary.benchmarks[0], id: "quality_pro", name: "Quality Pro", models: 3 },
     ],
   };
-  const fetch = routeFetch({ vocabulary: () => json(vocabulary), decide: () => json(fixture) });
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabulary),
+    decide: (init) => json(decisionFor(init)),
+  });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
   await screen.findByText("Coding agent on a budget");
@@ -89,13 +134,16 @@ it("switches the ranking benchmark in one click from the rank-by control", async
   fireEvent.click(screen.getByRole("button", { name: /Find models/ }));
   await screen.findByRole("region", { name: "Trade-off canvas" });
   expect(
-    screen.getByText(/rank on Quality Bench, the direct benchmark with the most verified lineup models \(4\); also direct: Quality Pro \(3\)/),
+    screen.getByText(/Software engineering capability: estimated from 1 benchmarks; Quality Bench is preselected for Measured by/),
   ).toBeInTheDocument();
 
-  const control = screen.getByRole("group", { name: "Benchmark to rank on" });
+  const control = screen.getByRole("group", { name: "Measurement basis" });
+  expect(
+    within(control).getByRole("button", { name: /Software engineering capability/ }),
+  ).toHaveAttribute("aria-pressed", "true");
   expect(within(control).getByRole("button", { name: /Quality Bench 4 models/ })).toHaveAttribute(
     "aria-pressed",
-    "true",
+    "false",
   );
   fireEvent.click(within(control).getByRole("button", { name: /Quality Pro 3 models/ }));
 
@@ -103,7 +151,7 @@ it("switches the ranking benchmark in one click from the rank-by control", async
     const full = sentSpecs(fetch).filter((body) => body.explain === "full");
     const last = full[full.length - 1];
     expect(Object.keys(last.optimize.weights)).toContain("quality_pro");
-    expect(last.where).toContain("quality_pro >= 68 @independent");
+    expect(last.where.some((c: string) => c.startsWith("quality_pro >="))).toBe(false);
     expect(last.where.some((c: string) => c.startsWith("quality >="))).toBe(false);
   });
 });
@@ -111,9 +159,9 @@ it("switches the ranking benchmark in one click from the rank-by control", async
 it("shows no stale designed result after a hosted error", async () => {
   let calls = 0;
   const fetch = routeFetch({
-    decide: () =>
+    decide: (init) =>
       calls++ === 0
-        ? json(fixture)
+        ? json(decisionFor(init))
         : json({ error: { code: "snapshot_unavailable", message: "Try again" } }, 503),
   });
   vi.stubGlobal("fetch", fetch);
@@ -141,7 +189,7 @@ it("keeps the fictional backend only behind demo=1", () => {
 });
 
 it("renders unavailable snapshot facets instead of hiding them", async () => {
-  vi.stubGlobal("fetch", routeFetch({ decide: () => json(fixture) }));
+  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
   await screen.findByText("Coding agent on a budget");
   fireEvent.click(screen.getByText("start from constraints"));
@@ -153,20 +201,45 @@ it("renders capability intervals, probability of best and top-three stability", 
   const estimated = {
     ...fixture,
     contract_version: "1.6",
-    results: fixture.results.map((result, index) => ({
-      ...result,
-      estimates: [
-        {
-          domain: "software_engineering",
-          value: 2 - index * 0.2,
-          interval: [1.6 - index * 0.2, 2.4 - index * 0.2],
-          harness: null,
-          effort: null,
-        },
-      ],
-      p_best: index === 0 ? 0.62 : 0.12,
-      top3_stability: index === 0 ? 0.91 : 0.5,
-    })),
+    results: fixture.results.map((result, index) => {
+      const driver = {
+        ...result.evidence[0].items[0],
+        loading: 1,
+        estimate_weight: 0.72,
+        recency_weight: 0.94,
+      };
+      const value = 2 - index * 0.2;
+      return {
+        ...result,
+        estimates: [
+          {
+            domain: "software_engineering",
+            value,
+            interval: [value - 0.4, value + 0.4],
+            harness: null,
+            effort: null,
+          },
+        ],
+        p_best: index === 0 ? 0.62 : 0.12,
+        top3_stability: index === 0 ? 0.91 : 0.5,
+        contributions: [
+          ...result.contributions,
+          {
+            raw_value: value,
+            unit: "capability_score",
+            records: [driver.record_id],
+            dimension: "software_engineering",
+            weight: 0.6,
+            value: 1 - index * 0.2,
+            normalisation: "feasible min-max; max",
+            evidence: [driver],
+            formula: "monotone domain evidence estimate",
+          },
+        ],
+        warnings:
+          index === 0 ? ["not_separable", "proxy_evidence_only"] : ["not_separable"],
+      };
+    }),
   };
   vi.stubGlobal("fetch", routeFetch({ decide: () => json(estimated) }));
   render(<App />);
@@ -176,11 +249,18 @@ it("renders capability intervals, probability of best and top-three stability", 
   const detail = await screen.findByRole("region", { name: "Why this model" });
   expect(detail).toHaveTextContent("P(best) 62%");
   expect(detail).toHaveTextContent("Top-3 stability 91%");
-  expect(detail).toHaveTextContent(/Evidence too thin to separate these/);
+  expect(detail).toHaveTextContent("Not separable: intervals overlap.");
+  expect(detail).toHaveTextContent("Proxy evidence only.");
+  expect(detail).toHaveTextContent("Top drivers");
+  expect(detail).toHaveTextContent("Quality Bench · 72% influence · direct · 2026-08-01");
+  expect(within(detail).getByRole("link", { name: "Source ↗" })).toHaveAttribute(
+    "href",
+    "https://board.example.org/results",
+  );
 });
 
 it("renders the full decision as four models without machine condition syntax", async () => {
-  vi.stubGlobal("fetch", routeFetch({ decide: () => json(fixture) }));
+  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
   await screen.findByText("Coding agent on a budget");
   fireEvent.click(screen.getByText("start from constraints"));
@@ -217,7 +297,7 @@ it("on a 409 to the summary, reloads once, retries the summary, then asks for fu
           },
           409,
         );
-      return json(fixture);
+      return json(decisionFor(init));
     },
   });
   vi.stubGlobal("fetch", fetch);
@@ -268,7 +348,7 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
       const sent = new Headers(init?.headers).get("x-modelspec-snapshot");
       const explain = JSON.parse(String(init?.body)).explain;
       if (explain === "full" || sent !== fresh.snapshot) return changed(sent);
-      return json(fixture);
+      return json(decisionFor(init));
     },
   });
   vi.stubGlobal("fetch", fetch);

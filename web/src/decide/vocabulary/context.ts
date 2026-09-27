@@ -8,7 +8,7 @@ import {
   relaxLabel as fictionalRelaxLabel,
 } from "../adapter";
 import { BENCH } from "../engine/catalogue";
-import type { BenchDef, Cond, Facet, TypeKey, Weights } from "../engine/types";
+import type { BenchDef, Cond, Facet, Spec, TypeKey, Weights } from "../engine/types";
 import type { Axis } from "../state/spec";
 import { renderContractCondition } from "../adapter/condition-label";
 import { contractCondition } from "../adapter/view-model";
@@ -26,6 +26,7 @@ export interface DecideVocab {
   label(c: Cond): string;
   relaxLabel(c: Cond): string;
   benchName(id: string): string;
+  basisName(spec: Spec): string;
   facetOptions: Facet[];
   types: Partial<Record<TypeKey, string>>;
   axes: Axis[];
@@ -41,6 +42,7 @@ export const fictionalVocab: DecideVocab = {
   label: fictionalLabel,
   relaxLabel: fictionalRelaxLabel,
   benchName: (id) => id,
+  basisName: (spec) => spec.bench,
   facetOptions: FACETS,
   types: TYPES,
   axes: ["task$", "in$", "ttft", "tps", "ctx"],
@@ -58,6 +60,14 @@ export function realVocab(v: Vocabulary): DecideVocab {
     label,
     relaxLabel: (c) => "Relax to " + label(c).replace(/^.*?: /, ""),
     benchName: (id) => benchmarks.find((b) => b.id === id)?.name ?? id,
+    basisName: (spec) => {
+      if (spec.basis !== "estimate" || !spec.domain)
+        return benchmarks.find((b) => b.id === spec.bench)?.name ?? spec.bench;
+      const domain = v.domains.find((row) => row.id === spec.domain);
+      return domain
+        ? `${domain.name} capability (estimated from ${domain.benchmarks.length} benchmarks)`
+        : `${spec.domain} capability estimate`;
+    },
     facetOptions: facetOptions(v),
     types: offeredTypes(v),
     axes: offeredAxes(v),

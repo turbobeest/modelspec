@@ -12,8 +12,8 @@ export function Shortlist({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
-  const { label, benchName, weightKeys } = useVocab(),
-    bench = benchName(spec.bench),
+  const { label, basisName, weightKeys } = useVocab(),
+    bench = basisName(spec),
     speed = weightKeys.includes("speed");
   const e = decision.explanation,
     s = e.shortlist,

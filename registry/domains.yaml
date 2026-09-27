@@ -37,8 +37,8 @@ schema_version: 1
 domains:
   - id: software_engineering
     name: Software engineering
-    # Jamie, 2026-09-25: coding tasks rank on SWE-bench Pro by default whenever
-    # it has verified evidence; the page's "Measured by" switch offers the rest.
+    # Preselected only when a user explicitly opens the "Measured by" benchmark
+    # drill-down. Domain capability is the ranking default (MODEL-167).
     default_benchmark: swe_bench_pro
     definition: >-
       Producing or changing working software against an objective check:
@@ -116,8 +116,8 @@ domains:
       Which of two models' responses to the same open-ended prompt people
       prefer, aggregated into a rating by pairwise comparison. Measures
       preference, not correctness.
-    # Orchestrator, 2026-09-25 (Jamie delegated the call): a general assistant
-    # ranks on the overall text board, not on a category board such as WebDev.
+    # The overall text board is the preselected explicit drill-down, not the
+    # domain's default ranking basis.
     default_benchmark: arena_elo_style_control
   - id: retrieval
     name: Retrieval
@@ -125,6 +125,6 @@ domains:
       Ranking documents or passages by relevance to a query, as an embedding or
       reranking model does, graded against relevance judgements with ranking
       metrics such as nDCG or recall at k.
-    # Orchestrator, 2026-09-25: the retrieval task type itself, not the
-    # reranking one, which ties it on coverage and would otherwise lead by name.
+    # Preselect the retrieval task type, not the reranking task, when the user
+    # explicitly drills down to one benchmark.
     default_benchmark: mteb_v2_retrieval

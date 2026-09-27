@@ -20,15 +20,20 @@ WORKER_SRC = WORKER_ROOT / "src"
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
+from decision.excluded import excluded_sources  # noqa: E402
+from decision.registry import default as default_registry  # noqa: E402
 from decision.snapshot import (  # noqa: E402
     SnapshotInputs,
     SnapshotIntegrityError,
     build_snapshot,
+    collect_repo,
+    load_premier,
     load_snapshot_bytes,
 )
 from tests.snapshot_records import SOURCES, evidence, fact, model, thirty_models  # noqa: E402
 
 KEY = b"model-151-test-key"
+COLD_DOMAIN_DECISION_BUDGET_MS = 1_000
 
 
 def _load_service():
@@ -211,6 +216,43 @@ def test_explain_none_p95_is_under_200_ms(service) -> None:
         assert status == 200
     p95 = sorted(samples)[int(len(samples) * 0.95) - 1]
     assert p95 < 200, f"warm in-process p95 was {p95:.2f} ms"
+
+
+def test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget(service) -> None:
+    """Guard the Worker cold path with the repository's published data shape."""
+    built = build_snapshot(
+        collect_repo(REPO_ROOT),
+        registry=default_registry(),
+        premier=load_premier(REPO_ROOT / "premier" / "slice-1.yaml"),
+        as_of=date(2026, 9, 25),
+        guard=excluded_sources(),
+        gate=False,
+    )
+    raw = built.to_bytes(key=KEY)
+    payload = {
+        "spec_version": 1,
+        "capabilities": {"software_engineering": "required"},
+        "optimize": {"max": "software_engineering"},
+        "explain": "full",
+        "limit": 20,
+    }
+
+    start = perf_counter()
+    loaded = service.load_snapshot(raw, key=KEY)
+    loaded_at = perf_counter()
+    status, body = service.decide(payload, loaded)
+    service.serialise(body)
+    decided_at = perf_counter()
+
+    load_ms = (loaded_at - start) * 1_000
+    decision_ms = (decided_at - loaded_at) * 1_000
+    total_ms = (decided_at - start) * 1_000
+    assert status == 200
+    assert body["results"]
+    assert total_ms < COLD_DOMAIN_DECISION_BUDGET_MS, (
+        f"fresh Worker snapshot load plus first domain decision took {total_ms:.2f} ms "
+        f"(load {load_ms:.2f} ms, decision and serialization {decision_ms:.2f} ms)"
+    )
 
 
 def test_vendor_copies_the_shared_decision_engine_and_registry(tmp_path: Path) -> None:

@@ -20,7 +20,13 @@ from decision.engine import decide
 from decision.registry import default as registry
 from decision.registry import facet as registry_facet
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
-from decision.vocabulary import VOCABULARY_VERSION, build_vocabulary
+from decision.vocabulary import (
+    VOCABULARY_VERSION,
+    FrontierCoverageError,
+    build_vocabulary,
+    frontier_coverage,
+    require_frontier_coverage,
+)
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 AS_OF = date(2026, 9, 24)
@@ -278,6 +284,7 @@ def test_the_site_build_writes_the_vocabulary_beside_the_snapshot(tmp_path, monk
 
     root = _mini_repo(tmp_path)
     monkeypatch.setattr(snap, "default_registry", lambda: COMPLETENESS_REGISTRY)
+    monkeypatch.setattr("decision.vocabulary.MIN_FRONTIER_COVERAGE", 0)
     monkeypatch.setenv(snap.KEY_ENV, KEY.decode())
     target = tmp_path / "site" / "api" / "decision" / "snapshot.json.gz"
     stale = target.parent / "vocabulary.json"
@@ -321,17 +328,14 @@ def test_enum_values_carry_the_registry_label(snapshot):
                 assert item.get("label"), (row["id"], item["value"])
 
 
-def test_the_registry_default_benchmark_leads_only_with_verified_evidence(vocabulary):
-    """software_engineering defaults to swe_bench_pro (registry/domains.yaml,
-    Jamie 2026-09-25). Here its only row is a mismatch, so it has no verified
-    evidence: the default is not applied and the most-covered direct benchmark
-    leads."""
+def test_the_registry_drilldown_preselection_needs_verified_evidence(vocabulary):
+    """A mismatched-only board is not preselected for explicit drill-down."""
     domain = by_id(vocabulary["domains"])["software_engineering"]
     assert domain["default_benchmark"] is None
     assert domain["benchmarks"][0] == "swe_bench_verified"
 
 
-def test_a_verified_default_benchmark_leads_its_domain():
+def test_a_verified_registry_benchmark_preselects_the_drilldown():
     inputs = SnapshotInputs(
         models=[generator("lab/a"), generator("lab/b"), generator("lab/c")],
         offerings=[sold("lab/a", "p1", 1.0, 5.0)],
@@ -348,3 +352,55 @@ def test_a_verified_default_benchmark_leads_its_domain():
     domain = by_id(build_vocabulary(snap, pages=PAGES, cards=CARDS)["domains"])["software_engineering"]
     assert domain["default_benchmark"] == "swe_bench_pro"
     assert domain["benchmarks"][0] == "swe_bench_pro"
+
+
+def test_domain_estimate_passes_frontier_coverage_that_swe_bench_pro_fails():
+    """The default ranks most directly measured models; one sparse board does not."""
+    models = [generator(f"lab/{name}") for name in "abcdef"]
+    rows = [
+        evidence("lab/a", "swe_bench_pro", 70.0),
+        evidence("lab/b", "swe_bench_pro", 60.0),
+        *[
+            evidence(f"lab/{name}", "swe_bench_verified", score)
+            for name, score in zip("abcdef", (72.0, 68.0, 65.0, 61.0, 57.0, 53.0))
+        ],
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=models,
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={
+                "swe_bench_pro": [("software_engineering", "direct")],
+                "swe_bench_verified": [("software_engineering", "direct")],
+                "terminal_bench_v4_0": [("software_engineering", "direct")],
+            },
+            benchmark_metadata={
+                benchmark: {"direction": "higher_is_better"}
+                for benchmark in ("swe_bench_pro", "swe_bench_verified")
+            },
+        ),
+        gate=False,
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+
+    estimate = frontier_coverage(index, "software_engineering")
+    sparse_benchmark = frontier_coverage(
+        index, "software_engineering", benchmark="swe_bench_pro"
+    )
+
+    assert estimate == {"ranked": 6, "direct": 6, "ratio": 1.0}
+    assert sparse_benchmark == {"ranked": 2, "direct": 6, "ratio": pytest.approx(1 / 3)}
+    require_frontier_coverage(index, "software_engineering")
+    with pytest.raises(FrontierCoverageError, match="swe_bench_pro.*2 of 6.*33.3%"):
+        require_frontier_coverage(
+            index, "software_engineering", benchmark="swe_bench_pro"
+        )
+
+
+def test_vocabulary_publishes_the_estimate_as_each_domains_default_basis(vocabulary):
+    domain = by_id(vocabulary["domains"])["software_engineering"]
+    assert domain["default_basis"] == "capability_estimate"
+    assert domain["estimate_models"] == 0
+    assert domain["direct_models"] == 2

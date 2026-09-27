@@ -188,14 +188,15 @@ def estimate_evidence(snapshot, cid, domain):
     items = []
     model_id = snapshot.model_of(cid)
     for driver in snapshot.capability_drivers(cid, domain):
-        rows = {
-            row.record_id: row
+        lookup = getattr(snapshot, "evidence_record", None)
+        row = lookup(model_id, driver.record_id) if lookup is not None else next((
+            row
             for candidate in snapshot.candidates()
             if snapshot.model_of(candidate) == model_id
             for row in snapshot.evidence(candidate, driver.benchmark_id)
             if row.record_id == driver.record_id
-        }
-        if driver.record_id not in rows:
+        ), None)
+        if row is None:
             raise ExplanationError(
                 f"{driver.record_id}: capability driver is not retained evidence"
             )
@@ -208,7 +209,7 @@ def estimate_evidence(snapshot, cid, domain):
             )
         items.append(evidence_item(
             snapshot,
-            replace(rows[driver.record_id], directness=directness),
+            replace(row, directness=directness),
             domain,
             loading=driver.loading,
             estimate_weight=driver.weight,

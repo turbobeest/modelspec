@@ -10,6 +10,7 @@ import type {
 } from "../engine/types";
 import type { FullEval, NearMiss, Question, RankedRow, Row, Test } from "../engine/reference";
 import type { Axis } from "../state/spec";
+import { usesDomainEstimate } from "../engine/types";
 import type { AdapterDecision } from "./index";
 import type {
   Decision,
@@ -156,7 +157,8 @@ export function toDecisionSpec(
   explain: "none" | "summary" | "full",
 ): DecisionSpec {
   const weights: Record<string, number> = {};
-  if (spec.w.cap > 0) weights[slug(spec.bench)] = spec.w.cap;
+  if (spec.w.cap > 0)
+    weights[usesDomainEstimate(spec) ? spec.domain : slug(spec.bench)] = spec.w.cap;
   if (spec.w.cost > 0) weights["-offering.cost_per_task"] = spec.w.cost;
   if (spec.w.speed > 0) weights["offering.speed.throughput"] = spec.w.speed;
   return {
@@ -292,6 +294,10 @@ function uiEvidence(item: EvidenceItem): Evidence {
     harness: item.harness ?? "not available",
     who: item.measured_by,
     src: item.source,
+    loading: item.loading,
+    estimateWeight: item.estimate_weight,
+    recencyWeight: item.recency_weight,
+    requestedDomain: item.requested_domain,
   };
 }
 
@@ -443,7 +449,7 @@ function rankedRow(
     names,
   );
   const selected = evidence.find((item) => item.b === spec.bench) ?? null;
-  const estimate = spec.domain
+  const estimate = usesDomainEstimate(spec)
     ? result.estimates?.find((item) => item.domain === spec.domain) ?? null
     : null;
   const estimatePart = estimate
@@ -487,7 +493,11 @@ function rankedRow(
   const capability = estimateEvidence ?? selected!;
   const norm = {
     cap:
-      result.contributions.find((item) => item.dimension.replace(/^-/, "") === spec.bench)
+      result.contributions.find(
+        (item) =>
+          item.dimension.replace(/^-/, "") ===
+          (usesDomainEstimate(spec) ? spec.domain : spec.bench),
+      )
         ?.value ?? 0,
     cost:
       result.contributions.find((item) =>
@@ -803,7 +813,7 @@ export function mapDecisionToViewModel(
   );
   if (!benchmarks[spec.bench]) benchmarks[spec.bench] = benchmarkDefinition(decision, spec.bench);
   if (
-    spec.domain &&
+    usesDomainEstimate(spec) &&
     decision.results.some((result) =>
       result.estimates?.some((item) => item.domain === spec.domain),
     )
@@ -914,7 +924,7 @@ export function mapDecisionToViewModel(
       i: index,
       c: spec.conds[index] ?? { f: "active" },
       label: renderContractCondition(cost.condition),
-      pts: cost.gain[spec.bench] ?? null,
+      pts: cost.gain[usesDomainEstimate(spec) ? spec.domain : spec.bench] ?? null,
       unlocks: cost.admits,
       bestAlt: undefined,
     })),

@@ -87,6 +87,7 @@ const schema = z.object({
     ),
   bar: positive.nullable().optional(),
   domain: z.string().regex(/^[a-z][a-z0-9_]*$/).optional(),
+  basis: z.enum(["estimate", "benchmark"]).optional(),
 });
 export const baseSpec: Spec = {
   task: "",

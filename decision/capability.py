@@ -33,7 +33,11 @@ _MIN_RECENCY = 0.25
 _RIDGE_GENERAL = 1.0
 _RIDGE_DOMAIN = 4.0
 _RIDGE_ITEM = 0.25
-_MIN_ITEM_MODELS = 3
+# Two observations are the smallest sample that can establish an ordering and
+# a non-zero within-item spread.  Keeping those items lets sparse domains rank
+# their directly measured frontier; the prior still makes their intervals
+# appropriately wide.
+_MIN_ITEM_MODELS = 2
 _DOMAIN_PRIOR_PRECISION = 0.25
 _PROJECTION_PROXY_LOADING = 0.35
 
@@ -840,9 +844,14 @@ def deterministic_probabilities(
     estimates: Mapping[str, CapabilityEstimate],
     *,
     seed_material: str,
-    samples: int = 2048,
+    samples: int = 256,
 ) -> dict[str, tuple[float, float]]:
-    """Return P(best) and top-three stability with a snapshot-derived seed."""
+    """Return P(best) and top-three stability with a snapshot-derived seed.
+
+    The page presents these probabilities to whole-percent precision.  A 256
+    draw deterministic sample keeps that honesty while bounding the dominant
+    CPU loop on a cold Python Worker request.
+    """
     ordered = sorted(estimates)
     if not ordered:
         return {}

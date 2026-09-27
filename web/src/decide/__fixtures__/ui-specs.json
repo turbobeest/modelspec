@@ -15,12 +15,11 @@
       "where": [
         "model.class = text-generator",
         "model.lifecycle = active",
-        "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent"
+        "model.context_window >= 200000"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -48,7 +47,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -74,12 +73,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 128000",
-        "offering.cost_per_task <= 0.25",
-        "swe_bench_verified >= 78 @independent"
+        "offering.cost_per_task <= 0.25"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.5555555555555556,
+          "software_engineering": 0.5555555555555556,
           "-offering.cost_per_task": 0.4444444444444445
         }
       },
@@ -109,7 +107,7 @@
       ],
       "optimize": {
         "weights": {
-          "arena_elo_style_control": 0.7,
+          "chat_preference": 0.7,
           "-offering.cost_per_task": 0.3
         }
       },
@@ -137,7 +135,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -165,7 +163,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -193,7 +191,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -222,7 +220,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -251,7 +249,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -280,7 +278,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -309,7 +307,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -338,7 +336,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -367,7 +365,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -396,7 +394,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -425,7 +423,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -454,7 +452,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -483,7 +481,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -512,7 +510,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -541,7 +539,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -570,7 +568,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -599,7 +597,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -628,7 +626,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -657,7 +655,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -686,7 +684,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -715,7 +713,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -744,7 +742,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -773,7 +771,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -802,7 +800,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -831,7 +829,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -860,7 +858,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -889,7 +887,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -918,7 +916,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -947,7 +945,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -976,7 +974,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1005,7 +1003,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1034,7 +1032,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1063,7 +1061,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1092,7 +1090,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1121,7 +1119,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1150,7 +1148,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1179,7 +1177,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1208,7 +1206,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1237,7 +1235,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1266,7 +1264,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1295,7 +1293,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1324,7 +1322,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1353,7 +1351,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1382,7 +1380,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1411,7 +1409,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1440,7 +1438,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1469,7 +1467,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1498,7 +1496,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1527,7 +1525,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1556,7 +1554,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1585,7 +1583,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1614,7 +1612,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1643,7 +1641,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1672,7 +1670,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1701,7 +1699,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1730,7 +1728,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1759,7 +1757,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1788,7 +1786,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1817,7 +1815,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1846,7 +1844,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1875,7 +1873,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1904,7 +1902,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1933,7 +1931,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1962,7 +1960,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -1991,7 +1989,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2020,7 +2018,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2049,7 +2047,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2078,7 +2076,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2107,7 +2105,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2136,7 +2134,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2165,7 +2163,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2194,7 +2192,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2223,7 +2221,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2252,7 +2250,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2281,7 +2279,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2310,7 +2308,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2339,7 +2337,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2368,7 +2366,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2397,7 +2395,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2426,7 +2424,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2455,7 +2453,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2484,7 +2482,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2513,7 +2511,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2542,7 +2540,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2571,7 +2569,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2600,7 +2598,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2629,7 +2627,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2658,7 +2656,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2687,7 +2685,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2716,7 +2714,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2745,7 +2743,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2774,7 +2772,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2803,7 +2801,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2832,7 +2830,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2861,7 +2859,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2890,7 +2888,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2919,7 +2917,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2948,7 +2946,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -2977,7 +2975,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3006,7 +3004,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3035,7 +3033,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3064,7 +3062,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3093,7 +3091,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3122,7 +3120,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3151,7 +3149,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3180,7 +3178,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3209,7 +3207,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3238,7 +3236,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3267,7 +3265,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3296,7 +3294,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3325,7 +3323,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3354,7 +3352,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3383,7 +3381,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3412,7 +3410,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3441,7 +3439,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3470,7 +3468,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3499,7 +3497,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3528,7 +3526,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3557,7 +3555,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3586,7 +3584,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3615,7 +3613,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3644,7 +3642,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3673,7 +3671,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3702,7 +3700,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3731,7 +3729,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3760,7 +3758,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3789,7 +3787,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3818,7 +3816,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3847,7 +3845,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3876,7 +3874,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3905,7 +3903,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3934,7 +3932,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3963,7 +3961,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -3992,7 +3990,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4021,7 +4019,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4050,7 +4048,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4079,7 +4077,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4108,7 +4106,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4137,7 +4135,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4166,7 +4164,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4195,7 +4193,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4224,7 +4222,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4253,7 +4251,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4282,7 +4280,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4311,7 +4309,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4340,7 +4338,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4369,7 +4367,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4398,7 +4396,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4427,7 +4425,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4456,7 +4454,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4485,7 +4483,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4514,7 +4512,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4543,7 +4541,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4572,7 +4570,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4601,7 +4599,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4629,7 +4627,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4657,7 +4655,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4685,7 +4683,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4713,7 +4711,7 @@
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.6666666666666667,
+          "software_engineering": 0.6666666666666667,
           "-offering.cost_per_task": 0.33333333333333337
         }
       },
@@ -4739,12 +4737,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "offering.cost_per_task <= 0.0073"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -4770,12 +4767,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "offering.cost_per_task <= 0.032"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -4801,12 +4797,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "offering.cost_per_task <= 0.14"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -4832,12 +4827,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "model.weights_openness = open_weights"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -4863,12 +4857,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "licence.commercial_use in {permitted, permitted_with_conditions}"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -4894,12 +4887,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "offering.data.zero_retention = true"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -4925,12 +4917,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "offering.data.trains_on_customer_data = false"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -4956,12 +4947,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "offering.attestation.baa = true"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -4987,12 +4977,11 @@
         "model.class = text-generator",
         "model.lifecycle = active",
         "model.context_window >= 200000",
-        "swe_bench_verified >= 78 @independent",
         "feature.tool_calling = true"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.7777777777777778,
+          "software_engineering": 0.7777777777777778,
           "-offering.cost_per_task": 0.22222222222222227
         }
       },
@@ -5019,12 +5008,11 @@
         "model.lifecycle = active",
         "model.context_window >= 128000",
         "offering.cost_per_task <= 0.25",
-        "swe_bench_verified >= 78 @independent",
         "model.weights_openness = open_weights"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.5555555555555556,
+          "software_engineering": 0.5555555555555556,
           "-offering.cost_per_task": 0.4444444444444445
         }
       },
@@ -5051,12 +5039,11 @@
         "model.lifecycle = active",
         "model.context_window >= 128000",
         "offering.cost_per_task <= 0.25",
-        "swe_bench_verified >= 78 @independent",
         "licence.commercial_use in {permitted, permitted_with_conditions}"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.5555555555555556,
+          "software_engineering": 0.5555555555555556,
           "-offering.cost_per_task": 0.4444444444444445
         }
       },
@@ -5083,12 +5070,11 @@
         "model.lifecycle = active",
         "model.context_window >= 128000",
         "offering.cost_per_task <= 0.25",
-        "swe_bench_verified >= 78 @independent",
         "offering.data.zero_retention = true"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.5555555555555556,
+          "software_engineering": 0.5555555555555556,
           "-offering.cost_per_task": 0.4444444444444445
         }
       },
@@ -5115,12 +5101,11 @@
         "model.lifecycle = active",
         "model.context_window >= 128000",
         "offering.cost_per_task <= 0.25",
-        "swe_bench_verified >= 78 @independent",
         "offering.data.trains_on_customer_data = false"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.5555555555555556,
+          "software_engineering": 0.5555555555555556,
           "-offering.cost_per_task": 0.4444444444444445
         }
       },
@@ -5147,12 +5132,11 @@
         "model.lifecycle = active",
         "model.context_window >= 128000",
         "offering.cost_per_task <= 0.25",
-        "swe_bench_verified >= 78 @independent",
         "offering.attestation.baa = true"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.5555555555555556,
+          "software_engineering": 0.5555555555555556,
           "-offering.cost_per_task": 0.4444444444444445
         }
       },
@@ -5179,12 +5163,11 @@
         "model.lifecycle = active",
         "model.context_window >= 128000",
         "offering.cost_per_task <= 0.25",
-        "swe_bench_verified >= 78 @independent",
         "feature.tool_calling = true"
       ],
       "optimize": {
         "weights": {
-          "swe_bench_verified": 0.5555555555555556,
+          "software_engineering": 0.5555555555555556,
           "-offering.cost_per_task": 0.4444444444444445
         }
       },
@@ -5215,7 +5198,7 @@
       ],
       "optimize": {
         "weights": {
-          "arena_elo_style_control": 0.7,
+          "chat_preference": 0.7,
           "-offering.cost_per_task": 0.3
         }
       },
@@ -5246,7 +5229,7 @@
       ],
       "optimize": {
         "weights": {
-          "arena_elo_style_control": 0.7,
+          "chat_preference": 0.7,
           "-offering.cost_per_task": 0.3
         }
       },
@@ -5277,7 +5260,7 @@
       ],
       "optimize": {
         "weights": {
-          "arena_elo_style_control": 0.7,
+          "chat_preference": 0.7,
           "-offering.cost_per_task": 0.3
         }
       },
@@ -5308,7 +5291,7 @@
       ],
       "optimize": {
         "weights": {
-          "arena_elo_style_control": 0.7,
+          "chat_preference": 0.7,
           "-offering.cost_per_task": 0.3
         }
       },
@@ -5339,7 +5322,7 @@
       ],
       "optimize": {
         "weights": {
-          "arena_elo_style_control": 0.7,
+          "chat_preference": 0.7,
           "-offering.cost_per_task": 0.3
         }
       },
@@ -5370,7 +5353,7 @@
       ],
       "optimize": {
         "weights": {
-          "arena_elo_style_control": 0.7,
+          "chat_preference": 0.7,
           "-offering.cost_per_task": 0.3
         }
       },
@@ -5401,7 +5384,7 @@
       ],
       "optimize": {
         "weights": {
-          "arena_elo_style_control": 0.7,
+          "chat_preference": 0.7,
           "-offering.cost_per_task": 0.3
         }
       },
@@ -5430,7 +5413,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5459,7 +5442,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5488,7 +5471,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5517,7 +5500,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5546,7 +5529,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5575,7 +5558,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5604,7 +5587,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5633,7 +5616,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5662,7 +5645,7 @@
       ],
       "optimize": {
         "weights": {
-          "frontiermath_tiers_1_3_v2": 0.8,
+          "maths": 0.8,
           "-offering.cost_per_task": 0.2
         }
       },
@@ -5691,7 +5674,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -5719,7 +5702,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -5747,7 +5730,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -5775,7 +5758,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -5803,7 +5786,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -5831,7 +5814,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -5859,7 +5842,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -5887,7 +5870,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",
@@ -5915,7 +5898,7 @@
       ],
       "optimize": {
         "weights": {
-          "mteb_v2_retrieval": 1
+          "retrieval": 1
         }
       },
       "unknowns": "default",

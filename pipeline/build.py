@@ -285,9 +285,17 @@ def write_decision_vocabulary(root: Path, snapshot_path: Path, *, key: bytes | N
     cards = {m.model_id: m.front for m in load_models(root)}
     target = snapshot_path.parent / "vocabulary.json"
     target.write_text(
-        json.dumps(build_vocabulary(loaded, pages=pages, cards=cards), indent=2,
-                   ensure_ascii=False,
-                   allow_nan=False) + "\n",
+        json.dumps(
+            build_vocabulary(
+                loaded,
+                pages=pages,
+                cards=cards,
+                enforce_frontier_coverage=True,
+            ),
+            indent=2,
+            ensure_ascii=False,
+            allow_nan=False,
+        ) + "\n",
         encoding="utf-8",
     )
     return target

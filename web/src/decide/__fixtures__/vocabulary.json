@@ -1718,6 +1718,9 @@
       "id": "software_engineering",
       "name": "Software engineering",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 25,
+      "direct_models": 22,
       "benchmarks": [
         "swe_bench_verified",
         "arena_webdev",
@@ -1729,6 +1732,9 @@
       "id": "engineering_stem",
       "name": "Engineering and STEM",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 18,
+      "direct_models": 18,
       "benchmarks": [
         "gpqa_diamond",
         "hle"
@@ -1739,6 +1745,9 @@
       "id": "maths",
       "name": "Maths",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 18,
+      "direct_models": 17,
       "benchmarks": [
         "frontiermath_tiers_1_3_v2",
         "hle"
@@ -1749,6 +1758,9 @@
       "id": "reasoning",
       "name": "General reasoning",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 18,
+      "direct_models": 0,
       "benchmarks": [
         "gpqa_diamond",
         "hle"
@@ -1759,6 +1771,9 @@
       "id": "agentic_tool_use",
       "name": "Agentic and tool use",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 18,
+      "direct_models": 18,
       "benchmarks": [
         "terminal_bench_v4_0"
       ],
@@ -1768,6 +1783,9 @@
       "id": "vision_documents",
       "name": "Vision and documents",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 12,
+      "direct_models": 0,
       "benchmarks": [
         "arena_sc_vision"
       ],
@@ -1777,6 +1795,9 @@
       "id": "multilingual",
       "name": "Multilingual",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 18,
+      "direct_models": 0,
       "benchmarks": [
         "mteb_multilingual_v2"
       ],
@@ -1786,6 +1807,9 @@
       "id": "chat_preference",
       "name": "Chat and preference",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 25,
+      "direct_models": 25,
       "benchmarks": [
         "arena_elo_style_control",
         "arena_webdev",
@@ -1797,6 +1821,9 @@
       "id": "retrieval",
       "name": "Retrieval",
       "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 4,
+      "direct_models": 2,
       "benchmarks": [
         "mteb_v2_retrieval",
         "mteb_eng_v2",

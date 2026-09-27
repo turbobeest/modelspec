@@ -18,7 +18,7 @@ import {
   offeredTypes,
   offeredWeights,
   parseRealTask,
-  pickBenchmark,
+  pickDrilldownBenchmark,
   rankChoices,
   realBaseSpec,
   realQuestions,
@@ -35,7 +35,15 @@ const GOLDEN = "src/decide/__fixtures__/ui-specs.json";
 function parsedSpec(vocabulary: Vocabulary, task: string): Spec {
   const base = realBaseSpec(vocabulary);
   const p = parseRealTask(vocabulary, task);
-  return { ...base, task, bench: p.bench, w: p.w, conds: p.conds, domain: p.domain ?? undefined };
+  return {
+    ...base,
+    task,
+    bench: p.bench,
+    basis: p.basis,
+    w: p.w,
+    conds: p.conds,
+    domain: p.domain ?? undefined,
+  };
 }
 
 const EDITABLE: FacetOp[] = ["=", "!=", "<=", ">=", "in", "not in"];
@@ -145,10 +153,12 @@ describe("the real task parser", () => {
     (task) => expect(parseRealTask(v, task).domain).toBe("software_engineering"),
   );
 
-  it("ranks on the direct software-engineering benchmark with the most verified models", () => {
+  it("ranks on the software-engineering estimate and preselects a drill-down", () => {
     const parsed = parseRealTask(v, DEFAULT_TASK);
+    expect(parsed.basis).toBe("estimate");
     expect(parsed.bench).toBe("swe_bench_verified");
-    expect(parsed.trace[0].note).toContain("SWE-bench Verified");
+    expect(parsed.trace[0].note).toContain("Software engineering capability: estimated from");
+    expect(parsed.trace[0].note).toContain("SWE-bench Verified is preselected for Measured by");
   });
 
   it("picks from the data, never a fixed name", () => {
@@ -169,7 +179,7 @@ describe("the real task parser", () => {
       ],
     };
     expect(parseRealTask(more, DEFAULT_TASK).bench).toBe("swe_bench_pro");
-    expect(pickBenchmark(v, "maths")?.id).toBe("frontiermath_tiers_1_3_v2");
+    expect(pickDrilldownBenchmark(v, "maths")?.id).toBe("frontiermath_tiers_1_3_v2");
   });
 
   const withPro: Vocabulary = {
@@ -189,9 +199,10 @@ describe("the real task parser", () => {
     ],
   };
 
-  it("says in the trace which benchmark it chose, why, and what else was direct", () => {
+  it("says the estimate is the basis and explains the preselected drill-down", () => {
     const note = parseRealTask(withPro, DEFAULT_TASK).trace[0].note;
-    expect(note).toContain("rank on SWE-bench Verified");
+    expect(note).toContain("Software engineering capability: estimated from");
+    expect(note).toContain("SWE-bench Verified is preselected for Measured by");
     expect(note).toContain("the direct benchmark with the most verified lineup models (6)");
     expect(note).toContain("also direct: SWE-bench Pro (5)");
   });
@@ -204,14 +215,13 @@ describe("the real task parser", () => {
     expect(rankChoices(withPro, null)).toEqual([]);
   });
 
-  it("switches the ranking benchmark and moves the task's floor with it", () => {
+  it("switches to an explicit benchmark without inventing a task floor", () => {
     const spec = parsedSpec(withPro, DEFAULT_TASK);
     const next = switchBenchmark(withPro, spec, "swe_bench_pro");
     expect(next.bench).toBe("swe_bench_pro");
+    expect(next.basis).toBe("benchmark");
     const floors = next.conds.filter((c) => c.f === "bench");
-    expect(floors).toEqual([
-      { f: "bench", b: "swe_bench_pro", min: 53, indep: true, from: true },
-    ]);
+    expect(floors).toEqual([]);
     expect(next.conds.length).toBe(spec.conds.length);
     const own = { ...spec, conds: [...spec.conds, { f: "bench", b: "swe_bench_verified", min: 60 } as Cond] };
     expect(switchBenchmark(withPro, own, "swe_bench_pro").conds).toContainEqual({
@@ -250,7 +260,11 @@ describe("what is offered", () => {
 
 describe("every spec the page can generate", () => {
   const generated = everySpec(v);
-  const known = new Set([...v.facets.map((f) => f.id), ...v.benchmarks.map((b) => b.id)]);
+  const known = new Set([
+    ...v.facets.map((f) => f.id),
+    ...v.benchmarks.map((b) => b.id),
+    ...v.domains.map((d) => d.id),
+  ]);
 
   it("includes a next-question probe for every option on the default task", () => {
     const probes = generated.filter((g) => g.name.startsWith("probe default task "));

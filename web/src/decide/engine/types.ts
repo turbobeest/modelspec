@@ -39,6 +39,11 @@ export interface Evidence {
   harness: string;
   who: string;
   src: string;
+  /** Learned-estimate explanation fields, present on capability drivers. */
+  loading?: number | null;
+  estimateWeight?: number | null;
+  recencyWeight?: number | null;
+  requestedDomain?: string | null;
 }
 
 export type Retention = number | "contract" | null;
@@ -138,6 +143,14 @@ export interface Spec {
   bar?: number | null;
   /** The capability domain the task needs (real mode), from the vocabulary. */
   domain?: string;
+  /** Real mode ranks on the domain estimate by default; benchmark is an explicit drill-down. */
+  basis?: "estimate" | "benchmark";
+}
+
+export function usesDomainEstimate(
+  spec: Spec,
+): spec is Spec & { domain: string; basis: "estimate" } {
+  return spec.basis === "estimate" && spec.domain !== undefined;
 }
 
 export interface Template {

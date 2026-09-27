@@ -604,8 +604,16 @@ it instead of carrying its own list of facets or benchmarks. Built by
   `id`, `name`, `unit`, `higher_is_better`, `models` (lineup models with a
   verified row), `independent_models` (those with a row that `@independent`
   admits), the `range` of those values, and its `domains` with `directness`.
-- `domains`: every registered domain with a listed benchmark, its `benchmarks`
-  ordered direct first, then by `models`.
+- `domains`: every registered domain with a listed benchmark. Each row emits
+  `id`, `name`, `proxy_only`, `default_basis`, `estimate_models`,
+  `direct_models`, `default_benchmark` and `benchmarks`. `default_basis` is
+  `capability_estimate`; `estimate_models` counts distinct lineup models with
+  a stored estimate, and `direct_models` counts distinct lineup models with
+  verified direct evidence. `default_benchmark` is only the preselected
+  explicit "Measured by" drill-down and is null when the registry preference
+  has no verified lineup evidence. It does not select the default ranking
+  basis. `benchmarks` puts that verified registry preference first, then
+  orders the rest direct before proxy, by descending `models`, then by ID.
 - `providers`: every registered provider's display name by ID
   (`registry/providers.yaml`), so a client shows "Anthropic API", not
   `anthropic`.
