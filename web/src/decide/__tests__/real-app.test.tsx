@@ -168,8 +168,9 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   const share = screen.getByRole("dialog");
   fireEvent.click(within(share).getByRole("tab", { name: "Spec YAML" }));
   expect(share).toHaveTextContent("# unranked: no Prefer set");
-  expect(share).not.toHaveTextContent("-offering.cost_per_task");
-  expect(share).not.toHaveTextContent("optimize:");
+  // The shared spec keeps the objective so it runs as-is; the comment says it does not rank.
+  expect(share).toHaveTextContent("it does not rank");
+  expect(share).toHaveTextContent("optimize:");
   fireEvent.click(within(share).getByRole("button", { name: "Close Share or act" }));
 
   fireEvent.click(screen.getByRole("button", { name: /Size of workall Doesn't matter/ }));

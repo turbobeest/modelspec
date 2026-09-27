@@ -48,8 +48,9 @@ export function Share({
   const contractSpec = spec.boardWeights === undefined
     ? toDecisionSpec(spec, "full")
     : toBoardDecisionSpec(spec, "full");
-  const { optimize: _transportObjective, ...unrankedShareSpec } = contractSpec;
-  const sharedContractSpec = unrankedBoard ? unrankedShareSpec : contractSpec;
+  // An unranked board still sends a membership-neutral objective: the contract
+  // requires one, and weights never exclude. Share it so the spec runs as-is.
+  const sharedContractSpec = contractSpec;
   const sample = demo
     ? {
         fictional_sample: true,
@@ -88,8 +89,9 @@ export function Share({
           (condition) => `  - ${JSON.stringify(condition)}`,
         ),
         ...(unrankedBoard
-          ? ["# unranked: no Prefer set"]
-          : [`optimize: ${JSON.stringify(contractSpec.optimize)}`]),
+          ? ["# unranked: no Prefer set; this objective only lets the spec run, it does not rank"]
+          : []),
+        `optimize: ${JSON.stringify(contractSpec.optimize)}`,
         `unknowns: ${contractSpec.unknowns ?? "default"}`,
         `explain: ${contractSpec.explain ?? "full"}`,
         `limit: ${contractSpec.limit ?? 500}`,
@@ -103,7 +105,7 @@ export function Share({
       : tab === "API call"
         ? demo
           ? `# Fictional sample preview; this payload is not sent.\ncurl https://api.modelspec.example/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sample, null, 2).replaceAll("'", "'\\''")}'`
-          : `${unrankedBoard ? "# unranked: no Prefer set; the preview adds a membership-neutral objective when sending\n" : ""}curl https://api.modelspec.dev/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sharedContractSpec, null, 2).replaceAll("'", "'\\''")}'`
+          : `${unrankedBoard ? "# unranked: no Prefer set; the objective below only lets the spec run, it does not rank\n" : ""}curl https://api.modelspec.dev/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sharedContractSpec, null, 2).replaceAll("'", "'\\''")}'`
         : tab === "CLI"
           ? demo
             ? "# Fictional sample preview\nmodelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
