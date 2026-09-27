@@ -64,10 +64,10 @@ def _write(directory: Path, fetched_at: datetime | None = None) -> None:
     }), encoding="utf-8")
 
 
-def _decision_artifacts() -> tuple[bytes, dict]:
+def _decision_artifacts(as_of: str = "2026-09-27") -> tuple[bytes, dict]:
     content = {
         "format_version": 1,
-        "as_of": "2026-09-27",
+        "as_of": as_of,
         "facet_subjects": {"model.context_window": "model"},
         "lineup": {
             "candidates": [{"id": "a/one", "kind": "model", "model": "a/one",
@@ -143,12 +143,19 @@ def _mock_http_client(monkeypatch: pytest.MonkeyPatch, bodies: dict[str, object]
     monkeypatch.setattr(httpx, "Client", FakeClient)
 
 
+def _install_decision_pair(cache: Path, decision: bytes, vocabulary: dict) -> Path:
+    generation = cache / "decision" / vocabulary["snapshot"]
+    generation.mkdir(parents=True)
+    (generation / "snapshot.json.gz").write_bytes(decision)
+    (generation / "vocabulary.json").write_text(json.dumps(vocabulary))
+    (cache / "decision" / "current").write_text(vocabulary["snapshot"] + "\n")
+    return generation
+
+
 def _write_old_decision_pair(cache: Path) -> tuple[bytes, bytes]:
-    old_snapshot = b"old decision snapshot bytes"
-    old_vocabulary = b'{"old":"decision vocabulary bytes"}'
-    snapshot.decision_snapshot_path(cache).write_bytes(old_snapshot)
-    snapshot.decision_vocabulary_path(cache).write_bytes(old_vocabulary)
-    return old_snapshot, old_vocabulary
+    old_snapshot, old_vocabulary = _decision_artifacts("2026-09-26")
+    _install_decision_pair(cache, old_snapshot, old_vocabulary)
+    return old_snapshot, json.dumps(old_vocabulary).encode()
 
 
 # ── the snapshot ─────────────────────────────────────────────────────────────
@@ -234,6 +241,8 @@ def test_fetch_caches_the_decision_snapshot_and_vocabulary(cache: Path, monkeypa
     snapshot.fetch("https://example.test", cache)
 
     decision_path = snapshot.decision_snapshot_path(cache)
+    current = (cache / "decision" / "current").read_text().strip()
+    assert decision_path == cache / "decision" / current / "snapshot.json.gz"
     assert decision_path.read_bytes() == bodies[snapshot.DECISION_SNAPSHOT_ROUTE]
     assert json.loads(snapshot.decision_vocabulary_path(cache).read_text())["snapshot"].startswith(
         "snap_"
@@ -244,6 +253,28 @@ def test_fetch_caches_the_decision_snapshot_and_vocabulary(cache: Path, monkeypa
     assert decision_status["as_of"] == "2026-09-27"
 
 
+def test_successive_fetches_keep_current_and_previous_generations(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ids = []
+    for day in (25, 26, 27):
+        decision, vocabulary = _decision_artifacts(f"2026-09-{day}")
+        bodies = _fetch_bodies()
+        bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+        bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
+        _mock_http_client(monkeypatch, bodies)
+
+        result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+        assert result["available"] is True
+        ids.append(vocabulary["snapshot"])
+        assert (cache / "decision" / "current").read_text().strip() == ids[-1]
+        generation_ids = {
+            path.name for path in (cache / "decision").iterdir() if path.is_dir()
+        }
+        assert generation_ids == set(ids[-2:])
+
+
 def test_fetch_refuses_decision_hash_mismatch_and_keeps_old_cache(
     cache: Path, monkeypatch
 ) -> None:
@@ -251,8 +282,7 @@ def test_fetch_refuses_decision_hash_mismatch_and_keeps_old_cache(
 
     _write(cache)
     old_decision, old_vocabulary = _decision_artifacts()
-    snapshot.decision_snapshot_path(cache).write_bytes(old_decision)
-    snapshot.decision_vocabulary_path(cache).write_text(json.dumps(old_vocabulary))
+    _install_decision_pair(cache, old_decision, old_vocabulary)
     originals = {path: path.read_bytes() for path in (
         cache / "snapshot.json", snapshot.decision_snapshot_path(cache),
         snapshot.decision_vocabulary_path(cache),
@@ -344,39 +374,44 @@ def test_fetch_refuses_vocabulary_snapshot_mismatch_and_keeps_old_pair(
     assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
 
 
-def test_decision_pair_replace_failure_restores_both_old_files(
+def test_current_replace_failure_keeps_old_generation_and_rank_fetch_succeeds(
     cache: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     old_snapshot, old_vocabulary = _write_old_decision_pair(cache)
     bodies = _fetch_bodies()
     _mock_http_client(monkeypatch, bodies)
-    vocabulary_path = snapshot.decision_vocabulary_path(cache)
-    original_replace = Path.replace
+    old_current = (cache / "decision" / "current").read_text()
+    original_replace = snapshot.os.replace
     failed = False
 
-    def fail_second_replace(source: Path, target: Path) -> Path:
+    def fail_current_replace(source: Path, target: Path) -> None:
         nonlocal failed
-        if target == vocabulary_path and source.suffix == ".tmp" and not failed:
+        if Path(target) == cache / "decision" / "current" and not failed:
             failed = True
-            raise OSError("injected vocabulary replace failure")
+            raise OSError("injected current replace failure")
         return original_replace(source, target)
 
-    monkeypatch.setattr(Path, "replace", fail_second_replace)
+    monkeypatch.setattr(snapshot.os, "replace", fail_current_replace)
 
-    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+    fetched = snapshot.fetch("https://example.test", cache)
 
     assert failed is True
-    assert result["available"] is False
-    assert "injected vocabulary replace failure" in result["error"]
+    assert fetched.decision_fetch is not None
+    assert fetched.decision_fetch["available"] is False
+    assert "injected current replace failure" in fetched.decision_fetch["error"]
+    assert (cache / "decision" / "current").read_text() == old_current
     assert snapshot.decision_snapshot_path(cache).read_bytes() == old_snapshot
     assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
+    assert snapshot.load(cache).build_commit == "newcommit"
 
 
 def test_status_reports_a_corrupt_decision_snapshot_without_changing_rank_status(
     cache: Path,
 ) -> None:
     _write(cache)
-    snapshot.decision_snapshot_path(cache).write_bytes(b"not a snapshot")
+    decision, vocabulary = _decision_artifacts()
+    generation = _install_decision_pair(cache, decision, vocabulary)
+    (generation / "snapshot.json.gz").write_bytes(b"not a snapshot")
 
     result = _run(["snapshot", "status", "--json"], cache)
 
@@ -654,7 +689,7 @@ def test_no_match_is_its_own_exit_code(cache: Path) -> None:
 def test_json_status_has_the_common_envelope(cache: Path) -> None:
     _write(cache)
     decision, _vocabulary = _decision_artifacts()
-    snapshot.decision_snapshot_path(cache).write_bytes(decision)
+    _install_decision_pair(cache, decision, _vocabulary)
 
     result = _run(["snapshot", "status", "--json"], cache)
 
@@ -673,8 +708,7 @@ def test_json_status_has_the_common_envelope(cache: Path) -> None:
 
 def test_decide_uses_the_cached_decision_snapshot_by_default(cache: Path) -> None:
     decision, vocabulary = _decision_artifacts()
-    snapshot.decision_snapshot_path(cache).write_bytes(decision)
-    snapshot.decision_vocabulary_path(cache).write_text(json.dumps(vocabulary))
+    _install_decision_pair(cache, decision, vocabulary)
     spec = cache.parent / "spec.yaml"
     spec.write_text(
         "spec_version: 1\n"
@@ -693,6 +727,26 @@ def test_decide_uses_the_cached_decision_snapshot_by_default(cache: Path) -> Non
 
 def test_decide_without_a_cached_snapshot_says_to_fetch(cache: Path) -> None:
     spec = cache.parent / "spec.yaml"
+    spec.write_text(
+        "spec_version: 1\n"
+        "optimize:\n  max: model.context_window\n"
+        "explain: none\n",
+        encoding="utf-8",
+    )
+
+    result = _run(["decide", str(spec), "--json"], cache)
+
+    assert result.returncode == offline.EXIT_ERROR
+    error = json.loads(result.stderr)["error"]
+    assert error["code"] == "snapshot_required"
+    assert "modelspec snapshot fetch" in error["message"]
+
+
+def test_decide_treats_current_pointing_at_missing_generation_as_absent(cache: Path) -> None:
+    decision_root = cache / "decision"
+    decision_root.mkdir()
+    (decision_root / "current").write_text("snap_missing\n")
+    spec = cache.parent / "spec-missing-generation.yaml"
     spec.write_text(
         "spec_version: 1\n"
         "optimize:\n  max: model.context_window\n"

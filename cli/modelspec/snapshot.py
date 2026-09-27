@@ -30,6 +30,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import secrets
+import shutil
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
@@ -72,8 +75,10 @@ OPTIONAL_PARTS = {
 
 DECISION_SNAPSHOT_ROUTE = "/api/decision/snapshot.json.gz"
 DECISION_VOCABULARY_ROUTE = "/api/decision/vocabulary.json"
-DECISION_SNAPSHOT_FILENAME = "decision-snapshot.json.gz"
-DECISION_VOCABULARY_FILENAME = "decision-vocabulary.json"
+DECISION_DIRECTORY = "decision"
+DECISION_SNAPSHOT_FILENAME = "snapshot.json.gz"
+DECISION_VOCABULARY_FILENAME = "vocabulary.json"
+DECISION_SNAPSHOT_ID = re.compile(r"snap_[0-9a-f]{16}")
 
 #: Past this, the snapshot is still served but every answer says it is stale.
 #: Model releases move weekly, so a month-old snapshot is a different world.
@@ -103,12 +108,53 @@ def cache_dir() -> Path:
     return Path(base).expanduser() / "modelspec"
 
 
+def _decision_root(directory: Path | None = None) -> Path:
+    return (directory or cache_dir()) / DECISION_DIRECTORY
+
+
+def _validate_decision_generation(generation: Path, *, require_named: bool = True) -> str:
+    from decision.snapshot import load_snapshot
+
+    snapshot_path = generation / DECISION_SNAPSHOT_FILENAME
+    vocabulary_path = generation / DECISION_VOCABULARY_FILENAME
+    decision = load_snapshot(snapshot_path, key=None, include_archive=True)
+    vocabulary = json.loads(vocabulary_path.read_text(encoding="utf-8"))
+    if not isinstance(vocabulary, dict):
+        raise ValueError("cached decision vocabulary is not a JSON object")
+    if vocabulary.get("snapshot") != decision.snapshot_id:
+        raise ValueError("cached decision vocabulary does not name the decision snapshot")
+    if require_named and generation.name != decision.snapshot_id:
+        raise ValueError("cached decision generation does not name the decision snapshot")
+    return decision.snapshot_id
+
+
+def _current_decision_generation(
+    directory: Path | None = None,
+) -> tuple[Path | None, str | None]:
+    root = _decision_root(directory)
+    try:
+        snapshot_id = (root / "current").read_text(encoding="utf-8").strip()
+        if DECISION_SNAPSHOT_ID.fullmatch(snapshot_id) is None:
+            raise ValueError("decision/current contains an invalid snapshot ID")
+        generation = root / snapshot_id
+        _validate_decision_generation(generation)
+        return generation, None
+    except FileNotFoundError:
+        return None, None
+    except (OSError, UnicodeError, ValueError, KeyError, json.JSONDecodeError) as exc:
+        return None, str(exc)
+
+
 def decision_snapshot_path(directory: Path | None = None) -> Path:
-    return (directory or cache_dir()) / DECISION_SNAPSHOT_FILENAME
+    generation, _error = _current_decision_generation(directory)
+    return ((generation / DECISION_SNAPSHOT_FILENAME) if generation else
+            (_decision_root(directory) / ".absent" / DECISION_SNAPSHOT_FILENAME))
 
 
 def decision_vocabulary_path(directory: Path | None = None) -> Path:
-    return (directory or cache_dir()) / DECISION_VOCABULARY_FILENAME
+    generation, _error = _current_decision_generation(directory)
+    return ((generation / DECISION_VOCABULARY_FILENAME) if generation else
+            (_decision_root(directory) / ".absent" / DECISION_VOCABULARY_FILENAME))
 
 
 @dataclass(frozen=True)
@@ -471,7 +517,7 @@ def _fetch_decision_files(origin: str, directory: Path,
 
     from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
 
-    class DecisionRouteUnavailable(RuntimeError):
+    class DecisionRouteUnavailable(RuntimeError):  # noqa: N818 - describes route state
         pass
 
     def download(candidate_origin: str, *, send_credential: bool) -> tuple[bytes, Any]:
@@ -528,40 +574,60 @@ def _fetch_decision_files(origin: str, directory: Path,
     except Exception as exc:  # noqa: BLE001 - decision data is optional for rank fetch
         return {"available": False, "error": str(exc)}
 
-    writes = (
-        (directory / f".decision-snapshot.{os.getpid()}.tmp",
-         decision_snapshot_path(directory),
-         directory / f".decision-snapshot.{os.getpid()}.bak", decision_data),
-        (directory / f".decision-vocabulary.{os.getpid()}.tmp",
-         decision_vocabulary_path(directory),
-         directory / f".decision-vocabulary.{os.getpid()}.bak",
-         json.dumps(vocabulary_raw).encode("utf-8")),
-    )
-    backed_up: set[Path] = set()
-    installed: set[Path] = set()
+    root = _decision_root(directory)
+    generation = root / decision.snapshot_id
+    temporary = root / f".tmp-{os.getpid()}-{secrets.token_hex(6)}"
+    current_tmp = root / f".current-{os.getpid()}.tmp"
     try:
-        for tmp, _destination, _backup, data in writes:
-            tmp.write_bytes(data)
-        for _tmp, destination, backup, _data in writes:
-            if destination.exists():
-                destination.replace(backup)
-                backed_up.add(destination)
-        for tmp, destination, _backup, _data in writes:
-            tmp.replace(destination)
-            installed.add(destination)
-    except OSError as exc:
-        for _tmp, destination, backup, _data in writes:
-            if destination in backed_up:
-                destination.unlink(missing_ok=True)
-                os.replace(backup, destination)
-            elif destination in installed:
-                destination.unlink(missing_ok=True)
-        return {"available": False, "error": f"could not cache decision files: {exc}"}
+        root.mkdir(parents=True, exist_ok=True)
+        temporary.mkdir()
+        (temporary / DECISION_SNAPSHOT_FILENAME).write_bytes(decision_data)
+        (temporary / DECISION_VOCABULARY_FILENAME).write_text(
+            json.dumps(vocabulary_raw), encoding="utf-8"
+        )
+        _validate_decision_generation(temporary, require_named=False)
+        if generation.exists():
+            try:
+                _validate_decision_generation(generation)
+            except (OSError, ValueError, KeyError, json.JSONDecodeError):
+                shutil.rmtree(generation)
+                os.replace(temporary, generation)
+            else:
+                shutil.rmtree(temporary)
+        else:
+            os.replace(temporary, generation)
+        current_tmp.write_text(decision.snapshot_id + "\n", encoding="utf-8")
+        os.replace(current_tmp, root / "current")
+    except Exception as exc:  # noqa: BLE001 - decision data cannot fail rank fetch
+        return {"available": False, "error": f"could not cache decision generation: {exc}"}
     finally:
-        for tmp, _destination, backup, _data in writes:
-            tmp.unlink(missing_ok=True)
-            backup.unlink(missing_ok=True)
+        try:
+            current_tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+        shutil.rmtree(temporary, ignore_errors=True)
+
+    _prune_decision_generations(root, decision.snapshot_id)
     return {"available": True, "origin": source, "snapshot_id": decision.snapshot_id}
+
+
+def _prune_decision_generations(root: Path, current_id: str) -> None:
+    """Keep the active and previous generations; cleanup must not fail fetch."""
+    try:
+        generations = [
+            path for path in root.iterdir()
+            if path.is_dir() and not path.name.startswith(".tmp-")
+        ]
+        generations.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+        previous = [path.name for path in generations if path.name != current_id][:1]
+        keep = {current_id, *previous}
+        for path in generations:
+            if path.name not in keep:
+                shutil.rmtree(path, ignore_errors=True)
+        for path in root.glob(".tmp-*"):
+            shutil.rmtree(path, ignore_errors=True)
+    except OSError:
+        pass
 
 
 def load(directory: Path | None = None) -> Snapshot:
@@ -585,8 +651,10 @@ def load(directory: Path | None = None) -> Snapshot:
 
 def status(directory: Path | None = None) -> dict[str, Any]:
     directory = directory or cache_dir()
-    decision_path = decision_snapshot_path(directory)
-    if decision_path.exists():
+    generation, generation_error = _current_decision_generation(directory)
+    decision_path = ((generation / DECISION_SNAPSHOT_FILENAME) if generation else
+                     (_decision_root(directory) / "current"))
+    if generation is not None:
         from decision.snapshot import load_snapshot
 
         try:
@@ -607,6 +675,13 @@ def status(directory: Path | None = None) -> dict[str, Any]:
                 "path": str(decision_path),
                 "error": f"cached decision snapshot is invalid: {exc}",
             }
+    elif generation_error is not None:
+        decision_status = {
+            "present": True,
+            "valid": False,
+            "path": str(decision_path),
+            "error": f"cached decision snapshot is invalid: {generation_error}",
+        }
     else:
         decision_status = {"present": False, "path": str(decision_path)}
     try:

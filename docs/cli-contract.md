@@ -44,6 +44,11 @@ origin supplies a valid matching pair, the command keeps the existing decision
 cache and still completes the rank fetch. Human output reports `decision
 unavailable`; `--json` reports the same result in
 `result.decision_snapshot.available` and `result.decision_snapshot.error`.
+The cache stores each matching pair under
+`decision/<snapshot_id>/{snapshot.json.gz,vocabulary.json}` and commits a fetch
+by atomically replacing the text file `decision/current`. A fetch therefore
+leaves readers on either the complete old generation or the complete new one;
+after the switch, cleanup keeps the current and previous generations.
 
 `class-fit` accepts a task description as its argument plus `--emits`,
 `--consumes` (comma-separated), `--decides`, `--json` and `--require-fresh`.

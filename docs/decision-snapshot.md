@@ -118,9 +118,12 @@ the first 20 gaps. This mode never writes an unsigned or incomplete Snapshot.
 
 `modelspec snapshot fetch` downloads the published decision snapshot and
 `/api/decision/vocabulary.json` from the same origin as the rank export. It
-caches them as `decision-snapshot.json.gz` and `decision-vocabulary.json`
-beside `snapshot.json` in `$MODELSPEC_CACHE`, else
-`$XDG_CACHE_HOME/modelspec`, else `~/.cache/modelspec`.
+caches each matching pair as
+`decision/<snapshot_id>/{snapshot.json.gz,vocabulary.json}` and atomically
+replaces the text file `decision/current` to select it, under
+`$MODELSPEC_CACHE`, else `$XDG_CACHE_HOME/modelspec`, else
+`~/.cache/modelspec`. Readers therefore see the complete old generation or the
+complete new one, and cleanup keeps the current and previous generations.
 
 Before replacing the cache, the CLI applies the same `content_hash` and
 `snapshot_id` checks as `load_snapshot`. It also requires the vocabulary's
