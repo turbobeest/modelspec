@@ -145,6 +145,8 @@ export interface Spec {
   domain?: string;
   /** Real mode ranks on the domain estimate by default; benchmark is an explicit drill-down. */
   basis?: "estimate" | "benchmark";
+  /** Exact objective emitted by the preview facet board. */
+  boardWeights?: Record<string, number>;
 }
 
 export function usesDomainEstimate(

@@ -6,9 +6,22 @@ import {
   setWeight,
   baseSpec,
 } from "../state/spec";
+import { encodeBoardSpec } from "../facet-board/model";
+import { toDecisionSpec } from "../adapter/view-model";
 it("round-trips Unicode tasks, conditions and axes through the hash", () => {
   const spec = { ...baseSpec, task: "分析 Rust 🦀" };
   expect(decodeSpec(encodeSpec(spec, "ctx"))).toEqual({ spec, x: "ctx" });
+});
+it("ignores every preview field on the production decode and request paths", () => {
+  const plain = decodeSpec(encodeSpec(baseSpec, "ctx"));
+  const preview = decodeSpec(encodeBoardSpec(baseSpec, "ctx", {
+    selections: {
+      "offering.cost_per_task": { mode: "both", op: "<=", value: 0.25, weight: 1 },
+    },
+    estate: { providers: ["anthropic"], plans: ["team"], hardware: ["h100"] },
+  }));
+  expect(preview).toEqual(plain);
+  expect(toDecisionSpec(preview!.spec, "full")).toEqual(toDecisionSpec(plain!.spec, "full"));
 });
 it("rejects corrupt hashes and unsafe numeric or catalogue values", () => {
   expect(decodeSpec("#s=broken")).toBeNull();

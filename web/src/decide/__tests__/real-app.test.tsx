@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
-import App from "../App";
+import App, { DesignedApp } from "../App";
 import { decisionSchema } from "../adapter";
 import { json, routeFetch, sentSpecs, smallVocabulary } from "./vocab-fixtures";
 import { VOCABULARY_URL } from "../vocabulary";
@@ -115,6 +115,98 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(dialog).toHaveTextContent(
     "modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
   );
+});
+
+it("does not render the Next-questions panel in the facet-board preview", async () => {
+  const fetch = routeFetch({ decide: (init) => {
+    const decision = decisionFor(init);
+    return json({
+      ...decision,
+      contract_version: "1.6",
+      eliminated: {
+        ...decision.eliminated,
+        funnel: decision.eliminated.funnel.map((step) => ({
+          ...step,
+          models_before: step.before,
+          models_after: step.after,
+          offerings_before: step.before,
+          offerings_after: step.after,
+          models_may_qualify: step.may_qualify,
+          offerings_may_qualify: step.may_qualify,
+        })),
+        model_groups: [],
+      },
+    });
+  } });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+  expect(screen.queryByText("Next questions, most narrowing first")).not.toBeInTheDocument();
+  expect(screen.getByText("Narrowing, in the order you set conditions")).toBeInTheDocument();
+  const narrowing = screen.getByText("Narrowing, in the order you set conditions").closest<HTMLElement>(".narrowing")!;
+  const engineStep = within(narrowing).getByText("Added by the engine: Has a provider");
+  expect(engineStep).toHaveAttribute("title", "This condition was added by the decision engine.");
+  expect(engineStep.closest("li")).toHaveTextContent("−4");
+  expect(screen.queryByRole("button", { name: "Run decision" })).not.toBeInTheDocument();
+  const answer = screen.getByLabelText("Facet board answer").closest<HTMLElement>(".board-answer")!;
+  expect(within(answer).queryByText(/Best overall|Best value|#1 of/)).not.toBeInTheDocument();
+  expect(within(answer).getByText("Delta 4.7")).toBeInTheDocument();
+  expect(within(answer).getAllByText("Lab Inc. · via cloud").length).toBeGreaterThan(0);
+  expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
+  expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
+  expect(sentSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
+});
+
+it("requests the estate once after the board decision settles", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+
+  fireEvent.change(screen.getByLabelText("Add provider"), {
+    target: { value: Object.keys(smallVocabulary.providers)[0] },
+  });
+  await waitFor(() => expect(screen.getByText(/ranked · .* may qualify/)).toBeInTheDocument());
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  const estateRequests = sentSpecs(fetch).filter((body) =>
+    body.where.some((condition: string) => condition.startsWith("offering.provider in")),
+  );
+  expect(estateRequests).toHaveLength(1);
+  expect(estateRequests[0].explain).toBe("summary");
+});
+
+it("shows a retry when the estate request fails", async () => {
+  const fetch = routeFetch({
+    decide: (init) => {
+      const body = JSON.parse(String(init?.body));
+      return body.where.some((condition: string) => condition.startsWith("offering.provider in"))
+        ? json({ error: { code: "snapshot_unavailable", message: "Try again" } }, 503)
+        : json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+  fireEvent.change(screen.getByLabelText("Add provider"), {
+    target: { value: Object.keys(smallVocabulary.providers)[0] },
+  });
+  expect(await screen.findByText("Couldn't load:")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "retry" })).toBeInTheDocument();
+  expect(screen.queryByText("Checking…")).not.toBeInTheDocument();
+});
+
+it("labels capability intervals with their ranking basis and units", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+
+  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(capability).getByLabelText("Prefer"));
+
+  expect(await screen.findByText("Software engineering, estimated · 80% interval")).toBeInTheDocument();
+  expect(screen.getAllByText(/capability score$/).length).toBeGreaterThan(0);
+  expect(screen.getByLabelText("Delta 4.7 capability interval")).toBeInTheDocument();
 });
 
 it("switches the ranking benchmark in one click from the rank-by control", async () => {
