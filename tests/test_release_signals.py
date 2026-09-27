@@ -370,17 +370,127 @@ def test_pending_work_includes_every_signal_and_due_recheck() -> None:
     payload = {
         "signals": [signal(signal_id="new-a"), signal(signal_id="new-b")],
         "rechecks": [
-            {"day": 1, "due": "2026-09-27", "signal": signal(signal_id="old-a")},
-            {"day": 7, "due": "2026-10-03", "signal": signal(signal_id="old-b")},
+            {
+                "day": 1,
+                "due": "2026-09-27",
+                "pr_url": "https://github.com/example/repo/pull/1",
+                "signal": signal(signal_id="old-a"),
+            },
+            {
+                "day": 7,
+                "due": "2026-10-03",
+                "pr_url": "https://github.com/example/repo/pull/2",
+                "signal": signal(signal_id="old-b"),
+            },
         ],
     }
 
     assert processor.work_items(payload) == [
-        {"signal_id": "new-a", "recheck_day": 0},
-        {"signal_id": "new-b", "recheck_day": 0},
-        {"signal_id": "old-a", "recheck_day": 1},
-        {"signal_id": "old-b", "recheck_day": 7},
+        {"signal_id": "new-a", "recheck_day": 0, "pr_url": None},
+        {"signal_id": "new-b", "recheck_day": 0, "pr_url": None},
+        {
+            "signal_id": "old-a",
+            "recheck_day": 1,
+            "pr_url": "https://github.com/example/repo/pull/1",
+        },
+        {
+            "signal_id": "old-b",
+            "recheck_day": 7,
+            "pr_url": "https://github.com/example/repo/pull/2",
+        },
     ]
+
+
+def test_open_new_card_pr_day_one_recheck_updates_that_card(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    _write_card(tmp_path, "acme", "orbit-2", display="Orbit 2", version="orbit-2")
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pr_url = "https://github.com/example/repo/pull/294"
+    pending.write_text(json.dumps({
+        "rechecks": [{
+            "day": 1,
+            "due": "2026-09-27",
+            "pr_url": pr_url,
+            "signal": signal(),
+        }],
+    }))
+    models_dev_url = "https://models.dev/api.json"
+    provider_url = "https://acme.example/models"
+    hf_search = "https://huggingface.co/api/models?search=Orbit+2&limit=20"
+    replies = {
+        models_dev_url: FetchResult(
+            url=models_dev_url,
+            body=(FIXTURES / "models-dev-production.json").read_bytes(),
+            content_type="application/json",
+        ),
+        provider_url: FetchResult(
+            url=provider_url,
+            body=(FIXTURES / "acme-orbit.html").read_bytes(),
+            content_type="text/html",
+        ),
+        hf_search: FetchResult(url=hf_search, body=b"[]", content_type="application/json"),
+    }
+    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
+    monkeypatch.setattr(
+        processor.refresh_leaderboards,
+        "run",
+        lambda **_: processor.refresh_leaderboards.RefreshReport(),
+    )
+
+    result = processor.process(
+        pending,
+        result_path,
+        root=tmp_path,
+        signal_id="grok-20260926-123456789",
+        recheck_day=1,
+    )
+
+    assert result["status"] == "existing"
+    assert result["model_id"] == "acme/orbit-2"
+    assert result["pr_url"] == pr_url
+    assert sorted(path.name for path in (tmp_path / "models" / "acme").glob("*.md")) == [
+        "orbit-1.md",
+        "orbit-2.md",
+    ]
+
+
+def test_closed_unmerged_new_card_pr_stops_before_redrafting(tmp_path: Path) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pr_url = "https://github.com/example/repo/pull/294"
+    pending.write_text(json.dumps({
+        "rechecks": [{
+            "day": 1,
+            "due": "2026-09-27",
+            "pr_url": pr_url,
+            "signal": signal(),
+        }],
+    }))
+
+    result = processor.process(
+        pending,
+        result_path,
+        root=tmp_path,
+        signal_id="grok-20260926-123456789",
+        recheck_day=1,
+        closed_unmerged_pr=pr_url,
+    )
+
+    assert result == {
+        "status": "closed_unmerged",
+        "signal_id": "grok-20260926-123456789",
+        "model_id": None,
+        "candidates": [],
+        "recheck_day": 1,
+        "recheck_due": "2026-09-27",
+        "pr_url": pr_url,
+        "reason": "the original new-model PR was closed without merge",
+    }
+    assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
 
 
 def test_existing_signal_gathers_sources_and_refreshes_only_its_model(
@@ -627,8 +737,16 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "strategy:" in workflow
     assert "max-parallel: 4" in workflow
     assert "matrix: ${{ fromJSON(needs.pending.outputs.matrix) }}" in workflow
+    assert "pr_url: (.pr_url // null)" in workflow
+    assert 'gh pr view "$PR_URL" --json state,headRefName,headRepositoryOwner' in workflow
+    assert "ref: ${{ steps.recheck.outputs.ref }}" in workflow
     assert "--signal-id \"${{ matrix.work.signal_id }}\"" in workflow
     assert "--recheck-day \"${{ matrix.work.recheck_day }}\"" in workflow
+    assert '--closed-unmerged-pr "$PR_URL"' in workflow
+    assert 'git push --set-upstream origin "HEAD:$branch"' in workflow
+    assert 'gh pr comment "$EXISTING_PR_URL"' in workflow
+    assert "steps.recheck.outputs.mode != 'open'" in workflow
+    assert "Flag a new-model PR closed without merge" in workflow
 
 
 def test_worker_endpoint_ships_off_and_vendors_the_shared_contract() -> None:

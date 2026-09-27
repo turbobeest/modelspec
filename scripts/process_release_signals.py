@@ -50,13 +50,18 @@ def _fetch(url: str) -> FetchResult:
 def work_items(payload: dict) -> list[dict[str, object]]:
     """Return every pending signal and due re-check as an isolated work item."""
     items = [
-        {"signal_id": ReleaseSignal.parse(row).signal_id, "recheck_day": 0}
+        {
+            "signal_id": ReleaseSignal.parse(row).signal_id,
+            "recheck_day": 0,
+            "pr_url": None,
+        }
         for row in payload.get("signals") or []
     ]
     items.extend(
         {
             "signal_id": ReleaseSignal.parse(row["signal"]).signal_id,
             "recheck_day": int(row["day"]),
+            "pr_url": row.get("pr_url"),
         }
         for row in payload.get("rechecks") or []
     )
@@ -97,6 +102,7 @@ def process(
     report_path: Path | None = None,
     signal_id: str | None = None,
     recheck_day: int | None = None,
+    closed_unmerged_pr: str | None = None,
 ) -> dict:
     payload = json.loads(pending.read_text(encoding="utf-8"))
     signal, recheck = _select_signal(
@@ -104,6 +110,19 @@ def process(
     )
     if signal is None:
         result = {"status": "empty"}
+    elif closed_unmerged_pr:
+        if recheck is None or recheck.get("pr_url") != closed_unmerged_pr:
+            raise ValueError("a closed-unmerged PR must belong to the selected re-check")
+        result = {
+            "status": "closed_unmerged",
+            "signal_id": signal.signal_id,
+            "model_id": None,
+            "candidates": [],
+            "recheck_day": recheck.get("day"),
+            "recheck_due": recheck.get("due"),
+            "pr_url": closed_unmerged_pr,
+            "reason": "the original new-model PR was closed without merge",
+        }
     else:
         resolution = resolve_signal(signal, root)
         result = {
@@ -113,6 +132,7 @@ def process(
             "candidates": list(resolution.candidates),
             "recheck_day": recheck.get("day") if recheck else None,
             "recheck_due": recheck.get("due") if recheck else None,
+            "pr_url": recheck.get("pr_url") if recheck else None,
         }
         if resolution.status == "new":
             drafted = draft_signal(
@@ -187,6 +207,7 @@ def main() -> int:
     parser.add_argument("--report-json", type=Path)
     parser.add_argument("--signal-id")
     parser.add_argument("--recheck-day", type=int)
+    parser.add_argument("--closed-unmerged-pr")
     args = parser.parse_args()
     result = process(
         args.pending,
@@ -196,6 +217,7 @@ def main() -> int:
         report_path=args.report_json,
         signal_id=args.signal_id,
         recheck_day=args.recheck_day,
+        closed_unmerged_pr=args.closed_unmerged_pr,
     )
     print(json.dumps(result, sort_keys=True))
     return 0

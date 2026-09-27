@@ -44,8 +44,12 @@ jobs:
         id: matrix
         run: |
           matrix="$(jq -c '{work: (
-            [.signals[]? | {signal_id: .signal_id, recheck_day: 0}] +
-            [.rechecks[]? | {signal_id: .signal.signal_id, recheck_day: .day}]
+            [.signals[]? | {signal_id: .signal_id, recheck_day: 0, pr_url: null}] +
+            [.rechecks[]? | {
+              signal_id: .signal.signal_id,
+              recheck_day: .day,
+              pr_url: (.pr_url // null)
+            }]
           )}' "$RUNNER_TEMP/pending.json")"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
@@ -78,10 +82,56 @@ jobs:
             exit 1
           fi
 
+      - name: Select the re-check base
+        id: recheck
+        env:
+          GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
+          PR_URL: ${{ matrix.work.pr_url }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          mode=initial
+          ref="$DEFAULT_BRANCH"
+          branch=
+          if [[ "$PR_URL" == */pull/* ]]; then
+            details="$(gh pr view "$PR_URL" --json state,headRefName,headRepositoryOwner)"
+            state="$(jq -r '.state' <<<"$details")"
+            case "$state" in
+              OPEN)
+                owner="$(jq -r '.headRepositoryOwner.login // ""' <<<"$details")"
+                if [ "$owner" != "$REPOSITORY_OWNER" ]; then
+                  echo "::error::Refusing to update a release-signal PR from another repository."
+                  exit 1
+                fi
+                mode=open
+                ref="$(jq -r '.headRefName' <<<"$details")"
+                branch="$ref"
+                ;;
+              MERGED)
+                mode=merged
+                ;;
+              CLOSED)
+                mode=closed
+                ;;
+              *)
+                echo "::error::Unknown pull request state: $state"
+                exit 1
+                ;;
+            esac
+          elif [ -n "$PR_URL" ]; then
+            mode=unlinked
+          fi
+          {
+            echo "mode=$mode"
+            echo "ref=$ref"
+            echo "branch=$branch"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.RESEARCH_PR_TOKEN }}
+          ref: ${{ steps.recheck.outputs.ref }}
 
       - uses: actions/setup-python@v5
         with:
@@ -103,14 +153,22 @@ jobs:
           cp -R models verification "$RUNNER_TEMP/before/"
 
       - name: Process one isolated work item
+        env:
+          PR_MODE: ${{ steps.recheck.outputs.mode }}
+          PR_URL: ${{ matrix.work.pr_url }}
         run: |
+          closed_pr=()
+          if [ "$PR_MODE" = closed ]; then
+            closed_pr=(--closed-unmerged-pr "$PR_URL")
+          fi
           python scripts/process_release_signals.py \
             --pending "$RUNNER_TEMP/pending.json" \
             --result "$RUNNER_TEMP/result.json" \
             --audit-json "$RUNNER_TEMP/audit.json" \
             --report-json "$RUNNER_TEMP/refresh-report.json" \
             --signal-id "${{ matrix.work.signal_id }}" \
-            --recheck-day "${{ matrix.work.recheck_day }}"
+            --recheck-day "${{ matrix.work.recheck_day }}" \
+            "${closed_pr[@]}"
           cat "$RUNNER_TEMP/result.json" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Classify the generated change
@@ -149,6 +207,18 @@ jobs:
             --body-file "$RUNNER_TEMP/result.json")"
           echo "url=$issue_url" >> "$GITHUB_OUTPUT"
 
+      - name: Flag a new-model PR closed without merge
+        id: closed_pr
+        if: steps.classify.outputs.resolution == 'closed_unmerged'
+        env:
+          GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
+        run: |
+          issue_url="$(gh issue create \
+            --title "release signal PR closed without merge: ${{ steps.classify.outputs.signal_id }}" \
+            --label new-model \
+            --body-file "$RUNNER_TEMP/result.json")"
+          echo "url=$issue_url" >> "$GITHUB_OUTPUT"
+
       - name: Validate cards and run two-key verification
         if: steps.classify.outputs.changed == 'true'
         run: |
@@ -171,26 +241,37 @@ jobs:
         env:
           SIGNAL_ID: ${{ steps.classify.outputs.signal_id }}
           RECHECK_DAY: ${{ steps.classify.outputs.recheck_day }}
+          PR_MODE: ${{ steps.recheck.outputs.mode }}
+          EXISTING_BRANCH: ${{ steps.recheck.outputs.branch }}
         run: |
-          branch="data/release-signal-${SIGNAL_ID//[^A-Za-z0-9._-]/-}-${RECHECK_DAY}"
           git config user.name "modelspec-release-signals"
           git config user.email "noreply@modelspec.dev"
-          git switch -c "$branch"
+          if [ "$PR_MODE" = open ]; then
+            branch="$EXISTING_BRANCH"
+          else
+            branch="data/release-signal-${SIGNAL_ID//[^A-Za-z0-9._-]/-}-${RECHECK_DAY}"
+            git switch -c "$branch"
+          fi
           git add models verification
           git commit -s \
             -m "pipeline: process release signal ${SIGNAL_ID} (MODEL-113)" \
             -m "Co-Authored-By: GPT-5 Codex <noreply@openai.com>"
-          git push --set-upstream origin "$branch"
+          git push --set-upstream origin "HEAD:$branch"
           echo "BRANCH=$branch" >> "$GITHUB_ENV"
 
-      - name: Open the pull request
+      - name: Open or update the pull request
         id: pr
         if: steps.classify.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
+          PR_MODE: ${{ steps.recheck.outputs.mode }}
+          EXISTING_PR_URL: ${{ matrix.work.pr_url }}
         run: |
           model_id="$(python -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/result.json")).get("model_id") or "release signal")')"
-          if [ "${{ steps.classify.outputs.human }}" = "true" ]; then
+          if [ "$PR_MODE" = open ]; then
+            gh pr comment "$EXISTING_PR_URL" --body-file "$RUNNER_TEMP/result.json"
+            pr_url="$EXISTING_PR_URL"
+          elif [ "${{ steps.classify.outputs.human }}" = "true" ]; then
             pr_url="$(gh pr create --draft --head "$BRANCH" --label new-model \
               --title "data: add or identify $model_id (MODEL-113)" \
               --body-file "$RUNNER_TEMP/result.json")"
@@ -214,6 +295,7 @@ jobs:
           steps.classify.outputs.score_only == 'true' &&
           steps.classify.outputs.failures == '0' &&
           steps.classify.outputs.quarantined == '0' &&
+          steps.recheck.outputs.mode != 'open' &&
           steps.pr.outputs.url
         env:
           GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
@@ -222,7 +304,7 @@ jobs:
       - name: Acknowledge the signal and schedule its 1, 7, and 30 day re-checks
         if: steps.classify.outputs.resolution != 'empty'
         env:
-          RESULT_URL: ${{ steps.pr.outputs.url || steps.uncertain.outputs.url || '' }}
+          RESULT_URL: ${{ steps.pr.outputs.url || steps.closed_pr.outputs.url || steps.uncertain.outputs.url || matrix.work.pr_url || '' }}
         run: |
           python - "$RUNNER_TEMP/ack.json" <<'PY'
           import json, os, sys
