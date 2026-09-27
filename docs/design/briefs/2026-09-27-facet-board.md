@@ -2,7 +2,7 @@
 
 **For:** a Claude Design pass that produces a handoff package in the format of
 [`../handoff/core-flow/`](../handoff/core-flow/README.md).
-**From:** Jamie's design session, 2026-09-27. Every decision below is his.
+**Ticket:** MODEL-168. **From:** Jamie's design session, 2026-09-27. Every decision below is his.
 **Replaces:** the arrive screen and the spec panel of the core flow. Everything
 downstream of the spec (narrowing, canvas, shortlist, table, why) stays and is
 restyled only where this brief says so.
@@ -198,34 +198,34 @@ keys. Design the view; don't design sign-in.
 
 These are tickets, not design. The design should assume they land.
 
-1. **Result limit hides contenders.** The page asks for 20 *offerings*; every
+1. **Result limit hides contenders** (MODEL-169). The page asks for 20 *offerings*; every
    qualifying offering past that is shown as "Excluded, outside requested
    result limit". On 2026-09-27 that hid Claude Fable 5.1, GPT-6 Astra and
    DeepSeek V4 Pro. A live answer must rank the whole qualifying set.
-2. **Tie-aware answer.** The engine flags `not_separable`, but the page and
+2. **Tie-aware answer** (MODEL-170). The engine flags `not_separable`, but the page and
    the roles still name a #1. Recall Q01 to Q09 fail for this reason.
-3. **Refit without chosen benchmarks.** `fit_capabilities` in
+3. **Refit without chosen benchmarks** (MODEL-171). `fit_capabilities` in
    `decision/capability.py` runs at snapshot build. The snapshot keeps the
    evidence rows, so the engine can refit per request with an excluded set.
    A throwaway timing at lineup scale (551 observations) took about 1 s in
    CPython; cache by excluded set.
-4. **Must/Prefer on every facet.** Today `where` holds gates and `optimize`
+4. **Must/Prefer on every facet** (MODEL-172). Today `where` holds gates and `optimize`
    holds only capability, cost and speed weights. Prefer on other facets
    (for example "prefer zero retention") needs `optimize` to accept them, or
    a soft condition that ranks without excluding.
-5. **Data gaps that the board will expose:** speed (0/38), private deployment
+5. **Data gaps that the board will expose** (speed: MODEL-175): speed (0/38), private deployment
    and fits-hardware (0/32). The self-host need cannot be answered well until
    these are researched.
-6. **Subscriptions are not modelled.** Offerings are priced per token at
+6. **Subscriptions are not modelled** (MODEL-173). Offerings are priced per token at
    list price. A subscription needs its own offering kind: plan price, the
    models it covers, the usage allowance, and whether its terms allow
    programmatic or agent use. Allowances are often unpublished or change by
    usage window, so the effective cost per task is an estimate with its
    basis shown, and null where nothing is published. A null beats a guess.
-7. **Hardware fit has no values.** `model.fits_hardware` is 0/32. The repo
+7. **Hardware fit has no values** (MODEL-174). `model.fits_hardware` is 0/32. The repo
    has device SKUs in `hardware/` and `offline fit`, which works out what a
    machine can run; the decide engine needs the same answer per model.
-8. **The CLI tab advertises a command that fails.** It shows
+8. **The CLI tab advertises a command that fails** (MODEL-176). It shows
    `modelspec decide spec.yaml`, but `decide` needs a decision snapshot file
    and no CLI command downloads one. Phase 2 of this session maps the CLI.
 9. **Stale copy:** "A small classifier turns this into conditions" (it is a
