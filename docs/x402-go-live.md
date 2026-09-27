@@ -1,11 +1,27 @@
 # Put x402 live
 
-This checklist is for Jamie. Complete Base Sepolia before changing mainnet.
-The repository ships `X402_ENABLED`, `X402_MAINNET`, `ACCESS_ENFORCED`, and
-`BILLING_ENABLED` off.
+This checklist is for Jamie. Complete the Base Sepolia smoke test on the
+`modelspec-rank-staging` Worker. Do not enable x402 on the production Worker.
+The repository keeps production `X402_ENABLED`, `X402_MAINNET`,
+`ACCESS_ENFORCED`, and `BILLING_ENABLED` off, with an empty production
+`X402_PAY_TO`.
+
+## Mainnet blocker
+
+`api/worker/src/entry.py` applies `_x402_wrap(..., keyed=False)` to the
+anonymous producer. When `X402_ENABLED` is on, every keyless request to
+`/v1/decide` receives HTTP 402. The live decide page makes that request without
+an API key.
+
+Production must not enable x402 until Jamie decides the policy for keyless page
+traffic. Completing the staging smoke test does not clear this blocker.
 
 Sources checked 2026-09-26:
 
+- Wrangler environments and environment-specific secrets:
+  https://developers.cloudflare.com/workers/wrangler/environments/
+- Wrangler automatic resource provisioning:
+  https://developers.cloudflare.com/workers/wrangler/configuration/#automatic-provisioning
 - CDP facilitator authentication and endpoints:
   https://docs.cdp.coinbase.com/api-reference/v2/rest-api/x402-facilitator/verify-payment
 - CDP Secret API Key authentication:
@@ -17,75 +33,103 @@ Sources checked 2026-09-26:
 - Circle USDC contract addresses:
   https://developers.circle.com/stablecoins/usdc-contract-addresses
 
-## Prove Base Sepolia
+## Stage 1: the staging morning sequence
 
-1. In the CDP Portal, create a Secret API Key that uses Ed25519.
-2. Add both values as Worker secrets. Do not put either value in a Wrangler
-   variable or this repository.
+Run these steps in order from the repository root.
 
-   ```sh
-   npx wrangler secret put CDP_API_KEY_ID --config api/worker/wrangler.jsonc
-   npx wrangler secret put CDP_API_KEY_SECRET --config api/worker/wrangler.jsonc
+1. The staging receiver is the `username` field of AI-LAN item
+   `2v7floqfyxmxqyra4v6dxd5dry`. Before deployment, confirm that the checked-in
+   staging `X402_PAY_TO` matches
+   `op://AI-LAN/2v7floqfyxmxqyra4v6dxd5dry/username`.
+
+   In GitHub Actions, run the `Rank API` workflow with **Run workflow**. Its
+   manual-only `Deploy the staging rank Worker` job creates the staging
+   `DETERMINATIONS` and `ACCESS` KV namespaces and applies the `v1-credits`
+   migration to create the staging `CreditsObject`. These stores belong to the
+   separate `modelspec-rank-staging` Worker and cannot touch production.
+
+   Record the URL printed by Wrangler:
+
+   ```text
+   https://modelspec-rank-staging.<account-subdomain>.workers.dev
    ```
 
-3. Fund the smoke wallet with native Base Sepolia USDC and Base Sepolia ETH
-   for gas. The test USDC asset is
-   `0x036CbD53842c5426634e7929541eC2318f3dCF7e`.
+2. In the CDP Portal, create an Ed25519 Secret API Key. The corresponding
+   1Password item does not exist yet: create it in the AI-LAN vault, then
+   replace `<CDP item>` below with its item ID, not its title. Item titles that
+   contain `//` cannot be used safely in an `op://` path.
 
-### Issue an operator key
+   Pipe both fields from 1Password into staging secrets. Do not omit
+   `--env staging`, and do not put either value in a Wrangler variable or this
+   repository.
 
-4. From the repository root, issue a live key with no credit grant directly
-   into the Worker's `ACCESS` KV namespace:
+   ```sh
+   op read 'op://AI-LAN/<CDP item>/username' | \
+     npx wrangler secret put CDP_API_KEY_ID --env staging --config api/worker/wrangler.jsonc
+   op read 'op://AI-LAN/<CDP item>/credential' | \
+     npx wrangler secret put CDP_API_KEY_SECRET --env staging --config api/worker/wrangler.jsonc
+   ```
+
+3. Issue a zero-balance key into the staging `ACCESS` namespace:
 
    ```sh
    python scripts/issue_api_key.py \
-     --owner x402-smoke \
+     --owner x402-sepolia-smoke \
      --label "Base Sepolia x402 smoke test" \
+     --tier free \
+     --env staging \
      --put
    ```
 
-   The command prints the key once. Store it in 1Password when prompted. The KV
-   record contains only the SHA-256 fingerprint, the `free` tier, and the
-   labels. Because this path does not grant credits, the new key starts at zero.
-   Save the full fingerprint printed by the command. To revoke the key after
-   the smoke test, run:
+   The command prints the key once. Store it in 1Password and save its full
+   fingerprint. The KV record contains only its SHA-256 fingerprint, tier and
+   labels; no credit grant means the key starts at zero. Confirm in Cloudflare
+   that the record is in the staging `ACCESS` namespace, not production.
+
+4. Fund the payer with Base Sepolia USDC and Base Sepolia ETH for gas. Its
+   address is the `username` field of AI-LAN item
+   `puwydttgppxqz7ig6hnnqr7ea4`; copy it for the faucet without printing it:
 
    ```sh
-   python scripts/revoke_api_key.py <fingerprint> --put
+   op read 'op://AI-LAN/puwydttgppxqz7ig6hnnqr7ea4/username' | pbcopy
    ```
 
-5. Install the signing dependency with
-   `python -m pip install 'eth-account>=0.13'`.
-6. Set `X402_PAY_TO` to Jamie's receiving address on Base Sepolia.
-7. Keep `X402_MAINNET` set to `false`. Set `X402_ENABLED` to `true` and deploy.
-8. Export the keyed caller and test-wallet secrets in the shell. Do not paste
-   the wallet private key into an argument because shell history records it.
+   The test USDC asset is
+   `0x036CbD53842c5426634e7929541eC2318f3dCF7e`.
+
+5. Install the signing dependency, export the new staging API key, and load the
+   payer's private key from its `credential` field. Do not paste the private
+   key into an argument or print it. Run the smoke test against the staging
+   `workers.dev` URL recorded in step 1.
 
    ```sh
+   python -m pip install 'eth-account>=0.13'
    export MODELSPEC_API_KEY='live_...'
-   export X402_SMOKE_PRIVATE_KEY='0x...'
-   python scripts/x402_sepolia_smoke.py --live
+   export X402_SMOKE_PRIVATE_KEY="$(op read 'op://AI-LAN/puwydttgppxqz7ig6hnnqr7ea4/credential')"
+   python scripts/x402_sepolia_smoke.py --live \
+     --base-url 'https://modelspec-rank-staging.<account-subdomain>.workers.dev'
+   unset X402_SMOKE_PRIVATE_KEY MODELSPEC_API_KEY
    ```
 
-9. Confirm that the script reports the $5 pack, a 1,250-credit balance before
-   the decision, and a one-credit decrease after the summary decision.
+   Confirm that the script reports network `eip155:84532`, the 1,250-credit
+   pack, at least 1,250 credits before the decision, and a one-credit decrease
+   after the summary decision.
 
-## Move to Base mainnet
+## Stage 2: Base mainnet
 
-1. Set `X402_MAINNET` to `true`.
-2. Set `X402_NETWORK` to `eip155:8453`.
-3. Set `X402_ASSET` to Base native USDC:
-   `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`.
-4. Set `X402_PAY_TO` to Jamie's mainnet receiving address.
-5. Deploy, then make one $5 real payment with a wallet funded only for this
-   check. Confirm the 1,250-credit grant and one decision draw.
+Blocked pending Jamie's decision about keyless `/v1/decide` page traffic. Do
+not change the production x402 variables, receiver, route, KV bindings, or
+credit ledger as part of the Sepolia test.
 
-## Switch x402 off
+When Jamie clears the blocker, use Base network `eip155:8453` and Base native
+USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, set the approved mainnet
+receiver, and make one $5 payment from a wallet funded only for that check.
+Treat that as a separate production change and review.
 
-1. Set `X402_ENABLED` to `false` and deploy. Existing credit balances remain
-   in the ledger. No request can settle a new x402 payment.
-2. Set `X402_MAINNET` to `false` before the next deploy.
-3. If the receiving address or CDP key may be compromised, rotate the CDP
-   Secret API Key in the portal and replace both Worker secrets.
-4. When returning to Sepolia, restore the Sepolia
-   network, asset, and `X402_PAY_TO` together before another testnet deploy.
+## Switch staging x402 off
+
+Set staging `X402_ENABLED` to `false` and run the staging workflow manually.
+Existing staging credit balances remain in the staging ledger. No request can
+settle a new x402 payment. Keep `X402_MAINNET` false. If the receiving address
+or CDP key may be compromised, rotate the CDP Secret API Key in the portal and
+replace both staging secrets with `--env staging`.

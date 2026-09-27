@@ -72,8 +72,13 @@ def build_key(
     )
 
 
-def put_command(issued: IssuedKey, config: Path = DEFAULT_WRANGLER_CONFIG) -> list[str]:
+def put_command(
+    issued: IssuedKey,
+    config: Path = DEFAULT_WRANGLER_CONFIG,
+    environment: str | None = None,
+) -> list[str]:
     """Build the Wrangler command that writes the non-secret record."""
+    environment_args = ["--env", environment] if environment else []
     return [
         "npx",
         "wrangler",
@@ -83,6 +88,7 @@ def put_command(issued: IssuedKey, config: Path = DEFAULT_WRANGLER_CONFIG) -> li
         issued.name,
         "--value",
         issued.value,
+        *environment_args,
         *wrangler_target(config),
     ]
 
@@ -95,12 +101,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--config", type=Path, default=DEFAULT_WRANGLER_CONFIG, help="Wrangler config path"
     )
+    parser.add_argument("--env", help="Wrangler environment, for example staging")
     parser.add_argument("--put", action="store_true", help="write the record to remote Workers KV")
     args = parser.parse_args(argv)
 
     try:
         issued = build_key(owner=args.owner, label=args.label, tier=args.tier)
-        command = put_command(issued, args.config)
+        command = put_command(issued, args.config, args.env)
     except (access_config.PolicyError, OperatorKeyError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

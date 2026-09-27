@@ -800,6 +800,54 @@ def test_wrangler_ships_the_flag_off_and_sepolia():
     assert "CDP_JWT" not in live
 
 
+def _wrangler_config() -> dict[str, Any]:
+    text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
+    live = "\n".join(line for line in text.splitlines()
+                     if not line.lstrip().startswith("//"))
+    return json.loads(live)
+
+
+def test_production_x402_config_stays_off_and_has_no_receiver():
+    config = _wrangler_config()
+    assert config["vars"]["ACCESS_ENFORCED"] == "false"
+    assert config["vars"]["BILLING_ENABLED"] == "false"
+    assert config["vars"]["X402_ENABLED"] == "false"
+    assert config["vars"]["X402_MAINNET"] == "false"
+    assert config["vars"]["X402_PAY_TO"] == ""
+    assert config["workers_dev"] is False
+    assert config["routes"] == [
+        {"pattern": "api.modelspec.dev/*", "zone_name": "modelspec.dev"}
+    ]
+
+
+def test_staging_x402_config_is_isolated_on_base_sepolia():
+    config = _wrangler_config()
+    staging = config["env"]["staging"]
+
+    assert f'{config["name"]}-staging' == "modelspec-rank-staging"
+    assert staging["workers_dev"] is True
+    assert staging["routes"] == []
+    assert staging["vars"] == {
+        "EXPORT_ORIGIN": "https://modelspec.dev",
+        "BUILD_COMMIT": "dev",
+        "ACCESS_ENFORCED": "false",
+        "BILLING_ENABLED": "false",
+        "X402_ENABLED": "true",
+        "X402_MAINNET": "false",
+        "X402_NETWORK": "eip155:84532",
+        "X402_ASSET": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        "X402_PAY_TO": "0x1e62c42388271C68ce55e7E39d85912ACB918529",
+        "X402_FACILITATOR_URL": "https://api.cdp.coinbase.com/platform",
+    }
+
+    production_kv = {row["binding"]: row for row in config["kv_namespaces"]}
+    staging_kv = {row["binding"]: row for row in staging["kv_namespaces"]}
+    assert staging_kv.keys() == production_kv.keys()
+    assert all("id" in row for row in production_kv.values())
+    assert all("id" not in row for row in staging_kv.values())
+    assert staging["durable_objects"] == config["durable_objects"]
+
+
 def test_credits_modules_do_not_use_workers_kv():
     for name in ("credits.py", "credits_do.py"):
         source = (WORKER_SRC / name).read_text(encoding="utf-8")

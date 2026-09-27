@@ -8,10 +8,11 @@ name: Rank API
 # product, they live outside this repository, and they reach the Worker only
 # through a KV load run from the private checkout — see
 # docs/policy-check-api.md. Nothing here is given a credential that could read
-# them. On push to main only, the `deploy`
-# job publishes the Worker to api.modelspec.dev and refuses to pass until the
-# version it just pushed is the version answering. PR runs never reach that job
-# or its secrets.
+# them. On push to main only, the `deploy` job publishes the production Worker
+# to api.modelspec.dev and refuses to pass until the version it just pushed is
+# the version answering. A separate workflow_dispatch-only job deploys the
+# isolated staging environment to workers.dev. PR runs reach neither job nor
+# their secrets.
 # This is not a required check; `Run pytest` and `Build both sites` are.
 
 on:
@@ -118,6 +119,58 @@ jobs:
             find dist/rank-worker -type f | sort
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-staging:
+    name: Deploy the staging rank Worker
+    needs: bundle
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: rank-api-staging-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_MODELSPEC_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.19'
+          enable-cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Vendor the scorer into the Worker bundle
+        run: python api/worker/vendor.py
+
+      - name: Resolve the Worker's Python dependencies
+        run: |
+          uv sync --project api/worker --frozen
+          npm install --prefix api/worker --no-save "wrangler@${WRANGLER_VERSION}"
+
+      - name: Deploy staging
+        working-directory: api/worker
+        run: uv run --project . pywrangler deploy --env staging --var "BUILD_COMMIT:${GITHUB_SHA}" --var "TIER_POLICY:$(jq -c . tiers.json)"
+
+      - name: Sync the staging decision snapshot verification key
+        working-directory: api/worker
+        run: |
+          if [ -z "$MODELSPEC_SNAPSHOT_KEY" ]; then
+            echo "::warning::MODELSPEC_SNAPSHOT_KEY is not configured; skipping staging Worker secret sync"
+          else
+            printf '%s' "$MODELSPEC_SNAPSHOT_KEY" \
+              | uv run --project . pywrangler secret put MODELSPEC_SNAPSHOT_KEY --env staging
+          fi
 
   deploy:
     name: Deploy the rank Worker
