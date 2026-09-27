@@ -3,15 +3,92 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
+import os
+import shlex
+import tomllib
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 DEFAULT_SHARD_COUNT = 4
+DEFAULT_PYTHON_FILES = ("test_*.py", "*_test.py")
+DEFAULT_NORECURSEDIRS = (
+    "*.egg",
+    ".*",
+    "_darcs",
+    "build",
+    "CVS",
+    "dist",
+    "node_modules",
+    "venv",
+    "{arch}",
+)
+
+
+def _option_values(value: object, default: tuple[str, ...]) -> tuple[str, ...]:
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return tuple(shlex.split(value))
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return tuple(value)
+    raise TypeError("pytest discovery options must be strings or lists of strings")
+
+
+def _pytest_options(root: Path) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
+    pyproject = root / "pyproject.toml"
+    options: dict[str, object] = {}
+    if pyproject.is_file():
+        document = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        options = document.get("tool", {}).get("pytest", {}).get("ini_options", {})
+    python_files = _option_values(options.get("python_files"), DEFAULT_PYTHON_FILES)
+    testpaths = _option_values(options.get("testpaths"), (".",))
+    norecursedirs = _option_values(options.get("norecursedirs"), DEFAULT_NORECURSEDIRS)
+    return python_files, testpaths, norecursedirs
+
+
+def _excluded_directory(path: Path, root: Path, patterns: tuple[str, ...]) -> bool:
+    if path == root:
+        return False
+    relative = path.relative_to(root).as_posix()
+    return (path / "pyvenv.cfg").is_file() or any(
+        fnmatch.fnmatchcase(path.name, pattern) or fnmatch.fnmatchcase(relative, pattern)
+        for pattern in patterns
+    )
+
+
+def _matches_python_file(path: Path, root: Path, patterns: tuple[str, ...]) -> bool:
+    relative = path.relative_to(root).as_posix()
+    return any(
+        fnmatch.fnmatchcase(relative if "/" in pattern else path.name, pattern)
+        for pattern in patterns
+    )
 
 
 def test_files(root: Path) -> list[Path]:
     """Return every pytest module in the suite in stable path order."""
-    return sorted(root.glob("tests/**/test_*.py"))
+    python_files, testpaths, norecursedirs = _pytest_options(root)
+    discovered: set[Path] = set()
+    for testpath in testpaths:
+        start = root / testpath
+        if start.is_file():
+            if _matches_python_file(start, root, python_files):
+                discovered.add(start)
+            continue
+        if not start.is_dir() or _excluded_directory(start, root, norecursedirs):
+            continue
+        for directory, names, filenames in os.walk(start):
+            current = Path(directory)
+            names[:] = [
+                name for name in names
+                if not _excluded_directory(current / name, root, norecursedirs)
+            ]
+            discovered.update(
+                current / filename
+                for filename in filenames
+                if _matches_python_file(current / filename, root, python_files)
+            )
+    return sorted(discovered)
 
 
 def partition_files(files: Iterable[Path], shard_count: int) -> list[list[Path]]:

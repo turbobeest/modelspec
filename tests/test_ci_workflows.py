@@ -99,14 +99,76 @@ def test_timing_tests_run_serially_exactly_once() -> None:
     assert any(step.get("run") == perf_command for step in perf_job["steps"])
 
 
-def test_file_splitter_assigns_every_test_file_once() -> None:
+def test_file_splitter_uses_pytest_default_patterns_from_the_repo_root(tmp_path: Path) -> None:
+    from scripts.pytest_shards import test_files
+
+    expected = {
+        tmp_path / "tests" / "feature_test.py",
+        tmp_path / "integration" / "test_feature.py",
+    }
+    for path in expected:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("", encoding="utf-8")
+
+    assert set(test_files(tmp_path)) == expected
+
+
+def test_file_splitter_excludes_pytest_ignored_directories(tmp_path: Path) -> None:
+    from scripts.pytest_shards import test_files
+
+    included = tmp_path / "test_included.py"
+    included.write_text("", encoding="utf-8")
+    for directory in (tmp_path / "node_modules", tmp_path / ".venv"):
+        directory.mkdir()
+        (directory / "test_excluded.py").write_text("", encoding="utf-8")
+    virtualenv = tmp_path / "custom-environment"
+    virtualenv.mkdir()
+    (virtualenv / "pyvenv.cfg").write_text("", encoding="utf-8")
+    (virtualenv / "test_excluded.py").write_text("", encoding="utf-8")
+
+    assert test_files(tmp_path) == [included]
+
+
+def test_file_splitter_honors_pyproject_discovery_options(tmp_path: Path) -> None:
+    from scripts.pytest_shards import test_files
+
+    (tmp_path / "pyproject.toml").write_text(
+        """[tool.pytest.ini_options]
+python_files = ["checks/check_*.py"]
+testpaths = ["checks"]
+norecursedirs = ["generated"]
+""",
+        encoding="utf-8",
+    )
+    expected = tmp_path / "checks" / "check_feature.py"
+    expected.parent.mkdir()
+    expected.write_text("", encoding="utf-8")
+    (tmp_path / "test_outside.py").write_text("", encoding="utf-8")
+    generated = tmp_path / "checks" / "generated"
+    generated.mkdir()
+    (generated / "check_excluded.py").write_text("", encoding="utf-8")
+
+    assert test_files(tmp_path) == [expected]
+
+
+def test_file_splitter_assigns_discovered_set_once(tmp_path: Path) -> None:
     from scripts.pytest_shards import DEFAULT_SHARD_COUNT, partition_files, test_files
 
-    files = test_files(REPO_ROOT)
-    assigned = [path for shard in partition_files(files, DEFAULT_SHARD_COUNT) for path in shard]
+    files = []
+    for relative in ("test_one.py", "suite/two_test.py", "suite/test_three.py"):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative, encoding="utf-8")
+        files.append(path)
+
+    discovered = test_files(tmp_path)
+    assigned = [
+        path
+        for shard in partition_files(discovered, DEFAULT_SHARD_COUNT)
+        for path in shard
+    ]
     assert len(assigned) == len(set(assigned))
-    assert set(assigned) == set(files)
-    assert all(path.name.startswith("test_") for path in assigned)
+    assert set(assigned) == set(discovered) == set(files)
 
 
 def test_required_workflows_run_on_every_pull_request() -> None:
