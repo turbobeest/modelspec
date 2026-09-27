@@ -15,11 +15,13 @@ import shutil
 import subprocess
 import sys
 import sysconfig
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
@@ -246,9 +248,56 @@ def test_fetch_refuses_decision_hash_mismatch_and_keeps_old_cache(
             return FakeResponse({})
 
     monkeypatch.setattr(httpx, "Client", FakeClient)
-    with pytest.raises(snapshot.SnapshotInvalid, match="content hash mismatch"):
-        snapshot.fetch("https://example.test", cache)
-    assert {path: path.read_bytes() for path in originals} == originals
+    fetched = snapshot.fetch("https://example.test", cache)
+    assert fetched.decision_fetch is not None
+    assert fetched.decision_fetch["available"] is False
+    assert "content hash mismatch" in fetched.decision_fetch["error"]
+    assert snapshot.decision_snapshot_path(cache).read_bytes() == originals[
+        snapshot.decision_snapshot_path(cache)
+    ]
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == originals[
+        snapshot.decision_vocabulary_path(cache)
+    ]
+    assert snapshot.load(cache).build_commit == "newcommit"
+
+
+def test_status_reports_a_corrupt_decision_snapshot_without_changing_rank_status(
+    cache: Path,
+) -> None:
+    _write(cache)
+    snapshot.decision_snapshot_path(cache).write_bytes(b"not a snapshot")
+
+    result = _run(["snapshot", "status", "--json"], cache)
+
+    assert result.returncode == offline.EXIT_OK
+    decision = json.loads(result.stdout)["result"]["decision_snapshot"]
+    assert decision["present"] is True
+    assert decision["valid"] is False
+    assert "invalid" in decision["error"]
+
+
+@pytest.mark.parametrize("as_json", [False, True])
+def test_fetch_reports_optional_decision_files_as_unavailable(
+    cache: Path, monkeypatch: pytest.MonkeyPatch, as_json: bool
+) -> None:
+    _write(cache)
+    fetched = replace(
+        snapshot.load(cache),
+        decision_fetch={"available": False, "error": "both decision origins returned 404"},
+    )
+    monkeypatch.setattr(snapshot, "fetch", lambda *args, **kwargs: fetched)
+
+    result = CliRunner().invoke(
+        offline.app, ["snapshot", "fetch", *(["--json"] if as_json else [])]
+    )
+
+    assert result.exit_code == offline.EXIT_OK
+    if as_json:
+        decision = json.loads(result.stdout)["result"]["decision_snapshot"]
+        assert decision["available"] is False
+        assert "returned 404" in decision["error"]
+    else:
+        assert "decision   unavailable" in result.stdout
 
 
 # ── the contract ─────────────────────────────────────────────────────────────

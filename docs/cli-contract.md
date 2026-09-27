@@ -6,8 +6,9 @@ first among them. This is what they can rely on.
 ## The interface
 
 ```
-modelspec snapshot fetch [--origin URL] [--api-key KEY]
-                                          download the rank and decision snapshots and vocabulary
+modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
+                                          download the rank snapshot and, when available,
+                                          the decision snapshot and vocabulary
                                           (the only networked command)
 modelspec snapshot status [--json]        what is cached, how old, which build or decision
 modelspec offline rank <use-case> [...]   rank models for a use case
@@ -34,6 +35,15 @@ is an option on `snapshot fetch`; it defaults to `https://modelspec.dev`.
 `--api-key` is an option on `snapshot fetch` too; it has no default and the
 supported way to supply one is the `MODELSPEC_API_KEY` environment variable
 (see "A keyed origin" below).
+
+The rank export is the required result of `snapshot fetch`. The decision
+snapshot and vocabulary are optional. The command tries the requested origin
+first. If that origin returns 404 for a decision route or cannot answer that
+route, the command tries `https://modelspec.dev` without an API key. If neither
+origin supplies a valid matching pair, the command keeps the existing decision
+cache and still completes the rank fetch. Human output reports `decision
+unavailable`; `--json` reports the same result in
+`result.decision_snapshot.available` and `result.decision_snapshot.error`.
 
 `class-fit` accepts a task description as its argument plus `--emits`,
 `--consumes` (comma-separated), `--decides`, `--json` and `--require-fresh`.
@@ -107,7 +117,9 @@ The stable envelope fields are `schema_version`, `command`, `freshness`, and
 
 `snapshot status --json` also adds `result.decision_snapshot`. This additive
 object always has `present` and `path`. When present, it also has `snapshot_id`,
-`as_of`, `age_days`, and `signature_verified`. `age_days` is the age of the
+`as_of`, `age_days`, `valid`, and `signature_verified` when valid. A corrupt
+cached file has `present: true`, `valid: false`, and `error`; it does not change
+the rank snapshot's status or exit code. `age_days` is the age of the
 cached file, not the snapshot's `as_of` date. A public fetch cannot verify the
 publisher's HMAC without the signing secret, so `signature_verified` is
 `false`. The fetch still checks the decision snapshot's `content_hash` and
@@ -666,6 +678,8 @@ put in a URL**, never written into the cached snapshot, and never printed: it
 is held in a `Credential` whose `repr` and `str` emit a 12-character `key_id`
 (the SHA-256 prefix the origin logs) instead of the secret, and every message
 `snapshot fetch` writes is passed through a redaction backstop on the way out.
+The public decision fallback uses a separate client with no authorization
+header, so the keyed origin's credential cannot reach `modelspec.dev`.
 `test_the_key_appears_in_no_output_no_error_and_no_cached_file` drives every
 branch of the command with a known key and searches stdout, stderr, the
 origin's access log and the cached snapshot for it.

@@ -253,6 +253,57 @@ def test_a_keyed_fetch_is_current(origin: Origin, cache: Path) -> None:
     assert fetched.build_commit == "keyedcommit01"
 
 
+def test_keyed_origin_falls_back_for_public_decision_files_without_sending_key(
+    origin: Origin, cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    public = Origin()
+    public.requires_key = False
+    public.start()
+    try:
+        del origin.bodies[snapshot.DECISION_SNAPSHOT_ROUTE]
+        del origin.bodies[snapshot.DECISION_VOCABULARY_ROUTE]
+        monkeypatch.setattr(snapshot, "DEFAULT_ORIGIN", public.url)
+
+        fetched = snapshot.fetch(
+            origin.url, cache, credential=snapshot.Credential(secret=KEY)
+        )
+
+        assert fetched.build_commit == "keyedcommit01"
+        assert fetched.decision_fetch == {
+            "available": True,
+            "origin": public.url,
+            "snapshot_id": _decision_artifacts()[1]["snapshot"],
+        }
+        assert all("Authorization" not in headers for _, headers in public.seen)
+        assert snapshot.decision_snapshot_path(cache).exists()
+    finally:
+        public.stop()
+
+
+def test_both_decision_origins_unavailable_still_updates_rank_snapshot(
+    origin: Origin, cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    public = Origin()
+    public.requires_key = False
+    for route in (snapshot.DECISION_SNAPSHOT_ROUTE, snapshot.DECISION_VOCABULARY_ROUTE):
+        del origin.bodies[route]
+        del public.bodies[route]
+    public.start()
+    try:
+        monkeypatch.setattr(snapshot, "DEFAULT_ORIGIN", public.url)
+        fetched = snapshot.fetch(
+            origin.url, cache, credential=snapshot.Credential(secret=KEY)
+        )
+    finally:
+        public.stop()
+
+    assert fetched.build_commit == "keyedcommit01"
+    assert fetched.decision_fetch is not None
+    assert fetched.decision_fetch["available"] is False
+    assert "HTTP 404" in fetched.decision_fetch["error"]
+    assert snapshot.load(cache).build_commit == "keyedcommit01"
+
+
 def test_require_fresh_passes_on_a_keyed_fetch_and_fails_on_a_ninety_day_export(
     origin: Origin, cache: Path
 ) -> None:

@@ -32,7 +32,7 @@ import json
 import os
 import time
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -120,6 +120,7 @@ class Snapshot:
     build_at: str
     data: dict[str, Any]
     export_schema_version: str = EXPORT_SCHEMA_VERSION
+    decision_fetch: dict[str, Any] | None = None
 
     @property
     def age_days(self) -> float:
@@ -404,8 +405,6 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
     directory = target or cache_dir()
     directory.mkdir(parents=True, exist_ok=True)
     payload: dict[str, Any] = {}
-    decision_data: bytes
-    vocabulary: dict[str, Any]
     headers = credential.headers() if credential is not None else {}
 
     def get(route: str) -> Any:
@@ -432,33 +431,6 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
                 raise
             except Exception:  # noqa: BLE001 - optional; `fit --host` reports its absence
                 continue
-        decision_data = get(DECISION_SNAPSHOT_ROUTE).content
-        vocabulary_raw = get(DECISION_VOCABULARY_ROUTE).json()
-
-    # A public client cannot verify the HMAC without the publishing secret. It
-    # still verifies the content hash and snapshot ID, which load_snapshot_bytes
-    # always checks. Passing key=None is deliberate: a locally configured
-    # signing key must not turn a public download into a signature failure.
-    from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
-
-    try:
-        decision = load_snapshot_bytes(
-            decision_data,
-            key=None,
-            include_archive=True,
-            source=origin + DECISION_SNAPSHOT_ROUTE,
-        )
-    except SnapshotIntegrityError as exc:
-        raise SnapshotInvalid(f"fetched decision snapshot failed integrity check: {exc}") from exc
-    if not isinstance(vocabulary_raw, dict):
-        raise SnapshotInvalid("fetched decision vocabulary is not a JSON object")
-    vocabulary = vocabulary_raw
-    if vocabulary.get("snapshot") != decision.snapshot_id:
-        raise SnapshotInvalid(
-            "fetched decision vocabulary snapshot does not match the decision snapshot "
-            f"({vocabulary.get('snapshot')!r} != {decision.snapshot_id!r})"
-        )
-
     build = (payload.get("index") or {}).get("build") or {}
     meta = {
         "fetched_at": datetime.now(UTC).isoformat(),
@@ -477,14 +449,8 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
     except (TypeError, ValueError, KeyError) as exc:
         raise SnapshotInvalid(f"fetched export is unreadable or invalid: {exc}") from exc
     raw["meta"]["export_schema_version"] = parsed.export_schema_version
-    writes = (
-        (directory / f".snapshot.{os.getpid()}.tmp", final,
-         json.dumps(raw).encode("utf-8")),
-        (directory / f".decision-snapshot.{os.getpid()}.tmp",
-         decision_snapshot_path(directory), decision_data),
-        (directory / f".decision-vocabulary.{os.getpid()}.tmp",
-         decision_vocabulary_path(directory), json.dumps(vocabulary).encode("utf-8")),
-    )
+    writes = ((directory / f".snapshot.{os.getpid()}.tmp", final,
+               json.dumps(raw).encode("utf-8")),)
     try:
         for tmp, _destination, data in writes:
             tmp.write_bytes(data)
@@ -493,7 +459,92 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
     finally:
         for tmp, _destination, _data in writes:
             tmp.unlink(missing_ok=True)
-    return load(directory)
+    fetched = load(directory)
+    decision_fetch = _fetch_decision_files(origin, directory, credential)
+    return replace(fetched, decision_fetch=decision_fetch)
+
+
+def _fetch_decision_files(origin: str, directory: Path,
+                          credential: Credential | None) -> dict[str, Any]:
+    """Try to refresh the public decision pair without affecting rank fetch."""
+    import httpx
+
+    from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
+
+    class DecisionRouteUnavailable(RuntimeError):
+        pass
+
+    def download(candidate_origin: str, *, send_credential: bool) -> tuple[bytes, Any]:
+        candidate_headers = credential.headers() if credential and send_credential else {}
+        with httpx.Client(timeout=60.0, follow_redirects=True,
+                          headers=candidate_headers) as client:
+            responses = []
+            for route in (DECISION_SNAPSHOT_ROUTE, DECISION_VOCABULARY_ROUTE):
+                try:
+                    response = client.get(candidate_origin + route)
+                except httpx.HTTPError as exc:
+                    raise DecisionRouteUnavailable(
+                        f"could not reach {candidate_origin}{route}: {type(exc).__name__}"
+                    ) from None
+                if response.status_code == 404:
+                    raise DecisionRouteUnavailable(
+                        f"{candidate_origin}{route} returned HTTP 404"
+                    )
+                try:
+                    response.raise_for_status()
+                except Exception as exc:  # noqa: BLE001 - optional download is reported
+                    raise RuntimeError(
+                        f"{candidate_origin}{route} returned HTTP {response.status_code}"
+                    ) from exc
+                responses.append(response)
+        return responses[0].content, responses[1].json()
+
+    source = origin
+    try:
+        try:
+            decision_data, vocabulary_raw = download(origin, send_credential=True)
+        except DecisionRouteUnavailable:
+            if origin.rstrip("/") == DEFAULT_ORIGIN:
+                raise
+            source = DEFAULT_ORIGIN
+            decision_data, vocabulary_raw = download(source, send_credential=False)
+
+        # A public client cannot verify the HMAC without the publishing secret.
+        # It still verifies the content hash and snapshot ID.
+        decision = load_snapshot_bytes(
+            decision_data, key=None, include_archive=True,
+            source=source + DECISION_SNAPSHOT_ROUTE,
+        )
+        if not isinstance(vocabulary_raw, dict):
+            raise SnapshotInvalid("fetched decision vocabulary is not a JSON object")
+        if vocabulary_raw.get("snapshot") != decision.snapshot_id:
+            raise SnapshotInvalid(
+                "fetched decision vocabulary snapshot does not match the decision snapshot "
+                f"({vocabulary_raw.get('snapshot')!r} != {decision.snapshot_id!r})"
+            )
+    except SnapshotIntegrityError as exc:
+        return {"available": False,
+                "error": f"fetched decision snapshot failed integrity check: {exc}"}
+    except Exception as exc:  # noqa: BLE001 - decision data is optional for rank fetch
+        return {"available": False, "error": str(exc)}
+
+    writes = (
+        (directory / f".decision-snapshot.{os.getpid()}.tmp",
+         decision_snapshot_path(directory), decision_data),
+        (directory / f".decision-vocabulary.{os.getpid()}.tmp",
+         decision_vocabulary_path(directory), json.dumps(vocabulary_raw).encode("utf-8")),
+    )
+    try:
+        for tmp, _destination, data in writes:
+            tmp.write_bytes(data)
+        for tmp, destination, _data in writes:
+            tmp.replace(destination)
+    except OSError as exc:
+        return {"available": False, "error": f"could not cache decision files: {exc}"}
+    finally:
+        for tmp, _destination, _data in writes:
+            tmp.unlink(missing_ok=True)
+    return {"available": True, "origin": source, "snapshot_id": decision.snapshot_id}
 
 
 def load(directory: Path | None = None) -> Snapshot:
@@ -523,16 +574,22 @@ def status(directory: Path | None = None) -> dict[str, Any]:
 
         try:
             decision = load_snapshot(decision_path, key=None, include_archive=True)
-        except ValueError as exc:
-            raise SnapshotInvalid(f"cached decision snapshot is invalid: {exc}") from exc
-        decision_status: dict[str, Any] = {
-            "present": True,
-            "path": str(decision_path),
-            "snapshot_id": decision.snapshot_id,
-            "as_of": decision.as_of.isoformat() if decision.as_of else None,
-            "age_days": round(age_of(decision_path), 2),
-            "signature_verified": decision.signature_verified,
-        }
+            decision_status: dict[str, Any] = {
+                "present": True,
+                "valid": True,
+                "path": str(decision_path),
+                "snapshot_id": decision.snapshot_id,
+                "as_of": decision.as_of.isoformat() if decision.as_of else None,
+                "age_days": round(age_of(decision_path), 2),
+                "signature_verified": decision.signature_verified,
+            }
+        except (OSError, ValueError) as exc:
+            decision_status = {
+                "present": True,
+                "valid": False,
+                "path": str(decision_path),
+                "error": f"cached decision snapshot is invalid: {exc}",
+            }
     else:
         decision_status = {"present": False, "path": str(decision_path)}
     try:
