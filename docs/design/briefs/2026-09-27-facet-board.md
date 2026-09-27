@@ -130,18 +130,6 @@ Top to bottom, beside or below the board:
 4. **Why** panel (exists): contributions, evidence and provenance, condition
    checks, what each condition costs, near misses, why not X, offerings.
 
-## The 3D view with gravity
-
-`web3d/explorer.html` (the MODEL-24 force-directed explorer) comes back as a
-view of the **same decision**, for play:
-
-- Prefer weights are gravity. Models that score well on what you weight drift
-  to the centre; moving a slider visibly moves the cloud.
-- Must failures drift outward and fade. They are not removed.
-- The tied group from the answer area is highlighted.
-
-It is a toggle beside Canvas first and Table first, not a separate site.
-
 ## Saving (phase 1: URLs, not accounts)
 
 A decision is already a URL. Phase 1 saves a board as a URL, plus a list of
@@ -154,6 +142,9 @@ keys. Design the view; don't design sign-in.
 ## Out of scope
 
 - Any free-text task input, parser or LLM on this page.
+- The 3D graph (`web3d/explorer.html`). It is a separate novelty page for
+  exploring the knowledge graph of models and benchmarks, with no link to the
+  downselect. Its own effort, later.
 - Login and sign-in screens.
 - Mobile (as in the core flow, a later pass).
 - Billing, keys, x402.
