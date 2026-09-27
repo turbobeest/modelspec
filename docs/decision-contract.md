@@ -4,7 +4,9 @@ Contract version: **1.7**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
-same contract serves the local library and CLI, the hosted API and MCP.
+same contract serves the local library and CLI, the hosted API, and the MCP
+`decide` tool. MCP clients can read the published vocabulary through the
+companion `vocab` tool before constructing a spec.
 
 - Types: [`decision/contract.py`](../decision/contract.py).
 - JSON Schema, generated from the types:

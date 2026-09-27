@@ -44,14 +44,16 @@ SKILLS_SCHEMA = "https://schemas.agentskills.io/discovery/0.2.0/schema.json"
 # Agent Readiness (agent-ready.dev) still fetches `/.well-known/mcp.json`
 # against this registry schema. SEP-2127's later draft prefers an AI Catalog
 # plus `<mcp-url>/server-card` and omits primitives; the ticket wants this
-# well-known path and the four tools listed, so they stay.
+# well-known path and the public tools listed, so they stay.
 MCP_SCHEMA = (
     "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json"
 )
 MCP_NAME = "dev.modelspec/catalogue"
 MCP_NAME_PATTERN = r"^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$"
 MCP_DESCRIPTION_MAX = 100
-MCP_TOOLS = ("rank", "model_info", "list_use_cases", "policy_check")
+MCP_TOOLS = (
+    "rank", "model_info", "list_use_cases", "policy_check", "decide", "vocab"
+)
 _BYTES_WIDTH = 8
 PAGES_FILE_LIMIT = 20_000
 PAGES_ROUTES = {
@@ -524,7 +526,7 @@ def mcp_card() -> dict[str, Any]:
 
     Schema (2025-10-17): name, description (<=100 chars), version, remotes.
     `tools` is extra; draft-07 additionalProperties default to true, and the
-    ticket requires the four MCP tools named here.
+    The public card lists every MCP tool named here.
     """
     description = (
         "Rank models, inspect cards, list use cases, and check policy."
@@ -552,6 +554,10 @@ def mcp_card() -> dict[str, Any]:
              "description": "GET /api/rank/profiles.json ranking profiles."},
             {"name": "policy_check",
              "description": "POST /v1/policy-check. pass/fail/undetermined."},
+            {"name": "decide",
+             "description": "POST /v1/decide. Downselect from a decision spec."},
+            {"name": "vocab",
+             "description": "GET the decision vocabulary for valid spec values."},
         ],
     }
 
@@ -692,7 +698,7 @@ def auth_markdown(root: Path) -> str:
         "Checks that need the private determination store stay "
         "`undetermined` with `why: tier`. That is not a pass.",
         "- `GET /v1/health` — deploy pin.",
-        "- MCP `https://api.modelspec.dev/mcp` — the four tools, no key.",
+        "- MCP `https://api.modelspec.dev/mcp` — the six tools, no key.",
         "",
         "### Sandbox (`test_` keys)",
         "",
