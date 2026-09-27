@@ -243,6 +243,10 @@ margin:7px 2px 0}
 .benchmark-strip h4{font-family:var(--sans);font-size:14px;margin:0 0 5px}
 .benchmark-strip h4 a{color:var(--ink);border-bottom:0}
 .benchmark-strip h4 a:hover{color:var(--accent)}
+.benchmark-strip-chart{position:relative;aspect-ratio:760/43}
+.benchmark-strip-asset,.benchmark-strip-focus{position:absolute;inset:0;display:block;width:100%;
+height:100%;border:0}
+.benchmark-strip-focus{pointer-events:none}
 .strip-point.focus{stroke:var(--ink);stroke-width:3}
 @media(max-width:800px){
 .page{padding-left:0}
@@ -537,7 +541,7 @@ def _strip_range(sourced: list[dict[str, Any]]) -> tuple[float, float]:
 
 
 def benchmark_strip_asset(rows: list[dict[str, Any]]) -> str:
-    """Shared comparison geometry referenced by every applicable model page."""
+    """Shared comparison geometry and evidence disclosures for model pages."""
     sourced = _strip_rows(rows)
     if not sourced:
         return ""
@@ -551,31 +555,60 @@ def benchmark_strip_asset(rows: list[dict[str, Any]]) -> str:
     def x(score: float) -> float:
         return left + (score - lo) / (hi - lo) * (width - left - right)
 
-    content: list[str] = []
+    geometry: list[str] = []
+    interactions: list[str] = []
+    point_number = 0
     for index, key in enumerate(sorted(grouped)):
         colour = SERIES_COLOURS[index % len(SERIES_COLOURS)]
         paths: dict[str, list[str]] = defaultdict(list)
         for row in grouped[key]:
             kind = str(row.get("source_kind") or "")
-            paths[kind].append(_compact_marker_path(kind, x(float(row["score"])), 17))
+            xx = x(float(row["score"]))
+            paths[kind].append(_compact_marker_path(kind, xx, 17))
+            point_number += 1
+            hit_target = (
+                f'<circle class="strip-hit-target" cx="{xx:.1f}" cy="17" r="7"/>'
+            )
+            interactions.append(_point_markup(
+                row, hit_target, f"p{point_number}",
+                panel_x=0, panel_y=0, panel_width=width, panel_height=43,
+            ))
         version, configuration = key
         marks = "".join(
             f'<path class="source-{esc(kind.replace("_", "-"))}" fill="{colour}" '
             f'stroke="#07080a" stroke-width="1" d="{"".join(parts)}"/>'
             for kind, parts in sorted(paths.items())
         )
-        content.append(
+        geometry.append(
             f'<g aria-label="Benchmark version: {esc(version)}; '
             f'configuration: {esc(configuration)}">{marks}</g>'
         )
+    asset_css = (
+        ".chart-grid{stroke:#2a3038;stroke-width:1}"
+        ".chart-label{fill:#929aa6;font:11px ui-monospace,SFMono-Regular,monospace}"
+        ".strip-hit-target{fill:transparent;stroke:transparent;cursor:pointer}"
+        ".point-trigger:focus-visible .strip-hit-target,.point-pair:hover .strip-hit-target{"
+        "fill:#f5f7fa;fill-opacity:.22;stroke:#f5f7fa;stroke-width:2}"
+        ".point-detail{display:none;pointer-events:none}"
+        ".point-pair:hover>.point-detail,.point-pair:focus-within>.point-detail,"
+        ".point-trigger:focus-visible~.point-detail,.point-detail:target,.point-detail:hover{"
+        "display:block;pointer-events:auto}"
+        ".point-detail rect{fill:#14181f;stroke:#63c9d9;stroke-width:1.5}"
+        ".point-detail text{fill:#eef2f7;font:10px ui-monospace,SFMono-Regular,monospace}"
+        ".point-detail .point-source-label{fill:#63c9d9;text-decoration:underline}"
+    )
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 43">'
-        f'<g id="points">{"".join(content)}</g></svg>'
+        f'<style>{asset_css}</style>'
+        f'<line class="chart-grid" x1="{left}" y1="17" x2="{width-right}" y2="17"/>'
+        f'<text class="chart-label" x="{left}" y="39">{lo:g}</text>'
+        f'<text class="chart-label" x="{width-right}" y="39" text-anchor="end">{hi:g}</text>'
+        f'<g id="points">{"".join(geometry)}</g>'
+        f'<g id="point-interactions">{"".join(interactions)}</g></svg>'
     )
 
 
-def _strip_svg(rows: list[dict[str, Any]], model_id: str, point_prefix: str,
-               benchmark_id: str) -> str:
+def _strip_svg(rows: list[dict[str, Any]], model_id: str, benchmark_id: str) -> str:
     sourced = _strip_rows(rows)
     if not sourced:
         return ""
@@ -589,36 +622,25 @@ def _strip_svg(rows: list[dict[str, Any]], model_id: str, point_prefix: str,
     def x(score: float) -> float:
         return left + (score - lo) / (hi - lo) * (width - left - right)
 
-    content = [
-        f'<line class="chart-grid" x1="{left}" y1="17" x2="{width-right}" y2="17"/>',
-        f'<text class="chart-label" x="{left}" y="39">{lo:g}</text>',
-        f'<text class="chart-label" x="{width-right}" y="39" '
-        f'text-anchor="end">{hi:g}</text>',
-        f'<use href="/assets/benchmark-strips/{esc(benchmark_id)}.svg#points"/>',
-    ]
-    point_number = 0
+    focus_marks: list[str] = []
     for index, key in enumerate(sorted(grouped)):
         colour = SERIES_COLOURS[index % len(SERIES_COLOURS)]
-        focus_marks: list[str] = []
         for row in grouped[key]:
             if row.get("model_id") != model_id:
                 continue
-            point_number += 1
             kind = str(row.get("source_kind") or "")
             xx = x(float(row["score"]))
-            marker = _marker(kind, xx, 17, colour, "strip-point focus")
-            focus_marks.append(_point_markup(
-                row, marker, f"{point_prefix}p{point_number}",
-                panel_x=0, panel_y=0, panel_width=width, panel_height=43,
-            ))
-        version, configuration = key
-        if focus_marks:
-            content.append(
-                f'<g aria-label="Benchmark version: {esc(version)}; '
-                f'configuration: {esc(configuration)}">{"".join(focus_marks)}</g>'
-            )
-    return (f'<svg viewBox="0 0 {width} {height}" role="img" '
-            f'aria-label="Sourced evidence distribution">{"".join(content)}</svg>')
+            focus_marks.append(_marker(kind, xx, 17, colour, "strip-point focus"))
+    asset = f"/assets/benchmark-strips/{esc(benchmark_id)}.svg"
+    return (
+        '<div class="benchmark-strip-chart">'
+        f'<object class="benchmark-strip-asset" data="{asset}" type="image/svg+xml" '
+        f'aria-label="Sourced evidence distribution for {esc(benchmark_id)}">'
+        f'<a href="/b/{esc(benchmark_id)}/">Open benchmark evidence chart</a>'
+        '</object>'
+        f'<svg class="benchmark-strip-focus" viewBox="0 0 {width} {height}" '
+        f'aria-hidden="true">{"".join(focus_marks)}</svg></div>'
+    )
 
 
 def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
@@ -626,13 +648,13 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
     """Compact evidence distributions for every benchmark this model reports."""
     ids = {str(row.get("benchmark_id")) for row in model.evidence}
     entries: list[tuple[str, Benchmark, list[dict[str, Any]], str]] = []
-    for strip_number, benchmark_id in enumerate(sorted(ids), 1):
+    for benchmark_id in sorted(ids):
         bench = benchmarks.get(benchmark_id)
         rows = coverage.get(benchmark_id, [])
         if bench is None or not any(row.get("attribution") == "verified" for row in rows):
             continue
         entries.append((_benchmark_group(bench), bench, rows,
-                        _strip_svg(rows, model.model_id, f"s{strip_number}", benchmark_id)))
+                        _strip_svg(rows, model.model_id, benchmark_id)))
     entries = [entry for entry in entries if entry[3]]
     if not entries:
         return ""
@@ -665,8 +687,8 @@ def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
     return _section(
         "Benchmark standing",
         f'<div class="strip-groups">{"".join(blocks)}</div>',
-        "Every point is sourced evidence. This model is outlined and its points disclose "
-        "their source; open a benchmark for every comparison point's details and source.",
+        "Every point is sourced evidence. This model is outlined. Select any point for its "
+        "evidence date, type, configuration, and source.",
     )
 
 

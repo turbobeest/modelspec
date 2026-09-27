@@ -407,10 +407,16 @@ def test_model_strip_compacts_comparison_points() -> None:
     asset = benchmark_strip_asset(rows)
 
     assert len(strip.encode("utf-8")) < 5_000
-    assert strip.count('class="point-trigger"') == 1
+    assert strip.count('class="point-trigger"') == 0
     assert "2001 reporting models" in strip
-    assert 'href="/assets/benchmark-strips/b.svg#points"' in strip
-    assert asset.count("M") == 2_001
+    assert 'data="/assets/benchmark-strips/b.svg"' in strip
+    geometry = asset.split('<g id="points">', 1)[1].split(
+        '</g><g id="point-interactions">', 1,
+    )[0]
+    assert geometry.count("M") == 2_001
+    assert asset.count('class="point-trigger"') == 2_001
+    assert asset.count("Evidence date: 2026-09-01 (evaluated)") == 2_001
+    assert asset.count('aria-label="Open evidence source"') == 2_001
     assert "source-independent-evaluator" in asset
 
 
@@ -460,7 +466,7 @@ def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
 
     assert strips.count('class="benchmark-strip"') == 3
     assert strips.count('class="strip-point focus ') == 3
-    assert strips.count('<use href="/assets/benchmark-strips/') == 3
+    assert strips.count('<object class="benchmark-strip-asset"') == 3
     assert "MMLU subjects" in strips
     assert "MultiPL-E languages" in strips
     assert strips.index("MMLU: Anatomy") < strips.index("MMLU: Marketing")
@@ -520,9 +526,8 @@ def test_model_page_passes_coverage_to_benchmark_strips() -> None:
     assert "Benchmark standing" in html
     assert 'href="/b/b/"' in html
     assert html.count('class="strip-point focus ') == 1
-    assert html.count('href="/assets/benchmark-strips/b.svg#points"') == 1
-    assert 'class="point-trigger" href="#s1p1"' in html
-    assert 'id="s1p1" class="point-detail"' in html
+    assert html.count('data="/assets/benchmark-strips/b.svg"') == 1
+    assert 'class="point-trigger"' not in html
 
 
 def test_model_page_without_evidence_omits_benchmark_strip_frame() -> None:
