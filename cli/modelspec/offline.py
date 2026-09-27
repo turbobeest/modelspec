@@ -187,6 +187,7 @@ def snapshot_fetch(
         help=f"Credential for an origin that keys its export. Prefer the "
              f"{snap.API_KEY_ENV} environment variable: a key in argv is visible "
              f"in shell history and in `ps`."),
+    as_json: bool = typer.Option(False, "--json", help="Machine-readable output."),
 ) -> None:
     """Download the published export. The only command that needs the network.
 
@@ -219,9 +220,26 @@ def snapshot_fetch(
         # Unchanged for every failure that is not a credential one, including an
         # unreachable origin: same sentence, same exit code as before MODEL-71.
         fail(f"could not fetch the snapshot: {exc}", EXIT_ERROR)
+    decision = result.decision_fetch or {"available": False, "error": "not attempted"}
+    if as_json:
+        typer.echo(json.dumps({
+            "schema_version": SCHEMA_VERSION,
+            "command": "fetch",
+            "freshness": result.freshness(),
+            "result": {
+                "model_count": len(result.data["candidates"]["candidates"]),
+                "path": str(result.path),
+                "decision_snapshot": decision,
+            },
+        }, indent=2))
+        return
     typer.echo(f"fetched {len(result.data['candidates']['candidates'])} models "
                f"from {origin} (build {result.build_commit[:12]})")
     typer.echo(f"cached at {result.path}")
+    if decision["available"]:
+        typer.echo(f"decision   cached from {decision['origin']}")
+    else:
+        typer.echo(f"decision   unavailable: {decision['error']}")
 
 
 @snapshot_app.command("status", cls=ContractCommand)
@@ -250,6 +268,14 @@ def snapshot_status(as_json: bool = typer.Option(False, "--json")) -> None:
         typer.echo(f"fetched    {info['fetched_at']} ({info['age_days']:.1f} days ago)")
         typer.echo(f"build      {info['build_commit'][:12]} from {info['origin']}")
         typer.echo(f"stale      {info['stale']}")
+        decision = info["decision_snapshot"]
+        if decision["present"] and not decision.get("valid", True):
+            typer.echo(f"decision   invalid: {decision['error']}")
+        elif decision["present"]:
+            typer.echo(f"decision   {decision['snapshot_id']} as of {decision['as_of']} "
+                       f"({decision['age_days']:.1f} days cached; signature unverified)")
+        else:
+            typer.echo("decision   not cached")
     if not info["present"]:
         raise typer.Exit(EXIT_NO_SNAPSHOT)
 

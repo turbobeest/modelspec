@@ -98,8 +98,8 @@ export function Share({
           : `curl https://api.modelspec.dev/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(contractSpec, null, 2).replaceAll("'", "'\\''")}'`
         : tab === "CLI"
           ? demo
-            ? "# Fictional sample preview\nmodelspec decide spec.yaml --explain full --json"
-            : "modelspec decide spec.yaml --explain full --json"
+            ? "# Fictional sample preview\nmodelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
+            : "modelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
           : yaml;
   const clauses = row
     ? spec.conds.map((c, i) => {

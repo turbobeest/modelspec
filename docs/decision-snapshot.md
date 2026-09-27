@@ -113,3 +113,25 @@ The Pages workflow uses `--decision-snapshot-if-ready`. If the signing key is
 absent or the completeness gate fails, the build emits a GitHub Actions warning
 and publishes the site without the Snapshot. The warning names the gap count and
 the first 20 gaps. This mode never writes an unsigned or incomplete Snapshot.
+
+## CLI cache
+
+`modelspec snapshot fetch` downloads the published decision snapshot and
+`/api/decision/vocabulary.json` from the same origin as the rank export. It
+caches each matching pair as
+`decision/<snapshot_id>/{snapshot.json.gz,vocabulary.json}` and atomically
+replaces the text file `decision/current` to select it, under
+`$MODELSPEC_CACHE`, else `$XDG_CACHE_HOME/modelspec`, else
+`~/.cache/modelspec`. Readers therefore see the complete old generation or the
+complete new one, and cleanup keeps the current and previous generations.
+
+Before replacing the cache, the CLI applies the same `content_hash` and
+`snapshot_id` checks as `load_snapshot`. It also requires the vocabulary's
+`snapshot` field to name the downloaded snapshot. A failed check leaves the
+old cache in place and names the failed check. The public CLI does not have
+`MODELSPEC_SNAPSHOT_KEY`, so it records the HMAC signature as unverified and
+does not reject an otherwise valid snapshot for that reason.
+
+With neither `--snapshot-file` nor `MODELSPEC_DECISION_SNAPSHOT`,
+`modelspec decide` reads this cached decision snapshot. If it is absent, the
+error directs the user to run `modelspec snapshot fetch`.

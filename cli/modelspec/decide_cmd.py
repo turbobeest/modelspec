@@ -73,18 +73,21 @@ def decide(
         )
 
     base |= {"spec_hash": contract.spec_hash(spec), "explain": spec.explain}
-    if snapshot_file is None:
-        _fail(
-            base
-            | {
-                "error": {
-                    "code": "snapshot_required",
-                    "message": "pass --snapshot-file or set MODELSPEC_DECISION_SNAPSHOT",
-                }
-            },
-            ["error: pass --snapshot-file or set MODELSPEC_DECISION_SNAPSHOT"],
-            as_json,
-        )
+    using_cached_snapshot = snapshot_file is None
+    if using_cached_snapshot:
+        from .snapshot import decision_snapshot_path
+
+        snapshot_file = decision_snapshot_path()
+        if not snapshot_file.is_file():
+            message = (
+                "no cached decision snapshot. Run `modelspec snapshot fetch`, "
+                "pass --snapshot-file, or set MODELSPEC_DECISION_SNAPSHOT"
+            )
+            _fail(
+                base | {"error": {"code": "snapshot_required", "message": message}},
+                [f"error: {message}"],
+                as_json,
+            )
     if html is not None and spec.explain != "full":
         _fail(
             base
@@ -95,7 +98,9 @@ def decide(
     from decision.snapshot import load_snapshot
 
     try:
-        index = load_snapshot(snapshot_file, include_archive=True)
+        index = (load_snapshot(snapshot_file, key=None, include_archive=True)
+                 if using_cached_snapshot
+                 else load_snapshot(snapshot_file, include_archive=True))
         result = run_decision(spec, index, facets=facets)
         if html is not None:
             from decision.explain import render_html

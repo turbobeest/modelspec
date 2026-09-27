@@ -6,9 +6,11 @@ first among them. This is what they can rely on.
 ## The interface
 
 ```
-modelspec snapshot fetch [--origin URL] [--api-key KEY]
-                                          download the published export (the only networked command)
-modelspec snapshot status [--json]        what is cached, how old, which build
+modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
+                                          download the rank snapshot and, when available,
+                                          the decision snapshot and vocabulary
+                                          (the only networked command)
+modelspec snapshot status [--json]        what is cached, how old, which build or decision
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
@@ -17,8 +19,9 @@ modelspec offline class-fit [<task>]      which *class* of model a problem needs
 `modelspec decide SPEC.yaml [--explain …] [--json]` is the decision engine's
 command (MODEL-135). It speaks the **decision contract**, which is versioned on
 its own (`contract_version`) and documented in
-[`decision-contract.md`](decision-contract.md); nothing on this page applies to
-it, and it changes nothing on this page.
+[`decision-contract.md`](decision-contract.md). With neither `--snapshot-file`
+nor `MODELSPEC_DECISION_SNAPSHOT`, it reads the decision snapshot cached by
+`modelspec snapshot fetch`. It makes no network request itself.
 
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
@@ -32,6 +35,20 @@ is an option on `snapshot fetch`; it defaults to `https://modelspec.dev`.
 `--api-key` is an option on `snapshot fetch` too; it has no default and the
 supported way to supply one is the `MODELSPEC_API_KEY` environment variable
 (see "A keyed origin" below).
+
+The rank export is the required result of `snapshot fetch`. The decision
+snapshot and vocabulary are optional. The command tries the requested origin
+first. If that origin returns 404 for a decision route or cannot answer that
+route, the command tries `https://modelspec.dev` without an API key. If neither
+origin supplies a valid matching pair, the command keeps the existing decision
+cache and still completes the rank fetch. Human output reports `decision
+unavailable`; `--json` reports the same result in
+`result.decision_snapshot.available` and `result.decision_snapshot.error`.
+The cache stores each matching pair under
+`decision/<snapshot_id>/{snapshot.json.gz,vocabulary.json}` and commits a fetch
+by atomically replacing the text file `decision/current`. A fetch therefore
+leaves readers on either the complete old generation or the complete new one;
+after the switch, cleanup keeps the current and previous generations.
 
 `class-fit` accepts a task description as its argument plus `--emits`,
 `--consumes` (comma-separated), `--decides`, `--json` and `--require-fresh`.
@@ -102,6 +119,17 @@ The stable envelope fields are `schema_version`, `command`, `freshness`, and
 --json` uses the same envelope: its `result` contains `present`, `path`, and
 `size_bytes` when a snapshot exists; for an absent snapshot, `freshness` is
 `null` and `result` contains `present: false` and `message`.
+
+`snapshot status --json` also adds `result.decision_snapshot`. This additive
+object always has `present` and `path`. When present, it also has `snapshot_id`,
+`as_of`, `age_days`, `valid`, and `signature_verified` when valid. A corrupt
+cached file has `present: true`, `valid: false`, and `error`; it does not change
+the rank snapshot's status or exit code. `age_days` is the age of the
+cached file, not the snapshot's `as_of` date. A public fetch cannot verify the
+publisher's HMAC without the signing secret, so `signature_verified` is
+`false`. The fetch still checks the decision snapshot's `content_hash` and
+that its `snapshot_id` derives from that hash before it replaces any cached
+file.
 
 `offline rank --json` keeps `result` as the ranked list promised by schema 1.0.
 It adds `ranking_status`, `ranked_count`, and `unranked_count` at the envelope
@@ -655,6 +683,8 @@ put in a URL**, never written into the cached snapshot, and never printed: it
 is held in a `Credential` whose `repr` and `str` emit a 12-character `key_id`
 (the SHA-256 prefix the origin logs) instead of the secret, and every message
 `snapshot fetch` writes is passed through a redaction backstop on the way out.
+The public decision fallback uses a separate client with no authorization
+header, so the keyed origin's credential cannot reach `modelspec.dev`.
 `test_the_key_appears_in_no_output_no_error_and_no_cached_file` drives every
 branch of the command with a known key and searches stdout, stderr, the
 origin's access log and the cached snapshot for it.
