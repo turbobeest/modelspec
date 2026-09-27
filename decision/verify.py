@@ -69,6 +69,7 @@ from decision.model import (
     Verification,
     VerificationActor,
     VerificationTarget,
+    evidence_verification_value,
     value_hash,
 )
 from decision.normalise import (
@@ -136,7 +137,7 @@ class Claim:
             names=tuple(names),
             field=evidence.benchmark_id,
             label=label,
-            value=evidence.score,
+            value=evidence_verification_value(evidence),
             unit=evidence.unit,
             conditions={"effort": evidence.effort, "harness": evidence.harness,
                         "date": evidence.evidence_date},

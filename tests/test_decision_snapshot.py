@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from decision import snapshot as snap
+from decision.model import value_hash
 from decision.registry import Registry
 from decision.registry import default as default_registry
 from decision.snapshot import (
@@ -212,6 +213,12 @@ def test_changed_evidence_metadata_is_quarantined_until_reverified(
         n=400,
         quality_flags=["deprecated"],
     )
+    assert checked["verification"]["target"]["value_hash"] == value_hash({
+        "score": 55.0,
+        "interval": [52.0, 58.0],
+        "n": 400,
+        "quality_flags": ["deprecated"],
+    })
     checked[field] = mutated
 
     index = load(build(tmp_path, evidence=[checked]))

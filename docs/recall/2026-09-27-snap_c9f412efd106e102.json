@@ -4,7 +4,7 @@
   "questions": [
     {
       "decision": {
-        "decision_id": "dec_79510e5cbf6f2ab25411e0c1",
+        "decision_id": "dec_fb5bd0f493737ae1079753ef",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -189,7 +189,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_7b572adc6098ea0bfb62cf79",
+        "decision_id": "dec_09b72a835902d077d6fbb170",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -374,7 +374,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_256d5b30f7759fbb66eab917",
+        "decision_id": "dec_8af6f37ef96a3cd09c900a40",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -595,7 +595,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_b1b38c7bf66adc92428ca5a0",
+        "decision_id": "dec_d03b1d9bf2cd8c24a4aaef8c",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -792,7 +792,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_b1b38c7bf66adc92428ca5a0",
+        "decision_id": "dec_d03b1d9bf2cd8c24a4aaef8c",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -989,7 +989,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_0b7263197d7d6118e12c093a",
+        "decision_id": "dec_0cc29d75640c22ddd193c9c5",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1123,7 +1123,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_9ddea3ef418e97db8b566c2f",
+        "decision_id": "dec_878a9cddbb007bcfa41291dd",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1378,7 +1378,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_94a7283ecfac9998f959da9c",
+        "decision_id": "dec_d99d459140d56bcf8f15b65f",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1503,7 +1503,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_148f51922d7430af30aa4de6",
+        "decision_id": "dec_6000cfe6761d8bdfcbe5248b",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1628,7 +1628,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_7a1eb598ceea0677c4531206",
+        "decision_id": "dec_407a85b8e2c58f7bf7b19374",
         "may_qualify": [
           {
             "model": "meta/muse-spark",
@@ -1687,7 +1687,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_423f37f439c055f4d1f0b0dd",
+        "decision_id": "dec_34b47df14fbb3b8b5aeca552",
         "may_qualify": [
           {
             "model": "meta/muse-spark",
@@ -1741,7 +1741,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_4189243c1d8fbc0bac001e48",
+        "decision_id": "dec_bec86e11f5e84839efd6a578",
         "may_qualify": [
           {
             "model": "deepseek/deepseek-v4-pro",
@@ -1840,7 +1840,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_15da653cccc81549a548b962",
+        "decision_id": "dec_e40709de66bd8968342b8596",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-flash-next",
@@ -1902,7 +1902,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_4af1a9f34014d394ee979102",
+        "decision_id": "dec_64972c46dfa791b749b11d84",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -2150,7 +2150,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_2b7a881c950c2c4eabe3bd53",
+        "decision_id": "dec_9d7f82ac6a24ace1a1073a8c",
         "may_qualify": [
           {
             "model": "microsoft/harrier-oss-v1-27b",
@@ -2216,7 +2216,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_aec453890f03b78e89c798fb",
+        "decision_id": "dec_91518e74396940268a1bc62f",
         "may_qualify": [
           {
             "model": "kingsoft/qzhou-embedding",
@@ -2270,7 +2270,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_41be141162bf58dad5d6f4cb",
+        "decision_id": "dec_b341efab8f5a45950feba9b2",
         "may_qualify": [],
         "may_qualify_count": 0,
         "out_of_lineup": 1334,
@@ -2311,7 +2311,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_6864e3d39e23102c8ae3c143",
+        "decision_id": "dec_705527c4210d0b5a26e74b60",
         "may_qualify": [
           {
             "model": "deepseek/deepseek-v4-pro",
@@ -2425,7 +2425,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_b2578987b3b62c63f76b6b47",
+        "decision_id": "dec_e5abb04304bd00db28db7451",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -2610,7 +2610,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_316c8321c595bad8aa7f0638",
+        "decision_id": "dec_0fcce1395c7b0388cbff3464",
         "may_qualify": [],
         "may_qualify_count": 0,
         "out_of_lineup": 1334,
@@ -2636,7 +2636,7 @@
     }
   ],
   "report_date": "2026-09-27",
-  "snapshot": "snap_a156317e35a7b505",
+  "snapshot": "snap_c9f412efd106e102",
   "snapshot_as_of": "2026-09-27",
   "snapshot_excluded": {
     "quarantined": 30

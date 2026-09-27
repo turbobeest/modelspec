@@ -1013,6 +1013,48 @@ def test_claims_build_from_model_evidence(store, regions) -> None:
     assert [d.field for d in result.diffs] == ["harness"]
 
 
+def test_claim_from_evidence_binds_decision_affecting_metadata() -> None:
+    from decision.model import Evidence
+
+    evidence = Evidence(
+        id="alpha-composite",
+        subject={"kind": "model", "id": "lab/alpha"},
+        benchmark_id="seeded-coding",
+        model_id_as_evaluated="Alpha",
+        score=55.0,
+        interval=[51.0, 59.0],
+        n=500,
+        quality_flags=["deprecated"],
+        unit="percent",
+        source_url="https://leaderboard.example.test/coding",
+        source_kind="independent_evaluator",
+        evidence_date="2026-08-14",
+        date_type="evaluated",
+        verified_at="2026-08-20",
+        sources=[{
+            "source_id": "seeded-leaderboard",
+            "snapshot_ref": "sha256:" + "0" * 64,
+            "cited_regions": ["results"],
+        }],
+    )
+
+    claim = verify.Claim.from_evidence(
+        evidence,
+        names=["Alpha"],
+        collector=COLLECTOR,
+    )
+
+    assert claim.value == {
+        "score": 55.0,
+        "interval": [51.0, 59.0],
+        "n": 500,
+        "quality_flags": ["deprecated"],
+    }
+    assert value_hash(claim.value) == (
+        "sha256:671b0003430ee71833ba940afc9cf532504e4743f68e90afbbcc8977d81bbd9f"
+    )
+
+
 def _harness_reading(harness: str | None) -> _FakeLLM:
     return _FakeLLM(json.dumps([{
         "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens", "harness": harness,
