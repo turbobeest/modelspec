@@ -68,10 +68,8 @@ jobs:
           name: pytest-shard-${{ matrix.index }}-collection
           path: shard-${{ matrix.index }}-collection.txt
 
-  required-pytest:
-    name: Run pytest
-    needs: pytest-shards
-    if: always()
+  pytest-perf-and-collection:
+    name: pytest perf and collection
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -105,16 +103,43 @@ jobs:
         run: python -m pytest -q -p no:xdist -m perf
       - name: Collect the full non-performance suite
         run: python -m pytest --collect-only -q -m "not perf" > full-collection.txt
+      - name: Upload full collection
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-full-collection
+          path: full-collection.txt
+
+  required-pytest:
+    name: Run pytest
+    needs: [pytest-shards, pytest-perf-and-collection]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require pytest jobs to succeed
+        if: always()
+        env:
+          SHARD_RESULT: ${{ needs.pytest-shards.result }}
+          PERF_RESULT: ${{ needs.pytest-perf-and-collection.result }}
+        run: |
+          test "$SHARD_RESULT" = success || {
+            echo "::error::pytest shards finished with result: $SHARD_RESULT"
+            exit 1
+          }
+          test "$PERF_RESULT" = success || {
+            echo "::error::pytest perf and collection finished with result: $PERF_RESULT"
+            exit 1
+          }
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Download shard collections
         uses: actions/download-artifact@v4
         with:
           pattern: pytest-shard-*-collection
           path: shard-collections
           merge-multiple: true
+      - name: Download full collection
+        uses: actions/download-artifact@v4
+        with:
+          name: pytest-full-collection
       - name: Verify shard coverage
         run: python scripts/verify_pytest_shards.py full-collection.txt shard-collections/*.txt
-      - name: Require every shard to succeed
-        if: always()
-        env:
-          SHARD_RESULT: ${{ needs.pytest-shards.result }}
-        run: test "$SHARD_RESULT" = success

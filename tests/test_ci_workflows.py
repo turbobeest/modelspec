@@ -57,13 +57,17 @@ def test_pytest_aggregator_preserves_the_required_check_contract() -> None:
     required = jobs["required-pytest"]
     assert [job.get("name") for job in jobs.values()].count("Run pytest") == 1
     assert required["name"] == "Run pytest"
-    assert required["needs"] == "pytest-shards"
+    assert required["needs"] == ["pytest-shards", "pytest-perf-and-collection"]
     assert required["if"] == "always()"
-    gate = next(step for step in required["steps"]
-                if step.get("name") == "Require every shard to succeed")
+    assert "pip install" not in yaml.safe_dump(required)
+    gate = required["steps"][0]
+    assert gate["name"] == "Require pytest jobs to succeed"
     assert gate["if"] == "always()"
     assert gate["env"]["SHARD_RESULT"] == "${{ needs.pytest-shards.result }}"
-    assert gate["run"] == 'test "$SHARD_RESULT" = success'
+    assert gate["env"]["PERF_RESULT"] == \
+        "${{ needs.pytest-perf-and-collection.result }}"
+    assert 'test "$SHARD_RESULT" = success' in gate["run"]
+    assert 'test "$PERF_RESULT" = success' in gate["run"]
 
 
 def test_pytest_matrix_matches_the_file_splitter() -> None:
@@ -84,9 +88,15 @@ def test_pytest_matrix_matches_the_file_splitter() -> None:
 
 
 def test_timing_tests_run_serially_exactly_once() -> None:
-    workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
-    assert workflow.count("name: Run timing tests serially") == 1
-    assert workflow.count("python -m pytest -q -p no:xdist -m perf") == 1
+    import yaml
+
+    workflow_text = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
+    workflow = yaml.safe_load(workflow_text)
+    perf_job = workflow["jobs"]["pytest-perf-and-collection"]
+    perf_command = "python -m pytest -q -p no:xdist -m perf"
+    assert workflow_text.count("name: Run timing tests serially") == 1
+    assert workflow_text.count(perf_command) == 1
+    assert any(step.get("run") == perf_command for step in perf_job["steps"])
 
 
 def test_file_splitter_assigns_every_test_file_once() -> None:
