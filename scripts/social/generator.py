@@ -9,6 +9,7 @@ import base64
 import json
 import shutil
 import subprocess
+import tempfile
 import textwrap
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -605,6 +606,20 @@ def _write_draft(root: Path, draft: dict[str, Any], disclosure: str, model_id: s
     draft["platforms"] = platforms
 
 
+def _replace_output(root: Path, staging: Path) -> None:
+    previous = staging.with_name(f"{staging.name}.previous")
+    if root.exists():
+        root.replace(previous)
+    try:
+        staging.replace(root)
+    except BaseException:
+        if previous.exists():
+            previous.replace(root)
+        raise
+    if previous.exists():
+        shutil.rmtree(previous)
+
+
 def generate(
     *,
     model_id: str,
@@ -649,21 +664,27 @@ def generate(
     if not kept:
         raise ValueError(f"the snapshot supports no social angle for {model_id}")
     root = Path(output_dir)
-    root.mkdir(parents=True, exist_ok=True)
+    root.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{root.name}.", dir=root.parent))
     disclosure = _disclosure(model_id)
-    for draft in kept:
-        _validate_draft(draft)
-        _write_draft(root, draft, disclosure, model_id)
-    manifest = {
-        "schema_version": 1,
-        "model": model_id,
-        "snapshot": current.snapshot_id,
-        "previous_snapshot": previous.snapshot_id if previous else None,
-        "accuracy_report": Path(accuracy_report_path).name,
-        "automatic_posting": False,
-        "drafts": kept,
-    }
-    (root / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    try:
+        for draft in kept:
+            _validate_draft(draft)
+            _write_draft(staging, draft, disclosure, model_id)
+        manifest = {
+            "schema_version": 1,
+            "model": model_id,
+            "snapshot": current.snapshot_id,
+            "previous_snapshot": previous.snapshot_id if previous else None,
+            "accuracy_report": Path(accuracy_report_path).name,
+            "automatic_posting": False,
+            "drafts": kept,
+        }
+        (staging / "manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        _replace_output(root, staging)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
     return manifest

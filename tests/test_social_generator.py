@@ -163,6 +163,54 @@ def test_fixture_snapshot_is_deterministic_and_has_no_unsourced_numbers(
                     assert claim["citation"] in text
 
 
+def test_same_output_directory_matches_the_latest_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    current = tmp_path / "current.json.gz"
+    previous = tmp_path / "previous.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 90.0, "lab/beta": 80.0, "lab/gamma": 70.0},
+    )
+    _snapshot(
+        previous,
+        {"lab/alpha": 60.0, "lab/beta": 90.0, "lab/gamma": 80.0},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+    output = tmp_path / "out"
+
+    def write_png(svg: Path, png: Path) -> bool:
+        png.write_bytes(b"old png")
+        return True
+
+    monkeypatch.setattr(generator, "_png", write_png)
+    generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        previous_snapshot_path=previous,
+        accuracy_report_path=report,
+        output_dir=output,
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+    assert (output / "new_entrant" / "x.png").is_file()
+
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    manifest = generate(
+        model_id="lab/delta",
+        snapshot_path=current,
+        accuracy_report_path=report,
+        output_dir=output,
+        snapshot_key=KEY,
+    )
+
+    assert [draft["angle"] for draft in manifest["drafts"]] == ["honest_gaps"]
+    assert {path.name for path in output.iterdir()} == {"honest_gaps", "manifest.json"}
+    assert not list(output.rglob("*.png"))
+    assert json.loads((output / "manifest.json").read_text(encoding="utf-8")) == manifest
+
+
 @pytest.mark.parametrize(
     ("mutate", "message"),
     [
