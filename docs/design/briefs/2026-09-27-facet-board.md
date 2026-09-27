@@ -130,6 +130,28 @@ Top to bottom, beside or below the board:
 4. **Why** panel (exists): contributions, evidence and provenance, condition
    checks, what each condition costs, near misses, why not X, offerings.
 
+## My estate: what the person already has (decided)
+
+People don't choose from the whole market. They already hold API keys for
+some providers, one or more subscriptions, and sometimes hardware. They set
+this once, and it rides on every decision:
+
+- **Provider accounts**, meaning which providers they can buy from today.
+- **Subscriptions** across the industry: for example Claude Pro, Max 5x and
+  Max 20x, and the ChatGPT and Gemini plans. A subscription changes the
+  marginal cost of the models it covers, and people believe it gives a volume
+  discount. The page has to show that belief as a number with its basis.
+- **Hardware**, for example an RTX 5090 or a DGX Spark. An open-weights model
+  that fits a person's machine is a self-hosted option.
+
+**Two answers, side by side (decided):** "with what you have" and "if you
+could use anything", and the gap between them explained: what you would gain
+by adding a provider, a plan or a machine. Offerings the person already has
+are marked as theirs and costed at their marginal price.
+
+This layer is phase 1 in the URL and in browser storage, like saved boards,
+and moves to the account later.
+
 ## What the person leaves with (decided: all four)
 
 The Share dialog already has a tab for each of these. The design pass makes
@@ -194,10 +216,19 @@ These are tickets, not design. The design should assume they land.
 5. **Data gaps that the board will expose:** speed (0/38), private deployment
    and fits-hardware (0/32). The self-host need cannot be answered well until
    these are researched.
-6. **The CLI tab advertises a command that fails.** It shows
+6. **Subscriptions are not modelled.** Offerings are priced per token at
+   list price. A subscription needs its own offering kind: plan price, the
+   models it covers, the usage allowance, and whether its terms allow
+   programmatic or agent use. Allowances are often unpublished or change by
+   usage window, so the effective cost per task is an estimate with its
+   basis shown, and null where nothing is published. A null beats a guess.
+7. **Hardware fit has no values.** `model.fits_hardware` is 0/32. The repo
+   has device SKUs in `hardware/` and `offline fit`, which works out what a
+   machine can run; the decide engine needs the same answer per model.
+8. **The CLI tab advertises a command that fails.** It shows
    `modelspec decide spec.yaml`, but `decide` needs a decision snapshot file
    and no CLI command downloads one. Phase 2 of this session maps the CLI.
-7. **Stale copy:** "A small classifier turns this into conditions" (it is a
+9. **Stale copy:** "A small classifier turns this into conditions" (it is a
    keyword table) and "SWE-bench Pro is preselected for Measured by" (the
    estimate is preselected since MODEL-167). Both go with the text box.
 
