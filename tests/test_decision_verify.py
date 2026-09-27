@@ -609,6 +609,80 @@ def test_structured_snapshot_rows_are_read_by_subject_and_label() -> None:
     assert verify.compare(claim, readings) == []
 
 
+def test_structured_reader_verifies_evidence_uncertainty_and_quality_metadata() -> None:
+    sources = {
+        "arena": json.dumps({"rows": [{
+            "model_name": "GPT-6 Astra",
+            "rating": 1507.5817,
+            "rating_lower": 1499.4288,
+            "rating_upper": 1515.7347,
+            "vote_count": 5783.0,
+            "leaderboard_publish_date": "2026-09-13",
+        }]}),
+        "math": json.dumps({"rows": [{
+            "model": "GPT-6 Astra",
+            "accuracy": 95.83,
+            "release_warning": True,
+        }]}),
+        "math-quality": json.dumps({"rows": [{
+            "model": "AIME 2026",
+            "deprecated": True,
+        }]}),
+    }
+
+    class Regions:
+        def text(self, source_id: str, copy_ref: str, region_id: str) -> str | None:
+            return sources[source_id]
+
+    def ref(source_id: str) -> SourceRef:
+        return SourceRef(
+            source_id=source_id,
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["rows"],
+        )
+
+    arena = verify.Claim(
+        target=TargetRef(kind="evidence", id="astra-arena"),
+        subject="openai/gpt-6-astra",
+        names=("GPT-6 Astra",),
+        field="arena_elo_overall",
+        label="rating",
+        value={
+            "score": 1507.58,
+            "interval": [1499.43, 1515.73],
+            "n": 5783,
+            "quality_flags": [],
+        },
+        unit="Arena score (Elo scale)",
+        conditions={"date": "2026-09-13"},
+        collector=COLLECTOR,
+        sources=(ref("arena"),),
+    )
+    quality = verify.Claim(
+        target=TargetRef(kind="evidence", id="astra-aime"),
+        subject="openai/gpt-6-astra",
+        names=("GPT-6 Astra",),
+        field="aime_2026",
+        label="accuracy",
+        value={
+            "score": 95.83,
+            "interval": None,
+            "n": None,
+            "quality_flags": ["contamination_warning", "deprecated"],
+        },
+        unit="percent",
+        collector=COLLECTOR,
+        sources=(ref("math"), ref("math-quality")),
+    )
+
+    for claim in (arena, quality):
+        result = verify.verify(
+            claim, Regions(), verify.deterministic_extractors(), today=TODAY
+        )
+        assert result.outcome == "verified"
+        assert result.verification.target.value_hash == value_hash(claim.value)
+
+
 def test_the_collector_never_verifies_its_own_value(store, regions) -> None:
     # The collector is the same agent and model family as the only extractor that accepts
     # prose: model validation refuses the pair, so nothing is verified.

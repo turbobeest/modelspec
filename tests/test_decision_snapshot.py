@@ -193,6 +193,33 @@ def test_changed_value_is_quarantined_until_it_is_reverified(tmp_path):
     assert index.excluded == {"quarantined": 1}
 
 
+@pytest.mark.parametrize(
+    ("field", "mutated"),
+    [
+        ("interval", [51.0, 59.0]),
+        ("n", 500),
+        ("quality_flags", ["contamination_warning"]),
+    ],
+)
+def test_changed_evidence_metadata_is_quarantined_until_reverified(
+    tmp_path, field, mutated
+):
+    checked = evidence(
+        "lab/alpha",
+        "swe_bench_pro",
+        55.0,
+        interval=[52.0, 58.0],
+        n=400,
+        quality_flags=["deprecated"],
+    )
+    checked[field] = mutated
+
+    index = load(build(tmp_path, evidence=[checked]))
+
+    assert index.evidence("lab/alpha", "swe_bench_pro") == ()
+    assert index.excluded == {"quarantined": 1}
+
+
 def test_unverified_evidence_never_enters(tmp_path):
     rows = [evidence("lab/alpha", "swe_bench_pro", 55.0, outcome=None),
             evidence("lab/alpha", "swe_bench_pro", 56.0, outcome="mismatch")]

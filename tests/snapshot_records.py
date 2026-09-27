@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from decision.model import value_hash
+from decision.model import evidence_verification_value, value_hash
 from decision.snapshot import (
     EvidenceValue,
     FactValue,
@@ -100,7 +100,9 @@ def evidence(mid, benchmark, score, *, eid=None, measured_by="independent_evalua
         "sources": [source_ref(source)],
     }
     if outcome:
-        row["verification"] = verification("evidence", eid, outcome, value=score)
+        row["verification"] = verification(
+            "evidence", eid, outcome, value=evidence_verification_value(row)
+        )
     return row
 
 

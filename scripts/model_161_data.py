@@ -17,7 +17,7 @@ from typing import Any
 
 import yaml
 
-from decision.model import SourceRef, TargetRef, VerificationActor
+from decision.model import SourceRef, TargetRef, VerificationActor, evidence_verification_value
 from decision.sources import CopyStore, load_sources
 from decision.verify import Claim, Queue
 from pipeline.hardware import WORKING_ALLOWANCE, fitting_quants, weights_gb
@@ -242,7 +242,7 @@ def evidence_claim(model_id: str, row: dict[str, Any]) -> Claim:
         names=names(model_id, row, data),
         field=row["benchmark_id"],
         label="rating" if row["benchmark_id"] == "arena_elo_overall" else "accuracy",
-        value=row["score"],
+        value=evidence_verification_value(row),
         unit=row.get("unit"),
         conditions={
             "effort": row.get("effort"),

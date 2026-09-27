@@ -49,7 +49,7 @@ from typing import Any, Literal, Protocol, runtime_checkable
 import yaml
 
 from decision.excluded import ExcludedSources, excluded_sources
-from decision.model import value_hash, verification_counts
+from decision.model import evidence_verification_value, value_hash, verification_counts
 
 FORMAT = "modelspec.decision-snapshot"
 FORMAT_VERSION = 1
@@ -455,7 +455,11 @@ class _Compiler:
 
     def _retain(self, kind: str, record: dict) -> str:
         rid = str(record.get("id") or content_hash(record))
-        value = record.get("value") if kind == "fact" else record.get("score")
+        value = (
+            record.get("value")
+            if kind == "fact"
+            else evidence_verification_value(record)
+        )
         retained = {**record, "verification": self._verification(
             kind, record.get("id"), record.get("verification"), value)}
         if rid in self.records and self.records[rid] != retained:
@@ -572,7 +576,12 @@ class _Compiler:
         if sid not in self.subjects:
             raise SnapshotBuildError(f"evidence {e.get('id')!r} names {sid}, which is not in the catalogue")
         source_ids = self._source_ids(e.get("sources"))
-        reason = self._admit("evidence", e.get("id"), e.get("verification"), e.get("score"), source_ids,
+        reason = self._admit(
+            "evidence",
+            e.get("id"),
+            e.get("verification"),
+            evidence_verification_value(e),
+            source_ids,
                              extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
         if reason is not None:
             self._exclude(sid, reason)
