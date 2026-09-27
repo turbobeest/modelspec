@@ -111,6 +111,10 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(dialog).toHaveTextContent("https://api.modelspec.dev/v1/decide");
   expect(dialog).not.toHaveTextContent(/fictional/i);
   expect(dialog).not.toHaveTextContent('"task"');
+  fireEvent.click(within(dialog).getByRole("tab", { name: "CLI" }));
+  expect(dialog).toHaveTextContent(
+    "modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
+  );
 });
 
 it("switches the ranking benchmark in one click from the rank-by control", async () => {

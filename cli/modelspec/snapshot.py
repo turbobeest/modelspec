@@ -70,6 +70,11 @@ OPTIONAL_PARTS = {
     "hosts": "/api/hosts.json",
 }
 
+DECISION_SNAPSHOT_ROUTE = "/api/decision/snapshot.json.gz"
+DECISION_VOCABULARY_ROUTE = "/api/decision/vocabulary.json"
+DECISION_SNAPSHOT_FILENAME = "decision-snapshot.json.gz"
+DECISION_VOCABULARY_FILENAME = "decision-vocabulary.json"
+
 #: Past this, the snapshot is still served but every answer says it is stale.
 #: Model releases move weekly, so a month-old snapshot is a different world.
 STALE_AFTER_DAYS = 30
@@ -96,6 +101,14 @@ def cache_dir() -> Path:
         return Path(override).expanduser()
     base = os.environ.get("XDG_CACHE_HOME") or "~/.cache"
     return Path(base).expanduser() / "modelspec"
+
+
+def decision_snapshot_path(directory: Path | None = None) -> Path:
+    return (directory or cache_dir()) / DECISION_SNAPSHOT_FILENAME
+
+
+def decision_vocabulary_path(directory: Path | None = None) -> Path:
+    return (directory or cache_dir()) / DECISION_VOCABULARY_FILENAME
 
 
 @dataclass(frozen=True)
@@ -391,6 +404,8 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
     directory = target or cache_dir()
     directory.mkdir(parents=True, exist_ok=True)
     payload: dict[str, Any] = {}
+    decision_data: bytes
+    vocabulary: dict[str, Any]
     headers = credential.headers() if credential is not None else {}
 
     def get(route: str) -> Any:
@@ -417,6 +432,32 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
                 raise
             except Exception:  # noqa: BLE001 - optional; `fit --host` reports its absence
                 continue
+        decision_data = get(DECISION_SNAPSHOT_ROUTE).content
+        vocabulary_raw = get(DECISION_VOCABULARY_ROUTE).json()
+
+    # A public client cannot verify the HMAC without the publishing secret. It
+    # still verifies the content hash and snapshot ID, which load_snapshot_bytes
+    # always checks. Passing key=None is deliberate: a locally configured
+    # signing key must not turn a public download into a signature failure.
+    from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
+
+    try:
+        decision = load_snapshot_bytes(
+            decision_data,
+            key=None,
+            include_archive=True,
+            source=origin + DECISION_SNAPSHOT_ROUTE,
+        )
+    except SnapshotIntegrityError as exc:
+        raise SnapshotInvalid(f"fetched decision snapshot failed integrity check: {exc}") from exc
+    if not isinstance(vocabulary_raw, dict):
+        raise SnapshotInvalid("fetched decision vocabulary is not a JSON object")
+    vocabulary = vocabulary_raw
+    if vocabulary.get("snapshot") != decision.snapshot_id:
+        raise SnapshotInvalid(
+            "fetched decision vocabulary snapshot does not match the decision snapshot "
+            f"({vocabulary.get('snapshot')!r} != {decision.snapshot_id!r})"
+        )
 
     build = (payload.get("index") or {}).get("build") or {}
     meta = {
@@ -436,9 +477,22 @@ def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
     except (TypeError, ValueError, KeyError) as exc:
         raise SnapshotInvalid(f"fetched export is unreadable or invalid: {exc}") from exc
     raw["meta"]["export_schema_version"] = parsed.export_schema_version
-    tmp = directory / f".snapshot.{os.getpid()}.tmp"
-    tmp.write_text(json.dumps(raw), encoding="utf-8")
-    tmp.replace(final)
+    writes = (
+        (directory / f".snapshot.{os.getpid()}.tmp", final,
+         json.dumps(raw).encode("utf-8")),
+        (directory / f".decision-snapshot.{os.getpid()}.tmp",
+         decision_snapshot_path(directory), decision_data),
+        (directory / f".decision-vocabulary.{os.getpid()}.tmp",
+         decision_vocabulary_path(directory), json.dumps(vocabulary).encode("utf-8")),
+    )
+    try:
+        for tmp, _destination, data in writes:
+            tmp.write_bytes(data)
+        for tmp, destination, _data in writes:
+            tmp.replace(destination)
+    finally:
+        for tmp, _destination, _data in writes:
+            tmp.unlink(missing_ok=True)
     return load(directory)
 
 
@@ -462,12 +516,33 @@ def load(directory: Path | None = None) -> Snapshot:
 
 
 def status(directory: Path | None = None) -> dict[str, Any]:
+    directory = directory or cache_dir()
+    decision_path = decision_snapshot_path(directory)
+    if decision_path.exists():
+        from decision.snapshot import load_snapshot
+
+        try:
+            decision = load_snapshot(decision_path, key=None, include_archive=True)
+        except ValueError as exc:
+            raise SnapshotInvalid(f"cached decision snapshot is invalid: {exc}") from exc
+        decision_status: dict[str, Any] = {
+            "present": True,
+            "path": str(decision_path),
+            "snapshot_id": decision.snapshot_id,
+            "as_of": decision.as_of.isoformat() if decision.as_of else None,
+            "age_days": round(age_of(decision_path), 2),
+            "signature_verified": decision.signature_verified,
+        }
+    else:
+        decision_status = {"present": False, "path": str(decision_path)}
     try:
         snap = load(directory)
     except SnapshotMissing as exc:
-        return {"present": False, "message": str(exc)}
+        return {"present": False, "message": str(exc),
+                "decision_snapshot": decision_status}
     size = snap.path.stat().st_size
-    return {"present": True, "size_bytes": size, "path": str(snap.path), **snap.freshness()}
+    return {"present": True, "size_bytes": size, "path": str(snap.path),
+            "decision_snapshot": decision_status, **snap.freshness()}
 
 
 def age_of(path: Path) -> float:

@@ -7,8 +7,9 @@ first among them. This is what they can rely on.
 
 ```
 modelspec snapshot fetch [--origin URL] [--api-key KEY]
-                                          download the published export (the only networked command)
-modelspec snapshot status [--json]        what is cached, how old, which build
+                                          download the rank and decision snapshots and vocabulary
+                                          (the only networked command)
+modelspec snapshot status [--json]        what is cached, how old, which build or decision
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
@@ -17,8 +18,9 @@ modelspec offline class-fit [<task>]      which *class* of model a problem needs
 `modelspec decide SPEC.yaml [--explain …] [--json]` is the decision engine's
 command (MODEL-135). It speaks the **decision contract**, which is versioned on
 its own (`contract_version`) and documented in
-[`decision-contract.md`](decision-contract.md); nothing on this page applies to
-it, and it changes nothing on this page.
+[`decision-contract.md`](decision-contract.md). With neither `--snapshot-file`
+nor `MODELSPEC_DECISION_SNAPSHOT`, it reads the decision snapshot cached by
+`modelspec snapshot fetch`. It makes no network request itself.
 
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
@@ -102,6 +104,15 @@ The stable envelope fields are `schema_version`, `command`, `freshness`, and
 --json` uses the same envelope: its `result` contains `present`, `path`, and
 `size_bytes` when a snapshot exists; for an absent snapshot, `freshness` is
 `null` and `result` contains `present: false` and `message`.
+
+`snapshot status --json` also adds `result.decision_snapshot`. This additive
+object always has `present` and `path`. When present, it also has `snapshot_id`,
+`as_of`, `age_days`, and `signature_verified`. `age_days` is the age of the
+cached file, not the snapshot's `as_of` date. A public fetch cannot verify the
+publisher's HMAC without the signing secret, so `signature_verified` is
+`false`. The fetch still checks the decision snapshot's `content_hash` and
+that its `snapshot_id` derives from that hash before it replaces any cached
+file.
 
 `offline rank --json` keeps `result` as the ranked list promised by schema 1.0.
 It adds `ranking_status`, `ranked_count`, and `unranked_count` at the envelope

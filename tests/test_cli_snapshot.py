@@ -9,6 +9,7 @@ script has to tell apart.
 from __future__ import annotations
 
 import functools
+import gzip
 import json
 import shutil
 import subprocess
@@ -25,6 +26,9 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from api.ranking.engine import USE_CASE_PROFILES  # noqa: E402
 from cli.modelspec import offline, snapshot  # noqa: E402
+from decision.snapshot import Snapshot as DecisionSnapshot  # noqa: E402
+from decision.snapshot import content_hash as decision_content_hash  # noqa: E402
+from decision.snapshot import snapshot_id_for  # noqa: E402
 
 
 @pytest.fixture
@@ -56,6 +60,49 @@ def _write(directory: Path, fetched_at: datetime | None = None) -> None:
                                     "memory_gb": 24, "memory_bandwidth_gb_s": 1000}]},
         },
     }), encoding="utf-8")
+
+
+def _decision_artifacts() -> tuple[bytes, dict]:
+    content = {
+        "format_version": 1,
+        "as_of": "2026-09-27",
+        "facet_subjects": {"model.context_window": "model"},
+        "lineup": {
+            "candidates": [{"id": "a/one", "kind": "model", "model": "a/one",
+                            "lifecycle": "active"}],
+            "facets": {"model.context_window": {
+                "row": [0], "state": ["known"], "value": [128000], "sources": [[]],
+            }},
+            "evidence": {},
+        },
+        "archive": {"candidates": [], "facets": {}, "evidence": {}},
+        "out_of_lineup": 0,
+        "benchmark_domains": {},
+        "capability": {},
+        "sources": {},
+        "excluded": {},
+    }
+    digest = decision_content_hash(content)
+    built = DecisionSnapshot(content, digest, snapshot_id_for(digest))
+    return built.to_bytes(key="publisher-only-key"), {
+        "vocabulary_version": 1,
+        "snapshot": built.snapshot_id,
+    }
+
+
+def _fetch_bodies() -> dict[str, object]:
+    decision, vocabulary = _decision_artifacts()
+    return {
+        "/api/index.json": {
+            "build": {"commit": "newcommit", "built_at": "2026-09-10T00:00:00+00:00",
+                      "export_schema_version": snapshot.EXPORT_SCHEMA_VERSION},
+        },
+        "/api/rank/candidates.json": {"candidates": []},
+        "/api/rank/profiles.json": {"profiles": {}},
+        "/api/graph/views/hardware.json": {"nodes": []},
+        snapshot.DECISION_SNAPSHOT_ROUTE: decision,
+        snapshot.DECISION_VOCABULARY_ROUTE: vocabulary,
+    }
 
 
 # ── the snapshot ─────────────────────────────────────────────────────────────
@@ -97,7 +144,111 @@ def test_an_old_snapshot_is_stale_but_still_loads(cache: Path) -> None:
 
 
 def test_status_reports_absence_without_raising(cache: Path) -> None:
-    assert snapshot.status(cache)["present"] is False
+    status = snapshot.status(cache)
+    assert status["present"] is False
+    assert status["decision_snapshot"]["present"] is False
+
+
+def test_fetch_caches_the_decision_snapshot_and_vocabulary(cache: Path, monkeypatch) -> None:
+    import httpx
+
+    bodies = _fetch_bodies()
+
+    class FakeResponse:
+        status_code = 200
+        headers: dict[str, str] = {}
+
+        def __init__(self, body: object) -> None:
+            self._body = body
+            self.content = body if isinstance(body, bytes) else json.dumps(body).encode()
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._body
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> None:
+            return None
+
+        def get(self, url: str) -> FakeResponse:
+            route = next((route for route in bodies if url.endswith(route)), None)
+            if route is None:
+                return FakeResponse({})
+            return FakeResponse(bodies[route])
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    snapshot.fetch("https://example.test", cache)
+
+    decision_path = snapshot.decision_snapshot_path(cache)
+    assert decision_path.read_bytes() == bodies[snapshot.DECISION_SNAPSHOT_ROUTE]
+    assert json.loads(snapshot.decision_vocabulary_path(cache).read_text())["snapshot"].startswith(
+        "snap_"
+    )
+    decision_status = snapshot.status(cache)["decision_snapshot"]
+    assert decision_status["present"] is True
+    assert decision_status["signature_verified"] is False
+    assert decision_status["as_of"] == "2026-09-27"
+
+
+def test_fetch_refuses_decision_hash_mismatch_and_keeps_old_cache(
+    cache: Path, monkeypatch
+) -> None:
+    import httpx
+
+    _write(cache)
+    old_decision, old_vocabulary = _decision_artifacts()
+    snapshot.decision_snapshot_path(cache).write_bytes(old_decision)
+    snapshot.decision_vocabulary_path(cache).write_text(json.dumps(old_vocabulary))
+    originals = {path: path.read_bytes() for path in (
+        cache / "snapshot.json", snapshot.decision_snapshot_path(cache),
+        snapshot.decision_vocabulary_path(cache),
+    )}
+    bodies = _fetch_bodies()
+    envelope = json.loads(gzip.decompress(bodies[snapshot.DECISION_SNAPSHOT_ROUTE]))
+    envelope["content"]["as_of"] = "2026-09-26"
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = gzip.compress(
+        json.dumps(envelope).encode(), mtime=0
+    )
+
+    class FakeResponse:
+        status_code = 200
+        headers: dict[str, str] = {}
+
+        def __init__(self, body: object) -> None:
+            self._body = body
+            self.content = body if isinstance(body, bytes) else json.dumps(body).encode()
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._body
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *args) -> None:
+            return None
+        def get(self, url: str) -> FakeResponse:
+            for route, body in bodies.items():
+                if url.endswith(route):
+                    return FakeResponse(body)
+            return FakeResponse({})
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    with pytest.raises(snapshot.SnapshotInvalid, match="content hash mismatch"):
+        snapshot.fetch("https://example.test", cache)
+    assert {path: path.read_bytes() for path in originals} == originals
 
 
 # ── the contract ─────────────────────────────────────────────────────────────
@@ -175,6 +326,7 @@ def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monke
 
         def __init__(self, body: dict) -> None:
             self._body = body
+            self.content = body if isinstance(body, bytes) else json.dumps(body).encode()
 
         def raise_for_status(self) -> None:
             return None
@@ -191,6 +343,9 @@ def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monke
         "/api/rank/profiles.json": {"profiles": {}},
         "/api/graph/views/hardware.json": {"nodes": []},
     }
+    decision, vocabulary = _decision_artifacts()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
 
     class FakeClient:
         def __init__(self, *args, **kwargs) -> None:
@@ -319,7 +474,8 @@ def test_json_output_carries_version_and_freshness(cache: Path) -> None:
     assert payload["command"] == "rank"
     assert payload["freshness"]["build_commit"] == "abc123def456"
     assert payload["freshness"]["export_schema_version"] == snapshot.EXPORT_SCHEMA_VERSION
-    assert "export_schema_version" not in payload  # tree version lives on freshness, not the envelope
+    # The tree version lives on freshness, not the envelope.
+    assert "export_schema_version" not in payload
     assert payload["ranking_status"] == "complete"
     assert payload["ranked_count"] == 1
     assert payload["unranked_count"] == 0
@@ -337,6 +493,8 @@ def test_no_match_is_its_own_exit_code(cache: Path) -> None:
 
 def test_json_status_has_the_common_envelope(cache: Path) -> None:
     _write(cache)
+    decision, _vocabulary = _decision_artifacts()
+    snapshot.decision_snapshot_path(cache).write_bytes(decision)
 
     result = _run(["snapshot", "status", "--json"], cache)
 
@@ -346,7 +504,48 @@ def test_json_status_has_the_common_envelope(cache: Path) -> None:
     assert payload["command"] == "status"
     assert payload["freshness"]["build_commit"] == "abc123def456"
     assert payload["result"]["present"] is True
+    assert payload["result"]["decision_snapshot"]["present"] is True
+    assert payload["result"]["decision_snapshot"]["snapshot_id"].startswith("snap_")
+    assert payload["result"]["decision_snapshot"]["as_of"] == "2026-09-27"
+    assert "age_days" in payload["result"]["decision_snapshot"]
     assert result.stderr == ""
+
+
+def test_decide_uses_the_cached_decision_snapshot_by_default(cache: Path) -> None:
+    decision, vocabulary = _decision_artifacts()
+    snapshot.decision_snapshot_path(cache).write_bytes(decision)
+    snapshot.decision_vocabulary_path(cache).write_text(json.dumps(vocabulary))
+    spec = cache.parent / "spec.yaml"
+    spec.write_text(
+        "spec_version: 1\n"
+        "optimize:\n  max: model.context_window\n"
+        "explain: none\n",
+        encoding="utf-8",
+    )
+
+    result = _run(["decide", str(spec), "--json"], cache)
+
+    assert result.returncode == offline.EXIT_OK, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["snapshot"] == vocabulary["snapshot"]
+    assert payload["results"][0]["offering"]["model"] == "a/one"
+
+
+def test_decide_without_a_cached_snapshot_says_to_fetch(cache: Path) -> None:
+    spec = cache.parent / "spec.yaml"
+    spec.write_text(
+        "spec_version: 1\n"
+        "optimize:\n  max: model.context_window\n"
+        "explain: none\n",
+        encoding="utf-8",
+    )
+
+    result = _run(["decide", str(spec), "--json"], cache)
+
+    assert result.returncode == offline.EXIT_ERROR
+    error = json.loads(result.stderr)["error"]
+    assert error["code"] == "snapshot_required"
+    assert "modelspec snapshot fetch" in error["message"]
 
 
 def test_json_missing_snapshot_is_structured_on_stderr(cache: Path) -> None:

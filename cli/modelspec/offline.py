@@ -250,6 +250,12 @@ def snapshot_status(as_json: bool = typer.Option(False, "--json")) -> None:
         typer.echo(f"fetched    {info['fetched_at']} ({info['age_days']:.1f} days ago)")
         typer.echo(f"build      {info['build_commit'][:12]} from {info['origin']}")
         typer.echo(f"stale      {info['stale']}")
+        decision = info["decision_snapshot"]
+        if decision["present"]:
+            typer.echo(f"decision   {decision['snapshot_id']} as of {decision['as_of']} "
+                       f"({decision['age_days']:.1f} days cached; signature unverified)")
+        else:
+            typer.echo("decision   not cached")
     if not info["present"]:
         raise typer.Exit(EXIT_NO_SNAPSHOT)
 

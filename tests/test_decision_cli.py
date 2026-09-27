@@ -32,7 +32,7 @@ def _run(tmp_path: Path, text: str, *args: str):
 def test_a_valid_spec_requires_a_local_snapshot(tmp_path) -> None:
     result = _run(tmp_path, VALID)
     assert result.exit_code == 1
-    assert "--snapshot-file" in result.output
+    assert "modelspec snapshot fetch" in result.output
 
 
 def test_json_reports_the_spec_hash_and_the_error_code(tmp_path) -> None:

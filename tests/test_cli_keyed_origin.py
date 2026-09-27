@@ -29,7 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import offline, snapshot  # noqa: E402
-from tests.test_cli_snapshot import _modelspec_cli, _write  # noqa: E402
+from tests.test_cli_snapshot import _decision_artifacts, _modelspec_cli, _write  # noqa: E402
 
 #: A key with a shape the origin would recognise (MODEL-69 mints `live_…`) and
 #: a body distinctive enough that a substring search for it cannot false-match.
@@ -52,6 +52,7 @@ def _export_bodies(commit: str = "keyedcommit01") -> dict[str, Any]:
     """The four required parts, in the shape `snapshot._snapshot_from_raw` wants."""
     from api.ranking.engine import USE_CASE_PROFILES
 
+    decision, vocabulary = _decision_artifacts()
     return {
         "/api/index.json": {"build": {
             "commit": commit, "built_at": datetime.now(UTC).isoformat(),
@@ -70,6 +71,8 @@ def _export_bodies(commit: str = "keyedcommit01") -> dict[str, Any]:
         "/api/graph/views/hardware.json": {"nodes": [{
             "id": "gpu", "label": "Hardware", "display_name": "A GPU",
             "memory_gb": 24, "memory_bandwidth_gb_s": 1000}]},
+        snapshot.DECISION_SNAPSHOT_ROUTE: decision,
+        snapshot.DECISION_VOCABULARY_ROUTE: vocabulary,
     }
 
 
@@ -93,9 +96,9 @@ class Origin:
                 # in a query string would land here, which is the point.
                 origin.access_log.append(fmt % args)
 
-            def _send(self, status: int, body: dict[str, Any],
+            def _send(self, status: int, body: dict[str, Any] | bytes,
                       headers: dict[str, str] | None = None) -> None:
-                blob = json.dumps(body).encode("utf-8")
+                blob = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(blob)))

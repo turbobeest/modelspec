@@ -492,8 +492,9 @@ field) and the `reason`.
 modelspec decide SPEC.yaml [--explain none|summary|full] [--json]
 ```
 
-`--explain` overrides the spec's `explain`. Pass `--snapshot-file SNAPSHOT.gz`
-or set `MODELSPEC_DECISION_SNAPSHOT` to a local decision snapshot. No network
+`--explain` overrides the spec's `explain`. By default the command reads the
+decision snapshot cached by `modelspec snapshot fetch`. Pass `--snapshot-file
+SNAPSHOT.gz` or set `MODELSPEC_DECISION_SNAPSHOT` to override it. No network
 request is made. `--explain full --html out.html` writes a self-contained report
 with an inline SVG contribution chart, light and dark styles, and source links.
 The command emits the decision as JSON. Invalid specs, unavailable snapshots,

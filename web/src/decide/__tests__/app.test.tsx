@@ -48,6 +48,10 @@ it("supports keyboard handles, selection, table sorting, layout and modal tabs",
   fireEvent.click(screen.getByRole("button", { name: "Dark mode" }));
   fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
   const modal = screen.getByRole("dialog");
+  fireEvent.click(within(modal).getByRole("tab", { name: "CLI" }));
+  expect(modal).toHaveTextContent(
+    "modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
+  );
   fireEvent.click(within(modal).getByRole("tab", { name: "Spec YAML" }));
   expect(modal).toHaveTextContent("fictional");
   fireEvent.keyDown(window, { key: "Escape" });
