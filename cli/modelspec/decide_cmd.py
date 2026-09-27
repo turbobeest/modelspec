@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import json
 from pathlib import Path
 from typing import Any, Optional
@@ -10,13 +11,125 @@ import typer
 
 from decision import contract
 from decision.engine import decide as run_decision
+from decision.engine import validate as validate_decision
 from decision.registry import facet
+
+from .vocabulary_cache import (
+    VocabularyInvalidError,
+    VocabularyMissingError,
+    load_cached_vocabulary,
+)
 
 EXIT_ERROR = 1
 
 
 def _facet_lookup() -> contract.FacetLookup:
     return facet
+
+
+def _leaf_conditions(condition: Any, path: str):
+    if isinstance(condition, contract.AnyOf | contract.AllOf):
+        name = "any" if isinstance(condition, contract.AnyOf) else "all"
+        for index, child in enumerate(getattr(condition, name)):
+            yield from _leaf_conditions(child, f"{path}.{name}[{index}]")
+    elif isinstance(condition, contract.NotOf):
+        yield from _leaf_conditions(condition.not_, f"{path}.not")
+    else:
+        yield condition, path
+
+
+def _vocabulary_warnings(spec: contract.Spec, vocabulary: dict[str, Any]) -> list[str]:
+    warnings: list[str] = []
+    published = {
+        row["id"]
+        for section in ("facets", "benchmarks", "domains")
+        for row in vocabulary.get(section, [])
+    }
+    providers = set(vocabulary.get("providers", {}))
+    domains = {row["id"] for row in vocabulary.get("domains", [])}
+
+    def add(path: str, value: str) -> None:
+        warning = (
+            f"{path}: {value!r} has no verified evidence in this snapshot; "
+            "results will be empty or may_qualify"
+        )
+        if warning not in warnings:
+            warnings.append(warning)
+
+    for domain in spec.capabilities or {}:
+        if domain not in domains:
+            add(f"capabilities.{domain}", domain)
+    if spec.task_type is not None and spec.task_type not in set(vocabulary.get("task_types", [])):
+        add("task_type", spec.task_type)
+    if isinstance(spec.profile, contract.InventoryProfile):
+        for index, offering in enumerate(spec.profile.offerings):
+            if offering.provider not in providers:
+                add(f"profile.offerings[{index}].provider", offering.provider)
+
+    conditions = list(enumerate(spec.where))
+    if isinstance(spec.profile, contract.InventoryProfile):
+        for index, condition in enumerate(spec.profile.rules):
+            for leaf, path in _leaf_conditions(condition, f"profile.rules[{index}]"):
+                conditions.append((path, leaf))
+    for index, condition in conditions:
+        path = f"where[{index}]" if isinstance(index, int) else index
+        leaves = (
+            _leaf_conditions(condition, path)
+            if isinstance(index, int)
+            else [(condition, path)]
+        )
+        for leaf, leaf_path in leaves:
+            facet_id = leaf.known if isinstance(leaf, contract.Known) else leaf.facet
+            if facet_id == "offering.provider" and not isinstance(leaf, contract.Known):
+                values = (
+                    (leaf.in_ or leaf.not_in)
+                    if isinstance(leaf, contract.InSet)
+                    else [getattr(leaf, "value", None)]
+                )
+                for value in values or []:
+                    if isinstance(value, str) and value not in providers:
+                        add(leaf_path, value)
+            if facet_id not in published:
+                add(leaf_path, facet_id)
+    objective = spec.optimize
+    objective_facets = [objective.max, objective.min]
+    objective_facets += list(objective.weights or {}) + list(objective.pareto or [])
+    objective_facets += [step.facet for step in objective.lexicographic or []]
+    for facet_id in objective_facets:
+        if facet_id and facet_id.removeprefix("-") not in published:
+            add("optimize", facet_id.removeprefix("-"))
+    return warnings
+
+
+def _issues(exc: contract.SpecError, vocabulary: dict[str, Any] | None) -> list[dict[str, Any]]:
+    known = set()
+    if vocabulary is not None:
+        known = {
+            row["id"]
+            for section in ("facets", "benchmarks", "domains")
+            for row in vocabulary.get(section, [])
+        }
+    rendered = []
+    for issue in exc.issues:
+        reason = issue.reason
+        if issue.field and "unknown facet" in reason:
+            close = difflib.get_close_matches(issue.field, sorted(known), n=3, cutoff=0.6)
+            extra = [item for item in close if repr(item) not in reason]
+            if extra:
+                reason += f"; cached vocabulary suggests {', '.join(repr(item) for item in extra)}"
+        rendered.append({
+            "path": issue.path, "condition": issue.condition,
+            "field": issue.field, "reason": reason,
+        })
+    return rendered
+
+
+def _summary(spec: contract.Spec) -> str:
+    objective = spec.optimize
+    prefers = (len(objective.weights or {}) + len(objective.pareto or [])
+               + len(objective.lexicographic or [])
+               + int(objective.max is not None) + int(objective.min is not None))
+    return f"musts: {len(spec.where)}, prefers: {prefers}, snapshot: {spec.snapshot}"
 
 
 def _fail(payload: dict[str, Any], lines: list[str], as_json: bool) -> None:
@@ -43,6 +156,9 @@ def decide(
     html: Optional[Path] = typer.Option(  # noqa: UP045 - Typer annotation
         None, "--html", help="Write a self-contained HTML report."
     ),
+    check: bool = typer.Option(
+        False, "--check", help="Validate against the cached vocabulary without deciding."
+    ),
 ) -> None:
     """Decide which model or offering fits a spec (the decision contract, v1)."""
     base = {"contract_version": contract.CONTRACT_VERSION, "command": "decide"}
@@ -55,6 +171,16 @@ def decide(
             as_json,
         )
 
+    vocabulary: dict[str, Any] | None = None
+    if check:
+        try:
+            vocabulary = load_cached_vocabulary()
+        except VocabularyMissingError as exc:
+            _fail(base | {"error": {"code": "snapshot_required", "message": str(exc)}},
+                  [f"error: {exc}"], as_json)
+        except VocabularyInvalidError as exc:
+            _fail(base | {"error": {"code": "decision_failed", "message": str(exc)}},
+                  [f"error: {exc}"], as_json)
     facets = _facet_lookup()
     try:
         raw = contract.load_yaml(text)
@@ -62,10 +188,7 @@ def decide(
             raw = raw | {"explain": explain}
         spec = contract.parse_spec(raw, facets=facets)
     except contract.SpecError as exc:
-        issues = [
-            {"path": i.path, "condition": i.condition, "field": i.field, "reason": i.reason}
-            for i in exc.issues
-        ]
+        issues = _issues(exc, vocabulary)
         _fail(
             base | {"error": {"code": "invalid_spec", "issues": issues}},
             ["error: invalid spec", *(f"  {issue}" for issue in exc.issues)],
@@ -101,11 +224,40 @@ def decide(
         index = (load_snapshot(snapshot_file, key=None, include_archive=True)
                  if using_cached_snapshot
                  else load_snapshot(snapshot_file, include_archive=True))
+        if check:
+            validate_decision(spec, index, facets=facets)
+            assert vocabulary is not None
+            warnings = _vocabulary_warnings(spec, vocabulary)
+            cached_snapshot = vocabulary.get("snapshot")
+            if spec.snapshot != "latest" and spec.snapshot != cached_snapshot:
+                warnings.append(
+                    f"spec pins {spec.snapshot}, but the cached vocabulary describes "
+                    f"{cached_snapshot}"
+                )
+            for warning in warnings:
+                typer.echo(f"warning: {warning}", err=True)
+            summary = _summary(spec)
+            if as_json:
+                payload = base | {
+                    "ok": True, "summary": summary, "snapshot": cached_snapshot,
+                    "warnings": warnings,
+                }
+                typer.echo(json.dumps(payload, indent=2))
+            else:
+                typer.echo(f"ok: {summary}")
+            return
         result = run_decision(spec, index, facets=facets)
         if html is not None:
             from decision.explain import render_html
 
             html.write_text(render_html(result, index), encoding="utf-8")
+    except contract.SpecError as exc:
+        issues = _issues(exc, vocabulary)
+        _fail(
+            base | {"error": {"code": "decision_failed", "issues": issues}},
+            ["error: decision failed", *(f"  {i['path']}: {i['reason']}" for i in issues)],
+            as_json,
+        )
     except (OSError, ValueError, KeyError) as exc:
         _fail(
             base | {"error": {"code": "decision_failed", "message": str(exc)}},

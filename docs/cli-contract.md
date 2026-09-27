@@ -11,6 +11,8 @@ modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
                                           the decision snapshot and vocabulary
                                           (the only networked command)
 modelspec snapshot status [--json]        what is cached, how old, which build or decision
+modelspec vocab [SECTION] [--json]        inspect the cached decision vocabulary
+modelspec decide SPEC.yaml --check        validate a spec without running a decision
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
@@ -22,6 +24,26 @@ its own (`contract_version`) and documented in
 [`decision-contract.md`](decision-contract.md). With neither `--snapshot-file`
 nor `MODELSPEC_DECISION_SNAPSHOT`, it reads the decision snapshot cached by
 `modelspec snapshot fetch`. It makes no network request itself.
+
+`modelspec vocab` reads only the vocabulary selected by `decision/current`.
+With no section it prints the snapshot ID, section counts, and the next command
+to run. The sections are `facets`, `benchmarks`, `domains`, `providers`,
+`task-types`, and `coverage`. Human output uses compact tables. In the JSON
+envelope, `result` contains the selected section or the complete vocabulary
+when no section is given. `--search TEXT` matches IDs and labels or names. `--domain DOMAIN`
+limits benchmarks to a domain. `--class CLASS` limits benchmarks to domains
+where that class has verified coverage. The vocabulary does not declare facet
+applicability by class, so `--class` does not remove facets. A missing cache
+exits 3 and tells the caller to run `modelspec snapshot fetch`.
+
+`modelspec decide SPEC.yaml --check` loads the cached decision snapshot, parses
+the spec with decide's registry, and runs decide's resolve stage. It stops before
+filtering and optimisation. Vocabulary coverage is advisory: accepted facets,
+benchmarks, domains, providers, or task types that have no published vocabulary
+row produce a warning and do not change the exit code. Resolve failures use the
+same `decision_failed` code as a real decision. Success exits 0 and reports the
+Must count, Prefer count, and snapshot pin. If a spec pins another snapshot, the
+command warns but still succeeds. `--json` applies to both success and failure.
 
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
