@@ -2,7 +2,8 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
-  boardToSpec, estateSpec, groupFacets, showsFacetBoard, supportsPreference,
+  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, groupFacets,
+  showsFacetBoard, supportsPreference, toBoardDecisionSpec,
 } from "../facet-board/model";
 import type { BoardSelections } from "../facet-board/model";
 import { realBaseSpec } from "../vocabulary";
@@ -16,7 +17,7 @@ describe("facet board launch gate", () => {
 
 describe("facet state mapping", () => {
   const base = realBaseSpec(smallVocabulary);
-  const contract = (selections: BoardSelections) => toDecisionSpec(boardToSpec(base, smallVocabulary, selections), "full");
+  const contract = (selections: BoardSelections) => toBoardDecisionSpec(boardToSpec(base, smallVocabulary, selections), "full");
   it("maps numeric, boolean, enum, domain preference and Must+Prefer cost literally", () => {
     expect(contract({
       "model.context_window": { mode: "must", op: ">=", value: 200000 },
@@ -74,4 +75,41 @@ it("hides absent templates and expands groups with active template facets", () =
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(cost).queryByText(/coming \(MODEL-172\)/)).not.toBeInTheDocument();
   expect(screen.getAllByText("Prefer on these facets: coming (MODEL-172)").length).toBeGreaterThan(0);
+});
+
+it("reopens Must, Prefer and Must+Prefer selections and keeps them after another edit", () => {
+  const selections: BoardSelections = {
+    "model.context_window": { mode: "must", op: ">=", value: 200000 },
+    "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+    "offering.cost_per_task": { mode: "both", op: "<=", value: 0.25, weight: 0.4 },
+  };
+  const restored = decodeBoardState(encodeBoardSpec(realBaseSpec(smallVocabulary), "task$", {
+    selections,
+    estate: { providers: [], plans: [], hardware: [] },
+  }));
+  const onSpec = vi.fn();
+  render(<FacetBoard
+    vocabulary={smallVocabulary}
+    spec={realBaseSpec(smallVocabulary)}
+    selections={restored!.selections}
+    onSelections={vi.fn()}
+    onSpec={onSpec}
+    estate={restored!.estate}
+    onEstate={vi.fn()}
+  />);
+  const context = screen.getByText("Context window").closest<HTMLElement>(".facet-row")!;
+  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
+  expect(within(context).getByLabelText("Must")).toBeChecked();
+  expect(within(capability).getByLabelText("Prefer")).toBeChecked();
+  expect(within(cost).getByLabelText("Prefer")).toBeChecked();
+  expect(within(cost).getByLabelText("and never worse than…")).toBeChecked();
+
+  fireEvent.change(within(context).getByLabelText("Threshold"), { target: { value: "250000" } });
+  const next = onSpec.mock.calls.at(-1)![0];
+  expect(next.conds).toEqual(expect.arrayContaining([
+    expect.objectContaining({ facet: "model.context_window", value: 250000 }),
+    expect.objectContaining({ facet: "offering.cost_per_task", value: 0.25 }),
+  ]));
+  expect(next.boardWeights).toEqual({ software_engineering: 0.6, "-offering.cost_per_task": 0.4 });
 });

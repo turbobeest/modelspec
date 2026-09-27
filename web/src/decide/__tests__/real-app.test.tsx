@@ -113,7 +113,7 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(dialog).not.toHaveTextContent('"task"');
   fireEvent.click(within(dialog).getByRole("tab", { name: "CLI" }));
   expect(dialog).toHaveTextContent(
-    "modelspec snapshot fetch modelspec decide spec.yaml --json",
+    "modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
   );
 });
 
@@ -155,6 +155,44 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
   expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
   expect(sentSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
+});
+
+it("requests the estate once after the board decision settles", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+
+  fireEvent.change(screen.getByLabelText("Add provider"), {
+    target: { value: Object.keys(smallVocabulary.providers)[0] },
+  });
+  await waitFor(() => expect(screen.getByText(/ranked · .* may qualify/)).toBeInTheDocument());
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  const estateRequests = sentSpecs(fetch).filter((body) =>
+    body.where.some((condition: string) => condition.startsWith("offering.provider in")),
+  );
+  expect(estateRequests).toHaveLength(1);
+  expect(estateRequests[0].explain).toBe("summary");
+});
+
+it("shows a retry when the estate request fails", async () => {
+  const fetch = routeFetch({
+    decide: (init) => {
+      const body = JSON.parse(String(init?.body));
+      return body.where.some((condition: string) => condition.startsWith("offering.provider in"))
+        ? json({ error: { code: "snapshot_unavailable", message: "Try again" } }, 503)
+        : json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+  fireEvent.change(screen.getByLabelText("Add provider"), {
+    target: { value: Object.keys(smallVocabulary.providers)[0] },
+  });
+  expect(await screen.findByText("Couldn't load:")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "retry" })).toBeInTheDocument();
+  expect(screen.queryByText("Checking…")).not.toBeInTheDocument();
 });
 
 it("labels capability intervals with their ranking basis and units", async () => {

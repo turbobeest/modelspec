@@ -1,5 +1,9 @@
 import type { Cond, FacetValue, Spec } from "../engine/types";
+import type { DecisionSpec } from "../adapter/contract";
+import { toDecisionSpec } from "../adapter/view-model";
+import type { Axis } from "../state/spec";
 import type { VocabFacet, Vocabulary } from "../vocabulary";
+import { z } from "zod";
 
 export type FacetMode = "off" | "must" | "prefer" | "both";
 export interface FacetSelection {
@@ -11,6 +15,24 @@ export interface FacetSelection {
 }
 export type BoardSelections = Record<string, FacetSelection>;
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
+export interface BoardUrlState { selections: BoardSelections; estate: Estate }
+
+const facetValueSchema = z.union([
+  z.string(), z.number().finite(), z.boolean(), z.array(z.string()),
+]);
+const selectionSchema = z.object({
+  mode: z.enum(["off", "must", "prefer", "both"]),
+  op: z.enum(["=", "!=", "<=", ">=", "in", "not in"]).optional(),
+  value: facetValueSchema.optional(),
+  weight: z.number().finite().nonnegative().max(1).optional(),
+  reason: z.string().optional(),
+});
+const boardUrlSchema = z.object({
+  selections: z.record(z.string(), selectionSchema).default({}),
+  estate: z.object({
+    providers: z.array(z.string()), plans: z.array(z.string()), hardware: z.array(z.string()),
+  }),
+});
 
 const PREVIEW_HOSTS = new Set([
   "internal.modelspec-7np.pages.dev",
@@ -137,6 +159,41 @@ export function boardToSpec(base: Spec, vocabulary: Vocabulary, selections: Boar
   };
 }
 
+export function boardWeights(vocabulary: Vocabulary, selections: BoardSelections): Record<string, number> {
+  const grouped = groupFacets(vocabulary);
+  const facets = [...grouped.groups.flatMap((group) => group.facets), ...grouped.untracked];
+  return Object.fromEntries(facets.flatMap((facet) => {
+    const choice = selections[facet.id];
+    if (!choice || (choice.mode !== "prefer" && choice.mode !== "both") || !supportsPreference(facet.id)) return [];
+    const id = facet.id.startsWith("capability.") ? facet.id.slice("capability.".length)
+      : facet.id === "offering.cost_per_task" ? "-offering.cost_per_task"
+      : facet.id === "offering.speed.time_to_first_token" ? "-offering.speed.time_to_first_token"
+      : facet.id;
+    return [[id, choice.weight ?? 0.5]];
+  }));
+}
+
+export function toBoardDecisionSpec(spec: Spec, explain: "none" | "summary" | "full"): DecisionSpec {
+  const contract = toDecisionSpec(spec, explain);
+  return spec.boardWeights
+    ? { ...contract, optimize: { weights: spec.boardWeights } }
+    : contract;
+}
+
+export function encodeBoardSpec(spec: Spec, axis: Axis, board: BoardUrlState): string {
+  const { boardWeights: _previewWeights, ...productionSpec } = spec;
+  return "#s=" + btoa(encodeURIComponent(JSON.stringify({ ...productionSpec, x: axis, board })));
+}
+
+export function decodeBoardState(hash: string): BoardUrlState | null {
+  try {
+    const raw: unknown = JSON.parse(decodeURIComponent(atob(hash.replace(/^#s=/, ""))));
+    return z.object({ board: boardUrlSchema }).parse(raw).board;
+  } catch {
+    return null;
+  }
+}
+
 export function estateSpec(spec: Spec, providers: string[]): Spec {
   if (!providers.length) return spec;
   return {
@@ -172,17 +229,11 @@ export function groupFacets(vocabulary: Vocabulary) {
 
 export function readEstate(): Estate {
   try {
-    const encoded = new URLSearchParams(location.search).get("estate");
-    const value = JSON.parse(encoded ? decodeURIComponent(atob(encoded)) : (localStorage.getItem("modelspec-estate-v1") ?? "null")) as Partial<Estate> | null;
+    const value = JSON.parse(localStorage.getItem("modelspec-estate-v1") ?? "null") as Partial<Estate> | null;
     return { providers: value?.providers ?? [], plans: value?.plans ?? [], hardware: value?.hardware ?? [] };
   } catch { return { providers: [], plans: [], hardware: [] }; }
 }
 
 export function writeEstate(estate: Estate): void {
   try { localStorage.setItem("modelspec-estate-v1", JSON.stringify(estate)); } catch { /* storage is optional */ }
-  const url = new URL(location.href);
-  const empty = !estate.providers.length && !estate.plans.length && !estate.hardware.length;
-  if (empty) url.searchParams.delete("estate");
-  else url.searchParams.set("estate", btoa(encodeURIComponent(JSON.stringify(estate))));
-  history.replaceState(null, "", url.pathname + url.search + url.hash);
 }

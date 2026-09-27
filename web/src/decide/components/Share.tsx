@@ -99,7 +99,7 @@ export function Share({
         : tab === "CLI"
           ? demo
             ? "# Fictional sample preview\nmodelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
-            : "modelspec snapshot fetch\nmodelspec decide spec.yaml --json"
+            : "modelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
           : yaml;
   const clauses = row
     ? spec.conds.map((c, i) => {
