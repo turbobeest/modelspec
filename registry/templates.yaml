@@ -1,0 +1,166 @@
+# Decision templates (MODEL-178). These are partial decision specs: `where`
+# contains Musts, while `weights` contains Prefers. The loader validates every
+# condition, objective, class, and domain against the decision registries.
+
+schema_version: 1
+
+templates:
+  - id: budget-coding
+    name: Coding agent on a budget
+    purpose: Find an active coding model with enough context while keeping one task under $0.25.
+    where:
+      - condition: model.class = text-generator
+        reason: Coding work needs a model that generates text and code.
+      - condition: model.lifecycle = active
+        reason: An active model is still supported by its lab or provider.
+      - condition: model.context_window >= 200000
+        reason: A large repository needs room for code, tests, and instructions.
+      - condition: offering.cost_per_task <= 0.25
+        reason: The offering must stay within the per-task budget.
+    weights:
+      software_engineering:
+        weight: 0.6
+        reason: Prefer stronger evidence on real software-engineering tasks.
+      -offering.cost_per_task:
+        weight: 0.4
+        reason: Among qualifying offerings, prefer the cheaper task.
+    needs:
+      classes: [text-generator]
+      domains: [software_engineering]
+    teaches: Use Must for non-negotiable context and budget limits, then Prefer to trade coding strength against cost.
+
+  - id: private-self-host
+    name: Private assistant you host yourself
+    purpose: Find a commercially usable open-weights assistant that you can operate yourself.
+    where:
+      - condition: model.class = text-generator
+        reason: A conversational assistant needs a text-generating model.
+      - condition: model.weights_openness = open_weights
+        reason: Self-hosting requires downloadable weights; fits-your-hardware is coming in MODEL-174.
+      - condition: licence.commercial_use in {permitted, permitted_with_conditions}
+        reason: The licence must allow commercial use, including use with stated conditions.
+    weights:
+      chat_preference:
+        weight: 0.7
+        reason: Prefer assistants whose open-ended responses people rate more highly.
+      -offering.cost_per_task:
+        weight: 0.3
+        reason: Prefer lower task cost when the snapshot has an offering price.
+    needs:
+      classes: [text-generator]
+      domains: [chat_preference]
+    teaches: Use Must for deployment and licence requirements, then Prefer to balance assistant quality and cost.
+
+  - id: regulated-data
+    name: Regulated data
+    purpose: Find an offering with the data-handling commitments needed for regulated workloads.
+    where:
+      - condition: offering.data.trains_on_customer_data = false
+        reason: Customer prompts and outputs must not be available for model training.
+      - condition: offering.data.zero_retention = true
+        reason: The provider must offer a mode that stores neither prompts nor outputs.
+      - condition: offering.attestation.baa = true
+        reason: The provider must offer a HIPAA business associate agreement for the service.
+    weights:
+      chat_preference:
+        weight: 0.6
+        reason: Prefer the stronger general assistant among compliant offerings.
+      -offering.cost_per_task:
+        weight: 0.4
+        reason: Prefer the lower task cost after the compliance gates pass.
+    needs:
+      classes: []
+      domains: [chat_preference]
+    teaches: Governance promises are Musts because a high score cannot compensate for a missing data commitment.
+
+  - id: maths
+    name: Maths and proofs
+    purpose: Find a text model with the strongest evidence on mathematical problems and proofs.
+    where:
+      - condition: model.class = text-generator
+        reason: The answer must be generated as mathematical text or a proof.
+    weights:
+      maths:
+        weight: 1.0
+        reason: Rank only by the maths capability estimate.
+    needs:
+      classes: [text-generator]
+      domains: [maths]
+    teaches: Use one Must to select the right model class and one Prefer to state what best means.
+
+  - id: retrieval-embeddings
+    name: Retrieval embeddings
+    purpose: Find an embedding model that ranks relevant documents well for retrieval.
+    where:
+      - condition: model.class = vectoriser
+        reason: Retrieval embeddings require the model class that emits vectors.
+    weights:
+      retrieval:
+        weight: 1.0
+        reason: Rank only by the retrieval capability estimate.
+    needs:
+      classes: [vectoriser]
+      domains: [retrieval]
+    teaches: Model class is a Must, while measured retrieval quality is a Prefer.
+
+  - id: high-volume
+    name: High volume, good enough
+    purpose: Find a low-cost text model for many short assistant requests without ignoring response quality.
+    where:
+      - condition: model.class = text-generator
+        reason: The workload needs generated text responses.
+    weights:
+      -offering.cost_per_task:
+        weight: 0.7
+        reason: At high volume, small differences in task cost dominate total spend.
+      chat_preference:
+        weight: 0.3
+        reason: Keep a quality signal so cheap but poor responses do not win by cost alone.
+    task_tokens: {input: 2000, output: 500}
+    needs:
+      classes: [text-generator]
+      domains: [chat_preference]
+    teaches: Keep the model class as a Must, then make cost the stronger Prefer without turning quality into a gate.
+
+  - id: long-documents
+    name: Long documents
+    purpose: Find a text model that can accept million-token documents and produce strong written analysis.
+    where:
+      - condition: model.class = text-generator
+        reason: The result must be generated as text.
+      - condition: model.context_window >= 1000000
+        reason: The model must accept a million-token document in one request.
+    weights:
+      writing:
+        weight: 0.5
+        reason: Prefer clear, high-quality long-form writing.
+      reasoning:
+        weight: 0.3
+        reason: Prefer stronger multi-step analysis of the document.
+      -offering.cost_per_task:
+        weight: 0.2
+        reason: Use cost as a smaller tie-breaker after writing and reasoning quality.
+    needs:
+      classes: [text-generator]
+      domains: [writing, reasoning]
+    teaches: Context capacity is a Must; writing, reasoning, and cost remain trade-offs expressed as Prefers.
+
+  - id: eu-data
+    name: EU-only data handling
+    purpose: Find an offering that runs inference in an EU member state and does not train on customer data.
+    where:
+      - condition: offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}
+        reason: Inference must run in one of the EU's 27 member-state ISO country codes (EU Publications Office Interinstitutional Style Guide, https://style-guide.europa.eu/en/content/-/isg/topic?identifier=annex-a5-list-countries-territories-currencies, checked 2026-09-27).
+      - condition: offering.data.trains_on_customer_data = false
+        reason: Customer prompts and outputs must not be available for model training.
+    weights:
+      chat_preference:
+        weight: 0.6
+        reason: Prefer the stronger general assistant among offerings that meet the data rules.
+      -offering.cost_per_task:
+        weight: 0.4
+        reason: Prefer lower task cost after the data-handling gates pass.
+    needs:
+      classes: []
+      domains: [chat_preference]
+    teaches: Residency and training policy are Musts; quality and cost only rank offerings that pass them.

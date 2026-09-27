@@ -18,9 +18,9 @@ modelspec offline fit [<hardware-id>]     what a given machine can run, or list 
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
 ```
 
-`modelspec decide SPEC.yaml [--explain …] [--json]` is the decision engine's
-command (MODEL-135). It speaks the **decision contract**, which is versioned on
-its own (`contract_version`) and documented in
+`modelspec decide [SPEC.yaml] [--template ID] [--check] [--explain …] [--json]`
+is the decision engine's command (MODEL-135). It speaks the **decision
+contract**, which is versioned on its own (`contract_version`) and documented in
 [`decision-contract.md`](decision-contract.md). With neither `--snapshot-file`
 nor `MODELSPEC_DECISION_SNAPSHOT`, it reads the decision snapshot cached by
 `modelspec snapshot fetch`. It makes no network request itself.
@@ -28,7 +28,7 @@ nor `MODELSPEC_DECISION_SNAPSHOT`, it reads the decision snapshot cached by
 `modelspec vocab` reads only the vocabulary selected by `decision/current`.
 With no section it prints the snapshot ID, section counts, and the next command
 to run. The sections are `facets`, `benchmarks`, `domains`, `providers`,
-`task-types`, and `coverage`. Human output uses compact tables. In the JSON
+`task-types`, `coverage`, and `templates`. Human output uses compact tables. In the JSON
 envelope, `result` contains the selected section or the complete vocabulary
 when no section is given. `--search TEXT` matches IDs and labels or names. `--domain DOMAIN`
 limits benchmarks to a domain. `--class CLASS` limits benchmarks to domains
@@ -44,6 +44,14 @@ row produce a warning and do not change the exit code. Resolve failures use the
 same `decision_failed` code as a real decision. Success exits 0 and reports the
 Must count, Prefer count, and snapshot pin. If a spec pins another snapshot, the
 command warns but still succeeds. `--json` applies to both success and failure.
+
+`--template ID` reads the template from that cached vocabulary and expands its
+`spec` fragment on the client. With an optional spec file, top-level file fields
+win and the template's `where` conditions come before the file's `where`
+conditions. `--check` validates the expanded spec without running a decision.
+`modelspec vocab templates` lists the cached rows. An unknown ID exits 1 and
+lists every valid ID. Templates add no decision-spec field and do not change
+either the decision contract version or the CLI JSON envelope version.
 
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
