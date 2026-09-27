@@ -352,7 +352,7 @@ it("shows model-grained funnel and board counts from the live budget decision", 
   expect(screen.getByText(`${qualifyingModels} fit · ${may} may`)).toBeInTheDocument();
 });
 
-it("requests the estate once after the board decision settles", async () => {
+it("never requests the estate twice for the same settled key", async () => {
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp demo={false} board />);
@@ -372,6 +372,73 @@ it("requests the estate once after the board decision settles", async () => {
   expect(estateRequests).toHaveLength(1);
   expect(estateRequests[0].explain).toBe("summary");
   expect(estateRequests[0].optimize.weights).toEqual({ "-offering.cost_per_task": 1 });
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  expect(sentSpecs(fetch).filter((body) =>
+    body.where.some((condition: string) => condition.startsWith("offering.provider in")),
+  )).toHaveLength(1);
+});
+
+it("reissues an estate request aborted by a vocabulary replacement", async () => {
+  const fresh = { ...smallVocabulary, snapshot: "snap_after_estate_started" };
+  let vocabularyLoads = 0;
+  let estateRequests = 0;
+  let replaceVocabulary: (() => void) | undefined;
+  const changed = (requested: string | null) =>
+    json(
+      {
+        contract_version: "1.4",
+        endpoint: "decide",
+        snapshot: fresh.snapshot,
+        error: {
+          code: "snapshot_changed",
+          message: "reload the vocabulary and retry",
+          requested,
+          current: fresh.snapshot,
+        },
+      },
+      409,
+    );
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabularyLoads++ === 0 ? smallVocabulary : fresh),
+    decide: (init) => {
+      const body = JSON.parse(String(init?.body));
+      const snapshot = new Headers(init?.headers).get("x-modelspec-snapshot");
+      const isEstate = body.where.some((condition: string) =>
+        condition.startsWith("offering.provider in"),
+      );
+      if (isEstate) {
+        estateRequests += 1;
+        if (estateRequests === 1)
+          return new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              "abort",
+              () => reject(new DOMException("Aborted", "AbortError")),
+              { once: true },
+            );
+          });
+        return json(decisionFor(init));
+      }
+      if (body.explain === "full" && snapshot !== fresh.snapshot)
+        return new Promise<Response>((resolve) => {
+          replaceVocabulary = () => resolve(changed(snapshot));
+        });
+      return json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+
+  fireEvent.change(screen.getByLabelText("Add provider"), {
+    target: { value: Object.keys(smallVocabulary.providers)[0] },
+  });
+  await waitFor(() => expect(estateRequests).toBe(1));
+  if (!replaceVocabulary) throw new Error("full request did not wait for vocabulary replacement");
+  replaceVocabulary();
+
+  await waitFor(() => expect(estateRequests).toBe(2));
+  await waitFor(() => expect(screen.queryByText("Checking…")).not.toBeInTheDocument());
+  expect(vocabularyLoads).toBe(2);
 });
 
 it("reissues an estate request aborted by a newer main decision", async () => {

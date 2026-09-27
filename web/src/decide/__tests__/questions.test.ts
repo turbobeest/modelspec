@@ -39,7 +39,7 @@ const decision = (count: number): Decision => ({
   sources: [],
 });
 
-it("does not duplicate an active condition in a survivor-count probe", () => {
+it("deduplicates an active condition only for board probes", () => {
   const condition = "model.weights_openness = open_weights";
   const spec: DecisionSpec = {
     spec_version: 1,
@@ -52,7 +52,8 @@ it("does not duplicate an active condition in a survivor-count probe", () => {
     c: { f: "open", v: true },
   };
 
-  expect(probeSpec(spec, option).where).toEqual([condition]);
+  expect(probeSpec(spec, option).where).toEqual([condition, condition]);
+  expect(probeSpec(spec, option, true).where).toEqual([condition]);
 });
 
 it("debounces next-question evaluation and caps fan-out at six requests", async () => {

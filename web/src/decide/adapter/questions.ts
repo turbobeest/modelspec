@@ -6,11 +6,15 @@ import { contractCondition } from "./view-model";
 type EvaluatedQuestion = Question;
 
 /** The spec that counts what one answer to a next question would leave. */
-export function probeSpec(spec: DecisionSpec, option: Question["opts"][number]): DecisionSpec {
+export function probeSpec(
+  spec: DecisionSpec,
+  option: Question["opts"][number],
+  deduplicateCondition = false,
+): DecisionSpec {
   const condition = contractCondition(option.c);
   return {
     ...spec,
-    where: (spec.where ?? []).includes(condition)
+    where: deduplicateCondition && (spec.where ?? []).includes(condition)
       ? spec.where
       : [...(spec.where ?? []), condition],
     explain: "none",
@@ -24,12 +28,14 @@ export async function evaluateQuestionOptions({
   questions,
   signal,
   onUpdate,
+  deduplicateConditions = false,
 }: {
   engine: HostedDecisionEngine;
   spec: DecisionSpec;
   questions: Question[];
   signal?: AbortSignal;
   onUpdate?: (questions: EvaluatedQuestion[]) => void;
+  deduplicateConditions?: boolean;
 }): Promise<EvaluatedQuestion[]> {
   await new Promise<void>((resolve, reject) => {
     const timer = window.setTimeout(resolve, 300);
@@ -55,7 +61,10 @@ export async function evaluateQuestionOptions({
       const job = jobs[next];
       next += 1;
       try {
-        const answer = await engine.decide(probeSpec(spec, job.option), { signal });
+        const answer = await engine.decide(
+          probeSpec(spec, job.option, deduplicateConditions),
+          { signal },
+        );
         job.option.n = answer.results.length;
         job.option.may = answer.may_qualify.length;
       } catch (error) {
