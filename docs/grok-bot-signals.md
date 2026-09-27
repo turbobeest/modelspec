@@ -84,11 +84,12 @@ The pipeline performs these steps:
    rule in `schema/suppliers.py`, and the attribution rules in
    `scripts/attribution.py`. More than one exact match is `uncertain`; the
    workflow opens a `new-model` issue and writes no card.
-2. It reads models.dev to locate pricing and source URLs. It fetches provider
-   pages, API documentation, and a Hugging Face repository when the listing
-   names one. Existing cards receive only the gathered pricing and source
-   metadata for the resolved model. Plain HTTP runs first. A run can spend at
-   most 20 Firecrawl credits.
+2. It reads models.dev to confirm the listing identity and locate primary
+   provider source URLs. It does not copy facts or prices from models.dev. It
+   fetches provider pages, API documentation, and a Hugging Face repository
+   when the listing names one. Prices stay empty on new cards and unchanged on
+   existing cards until a provider source supplies them. Plain HTTP runs first.
+   A run can spend at most 20 Firecrawl credits.
 3. It rejects every excluded source named by `decision.excluded` and
    `tests/test_removed_sources.py` before fetching it. X and Twitter URLs are
    signal-only and are also rejected. The pipeline checks both the requested

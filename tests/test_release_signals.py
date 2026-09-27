@@ -121,9 +121,19 @@ def test_parser_accepts_rfc3339_and_rejects_instances_outside_the_contract() -> 
         (signal(first_seen_url="https://x.com:443/acme/status/123"), False),
         (signal(model_name="   "), False),
         (signal(provider="   "), False),
+        (signal(model_name="m" * 300), True),
+        (signal(model_name="m" * 301), False),
+        (signal(provider="p" * 300), True),
+        (signal(provider="p" * 301), False),
+        (signal(first_seen_url="https://x.com/" + "a" * 286), True),
+        (signal(first_seen_url="https://x.com/" + "a" * 287), False),
+        (signal(timestamp="2026-09-26T13:14:15." + "1" * 279 + "Z"), True),
+        (signal(timestamp="2026-09-26T13:14:15." + "1" * 280 + "Z"), False),
+        (signal(signal_id="s" * 128), True),
+        (signal(signal_id="s" * 129), False),
     ],
 )
-def test_schema_and_parser_accept_the_same_url_and_text_boundaries(
+def test_schema_and_parser_accept_the_same_field_boundaries(
     payload: dict[str, object], accepted: bool,
 ) -> None:
     schema = json.loads(
@@ -201,7 +211,7 @@ def test_resolve_distinguishes_existing_new_and_uncertain_without_fuzzy_matching
     assert uncertain.candidates == ("acme/shared-a", "acme/shared-b")
 
 
-def test_production_shaped_models_dev_drafts_pricing_and_provider_source(
+def test_production_shaped_models_dev_drafts_only_primary_source_facts(
     tmp_path: Path,
 ) -> None:
     _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
@@ -237,10 +247,11 @@ def test_production_shaped_models_dev_drafts_pricing_and_provider_source(
     assert str(front["release_date"]) == "2026-09-26"
     assert front["benchmarks"]["scores"] == {}
     assert front["benchmarks"]["evidence"] == []
-    assert front["cost"] == {"input": 1.25, "output": 5.0, "cache_read": 0.25}
+    assert front["cost"] == {}
     assert front["sources"]["provider_docs_url"] == primary_url
     assert front["sources"]["models_dev_url"] == "https://models.dev/acme"
     assert front["sources"]["last_scraped_models_dev"] == "2026-09-26"
+    assert front["sources"]["last_scraped_pricing"] == ""
     assert "x.com" not in result.card_path.read_text(encoding="utf-8")
     assert result.evidence_urls == (primary_url, models_dev_url)
     assert result.firecrawl_credits == 0
@@ -277,7 +288,7 @@ def test_visible_primary_source_with_another_provider_stops_before_drafting(
     assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
 
 
-def test_unchanged_existing_metadata_does_not_block_a_score_only_refresh(
+def test_models_dev_prices_do_not_change_existing_card_prices(
     tmp_path: Path,
 ) -> None:
     card = _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
@@ -306,7 +317,6 @@ def test_unchanged_existing_metadata_does_not_block_a_score_only_refresh(
             provider_id="acme",
             primary_url="https://acme.example/models",
             supporting_urls=("https://acme.example/models",),
-            pricing={"input": 1.25, "output": 5.0},
         ),
         root=tmp_path,
         read_date=date(2026, 9, 26),
@@ -398,7 +408,7 @@ sources:
     assert result["quarantined"] == 0
     card = root / "models" / "acme" / "orbit-2.md"
     front = yaml.safe_load(card.read_text(encoding="utf-8").split("---", 2)[1])
-    assert front["cost"] == {"input": 1.25, "output": 5.0, "cache_read": 0.25}
+    assert front["cost"] == {}
     assert [(row["benchmark_id"], row["score"]) for row in front["benchmarks"]["evidence"]] == [
         ("fixture_benchmark", 81.5)
     ]
@@ -600,7 +610,16 @@ def test_closed_unmerged_new_card_pr_stops_before_redrafting(tmp_path: Path) -> 
 def test_existing_signal_gathers_sources_and_refreshes_only_its_model(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
-    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    card = _write_card(
+        tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1"
+    )
+    text = card.read_text(encoding="utf-8")
+    front = yaml.safe_load(text.split("---", 2)[1])
+    front["cost"] = {"input": 0.75, "output": 3.0}
+    card.write_text(
+        "---\n" + yaml.dump(front, sort_keys=False) + "---" + text.split("---", 2)[2],
+        encoding="utf-8",
+    )
     pending = tmp_path / "pending.json"
     result_path = tmp_path / "result.json"
     pending.write_text(json.dumps({"signals": [signal(model_name="Orbit 1")]}))
@@ -648,7 +667,8 @@ def test_existing_signal_gathers_sources_and_refreshes_only_its_model(
     updated = yaml.safe_load(
         (tmp_path / "models" / "acme" / "orbit-1.md").read_text().split("---", 2)[1]
     )
-    assert updated["cost"] == {"input": 1.25, "output": 5.0}
+    assert updated["cost"] == {"input": 0.75, "output": 3.0}
+    assert "last_scraped_pricing" not in updated["sources"]
     assert updated["sources"]["provider_docs_url"] == primary_url
 
 

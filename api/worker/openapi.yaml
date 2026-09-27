@@ -6709,10 +6709,12 @@ components:
           pattern: ^\S(?:[\s\S]*\S)?$
         first_seen_url:
           type: string
+          maxLength: 300
           format: uri
           pattern: ^https://(www\.)?(x\.com|twitter\.com)/
         timestamp:
           type: string
+          maxLength: 300
           format: date-time
         confidence:
           type: number

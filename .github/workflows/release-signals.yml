@@ -73,7 +73,6 @@ jobs:
       SIGNALS_ORIGIN: https://api.modelspec.dev
       MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
       RESEARCH_PR_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
-      MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
     steps:
       - name: Refuse missing repository credentials
         run: |
@@ -154,6 +153,7 @@ jobs:
 
       - name: Process one isolated work item
         env:
+          MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
           PR_MODE: ${{ steps.recheck.outputs.mode }}
           PR_URL: ${{ matrix.work.pr_url }}
         run: |

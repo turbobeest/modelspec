@@ -68,7 +68,6 @@ class GatherResult:
     supporting_urls: tuple[str, ...] = ()
     evidence_urls: tuple[str, ...] = ()
     gather_failures: tuple[str, ...] = ()
-    pricing: Mapping[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -281,9 +280,20 @@ def _primary_identity(
         visible = _VisibleText()
         visible.feed(html)
         text = " ".join(" ".join(visible.parts).split())
-        if attribution.normalise(expected_name) not in attribution.normalise(text):
+        normalised_text = attribution.normalise(text)
+        normalised_name = attribution.normalise(expected_name)
+        normalised_provider = attribution.normalise(expected_provider)
+        if normalised_name not in normalised_text:
             raise ValueError("the primary source does not name the model")
-        if attribution.normalise(expected_provider) not in attribution.normalise(text):
+        relationships = (
+            f"{normalised_name}-by-{normalised_provider}",
+            f"{normalised_provider}-{normalised_name}",
+            f"{normalised_provider}-announces-{normalised_name}",
+            f"{normalised_provider}-introduces-{normalised_name}",
+            f"{normalised_provider}-launches-{normalised_name}",
+            f"{normalised_provider}-releases-{normalised_name}",
+        )
+        if not any(relationship in normalised_text for relationship in relationships):
             raise ValueError("the primary source does not identify the stated lab")
         return expected_name, ""
     if len(matches) != 1:
@@ -434,12 +444,11 @@ def gather_signal(
         supporting_urls=tuple(supporting_urls),
         evidence_urls=tuple(dict.fromkeys((primary_url, models_dev_url, *supporting_urls))),
         gather_failures=tuple(failures),
-        pricing=dict(listing.get("cost") or {}),
     )
 
 
 def update_existing_card(gathered: GatherResult, *, root: Path, read_date: date) -> Path:
-    """Update gathered source metadata and published pricing on one resolved card."""
+    """Update primary-source metadata on one resolved card."""
     model_id = gathered.resolution.model_id
     if gathered.resolution.status != "existing" or model_id is None:
         raise ValueError("an existing resolved model is required")
@@ -467,29 +476,17 @@ def update_existing_card(gathered: GatherResult, *, root: Path, read_date: date)
     }
     if huggingface_url:
         source_facts["huggingface_url"] = huggingface_url
-    published_cost = {
-        key: value for key, value in (gathered.pricing or {}).items()
-        if key in {"input", "output", "cache_read", "cache_write"} and value is not None
-    }
-    cost = dict(front.get("cost") or {})
     material_change = any(sources.get(key) != value for key, value in source_facts.items())
-    material_change = material_change or any(
-        cost.get(key) != value for key, value in published_cost.items()
-    )
     if not material_change:
         return path
 
     sources.update(source_facts)
     sources.update({
         "last_scraped_models_dev": accessed,
-        "last_scraped_pricing": accessed,
     })
     if huggingface_url:
         sources["last_scraped_huggingface"] = accessed
     front["sources"] = sources
-    if published_cost:
-        cost.update(published_cost)
-        front["cost"] = cost
     front["card_updated"] = accessed
     content = "---\n" + yaml.dump(front, sort_keys=False, allow_unicode=True) + "---" + parts[2]
     ModelCard.from_yaml_string(content)
@@ -539,18 +536,14 @@ def draft_signal(
         "provider": provider,
         "provider_display": provider_display,
         "release_date": release_date,
-        "cost": {
-            key: value for key, value in (gathered.pricing or {}).items()
-            if key in {"input", "output", "cache_read", "cache_write"}
-            and value is not None
-        },
+        "cost": {},
         "benchmarks": {"scores": {}, "evidence": []},
         "sources": {
             "models_dev_url": f"https://models.dev/{gathered.provider_id}",
             "provider_docs_url": api_docs_url,
             "huggingface_url": huggingface_url,
             "last_scraped_models_dev": accessed,
-            "last_scraped_pricing": accessed,
+            "last_scraped_pricing": "",
         },
         "card_schema_version": "3.0",
         "card_author": "release-signal-pipeline",
