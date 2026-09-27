@@ -486,9 +486,9 @@ def _fetch_decision_files(origin: str, directory: Path,
                     raise DecisionRouteUnavailable(
                         f"could not reach {candidate_origin}{route}: {type(exc).__name__}"
                     ) from None
-                if response.status_code == 404:
+                if response.status_code in {401, 403, 404}:
                     raise DecisionRouteUnavailable(
-                        f"{candidate_origin}{route} returned HTTP 404"
+                        f"{candidate_origin}{route} returned HTTP {response.status_code}"
                     )
                 try:
                     response.raise_for_status()
@@ -530,20 +530,37 @@ def _fetch_decision_files(origin: str, directory: Path,
 
     writes = (
         (directory / f".decision-snapshot.{os.getpid()}.tmp",
-         decision_snapshot_path(directory), decision_data),
+         decision_snapshot_path(directory),
+         directory / f".decision-snapshot.{os.getpid()}.bak", decision_data),
         (directory / f".decision-vocabulary.{os.getpid()}.tmp",
-         decision_vocabulary_path(directory), json.dumps(vocabulary_raw).encode("utf-8")),
+         decision_vocabulary_path(directory),
+         directory / f".decision-vocabulary.{os.getpid()}.bak",
+         json.dumps(vocabulary_raw).encode("utf-8")),
     )
+    backed_up: set[Path] = set()
+    installed: set[Path] = set()
     try:
-        for tmp, _destination, data in writes:
+        for tmp, _destination, _backup, data in writes:
             tmp.write_bytes(data)
-        for tmp, destination, _data in writes:
+        for _tmp, destination, backup, _data in writes:
+            if destination.exists():
+                destination.replace(backup)
+                backed_up.add(destination)
+        for tmp, destination, _backup, _data in writes:
             tmp.replace(destination)
+            installed.add(destination)
     except OSError as exc:
+        for _tmp, destination, backup, _data in writes:
+            if destination in backed_up:
+                destination.unlink(missing_ok=True)
+                os.replace(backup, destination)
+            elif destination in installed:
+                destination.unlink(missing_ok=True)
         return {"available": False, "error": f"could not cache decision files: {exc}"}
     finally:
-        for tmp, _destination, _data in writes:
+        for tmp, _destination, backup, _data in writes:
             tmp.unlink(missing_ok=True)
+            backup.unlink(missing_ok=True)
     return {"available": True, "origin": source, "snapshot_id": decision.snapshot_id}
 
 

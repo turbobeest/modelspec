@@ -107,6 +107,50 @@ def _fetch_bodies() -> dict[str, object]:
     }
 
 
+def _mock_http_client(monkeypatch: pytest.MonkeyPatch, bodies: dict[str, object]) -> None:
+    import httpx
+
+    class FakeResponse:
+        status_code = 200
+        headers: dict[str, str] = {}
+
+        def __init__(self, body: object) -> None:
+            self._body = body
+            self.content = body if isinstance(body, bytes) else json.dumps(body).encode()
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._body
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> None:
+            return None
+
+        def get(self, url: str) -> FakeResponse:
+            route = next((route for route in bodies if url.endswith(route)), None)
+            if route is None:
+                raise AssertionError(url)
+            return FakeResponse(bodies[route])
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+
+
+def _write_old_decision_pair(cache: Path) -> tuple[bytes, bytes]:
+    old_snapshot = b"old decision snapshot bytes"
+    old_vocabulary = b'{"old":"decision vocabulary bytes"}'
+    snapshot.decision_snapshot_path(cache).write_bytes(old_snapshot)
+    snapshot.decision_vocabulary_path(cache).write_bytes(old_vocabulary)
+    return old_snapshot, old_vocabulary
+
+
 # ── the snapshot ─────────────────────────────────────────────────────────────
 
 def test_a_missing_snapshot_says_what_to_do(cache: Path) -> None:
@@ -259,6 +303,73 @@ def test_fetch_refuses_decision_hash_mismatch_and_keeps_old_cache(
         snapshot.decision_vocabulary_path(cache)
     ]
     assert snapshot.load(cache).build_commit == "newcommit"
+
+
+def test_fetch_refuses_wrong_decision_snapshot_id_and_keeps_old_pair(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_snapshot, old_vocabulary = _write_old_decision_pair(cache)
+    bodies = _fetch_bodies()
+    envelope = json.loads(gzip.decompress(bodies[snapshot.DECISION_SNAPSHOT_ROUTE]))
+    envelope["snapshot_id"] = "snap_wrong"
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = gzip.compress(
+        json.dumps(envelope).encode(), mtime=0
+    )
+    _mock_http_client(monkeypatch, bodies)
+
+    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+    assert result["available"] is False
+    assert "snapshot ID does not match" in result["error"]
+    assert snapshot.decision_snapshot_path(cache).read_bytes() == old_snapshot
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
+
+
+def test_fetch_refuses_vocabulary_snapshot_mismatch_and_keeps_old_pair(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_snapshot, old_vocabulary = _write_old_decision_pair(cache)
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = {
+        "vocabulary_version": 1,
+        "snapshot": "snap_wrong",
+    }
+    _mock_http_client(monkeypatch, bodies)
+
+    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+    assert result["available"] is False
+    assert "vocabulary snapshot does not match" in result["error"]
+    assert snapshot.decision_snapshot_path(cache).read_bytes() == old_snapshot
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
+
+
+def test_decision_pair_replace_failure_restores_both_old_files(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_snapshot, old_vocabulary = _write_old_decision_pair(cache)
+    bodies = _fetch_bodies()
+    _mock_http_client(monkeypatch, bodies)
+    vocabulary_path = snapshot.decision_vocabulary_path(cache)
+    original_replace = Path.replace
+    failed = False
+
+    def fail_second_replace(source: Path, target: Path) -> Path:
+        nonlocal failed
+        if target == vocabulary_path and source.suffix == ".tmp" and not failed:
+            failed = True
+            raise OSError("injected vocabulary replace failure")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_second_replace)
+
+    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+    assert failed is True
+    assert result["available"] is False
+    assert "injected vocabulary replace failure" in result["error"]
+    assert snapshot.decision_snapshot_path(cache).read_bytes() == old_snapshot
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
 
 
 def test_status_reports_a_corrupt_decision_snapshot_without_changing_rank_status(

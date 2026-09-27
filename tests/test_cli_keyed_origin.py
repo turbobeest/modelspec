@@ -82,6 +82,7 @@ class Origin:
     def __init__(self) -> None:
         self.mode = "ok"
         self.requires_key = True
+        self.decision_status: int | None = None
         self.redirect_to: str | None = None
         self.seen: list[tuple[str, dict[str, str]]] = []
         self.access_log: list[str] = []
@@ -124,6 +125,12 @@ class Origin:
                 if origin.requires_key and presented != f"Bearer {KEY}":
                     status, body = REFUSALS["missing" if not presented else "invalid"]
                     self._send(status, body)
+                    return
+                if origin.decision_status is not None and self.path in {
+                    snapshot.DECISION_SNAPSHOT_ROUTE,
+                    snapshot.DECISION_VOCABULARY_ROUTE,
+                }:
+                    self._send(origin.decision_status, {"error": {"code": "unavailable"}})
                     return
                 body = origin.bodies.get(self.path)
                 if body is None:
@@ -276,6 +283,33 @@ def test_keyed_origin_falls_back_for_public_decision_files_without_sending_key(
         }
         assert all("Authorization" not in headers for _, headers in public.seen)
         assert snapshot.decision_snapshot_path(cache).exists()
+    finally:
+        public.stop()
+
+
+@pytest.mark.parametrize("status_code", [401, 403])
+def test_keyed_origin_falls_back_when_decision_route_refuses_key(
+    origin: Origin, cache: Path, monkeypatch: pytest.MonkeyPatch, status_code: int
+) -> None:
+    public = Origin()
+    public.requires_key = False
+    public.start()
+    try:
+        origin.decision_status = status_code
+        monkeypatch.setattr(snapshot, "DEFAULT_ORIGIN", public.url)
+
+        fetched = snapshot.fetch(
+            origin.url, cache, credential=snapshot.Credential(secret=KEY)
+        )
+
+        assert fetched.decision_fetch == {
+            "available": True,
+            "origin": public.url,
+            "snapshot_id": _decision_artifacts()[1]["snapshot"],
+        }
+        assert all("Authorization" not in headers for _, headers in public.seen)
+        assert snapshot.decision_snapshot_path(cache).exists()
+        assert snapshot.decision_vocabulary_path(cache).exists()
     finally:
         public.stop()
 
