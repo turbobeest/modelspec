@@ -35,7 +35,7 @@ def _on_block(workflow_text: str) -> str:
 def test_pytest_workflow_runs_the_test_command_without_masking_it() -> None:
     workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
 
-    assert "run: python -m pytest -q -n auto --dist loadfile" in workflow
+    assert "python -m pytest -q -n auto --dist loadfile" in workflow
     assert "continue-on-error" not in workflow
     assert "|| true" not in workflow
     assert "2>/dev/null" not in workflow
@@ -84,7 +84,15 @@ def test_pytest_matrix_matches_the_file_splitter() -> None:
                                                      for i in range(1, 5)]
     assert f"--shard-count {DEFAULT_SHARD_COUNT}" in workflow_text
     assert "--shard-index ${{ matrix.index }}" in workflow_text
-    assert 'pytest -q -n auto --dist loadfile -m "not perf" $(< shard-files.txt)' in workflow_text
+    assert 'pytest -q -n auto --dist loadfile -m "not perf"' in workflow_text
+    assert "--junitxml=shard-${{ matrix.index }}-junit.xml" in workflow_text
+    shard_steps = workflow["jobs"]["pytest-shards"]["steps"]
+    timing_upload = next(step for step in shard_steps
+                         if step.get("name") == "Upload test timings")
+    assert timing_upload["if"] == "always()"
+    assert timing_upload["with"]["name"] == "pytest-shard-${{ matrix.index }}-junit"
+    assert timing_upload["with"]["path"] == "shard-${{ matrix.index }}-junit.xml"
+    assert (REPO_ROOT / "tests" / "shard_durations.json").is_file()
 
 
 def test_timing_tests_run_serially_exactly_once() -> None:
@@ -169,6 +177,71 @@ def test_file_splitter_assigns_discovered_set_once(tmp_path: Path) -> None:
     ]
     assert len(assigned) == len(set(assigned))
     assert set(assigned) == set(discovered) == set(files)
+
+
+def test_duration_lpt_beats_size_packing(tmp_path: Path) -> None:
+    from scripts.pytest_shards import partition_files
+
+    durations_by_size = [8.0, 1.0, 7.0, 2.0, 6.0, 3.0]
+    files = []
+    durations = {}
+    for index, (size, duration) in enumerate(
+        zip(range(60, 0, -10), durations_by_size, strict=True)
+    ):
+        path = tmp_path / f"test_{index}.py"
+        path.write_text("x" * size, encoding="utf-8")
+        files.append(path)
+        durations[path.name] = duration
+
+    duration_shards = partition_files(files, 2, root=tmp_path, durations=durations)
+    size_shards = partition_files(
+        files,
+        2,
+        root=tmp_path,
+        durations={path.name: float(path.stat().st_size) for path in files},
+    )
+
+    def longest(shards: list[list[Path]]) -> float:
+        return max(sum(durations[path.name] for path in shard) for shard in shards)
+
+    assert longest(duration_shards) == 14.0
+    assert longest(size_shards) == 16.0
+
+
+def test_file_missing_from_durations_is_still_assigned(tmp_path: Path) -> None:
+    from scripts.pytest_shards import partition_files
+
+    known = tmp_path / "test_known.py"
+    unknown = tmp_path / "test_new.py"
+    known.write_text("known", encoding="utf-8")
+    unknown.write_text("new", encoding="utf-8")
+
+    assigned = partition_files(
+        [known, unknown], 2, root=tmp_path, durations={known.name: 2.0}
+    )
+
+    assert {path for shard in assigned for path in shard} == {known, unknown}
+
+
+def test_junit_refresh_sums_testcases_by_file(tmp_path: Path) -> None:
+    from scripts.refresh_shard_durations import durations_from_junit
+
+    test_file = tmp_path / "tests" / "test_feature.py"
+    test_file.parent.mkdir()
+    test_file.write_text("", encoding="utf-8")
+    xml_file = tmp_path / "shard.xml"
+    xml_file.write_text(
+        """<testsuites><testsuite>
+<testcase classname="tests.test_feature" name="test_one" time="1.25" />
+<testcase classname="tests.test_feature.TestGroup" name="test_two" time="2.5" />
+</testsuite></testsuites>
+""",
+        encoding="utf-8",
+    )
+
+    assert durations_from_junit([xml_file], tmp_path) == {
+        "tests/test_feature.py": 3.75
+    }
 
 
 def test_required_workflows_run_on_every_pull_request() -> None:

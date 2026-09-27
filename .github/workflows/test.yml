@@ -60,13 +60,21 @@ jobs:
       - name: Run test shard
         # -n auto uses the four cores on ubuntu-latest. --dist loadfile also
         # keeps each module together for shared module and process state.
-        run: python -m pytest -q -n auto --dist loadfile -m "not perf" $(< shard-files.txt)
+        run: >-
+          python -m pytest -q -n auto --dist loadfile -m "not perf"
+          --junitxml=shard-${{ matrix.index }}-junit.xml $(< shard-files.txt)
       - name: Upload collected node ids
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pytest-shard-${{ matrix.index }}-collection
           path: shard-${{ matrix.index }}-collection.txt
+      - name: Upload test timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-shard-${{ matrix.index }}-junit
+          path: shard-${{ matrix.index }}-junit.xml
 
   pytest-perf-and-collection:
     name: pytest perf and collection

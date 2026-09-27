@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import json
 import os
 import shlex
+import statistics
 import tomllib
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 DEFAULT_SHARD_COUNT = 4
+DEFAULT_DURATIONS_PATH = Path("tests/shard_durations.json")
 DEFAULT_PYTHON_FILES = ("test_*.py", "*_test.py")
 DEFAULT_NORECURSEDIRS = (
     "*.egg",
@@ -80,7 +83,8 @@ def test_files(root: Path) -> list[Path]:
         for directory, names, filenames in os.walk(start):
             current = Path(directory)
             names[:] = [
-                name for name in names
+                name
+                for name in names
                 if not _excluded_directory(current / name, root, norecursedirs)
             ]
             discovered.update(
@@ -91,17 +95,65 @@ def test_files(root: Path) -> list[Path]:
     return sorted(discovered)
 
 
-def partition_files(files: Iterable[Path], shard_count: int) -> list[list[Path]]:
-    """Greedily balance whole files by byte size, with stable tie-breaking."""
+def load_durations(path: Path) -> dict[str, float]:
+    """Load measured test-file durations from a JSON object."""
+    document = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(document, dict) or not all(
+        isinstance(key, str)
+        and isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and value >= 0
+        for key, value in document.items()
+    ):
+        raise ValueError(f"{path} must map test file paths to non-negative seconds")
+    return {key: float(value) for key, value in document.items()}
+
+
+def file_weights(
+    files: Iterable[Path], root: Path, durations: dict[str, float]
+) -> dict[Path, float]:
+    """Return measured durations, estimating any files absent from the data."""
+    paths = list(files)
+    known = {
+        path: durations[path.relative_to(root).as_posix()]
+        for path in paths
+        if path.relative_to(root).as_posix() in durations
+    }
+    median = statistics.median(known.values()) if known else 1.0
+    known_bytes = sum(path.stat().st_size for path in known)
+    known_seconds = sum(known.values())
+    seconds_per_byte = known_seconds / known_bytes if known_bytes else None
+    return {
+        path: known.get(
+            path,
+            path.stat().st_size * seconds_per_byte if seconds_per_byte else median,
+        )
+        for path in paths
+    }
+
+
+def partition_files(
+    files: Iterable[Path],
+    shard_count: int,
+    *,
+    root: Path | None = None,
+    durations: dict[str, float] | None = None,
+) -> list[list[Path]]:
+    """Use longest-processing-time packing with stable tie-breaking."""
     if shard_count < 1:
         raise ValueError("shard_count must be positive")
+    paths = list(files)
+    if root is None:
+        common = Path(os.path.commonpath(paths)) if paths else Path.cwd()
+        root = common if common.is_dir() else common.parent
+    weights = file_weights(paths, root, durations or {})
     shards: list[list[Path]] = [[] for _ in range(shard_count)]
-    totals = [0] * shard_count
-    weighted = sorted(files, key=lambda path: (-path.stat().st_size, path.as_posix()))
+    totals = [0.0] * shard_count
+    weighted = sorted(paths, key=lambda path: (-weights[path], path.as_posix()))
     for path in weighted:
         shard_index = min(range(shard_count), key=lambda index: (totals[index], index))
         shards[shard_index].append(path)
-        totals[shard_index] += path.stat().st_size
+        totals[shard_index] += weights[path]
     for shard in shards:
         shard.sort()
     return shards
@@ -118,14 +170,17 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     root = Path(__file__).resolve().parent.parent
-    shards = partition_files(test_files(root), args.shard_count)
+    files = test_files(root)
+    durations = load_durations(root / DEFAULT_DURATIONS_PATH)
+    weights = file_weights(files, root, durations)
+    shards = partition_files(files, args.shard_count, root=root, durations=durations)
     if args.summary:
-        total_bytes = sum(path.stat().st_size for shard in shards for path in shard)
         for index, shard in enumerate(shards, start=1):
-            shard_bytes = sum(path.stat().st_size for path in shard)
-            share = 100 * shard_bytes / total_bytes if total_bytes else 0
-            print(f"shard {index}/{args.shard_count}: {len(shard)} files, "
-                  f"{shard_bytes} bytes ({share:.1f}% estimated runtime)")
+            shard_seconds = sum(weights[path] for path in shard)
+            print(
+                f"shard {index}/{args.shard_count}: {len(shard)} files, "
+                f"{shard_seconds:.3f} predicted seconds"
+            )
         return 0
     if args.shard_index is None:
         _parser().error("--shard-index is required unless --summary is used")
