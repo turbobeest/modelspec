@@ -1,0 +1,67 @@
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { FacetBoard } from "../facet-board/FacetBoard";
+import {
+  boardToSpec, estateSpec, groupFacets, showsFacetBoard, supportsPreference,
+} from "../facet-board/model";
+import type { BoardSelections } from "../facet-board/model";
+import { realBaseSpec } from "../vocabulary";
+import { smallVocabulary } from "./vocab-fixtures";
+import { toDecisionSpec } from "../adapter/view-model";
+
+describe("facet board launch gate", () => {
+  it.each(["internal.modelspec-7np.pages.dev", "localhost", "127.0.0.1"])("allows %s", (host) => expect(showsFacetBoard(host)).toBe(true));
+  it.each(["modelspec.dev", "www.modelspec.dev", "abc123.modelspec-7np.pages.dev", "modelspec-7np.pages.dev", "example.com", ""])("keeps the current page on %s", (host) => expect(showsFacetBoard(host)).toBe(false));
+});
+
+describe("facet state mapping", () => {
+  const base = realBaseSpec(smallVocabulary);
+  const contract = (selections: BoardSelections) => toDecisionSpec(boardToSpec(base, smallVocabulary, selections), "full");
+  it("maps numeric, boolean, enum, domain preference and Must+Prefer cost literally", () => {
+    expect(contract({
+      "model.context_window": { mode: "must", op: ">=", value: 200000 },
+      "offering.data.zero_retention": { mode: "must", op: "=", value: true },
+      "model.class": { mode: "must", op: "in", value: ["text-generator"] },
+      "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+      "offering.cost_per_task": { mode: "both", op: "<=", value: 0.25, weight: 0.4 },
+    })).toEqual({
+      spec_version: 1, snapshot: "latest", task_type: "new_feature",
+      capabilities: { software_engineering: "required" },
+      task_tokens: { input: 40000, output: 4000 },
+      where: [
+        "model.class = text-generator", "model.lifecycle = active",
+        "model.class in {text-generator}", "offering.cost_per_task <= 0.25",
+        "model.context_window >= 200000", "offering.data.zero_retention = true",
+      ],
+      optimize: { weights: { software_engineering: 0.6, "-offering.cost_per_task": 0.4 } },
+      unknowns: "default", explain: "full", limit: 500,
+    });
+  });
+  it("adds the provider estate as a second-spec gate", () => {
+    expect(toDecisionSpec(estateSpec(base, ["anthropic", "google"]), "summary").where?.at(-1)).toBe("offering.provider in {anthropic, google}");
+  });
+  it("only enables weights the engine supports", () => {
+    expect(supportsPreference("offering.cost_per_task")).toBe(true);
+    expect(supportsPreference("model.context_window")).toBe(false);
+  });
+});
+
+it("separates not-yet-tracked facets", () => {
+  const vocabulary = { ...smallVocabulary, facets: smallVocabulary.facets.map((facet, index) => index === 0 ? { ...facet, known: 0 } : facet) };
+  expect(groupFacets(vocabulary).untracked.map((facet) => facet.id)).toContain(vocabulary.facets[0].id);
+});
+
+it("hides absent templates and applies vocabulary templates with reasons", () => {
+  const base = realBaseSpec(smallVocabulary);
+  const first = render(<FacetBoard vocabulary={smallVocabulary} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+  expect(screen.queryByText("Start from a template")).not.toBeInTheDocument();
+  first.unmount();
+  const onSpec = vi.fn();
+  const vocabulary = { ...smallVocabulary, templates: [{ id: "budget", name: "Budget coding", description: "A practical start", facets: [{ id: "offering.cost_per_task", mode: "both" as const, op: "<=" as const, value: 0.25, weight: 0.4, reason: "Keep each run affordable" }] }] };
+  render(<FacetBoard vocabulary={vocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: /Budget coding/ }));
+  expect(screen.getByText("Why: Keep each run affordable")).toBeInTheDocument();
+  expect(onSpec).toHaveBeenCalledOnce();
+  const context = screen.getByText("Context window").closest<HTMLElement>(".facet-row")!;
+  expect(within(context).getByText("Prefer coming (MODEL-172)")).toBeInTheDocument();
+});

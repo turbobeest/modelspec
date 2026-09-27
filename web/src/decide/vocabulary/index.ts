@@ -56,6 +56,19 @@ const benchmarkSchema = z.object({
     z.object({ id: z.string(), directness: z.enum(["direct", "proxy"]) }),
   ),
 });
+const boardTemplateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  facets: z.array(z.object({
+    id: z.string(),
+    mode: z.enum(["must", "prefer", "both"]),
+    op: z.enum(["=", "!=", "<=", ">=", "in", "not in"]).optional(),
+    value: z.union([scalar, z.array(z.string())]).optional(),
+    weight: z.number().min(0).max(1).optional(),
+    reason: z.string(),
+  })),
+});
 export const vocabularySchema = z.object({
   vocabulary_version: z.literal(1),
   contract_version: z.string(),
@@ -93,6 +106,8 @@ export const vocabularySchema = z.object({
     .default({}),
   /** Provider display names by ID. */
   providers: z.record(z.string(), z.string()).default({}),
+  /** Board-native templates, absent until MODEL-178 is published. */
+  templates: z.array(boardTemplateSchema).optional(),
   /** What the lineup holds, for an empty answer. Absent before MODEL-153's coverage. */
   coverage: z
     .object({

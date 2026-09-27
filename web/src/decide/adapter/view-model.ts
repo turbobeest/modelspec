@@ -157,10 +157,11 @@ export function toDecisionSpec(
   explain: "none" | "summary" | "full",
 ): DecisionSpec {
   const weights: Record<string, number> = {};
-  if (spec.w.cap > 0)
+  if (spec.boardWeights) Object.assign(weights, spec.boardWeights);
+  else if (spec.w.cap > 0)
     weights[usesDomainEstimate(spec) ? spec.domain : slug(spec.bench)] = spec.w.cap;
-  if (spec.w.cost > 0) weights["-offering.cost_per_task"] = spec.w.cost;
-  if (spec.w.speed > 0) weights["offering.speed.throughput"] = spec.w.speed;
+  if (!spec.boardWeights && spec.w.cost > 0) weights["-offering.cost_per_task"] = spec.w.cost;
+  if (!spec.boardWeights && spec.w.speed > 0) weights["offering.speed.throughput"] = spec.w.speed;
   return {
     spec_version: 1,
     snapshot: "latest",
