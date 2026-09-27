@@ -71,7 +71,7 @@ export function Why({
       value:
         fmtB(spec.bench, row.cap) +
         (row.capR ? " " + fmtCI(spec.bench, row.capR) : ""),
-      range: e.feasible.map((r) => r.cap),
+      range: e.feasible.flatMap((r) => (r.cap === null ? [] : [r.cap])),
       fmt: (v: number) => fmtB(spec.bench, v),
     },
     {
@@ -188,10 +188,10 @@ export function Why({
               {insep
                 .map(
                   (r) =>
-                    `${r.m.name}: ${fmtB(spec.bench, r.cap)} ${fmtCI(spec.bench, r.capR)}`,
+                    `${r.m.name}: ${fmtB(spec.bench, r.cap!)} ${fmtCI(spec.bench, r.capR!)}`,
                 )
                 .join("; ")}{" "}
-              vs {m.name}: {fmtB(spec.bench, row.cap)}{" "}
+              vs {m.name}: {fmtB(spec.bench, row.cap!)}{" "}
               {row.capR && fmtCI(spec.bench, row.capR)}. The order between them is
               decided by cost and speed.
             </>

@@ -17,9 +17,13 @@ export function RankedAnswer({
 }) {
   const [expanded, setExpanded] = useState(false);
   const ranked = boardHasPreference(spec);
+  const candidates = [
+    ...decision.explanation.feasible,
+    ...decision.explanation.may,
+  ];
   const rows = ranked
-    ? decision.explanation.feasible
-    : [...decision.explanation.feasible].sort((left, right) =>
+    ? candidates
+    : candidates.sort((left, right) =>
         left.m.name.localeCompare(right.m.name),
       );
   const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
@@ -40,7 +44,7 @@ export function RankedAnswer({
       .filter((result) => result.warnings.includes("not_separable"))
       .map((result) => result.offering.model),
   );
-  const inseparable = rows.filter((row) =>
+  const inseparable = decision.explanation.feasible.filter((row) =>
     warnedModels.has(`${row.m.lab}/${row.m.id}`) && decision.explanation.insep(row).length > 0,
   );
 
@@ -67,11 +71,15 @@ export function RankedAnswer({
           </div>
           <div className="board-ranked-cost"><small>Cost per task</small><span>{money(row.cost)}</span></div>
           {capability && <div className="board-capability">
-            <span className="board-interval-track" aria-label={`${row.m.name} capability interval`}>
-              <i style={{ left: `${Math.max(0, left)}%`, width: `${Math.min(100 - Math.max(0, left), width)}%` }} />
-              <b style={{ left: `${Math.max(0, Math.min(100, 100 * (value - extent.min) / extent.span))}%` }} />
-            </span>
-            <small>{row.cap === null ? "unknown" : `${row.cap.toFixed(2)} capability score`}</small>
+            {row.cap === null
+              ? <small>no evidence for {capability.name}</small>
+              : <>
+                <span className="board-interval-track" aria-label={`${row.m.name} capability interval`}>
+                  <i style={{ left: `${Math.max(0, left)}%`, width: `${Math.min(100 - Math.max(0, left), width)}%` }} />
+                  <b style={{ left: `${Math.max(0, Math.min(100, 100 * (value - extent.min) / extent.span))}%` }} />
+                </span>
+                <small>{row.cap.toFixed(2)} capability score</small>
+              </>}
           </div>}
         </li>;
       })}

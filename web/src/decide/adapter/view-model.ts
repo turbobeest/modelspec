@@ -448,8 +448,15 @@ function rankedRow(
     sources,
     names,
   );
-  const selected = evidence.find((item) => item.b === spec.bench) ?? null;
-  const estimate = usesDomainEstimate(spec)
+  const boardWeights = spec.boardWeights;
+  const boardMode = boardWeights !== undefined;
+  const boardCapability = boardMode && spec.domain !== undefined &&
+    Object.hasOwn(boardWeights, spec.domain);
+  const needsCapability = !boardMode || boardCapability;
+  const selected = needsCapability
+    ? evidence.find((item) => item.b === spec.bench) ?? null
+    : null;
+  const estimate = needsCapability && usesDomainEstimate(spec)
     ? result.estimates?.find((item) => item.domain === spec.domain) ?? null
     : null;
   const estimatePart = estimate
@@ -460,7 +467,7 @@ function rankedRow(
   const estimateItems = estimatePart?.evidence ?? [];
   const provenance =
     estimateItems[0] ?? result.evidence.flatMap((group) => group.items)[0];
-  if (selected === null && estimate === null)
+  if (!boardMode && selected === null && estimate === null)
     throw new Error(
       `${result.offering.model} has no sourced ${spec.bench} evidence in this decision`,
     );
@@ -490,7 +497,9 @@ function rankedRow(
         src: estimateItems[0]?.source ?? selected?.src ?? provenance!.source,
       }
     : null;
-  const capability = estimateEvidence ?? selected!;
+  const capability = boardCapability
+    ? estimateEvidence
+    : estimateEvidence ?? selected;
   const norm = {
     cap:
       result.contributions.find(
@@ -541,10 +550,10 @@ function rankedRow(
     },
     dropAt: -1,
     capR: capability,
-    cap: capability.v,
+    cap: capability?.v ?? null,
     cost: costPerTask(offering, spec),
     tps: offering.tps,
-    labOnly: capability.by === "lab",
+    labOnly: capability?.by === "lab",
     rank: result.rank,
     score: parts.cap + parts.cost + parts.speed,
     parts,

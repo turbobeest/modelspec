@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
+import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
 import { decisionSchema } from "../adapter/contract";
 import {
   mapDecisionToViewModel,
@@ -10,8 +11,16 @@ import { parseTask } from "../engine/reference";
 import { baseSpec } from "../state/spec";
 
 const fixture = decisionSchema.parse(fixtureJson);
+const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
 
 describe("the hosted Decision view-model mapper", () => {
+  it("keeps production strict when a ranked result has no sourced capability evidence", () => {
+    expect(() => mapDecisionToViewModel(liveEmptyBoard, baseSpec, {
+      axis: "task$",
+      dismissed: [],
+    })).toThrow("typesafe/jev-1-13 has no sourced CodeBench Pro evidence in this decision");
+  });
+
   it("projects the canvas, Pareto frontier, winning strip and shortlist from sourced values", () => {
     const spec = { ...baseSpec, bench: "quality", bar: 70 };
     const view = mapDecisionToViewModel(fixture, spec, {
