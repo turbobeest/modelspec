@@ -601,7 +601,11 @@ def source_error_codes() -> set[str]:
         for node in ast.walk(tree):
             # RequestError("code", "message", ...)
             if isinstance(node, ast.Call):
-                name = node.func.id if isinstance(node.func, ast.Name) else None
+                name = (
+                    node.func.id if isinstance(node.func, ast.Name)
+                    else node.func.attr if isinstance(node.func, ast.Attribute)
+                    else None
+                )
                 if name == "RequestError" and node.args and isinstance(node.args[0], ast.Constant):
                     codes.add(str(node.args[0].value))
                 if (name == "error_response" and node.args

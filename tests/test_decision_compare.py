@@ -14,6 +14,9 @@ from decision.contract import (
     CandidateValues,
     Contribution,
     Decision,
+    DomainEvidence,
+    Estimate,
+    EvidenceItem,
     OfferingRef,
     Result,
     ShownFact,
@@ -109,6 +112,55 @@ def test_price_change_and_new_model_name_exactly_those_models():
         "p1/lab/a/global/standard#offering.price.input",
         "p1/lab/a/global/standard#offering.price.output",
     }
+
+
+def test_capability_estimate_change_includes_values_intervals_and_records():
+    def decision(snapshot: str, value: float, interval: tuple[float, float], record: str):
+        evidence = EvidenceItem(
+            requested_domain="software_engineering",
+            record_id=record,
+            benchmark="repo_work",
+            version="1.0",
+            value=55.0,
+            unit="percent",
+            measured_by="independent",
+            date=date(2026, 9, 20),
+            date_type="observed",
+            source="https://board.example.org/results",
+            directness="direct",
+        )
+        return Decision(
+            decision_id="dec_" + snapshot.removeprefix("snap_")[:24],
+            snapshot=snapshot,
+            spec_hash="sha256:" + "1" * 64,
+            explain="full",
+            status="answered",
+            results=[Result(
+                rank=1,
+                offering=OfferingRef(model="lab/a"),
+                evidence=[DomainEvidence(domain="software_engineering", items=[evidence])],
+                estimates=[Estimate(
+                    domain="software_engineering", value=value, interval=interval,
+                )],
+            )],
+        )
+
+    result = compare(
+        decision("snap_" + "a" * 64, 0.61, (0.52, 0.70), "lab/a#repo_work#old"),
+        decision("snap_" + "b" * 64, 0.68, (0.60, 0.76), "lab/a#repo_work#new"),
+    )
+
+    row, = result["models"]
+    assert row["model"] == "lab/a"
+    assert row["values"] == [{
+        "kind": "capability",
+        "domain": "software_engineering",
+        "offering": {"model": "lab/a", "provider": None, "region": None, "tier": None},
+        "old": {"value": 0.61, "interval": [0.52, 0.70],
+                "records": ["lab/a#repo_work#old"]},
+        "new": {"value": 0.68, "interval": [0.60, 0.76],
+                "records": ["lab/a#repo_work#new"]},
+    }]
 
 
 def test_newly_passed_and_failed_musts_include_both_values_and_records():

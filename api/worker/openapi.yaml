@@ -41,6 +41,7 @@ info:
   - access_not_configured
   - access_store_not_configured
   - comparison_snapshot_changed
+  - comparison_snapshot_unavailable
   - determinations_unavailable
   - export_unavailable
   - insufficient_evidence
@@ -59,6 +60,8 @@ info:
   - sandbox_not_available
   - snapshot_changed
   - snapshot_not_loaded
+  - snapshot_refused
+  - snapshot_unavailable
   - tier_not_configured
   - undetermined_present
   - unknown_hardware

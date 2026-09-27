@@ -314,8 +314,14 @@ def _codes_of(*modules: str) -> set[str]:
     for name in modules:
         tree = ast.parse((ENTRY.parent / f"{name}.py").read_text(encoding="utf-8"))
         for node in ast.walk(tree):
+            call_name = (
+                node.func.id if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                else node.func.attr
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                else ""
+            )
             if (isinstance(node, ast.Call)
-                    and getattr(node.func, "id", "") in {"RequestError", "error_response"}
+                    and call_name in {"RequestError", "error_response"}
                     and node.args and isinstance(node.args[0], ast.Constant)):
                 codes.add(node.args[0].value)
             if isinstance(node, ast.Dict):
@@ -349,6 +355,10 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
     }
     missing = sorted(decide_codes - set(decide_fixes))
     assert missing == [], f"docs/decide-api.md has no fix for: {missing}"
+
+
+def test_comparison_snapshot_unavailable_is_advertised(spec: dict[str, Any]) -> None:
+    assert "comparison_snapshot_unavailable" in spec["info"]["x-error-codes"]
 
 
 def test_every_refusal_status_is_documented(reference: str, policy_reference: str) -> None:
