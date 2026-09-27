@@ -439,6 +439,37 @@ def test_overlapping_raw_evidence_intervals_are_reported_as_not_separable() -> N
     assert all("not_separable" in row.warnings for row in decision.results)
 
 
+def test_overlapping_raw_intervals_from_different_versions_are_not_compared() -> None:
+    alpha = evidence("lab/alpha", "swe_bench_pro", 55.0, interval=[51.0, 59.0])
+    beta = evidence("lab/beta", "swe_bench_pro", 54.0, interval=[50.0, 58.0])
+    beta["benchmark_version"] = "2.0"
+    rows = [alpha, beta]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/alpha"), model("lab/beta")],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "swe_bench_pro @independent"},
+            "limit": 2,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert [row.offering.model for row in decision.results] == ["lab/alpha", "lab/beta"]
+    assert all("not_separable" not in row.warnings for row in decision.results)
+
+
 def test_overlapping_raw_interval_does_not_override_a_separating_weighted_objective() -> None:
     rows = [
         evidence("lab/alpha", "swe_bench_pro", 55.0, interval=[51.0, 59.0]),

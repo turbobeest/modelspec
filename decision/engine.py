@@ -100,7 +100,8 @@ def _overlaps_raw_evidence(row, others) -> bool:
     for contribution in row.contributions:
         if len(contribution.evidence) != 1:
             continue
-        interval = contribution.evidence[0].interval
+        evidence = contribution.evidence[0]
+        interval = evidence.interval
         if interval is None:
             continue
         for other in others:
@@ -109,7 +110,26 @@ def _overlaps_raw_evidence(row, others) -> bool:
             for compared in other.contributions:
                 if compared.dimension != contribution.dimension or len(compared.evidence) != 1:
                     continue
-                other_interval = compared.evidence[0].interval
+                other_evidence = compared.evidence[0]
+                measurement_identity = (
+                    evidence.benchmark_id,
+                    evidence.version,
+                    evidence.unit,
+                    evidence.subcategory,
+                    evidence.effort,
+                    evidence.harness,
+                )
+                other_identity = (
+                    other_evidence.benchmark_id,
+                    other_evidence.version,
+                    other_evidence.unit,
+                    other_evidence.subcategory,
+                    other_evidence.effort,
+                    other_evidence.harness,
+                )
+                if measurement_identity != other_identity:
+                    continue
+                other_interval = other_evidence.interval
                 if other_interval is not None and max(interval[0], other_interval[0]) <= min(
                     interval[1], other_interval[1]
                 ):
