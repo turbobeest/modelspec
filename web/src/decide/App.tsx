@@ -43,6 +43,7 @@ import { SpecPanel } from "./components/SpecPanel";
 import { Field } from "./components/Field";
 import { Canvas } from "./components/Canvas";
 import { Shortlist } from "./components/Shortlist";
+import { RankedAnswer } from "./facet-board/RankedAnswer";
 import { DecisionTable } from "./components/DecisionTable";
 import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
@@ -628,7 +629,7 @@ export function DesignedApp({
         </button>
         {view === "work" && (
           <>
-            {!demo && (
+            {!demo && !board && (
               <button className="ink-button" onClick={() => void runDecision(spec)}>
                 Run decision
               </button>
@@ -764,15 +765,15 @@ export function DesignedApp({
                 onAdd={add}
                 onDismiss={(id) => setDismissed([...dismissed, id])}
                 showQuestions={false}
+                boardOnly
                 vocabulary={vocabulary}
               />
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                <h2>Tied-group answer: coming (MODEL-170)</h2>
-                {decision.explanation.feasible.some((candidate) => decision.explanation.insep(candidate).length > 0) && <p>the evidence can't separate these</p>}
+                <small className="board-tied-note">Tied-group answer: coming (MODEL-170)</small>
                 {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.results.length} ranked · ${estateDecision.may_qualify.length} may qualify` : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} qualify · {decision.explanation.may.length} may qualify</span></div></div>}
               </section>
-              <Shortlist decision={decision} spec={shownSpec} selected={selectedId} onSelect={setSelected} />
+              <RankedAnswer decision={decision} spec={shownSpec} />
             </> : <section className="panel board-answer-loading" aria-live="polite">The live answer will appear here.</section>}
           /> : (decision || !demo) && <SpecPanel
             spec={shownSpec}

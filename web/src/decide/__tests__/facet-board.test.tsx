@@ -37,6 +37,13 @@ describe("facet state mapping", () => {
       unknowns: "default", explain: "full", limit: 500,
     });
   });
+  it("starts with no hidden conditions and adds only visible board gates", () => {
+    const emptyBase = { ...base, conds: [] };
+    expect(toDecisionSpec(boardToSpec(emptyBase, smallVocabulary, {}), "full").where).toEqual([]);
+    expect(toDecisionSpec(boardToSpec(emptyBase, smallVocabulary, {
+      "offering.cost_per_task": { mode: "must", op: "<=", value: 0.25 },
+    }), "full").where).toEqual(["offering.cost_per_task <= 0.25"]);
+  });
   it("adds the provider estate as a second-spec gate", () => {
     expect(toDecisionSpec(estateSpec(base, ["anthropic", "google"]), "summary").where?.at(-1)).toBe("offering.provider in {anthropic, google}");
   });

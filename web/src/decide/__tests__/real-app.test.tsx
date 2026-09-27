@@ -118,11 +118,19 @@ it("runs the designed App on a full hosted decision without fictional labels", a
 });
 
 it("does not render the Next-questions panel in the facet-board preview", async () => {
-  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
   render(<DesignedApp demo={false} board />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
   expect(screen.queryByText("Next questions, most narrowing first")).not.toBeInTheDocument();
   expect(screen.getByText("Narrowing, in the order you set conditions")).toBeInTheDocument();
+  const narrowing = screen.getByText("Narrowing, in the order you set conditions").closest<HTMLElement>(".narrowing")!;
+  expect(within(narrowing).queryByText("Has a provider")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Run decision" })).not.toBeInTheDocument();
+  const answer = screen.getByLabelText("Facet board answer").closest<HTMLElement>(".board-answer")!;
+  expect(within(answer).queryByText(/Best overall|Best value|#1 of/)).not.toBeInTheDocument();
+  expect(within(answer).getByText("Delta 4.7")).toBeInTheDocument();
+  expect(sentSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
 });
 
 it("switches the ranking benchmark in one click from the rank-by control", async () => {

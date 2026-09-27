@@ -1,4 +1,5 @@
 import type { AdapterDecision, Cond, Spec } from "../adapter";
+import { contractCondition } from "../adapter/view-model";
 import type { Vocabulary } from "../vocabulary";
 
 function objectiveLabel(id: string, vocabulary?: Vocabulary): string {
@@ -16,6 +17,7 @@ export function Field({
   onDismiss,
   showQuestions = true,
   vocabulary,
+  boardOnly = false,
 }: {
   decision: AdapterDecision;
   spec?: Spec;
@@ -23,10 +25,18 @@ export function Field({
   onDismiss: (id: string) => void;
   showQuestions?: boolean;
   vocabulary?: Vocabulary;
+  boardOnly?: boolean;
 }) {
   const e = decision.explanation,
+    requested = new Set(spec?.conds.map(contractCondition) ?? []),
+    boardFunnel = [
+      e.funnel[0],
+      ...decision.eliminated.funnel.flatMap((step, index) =>
+        requested.has(step.condition) && e.funnel[index + 1] ? [e.funnel[index + 1]] : [],
+      ),
+    ].filter((step): step is NonNullable<typeof step> => step !== undefined),
     steps = [
-      ...e.funnel,
+      ...(boardOnly ? boardFunnel : e.funnel),
       {
         label: spec?.boardWeights && Object.keys(spec.boardWeights).length
           ? `Ranking on ${Object.entries(spec.boardWeights).map(([id, weight]) => `${objectiveLabel(id, vocabulary)} ${weight.toFixed(2)}`).join(" · ")}`
