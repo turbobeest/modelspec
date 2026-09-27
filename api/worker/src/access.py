@@ -294,8 +294,15 @@ async def gate(
     now: datetime | None = None,
     log: Callable[[str, dict[str, Any]], None] | None = None,
     limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
+    anonymous_id: str | None = None,
+    anonymous_tier: str = "free",
 ) -> Outcome:
     """The Worker's one call into this package: `serve`, behind the switch.
+
+    When `anonymous_id` is present, the caller has admitted this keyless
+    request to a named tier. The gate meters it under that identifier before
+    producing an answer. This is the browser free tier; the identifier is a
+    one-way digest of the connecting IP, never the address itself.
 
     **Enforcement off** (the shipped default, until keys can be obtained): a
     request with no key is answered by `anonymous` exactly as it was before this
@@ -315,6 +322,43 @@ async def gate(
     unaffected, because neither reads the store.
     """
     shell = dict(envelope or {})
+    if keys.normalise(api_key) is None and anonymous_id is not None:
+        moment = now or datetime.now(UTC)
+        try:
+            policy = load_policy()
+            tier = policy.tier(anonymous_tier)
+            meter = await limits.consume(kv, anonymous_id, tier, moment)
+        except PolicyError as exc:
+            status, body = refusal(
+                ACCESS_NOT_CONFIGURED,
+                f"the access layer is not configured on this deployment: {exc}",
+                envelope=shell)
+            return Outcome(status, body, {}, ("policy.missing",))
+        except StoreNotConfigured as exc:
+            status, body = refusal(
+                STORE_NOT_CONFIGURED,
+                f"{exc}. The free-tier request could not be metered, so it is "
+                "refused rather than served without a limit.",
+                envelope=shell, detail=_how_to_get_a_key(policy))
+            return Outcome(status, body, {}, ("limits.consume", "store.unbound"))
+
+        headers = {"x-modelspec-tier": tier.name,
+                   **_rate_limit_headers(meter, moment)}
+        if not meter.allowed:
+            record = KeyRecord(
+                key_id=anonymous_id, tier=tier.name, owner="anonymous",
+                created_at="",
+            )
+            status, body = rate_limited_body(
+                meter, record, policy, moment, shell)
+            return Outcome(status, body, headers,
+                           ("key.absent", "limits.consume", "limits.refused"),
+                           tier=tier.name, meter=meter)
+        status, body = await anonymous()
+        return Outcome(status, body, headers,
+                       ("key.absent", "limits.consume", "serve.anonymous"),
+                       tier=tier.name, meter=meter)
+
     if keys.normalise(api_key) is None and not enforced:
         status, body = await anonymous()
         return Outcome(status, body, {}, ("key.absent", "serve.anonymous"))
