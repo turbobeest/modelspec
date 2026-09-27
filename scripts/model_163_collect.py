@@ -25,6 +25,7 @@ from scripts.model_143_collect import LABELS, insert_facts, make_facts
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_163_BASE_REF = "8c61376a2f936c5fbd5dff3b535108248503455f"
+MODEL_163_BASE_LINEUP = ROOT / "premier" / "inputs" / "model-163-base.yaml"
 READ_AT = datetime(2026, 9, 26, 16, tzinfo=UTC)
 COLLECTOR = VerificationActor(
     agent="openai-codex-model-163",
@@ -98,14 +99,18 @@ def frontmatter(path: Path) -> tuple[dict, str]:
     return yaml.safe_load(text.split("---", 2)[1]), text
 
 
-def additions(base_ref: str) -> dict[str, tuple[Path, dict, str]]:
-    previous = yaml.safe_load(
-        subprocess.check_output(
-            ["git", "show", f"{base_ref}:premier/slice-1.yaml"], cwd=ROOT, text=True
+def additions(base_ref: str | None = None) -> dict[str, tuple[Path, dict, str]]:
+    if base_ref:
+        previous = yaml.safe_load(
+            subprocess.check_output(
+                ["git", "show", f"{base_ref}:premier/slice-1.yaml"], cwd=ROOT, text=True
+            )
         )
-    )
+        old_ids = {row["model_id"] for row in previous["models"]}
+    else:
+        baseline = yaml.safe_load(MODEL_163_BASE_LINEUP.read_text(encoding="utf-8"))
+        old_ids = set(baseline["models"])
     current = yaml.safe_load((ROOT / "premier" / "slice-1.yaml").read_text())
-    old_ids = {row["model_id"] for row in previous["models"]}
     ids = {row["model_id"] for row in current["models"]} - old_ids
     if ids != set(SOURCE_URLS):
         raise SystemExit(
@@ -237,7 +242,7 @@ def collect_offerings(registered: dict[str, object], queue: Queue) -> int:
     return filed
 
 
-def main(*, base_ref: str) -> None:
+def main(*, base_ref: str | None) -> None:
     cards = additions(base_ref)
     registered = register_sources()
     wanted = [registered[source_id(model_id)] for model_id in sorted(cards)]
@@ -309,8 +314,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument(
         "--base-ref",
-        default=MODEL_163_BASE_REF,
-        help="git ref containing the lineup before MODEL-163",
+        help=(
+            "git ref containing the lineup before MODEL-163; defaults to the "
+            "committed premier/inputs/model-163-base.yaml census"
+        ),
     )
     args = parser.parse_args()
     main(base_ref=args.base_ref)

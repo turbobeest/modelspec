@@ -6,14 +6,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-from scripts.model_163_collect import MODEL_163_BASE_REF, SOURCE_URLS, additions
+from scripts.model_163_collect import SOURCE_URLS, additions
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "model_163_collect.py"
 
 
 def test_committed_source_census_uses_the_pre_model_163_lineup() -> None:
-    assert set(additions(MODEL_163_BASE_REF)) == set(SOURCE_URLS)
+    assert set(additions()) == set(SOURCE_URLS)
 
 
 def test_help_does_not_run_the_source_census() -> None:
