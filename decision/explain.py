@@ -478,6 +478,13 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                         values=list(reason.value) if is_collection else [],
                     )
                 )
+        for cid, dominators in ordered.dominance.items():
+            ref = offering_ref(snapshot, cid)
+            decision.eliminated.models.append(
+                ModelElimination(
+                    model=ref.model, offering=ref, condition="dominated by " + ", ".join(dominators)
+                )
+            )
         grouped = {}
         for row in decision.eliminated.models:
             group = grouped.setdefault(row.model, {"model": None, "offerings": {}})

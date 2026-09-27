@@ -171,7 +171,7 @@ export function toDecisionSpec(
     optimize: { weights },
     unknowns: "default",
     explain,
-    limit: 500,
+    limit: 20,
   };
 }
 
