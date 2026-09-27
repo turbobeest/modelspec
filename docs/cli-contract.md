@@ -53,6 +53,24 @@ conditions. `--check` validates the expanded spec without running a decision.
 lists every valid ID. Templates add no decision-spec field and do not change
 either the decision contract version or the CLI JSON envelope version.
 
+`modelspec decide SPEC.yaml --compare-to SNAPSHOT_ID` reruns the same spec on
+the current cached decision snapshot and a retained generation, then reports
+the model-grained difference. `previous` selects the retained non-current
+generation; a path to a local snapshot `.gz` is also accepted. A missing ID
+exits 1 and lists the cached IDs. The command never downloads history because
+the origin does not publish old snapshots. Comparison ignores the spec's own
+`snapshot` pin and says so in human output.
+
+Human output starts with entered and left counts (and a changed top model when
+applicable), followed by one line per changed model. `--json` uses the common
+`schema_version`, `command`, `freshness`, `result` envelope. The result includes
+`changed`, old and new snapshot IDs and `as_of` dates, the old and new status,
+counts, and model rows for entries, departures and their Must reason, rank and
+`may_qualify` changes, and changed price, capability, or Must values with record
+IDs where the decision exposes them. `spec_snapshot_ignored` records whether
+the input spec contained a non-`latest` pin. No change is a successful result with
+`changed: false`; both changed and unchanged comparisons exit 0.
+
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
 `--json`, `--require-fresh`, `--include-rehosts`.

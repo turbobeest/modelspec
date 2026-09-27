@@ -9,6 +9,7 @@ from typing import Any, Optional
 
 import typer
 
+from cli.modelspec.offline import SCHEMA_VERSION
 from decision import contract
 from decision.engine import decide as run_decision
 from decision.engine import validate as validate_decision
@@ -193,6 +194,9 @@ def decide(
     check: bool = typer.Option(
         False, "--check", help="Validate against the cached vocabulary without deciding."
     ),
+    compare_to: Optional[str] = typer.Option(  # noqa: UP045 - Typer annotation
+        None, "--compare-to", help="Compare with a cached snapshot ID, previous, or a .gz path."
+    ),
 ) -> None:
     """Decide which model or offering fits a spec (the decision contract, v1)."""
     base = {"contract_version": contract.CONTRACT_VERSION, "command": "decide"}
@@ -255,6 +259,12 @@ def decide(
             "this template is unavailable against the cached snapshot"
         )
         typer.echo(f"warning: {template_warning}", err=True)
+    if compare_to is not None and html is not None:
+        _fail(
+            base | {"error": {"code": "comparison_html", "message":
+                               "--html is not available with --compare-to"}},
+            ["error: --html is not available with --compare-to"], as_json,
+        )
     using_cached_snapshot = snapshot_file is None
     if using_cached_snapshot:
         from .snapshot import decision_snapshot_path
@@ -307,7 +317,27 @@ def decide(
             else:
                 typer.echo(f"ok: {summary}")
             return
-        result = run_decision(spec, index, facets=facets)
+        if compare_to is not None:
+            from decision.compare import compare
+
+            from .snapshot import resolve_decision_generation
+
+            candidate = Path(compare_to).expanduser()
+            explicit_path = candidate.is_file()
+            old_path = candidate if explicit_path else resolve_decision_generation(compare_to)
+            old_index = (load_snapshot(old_path, include_archive=True) if explicit_path else
+                         load_snapshot(old_path, key=None, include_archive=True))
+            comparison_spec = spec.model_copy(update={"snapshot": "latest", "explain": "full"})
+            old_result = run_decision(comparison_spec, old_index, facets=facets)
+            new_result = run_decision(comparison_spec, index, facets=facets)
+            result = compare(
+                old_result, new_result,
+                old_as_of=old_index.as_of.isoformat() if old_index.as_of else None,
+                new_as_of=index.as_of.isoformat() if index.as_of else None,
+            )
+            result["spec_snapshot_ignored"] = spec.snapshot != "latest"
+        else:
+            result = run_decision(spec, index, facets=facets)
         if html is not None:
             from decision.explain import render_html
 
@@ -326,8 +356,40 @@ def decide(
             as_json,
         )
     if as_json:
-        # The Worker's body byte for byte (api/worker/src/decide_service.serialise).
-        typer.echo(json.dumps(result.model_dump(mode="json"), ensure_ascii=False,
-                              separators=(",", ":")))
+        if compare_to is not None:
+            typer.echo(json.dumps({
+                "schema_version": SCHEMA_VERSION,
+                "command": "decide",
+                "freshness": result["snapshot"]["new"],
+                "result": result,
+            }, ensure_ascii=False, separators=(",", ":")))
+        else:
+            # The Worker's body byte for byte (api/worker/src/decide_service.serialise).
+            typer.echo(json.dumps(result.model_dump(mode="json"), ensure_ascii=False,
+                                  separators=(",", ":")))
+    elif compare_to is not None:
+        counts = result["counts"]
+        old_top = old_result.results[0].offering.model if old_result.results else "none"
+        new_top = new_result.results[0].offering.model if new_result.results else "none"
+        headline = f"{counts['entered']} entered, {counts['left']} left"
+        if old_top != new_top:
+            headline += f", top changed from {old_top} to {new_top}"
+        typer.echo(headline)
+        typer.echo("Spec snapshot pin ignored; compared the requested snapshots.")
+        for row in result["models"]:
+            parts = []
+            if row["entered"]:
+                parts.append("entered")
+            if row["left"]:
+                parts.append(f"left: {row['left']['reason']}")
+            if row["rank_changed"]:
+                parts.append(f"rank {row['rank_changed']['old']} -> {row['rank_changed']['new']}")
+            if row["may_qualify"]:
+                parts.append("may qualify changed")
+            parts.extend(
+                (change.get("facet") or change.get("domain") or change["kind"]) + " changed"
+                for change in row["values"]
+            )
+            typer.echo(f"{row['model']}: " + "; ".join(parts))
     else:
         typer.echo(result.model_dump_json(indent=2))
