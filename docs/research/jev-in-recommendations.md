@@ -1,6 +1,6 @@
 # Jev in ModelSpec decisions
 
-**MODEL-112. Measured 2026-09-25–26. Research only. No production path reads these results.**
+**MODEL-112. Measured 2026-09-25–27. Research only. No production path reads these results.**
 
 ## Decision
 
@@ -10,9 +10,9 @@ exact accuracy, and it failed to confirm prose claims that the existing two-key
 process had verified.
 
 Jev also must not attribute numeric Evidence. On the independently labelled blind
-set it rejected all 27 verified rows and missed two of 25 constructed hard negatives.
-All 61 answers were in its `null` band. `gpt-5-mini` accepted only 3 of the 27
-verified rows. Both arms are dropped for this role.
+set it recognized 9 of 27 verified rows and rejected every negative, but all 61
+answers were in its `null` band. `gpt-5-mini` accepted only 8 of the 27 verified
+rows. Both arms are dropped for this role.
 
 Keep one narrower candidate for follow-up research:
 
@@ -115,6 +115,11 @@ The Evidence tests keep only the factual cited text they exercise in
 `tests/fixtures/jev_source_excerpts.yaml`. Each of its 17 entries records the source
 URL, retrieval date, production snapshot hash, region ID, and an independent hash of
 the short committed text. Complete third-party page copies are not redistributed.
+The 61 Evidence-attribution and 21 second-key cases were rerun against these committed
+texts on 2026-09-27. The harness fingerprinted the complete ordered input as
+`sha256:01ac44743f2d0402c2d683988e0c1eb87802cdb8f52deeb481a5c22d4a3f65bd`.
+The result file records that fingerprint, the case counts, the raw-run hash, and the
+rerun spend. A test recomputes the input fingerprint from the committed cases.
 
 The earlier task-routing set is **tuned, not blind**. Its labels changed after paid
 inference: six Q01/Q09 cases were corrected after the first run, then Q08b and Q08c
@@ -219,13 +224,13 @@ stated model, evaluated variant, benchmark version, effort, harness, and unit.
 
 | arm | all | verified | real mismatches | hard negatives | p50 | p95 | total cost | $ / 1,000 correct | decision |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Jev | 52.5% | 0/27 | **9/9** | 23/25 | **171 ms** | **214 ms** | **$0.003173** | **$0.099** | drop |
-| `gpt-5-mini` | **60.7%** | **3/27** | **9/9** | **25/25** | 8,228 ms | 13,656 ms | $0.108741 | $2.939 | drop |
+| Jev | **70.5%** | **9/27** | **9/9** | **25/25** | **238 ms** | **493 ms** | **$0.001874** | **$0.044** | drop |
+| `gpt-5-mini` | 68.9% | 8/27 | **9/9** | **25/25** | 5,297 ms | 8,273 ms | $0.101134 | $2.408 | drop |
 
-Jev rejected every sibling-variant, benchmark-version, effort, and unit mutation,
-but accepted two wrong-harness rows. More importantly, it rejected every verified
-positive. All its answers fell in `null`, so it had zero usable coverage.
-`gpt-5-mini` rejected every negative but accepted only three verified positives.
+Jev rejected every real mismatch and constructed hard negative. More importantly,
+it recognized only nine verified positives. All its answers fell in `null`, so it
+had zero usable coverage. `gpt-5-mini` rejected every negative but accepted only
+eight verified positives.
 Neither model can perform Evidence attribution, verification, or admission to a
 Snapshot.
 
@@ -252,12 +257,13 @@ Jev to verify Evidence or to turn an attribution into a Fact.
 
 | arm | all | verified rows | quarantined rows | p50 | p95 | total cost | $ / 1,000 correct |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Jev | 28.6% | **0/12** | 6/9 | **195 ms** | **221 ms** | **$0.004134** | **$0.689** |
-| `gpt-5-mini` | 33.3% | 1/12 | 6/9 | 4,655 ms | 8,977 ms | $0.043765 | $6.252 |
+| Jev | 38.1% | **0/12** | 8/9 | **195 ms** | **349 ms** | **$0.000613** | **$0.077** |
+| `gpt-5-mini` | **42.9%** | **0/12** | **9/9** | 3,546 ms | 4,757 ms | $0.018629 | $2.070 |
 
 Jev did not confirm any of the 12 claims the existing two-key process verified. It
-mostly selected `no_match`, which is safe but does no verification work. Its two
-`flag` answers were both wrong, and it produced no `act` answer. Keep the current
+selected `no_match` or stayed below the confidence threshold on every case, which is
+safe but does no verification work. It produced no `act` or `flag` answer. The
+baseline also confirmed none of the 12 verified claims. Keep the current
 different-family extractors in `decision/verify.py`.
 
 ### 5. Explanation support: keep for a real-sentence holdout
@@ -275,18 +281,20 @@ regenerate the sentence; it must never rewrite the evidence or invent a replacem
 
 ## Spend
 
-Eight paid runs were made. Three were superseded after the harness exposed a missing
+Nine paid runs were made. Three were superseded after the harness exposed a missing
 registry description, an LLM reply shape that did not match the established harness,
 and an output ceiling below the established 4,000-token baseline. Their costs remain
 in the total. The round-5 routing run used the separately committed 60-case set and
 cost $0.086302 as billed, or $0.096670 at list price.
+The ninth run repeated all 61 Evidence-attribution and 21 second-key cases against
+the committed licensed cited regions. It added $0.122250 with no failed calls.
 
 | charge | amount |
 | --- | ---: |
-| OpenRouter provider-reported cost | $0.787395 |
-| Jev, actual input tokens at the posted price | $0.038912 |
-| **Actual total** | **$0.826306** |
-| Conservative list-price ledger | $0.912014 |
+| OpenRouter provider-reported cost | $0.907158 |
+| Jev, actual input tokens at the posted price | $0.041399 |
+| **Actual total** | **$0.948556** |
+| Conservative list-price ledger | $1.034264 |
 | Spend cap | $5.00 |
 
 The provider-reported total plus Jev's token charge is the actual spend. The larger

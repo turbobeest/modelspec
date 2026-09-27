@@ -135,6 +135,18 @@ def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
         assert len(row["text"].split()) <= 90
 
 
+def test_published_evidence_rerun_names_the_exact_licensed_inputs() -> None:
+    labels = yaml.safe_load(research.JUDGMENT_LABELS.read_text(encoding="utf-8"))
+    cases = [*research.blind_attribution_cases(), *research.second_key_cases(labels)]
+    published = json.loads(
+        (research.ROOT / "research/jev-in-recommendations-results.json").read_text(encoding="utf-8")
+    )["licensed_excerpt_rerun"]
+
+    assert len(cases) == 82
+    assert published["case_counts"] == {"evidence_attribution": 61, "second_key": 21}
+    assert published["input_fingerprint"] == research.case_input_fingerprint(cases)
+
+
 def test_blind_routing_labels_are_separate_and_do_not_infer_conditions() -> None:
     blind_labels = yaml.safe_load(
         (research.ROOT / "tests/fixtures/jev_task_routing_blind_round5.yaml").read_text(

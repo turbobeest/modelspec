@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import copy
 import gzip
+import hashlib
 import json
 import os
 import subprocess
@@ -610,6 +611,24 @@ def all_cases() -> list[Case]:
     ]
 
 
+def case_input_fingerprint(cases: list[Case]) -> str:
+    """Identify the exact labelled state and questions sent to both paid arms."""
+    payload = [
+        {
+            "id": case.id,
+            "candidate": case.candidate,
+            "state": case.state,
+            "questions": case.questions,
+            "expected": case.expected,
+            "source_url": case.source_url,
+            "source_read_date": case.source_read_date,
+        }
+        for case in cases
+    ]
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return f"sha256:{hashlib.sha256(canonical).hexdigest()}"
+
+
 def parse_real_task_baseline(cases: list[Case]) -> list[dict[str, Any]]:
     tasks = [c for c in cases if c.candidate in {"task_routing", "task_routing_blind"}]
     payload = {
@@ -920,6 +939,8 @@ def run(args: argparse.Namespace) -> None:
         "thresholds": {"act": ACT, "flag": FLAG, "null": f"below {FLAG} or no_match"},
         "max_usd": args.max_usd,
         "spent_usd": round(budget.spent, 6),
+        "case_counts": dict(Counter(case.candidate for case in cases)),
+        "input_fingerprint": case_input_fingerprint(cases),
         "prices": [jev.__dict__, baseline.__dict__],
         "results": summarise(rows),
     }
