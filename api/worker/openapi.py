@@ -1693,6 +1693,105 @@ def _policy_schemas(used: set[str]) -> dict[str, Any]:
     }
 
 
+def _comparison_responses() -> list[dict[str, Any]]:
+    """Representative envelopes produced by the executable comparison code."""
+    c = decide_service.contract
+    old_snapshot = "snap_" + "a" * 64
+    new_snapshot = "snap_" + "b" * 64
+
+    def offering(model: str, provider: str = "p1"):
+        return c.OfferingRef(
+            model=model, provider=provider, region="global", tier="standard"
+        )
+
+    def result(rank: int, model: str, price: float, *, provider: str = "p1",
+               estimate: float | None = None):
+        estimates = None if estimate is None else [c.Estimate(
+            domain="software_engineering", value=estimate,
+            interval=(estimate - 0.1, estimate + 0.1),
+        )]
+        return c.Result(
+            rank=rank,
+            offering=offering(model, provider),
+            estimates=estimates,
+            contributions=[c.Contribution(
+                dimension="-offering.cost_per_task",
+                raw_value=price,
+                unit="usd_per_task",
+                records=[f"{provider}/{model}/global/standard#price"],
+            )],
+        )
+
+    def shown(model: str, value: int, *, provider: str = "p1"):
+        return c.CandidateValues(
+            offering=offering(model, provider),
+            facts=[c.ShownFact(
+                facet="model.context_window",
+                value=value,
+                unit="tokens",
+                record_id=f"{model}#model.context_window",
+            )],
+        )
+
+    old = c.Decision(
+        decision_id="dec_" + "a" * 24,
+        snapshot=old_snapshot,
+        spec_hash="sha256:" + "1" * 64,
+        explain="full",
+        status="partial",
+        results=[
+            result(1, "lab/a", 0.044, estimate=0.6),
+            result(2, "lab/stable", 0.060),
+            result(3, "lab/left", 0.070),
+        ],
+        top=[shown("lab/a", 100), shown("lab/stable", 128000), shown("lab/left", 64000)],
+        may_qualify=[c.MayQualify(
+            model="lab/uncertain",
+            offering=offering("lab/uncertain"),
+            unknown=["model.context_window"],
+        )],
+    )
+    new = c.Decision(
+        decision_id="dec_" + "b" * 24,
+        snapshot=new_snapshot,
+        spec_hash="sha256:" + "1" * 64,
+        explain="full",
+        status="partial",
+        results=[
+            result(1, "lab/stable", 0.061),
+            result(2, "lab/a", 0.088, provider="p2", estimate=0.7),
+            result(3, "lab/new", 0.080),
+        ],
+        top=[
+            shown("lab/stable", 128000),
+            shown("lab/a", 200, provider="p2"),
+            shown("lab/new", 32000),
+        ],
+        may_qualify=[c.MayQualify(
+            model="lab/uncertain",
+            offering=offering("lab/uncertain"),
+            unknown=["model.maximum_output"],
+        )],
+    )
+
+    def envelope(result: dict[str, Any]) -> dict[str, Any]:
+        result["spec_snapshot_ignored"] = False
+        return {
+            "contract_version": c.CONTRACT_VERSION,
+            "endpoint": "compare",
+            "snapshot": new_snapshot,
+            "compare_to": old_snapshot,
+            "result": result,
+        }
+
+    return [
+        envelope(decide_service.compare_decisions(
+            old, new, old_as_of="2026-09-26", new_as_of="2026-09-27"
+        )),
+        envelope(decide_service.compare_decisions(new, new)),
+    ]
+
+
 def _decision_schemas() -> dict[str, Any]:
     """Convert the generated decision-contract definitions to component refs."""
     definitions = copy.deepcopy(decide_service.contract.json_schema()["$defs"])
@@ -1782,19 +1881,16 @@ def _decision_schemas() -> dict[str, Any]:
             "spec": {"$ref": "#/components/schemas/DecisionSpec"},
         },
     }
-    schemas["ComparisonResponse"] = {
-        "type": "object",
-        "required": ["contract_version", "endpoint", "snapshot", "compare_to", "result"],
-        "properties": {
-            "contract_version": {
-                "type": "string", "enum": [decide_service.contract.CONTRACT_VERSION],
-            },
-            "endpoint": {"type": "string", "enum": ["compare"]},
-            "snapshot": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
-            "compare_to": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
-            "result": {"type": "object"},
-        },
-    }
+    comparison_response: dict[str, Any] = {}
+    for response in _comparison_responses():
+        comparison_response = _merge(comparison_response, _infer(response))
+    comparison_response["properties"]["contract_version"]["enum"] = [
+        decide_service.contract.CONTRACT_VERSION
+    ]
+    comparison_response["properties"]["endpoint"]["enum"] = ["compare"]
+    for field in ("snapshot", "compare_to"):
+        comparison_response["properties"][field]["pattern"] = "^snap_[A-Za-z0-9:._-]+$"
+    schemas["ComparisonResponse"] = comparison_response
     return schemas
 
 

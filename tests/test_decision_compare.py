@@ -114,6 +114,54 @@ def test_price_change_and_new_model_name_exactly_those_models():
     }
 
 
+def test_price_change_survives_a_selected_offering_switch():
+    def decision(snapshot: str, provider: str, price: float) -> Decision:
+        model_id = "lab/a"
+        offering = OfferingRef(
+            model=model_id, provider=provider, region="global", tier="standard"
+        )
+        return Decision(
+            decision_id="dec_" + snapshot.removeprefix("snap_")[:24],
+            snapshot=snapshot,
+            spec_hash="sha256:" + "1" * 64,
+            explain="full",
+            status="answered",
+            results=[Result(
+                rank=1,
+                offering=offering,
+                contributions=[Contribution(
+                    dimension="-offering.cost_per_task",
+                    raw_value=price,
+                    unit="usd_per_task",
+                    records=[f"{provider}/{model_id}/global/standard#price"],
+                )],
+            )],
+        )
+
+    result = compare(
+        decision("snap_" + "a" * 64, "p1", 0.044),
+        decision("snap_" + "b" * 64, "p2", 0.088),
+    )
+
+    row, = result["models"]
+    value, = row["values"]
+    assert result["changed"] is True
+    assert row["model"] == "lab/a"
+    assert value == {
+        "kind": "cost_per_task",
+        "offering": {
+            "old": {"model": "lab/a", "provider": "p1", "region": "global",
+                    "tier": "standard"},
+            "new": {"model": "lab/a", "provider": "p2", "region": "global",
+                    "tier": "standard"},
+        },
+        "old": {"value": 0.044, "unit": "usd_per_task",
+                "records": ["p1/lab/a/global/standard#price"]},
+        "new": {"value": 0.088, "unit": "usd_per_task",
+                "records": ["p2/lab/a/global/standard#price"]},
+    }
+
+
 def test_capability_estimate_change_includes_values_intervals_and_records():
     def decision(snapshot: str, value: float, interval: tuple[float, float], record: str):
         evidence = EvidenceItem(
@@ -182,8 +230,8 @@ def test_newly_passed_and_failed_musts_include_both_values_and_records():
     }, facets=facet)
 
     result = compare(
-        decide(spec, old_index, facets=facet),
-        decide(spec, new_index, facets=facet),
+        decide(spec, old_index, facets=facet, comparison=True),
+        decide(spec, new_index, facets=facet, comparison=True),
     )
 
     rows = {row["model"]: row for row in result["models"]}
@@ -203,6 +251,43 @@ def test_newly_passed_and_failed_musts_include_both_values_and_records():
             "new": {"value": new_value, "unit": "tokens",
                     "records": [f"{model_id}#model.context_window"]},
         }]
+
+
+def test_changed_must_value_is_reported_beyond_the_full_explanation_top_twenty():
+    unchanged = {f"a{index:02d}": 200 for index in range(20)}
+    prices = {**{name: 1.0 for name in unchanged}, "edge": 1.0}
+    old_index = _engine_snapshot(
+        prices, date(2026, 9, 26), contexts={**unchanged, "edge": 100}
+    )
+    new_index = _engine_snapshot(
+        prices, date(2026, 9, 27), contexts={**unchanged, "edge": 200}
+    )
+    spec = parse_spec({
+        "spec_version": 1,
+        "where": ["model.context_window >= 150"],
+        "optimize": {"min": "offering.cost_per_task"},
+        "explain": "full",
+        "limit": 21,
+    }, facets=facet)
+
+    result = compare(
+        decide(spec, old_index, facets=facet, comparison=True),
+        decide(spec, new_index, facets=facet, comparison=True),
+    )
+
+    edge = next(row for row in result["models"] if row["model"] == "lab/edge")
+    assert edge["entered"] is True
+    assert edge["rank_changed"] is None
+    assert edge["values"] == [{
+        "kind": "facet",
+        "facet": "model.context_window",
+        "offering": {"model": "lab/edge", "provider": "p1", "region": "global",
+                     "tier": "standard"},
+        "old": {"value": 100, "unit": "tokens",
+                "records": ["lab/edge#model.context_window"]},
+        "new": {"value": 200, "unit": "tokens",
+                "records": ["lab/edge#model.context_window"]},
+    }]
 
 
 def test_a_newly_unknown_must_keeps_the_old_value_and_provenance():

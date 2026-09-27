@@ -147,8 +147,13 @@ def decide(
     profiles: Mapping[str, InventoryProfile] | None = None,
     evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
     _filter_trace: Callable[[FilterResult], None] | None = None,
+    comparison: bool = False,
 ) -> Decision:
-    """Return a reproducible decision. Explanation work is skipped at ``none``."""
+    """Return a reproducible decision. Explanation work is skipped at ``none``.
+
+    ``comparison`` retains named facts for every returned candidate in the
+    intermediate Decision. Ordinary full decisions still cap ``top`` at 20.
+    """
     resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
     # Computed facets (offering.cost_per_task) depend on the spec, so the
     # remaining stages use the same per-decision view validation prepared for.
@@ -297,5 +302,8 @@ def decide(
     if spec.explain != "none":
         from decision.explain import explain
 
-        explain(decision, resolved, snapshot, filtered, ordered, selectors, domains)
+        explain(
+            decision, resolved, snapshot, filtered, ordered, selectors, domains,
+            comparison=comparison,
+        )
     return decision

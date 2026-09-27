@@ -4563,13 +4563,10 @@ components:
           $ref: '#/components/schemas/DecisionSpec'
     ComparisonResponse:
       type: object
-      required:
-      - contract_version
-      - endpoint
-      - snapshot
-      - compare_to
-      - result
       properties:
+        compare_to:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
         contract_version:
           type: string
           enum:
@@ -4578,14 +4575,223 @@ components:
           type: string
           enum:
           - compare
+        result:
+          type: object
+          properties:
+            changed:
+              type: boolean
+            counts:
+              type: object
+              properties:
+                entered:
+                  type: integer
+                left:
+                  type: integer
+                may_qualify_changed:
+                  type: integer
+                models_changed:
+                  type: integer
+                rank_changed:
+                  type: integer
+              required:
+              - entered
+              - left
+              - may_qualify_changed
+              - models_changed
+              - rank_changed
+            models:
+              type: array
+              items:
+                type: object
+                properties:
+                  entered:
+                    type: boolean
+                  left:
+                    type: object
+                    nullable: true
+                    properties:
+                      reason:
+                        type: string
+                  may_qualify:
+                    type: object
+                    nullable: true
+                    properties:
+                      new:
+                        type: array
+                        items:
+                          type: string
+                      old:
+                        type: array
+                        items:
+                          type: string
+                  model:
+                    type: string
+                  rank_changed:
+                    type: object
+                    nullable: true
+                    properties:
+                      new:
+                        type: integer
+                      old:
+                        type: integer
+                  values:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        domain:
+                          type: string
+                        facet:
+                          type: string
+                        kind:
+                          type: string
+                        new:
+                          type: object
+                          properties:
+                            interval:
+                              type: array
+                              items:
+                                type: number
+                            records:
+                              type: array
+                              items:
+                                type: string
+                            unit:
+                              type: string
+                            value:
+                              type: number
+                          required:
+                          - records
+                          - value
+                        offering:
+                          type: object
+                          properties:
+                            model:
+                              type: string
+                            new:
+                              type: object
+                              properties:
+                                model:
+                                  type: string
+                                provider:
+                                  type: string
+                                region:
+                                  type: string
+                                tier:
+                                  type: string
+                              required:
+                              - model
+                              - provider
+                              - region
+                              - tier
+                            old:
+                              type: object
+                              properties:
+                                model:
+                                  type: string
+                                provider:
+                                  type: string
+                                region:
+                                  type: string
+                                tier:
+                                  type: string
+                              required:
+                              - model
+                              - provider
+                              - region
+                              - tier
+                            provider:
+                              type: string
+                            region:
+                              type: string
+                            tier:
+                              type: string
+                        old:
+                          type: object
+                          properties:
+                            interval:
+                              type: array
+                              items:
+                                type: number
+                            records:
+                              type: array
+                              items:
+                                type: string
+                            unit:
+                              type: string
+                            value:
+                              type: number
+                          required:
+                          - records
+                          - value
+                      required:
+                      - kind
+                      - new
+                      - offering
+                      - old
+                required:
+                - entered
+                - left
+                - may_qualify
+                - model
+                - rank_changed
+                - values
+            snapshot:
+              type: object
+              properties:
+                new:
+                  type: object
+                  properties:
+                    as_of:
+                      type: string
+                      nullable: true
+                    id:
+                      type: string
+                  required:
+                  - as_of
+                  - id
+                old:
+                  type: object
+                  properties:
+                    as_of:
+                      type: string
+                      nullable: true
+                    id:
+                      type: string
+                  required:
+                  - as_of
+                  - id
+              required:
+              - new
+              - old
+            spec_snapshot_ignored:
+              type: boolean
+            status:
+              type: object
+              properties:
+                new:
+                  type: string
+                old:
+                  type: string
+              required:
+              - new
+              - old
+          required:
+          - changed
+          - counts
+          - models
+          - snapshot
+          - spec_snapshot_ignored
+          - status
         snapshot:
           type: string
           pattern: ^snap_[A-Za-z0-9:._-]+$
-        compare_to:
-          type: string
-          pattern: ^snap_[A-Za-z0-9:._-]+$
-        result:
-          type: object
+      required:
+      - compare_to
+      - contract_version
+      - endpoint
+      - result
+      - snapshot
     PolicyCheckRequest:
       type: object
       additionalProperties: false

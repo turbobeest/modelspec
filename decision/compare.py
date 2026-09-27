@@ -134,6 +134,26 @@ def _measured_value(value: dict[str, Any]) -> dict[str, Any]:
     return {key: item for key, item in value.items() if key != "records"}
 
 
+def _dimension(key: tuple[Any, ...]) -> tuple[Any, ...]:
+    """A compared value's identity apart from the selected offering."""
+    return (key[0], *key[2:])
+
+
+def _value_change(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    offering: Any = after.get("offering")
+    if before.get("offering") != offering:
+        offering = {"old": before.get("offering"), "new": offering}
+    return {
+        "kind": after["kind"],
+        **{name: after[name] for name in ("facet", "domain") if name in after},
+        **({"offering": offering} if offering is not None else {}),
+        "old": {k: v for k, v in before.items()
+                if k not in {"kind", "facet", "domain", "offering"}},
+        "new": {k: v for k, v in after.items()
+                if k not in {"kind", "facet", "domain", "offering"}},
+    }
+
+
 def compare(
     old: Decision,
     new: Decision,
@@ -162,19 +182,24 @@ def compare(
         may = ({"old": old_may.get(model), "new": new_may.get(model)}
                if old_may.get(model) != new_may.get(model) else None)
         value_changes = []
-        for key in sorted(set(old_values.get(model, {})) & set(new_values.get(model, {})),
-                          key=str):
-            before, after = old_values[model][key], new_values[model][key]
+        before_model = old_values.get(model, {})
+        after_model = new_values.get(model, {})
+        shared = set(before_model) & set(after_model)
+        pairs = [(before_model[key], after_model[key]) for key in sorted(shared, key=str)]
+        unmatched_before = [key for key in before_model if key not in shared]
+        unmatched_after = [key for key in after_model if key not in shared]
+        dimensions = (
+            {_dimension(key) for key in unmatched_before}
+            & {_dimension(key) for key in unmatched_after}
+        )
+        for dimension in sorted(dimensions, key=str):
+            old_keys = [key for key in unmatched_before if _dimension(key) == dimension]
+            new_keys = [key for key in unmatched_after if _dimension(key) == dimension]
+            if len(old_keys) == len(new_keys) == 1:
+                pairs.append((before_model[old_keys[0]], after_model[new_keys[0]]))
+        for before, after in pairs:
             if _measured_value(before) != _measured_value(after):
-                value_changes.append({
-                    "kind": after["kind"],
-                    **{name: after[name] for name in ("facet", "domain", "offering")
-                       if name in after},
-                    "old": {k: v for k, v in before.items()
-                            if k not in {"kind", "facet", "domain", "offering"}},
-                    "new": {k: v for k, v in after.items()
-                            if k not in {"kind", "facet", "domain", "offering"}},
-                })
+                value_changes.append(_value_change(before, after))
         if entered or left or rank or may or value_changes:
             changes.append({
                 "model": model,

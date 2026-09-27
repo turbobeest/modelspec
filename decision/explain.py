@@ -296,7 +296,10 @@ def contributions(snapshot, cid, parts, evidence):
     return out
 
 
-def explain(decision, resolved, snapshot, filtered, ordered, selectors, domains):
+def explain(
+    decision, resolved, snapshot, filtered, ordered, selectors, domains, *,
+    comparison=False,
+):
     requested = set(resolved.spec.capabilities or {})
     for result, row in zip(decision.results, ordered.results):
         result.evidence = domain_evidence(snapshot, row.candidate_id, requested)
@@ -319,7 +322,10 @@ def explain(decision, resolved, snapshot, filtered, ordered, selectors, domains)
         for point in ordered.tipping_points
     ]
     if decision.explain == "full":
-        _full(decision, snapshot, ordered, requested, named_facets(resolved))
+        _full(
+            decision, snapshot, ordered, requested, named_facets(resolved),
+            comparison=comparison,
+        )
         decision.chart = contribution_chart(decision)
         decision.number_origins = list(number_origins(decision, snapshot))
         decision.sources = cited_sources(decision, snapshot)
@@ -525,9 +531,8 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             decision.near_misses.append(candidate_near_misses[best[0].candidate_id])
 
 
-def _full(decision, snapshot, ordered, requested, named):
-    """Up to 20 optimised candidates with the facets the spec names, the display
-    set, and evidence on the benchmarks the spec names: not every value held."""
+def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
+    """Facts and evidence for the full explanation or an internal comparison."""
     from decision.computed import COMPUTED_FACETS
     from decision.contract import CandidateValues, ShownFact
     from decision.engine import offering_ref
@@ -536,7 +541,8 @@ def _full(decision, snapshot, ordered, requested, named):
     stored = [facet for facet in snapshot.facet_ids() if facet in shown]
     benchmarks = named & set(snapshot.benchmark_ids())
     ranked = len(decision.results)
-    for position, row in enumerate(ordered.results[:20]):
+    rows = ordered.results[:ranked] if comparison else ordered.results[:20]
+    for position, row in enumerate(rows):
         cid = row.candidate_id
         facts = []
         for facet in stored:

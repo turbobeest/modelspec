@@ -33,6 +33,7 @@ network.
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import os
 import re
@@ -245,6 +246,49 @@ def test_the_spec_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]
 
     problems = generator._validate(body, spec["components"]["schemas"]["RankResponse"], spec)
     assert problems == [], problems
+
+
+def test_comparison_result_schema_rejects_missing_and_malformed_fields(
+        spec: dict[str, Any]) -> None:
+    schema = spec["components"]["schemas"]["ComparisonResponse"]
+    for response in generator._comparison_responses():
+        assert generator._validate(response, schema, spec) == []
+
+    valid = {
+        "contract_version": generator.decide_service.contract.CONTRACT_VERSION,
+        "endpoint": "compare",
+        "snapshot": "snap_new",
+        "compare_to": "snap_old",
+        "result": {
+            "changed": False,
+            "snapshot": {
+                "old": {"id": "snap_old", "as_of": "2026-09-26"},
+                "new": {"id": "snap_new", "as_of": "2026-09-27"},
+            },
+            "status": {"old": "answered", "new": "answered"},
+            "counts": {
+                "entered": 0,
+                "left": 0,
+                "rank_changed": 0,
+                "may_qualify_changed": 0,
+                "models_changed": 0,
+            },
+            "models": [],
+            "spec_snapshot_ignored": False,
+        },
+    }
+    assert generator._validate(valid, schema, spec) == []
+
+    missing = copy.deepcopy(valid)
+    del missing["result"]["counts"]
+    malformed = copy.deepcopy(valid)
+    malformed["result"]["models"] = "not an array"
+    nonsense = copy.deepcopy(valid)
+    nonsense["result"] = {"nonsense": 1}
+
+    assert generator._validate(missing, schema, spec)
+    assert generator._validate(malformed, schema, spec)
+    assert generator._validate(nonsense, schema, spec)
 
 
 def test_the_policy_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]) -> None:
