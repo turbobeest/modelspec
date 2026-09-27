@@ -21,6 +21,9 @@ FIELDS = (
     "signal_id",
 )
 SIGNAL_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+RFC3339_DATE_TIME = re.compile(
+    r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$"
+)
 X_HOSTS = frozenset({"x.com", "www.x.com", "twitter.com", "www.twitter.com"})
 
 
@@ -66,8 +69,10 @@ class ReleaseSignal:
             raise SignalError("first_seen_url must be an https URL on x.com or twitter.com")
 
         timestamp = _text(value["timestamp"], "timestamp")
+        if timestamp != value["timestamp"] or not RFC3339_DATE_TIME.fullmatch(timestamp):
+            raise SignalError("timestamp must be an RFC 3339 date-time")
         try:
-            instant = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            instant = datetime.fromisoformat(_normalise_utc_designator(timestamp))
         except ValueError as exc:
             raise SignalError("timestamp must be an RFC 3339 date-time") from exc
         if instant.tzinfo is None:
@@ -106,7 +111,7 @@ class ReleaseSignal:
 
     @property
     def instant(self) -> datetime:
-        return datetime.fromisoformat(self.timestamp.replace("Z", "+00:00")).astimezone(UTC)
+        return datetime.fromisoformat(_normalise_utc_designator(self.timestamp)).astimezone(UTC)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -116,3 +121,7 @@ def _text(value: Any, field: str) -> str:
     if not isinstance(value, str) or not value.strip() or len(value) > 300:
         raise SignalError(f"{field} must be a non-empty string of at most 300 characters")
     return value.strip()
+
+
+def _normalise_utc_designator(value: str) -> str:
+    return value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value

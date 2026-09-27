@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from jsonschema import Draft202012Validator, FormatChecker
 
 from decision.excluded import REMOVED_HOSTS
 from release_signals.contract import ReleaseSignal, SignalError, sign
@@ -43,14 +44,22 @@ def signal(**changes: object) -> dict[str, object]:
     return row
 
 
-def test_v1_schema_accepts_the_documented_contract_and_rejects_guesses() -> None:
+@pytest.mark.parametrize(
+    "valid",
+    [
+        signal(),
+        signal(timestamp="2026-09-26T13:14:15.123+05:30"),
+        signal(timestamp="2026-09-26t13:14:15z"),
+    ],
+)
+def test_v1_schema_accepts_the_documented_contract(valid: dict[str, object]) -> None:
     schema = json.loads(
         (ROOT / "schemas" / "release-signal-v1.schema.json").read_text(encoding="utf-8")
     )
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
 
-    parsed = ReleaseSignal.parse(signal())
+    validator.validate(valid)
 
-    assert parsed.model_name == "Orbit 2"
     assert schema["$id"].endswith("release-signal-v1.schema.json")
     assert schema["required"] == [
         "model_name",
@@ -60,9 +69,43 @@ def test_v1_schema_accepts_the_documented_contract_and_rejects_guesses() -> None
         "confidence",
         "signal_id",
     ]
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        signal(confidence=1.01),
+        signal(timestamp="2026-09-26"),
+        signal(timestamp="2026-09-26 13:14:15Z"),
+        signal(timestamp=" 2026-09-26T13:14:15Z"),
+        signal(first_seen_url="https://example.com/announcement"),
+        signal(extra="not in v1"),
+    ],
+)
+def test_v1_schema_rejects_instances_outside_the_contract(
+    invalid: dict[str, object],
+) -> None:
+    schema = json.loads(
+        (ROOT / "schemas" / "release-signal-v1.schema.json").read_text(encoding="utf-8")
+    )
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+
+    assert not validator.is_valid(invalid)
+
+
+def test_parser_accepts_rfc3339_and_rejects_instances_outside_the_contract() -> None:
+    parsed = ReleaseSignal.parse(signal())
+    offset = ReleaseSignal.parse(signal(timestamp="2026-09-26T13:14:15.123+05:30"))
+    lowercase = ReleaseSignal.parse(signal(timestamp="2026-09-26t13:14:15z"))
+
+    assert parsed.model_name == "Orbit 2"
+    assert offset.instant == datetime(2026, 9, 26, 7, 44, 15, 123000, tzinfo=UTC)
+    assert lowercase.instant == datetime(2026, 9, 26, 13, 14, 15, tzinfo=UTC)
     for bad in (
         signal(confidence=1.01),
         signal(timestamp="2026-09-26"),
+        signal(timestamp="2026-09-26 13:14:15Z"),
+        signal(timestamp=" 2026-09-26T13:14:15Z"),
         signal(first_seen_url="https://example.com/announcement"),
         signal(extra="not in v1"),
     ):
