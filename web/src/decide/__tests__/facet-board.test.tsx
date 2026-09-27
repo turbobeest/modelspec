@@ -18,6 +18,11 @@ describe("facet board launch gate", () => {
 describe("facet state mapping", () => {
   const base = realBaseSpec(smallVocabulary);
   const contract = (selections: BoardSelections) => toBoardDecisionSpec(boardToSpec(base, smallVocabulary, selections), "full");
+  const weights = (selections: BoardSelections) => {
+    const objective = contract(selections).optimize;
+    if (!("weights" in objective)) throw new Error("board objective must use weights");
+    return objective.weights;
+  };
   it("maps numeric, boolean, enum, domain preference and Must+Prefer cost literally", () => {
     expect(contract({
       "model.context_window": { mode: "must", op: ">=", value: 200000 },
@@ -44,6 +49,31 @@ describe("facet state mapping", () => {
     expect(toDecisionSpec(boardToSpec(emptyBase, smallVocabulary, {
       "offering.cost_per_task": { mode: "must", op: "<=", value: 0.25 },
     }), "full").where).toEqual(["offering.cost_per_task <= 0.25"]);
+  });
+  it("uses a membership-neutral objective when no Prefer is set", () => {
+    expect(weights({})).toEqual({ "-offering.cost_per_task": 1 });
+    expect(weights({
+      "model.context_window": { mode: "must", op: ">=", value: 200000 },
+    })).toEqual({ "-offering.cost_per_task": 1 });
+    expect(weights({
+      "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+    })).toEqual({ software_engineering: 0.6 });
+  });
+  it("never sends empty weights for any state produced from the vocabulary fixture", () => {
+    const states: BoardSelections[] = [{}];
+    for (const facet of groupFacets(smallVocabulary).groups.flatMap((group) => group.facets)) {
+      states.push({ [facet.id]: { mode: "must" } });
+      if (supportsPreference(facet.id)) {
+        states.push({ [facet.id]: { mode: "prefer" } });
+        states.push({ [facet.id]: { mode: "both" } });
+      }
+    }
+    for (const template of smallVocabulary.templates ?? []) {
+      states.push(Object.fromEntries(template.facets.map(({ id, ...selection }) => [id, selection])));
+    }
+    for (const state of states) {
+      expect(Object.keys(weights(state)).length).toBeGreaterThan(0);
+    }
   });
   it("adds the provider estate as a second-spec gate", () => {
     expect(toDecisionSpec(estateSpec(base, ["anthropic", "google"]), "summary").where?.at(-1)).toBe("offering.provider in {anthropic, google}");

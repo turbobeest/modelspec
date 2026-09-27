@@ -17,6 +17,8 @@ export type BoardSelections = Record<string, FacetSelection>;
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
 export interface BoardUrlState { selections: BoardSelections; estate: Estate }
 
+const UNRANKED_OBJECTIVE = { "-offering.cost_per_task": 1 };
+
 const facetValueSchema = z.union([
   z.string(), z.number().finite(), z.boolean(), z.array(z.string()),
 ]);
@@ -175,9 +177,13 @@ export function boardWeights(vocabulary: Vocabulary, selections: BoardSelections
 
 export function toBoardDecisionSpec(spec: Spec, explain: "none" | "summary" | "full"): DecisionSpec {
   const contract = toDecisionSpec(spec, explain);
-  return spec.boardWeights
-    ? { ...contract, optimize: { weights: spec.boardWeights } }
+  return spec.boardWeights !== undefined
+    ? { ...contract, optimize: { weights: boardHasPreference(spec) ? spec.boardWeights : UNRANKED_OBJECTIVE } }
     : contract;
+}
+
+export function boardHasPreference(spec: Spec): boolean {
+  return spec.boardWeights !== undefined && Object.keys(spec.boardWeights).length > 0;
 }
 
 export function encodeBoardSpec(spec: Spec, axis: Axis, board: BoardUrlState): string {
