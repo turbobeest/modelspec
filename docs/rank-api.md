@@ -285,6 +285,35 @@ nothing else. It is **not** `CLOUDFLARE_API_TOKEN` (Pages) or
 Wrangler is pinned at `4.134.0`. The `4.94.0` that `graph-service` uses ships a
 workerd older than this Worker's `compatibility_date` and refuses to start it.
 
+### Issue an operator key
+
+Use an operator key when a live-key test must not pass through Stripe Checkout.
+Run the command from the repository root:
+
+```sh
+python scripts/issue_api_key.py \
+  --owner x402-smoke \
+  --label "Base Sepolia x402 smoke test" \
+  --put
+```
+
+The command generates the same `live_` key and KV record as
+`api/worker/src/access_keys.py`. It prints the secret once and prints the
+Wrangler command separately. Store the secret in 1Password. With `--put`, the
+script writes the displayed record to the `ACCESS` binding. Without `--put`, it
+only prints the command, and the generated key is not stored. The default tier
+is `free`; use `--tier <name>` only for a tier in
+`api/worker/tiers.json`.
+
+Save the full SHA-256 fingerprint from the output. Revoke the key by fingerprint:
+
+```sh
+python scripts/revoke_api_key.py <fingerprint> --put
+```
+
+Revocation marks the existing record inactive, so the Worker returns
+`key_revoked`. Neither command writes the secret to a file.
+
 ### The MODEL-9 lesson, applied
 
 MODEL-9 shipped three changes whose container-side code never ran, because the

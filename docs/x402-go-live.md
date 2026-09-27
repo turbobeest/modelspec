@@ -31,7 +31,29 @@ Sources checked 2026-09-26:
 3. Fund the smoke wallet with native Base Sepolia USDC and Base Sepolia ETH
    for gas. The test USDC asset is
    `0x036CbD53842c5426634e7929541eC2318f3dCF7e`.
-4. Create or select a valid ModelSpec API key with a zero credit balance.
+
+### Issue an operator key
+
+4. From the repository root, issue a live key with no credit grant directly
+   into the Worker's `ACCESS` KV namespace:
+
+   ```sh
+   python scripts/issue_api_key.py \
+     --owner x402-smoke \
+     --label "Base Sepolia x402 smoke test" \
+     --put
+   ```
+
+   The command prints the key once. Store it in 1Password when prompted. The KV
+   record contains only the SHA-256 fingerprint, the `free` tier, and the
+   labels. Because this path does not grant credits, the new key starts at zero.
+   Save the full fingerprint printed by the command. To revoke the key after
+   the smoke test, run:
+
+   ```sh
+   python scripts/revoke_api_key.py <fingerprint> --put
+   ```
+
 5. Install the signing dependency with
    `python -m pip install 'eth-account>=0.13'`.
 6. Set `X402_PAY_TO` to Jamie's receiving address on Base Sepolia.
