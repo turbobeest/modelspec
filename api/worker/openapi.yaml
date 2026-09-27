@@ -2980,6 +2980,8 @@ components:
           type: array
         eliminated:
           $ref: '#/components/schemas/DecisionEliminated'
+        truncated:
+          $ref: '#/components/schemas/DecisionTruncated'
         constraint_costs:
           items:
             $ref: '#/components/schemas/DecisionConstraintCost'
@@ -4299,6 +4301,22 @@ components:
           default: null
           title: Absolute
       title: Tolerance
+      type: object
+    DecisionTruncated:
+      additionalProperties: false
+      description: Qualifying rows omitted only because of the requested result limit. Added in 1.8.
+      properties:
+        offerings:
+          default: 0
+          minimum: 0
+          title: Offerings
+          type: integer
+        models:
+          default: 0
+          minimum: 0
+          title: Models
+          type: integer
+      title: Truncated
       type: object
     DecisionWindow:
       additionalProperties: false

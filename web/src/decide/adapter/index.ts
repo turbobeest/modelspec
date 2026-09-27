@@ -315,6 +315,7 @@ export const fictionalEngine: SampleDecisionEngine = {
     );
     return {
       contract_version: "1.8",
+      truncated: { offerings: 0, models: 0 },
       out_of_lineup: 0,
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
       snapshot: snapshotId(spec),

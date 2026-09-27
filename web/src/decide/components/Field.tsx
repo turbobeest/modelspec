@@ -59,6 +59,8 @@ export function Field({
           <small>
             {e.feasible.length} qualify · {e.may.length} may qualify ·{" "}
             {e.excluded.length} excluded
+            {decision.truncated.offerings > 0 &&
+              ` · ${decision.truncated.offerings} more not shown`}
           </small>
         </div>
         <ol className="funnel">

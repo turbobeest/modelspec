@@ -274,6 +274,14 @@ export const decisionSchema = z
           .default([]),
       })
       .strict(),
+    truncated: z
+      .object({
+        offerings: z.number().int().nonnegative(),
+        models: z.number().int().nonnegative(),
+      })
+      .strict()
+      .optional()
+      .default({ offerings: 0, models: 0 }),
     constraint_costs: z.array(
       z
         .object({

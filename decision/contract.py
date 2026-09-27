@@ -1153,6 +1153,13 @@ class Eliminated(_Strict):
     model_groups: list[ModelEliminationGroup] = Field(default_factory=list)
 
 
+class Truncated(_Strict):
+    """Qualifying rows omitted only because of the requested result limit. Added in 1.8."""
+
+    offerings: int = Field(default=0, ge=0)
+    models: int = Field(default=0, ge=0)
+
+
 class ConstraintCost(_Strict):
     units: dict[str, str | None] = Field(default_factory=dict)
     records: list[str] = Field(default_factory=list)
@@ -1257,6 +1264,7 @@ class Decision(_Strict):
     results: list[Result] = Field(default_factory=list)
     may_qualify: list[MayQualify] = Field(default_factory=list)
     eliminated: Eliminated = Field(default_factory=Eliminated)
+    truncated: Truncated = Field(default_factory=Truncated)
     constraint_costs: list[ConstraintCost] = Field(default_factory=list)
     tipping_points: list[TippingPoint] = Field(default_factory=list)
     relax: list[str] = Field(default_factory=list)
@@ -1288,6 +1296,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate, Contribution,
     MayQualify, Eliminated, FunnelStep, ModelElimination, OfferingElimination,
+    Truncated,
     ModelEliminationGroup, ConstraintCost, TippingPoint,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
 )

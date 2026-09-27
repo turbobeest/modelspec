@@ -611,6 +611,7 @@ def _samples() -> list:
         decision.eliminated,
         decision.eliminated.funnel[0],
         decision.eliminated.models[0],
+        decision.truncated,
         c.OfferingElimination(
             offering=result.offering, condition="context >= 90", value=80
         ),

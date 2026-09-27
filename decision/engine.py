@@ -17,6 +17,7 @@ from decision.contract import (
     OfferingRef,
     Result,
     Spec,
+    Truncated,
     spec_hash,
 )
 from decision.filter import FilterResult, apply
@@ -207,8 +208,20 @@ def decide(
             seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain}",
         )
 
+    returned_rows = ordered.results[: spec.limit]
+    omitted_rows = ordered.results[spec.limit :]
+    returned_models = {
+        snapshot.model_of(row.candidate_id) for row in returned_rows
+    }
+    omitted_models = {
+        snapshot.model_of(row.candidate_id) for row in omitted_rows
+    } - returned_models
+    truncated = Truncated(
+        offerings=sum(snapshot.kind(row.candidate_id) == "offering" for row in omitted_rows),
+        models=len(omitted_models),
+    )
     results = []
-    for i, row in enumerate(ordered.results[: spec.limit]):
+    for i, row in enumerate(returned_rows):
         model_id = snapshot.model_of(row.candidate_id)
         stored_estimates = [
             (domain, snapshot.capability_estimate(row.candidate_id, domain))
@@ -278,6 +291,7 @@ def decide(
                 + list(objective_unknown.items())
             )
         ],
+        truncated=truncated,
         out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
     )
     if spec.explain != "none":

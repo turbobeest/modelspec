@@ -375,6 +375,7 @@ same canonical representation it had in 1.0.
     "models": [],
     "model_groups": []
   },
+  "truncated": {"offerings": 0, "models": 0},
   "constraint_costs": [
     {"condition": "origin.lab_jurisdiction in {US}", "admits": 12, "gain": {"software_engineering": 0.06}}
   ],
@@ -399,7 +400,8 @@ same canonical representation it had in 1.0.
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
 | `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
-| `eliminated` | The `funnel`: for each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. |
+| `eliminated` | Candidates that failed a condition. The `funnel` reports each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. A qualifying candidate omitted by `limit` is never an elimination. |
+| `truncated` | Qualifying candidates omitted only because of `limit`. `offerings` counts omitted offering rows. `models` counts models with no row in `results`; a model with one returned offering and another omitted offering is not counted as an omitted model. Both counts are always present and are zero when the complete qualifying result set was returned. |
 | `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. |
 | `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. |
 | `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. |

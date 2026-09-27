@@ -618,6 +618,9 @@
           "title": "Top",
           "type": "array"
         },
+        "truncated": {
+          "$ref": "#/$defs/Truncated"
+        },
         "warnings": {
           "items": {
             "pattern": "^[a-z0-9_]+$",
@@ -2780,6 +2783,26 @@
         }
       },
       "title": "Tolerance",
+      "type": "object"
+    },
+    "Truncated": {
+      "additionalProperties": false,
+      "description": "Qualifying rows omitted only because of the requested result limit. Added in 1.8.",
+      "properties": {
+        "models": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Models",
+          "type": "integer"
+        },
+        "offerings": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offerings",
+          "type": "integer"
+        }
+      },
+      "title": "Truncated",
       "type": "object"
     },
     "Window": {
