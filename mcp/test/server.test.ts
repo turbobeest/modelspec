@@ -107,7 +107,7 @@ describe("modelspec MCP worker", () => {
     vi.unstubAllGlobals();
   });
 
-  it("tools/list returns the four tools with object input schemas", async () => {
+  it("tools/list returns all six tools with object input schemas", async () => {
     const listed = await rpc("tools/list", {});
     const result = listed.payload.result as {
       tools: Array<{ name: string; inputSchema: { type?: string } }>;
@@ -115,7 +115,7 @@ describe("modelspec MCP worker", () => {
     expect(result.tools.map((tool) => tool.name).sort()).toEqual(
       [...TOOL_NAMES].sort(),
     );
-    expect(result.tools).toHaveLength(4);
+    expect(result.tools).toHaveLength(6);
     for (const tool of result.tools) {
       expect(tool.inputSchema).toBeTruthy();
       expect(tool.inputSchema.type ?? "object").toBe("object");
@@ -133,20 +133,26 @@ describe("modelspec MCP worker", () => {
     expect(result.serverInfo.version).toBe("test-commit-sha");
   });
 
-  it("rank and policy_check go through the RANK service binding when bound", async () => {
+  it("rank, policy_check, and decide go through the RANK binding", async () => {
     // Deployed, a same-zone fetch of api.modelspec.dev answered 522; the
     // binding is the path. The envelope still names the public URL.
     const bound = vi.fn(async () => jsonResponse(200, { result: [] }));
     const env: Env = { ...ENV, RANK: { fetch: bound } as unknown as Fetcher };
-    for (const name of ["rank", "policy_check"]) {
-      const args = name === "rank" ? { use_case: "coding", limit: 1 } : { policy: { origin: { permitted_countries: ["US"] } }, limit: 1 };
+    for (const name of ["rank", "policy_check", "decide"]) {
+      const args =
+        name === "rank"
+          ? { use_case: "coding", limit: 1 }
+          : name === "policy_check"
+            ? { policy: { origin: { permitted_countries: ["US"] } }, limit: 1 }
+            : { spec_version: 1, optimize: { min: "offering.cost_per_task" } };
       const { payload } = await rpc("tools/call", { name, arguments: args }, 1, {}, env);
       expect(envelopeFromCall(payload).status).toBe(200);
     }
-    expect(bound).toHaveBeenCalledTimes(2);
+    expect(bound).toHaveBeenCalledTimes(3);
     expect(bound.mock.calls.map((c) => c[0])).toEqual([
       "https://api.modelspec.dev/v1/rank",
       "https://api.modelspec.dev/v1/policy-check",
+      "https://api.modelspec.dev/v1/decide",
     ]);
     expect(originFetch).not.toHaveBeenCalled();
   });
@@ -275,5 +281,91 @@ describe("modelspec MCP worker", () => {
     );
     const init = originFetch.mock.calls[0][1] as RequestInit;
     expect(new Headers(init.headers).get("authorization")).toBe("Bearer test_key");
+  });
+
+  it("decide proxies the spec and summarizes the decision", async () => {
+    const originBody = {
+      status: "partial",
+      results: [
+        { offering: { model: "google/gemini-3-7-flash" } },
+        { offering: { model: "google/gemini-3-7-flash" } },
+        { offering: { model: "openai/gpt-6-sol" } },
+      ],
+      may_qualify: [{ model: "moonshot/kimi-k3" }],
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, originBody));
+    const spec = {
+      spec_version: 1,
+      snapshot: "latest",
+      where: ["model.context_window >= 200000"],
+      optimize: { min: "offering.cost_per_task" },
+    };
+    const { payload } = await rpc(
+      "tools/call",
+      { name: "decide", arguments: spec },
+      1,
+      { authorization: "Bearer decide_key" },
+    );
+    const envelope = envelopeFromCall(payload);
+    expect(envelope).toEqual({
+      origin: "https://api.modelspec.dev/v1/decide",
+      status: 200,
+      body: originBody,
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    expect(result.content[1].text).toBe(
+      "status: partial; top models: google/gemini-3-7-flash, openai/gpt-6-sol; may qualify: 1",
+    );
+    const [url, init] = originFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://api.modelspec.dev/v1/decide");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual(spec);
+    expect(new Headers(init.headers).get("authorization")).toBe(
+      "Bearer decide_key",
+    );
+  });
+
+  it("decide returns an upstream invalid_spec error with its code and message", async () => {
+    const originBody = {
+      error: { code: "invalid_spec", message: "where[0] names an unknown facet" },
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: { spec_version: 1, optimize: { min: "not_a_facet" } },
+    });
+    const envelope = envelopeFromCall(payload);
+    expect(envelope.status).toBe(400);
+    expect(envelope.body).toEqual(originBody);
+    expect((payload.result as { isError?: boolean }).isError).toBe(true);
+  });
+
+  it("vocab returns the complete static decision vocabulary", async () => {
+    const vocabulary = {
+      facets: [{ id: "model.context_window" }],
+      task_types: ["new_feature"],
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, vocabulary));
+    const { payload } = await rpc("tools/call", {
+      name: "vocab",
+      arguments: {},
+    });
+    const envelope = envelopeFromCall(payload);
+    expect(envelope.origin).toBe(
+      "https://modelspec.dev/api/decision/vocabulary.json",
+    );
+    expect(envelope.body).toEqual(vocabulary);
+  });
+
+  it("vocab returns only the requested section", async () => {
+    const facets = [{ id: "model.context_window" }];
+    originFetch.mockResolvedValueOnce(
+      jsonResponse(200, { facets, task_types: ["new_feature"] }),
+    );
+    const { payload } = await rpc("tools/call", {
+      name: "vocab",
+      arguments: { section: "facets" },
+    });
+    expect(envelopeFromCall(payload).body).toEqual(facets);
   });
 });

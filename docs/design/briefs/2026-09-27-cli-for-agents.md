@@ -116,8 +116,8 @@ How to read that answer:
 - **API:** `POST https://api.modelspec.dev/v1/decide` runs the same engine
   on the Worker. Browsers are allowed only from modelspec.dev (CORS), so an
   agent calls it from a server.
-- **MCP:** `https://api.modelspec.dev/mcp` has `rank`, `model_info`,
-  `list_use_cases` and `policy_check`. It has **no `decide` tool** yet.
+- **MCP:** `https://api.modelspec.dev/mcp` has `decide` and `vocab` beside
+  `rank`, `model_info`, `list_use_cases` and `policy_check`.
 
 ## Part 2: an agent choosing a model for the next subagent
 
@@ -168,7 +168,7 @@ ticket covers it.
 | 13 | Leave with a link, config or summary | The spec is portable; `--html` writes a report | Works once MODEL-176 lands | — |
 | 14 | Watch the answer | None | Can't ask "what changed since snapshot X for this spec" | MODEL-181 |
 | 15 | Trust the facts | Hash and ID are checked; the signature is HMAC with a private key | The public can't verify the signature | MODEL-182 |
-| 16 | Use from an agent platform | MCP has no `decide` | Agents on MCP can't downselect | MODEL-183 |
+| 16 | Use from an agent platform | MCP exposes `decide` and `vocab` | Closed by MODEL-183 | MODEL-183 |
 
 ## A question for Jamie (business, not engineering)
 
