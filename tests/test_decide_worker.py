@@ -204,6 +204,7 @@ def test_worker_compare_returns_an_http_comparison_from_two_snapshots(service) -
         "compare_to": old.snapshot_id,
         "spec": {
             "spec_version": 1,
+            "snapshot": new.snapshot_id,
             "where": ["model.context_window >= 150"],
             "optimize": {"max": "model.context_window"},
         },
@@ -216,6 +217,7 @@ def test_worker_compare_returns_an_http_comparison_from_two_snapshots(service) -
         "new": {"id": new.snapshot_id, "as_of": "2026-09-27"},
     }
     assert body["result"]["models"][0]["model"] == "lab/a"
+    assert body["result"]["spec_snapshot_ignored"] is True
 
 
 def test_missing_published_snapshot_is_retryable(service) -> None:

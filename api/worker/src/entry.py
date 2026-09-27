@@ -550,6 +550,7 @@ class Default(WorkerEntrypoint):
                     f"the body must be at most {max_body} bytes",
                     status=service.HTTP_PAYLOAD_TOO_LARGE,
                     snapshot_id=None,
+                    endpoint=path.rsplit("/", 1)[-1],
                 )[1]
                 return _decision_response(
                     service.HTTP_PAYLOAD_TOO_LARGE, response, _cors_headers(request)
@@ -570,6 +571,7 @@ class Default(WorkerEntrypoint):
                     f"the body is not valid JSON: {exc}",
                     status=decider.HTTP_BAD_REQUEST,
                     snapshot_id=None,
+                    endpoint=path.rsplit("/", 1)[-1],
                 )
                 return _decision_response(status, body, _cors_headers(request))
             else:

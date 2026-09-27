@@ -384,9 +384,7 @@ def compare(payload: Any, old_snapshot, new_snapshot, *,
         old_as_of=old_snapshot.as_of.isoformat() if old_snapshot.as_of else None,
         new_as_of=new_snapshot.as_of.isoformat() if new_snapshot.as_of else None,
     )
-    result["spec_snapshot_ignored"] = (
-        spec.snapshot != "latest" and spec.snapshot != new_snapshot.snapshot_id
-    )
+    result["spec_snapshot_ignored"] = spec.snapshot != "latest"
     return HTTP_OK, {
         "contract_version": contract.CONTRACT_VERSION,
         "endpoint": "compare",

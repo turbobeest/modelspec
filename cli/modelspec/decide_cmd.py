@@ -347,9 +347,7 @@ def decide(
                 old_as_of=old_index.as_of.isoformat() if old_index.as_of else None,
                 new_as_of=index.as_of.isoformat() if index.as_of else None,
             )
-            result["spec_snapshot_ignored"] = (
-                spec.snapshot != "latest" and spec.snapshot != index.snapshot_id
-            )
+            result["spec_snapshot_ignored"] = spec.snapshot != "latest"
         else:
             result = run_decision(spec, index, facets=facets)
         if html is not None:
