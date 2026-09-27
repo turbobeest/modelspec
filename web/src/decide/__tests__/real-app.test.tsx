@@ -118,19 +118,57 @@ it("runs the designed App on a full hosted decision without fictional labels", a
 });
 
 it("does not render the Next-questions panel in the facet-board preview", async () => {
-  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  const fetch = routeFetch({ decide: (init) => {
+    const decision = decisionFor(init);
+    return json({
+      ...decision,
+      contract_version: "1.6",
+      eliminated: {
+        ...decision.eliminated,
+        funnel: decision.eliminated.funnel.map((step) => ({
+          ...step,
+          models_before: step.before,
+          models_after: step.after,
+          offerings_before: step.before,
+          offerings_after: step.after,
+          models_may_qualify: step.may_qualify,
+          offerings_may_qualify: step.may_qualify,
+        })),
+        model_groups: [],
+      },
+    });
+  } });
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp demo={false} board />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
   expect(screen.queryByText("Next questions, most narrowing first")).not.toBeInTheDocument();
   expect(screen.getByText("Narrowing, in the order you set conditions")).toBeInTheDocument();
   const narrowing = screen.getByText("Narrowing, in the order you set conditions").closest<HTMLElement>(".narrowing")!;
-  expect(within(narrowing).queryByText("Has a provider")).not.toBeInTheDocument();
+  const engineStep = within(narrowing).getByText("Added by the engine: Has a provider");
+  expect(engineStep).toHaveAttribute("title", "This condition was added by the decision engine.");
+  expect(engineStep.closest("li")).toHaveTextContent("−4");
   expect(screen.queryByRole("button", { name: "Run decision" })).not.toBeInTheDocument();
   const answer = screen.getByLabelText("Facet board answer").closest<HTMLElement>(".board-answer")!;
   expect(within(answer).queryByText(/Best overall|Best value|#1 of/)).not.toBeInTheDocument();
   expect(within(answer).getByText("Delta 4.7")).toBeInTheDocument();
+  expect(within(answer).getAllByText("Lab Inc. · via cloud").length).toBeGreaterThan(0);
+  expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
+  expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
   expect(sentSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
+});
+
+it("labels capability intervals with their ranking basis and units", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+
+  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(capability).getByLabelText("Prefer"));
+
+  expect(await screen.findByText("Software engineering, estimated · 80% interval")).toBeInTheDocument();
+  expect(screen.getAllByText(/capability score$/).length).toBeGreaterThan(0);
+  expect(screen.getByLabelText("Delta 4.7 capability interval")).toBeInTheDocument();
 });
 
 it("switches the ranking benchmark in one click from the rank-by control", async () => {

@@ -1,13 +1,25 @@
 import { useMemo, useState } from "react";
-import { fmtB, money } from "../adapter";
+import { money } from "../adapter";
 import type { AdapterDecision, Spec } from "../adapter";
+import type { Vocabulary } from "../vocabulary";
 
 const COLLAPSED_COUNT = 8;
 
-export function RankedAnswer({ decision, spec }: { decision: AdapterDecision; spec: Spec }) {
+export function RankedAnswer({
+  decision,
+  spec,
+  vocabulary,
+}: {
+  decision: AdapterDecision;
+  spec: Spec;
+  vocabulary: Vocabulary;
+}) {
   const [expanded, setExpanded] = useState(false);
   const rows = decision.explanation.feasible;
   const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
+  const capability = vocabulary.domains.find((domain) =>
+    Object.keys(spec.boardWeights ?? {}).includes(domain.id),
+  );
   const extent = useMemo(() => {
     const values = rows.flatMap((row) => row.cap === null ? [] : [
       row.cap - (row.capR?.ci ?? 0),
@@ -30,25 +42,30 @@ export function RankedAnswer({ decision, spec }: { decision: AdapterDecision; sp
     {inseparable.length > 0 && <p className="board-inseparable">
       The evidence can't separate {inseparable.map((row) => row.m.name).join(", ")}.
     </p>}
+    {capability && <div className="board-ranked-columns" aria-hidden="true">
+      <span />
+      <span />
+      <small>{capability.name}, estimated · 80% interval</small>
+    </div>}
     <ol>
       {visible.map((row) => {
         const value = row.cap ?? extent.min;
         const radius = row.capR?.ci ?? 0;
         const left = 100 * (value - radius - extent.min) / extent.span;
         const width = Math.max(2, 100 * (radius * 2) / extent.span);
-        return <li key={`${row.m.lab}/${row.m.id}`}>
+        return <li className={capability ? "" : "without-capability"} key={`${row.m.lab}/${row.m.id}`}>
           <div className="board-ranked-copy">
             <strong>{row.m.name}</strong>
-            <small>{row.best.o.id} · {row.best.o.provider}</small>
+            <small>{row.m.labName} · via {row.best.o.provider}</small>
           </div>
           <div className="board-ranked-cost"><small>Cost per task</small><span>{money(row.cost)}</span></div>
-          <div className="board-capability">
+          {capability && <div className="board-capability">
             <span className="board-interval-track" aria-label={`${row.m.name} capability interval`}>
               <i style={{ left: `${Math.max(0, left)}%`, width: `${Math.min(100 - Math.max(0, left), width)}%` }} />
               <b style={{ left: `${Math.max(0, Math.min(100, 100 * (value - extent.min) / extent.span))}%` }} />
             </span>
-            <small>{fmtB(spec.bench, row.cap)}</small>
-          </div>
+            <small>{row.cap === null ? "unknown" : `${row.cap.toFixed(2)} capability score`}</small>
+          </div>}
         </li>;
       })}
     </ol>

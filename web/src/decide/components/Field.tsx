@@ -29,20 +29,20 @@ export function Field({
 }) {
   const e = decision.explanation,
     requested = new Set(spec?.conds.map(contractCondition) ?? []),
-    boardFunnel = [
-      e.funnel[0],
-      ...decision.eliminated.funnel.flatMap((step, index) =>
-        requested.has(step.condition) && e.funnel[index + 1] ? [e.funnel[index + 1]] : [],
-      ),
-    ].filter((step): step is NonNullable<typeof step> => step !== undefined),
     steps = [
-      ...(boardOnly ? boardFunnel : e.funnel),
+      ...e.funnel.map((step, index) => ({
+        ...step,
+        engineAdded: boardOnly && index > 0 && !requested.has(
+          decision.eliminated.funnel[index - 1]?.condition ?? "",
+        ),
+      })),
       {
         label: spec?.boardWeights && Object.keys(spec.boardWeights).length
           ? `Ranking on ${Object.entries(spec.boardWeights).map(([id, weight]) => `${objectiveLabel(id, vocabulary)} ${weight.toFixed(2)}`).join(" · ")}`
           : "Ranked on evidence",
         n: e.feasible.length,
         may: e.may.length,
+        engineAdded: false,
       },
     ],
     total = Math.max(1, steps[0]?.n ?? 1);
@@ -60,7 +60,7 @@ export function Field({
         </div>
         <ol className="funnel">
           {steps.map((f, i) => (
-            <li key={i} className={i === steps.length - 1 ? "ranked" : ""}>
+            <li key={i} className={`${i === steps.length - 1 ? "ranked" : ""}${f.engineAdded ? " engine-added" : ""}`}>
               <span className="count">{f.n}</span>
               <span className="funnel-track">
                 <span
@@ -81,7 +81,12 @@ export function Field({
                   }}
                 />
               </span>
-              <span className="funnel-label">{f.label}</span>
+              <span
+                className="funnel-label"
+                title={f.engineAdded ? "This condition was added by the decision engine." : undefined}
+              >
+                {f.engineAdded ? `Added by the engine: ${f.label}` : f.label}
+              </span>
               <small>
                 {i === 0
                   ? `${decision.population.models} models · ${decision.population.offerings} offerings`

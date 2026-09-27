@@ -618,6 +618,9 @@ body {
 .board-ranked-answer { padding: 6px 16px 12px; border-top: 2px solid var(--ink); }
 .board-ranked-answer > ol { list-style: none; margin: 0; padding: 0; }
 .board-ranked-answer > ol > li { display: grid; grid-template-columns: minmax(150px, 1fr) 92px minmax(120px, .8fr); gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.board-ranked-answer > ol > li.without-capability { grid-template-columns: minmax(150px, 1fr) 92px; }
+.board-ranked-columns { display: grid; grid-template-columns: minmax(150px, 1fr) 92px minmax(120px, .8fr); gap: 12px; padding: 4px 0 2px; color: var(--muted); }
+.board-ranked-columns small { font-size: 10.5px; }
 .board-ranked-copy, .board-ranked-cost, .board-capability { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .board-ranked-copy small, .board-ranked-cost small, .board-capability small, .board-inseparable { color: var(--muted); }
 .board-ranked-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -625,6 +628,8 @@ body {
 .board-interval-track { position: relative; height: 8px; margin: 4px 3px; border-radius: 999px; background: var(--surface2); }
 .board-interval-track i { position: absolute; top: 1px; height: 6px; border-radius: 999px; background: var(--accent); opacity: .65; }
 .board-interval-track b { position: absolute; top: -2px; width: 2px; height: 12px; background: var(--ink); }
+.funnel .engine-added { color: var(--muted); }
+.funnel .engine-added .funnel-track { opacity: .55; }
 .board-inseparable { margin: 6px 0; font-size: 12px; }
 .board-show-all { margin-top: 10px; }
 .mobile-answer-bar { display: none; }
@@ -647,6 +652,8 @@ body {
   .facet-state label { font-size: 10.5px; }
   .answer-pair { grid-template-columns: 1fr; }
   .board-ranked-answer > ol > li { grid-template-columns: minmax(0, 1fr) 88px; }
+  .board-ranked-columns { grid-template-columns: minmax(0, 1fr) 88px; }
+  .board-ranked-columns small { grid-column: 1 / -1; }
   .board-capability { grid-column: 1 / -1; }
 }
 .start-constraints {

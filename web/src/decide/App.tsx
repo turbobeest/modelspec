@@ -773,7 +773,7 @@ export function DesignedApp({
                 <small className="board-tied-note">Tied-group answer: coming (MODEL-170)</small>
                 {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.results.length} ranked · ${estateDecision.may_qualify.length} may qualify` : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} qualify · {decision.explanation.may.length} may qualify</span></div></div>}
               </section>
-              <RankedAnswer decision={decision} spec={shownSpec} />
+              <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} />
             </> : <section className="panel board-answer-loading" aria-live="polite">The live answer will appear here.</section>}
           /> : (decision || !demo) && <SpecPanel
             spec={shownSpec}
