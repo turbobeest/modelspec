@@ -255,6 +255,19 @@ def test_check_accepts_the_budget_coding_spec(tmp_path: Path, cached_vocabulary:
     assert "ok: musts: 3, prefers: 2, snapshot: latest" in result.stdout
 
 
+def test_compare_does_not_warn_that_latest_was_ignored(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    snapshot = (
+        tmp_path / "cache" / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+
+    result = _run(tmp_path, BUDGET_CODING, "--compare-to", str(snapshot))
+
+    assert result.exit_code == 0
+    assert "Spec snapshot pin ignored" not in result.stdout
+
+
 def test_check_suggests_a_misspelled_facet(tmp_path: Path, cached_vocabulary: dict) -> None:
     result = _run(
         tmp_path, BUDGET_CODING.replace("model.context_window", "model.context_windw"),

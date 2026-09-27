@@ -335,7 +335,9 @@ def decide(
                 old_as_of=old_index.as_of.isoformat() if old_index.as_of else None,
                 new_as_of=index.as_of.isoformat() if index.as_of else None,
             )
-            result["spec_snapshot_ignored"] = spec.snapshot != "latest"
+            result["spec_snapshot_ignored"] = (
+                spec.snapshot != "latest" and spec.snapshot != index.snapshot_id
+            )
         else:
             result = run_decision(spec, index, facets=facets)
         if html is not None:
@@ -375,7 +377,8 @@ def decide(
         if old_top != new_top:
             headline += f", top changed from {old_top} to {new_top}"
         typer.echo(headline)
-        typer.echo("Spec snapshot pin ignored; compared the requested snapshots.")
+        if result["spec_snapshot_ignored"]:
+            typer.echo("Spec snapshot pin ignored; compared the requested snapshots.")
         for row in result["models"]:
             parts = []
             if row["entered"]:
