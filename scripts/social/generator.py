@@ -325,84 +325,88 @@ def _price_claim(snapshot: LoadedSnapshot, cid: str, value: float) -> dict[str, 
 
 def _value_angle(
     model_id: str,
-    standing: Standing,
+    standings: Sequence[Standing],
     snapshot: LoadedSnapshot,
     model_class: str,
 ) -> dict[str, Any] | None:
-    if not standing.higher_is_better:
-        return None
     priced = with_computed(snapshot, DEFAULT_TASK_TOKENS)
-    candidates: list[tuple[float, str, float]] = []
-    for cid in snapshot.candidates():
-        if snapshot.kind(cid) != "offering":
+    for standing in sorted(standings, key=lambda row: row.domain.id):
+        if not standing.higher_is_better:
             continue
-        model = snapshot.model_of(cid)
-        if snapshot.fact(model, "model.class").value != model_class:
+        candidates: list[tuple[float, str, float]] = []
+        for cid in snapshot.candidates():
+            if snapshot.kind(cid) != "offering":
+                continue
+            model = snapshot.model_of(cid)
+            if snapshot.fact(model, "model.class").value != model_class:
+                continue
+            values = snapshot.evidence(cid, standing.benchmark)
+            computed = priced.computed(cid, COST_PER_TASK)
+            if not values or computed is None or computed.value <= 0:
+                continue
+            score = max(row.value for row in values)
+            candidates.append((score / computed.value, cid, score))
+        if not candidates:
             continue
-        values = snapshot.evidence(cid, standing.benchmark)
-        computed = priced.computed(cid, COST_PER_TASK)
-        if not values or computed is None or computed.value <= 0:
+        _, winner, _ = max(candidates, key=lambda row: (row[0], row[2], row[1]))
+        if snapshot.model_of(winner) != model_id:
             continue
-        score = max(row.value for row in values)
-        candidates.append((score / computed.value, cid, score))
-    if not candidates:
-        return None
-    _, winner, _ = max(candidates, key=lambda row: (row[0], row[2], row[1]))
-    if snapshot.model_of(winner) != model_id:
-        return None
-    computed = priced.computed(winner, COST_PER_TASK)
-    assert computed is not None
-    claims = [
-        _snapshot_claim(
-            snapshot,
-            f"{model_id} has the best verified {standing.benchmark} evidence per dollar "
-            f"within the {_display_class(model_class)} class.",
-            "1",
-        ),
-        _evidence_claim(standing, winner),
-        _price_claim(snapshot, winner, computed.value),
-    ]
-    return {"angle": "value", "title": "Value angle", "claims": claims}
+        computed = priced.computed(winner, COST_PER_TASK)
+        assert computed is not None
+        claims = [
+            _snapshot_claim(
+                snapshot,
+                f"{model_id} has the best verified {standing.benchmark} evidence per dollar "
+                f"within the {_display_class(model_class)} class.",
+                "1",
+            ),
+            _evidence_claim(standing, winner),
+            _price_claim(snapshot, winner, computed.value),
+        ]
+        return {"angle": "value", "title": "Value angle", "claims": claims}
+    return None
 
 
 def _local_angle(
     model_id: str,
-    standing: Standing,
+    standings: Sequence[Standing],
     snapshot: LoadedSnapshot,
     device: str | None,
     model_class: str,
 ) -> dict[str, Any] | None:
     if not device:
         return None
-    fitting = [
-        candidate
-        for candidate in standing.ordered_models
-        if device in (snapshot.fact(candidate, "model.fits_hardware").value or [])
-    ]
-    if not fitting or fitting[0] != model_id:
-        return None
-    fact = snapshot.fact(model_id, "model.fits_hardware")
-    if not fact.sources:
-        raise ValueError(f"{model_id}: model.fits_hardware has no source")
-    day = _record_date(snapshot, fact.record_id)
-    if day is None:
-        raise ValueError(f"{model_id}: model.fits_hardware has no verification date")
-    claims = [
-        _claim(
-            f"{model_id} is estimated to fit {device}.",
-            device,
-            snapshot.source_url(fact.sources[0]),
-            day,
-        ),
-        _snapshot_claim(
-            snapshot,
-            f"{model_id} ranks #1 among models fitting {device} for "
-            f"{standing.domain.name} within the {_display_class(model_class)} class.",
-            "1",
-        ),
-        _evidence_claim(standing, model_id),
-    ]
-    return {"angle": "local", "title": "Local angle", "claims": claims}
+    for standing in sorted(standings, key=lambda row: row.domain.id):
+        fitting = [
+            candidate
+            for candidate in standing.ordered_models
+            if device in (snapshot.fact(candidate, "model.fits_hardware").value or [])
+        ]
+        if not fitting or fitting[0] != model_id:
+            continue
+        fact = snapshot.fact(model_id, "model.fits_hardware")
+        if not fact.sources:
+            raise ValueError(f"{model_id}: model.fits_hardware has no source")
+        day = _record_date(snapshot, fact.record_id)
+        if day is None:
+            raise ValueError(f"{model_id}: model.fits_hardware has no verification date")
+        claims = [
+            _claim(
+                f"{model_id} is estimated to fit {device}.",
+                device,
+                snapshot.source_url(fact.sources[0]),
+                day,
+            ),
+            _snapshot_claim(
+                snapshot,
+                f"{model_id} ranks #1 among models fitting {device} for "
+                f"{standing.domain.name} within the {_display_class(model_class)} class.",
+                "1",
+            ),
+            _evidence_claim(standing, model_id),
+        ]
+        return {"angle": "local", "title": "Local angle", "claims": claims}
+    return None
 
 
 def _honest_gaps(
@@ -645,7 +649,6 @@ def generate(
     previous_rows = {
         row.domain.id: row for row in (_standings(previous, model_class) if previous else [])
     }
-    primary = next((row for row in current_rows if row.rank(model_id) is not None), current_rows[0])
     drafts = [
         _new_entrant(
             model_id,
@@ -655,8 +658,8 @@ def generate(
             current,
             model_class,
         ),
-        _value_angle(model_id, primary, current, model_class),
-        _local_angle(model_id, primary, current, device, model_class),
+        _value_angle(model_id, current_rows, current, model_class),
+        _local_angle(model_id, current_rows, current, device, model_class),
         _honest_gaps(model_id, current_rows, current),
         _weekly_movers(model_id, current_rows, previous_rows, current),
     ]

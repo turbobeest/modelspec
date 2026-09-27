@@ -42,6 +42,7 @@ def _snapshot(
     path: Path,
     scores: dict[str, float],
     *,
+    math_scores: dict[str, float] | None = None,
     non_fitting: set[str] | None = None,
 ) -> str:
     model_ids = ["lab/alpha", "lab/beta", "lab/gamma", "lab/delta"]
@@ -56,11 +57,20 @@ def _snapshot(
                 _offering("lab/delta", 0.5),
             ],
             evidence=[
-                evidence(model_id, "swe_bench_pro", score, day=AS_OF.isoformat())
-                for model_id, score in scores.items()
+                *(
+                    evidence(model_id, "swe_bench_pro", score, day=AS_OF.isoformat())
+                    for model_id, score in scores.items()
+                ),
+                *(
+                    evidence(model_id, "math_500", score, day=AS_OF.isoformat())
+                    for model_id, score in (math_scores or {}).items()
+                ),
             ],
             sources=SOURCES,
-            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+            benchmark_domains={
+                "swe_bench_pro": [("software_engineering", "direct")],
+                **({"math_500": [("maths", "direct")]} if math_scores is not None else {}),
+            },
         ),
         gate=False,
         as_of=AS_OF,
@@ -497,6 +507,33 @@ def test_local_angle_calls_a_filtered_winner_number_one_among_fitting_models(
         "lab/alpha ranks #1 among models fitting nvidia_rtx_4090 for Software engineering "
         "within the text generator class."
     )
+
+
+def test_value_and_local_angles_consider_every_domain(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    snapshot_id = _snapshot(
+        current,
+        {"lab/alpha": 10.0, "lab/beta": 100.0, "lab/gamma": 90.0},
+        math_scores={"lab/alpha": 90.0, "lab/beta": 80.0, "lab/gamma": 70.0},
+    )
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, snapshot_id)
+
+    manifest = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        device=DEVICE,
+        snapshot_key=KEY,
+    )
+
+    drafts = {draft["angle"]: draft for draft in manifest["drafts"]}
+    assert "best verified math_500 evidence per dollar" in drafts["value"]["claims"][0]["text"]
+    assert "for Maths within" in drafts["local"]["claims"][1]["text"]
 
 
 def test_honest_gaps_omit_unknowns_belonging_to_an_unrelated_model(
