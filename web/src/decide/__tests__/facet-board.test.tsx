@@ -51,6 +51,22 @@ describe("facet state mapping", () => {
       "offering.cost_per_task": { mode: "must", op: "<=", value: 0.25 },
     }), "full").where).toEqual(["offering.cost_per_task <= 0.25"]);
   });
+  it("waits for an enum value before adding a Must condition", () => {
+    const emptyBase = { ...realBaseSpec(realVocabulary), conds: [] };
+    const where = (selections: BoardSelections) => toDecisionSpec(
+      boardToSpec(emptyBase, realVocabulary, selections), "full",
+    ).where;
+    expect(where({
+      "model.weights_openness": { mode: "must" },
+      "offering.data.zero_retention": { mode: "must" },
+    })).toEqual([]);
+    expect(where({
+      "model.weights_openness": { mode: "must", op: "=", value: "open_weights" },
+    })).toEqual(["model.weights_openness = open_weights"]);
+    expect(where({
+      "offering.data.zero_retention": { mode: "must", op: "=", value: false },
+    })).toEqual(["offering.data.zero_retention = false"]);
+  });
   it("uses a membership-neutral objective when no Prefer is set", () => {
     expect(weights({})).toEqual({ "-offering.cost_per_task": 1 });
     expect(weights({
@@ -88,6 +104,21 @@ describe("facet state mapping", () => {
 it("separates not-yet-tracked facets", () => {
   const vocabulary = { ...smallVocabulary, facets: smallVocabulary.facets.map((facet, index) => index === 0 ? { ...facet, known: 0 } : facet) };
   expect(groupFacets(vocabulary).untracked.map((facet) => facet.id)).toContain(vocabulary.facets[0].id);
+});
+
+it("starts enum Must controls unselected and shows vocabulary counts", () => {
+  const onSpec = vi.fn();
+  render(<FacetBoard vocabulary={realVocabulary} spec={{ ...realBaseSpec(realVocabulary), conds: [] }} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: /Where it runsall Doesn't matter/ }));
+  const weights = screen.getByText("Open weights").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(weights).getByLabelText("Must"));
+  expect(within(weights).getByText("Choose value(s)")).toBeInTheDocument();
+  expect(onSpec.mock.calls.at(-1)![0].conds).toEqual([]);
+  const openWeights = within(weights).getByLabelText(/Open weights \(\d+\)/);
+  fireEvent.click(openWeights);
+  expect(onSpec.mock.calls.at(-1)![0].conds).toEqual([
+    expect.objectContaining({ facet: "model.weights_openness", op: "=", value: "open_weights" }),
+  ]);
 });
 
 it("hides absent templates and expands groups with active canonical template facets", () => {

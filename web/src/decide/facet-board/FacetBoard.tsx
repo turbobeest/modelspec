@@ -15,11 +15,12 @@ function ValueControl({ facet, choice, onChange }: {
   choice: FacetSelection;
   onChange: (next: FacetSelection) => void;
 }) {
-  const value = choice.value ?? defaultFacetValue(facet);
+  const value = choice.value;
   const op = choice.op ?? defaultFacetOp(facet);
   if (facet.value_type === "boolean") return (
     <label className="facet-value">Required value
-      <select value={String(value)} onChange={(event) => onChange({ ...choice, value: event.target.value === "true" })}>
+      <select value={value === undefined ? "" : String(value)} onChange={(event) => onChange({ ...choice, value: event.target.value === "" ? undefined : event.target.value === "true" })}>
+        <option value="">Choose value</option>
         <option value="true">Yes</option><option value="false">No</option>
       </select>
     </label>
@@ -29,17 +30,19 @@ function ValueControl({ facet, choice, onChange }: {
       <label>Operator <select value={op} onChange={(event) => onChange({ ...choice, op: event.target.value as FacetSelection["op"] })}>
         {facet.operators.filter((item) => ["<=", ">=", "=", "!="].includes(item)).map((item) => <option key={item}>{item}</option>)}
       </select></label>
-      <label>Threshold <input type={facet.value_type === "date" ? "date" : "number"} value={facet.value_type === "number" ? numberText(value) : String(value)} onChange={(event) => onChange({ ...choice, value: facet.value_type === "number" ? Number(event.target.value) : event.target.value })} /></label>
+      <label>Threshold <input type={facet.value_type === "date" ? "date" : "number"} value={facet.value_type === "number" ? numberText(value ?? defaultFacetValue(facet)) : String(value ?? defaultFacetValue(facet))} onChange={(event) => onChange({ ...choice, value: facet.value_type === "number" ? Number(event.target.value) : event.target.value })} /></label>
       {facet.unit && <span>{facet.unit.replaceAll("_", " ")}</span>}
     </div>
   );
-  const selected = Array.isArray(value) ? value.map(String) : [String(value)];
-  return <fieldset className="facet-values"><legend>Values</legend>{facet.values?.map((item) => {
+  const selected = value === undefined ? [] : Array.isArray(value) ? value.map(String) : [String(value)];
+  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{facet.values?.map((item) => {
     const checked = selected.includes(String(item.value));
     return <label key={String(item.value)}><input type="checkbox" checked={checked} onChange={() => {
       const values = checked ? selected.filter((v) => v !== String(item.value)) : [...selected, String(item.value)];
-      onChange({ ...choice, op: "in", value: values });
-    }} />{item.label ?? String(item.value)}</label>;
+      if (values.length === 0) onChange({ ...choice, value: undefined });
+      else if (facet.value_type === "set" || values.length > 1) onChange({ ...choice, op: "in", value: values });
+      else onChange({ ...choice, op: "=", value: values[0] });
+    }} />{item.label ?? String(item.value)}{typeof item.count === "number" ? ` (${item.count})` : ""}</label>;
   })}</fieldset>;
 }
 
@@ -47,11 +50,17 @@ function FacetRow({ facet, choice, onChange }: { facet: VocabFacet; choice: Face
   const [infoOpen, setInfoOpen] = useState(false);
   const unavailable = facet.known === 0;
   const preference = supportsPreference(facet.id);
-  const setMode = (mode: FacetMode) => onChange({
-    ...choice, mode,
-    op: choice.op ?? defaultFacetOp(facet), value: choice.value ?? defaultFacetValue(facet),
-    weight: choice.weight ?? 0.5,
-  });
+  const setMode = (mode: FacetMode) => {
+    const needsDefault = facet.value_type === "number" || facet.value_type === "date";
+    onChange({
+      ...choice, mode,
+      op: choice.op ?? defaultFacetOp(facet),
+      ...(choice.value !== undefined
+        ? { value: choice.value }
+        : needsDefault ? { value: defaultFacetValue(facet) } : {}),
+      weight: choice.weight ?? 0.5,
+    });
+  };
   const must = choice.mode === "must" || choice.mode === "both";
   const prefer = choice.mode === "prefer" || choice.mode === "both";
   return <div className={`facet-row ${choice.mode === "off" ? "facet-off" : ""}`} data-facet={facet.id}>

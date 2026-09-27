@@ -150,7 +150,9 @@ export function nextMustOrder(
   return reconciled;
 }
 
-function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond {
+function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond | null {
+  if (choice.value === undefined && !["number", "date"].includes(facet.value_type)) return null;
+  if (Array.isArray(choice.value) && choice.value.length === 0) return null;
   return {
     f: "facet",
     facet: facet.id.replace(/^capability\./, ""),
@@ -261,8 +263,9 @@ export function boardToSpec(
   const gates = orderedIds.flatMap((id) => {
     const facet = facetsById.get(id);
     const choice = selections[id];
-    return choice && (choice.mode === "must" || choice.mode === "both")
-      && facet ? [conditionFor(facet, choice)] : [];
+    if (!choice || (choice.mode !== "must" && choice.mode !== "both") || !facet) return [];
+    const condition = conditionFor(facet, choice);
+    return condition ? [condition] : [];
   });
   const selectedWeights = boardWeightsFromSelections(selections);
   const selectedDomain = Object.keys(selections).find((id) =>

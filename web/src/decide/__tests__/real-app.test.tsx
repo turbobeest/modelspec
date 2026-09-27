@@ -235,14 +235,15 @@ it("keeps capability-unknown models outside the ranked board answer", async () =
     name: "May qualify — no Software engineering evidence (7)",
   });
   const rankedAnswer = mayHeading.closest<HTMLElement>(".board-ranked-answer")!;
-  fireEvent.click(within(rankedAnswer).getByRole("button", { name: "Show all 41" }));
+  fireEvent.click(within(rankedAnswer).getByRole("button", { name: "Show all 25" }));
 
   const rankedNames = [...rankedAnswer.querySelectorAll(":scope > ol > li strong")]
     .map((node) => node.textContent);
-  expect(rankedNames).toEqual(liveSwePrefer.results.map((result) =>
-    realVocabulary.models[result.offering.model]?.display_name ?? result.offering.model.split("/").at(-1)
+  expect(rankedNames).toEqual([...new Set(liveSwePrefer.results.map((result) => result.offering.model))].map((model) =>
+    realVocabulary.models[model]?.display_name ?? model.split("/").at(-1)
   ));
-  expect(rankedAnswer.querySelectorAll(":scope > ol .board-interval-track")).toHaveLength(41);
+  expect(rankedAnswer.querySelectorAll(":scope > ol .board-interval-track")).toHaveLength(25);
+  expect(within(rankedAnswer).getAllByText("also via Vertex AI (Google Cloud)").length).toBeGreaterThan(0);
 
   const mayGroup = mayHeading.closest<HTMLElement>(".board-may-qualify")!;
   expect(within(mayGroup).getAllByRole("listitem")).toHaveLength(7);
@@ -266,7 +267,10 @@ it("requests the estate once after the board decision settles", async () => {
   fireEvent.change(screen.getByLabelText("Add provider"), {
     target: { value: Object.keys(smallVocabulary.providers)[0] },
   });
-  await waitFor(() => expect(screen.getByText(/ranked · .* may qualify/)).toBeInTheDocument());
+  await waitFor(() => expect(document.querySelector(
+    ".answer-lists > section:first-child .board-ranked-answer",
+  )).toBeInTheDocument());
+  expect(screen.getAllByText(/models qualify · .* may qualify/).length).toBe(2);
   await new Promise((resolve) => setTimeout(resolve, 350));
   const estateRequests = sentSpecs(fetch).filter((body) =>
     body.where.some((condition: string) => condition.startsWith("offering.provider in")),
@@ -308,8 +312,10 @@ it("labels capability intervals with their ranking basis and units", async () =>
   expect(await screen.findByText("Software engineering, estimated · 80% interval")).toBeInTheDocument();
   expect(screen.queryByText("Not ranked — set a Prefer to rank these")).not.toBeInTheDocument();
   expect(screen.getByText(/Ranking on Software engineering 0.50/)).toBeInTheDocument();
-  expect((await screen.findAllByText(/capability score$/)).length).toBeGreaterThan(0);
-  expect(screen.getByLabelText("Delta 4.7 capability interval")).toBeInTheDocument();
+  expect((await screen.findAllByText(/above the lineup median|near the median|below the median/)).length)
+    .toBeGreaterThan(0);
+  expect(screen.queryByText(/capability score$/)).not.toBeInTheDocument();
+  expect(screen.getAllByLabelText("Delta 4.7 capability interval").length).toBeGreaterThan(0);
 });
 
 it("switches the ranking benchmark in one click from the rank-by control", async () => {
