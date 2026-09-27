@@ -117,9 +117,42 @@ jobs:
           name: pytest-full-collection
           path: full-collection.txt
 
+  package-smoke:
+    name: Package smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Inspect the wheel contents
+        run: >-
+          python -c "import glob, zipfile;
+          names=zipfile.ZipFile(glob.glob('dist/*.whl')[0]).namelist();
+          roots={name.split('/', 1)[0] for name in names};
+          assert {'api', 'cli', 'decision', 'pipeline', 'registry', 'schema'} <= roots;
+          assert not ({'docs', 'models', 'tests', 'web'} & roots)"
+      - name: Install the wheel in a fresh environment
+        run: |
+          python -m venv package-venv
+          package-venv/bin/python -m pip install dist/*.whl
+      - name: Run the installed CLI
+        run: |
+          package-venv/bin/modelspec --help
+          package-venv/bin/modelspec decide --help
+          package-venv/bin/python -c "from decision.registry import default; assert default().facets()"
+
   required-pytest:
     name: Run pytest
-    needs: [pytest-shards, pytest-perf-and-collection]
+    needs: [pytest-shards, pytest-perf-and-collection, package-smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -128,6 +161,7 @@ jobs:
         env:
           SHARD_RESULT: ${{ needs.pytest-shards.result }}
           PERF_RESULT: ${{ needs.pytest-perf-and-collection.result }}
+          PACKAGE_RESULT: ${{ needs.package-smoke.result }}
         run: |
           test "$SHARD_RESULT" = success || {
             echo "::error::pytest shards finished with result: $SHARD_RESULT"
@@ -135,6 +169,10 @@ jobs:
           }
           test "$PERF_RESULT" = success || {
             echo "::error::pytest perf and collection finished with result: $PERF_RESULT"
+            exit 1
+          }
+          test "$PACKAGE_RESULT" = success || {
+            echo "::error::package smoke test finished with result: $PACKAGE_RESULT"
             exit 1
           }
       - name: Checkout

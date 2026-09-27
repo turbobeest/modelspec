@@ -12,10 +12,7 @@ ModelSpec catalogs AI models as YAML+Markdown cards, exports them to versioned J
 ## Quick start
 
 ```bash
-git clone https://github.com/turbobeest/modelspec.git
-cd modelspec
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
+pipx install modelspec-dev
 modelspec snapshot fetch
 modelspec offline rank coding --json
 ```
