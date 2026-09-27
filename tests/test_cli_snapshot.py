@@ -590,10 +590,10 @@ def _modelspec_cli() -> str:
     ``PATH``. A missing CLI is an install failure, not a skip.
     """
     try:
-        dist = distribution("modelspec")
+        dist = distribution("modelspec-dev")
     except PackageNotFoundError as exc:
         raise RuntimeError(
-            "The modelspec package is not installed in this interpreter. "
+            "The modelspec-dev distribution is not installed in this interpreter. "
             "Install it with `pip install -e '.[dev]'` so the `modelspec` "
             "console script is created."
         ) from exc
@@ -602,7 +602,7 @@ def _modelspec_cli() -> str:
         for ep in dist.entry_points
     ):
         raise RuntimeError(
-            "The installed modelspec distribution does not declare a "
+            "The installed modelspec-dev distribution does not declare a "
             "`modelspec` console script (pyproject.toml [project.scripts])."
         )
 
@@ -628,6 +628,39 @@ def _modelspec_cli() -> str:
         "Looked in: " + ", ".join(str(p) for p in searched) + ". "
         "Install the package into this interpreter."
     )
+
+
+def test_cli_lookup_uses_published_distribution_name(monkeypatch) -> None:
+    looked_up: list[str] = []
+
+    def missing_distribution(name: str):
+        looked_up.append(name)
+        raise PackageNotFoundError(name)
+
+    monkeypatch.setattr(sys.modules[__name__], "distribution", missing_distribution)
+    _modelspec_cli.cache_clear()
+
+    with pytest.raises(RuntimeError, match="modelspec-dev distribution"):
+        _modelspec_cli()
+
+    assert looked_up == ["modelspec-dev"]
+
+
+def test_cli_lookup_names_distribution_when_entry_point_is_missing(
+    monkeypatch,
+) -> None:
+    class DistributionWithoutScripts:
+        entry_points = ()
+
+    monkeypatch.setattr(
+        sys.modules[__name__],
+        "distribution",
+        lambda name: DistributionWithoutScripts(),
+    )
+    _modelspec_cli.cache_clear()
+
+    with pytest.raises(RuntimeError, match="installed modelspec-dev distribution"):
+        _modelspec_cli()
 
 
 def _run(args: list[str], cache: Path) -> subprocess.CompletedProcess:
