@@ -1,6 +1,6 @@
 import type { Cond, FacetValue, Spec } from "../engine/types";
 import type { DecisionSpec } from "../adapter/contract";
-import { toDecisionSpec } from "../adapter/view-model";
+import { contractCondition, toDecisionSpec } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
 import type { VocabFacet, Vocabulary } from "../vocabulary";
 import { z } from "zod";
@@ -11,9 +11,14 @@ export interface FacetSelection {
   op?: "=" | "!=" | "<=" | ">=" | "in" | "not in";
   value?: FacetValue;
   weight?: number;
+  weightKey?: string;
   reason?: string;
 }
 export type BoardSelections = Record<string, FacetSelection>;
+export interface BoardTemplateState {
+  selections: BoardSelections;
+  taskTokens?: { input: number; output: number };
+}
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
 export interface BoardUrlState { selections: BoardSelections; estate: Estate }
 
@@ -27,6 +32,7 @@ const selectionSchema = z.object({
   op: z.enum(["=", "!=", "<=", ">=", "in", "not in"]).optional(),
   value: facetValueSchema.optional(),
   weight: z.number().finite().nonnegative().max(1).optional(),
+  weightKey: z.string().optional(),
   reason: z.string().optional(),
 });
 const boardUrlSchema = z.object({
@@ -124,6 +130,87 @@ function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond {
   };
 }
 
+const BOARD_CONDITION = /^(\S+) (not in|in|!=|<=|>=|=) (.+)$/;
+
+function parseConditionValue(text: string): FacetValue {
+  if (text.startsWith("{") && text.endsWith("}")) {
+    const body = text.slice(1, -1);
+    return body ? body.split(", ").map(parseScalarValue).map(String) : [];
+  }
+  return parseScalarValue(text);
+}
+
+function parseScalarValue(text: string): string | number | boolean {
+  if (text === "true") return true;
+  if (text === "false") return false;
+  if (/^-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text)) return Number(text);
+  if (text.startsWith('"') && text.endsWith('"')) {
+    const parsed: unknown = JSON.parse(text);
+    if (typeof parsed === "string") return parsed;
+  }
+  return text;
+}
+
+/** Parse the compact condition form that the board sends to the decision API. */
+export function parseBoardCondition(condition: string): { facetId: string; op: NonNullable<FacetSelection["op"]>; value: FacetValue } {
+  const match = BOARD_CONDITION.exec(condition);
+  if (!match) throw new Error(`Template condition is not editable on the facet board: ${condition}`);
+  const [, facetId, op, text] = match;
+  return {
+    facetId,
+    op: z.enum(["=", "!=", "<=", ">=", "in", "not in"]).parse(op),
+    value: parseConditionValue(text),
+  };
+}
+
+/** Format a board condition with the same compact-value rules as API serialization. */
+export function formatBoardCondition(facetId: string, choice: FacetSelection): string {
+  return contractCondition({
+    f: "facet",
+    facet: facetId,
+    op: choice.op ?? "=",
+    value: choice.value ?? "",
+  });
+}
+
+/** Convert one canonical vocabulary template into board selections and token counts. */
+export function templateToBoard(
+  template: NonNullable<Vocabulary["templates"]>[number],
+  vocabulary: Vocabulary,
+): BoardTemplateState {
+  const selections: BoardSelections = {};
+  const addReason = (facetId: string, reason: string) => {
+    const current = selections[facetId]?.reason;
+    return current && current !== reason ? `${current} ${reason}` : reason;
+  };
+  for (const row of template.where) {
+    const parsed = parseBoardCondition(row.condition);
+    const current = selections[parsed.facetId];
+    selections[parsed.facetId] = {
+      ...current,
+      mode: current?.mode === "prefer" ? "both" : "must",
+      op: parsed.op,
+      value: parsed.value,
+      reason: addReason(parsed.facetId, row.reason),
+    };
+  }
+  for (const [weightKey, preference] of Object.entries(template.weights)) {
+    const objective = weightKey.startsWith("-") ? weightKey.slice(1) : weightKey;
+    const facetId = template.needs.domains.includes(objective) ||
+      vocabulary.domains.some((domain) => domain.id === objective)
+      ? `capability.${objective}` : objective;
+    const current = selections[facetId];
+    selections[facetId] = {
+      ...current,
+      mode: current?.mode === "must" ? "both" : "prefer",
+      weight: preference.weight,
+      weightKey,
+      reason: addReason(facetId, preference.reason),
+    };
+  }
+  return { selections, ...(template.task_tokens ? { taskTokens: template.task_tokens } : {}) };
+}
+
 /** Convert the visible board literally: gates become where conditions; weights rank only. */
 export function boardToSpec(base: Spec, vocabulary: Vocabulary, selections: BoardSelections): Spec {
   const grouped = groupFacets(vocabulary);
@@ -135,15 +222,7 @@ export function boardToSpec(base: Spec, vocabulary: Vocabulary, selections: Boar
     return choice && (choice.mode === "must" || choice.mode === "both")
       ? [conditionFor(facet, choice)] : [];
   });
-  const boardWeights = Object.fromEntries(synthetic.flatMap((facet) => {
-    const choice = selections[facet.id];
-    if (!choice || (choice.mode !== "prefer" && choice.mode !== "both") || !supportsPreference(facet.id)) return [];
-    const id = facet.id.startsWith("capability.") ? facet.id.slice("capability.".length)
-      : facet.id === "offering.cost_per_task" ? "-offering.cost_per_task"
-      : facet.id === "offering.speed.time_to_first_token" ? "-offering.speed.time_to_first_token"
-      : facet.id;
-    return [[id, choice.weight ?? 0.5]];
-  }));
+  const selectedWeights = boardWeightsFromSelections(selections);
   const selectedDomain = Object.keys(selections).find((id) =>
     id.startsWith("capability.") && selections[id].mode !== "off",
   )?.slice("capability.".length);
@@ -152,7 +231,7 @@ export function boardToSpec(base: Spec, vocabulary: Vocabulary, selections: Boar
     ...base,
     task: "",
     conds: [...preserved, ...gates],
-    boardWeights,
+    boardWeights: selectedWeights,
     ...(domain ? {
       domain: domain.id,
       basis: "estimate" as const,
@@ -161,16 +240,18 @@ export function boardToSpec(base: Spec, vocabulary: Vocabulary, selections: Boar
   };
 }
 
-export function boardWeights(vocabulary: Vocabulary, selections: BoardSelections): Record<string, number> {
-  const grouped = groupFacets(vocabulary);
-  const facets = [...grouped.groups.flatMap((group) => group.facets), ...grouped.untracked];
-  return Object.fromEntries(facets.flatMap((facet) => {
-    const choice = selections[facet.id];
-    if (!choice || (choice.mode !== "prefer" && choice.mode !== "both") || !supportsPreference(facet.id)) return [];
-    const id = facet.id.startsWith("capability.") ? facet.id.slice("capability.".length)
-      : facet.id === "offering.cost_per_task" ? "-offering.cost_per_task"
-      : facet.id === "offering.speed.time_to_first_token" ? "-offering.speed.time_to_first_token"
-      : facet.id;
+export function boardWeights(_vocabulary: Vocabulary, selections: BoardSelections): Record<string, number> {
+  return boardWeightsFromSelections(selections);
+}
+
+function boardWeightsFromSelections(selections: BoardSelections): Record<string, number> {
+  return Object.fromEntries(Object.entries(selections).flatMap(([facetId, choice]) => {
+    if ((choice.mode !== "prefer" && choice.mode !== "both") || !supportsPreference(facetId)) return [];
+    const id = choice.weightKey ?? (facetId.startsWith("capability.")
+      ? facetId.slice("capability.".length)
+      : facetId === "offering.cost_per_task" ? "-offering.cost_per_task"
+      : facetId === "offering.speed.time_to_first_token" ? "-offering.speed.time_to_first_token"
+      : facetId);
     return [[id, choice.weight ?? 0.5]];
   }));
 }

@@ -52,7 +52,7 @@ const EDITABLE: FacetOp[] = ["=", "!=", "<=", ">=", "in", "not in"];
 describe("published templates", () => {
   it("accepts vocabularies published before templates existed", () => {
     const { templates: _templates, ...withoutTemplates } = v;
-    expect(_templates).toEqual([]);
+    expect(_templates?.length).toBeGreaterThan(0);
     expect(vocabularySchema.parse(withoutTemplates).templates).toBeUndefined();
   });
 

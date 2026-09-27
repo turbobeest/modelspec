@@ -4,7 +4,7 @@ import type { Spec } from "../engine/types";
 import type { Vocabulary, VocabFacet } from "../vocabulary";
 import {
   boardToSpec, defaultFacetOp, defaultFacetValue, facetGroup, GROUP_ORDER,
-  groupFacets, readEstate, supportsPreference, writeEstate,
+  groupFacets, readEstate, supportsPreference, templateToBoard, writeEstate,
 } from "./model";
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
 
@@ -102,14 +102,18 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     setSelected(all); onSpec(boardToSpec(spec, vocabulary, all));
   };
   const applyTemplate = (template: NonNullable<Vocabulary["templates"]>[number]) => {
-    const all = Object.fromEntries(template.facets.map(({ id, ...choice }) => [id, { ...choice }]));
+    const converted = templateToBoard(template, vocabulary);
+    const all = converted.selections;
     const activeGroups = grouped.groups.filter((group) => group.facets.some((facet) => ["must", "prefer", "both"].includes(all[facet.id]?.mode)));
     setExpandedGroups((current) => Object.fromEntries(grouped.groups.map((group) => [group.name, group.name === "What it's good at" || activeGroups.some((active) => active.name === group.name) || current[group.name] === true])));
-    setSelected(all); setTemplatesOpen(false); onSpec(boardToSpec(spec, vocabulary, all));
+    const templateSpec = converted.taskTokens
+      ? { ...spec, tokIn: converted.taskTokens.input, tokOut: converted.taskTokens.output }
+      : spec;
+    setSelected(all); setTemplatesOpen(false); onSpec(boardToSpec(templateSpec, vocabulary, all));
   };
   return <div className="facet-board">
     <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div>{vocabulary.templates?.length ? <button aria-expanded={templatesOpen} onClick={() => setTemplatesOpen(!templatesOpen)}>ⓘ Templates</button> : null}</div>
-    {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.map((template) => <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.description}</span></button>)}</div></section> : null}
+    {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.filter((template) => template.available).map((template) => <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.purpose}</span></button>)}</div>{vocabulary.templates.filter((template) => !template.available).map((template) => <p className="template-unavailable" key={template.id}>Not available on today's data: {template.name} — {template.unavailable_reason}</p>)}</section> : null}
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
     <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
     <div className="board-workspace">

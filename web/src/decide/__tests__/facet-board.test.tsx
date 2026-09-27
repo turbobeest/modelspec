@@ -3,11 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
   boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, groupFacets,
-  showsFacetBoard, supportsPreference, toBoardDecisionSpec,
+  formatBoardCondition, parseBoardCondition, showsFacetBoard, supportsPreference,
+  templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
 import type { BoardSelections } from "../facet-board/model";
 import { realBaseSpec } from "../vocabulary";
-import { smallVocabulary } from "./vocab-fixtures";
+import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
 
 describe("facet board launch gate", () => {
@@ -89,22 +90,56 @@ it("separates not-yet-tracked facets", () => {
   expect(groupFacets(vocabulary).untracked.map((facet) => facet.id)).toContain(vocabulary.facets[0].id);
 });
 
-it("hides absent templates and expands groups with active template facets", () => {
+it("hides absent templates and expands groups with active canonical template facets", () => {
   const base = realBaseSpec(smallVocabulary);
-  const first = render(<FacetBoard vocabulary={smallVocabulary} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+  const { templates: _templates, ...withoutTemplates } = smallVocabulary;
+  const first = render(<FacetBoard vocabulary={withoutTemplates} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.queryByText("Start from a template")).not.toBeInTheDocument();
   first.unmount();
   const onSpec = vi.fn();
-  const vocabulary = { ...smallVocabulary, templates: [{ id: "budget", name: "Budget coding", description: "A practical start", facets: [{ id: "offering.cost_per_task", mode: "both" as const, op: "<=" as const, value: 0.25, weight: 0.4, reason: "Keep each run affordable" }] }] };
+  const vocabulary = { ...smallVocabulary, templates: realVocabulary.templates };
   render(<FacetBoard vocabulary={vocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.getByRole("button", { name: /Budgetall Doesn't matter/ })).toHaveAttribute("aria-expanded", "false");
-  fireEvent.click(screen.getByRole("button", { name: /Budget coding/ }));
+  expect(screen.queryByRole("button", { name: /EU-only data handling/ })).not.toBeInTheDocument();
+  expect(screen.getByText("Not available on today's data: EU-only data handling — No offering passes: Inference region in the EU — 0 of 4 offerings")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
   expect(screen.getByRole("button", { name: /Budget1 set/ })).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByText("Why: Keep each run affordable")).toBeInTheDocument();
+  expect(screen.getByText(/Why: The offering must stay within the per-task budget.*prefer the cheaper task/)).toBeInTheDocument();
   expect(onSpec).toHaveBeenCalledOnce();
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(cost).queryByText(/coming \(MODEL-172\)/)).not.toBeInTheDocument();
   expect(screen.getAllByText("Prefer on these facets: coming (MODEL-172)").length).toBeGreaterThan(0);
+});
+
+describe("canonical template mapping", () => {
+  it.each(realVocabulary.templates ?? [])("round-trips $id through board serialization", (template) => {
+    const converted = templateToBoard(template, realVocabulary);
+    for (const row of template.where) {
+      const parsed = parseBoardCondition(row.condition);
+      expect(formatBoardCondition(parsed.facetId, { mode: "must", ...parsed })).toBe(row.condition);
+    }
+    const base = { ...realBaseSpec(realVocabulary), conds: [] };
+    const withTokens = converted.taskTokens
+      ? { ...base, tokIn: converted.taskTokens.input, tokOut: converted.taskTokens.output }
+      : base;
+    const serialized = toBoardDecisionSpec(
+      boardToSpec(withTokens, realVocabulary, converted.selections),
+      "full",
+    );
+    expect([...(serialized.where ?? [])].sort()).toEqual([...template.spec.where].sort());
+    expect(serialized.optimize).toEqual(template.spec.optimize);
+    if (template.spec.task_tokens) expect(serialized.task_tokens).toEqual(template.spec.task_tokens);
+  });
+
+  it("maps a shared gate and signed preference to Must+Prefer", () => {
+    const budget = realVocabulary.templates?.find((template) => template.id === "budget-coding");
+    if (!budget) throw new Error("budget-coding fixture is missing");
+    const cost = templateToBoard(budget, realVocabulary).selections["offering.cost_per_task"];
+    expect(cost).toMatchObject({
+      mode: "both", op: "<=", value: 0.25, weight: 0.4,
+      weightKey: "-offering.cost_per_task",
+    });
+  });
 });
 
 it("reopens Must, Prefer and Must+Prefer selections and keeps them after another edit", () => {
