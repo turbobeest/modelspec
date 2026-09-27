@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -24,6 +25,7 @@ from decision.templates import load_templates
 from decision.vocabulary import (
     VOCABULARY_VERSION,
     FrontierCoverageError,
+    _template_rows,
     build_vocabulary,
     frontier_coverage,
     require_frontier_coverage,
@@ -133,6 +135,50 @@ def test_templates_are_published_with_the_pinned_shape(vocabulary):
     assert templates[0]["unavailable_reason"] is None
     assert templates[3]["available"] is False
     assert templates[3]["unavailable_reason"] == "domain maths has no lineup coverage"
+
+
+def live_template_rows():
+    fixture = json.loads(
+        (Path(__file__).parents[1] / "web/src/decide/__fixtures__/vocabulary.json").read_text()
+    )
+    return fixture, _template_rows(fixture["coverage"], fixture["facets"], registry())
+
+
+def test_eu_data_is_unavailable_without_a_published_eu_region():
+    _, templates = live_template_rows()
+    eu_data = by_id(templates)["eu-data"]
+    assert eu_data["available"] is False
+    assert eu_data["unavailable_reason"] == (
+        "No offering in this snapshot publishes an EU inference region yet."
+    )
+
+
+def test_eu_data_becomes_available_when_an_eu_region_has_coverage():
+    vocabulary, _ = live_template_rows()
+    facets = by_id(vocabulary["facets"])
+    facets["offering.region"]["values"] = [{"value": "DE", "count": 1}]
+    facets["offering.region"]["known"] = 1
+    eu_data = by_id(_template_rows(vocabulary["coverage"], list(facets.values()), registry()))[
+        "eu-data"
+    ]
+    assert eu_data["available"] is True
+    assert eu_data["unavailable_reason"] is None
+
+
+def test_other_templates_are_available_against_live_coverage():
+    _, rows = live_template_rows()
+    templates = by_id(rows)
+    assert templates["eu-data"]["available"] is False
+    assert {template_id: row["available"] for template_id, row in templates.items()
+            if template_id != "eu-data"} == {
+        "budget-coding": True,
+        "private-self-host": True,
+        "regulated-data": True,
+        "maths": True,
+        "retrieval-embeddings": True,
+        "high-volume": True,
+        "long-documents": True,
+    }
 
 
 @pytest.mark.parametrize("template", load_templates(), ids=lambda row: row["id"])

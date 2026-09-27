@@ -126,11 +126,12 @@ def _table(section: str, value: Any) -> Table:
         for item in value:
             table.add_row(str(item))
     elif section == "templates":
-        for column in ("id", "name", "available", "purpose"):
+        for column in ("id", "name", "available", "reason", "purpose"):
             table.add_column(column)
         for row in value:
             table.add_row(
                 row["id"], row.get("name", ""), str(row.get("available", True)),
+                row.get("unavailable_reason") or "",
                 row.get("purpose", ""),
             )
     else:

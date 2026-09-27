@@ -434,3 +434,25 @@ def test_vocab_templates_uses_the_cached_vocabulary(tmp_path, monkeypatch) -> No
     assert result.exit_code == 0
     assert "budget-coding" in result.output
     assert "Coding agent on a budget" in result.output
+    assert "available" in result.output
+    assert "reason" in result.output
+
+
+def test_unavailable_template_warns_but_still_runs(tmp_path, monkeypatch) -> None:
+    cache = _install_template_snapshot(tmp_path, monkeypatch)
+    vocabulary_path = next((cache / "decision").glob("snap_*/vocabulary.json"))
+    vocabulary = json.loads(vocabulary_path.read_text())
+    eu_data = next(row for row in vocabulary["templates"] if row["id"] == "eu-data")
+    eu_data["available"] = False
+    eu_data["unavailable_reason"] = (
+        "No offering in this snapshot publishes an EU inference region yet."
+    )
+    vocabulary_path.write_text(json.dumps(vocabulary))
+
+    result = CliRunner().invoke(cli_mod.app, ["decide", "--template", "eu-data"])
+
+    assert result.exit_code == 0, result.output
+    assert (
+        "warning: No offering in this snapshot publishes an EU inference region yet."
+        in result.output
+    )

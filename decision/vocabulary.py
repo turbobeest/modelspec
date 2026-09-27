@@ -45,7 +45,18 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from decision.computed import with_computed
-from decision.contract import CONTRACT_VERSION, DEFAULT_TASK_TOKENS, TaskType
+from decision.contract import (
+    CONTRACT_VERSION,
+    DEFAULT_TASK_TOKENS,
+    AllOf,
+    AnyOf,
+    Compare,
+    InSet,
+    Known,
+    NotOf,
+    TaskType,
+    parse_condition,
+)
 from decision.filter import _INDEPENDENT as INDEPENDENT_MEASURERS
 from decision.templates import load_templates
 
@@ -293,10 +304,58 @@ def _coverage(snapshot: Any, lineup: list[str], registry: Any) -> dict[str, Any]
     }
 
 
-def _template_rows(coverage: Mapping[str, Any], registry: Any) -> list[dict[str, Any]]:
+def _condition_unavailable_reason(
+    condition: Any,
+    facets: Mapping[str, Mapping[str, Any]],
+    template_id: str,
+) -> str | None:
+    """Explain when lineup coverage makes one Must impossible to answer."""
+    if isinstance(condition, AnyOf):
+        reasons = [
+            _condition_unavailable_reason(child, facets, template_id)
+            for child in condition.any
+        ]
+        return next((reason for reason in reasons if reason), None) if all(reasons) else None
+    if isinstance(condition, AllOf):
+        return next(
+            (reason for child in condition.all
+             if (reason := _condition_unavailable_reason(child, facets, template_id))),
+            None,
+        )
+    if isinstance(condition, NotOf):
+        return None
+
+    facet_id = condition.known if isinstance(condition, Known) else condition.facet
+    facet = facets.get(facet_id)
+    if facet is None:
+        return None
+    subject = str(facet.get("subject", "subject"))
+    label = str(facet.get("label", facet_id)).lower()
+    if facet.get("known", 0) == 0:
+        return f"No {subject} in this snapshot publishes {label} yet."
+
+    required: list[Any] = []
+    if isinstance(condition, Compare) and condition.op == "=":
+        required = [condition.value]
+    elif isinstance(condition, InSet) and condition.in_ is not None:
+        required = list(condition.in_)
+    if not required or "values" not in facet:
+        return None
+    counts = {row["value"]: row["count"] for row in facet["values"]}
+    if any(counts.get(value, 0) > 0 for value in required):
+        return None
+    if template_id == "eu-data" and facet_id == "offering.region":
+        return "No offering in this snapshot publishes an EU inference region yet."
+    return f"No {subject} in this snapshot publishes a required {label} value yet."
+
+
+def _template_rows(
+    coverage: Mapping[str, Any], facets: list[Mapping[str, Any]], registry: Any
+) -> list[dict[str, Any]]:
     """Templates plus a live hint when this snapshot cannot answer one."""
     class_counts = {row["id"]: row["models"] for row in coverage["classes"]}
     domain_counts = {row["id"]: row["verified"] for row in coverage["domains"]}
+    facets_by_id = {row["id"]: row for row in facets}
     rows = []
     for template in load_templates(registry=registry):
         missing_classes = [
@@ -311,6 +370,12 @@ def _template_rows(coverage: Mapping[str, Any], registry: Any) -> list[dict[str,
             *(f"class {class_id} has no lineup models" for class_id in missing_classes),
             *(f"domain {domain_id} has no lineup coverage" for domain_id in missing_domains),
         ]
+        for row in template["where"]:
+            reason = _condition_unavailable_reason(
+                parse_condition(row["condition"]), facets_by_id, template["id"]
+            )
+            if reason and reason not in reasons:
+                reasons.append(reason)
         rows.append(template | {
             "available": not reasons,
             "unavailable_reason": "; ".join(reasons) if reasons else None,
@@ -393,5 +458,5 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "models": _model_rows(snapshot, cards or {}),
         "providers": {p.id: p.name for p in registry.providers()},
         "coverage": coverage,
-        "templates": _template_rows(coverage, registry),
+        "templates": _template_rows(coverage, facets, registry),
     }
