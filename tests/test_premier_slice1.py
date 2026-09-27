@@ -8,6 +8,7 @@ from pathlib import Path
 
 import yaml
 
+from scripts import premier_slice1
 from scripts.premier_slice1 import (
     select_budget_candidates,
     select_local_candidates,
@@ -166,6 +167,35 @@ def test_widely_offered_rule_selects_every_qualifying_card_not_a_named_model() -
         "lab/older-alpha",
         "lab/older-beta",
     ]
+
+
+def test_build_excludes_an_unverified_widely_offered_card(monkeypatch) -> None:
+    model_id = "lab/unverified-wide-model"
+    cards = {
+        model_id: {
+            "model_id": model_id,
+            "display_name": "Unverified Wide Model",
+            "provider": "lab",
+            "status": "active",
+            "model_type": "llm",
+            "class_id": "text-generator",
+            "open_weights": False,
+            "release_date": "2025-01-01",
+            "retirement_date": None,
+            "platforms": ["aws_bedrock", "together_ai", "deepinfra"],
+            "guaranteed_facts_verified": False,
+            "path": "models/lab/unverified-wide-model.md",
+        }
+    }
+    monkeypatch.setattr(premier_slice1, "load_cards", lambda: cards)
+    monkeypatch.setattr(premier_slice1, "leaderboards", lambda: [])
+    monkeypatch.setattr(premier_slice1, "budget_candidate_universe", lambda cards: [])
+    monkeypatch.setattr(premier_slice1, "local_candidate_universe", lambda candidates: [])
+
+    document = premier_slice1.build()
+
+    assert model_id not in {row["model_id"] for row in document["models"]}
+    assert document["counts"]["clause_3_pool"] == 0
 
 
 def test_local_rule_requires_runtime_memory_to_fit_not_only_the_artifact() -> None:

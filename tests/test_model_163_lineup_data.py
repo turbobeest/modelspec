@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
 import yaml
 
-from decision.model import value_hash
-from scripts.model_163_local import SourceRowMismatchError, parse_memory_configuration
+from decision import verify
+from decision.model import SourceRef, TargetRef, VerificationActor, value_hash
+from scripts.model_163_local import (
+    LocalProjectionExtractor,
+    SourceRowMismatchError,
+    parse_memory_configuration,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_MODELS = {
@@ -163,6 +169,135 @@ def test_memory_reader_retains_the_exact_model_configuration_row() -> None:
     }
 
 
+@pytest.mark.parametrize(
+    ("row", "expected_diff"),
+    [
+        (
+            {
+                "model": "Sibling Model",
+                "fact": "model.parameters_total",
+                "value": 7_000_000_000,
+                "unit": "parameters",
+            },
+            "model",
+        ),
+        (
+            {
+                "model": "Target Model",
+                "fact": "model.parameters_total",
+                "value": 8_000_000_000,
+                "unit": "parameters",
+            },
+            "value",
+        ),
+        (
+            {
+                "model": "Target Model",
+                "fact": "model.parameters_total",
+                "value": 7_000_000_000,
+                "unit": "tokens",
+            },
+            "unit",
+        ),
+    ],
+    ids=("sibling-model", "different-value", "different-unit"),
+)
+def test_local_projection_verifier_rejects_sibling_and_value_mismatches(
+    row: dict, expected_diff: str
+) -> None:
+    projection = json.dumps({"projection": "local-fact-v1", "rows": [row]})
+
+    class Regions:
+        def text(self, source_id: str, copy_ref: str, region_id: str) -> str:
+            return projection
+
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id="lab/target#model.parameters_total"),
+        subject="lab/target",
+        names=("Target Model",),
+        field="model.parameters_total",
+        value=7_000_000_000,
+        unit="parameters",
+        collector=VerificationActor(
+            agent="collector", model_family="gpt-5", method="source-projection@1"
+        ),
+        sources=(
+            SourceRef(
+                source_id="local-source",
+                snapshot_ref="sha256:" + "0" * 64,
+                cited_regions=["row"],
+            ),
+        ),
+    )
+
+    result = verify.verify(
+        claim,
+        Regions(),
+        [LocalProjectionExtractor(quantisation=None, context_tokens=None)],
+        today=date(2026, 9, 27),
+    )
+
+    assert result.outcome == "mismatch"
+    assert expected_diff in {diff.field for diff in result.diffs}
+
+
+@pytest.mark.parametrize(
+    ("quantisation", "context_tokens"),
+    [("Q8_0", 8192), ("Q4_K_M", 4096)],
+    ids=("quantisation", "context"),
+)
+def test_local_projection_verifier_rejects_a_different_runtime_configuration(
+    quantisation: str, context_tokens: int
+) -> None:
+    projection = json.dumps(
+        {
+            "projection": "local-fact-v1",
+            "rows": [
+                {
+                    "model": "Target Model",
+                    "fact": "local.runtime_memory_gb",
+                    "value": 3.5,
+                    "unit": "gb",
+                    "quantisation": quantisation,
+                    "context_tokens": context_tokens,
+                }
+            ],
+        }
+    )
+
+    class Regions:
+        def text(self, source_id: str, copy_ref: str, region_id: str) -> str:
+            return projection
+
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id="lab/target#local.runtime_memory_gb"),
+        subject="lab/target",
+        names=("Target Model",),
+        field="local.runtime_memory_gb",
+        value=3.5,
+        unit="gb",
+        collector=VerificationActor(
+            agent="collector", model_family="gpt-5", method="source-projection@1"
+        ),
+        sources=(
+            SourceRef(
+                source_id="local-source",
+                snapshot_ref="sha256:" + "0" * 64,
+                cited_regions=["row"],
+            ),
+        ),
+    )
+
+    result = verify.verify(
+        claim,
+        Regions(),
+        [LocalProjectionExtractor(quantisation="Q4_K_M", context_tokens=8192)],
+        today=date(2026, 9, 27),
+    )
+
+    assert result.outcome == "mismatch"
+
+
 def test_local_rule_inputs_have_counting_two_key_verifications(
     slice_2, latest_verifications
 ) -> None:
@@ -176,6 +311,7 @@ def test_local_rule_inputs_have_counting_two_key_verifications(
             assert verification["outcome"] == "verified"
             assert verification["collector"]["agent"] == "openai-codex-model-163"
             assert verification["verifier"]["model_family"] == "deterministic"
+            assert verification["method"] == "local-fact-structured-row@1"
             assert (
                 verification["collector"]["model_family"]
                 != verification["verifier"]["model_family"]

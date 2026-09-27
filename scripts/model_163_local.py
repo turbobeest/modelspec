@@ -14,16 +14,17 @@ from pathlib import Path
 
 import yaml
 
-from decision.model import (
-    SourceRef,
-    TargetRef,
-    Verification,
-    VerificationActor,
-    VerificationTarget,
-    value_hash,
-)
+from decision.model import DETERMINISTIC, SourceRef, TargetRef, VerificationActor
 from decision.sources import CopyStore, load_sources
-from decision.verify import Claim, Queue, Result, VerificationLog
+from decision.verify import (
+    Claim,
+    ExtractorError,
+    Queue,
+    Reading,
+    StoredRegions,
+    VerificationLog,
+    verify,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 FILED_AT = datetime(2026, 9, 27, 12, tzinfo=UTC)
@@ -32,13 +33,6 @@ COLLECTOR = VerificationActor(
     model_family="gpt-5",
     method="hugging-face-api-projection@1",
 )
-VERIFIER = VerificationActor(
-    agent="modelspec-verify",
-    model_family="deterministic",
-    method="runtime-memory-structured-row@2",
-)
-
-
 class SourceRowMismatchError(ValueError):
     """The source has no single model-bound row for the claimed configuration."""
 
@@ -48,6 +42,76 @@ class _Table:
     context: tuple[str, ...]
     headers: tuple[str, ...]
     rows: tuple[tuple[str, ...], ...]
+
+
+@dataclass(frozen=True)
+class LocalProjectionExtractor:
+    """Re-read one local-hardware fact from its retained structured projection."""
+
+    quantisation: str | None
+    context_tokens: int | None
+    max_memory_gb: float = 24.0
+
+    actor = VerificationActor(
+        agent="modelspec-verify",
+        model_family=DETERMINISTIC,
+        method="local-fact-structured-row@1",
+    )
+
+    @staticmethod
+    def _rows(text: str) -> list[dict] | None:
+        try:
+            document = json.loads(text)
+        except (TypeError, ValueError):
+            return None
+        if not isinstance(document, dict) or document.get("projection") != "local-fact-v1":
+            return None
+        rows = document.get("rows")
+        if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+            return None
+        return rows
+
+    def accepts(self, text: str) -> bool:
+        return self._rows(text) is not None
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        rows = self._rows(text)
+        if rows is None:
+            raise ExtractorError("not a local-fact projection")
+        readings = []
+        for row in rows:
+            if row.get("fact") != claim.field or not row.get("model"):
+                continue
+            configuration_matches = (
+                (self.quantisation is None or row.get("quantisation") == self.quantisation)
+                and (
+                    self.context_tokens is None
+                    or row.get("context_tokens") == self.context_tokens
+                )
+            )
+            value = row.get("value") if configuration_matches else None
+            unit = row.get("unit")
+            if claim.field == "model.fits_hardware" and configuration_matches:
+                runtime = row.get("runtime_memory_gb")
+                runtime_unit = row.get("runtime_unit")
+                value = (
+                    "nvidia_rtx_4090"
+                    if runtime_unit == "gb"
+                    and isinstance(runtime, (int, float))
+                    and float(runtime) <= self.max_memory_gb
+                    else None
+                )
+                unit = None
+            elif isinstance(value, list):
+                value = ", ".join(str(item) for item in value)
+            readings.append(
+                Reading(
+                    subject=str(row["model"]),
+                    value=None if value is None else str(value),
+                    unit=None if unit is None else str(unit),
+                )
+            )
+        return readings
 
 
 class _StructuredTableReader(HTMLParser):
@@ -297,6 +361,12 @@ def _source_id(model_id: str, kind: str) -> str:
     return "model-163-local-" + model_id.replace("/", "-").lower() + f"-{kind}"
 
 
+def _artifact_model(url: str) -> str:
+    path = url.partition("/api/models/")[2].partition("/tree/")[0]
+    repository = path.rsplit("/", 1)[-1]
+    return re.sub(r"(?i)(?:[-_.]gguf)$", "", repository)
+
+
 def main() -> None:
     document = yaml.safe_load((ROOT / "premier" / "inputs" / "slice-2.yaml").read_text())
     rows = document["local"]["candidates"]
@@ -304,23 +374,20 @@ def main() -> None:
     store = CopyStore()
     queue = Queue(ROOT / "verification")
     log = VerificationLog(ROOT / "verification")
+    regions = StoredRegions(store, sources)
 
-    def file_verified(claim: Claim) -> None:
+    def file_verified(claim: Claim, extractor: LocalProjectionExtractor) -> None:
         queue.file(claim, at=FILED_AT)
-        verification = Verification(
-            target=VerificationTarget(
-                kind=claim.target.kind,
-                id=claim.target.id,
-                value_hash=value_hash(claim.value),
-            ),
-            collector=claim.collector,
-            verifier=VERIFIER,
-            method=VERIFIER.method,
-            outcome="verified",
-            date=date(2026, 9, 27),
-        )
-        log.append(verification)
-        queue.checked(Result(claim.target, "verified", verification), at=FILED_AT)
+        result = verify(claim, regions, [extractor], today=date(2026, 9, 27))
+        if result.verification is not None:
+            log.append(result.verification)
+            queue.checked(result, at=FILED_AT)
+        if result.outcome != "verified":
+            diffs = [diff.to_dict() for diff in result.diffs]
+            raise SystemExit(
+                f"{claim.target.id}: retained projection {result.outcome}: "
+                f"{diffs or result.reason}"
+            )
 
     for row in rows:
         model_id = row["model_id"]
@@ -343,30 +410,49 @@ def main() -> None:
             raise SystemExit(f"{model_id}: artifact mismatch: {found}")
 
         names = tuple(dict.fromkeys((published_model_id, model_id, model_id.rsplit("/", 1)[-1])))
-        for kind, label, value, unit, url in (
-            ("parameters", "total_parameters", parameter_count, None, row["parameter_source_url"]),
+        for kind, value, unit, subject, url in (
+            (
+                "parameters",
+                parameter_count,
+                "parameters",
+                published_model_id,
+                row["parameter_source_url"],
+            ),
             (
                 "artifact",
-                "quantised_size_bytes",
                 row["published_size_bytes"],
-                None,
+                "bytes",
+                _artifact_model(row["size_source_url"]),
                 row["size_source_url"],
             ),
         ):
             source_id = _source_id(model_id, kind)
             if source_id not in sources or str(sources[source_id].url) != url:
                 raise SystemExit(f"unregistered local-fit source: {source_id}")
+            suffix = (
+                "model.parameters_total" if kind == "parameters" else "local.quantised_size_bytes"
+            )
             projection = {
+                "projection": "local-fact-v1",
                 "read_date": row["read_date"],
-                "rows": [{"model": published_model_id, label: value}],
+                "rows": [
+                    {
+                        "model": subject,
+                        "fact": suffix,
+                        "value": value,
+                        "unit": unit,
+                        **(
+                            {"quantisation": row["quantisation"], "artifact": row["artifact"]}
+                            if kind == "artifact"
+                            else {}
+                        ),
+                    }
+                ],
             }
             ref = SourceRef(
                 source_id=source_id,
                 snapshot_ref=store.put((json.dumps(projection, sort_keys=True) + "\n").encode()),
                 cited_regions=["row"],
-            )
-            suffix = (
-                "model.parameters_total" if kind == "parameters" else "local.quantised_size_bytes"
             )
             file_verified(
                 Claim(
@@ -374,12 +460,15 @@ def main() -> None:
                     subject=model_id,
                     names=names,
                     field=suffix,
-                    label=label,
                     value=value,
                     unit=unit,
                     collector=COLLECTOR,
                     sources=(ref,),
-                )
+                ),
+                LocalProjectionExtractor(
+                    quantisation=row["quantisation"] if kind == "artifact" else None,
+                    context_tokens=None,
+                ),
             )
 
         memory_source = _fetch_text(row["memory_source_url"])
@@ -399,12 +488,31 @@ def main() -> None:
         if source_id not in sources or str(sources[source_id].url) != row["memory_source_url"]:
             raise SystemExit(f"unregistered local-fit source: {source_id}")
         projection = {
+            "projection": "local-fact-v1",
             "read_date": row["read_date"],
-            "source_configuration": memory_configuration,
-            "derived": {
-                "fits_hardware": ["nvidia_rtx_4090"],
-                "method": row["memory_method"],
-            },
+            "rows": [
+                {
+                    "model": memory_configuration["model"],
+                    "fact": "local.runtime_memory_gb",
+                    "value": memory_configuration["runtime_memory_gb"],
+                    "unit": "gb",
+                    "quantisation": row["quantisation"],
+                    "context_tokens": context_tokens,
+                    "cited_region": memory_configuration["cited_region"],
+                },
+                {
+                    "model": memory_configuration["model"],
+                    "fact": "model.fits_hardware",
+                    "value": ["nvidia_rtx_4090"],
+                    "quantisation": row["quantisation"],
+                    "context_tokens": context_tokens,
+                    "runtime_memory_gb": memory_configuration["runtime_memory_gb"],
+                    "runtime_unit": "gb",
+                    "hardware_limit_gb": float(document["local"]["max_memory_gb"]),
+                    "method": row["memory_method"],
+                    "cited_region": memory_configuration["cited_region"],
+                },
+            ],
         }
         ref = SourceRef(
             source_id=source_id,
@@ -419,14 +527,27 @@ def main() -> None:
                 Claim(
                     target=TargetRef(kind="fact", id=target_id),
                     subject=model_id,
-                    names=(model_id, model_id.rsplit("/", 1)[-1]),
+                    names=tuple(
+                        dict.fromkeys(
+                            (
+                                model_id,
+                                model_id.rsplit("/", 1)[-1],
+                                *row["memory_model_names"],
+                            )
+                        )
+                    ),
                     field=target_id.rsplit("#", 1)[-1],
                     label=field,
                     value=value,
                     unit="gb" if field == "runtime_memory_gb" else None,
                     collector=COLLECTOR,
                     sources=(ref,),
-                )
+                ),
+                LocalProjectionExtractor(
+                    quantisation=row["quantisation"],
+                    context_tokens=context_tokens,
+                    max_memory_gb=float(document["local"]["max_memory_gb"]),
+                ),
             )
         print(f"{model_id} memory_snapshot_ref={ref.snapshot_ref}")
     print(f"filed and verified {len(rows) * 4} local-fit facts")

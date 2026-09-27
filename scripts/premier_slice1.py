@@ -758,10 +758,15 @@ def build() -> dict:
         entry = by_model.setdefault(model_id, {"card": card, "evidence": [], "clauses": set()})
         entry["clauses"].add(2)
 
+    widely_offered_candidates = select_widely_offered_candidates(
+        cards,
+        minimum_major_providers=int(slice2["widely_offered"]["minimum_major_providers"]),
+    )
+    widely_offered = {candidate["model_id"] for candidate in widely_offered_candidates}
     clause3_pool: list[str] = []
-    for model_id, card in cards.items():
-        if len(card["platforms"]) < 3:
-            continue
+    for candidate in widely_offered_candidates:
+        model_id = candidate["model_id"]
+        card = cards[model_id]
         if card["class_id"] not in SLICE_CLASSES:
             continue
         if card["status"] == "sunset":
@@ -769,7 +774,7 @@ def build() -> dict:
         clause3_pool.append(model_id)
         entry = by_model.setdefault(model_id, {"card": card, "evidence": [], "clauses": set()})
         entry["clauses"].add(3)
-        entry["platforms"] = card["platforms"]
+        entry["platforms"] = candidate["providers"]
 
     # Clause 4. The brief names this card; it is not inferred from a board.
     if DECISION_MODEL in cards:
@@ -805,14 +810,6 @@ def build() -> dict:
         )
         entry["clauses"].add(6)
         entry["local"] = candidate
-
-    widely_offered = {
-        candidate["model_id"]
-        for candidate in select_widely_offered_candidates(
-            cards,
-            minimum_major_providers=int(slice2["widely_offered"]["minimum_major_providers"]),
-        )
-    }
 
     def release_key(model_id: str) -> int:
         raw = by_model[model_id]["card"]["release_date"]
