@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
+import liveBudgetCodingJson from "../__fixtures__/live-budget-coding-full.json";
 import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
 import liveSwePreferJson from "../__fixtures__/live-swe-prefer-full.json";
 import App, { DesignedApp } from "../App";
@@ -15,6 +16,7 @@ import {
 import { VOCABULARY_URL } from "../vocabulary";
 
 const fixture = decisionSchema.parse(fixtureJson);
+const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 
@@ -235,14 +237,15 @@ it("keeps capability-unknown models outside the ranked board answer", async () =
     name: "May qualify — no Software engineering evidence (7)",
   });
   const rankedAnswer = mayHeading.closest<HTMLElement>(".board-ranked-answer")!;
-  fireEvent.click(within(rankedAnswer).getByRole("button", { name: "Show all 41" }));
+  fireEvent.click(within(rankedAnswer).getByRole("button", { name: "Show all 25" }));
 
   const rankedNames = [...rankedAnswer.querySelectorAll(":scope > ol > li strong")]
     .map((node) => node.textContent);
-  expect(rankedNames).toEqual(liveSwePrefer.results.map((result) =>
-    realVocabulary.models[result.offering.model]?.display_name ?? result.offering.model.split("/").at(-1)
+  expect(rankedNames).toEqual([...new Set(liveSwePrefer.results.map((result) => result.offering.model))].map((model) =>
+    realVocabulary.models[model]?.display_name ?? model.split("/").at(-1)
   ));
-  expect(rankedAnswer.querySelectorAll(":scope > ol .board-interval-track")).toHaveLength(41);
+  expect(rankedAnswer.querySelectorAll(":scope > ol .board-interval-track")).toHaveLength(25);
+  expect(within(rankedAnswer).getAllByText("also via Vertex AI (Google Cloud)").length).toBeGreaterThan(0);
 
   const mayGroup = mayHeading.closest<HTMLElement>(".board-may-qualify")!;
   expect(within(mayGroup).getAllByRole("listitem")).toHaveLength(7);
@@ -257,6 +260,98 @@ it("keeps capability-unknown models outside the ranked board answer", async () =
   }
 });
 
+it("lists only qualifying providers as alternatives on the board", async () => {
+  const model = "anthropic/claude-opus-5-5";
+  const decision = decisionSchema.parse({
+    ...liveBudgetCoding,
+    eliminated: {
+      ...liveBudgetCoding.eliminated,
+      model_groups: [
+        ...liveBudgetCoding.eliminated.model_groups,
+        {
+          model,
+          model_elimination: null,
+          offerings: [{
+            values: [],
+            offering: {
+              model,
+              provider: "azure-ai-foundry",
+              region: "global",
+              tier: "standard",
+            },
+            unit: "usd_per_task",
+            records: [],
+            condition: "offering.cost_per_task <= 0.25",
+            value: 1,
+            formula: null,
+          }],
+        },
+      ],
+    },
+  });
+  const fetch = routeFetch({
+    vocabulary: () => json(realVocabulary),
+    decide: () => json(decision),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+  fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
+
+  const answer = screen.getByLabelText("Facet board answer")
+    .closest<HTMLElement>(".board-answer")!;
+  fireEvent.click(within(answer).getByRole("button", { name: "Show all 15" }));
+  const modelRow = within(answer).getByText("Claude Opus 5.5").closest("li")!;
+  expect(within(modelRow).getByText(/also via/)).toHaveTextContent(
+    "Vertex AI (Google Cloud)",
+  );
+  expect(within(modelRow).queryByText(/Azure AI Foundry/)).not.toBeInTheDocument();
+});
+
+it("shows model-grained funnel and board counts from the live budget decision", async () => {
+  const fetch = routeFetch({
+    vocabulary: () => json(realVocabulary),
+    decide: () => json(liveBudgetCoding),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+  fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
+
+  const narrowing = screen.getByText("Narrowing, in the order you set conditions")
+    .closest<HTMLElement>(".narrowing")!;
+  const funnelRows = within(narrowing).getAllByRole("listitem");
+  const stepCounts = funnelRows.slice(1, -1).map((row) =>
+    Number(row.querySelector(".count")?.textContent),
+  );
+  const expectedStepCounts = liveBudgetCoding.eliminated.funnel.map(
+    (step) => step.models_after,
+  );
+  expect(stepCounts).toEqual(expectedStepCounts);
+
+  const qualifyingModels = new Set(
+    liveBudgetCoding.results.map((result) => result.offering.model),
+  ).size;
+  const may = liveBudgetCoding.may_qualify.length;
+  const lastMust = liveBudgetCoding.eliminated.funnel.at(-1)!;
+  expect(qualifyingModels + may).toBe(
+    lastMust.models_after + lastMust.models_may_qualify,
+  );
+  const lastMustRow = funnelRows.at(-2)!;
+  expect(lastMustRow.querySelector(".count")).toHaveTextContent(
+    String(lastMust.models_after),
+  );
+  expect(lastMustRow).toHaveTextContent(`${lastMust.models_may_qualify} may`);
+  expect(within(narrowing).getByText(
+    `${qualifyingModels} qualify · ${may} may qualify · 14 excluded`,
+  )).toBeInTheDocument();
+  const ranking = within(narrowing).getByText(/Ranking on .*Software engineering 0.60/)
+    .closest("li")!;
+  expect(ranking.querySelector(".count")).toHaveTextContent(String(qualifyingModels));
+  expect(ranking).toHaveTextContent(`+ ${may} may qualify`);
+  expect(screen.getByText(`${qualifyingModels} fit · ${may} may`)).toBeInTheDocument();
+});
+
 it("requests the estate once after the board decision settles", async () => {
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
@@ -266,7 +361,10 @@ it("requests the estate once after the board decision settles", async () => {
   fireEvent.change(screen.getByLabelText("Add provider"), {
     target: { value: Object.keys(smallVocabulary.providers)[0] },
   });
-  await waitFor(() => expect(screen.getByText(/ranked · .* may qualify/)).toBeInTheDocument());
+  await waitFor(() => expect(document.querySelector(
+    ".answer-lists > section:first-child .board-ranked-answer",
+  )).toBeInTheDocument());
+  expect(screen.getAllByText(/models qualify · .* may qualify/).length).toBe(2);
   await new Promise((resolve) => setTimeout(resolve, 350));
   const estateRequests = sentSpecs(fetch).filter((body) =>
     body.where.some((condition: string) => condition.startsWith("offering.provider in")),
@@ -308,8 +406,10 @@ it("labels capability intervals with their ranking basis and units", async () =>
   expect(await screen.findByText("Software engineering, estimated · 80% interval")).toBeInTheDocument();
   expect(screen.queryByText("Not ranked — set a Prefer to rank these")).not.toBeInTheDocument();
   expect(screen.getByText(/Ranking on Software engineering 0.50/)).toBeInTheDocument();
-  expect((await screen.findAllByText(/capability score$/)).length).toBeGreaterThan(0);
-  expect(screen.getByLabelText("Delta 4.7 capability interval")).toBeInTheDocument();
+  expect((await screen.findAllByText(/above the lineup median|near the median|below the median/)).length)
+    .toBeGreaterThan(0);
+  expect(screen.queryByText(/capability score$/)).not.toBeInTheDocument();
+  expect(screen.getAllByLabelText("Delta 4.7 capability interval").length).toBeGreaterThan(0);
 });
 
 it("switches the ranking benchmark in one click from the rank-by control", async () => {

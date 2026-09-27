@@ -211,6 +211,20 @@ export function DesignedApp({
     }
   }, [hostedDecision, shownSpec, shownAxis, dismissed, hostedQuestions, vocabulary, vocab]);
   const liveDecision = mapped.decision;
+  const estateDecision = useMemo(() => {
+    if (estateState.kind !== "success" || !vocabulary) return null;
+    try {
+      return mapDecisionToViewModel(estateState.decision, shownSpec, {
+        axis: shownAxis,
+        dismissed,
+        benchmarks: vocab.benchmarks,
+        models: vocabulary.models,
+        providers: vocabulary.providers,
+      });
+    } catch {
+      return null;
+    }
+  }, [estateState, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
   const decision = demo ? sampleDecision : liveDecision,
     e = decision?.explanation,
     selectedId = selected || e?.shortlist.top?.m.id || e?.may[0]?.m.id || null,
@@ -826,9 +840,14 @@ export function DesignedApp({
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
                 <small className="board-tied-note">Tied-group answer: coming (MODEL-170)</small>
-                {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateState.kind === "success" ? `${estateState.decision.results.length} ranked · ${estateState.decision.may_qualify.length} may qualify` : estateState.kind === "error" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRetry((value) => value + 1)}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+                {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateState.kind === "error" || estateState.kind === "success" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRetry((value) => value + 1)}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
               </section>
-              <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} />
+              {estate.providers.length > 0 && estateDecision
+                ? <div className="answer-lists">
+                    <section><strong>With what you have</strong><RankedAnswer decision={estateDecision} spec={shownSpec} vocabulary={vocabulary} /></section>
+                    <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} /></section>
+                  </div>
+                : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} />}
             </> : <section className="panel board-answer-loading" aria-live="polite">The live answer will appear here.</section>}
           /> : (decision || !demo) && <SpecPanel
             spec={shownSpec}

@@ -813,11 +813,11 @@ export function mapDecisionToViewModel(
   });
   const rawRows: CandidateRow[] = [...rawFeasible, ...rawMay, ...rawExcluded];
   const claimed = new Set<string>();
-  const boardRanksOfferings = spec.boardWeights !== undefined &&
-    Object.keys(spec.boardWeights).length > 0;
-  const feasible = boardRanksOfferings
-    ? rawFeasible.map((candidate) => candidate.row)
-    : consolidateRows(rawFeasible, rawRows, claimed);
+  const feasible = consolidateRows(
+    rawFeasible,
+    spec.boardWeights === undefined ? rawRows : rawFeasible,
+    claimed,
+  );
   feasible.forEach((row) => claimed.add(rowModel(row)));
   const may = consolidateRows(rawMay, rawRows, claimed);
   const excluded = consolidateRows(rawExcluded, rawRows, claimed);
