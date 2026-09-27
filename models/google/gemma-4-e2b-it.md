@@ -823,6 +823,16 @@ sources:
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 facts:
+- facet: model.fits_hardware
+  value:
+  - nvidia_rtx_4090
+  state: known
+  sources:
+  - source_id: model-163-local-google-gemma-4-e2b-it-memory
+    snapshot_ref: sha256:fc87b3489632b9bf180153d49954ccb69242f4ef398674a8d4f85a3d054ed54e
+    cited_regions:
+    - row
+  checked_sources: []
 - facet: model.class
   value: text-generator
   state: known

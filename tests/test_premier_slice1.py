@@ -8,6 +8,8 @@ from pathlib import Path
 
 import yaml
 
+from scripts.premier_slice1 import select_budget_candidates, select_local_candidates
+
 ROOT = Path(__file__).resolve().parents[1]
 YAML_PATH = ROOT / "premier" / "slice-1.yaml"
 SCRIPT = ROOT / "scripts" / "premier_slice1.py"
@@ -81,3 +83,69 @@ def test_slice_2_adds_budget_local_and_embedding_coverage_by_rule() -> None:
 
     embeddings = [row for row in document["models"] if row["slice1_group"] == "embedding"]
     assert len(embeddings) >= 6
+
+
+def test_budget_rule_selects_verified_benchmarked_candidates_by_price_not_name() -> None:
+    candidates = [
+        {
+            "model_id": "lab/cheapest-unverified",
+            "class": "text-generator",
+            "input_price_per_million": 0.01,
+            "output_price_per_million": 0.01,
+            "prices_verified": False,
+            "has_admitted_evidence": True,
+        },
+        {
+            "model_id": "lab/cheapest-without-evidence",
+            "class": "text-generator",
+            "input_price_per_million": 0.02,
+            "output_price_per_million": 0.02,
+            "prices_verified": True,
+            "has_admitted_evidence": False,
+        },
+        {
+            "model_id": "lab/cheap-eligible",
+            "class": "text-generator",
+            "input_price_per_million": 0.03,
+            "output_price_per_million": 0.04,
+            "prices_verified": True,
+            "has_admitted_evidence": True,
+        },
+        {
+            "model_id": "lab/next-eligible",
+            "class": "text-generator",
+            "input_price_per_million": 0.04,
+            "output_price_per_million": 0.05,
+            "prices_verified": True,
+            "has_admitted_evidence": True,
+        },
+    ]
+
+    selected = select_budget_candidates(candidates, quota_per_class=1)
+
+    assert [row["model_id"] for row in selected] == ["lab/cheap-eligible"]
+
+
+def test_local_rule_requires_runtime_memory_to_fit_not_only_the_artifact() -> None:
+    candidates = [
+        {
+            "model_id": "lab/artifact-only-fit",
+            "published_size_gb": 20.0,
+            "runtime_memory_gb": 25.0,
+            "parameter_verified": True,
+            "artifact_verified": True,
+            "runtime_memory_verified": True,
+        },
+        {
+            "model_id": "lab/runtime-fit",
+            "published_size_gb": 23.0,
+            "runtime_memory_gb": 23.5,
+            "parameter_verified": True,
+            "artifact_verified": True,
+            "runtime_memory_verified": True,
+        },
+    ]
+
+    selected = select_local_candidates(candidates, max_memory_gb=24.0)
+
+    assert [row["model_id"] for row in selected] == ["lab/runtime-fit"]

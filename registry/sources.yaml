@@ -3407,7 +3407,7 @@ sources:
   normaliser: text-default
   cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
 
-# MODEL-163: exact model parameter and quantised-artifact metadata, read 2026-09-26.
+# MODEL-163: model parameters, quantised artifacts, and runtime memory, read 2026-09-26.
 - id: model-163-local-google-gemma-4-26b-a4b-it-parameters
   url: https://huggingface.co/api/models/google/gemma-4-26b-a4b-it
   fetch: http
@@ -3417,6 +3417,11 @@ sources:
   url: https://huggingface.co/api/models/unsloth/gemma-4-26B-A4B-it-GGUF/tree/main?recursive=true&expand=false
   fetch: http
   normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-26b-a4b-it-memory
+  url: https://huggingface.co/JThomas-CoE/coe-gemma4-coding-hc-14b-a4b-q4_k_m/blob/main/README.md
+  fetch: http
+  normaliser: html-default
   cited_regions: [{id: row, locator: {kind: page, value: ''}}]
 - id: model-163-local-google-gemma-4-31b-it-parameters
   url: https://huggingface.co/api/models/google/gemma-4-31B-it
@@ -3428,6 +3433,11 @@ sources:
   fetch: http
   normaliser: text-default
   cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-31b-it-memory
+  url: https://canitrun.dev/models/gemma-4-31b/
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
 - id: model-163-local-google-gemma-4-e2b-it-parameters
   url: https://huggingface.co/api/models/google/gemma-4-E2B-it
   fetch: http
@@ -3437,6 +3447,11 @@ sources:
   url: https://huggingface.co/api/models/unsloth/gemma-4-E2B-it-GGUF/tree/main?recursive=true&expand=false
   fetch: http
   normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e2b-it-memory
+  url: https://runmyllm.com/models/gemma-4-e2b/hardware
+  fetch: http
+  normaliser: html-default
   cited_regions: [{id: row, locator: {kind: page, value: ''}}]
 - id: model-163-local-google-gemma-4-e4b-it-parameters
   url: https://huggingface.co/api/models/google/gemma-4-E4B-it
@@ -3448,13 +3463,23 @@ sources:
   fetch: http
   normaliser: text-default
   cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e4b-it-memory
+  url: https://localmodel.run/model/gemma-4-e4b
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
 - id: model-163-local-microsoft-phi-4-parameters
   url: https://huggingface.co/api/models/microsoft/phi-4
   fetch: http
   normaliser: text-default
   cited_regions: [{id: row, locator: {kind: page, value: ''}}]
 - id: model-163-local-microsoft-phi-4-artifact
-  url: https://huggingface.co/api/models/microsoft/phi-4-gguf/tree/main?recursive=true&expand=false
+  url: https://huggingface.co/api/models/bartowski/phi-4-GGUF/tree/main?recursive=true&expand=false
   fetch: http
   normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-microsoft-phi-4-memory
+  url: https://localllmchecker.com/models/phi-4/
+  fetch: http
+  normaliser: html-default
   cited_regions: [{id: row, locator: {kind: page, value: ''}}]

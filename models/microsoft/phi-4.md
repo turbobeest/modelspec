@@ -1149,6 +1149,16 @@ sources:
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 facts:
+- facet: model.fits_hardware
+  value:
+  - nvidia_rtx_4090
+  state: known
+  sources:
+  - source_id: model-163-local-microsoft-phi-4-memory
+    snapshot_ref: sha256:d11bd682b60e7b7454761c4a9ba9b7cd75051917f42c12488fee9d33a7bbe0b8
+    cited_regions:
+    - row
+  checked_sources: []
 - facet: model.class
   value: text-generator
   state: known

@@ -10,14 +10,16 @@ The rule is the one in the decision-engine design, section 5. A model is in the 
 4. A reviewer added it. The MODEL-136 brief requires one decision model, so the set includes `typesafe/jev-1-13`.
 5. It is among the cheapest verified candidates in its class, has verified input
    and output token prices, and has at least one admitted benchmark.
-6. A published quantised artifact is no larger than 24 GB. This is an artifact-size
-   rule, not a claim about runtime memory at an unspecified context length.
+6. A published quantised artifact and its configured runtime-memory requirement
+   both fit within 24 GB. The runtime fact states its quantisation and context.
 
 Slice 2 stays in `premier/slice-1.yaml` because every snapshot and recall
-consumer already reads that path. `premier/inputs/slice-2.yaml` holds the dated
-price, provider, and quantised-artifact observations. The generator applies the
-thresholds and quotas. The input file is evidence for the computation, not a
-second lineup.
+consumer already reads that path. The budget candidate universe comes from all
+repository offerings whose input and output price facts pass exact-value
+verification, joined to each card's actual class and at least one admitted piece
+of evidence. `premier/inputs/slice-2.yaml` holds only the budget quota plus dated
+provider and local-memory observations. It is evidence for the computation, not
+a second lineup.
 
 The frontier-generation quota remains 12 and the embedding quota is 6. A model
 released in the last seven days under clause 2 is protected from the quota, as
@@ -51,7 +53,7 @@ Within each group the script keeps the models with the best rank on a fresh boar
 
 The four strongest models on the Arena vision board are the vision balance. They are general generators. Their engine class stays `text-generator`, and their clauses still list every board they lead. The vision board's top 10 does not contain a `vlm` card.
 
-Quotas: frontier generation 12, open-weights generation 6, embedding 6, rerank 2, vision 4, decision 1. Slice 2 also admits every verified clause-5 and clause-6 candidate, so those additions do not consume the frontier quality balance. Rerank stops short when the eligible card pool is smaller than its quota.
+Quotas: frontier generation 12, open-weights generation 6, embedding 6, rerank 2, vision 4, decision 1. Clause 5 selects up to three candidates per class from the verified offering and card join. Clause 6 admits every candidate whose verified runtime memory fits the local limit. These additions do not consume the frontier quality balance. Rerank stops short when the eligible card pool is smaller than its quota.
 
 Gemini 2.0 Flash does not enter slice 2. Google's current pricing page no
 longer lists it, its card records only one major provider, and it has no
@@ -77,7 +79,7 @@ offerings. Other older frontier cards do not record three qualifying providers.
 | `epoch-gpqa_diamond.csv` | Epoch GPQA Diamond, CC BY 4.0 | same |
 | `epoch-swe_bench_verified.csv` | Epoch's own SWE-bench Verified runs, CC BY 4.0 | same |
 | `scale-hle.json` | Scale SEAL, Humanity's Last Exam | https://labs.scale.com/leaderboard/humanitys_last_exam |
-| `slice-2.yaml` | Dated price, provider, and quantised-artifact observations | Provider pricing and weights repositories cited per row |
+| `slice-2.yaml` | Budget quota plus dated provider, parameter, artifact, and configured runtime-memory observations | Offering facts and the parameter, weights, and memory sources cited per row |
 
 Epoch's composite capability index is not a board. Superseded FrontierMath files are not boards. Epoch files whose names end in `_external` keep their original licences and are not used.
 
