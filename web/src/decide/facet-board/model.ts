@@ -129,11 +129,25 @@ export function nextMustOrder(
   facetId: string,
   next: FacetSelection,
 ): string[] {
+  const currentMusts = Object.entries(selections)
+    .filter(([, choice]) => choice.mode === "must" || choice.mode === "both")
+    .map(([id], index) => ({ id, index }))
+    .sort((left, right) => {
+      const groupRank = (id: string) => GROUP_ORDER.findIndex((group) => group === facetGroup(id));
+      const groupDifference = groupRank(left.id) - groupRank(right.id);
+      return groupDifference || left.index - right.index;
+    })
+    .map(({ id }) => id);
+  const currentMustSet = new Set(currentMusts);
+  const storedCurrentMusts = [...new Set(mustOrder.filter((id) => currentMustSet.has(id)))];
+  const reconciled = storedCurrentMusts.length === currentMusts.length
+    ? storedCurrentMusts
+    : currentMusts;
   const wasMust = selections[facetId]?.mode === "must" || selections[facetId]?.mode === "both";
   const isMust = next.mode === "must" || next.mode === "both";
-  if (isMust && !wasMust) return [...mustOrder, facetId];
-  if (!isMust && wasMust) return mustOrder.filter((id) => id !== facetId);
-  return [...mustOrder];
+  if (isMust && !wasMust) return [...reconciled, facetId];
+  if (!isMust && wasMust) return reconciled.filter((id) => id !== facetId);
+  return reconciled;
 }
 
 function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond {

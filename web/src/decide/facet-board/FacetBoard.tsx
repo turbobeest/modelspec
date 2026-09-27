@@ -110,9 +110,8 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     const all = converted.selections;
     const activeGroups = grouped.groups.filter((group) => group.facets.some((facet) => ["must", "prefer", "both"].includes(all[facet.id]?.mode)));
     setExpandedGroups((current) => Object.fromEntries(grouped.groups.map((group) => [group.name, group.name === "What it's good at" || activeGroups.some((active) => active.name === group.name) || current[group.name] === true])));
-    const templateSpec = converted.taskTokens
-      ? { ...spec, tokIn: converted.taskTokens.input, tokOut: converted.taskTokens.output }
-      : spec;
+    const taskTokens = converted.taskTokens ?? vocabulary.default_task_tokens;
+    const templateSpec = { ...spec, tokIn: taskTokens.input, tokOut: taskTokens.output };
     if (onMustOrder) onMustOrder(converted.mustOrder); else setLocalMustOrder(converted.mustOrder);
     setSelected(all); setTemplatesOpen(false); onSpec(boardToSpec(templateSpec, vocabulary, all, converted.mustOrder));
   };

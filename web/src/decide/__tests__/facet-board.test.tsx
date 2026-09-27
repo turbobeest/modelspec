@@ -70,7 +70,7 @@ describe("facet state mapping", () => {
       }
     }
     for (const template of smallVocabulary.templates ?? []) {
-      states.push(Object.fromEntries(template.facets.map(({ id, ...selection }) => [id, selection])));
+      states.push(templateToBoard(template, smallVocabulary).selections);
     }
     for (const state of states) {
       expect(Object.keys(weights(state)).length).toBeGreaterThan(0);
@@ -109,6 +109,25 @@ it("hides absent templates and expands groups with active canonical template fac
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(cost).queryByText(/coming \(MODEL-172\)/)).not.toBeInTheDocument();
   expect(screen.getAllByText("Prefer on these facets: coming (MODEL-172)").length).toBeGreaterThan(0);
+});
+
+it("restores default task tokens when a template has no token override", () => {
+  const onSpec = vi.fn();
+  const base = realBaseSpec(realVocabulary);
+  const view = render(<FacetBoard vocabulary={realVocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+
+  fireEvent.click(screen.getByRole("button", { name: /High volume, good enough/ }));
+  const highVolume = onSpec.mock.calls.at(-1)![0];
+  expect([highVolume.tokIn, highVolume.tokOut]).toEqual([2000, 500]);
+
+  view.rerender(<FacetBoard vocabulary={realVocabulary} spec={highVolume} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: /Templates/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Maths and proofs/ }));
+  const maths = onSpec.mock.calls.at(-1)![0];
+  expect([maths.tokIn, maths.tokOut]).toEqual([
+    realVocabulary.default_task_tokens.input,
+    realVocabulary.default_task_tokens.output,
+  ]);
 });
 
 describe("canonical template mapping", () => {
@@ -161,6 +180,30 @@ describe("canonical template mapping", () => {
     ), "full").where).toEqual([
       "model.context_window >= 200000",
       "offering.cost_per_task <= 0.25",
+    ]);
+  });
+
+  it("seeds a legacy URL's Must order before appending a new Must", () => {
+    const selections: BoardSelections = {
+      "model.context_window": { mode: "must", op: ">=", value: 200000 },
+      "model.class": { mode: "must", op: "in", value: ["text-generator"] },
+    };
+    const legacyHash = "#s=" + btoa(encodeURIComponent(JSON.stringify({
+      board: { selections, estate: { providers: [], plans: [], hardware: [] } },
+    })));
+    const restored = decodeBoardState(legacyHash);
+    expect(restored?.mustOrder).toEqual([]);
+
+    const order = nextMustOrder(
+      restored!.mustOrder,
+      restored!.selections,
+      "offering.region",
+      { mode: "must", op: "in", value: ["us"] },
+    );
+    expect(order).toEqual([
+      "model.class",
+      "model.context_window",
+      "offering.region",
     ]);
   });
 
