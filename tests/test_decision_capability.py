@@ -122,6 +122,21 @@ def test_fit_is_deterministic_and_saturation_reduces_frontier_information() -> N
     assert item.information(4.0) < item.information(0.0)
 
 
+def test_payload_ignores_cross_interpreter_float_noise() -> None:
+    fit = fit_capabilities(synthetic_observations(), SPECS, as_of=AS_OF)
+    item_id, item = next(iter(fit.items.items()))
+    lower = replace(
+        fit,
+        items={**fit.items, item_id: replace(item, discrimination=0.453699382112)},
+    )
+    upper = replace(
+        fit,
+        items={**fit.items, item_id: replace(item, discrimination=0.453699382113)},
+    )
+
+    assert lower.to_payload()["items"][item_id] == upper.to_payload()["items"][item_id]
+
+
 def test_fractional_random_baseline_is_not_divided_twice() -> None:
     fit = fit_capabilities(
         synthetic_observations(),
