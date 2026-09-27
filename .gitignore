@@ -48,3 +48,6 @@ api/worker/src/schema/
 
 # Chart screenshots a browser reader wrote into the checkout.
 .playwright-mcp/
+
+# Local implementation screenshots and visual QA evidence.
+.artifacts/

@@ -113,7 +113,7 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(dialog).not.toHaveTextContent('"task"');
   fireEvent.click(within(dialog).getByRole("tab", { name: "CLI" }));
   expect(dialog).toHaveTextContent(
-    "modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
+    "modelspec snapshot fetch modelspec decide spec.yaml --json",
   );
 });
 

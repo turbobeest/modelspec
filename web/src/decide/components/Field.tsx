@@ -1,17 +1,25 @@
-import type { AdapterDecision, Cond } from "../adapter";
+import type { AdapterDecision, Cond, Spec } from "../adapter";
 export function Field({
   decision,
+  spec,
   onAdd,
   onDismiss,
 }: {
   decision: AdapterDecision;
+  spec?: Spec;
   onAdd: (c: Cond) => void;
   onDismiss: (id: string) => void;
 }) {
   const e = decision.explanation,
     steps = [
       ...e.funnel,
-      { label: "Ranked on evidence", n: e.feasible.length, may: e.may.length },
+      {
+        label: spec?.boardWeights && Object.keys(spec.boardWeights).length
+          ? `Ranking on ${Object.keys(spec.boardWeights).join(" · ")}`
+          : "Ranked on evidence",
+        n: e.feasible.length,
+        may: e.may.length,
+      },
     ],
     total = Math.max(1, steps[0]?.n ?? 1);
   return (

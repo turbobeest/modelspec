@@ -52,6 +52,10 @@ import "./decide.css";
 import { mapDecisionToViewModel, toDecisionSpec } from "./adapter/view-model";
 import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
+import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
+import { estateSpec, showsFacetBoard } from "./facet-board/model";
+import { boardToSpec } from "./facet-board/model";
+import type { Estate } from "./facet-board/model";
 
 /**
  * The main decision shows Retry if it has not resolved by then, whatever it is
@@ -61,15 +65,17 @@ export const DECISION_WATCHDOG_MS = 20_000;
 
 function DesignedApp({
   demo,
+  board = false,
   simulate,
 }: {
   demo: boolean;
+  board?: boolean;
   simulate?: "loading" | "error" | "none";
 }) {
   const [initial] = useState(() => decodeSpec(location.hash)),
     [spec, setSpec] = useState<Spec>(initial?.spec || baseSpec),
     [axis, setAxis] = useState<Axis>(initial?.x || "task$"),
-    [view, setView] = useState(initial ? "work" : "arrive");
+    [view, setView] = useState(initial || board ? "work" : "arrive");
   const [draft, setDraft] = useState(
       initial?.spec.task ?? "Refactor a large Rust codebase, precision matters",
     ),
@@ -98,6 +104,8 @@ function DesignedApp({
     [retried, setRetried] = useState(false),
     // "Find models" pressed before the vocabulary arrived: answered when it does.
     [pendingFind, setPendingFind] = useState(false);
+  const [estate, setEstate] = useState<Estate>(() => readEstate()),
+    [estateDecision, setEstateDecision] = useState<Decision | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
@@ -385,10 +393,32 @@ function DesignedApp({
       return;
     }
     const base = realBaseSpec(vocabulary);
-    setSpec((current) => (current === baseSpec ? base : current));
+    const initialBase = board ? boardToSpec({ ...base, conds: [] }, vocabulary, {}) : base;
+    setSpec((current) => (current === baseSpec ? initialBase : current));
+    if (board && !initial && !initialAnswered.current) {
+      initialAnswered.current = true;
+      void runDecision(initialBase);
+    }
     // Once per loaded vocabulary; runDecision reads the latest state itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabulary]);
+  }, [vocabulary, board]);
+  useEffect(() => {
+    if (!board || !vocabulary || estate.providers.length === 0 || !hostedDecision) {
+      setEstateDecision(null);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      const constrained = estateSpec(sendable(spec), estate.providers);
+      void hostedEngine.decide(toDecisionSpec(constrained, "summary"), {
+        signal: controller.signal,
+        snapshot: vocabulary.snapshot,
+      }).then(setEstateDecision).catch((cause: unknown) => {
+        if (!(cause instanceof Error && cause.name === "AbortError")) setEstateDecision(null);
+      });
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [board, vocabulary, estate.providers, spec, hostedDecision]);
   useEffect(() => {
     if (!pendingFind || !vocabulary) return;
     setPendingFind(false);
@@ -609,7 +639,7 @@ function DesignedApp({
           </>
         )}
       </header>
-      {view === "arrive" ? (
+      {view === "arrive" && !board ? (
         <main className="arrive">
           <div className="arrival-intro">
             <div className="eyebrow">Model decision engine</div>
@@ -719,7 +749,13 @@ function DesignedApp({
               <span>Loading what the current snapshot can answer…</span>
             </div>
           )}
-          {(decision || !demo) && <SpecPanel
+          {board && vocabulary ? <FacetBoard
+            vocabulary={vocabulary}
+            spec={shownSpec}
+            onSpec={changeSpec}
+            estate={estate}
+            onEstate={setEstate}
+          /> : (decision || !demo) && <SpecPanel
             spec={shownSpec}
             decision={decision}
             issues={placed}
@@ -736,9 +772,16 @@ function DesignedApp({
           />}
           {decision && <Field
             decision={decision}
+            spec={shownSpec}
             onAdd={add}
             onDismiss={(id) => setDismissed([...dismissed, id])}
           />}
+          {board && decision && <section className="board-answer-head" aria-label="Facet board answer">
+            <span className="eyebrow">The answer</span>
+            <h2>Tied-group answer: coming (MODEL-170)</h2>
+            {decision.explanation.feasible.some((candidate) => decision.explanation.insep(candidate).length > 0) && <p>the evidence can't separate these</p>}
+            {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.results.length} ranked · ${estateDecision.may_qualify.length} may qualify` : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+          </section>}
           {error ? (
             <div role="alert" className="error">
               <div>
@@ -797,12 +840,12 @@ function DesignedApp({
                 onRelax={relax}
                 compact={layout === "table"}
               />
-              <Shortlist
+              {!board && <Shortlist
                 decision={decision}
                 spec={shownSpec}
                 selected={selectedId}
                 onSelect={setSelected}
-              />
+              />}
               <DecisionTable
                 decision={decision}
                 spec={shownSpec}
@@ -932,6 +975,6 @@ export default function App(props: { simulate?: "loading" | "error" | "none" }) 
   return new URLSearchParams(location.search).get("demo") === "1" ? (
     <DemoApp {...props} />
   ) : (
-    <DesignedApp demo={false} {...props} />
+    <DesignedApp demo={false} board={import.meta.env.MODE !== "test" && showsFacetBoard(location.hostname)} {...props} />
   );
 }

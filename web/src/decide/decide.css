@@ -560,6 +560,48 @@ body {
   font-size: 22px;
   font-weight: 300;
 }
+
+/* MODEL-168 preview board. It inherits the decision page's light/dark tokens. */
+.facet-board { display: grid; gap: 14px; }
+.board-intro, .estate-strip, .board-templates, .facet-list, .board-answer-head {
+  background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink);
+  padding: 14px 16px;
+}
+.board-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.board-intro h1 { margin: 4px 0; font-size: clamp(1.8rem, 4vw, 2.3rem); font-weight: 300; }
+.board-intro p { margin: 0; color: var(--muted); }
+.board-templates > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+.board-templates button { min-height: 82px; text-align: left; display: flex; flex-direction: column; gap: 5px; }
+.board-templates button span { color: var(--muted); }
+.estate-strip { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; align-items: center; }
+.estate-strip > div { display: flex; gap: 6px; flex-wrap: wrap; }
+.facet-list { padding: 0; overflow: hidden; }
+.facet-list > header { padding: 12px 16px; display: flex; justify-content: space-between; }
+.facet-list > details { border-top: 1px solid var(--line); }
+.facet-list summary { cursor: pointer; padding: 10px 16px; font-weight: 650; }
+.facet-row { display: grid; grid-template-columns: minmax(180px, 1fr) 64px minmax(310px, 1.4fr); gap: 12px; padding: 9px 16px; border-top: 1px solid var(--line-soft); }
+.facet-off { opacity: .72; }
+.facet-copy { display: flex; flex-direction: column; min-width: 0; }
+.facet-copy small, .facet-controls small, .facet-known { color: var(--muted); }
+.template-reason { color: var(--accent) !important; }
+.facet-state { display: flex; flex-wrap: wrap; border: 1px solid var(--line); width: fit-content; }
+.facet-state label { padding: 5px 8px; border-left: 1px solid var(--line); cursor: pointer; }
+.facet-state label:first-child { border-left: 0; }
+.facet-state input { margin-right: 4px; }
+.facet-settings { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.facet-value { display: flex; gap: 6px; align-items: center; }
+.facet-values { display: flex; gap: 8px; flex-wrap: wrap; border: 0; padding: 0; }
+.benchmarks { margin-top: 6px; }
+.untracked { background: var(--surface-subtle); }
+.answer-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.answer-pair > div { border: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 5px; }
+@media (max-width: 760px) {
+  .board-intro, .estate-strip, .facet-row { grid-template-columns: 1fr; display: grid; }
+  .facet-known { grid-row: 2; }
+  .facet-state { width: 100%; }
+  .facet-state label { flex: 1; }
+  .answer-pair { grid-template-columns: 1fr; }
+}
 .start-constraints {
   font-size: 14px;
   color: var(--muted);
