@@ -10,9 +10,11 @@ import pytest
 
 from decision.capability import (
     BenchmarkSpec,
+    CapabilityEstimate,
     CapabilityObservation,
     backtest_capabilities,
     backtest_newest_capabilities,
+    deterministic_probabilities,
     fit_capabilities,
 )
 from decision.contract import parse_spec
@@ -90,6 +92,50 @@ def test_fit_uses_registry_tags_without_a_benchmark_allowlist() -> None:
     assert fit.estimate("lab/model-9", "medical") is None
     assert set(fit.items) == set(SPECS)
     assert all(item.discrimination > 0 for item in fit.items.values())
+
+
+def test_two_model_benchmark_keeps_honest_wide_domain_estimates() -> None:
+    """Sparse domains rank their measured frontier instead of becoming all-null."""
+    rows = [
+        observation("lab/first", "new_retrieval_measure", 60, domain="retrieval"),
+        observation("lab/second", "new_retrieval_measure", 70, domain="retrieval"),
+    ]
+
+    fit = fit_capabilities(
+        rows,
+        {"new_retrieval_measure": BenchmarkSpec()},
+        as_of=AS_OF,
+    )
+
+    first = fit.estimate("lab/first", "retrieval")
+    second = fit.estimate("lab/second", "retrieval")
+    assert first is not None and second is not None
+    assert first.value < second.value
+    assert first.low < first.value < first.high
+    assert second.low < second.value < second.high
+
+
+def test_probability_sampling_has_a_worker_cold_start_budget(monkeypatch) -> None:
+    from decision import capability
+
+    draws = 0
+
+    class CountingRandom(capability.random.Random):
+        def gauss(self, mu, sigma):
+            nonlocal draws
+            draws += 1
+            return super().gauss(mu, sigma)
+
+    monkeypatch.setattr(capability.random, "Random", CountingRandom)
+    estimates = {
+        f"lab/model-{index}": CapabilityEstimate(index / 10, -1, 1, 0.5)
+        for index in range(25)
+    }
+
+    probabilities = deterministic_probabilities(estimates, seed_material="snapshot:spec")
+
+    assert set(probabilities) == set(estimates)
+    assert draws <= len(estimates) * 256
 
 
 def test_fit_is_deterministic_and_saturation_reduces_frontier_information() -> None:
@@ -320,6 +366,12 @@ def test_snapshot_stores_estimates_and_domain_objectives_read_them() -> None:
     index = snapshot()
     stored = index.capability_estimate("lab/model-9", "software_engineering")
     assert stored is not None and stored.low < stored.value < stored.high
+    # Parsing the learned lookup belongs to snapshot load, not every request.
+    assert index.capability_estimate("lab/model-9", "software_engineering") is stored
+    drivers = index.capability_drivers("lab/model-9", "software_engineering")
+    assert index.capability_drivers("lab/model-9", "software_engineering") is drivers
+    evidence_row = index.evidence_record("lab/model-9", drivers[0].record_id)
+    assert evidence_row is not None and evidence_row.record_id == drivers[0].record_id
 
     spec = parse_spec(
         {

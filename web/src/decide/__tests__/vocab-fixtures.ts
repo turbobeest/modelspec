@@ -27,7 +27,16 @@ export const smallVocabulary: Vocabulary = {
     },
   ],
   domains: [
-    { id: "software_engineering", name: "Software engineering", proxy_only: false, benchmarks: ["quality"] },
+    {
+      id: "software_engineering",
+      name: "Software engineering",
+      proxy_only: false,
+      default_basis: "capability_estimate",
+      estimate_models: 4,
+      direct_models: 4,
+      default_benchmark: "quality",
+      benchmarks: ["quality"],
+    },
   ],
   // lab/alpha has no card name: the page shows its ID.
   models: {

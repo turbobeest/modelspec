@@ -48,10 +48,26 @@ export function Why({
     insep = e.insep(ranked),
     bd = decision.benchmarks[spec.bench],
     result = decision.results.find((item) => item.offering.model === `${m.lab}/${m.id}`);
+  const estimatePart =
+    spec.basis === "estimate" && spec.domain
+      ? result?.contributions.find(
+          (part) => part.dimension.replace(/^-/, "") === spec.domain,
+        )
+      : undefined;
+  const topDrivers = (estimatePart?.evidence ?? [])
+    .filter((item) => item.estimate_weight != null)
+    .slice()
+    .sort(
+      (a, b) =>
+        (b.estimate_weight ?? 0) - (a.estimate_weight ?? 0) ||
+        a.benchmark.localeCompare(b.benchmark),
+    )
+    .slice(0, 3);
+  const notSeparable = result?.warnings.includes("not_separable") || insep.length > 0;
   const dims = [
     {
       key: "cap",
-      name: vocab.benchName(spec.bench),
+      name: vocab.basisName(spec),
       value:
         fmtB(spec.bench, row.cap) +
         (row.capR ? " " + fmtCI(spec.bench, row.capR) : ""),
@@ -157,18 +173,29 @@ export function Why({
           reproducible; excluded while “Offered now” is on.
         </div>
       )}
-      {!!insep.length && (
+      {result?.warnings.includes("proxy_evidence_only") && (
         <div className="note">
-          <strong>Evidence too thin to separate these.</strong>{" "}
-          {insep
-            .map(
-              (r) =>
-                `${r.m.name}: ${fmtB(spec.bench, r.cap)} ${fmtCI(spec.bench, r.capR)}`,
-            )
-            .join("; ")}{" "}
-          vs {m.name}: {fmtB(spec.bench, row.cap)}{" "}
-          {row.capR && fmtCI(spec.bench, row.capR)}. The order between them is
-          decided by cost and speed.
+          <strong>Proxy evidence only.</strong>{" "}
+          No direct benchmark currently measures this model in the requested domain;
+          the estimate is deliberately less certain.
+        </div>
+      )}
+      {notSeparable && (
+        <div className="note">
+          <strong>Not separable: intervals overlap.</strong>{" "}
+          {insep.length > 0 && (
+            <>
+              {insep
+                .map(
+                  (r) =>
+                    `${r.m.name}: ${fmtB(spec.bench, r.cap)} ${fmtCI(spec.bench, r.capR)}`,
+                )
+                .join("; ")}{" "}
+              vs {m.name}: {fmtB(spec.bench, row.cap)}{" "}
+              {row.capR && fmtCI(spec.bench, row.capR)}. The order between them is
+              decided by cost and speed.
+            </>
+          )}
         </div>
       )}
       <div className="why-columns">
@@ -270,6 +297,29 @@ export function Why({
         </div>
         <div>
           <div className="eyebrow">Evidence, with provenance</div>
+          {spec.basis === "estimate" && (
+            <div className="estimate-drivers">
+              <strong>Top drivers</strong>
+              {topDrivers.length ? (
+                <ul>
+                  {topDrivers.map((driver) => (
+                    <li key={driver.record_id ?? `${driver.benchmark}:${driver.date}`}>
+                      <span>
+                        {vocab.benchName(driver.benchmark)} ·{" "}
+                        {Math.round((driver.estimate_weight ?? 0) * 100)}% influence ·{" "}
+                        {driver.directness} · {driver.date}
+                      </span>{" "}
+                      <a href={driver.source} target="_blank" rel="noreferrer">
+                        Source ↗
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">Driver details are not available in this response.</p>
+              )}
+            </div>
+          )}
           {m.bench
             .slice()
             .sort(

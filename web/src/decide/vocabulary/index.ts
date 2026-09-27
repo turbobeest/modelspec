@@ -72,7 +72,10 @@ export const vocabularySchema = z.object({
       id: z.string(),
       name: z.string(),
       proxy_only: z.boolean(),
-      /** The registry's default benchmark for the domain, when it has verified data. */
+      default_basis: z.literal("capability_estimate").default("capability_estimate"),
+      estimate_models: z.number().int().nonnegative().default(0),
+      direct_models: z.number().int().nonnegative().default(0),
+      /** The preselected explicit benchmark drill-down, when it has verified data. */
       default_benchmark: z.string().nullable().optional(),
       benchmarks: z.array(z.string()),
     }),
@@ -188,6 +191,14 @@ export function benchmark(v: Vocabulary, id: string): VocabBenchmark | null {
   return v.benchmarks.find((b) => b.id === id && b.models > 0) ?? null;
 }
 
+/** Plain copy for the learned domain basis shown throughout the decision UI. */
+export function domainEstimateLabel(v: Vocabulary, domain: string): string {
+  const row = v.domains.find((item) => item.id === domain);
+  return row
+    ? `${row.name} capability (estimated from ${row.benchmarks.length} benchmarks)`
+    : `${domain} capability estimate`;
+}
+
 const hasValue = (row: VocabFacet | null, value: FacetValue) =>
   !!row?.values?.some((item) => item.value === value);
 
@@ -198,11 +209,10 @@ const directFor = (b: VocabBenchmark, domain: string) =>
   b.domains.some((tag) => tag.id === domain && tag.directness === "direct");
 
 /**
- * The benchmark a domain ranks on: the registry's default for the domain when it
- * has verified data (published as `default_benchmark`), otherwise direct first,
- * then the most verified lineup models.
+ * The preselected explicit benchmark drill-down: the registry preference when
+ * it has data, otherwise direct first, then the most verified lineup models.
  */
-export function pickBenchmark(v: Vocabulary, domain: string): VocabBenchmark | null {
+export function pickDrilldownBenchmark(v: Vocabulary, domain: string): VocabBenchmark | null {
   const preferred = v.domains.find((d) => d.id === domain)?.default_benchmark;
   const chosen = preferred ? offeredBenchmarks(v).find((b) => b.id === preferred) : undefined;
   if (chosen) return chosen;
@@ -224,17 +234,23 @@ export function rankChoices(v: Vocabulary, domain: string | null | undefined): V
   return offeredBenchmarks(v).filter((b) => directFor(b, domain));
 }
 
-/** Rank on another benchmark; a floor the task parse set moves with it. */
+/** Drill down to one benchmark; an explicitly linked task floor moves with it. */
 export function switchBenchmark(v: Vocabulary, spec: Spec, id: string): Spec {
   const next = v.benchmarks.find((b) => b.id === id);
   if (!next) return spec;
   return {
     ...spec,
     bench: id,
+    basis: "benchmark",
     conds: spec.conds.map((c) =>
       c.f === "bench" && c.from && c.b === spec.bench ? benchCond(next, true) : c,
     ),
   };
+}
+
+/** Return from one benchmark's drill-down to the domain capability estimate. */
+export function switchEstimate(spec: Spec): Spec {
+  return spec.domain ? { ...spec, basis: "estimate" } : spec;
 }
 
 export const CLASS_OF_TYPE: Readonly<Record<TypeKey, string>> = {
@@ -414,14 +430,14 @@ export function facetOptions(v: Vocabulary): Facet[] {
   return [...facets, ...benchmarks];
 }
 
-/** The domain and benchmark a model class ranks on, when its class changes. */
+/** The domain estimate and preselected drill-down when a model class changes. */
 export function domainForType(
   v: Vocabulary,
   type: TypeKey,
-): { domain: string; bench: string } | null {
+): { domain: string; bench: string; basis: "estimate" } | null {
   const domain = CLASS_OF_DOMAIN_REVERSE[type] ?? defaultDomain(v);
-  const ranked = domain ? pickBenchmark(v, domain) : null;
-  return domain && ranked ? { domain, bench: ranked.id } : null;
+  const drilldown = domain ? pickDrilldownBenchmark(v, domain) : null;
+  return domain && drilldown ? { domain, bench: drilldown.id, basis: "estimate" } : null;
 }
 
 const CLASS_OF_DOMAIN_REVERSE: Partial<Record<TypeKey, string>> = {
@@ -456,13 +472,22 @@ const CLASS_OF_DOMAIN: Readonly<Record<string, TypeKey>> = { retrieval: "embed" 
 
 export interface RealParsedTask extends ParsedTask {
   domain: string | null;
+  basis: "estimate";
 }
 
-/** The domain ranked on when the task names none: software engineering, else the best-covered. */
+const estimatedDomain = (v: Vocabulary, id: string) =>
+  v.domains.find((domain) => domain.id === id && domain.estimate_models > 0) ?? null;
+
+/** The domain ranked on when the task names none: software engineering, else best-covered. */
 function defaultDomain(v: Vocabulary): string | null {
-  if (pickBenchmark(v, "software_engineering")) return "software_engineering";
-  const top = offeredBenchmarks(v)[0];
-  return top?.domains.find((d) => d.directness === "direct")?.id ?? top?.domains[0]?.id ?? null;
+  if (estimatedDomain(v, "software_engineering")) return "software_engineering";
+  return (
+    v.domains
+      .filter((domain) => domain.estimate_models > 0)
+      .slice()
+      .sort((a, b) => b.estimate_models - a.estimate_models || a.id.localeCompare(b.id))[0]?.id ??
+    null
+  );
 }
 
 export function parseRealTask(v: Vocabulary, text: string | null | undefined): RealParsedTask {
@@ -473,14 +498,14 @@ export function parseRealTask(v: Vocabulary, text: string | null | undefined): R
   let word: string | null = null;
   for (const [re, id] of DOMAIN_CUES) {
     const found = match(re);
-    if (found && pickBenchmark(v, id)) {
+    if (found && estimatedDomain(v, id)) {
       domain = id;
       word = found;
       break;
     }
   }
   domain ??= defaultDomain(v);
-  const ranked = domain ? pickBenchmark(v, domain) : offeredBenchmarks(v)[0] ?? null;
+  const ranked = domain ? pickDrilldownBenchmark(v, domain) : offeredBenchmarks(v)[0] ?? null;
   const domainName = v.domains.find((d) => d.id === domain)?.name ?? domain ?? "no domain";
   if (ranked) {
     const direct = domain !== null && directFor(ranked, domain);
@@ -490,9 +515,10 @@ export function parseRealTask(v: Vocabulary, text: string | null | undefined): R
     trace.push({
       word: word ?? "(no domain named)",
       note:
-        `${domainName}: rank on ${ranked.name}, ` +
+        `${domainName} capability: estimated from ${v.domains.find((d) => d.id === domain)?.benchmarks.length ?? 0} benchmarks; ` +
+        `${ranked.name} is preselected for Measured by because it is ` +
         (v.domains.find((d) => d.id === domain)?.default_benchmark === ranked.id
-          ? `the default benchmark for this domain (${ranked.models} verified lineup models)`
+          ? `the registry's drill-down preference (${ranked.models} verified lineup models)`
           : direct
             ? `the direct benchmark with the most verified lineup models (${ranked.models})`
             : `a proxy with ${ranked.models} verified lineup models; no direct benchmark has data`) +
@@ -523,13 +549,11 @@ export function parseRealTask(v: Vocabulary, text: string | null | undefined): R
   if (
     note(
       match(/\bprecis\w*|\baccura\w*|\bcorrect\w*|\bmatters\b/),
-      !!ranked,
-      `${ranked?.name} floor${ranked && ranked.independent_models > 0 ? ", measured independently" : ""}`,
-      "no benchmark with verified evidence; not applied",
-    ) &&
-    ranked
+      domain !== null,
+      `${domainName} capability weight higher`,
+      "no domain capability estimate in this snapshot; not applied",
+    )
   ) {
-    conds.push(benchCond(ranked, true));
     w = { cap: 0.7, cost: 0.2, speed: 0.1 };
   }
   if (
@@ -575,6 +599,7 @@ export function parseRealTask(v: Vocabulary, text: string | null | undefined): R
     w: normaliseWeights(w, keys),
     bench: ranked?.id ?? "",
     domain,
+    basis: "estimate",
     trace,
   };
 }
@@ -589,6 +614,7 @@ export function realBaseSpec(v: Vocabulary): Spec {
     tokOut: v.default_task_tokens.output,
     bench: parsed.bench,
     domain: parsed.domain ?? undefined,
+    basis: "estimate",
     w: parsed.w,
     conds: parsed.conds.map((c) => ({ ...c, from: undefined })),
   };
@@ -618,19 +644,21 @@ export function realTemplates(v: Vocabulary): RealTemplate[] {
     w: Weights,
     extra: (b: VocabBenchmark) => Cond[],
   ): RealTemplate[] => {
-    const b = pickBenchmark(v, domain);
-    if (!b || !types[type]) return [];
+    const b = pickDrilldownBenchmark(v, domain);
+    const domainRow = estimatedDomain(v, domain);
+    if (!b || !domainRow || !types[type]) return [];
     return [
       {
         id,
         name,
         task,
-        ranks: `Ranks on ${b.name} · ${b.models} models verified`,
+        ranks: domainEstimateLabel(v, domain),
         spec: {
           tokIn: tokens[0],
           tokOut: tokens[1],
           bench: b.id,
           domain,
+          basis: "estimate",
           w: normaliseWeights(w, keys),
           conds: [...base(type), ...extra(b)],
         },
@@ -646,10 +674,9 @@ export function realTemplates(v: Vocabulary): RealTemplate[] {
       "llm",
       [60000, 6000],
       { cap: 0.5, cost: 0.4, speed: 0.1 },
-      (b) => [
+      () => [
         ...(has("model.context_window") ? [{ f: "ctx", min: 128000 } as Cond] : []),
         ...(has("offering.cost_per_task") ? [{ f: "task$", max: 0.25 } as Cond] : []),
-        benchCond(b),
       ],
     ),
     ...make(

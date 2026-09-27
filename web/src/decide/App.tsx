@@ -450,7 +450,10 @@ function DesignedApp({
     setEdit(null);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      const p: ReturnType<typeof parseTask> & { domain?: string | null } = vocabulary
+      const p: ReturnType<typeof parseTask> & {
+        domain?: string | null;
+        basis?: "estimate" | "benchmark";
+      } = vocabulary
           ? parseRealTask(vocabulary, draft)
           : parseTask(draft),
         keep = from.conds.filter(
@@ -466,6 +469,7 @@ function DesignedApp({
         ...from,
         task: draft,
         bench: p.bench,
+        ...(p.basis ? { basis: p.basis } : {}),
         w: p.w,
         conds: [...p.conds, ...keep],
         ...(p.domain ? { domain: p.domain } : {}),

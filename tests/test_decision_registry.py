@@ -446,19 +446,19 @@ def test_a_value_label_reads_as_words(registry):
     assert commercial.value_label("not_a_value") is None
 
 
-def test_software_engineering_defaults_to_swe_bench_pro(registry):
-    """Jamie, 2026-09-25: coding tasks rank on SWE-bench Pro by default."""
+def test_software_engineering_preselects_swe_bench_pro_for_drilldown(registry):
+    """The explicit coding benchmark drill-down starts on SWE-bench Pro."""
     domains = {d.id: d for d in registry.domains()}
     assert domains["software_engineering"].default_benchmark == "swe_bench_pro"
 
 
-def test_chat_preference_defaults_to_the_overall_text_board(registry):
-    """A general assistant ranks on Arena's overall board, not a category board."""
+def test_chat_preference_preselects_the_overall_text_board(registry):
+    """The explicit chat drill-down starts on Arena's overall board."""
     domains = {d.id: d for d in registry.domains()}
     assert domains["chat_preference"].default_benchmark == "arena_elo_style_control"
 
 
-def test_retrieval_defaults_to_the_retrieval_task_type(registry):
-    """Embedding search ranks on MTEB Retrieval, not on the reranking tie."""
+def test_retrieval_preselects_the_retrieval_task_type(registry):
+    """The explicit retrieval drill-down starts on MTEB Retrieval."""
     domains = {d.id: d for d in registry.domains()}
     assert domains["retrieval"].default_benchmark == "mteb_v2_retrieval"

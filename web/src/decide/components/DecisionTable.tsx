@@ -36,7 +36,7 @@ export function DecisionTable({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
-  const { label, benchName } = useVocab();
+  const { label, basisName } = useVocab();
   const [sort, setSort] = useState("rank"),
     [dir, setDir] = useState(1),
     [show, setShow] = useState(true),
@@ -86,7 +86,7 @@ export function DecisionTable({
                       setDir(sort === key ? -dir : 1);
                     }}
                   >
-                    {title || benchName(spec.bench)}
+                    {title || basisName(spec)}
                     {sort === key ? (dir === 1 ? " ↑" : " ↓") : ""}
                   </button>
                 </th>

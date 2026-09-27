@@ -213,23 +213,27 @@ export function Canvas({
             ))}
           </select>
         </label>
-        <label>
-          y{" "}
-          <select
-            aria-label="Y axis"
-            value={spec.bench}
-            onChange={(e) => onSpec({ ...spec, bench: e.target.value })}
-          >
-            {Object.entries(decision.benchmarks).map(([k, b]) => (
+        {vocab.vocabulary ? (
+          <span>y {vocab.basisName(spec)}</span>
+        ) : (
+          <label>
+            y{" "}
+            <select
+              aria-label="Y axis"
+              value={spec.bench}
+              onChange={(e) => onSpec({ ...spec, bench: e.target.value })}
+            >
+              {Object.entries(decision.benchmarks).map(([k, b]) => (
                 <option key={k} value={k}>
                   {vocab.benchName(k)} ({b.unit})
                 </option>
               ))}
-          </select>
-        </label>
+            </select>
+          </label>
+        )}
       </div>
       <div className="chart-title">
-        {vocab.benchName(spec.bench)} ({bd.unit}
+        {vocab.basisName(spec)} ({bd.unit}
         {bd.hi ? "" : ", lower is better"})
       </div>
       <div className="plot-wrap" style={{ height }}>
@@ -332,7 +336,7 @@ export function Canvas({
               key={r.m.id}
               className={`point ${r.status === -1 ? "excluded" : status(r) === "May qualify" ? "may" : r.labOnly ? "lab" : ""} ${selected === r.m.id ? "selected" : ""}`}
               style={{ left: percent(pd.fx(x)), top: percent(pd.fy(y)) }}
-              aria-label={`${r.m.name}, ${status(r)}, ${vocab.benchName(spec.bench)} ${fmtB(spec.bench, y)} ${r.labOnly ? "Lab-reported" : "Independent"}, ${ax.label} ${ax.fmt(x)}`}
+              aria-label={`${r.m.name}, ${status(r)}, ${vocab.basisName(spec)} ${fmtB(spec.bench, y)} ${r.labOnly ? "Lab-reported" : "Independent"}, ${ax.label} ${ax.fmt(x)}`}
               onClick={() => onSelect(r.m.id)}
               onPointerEnter={() => setHover(r)}
               onPointerLeave={() => setHover(null)}
@@ -431,46 +435,48 @@ export function Canvas({
                 : `Drag to set a ${ax.low ? "cap" : "minimum"}`}
             </span>
           </div>
-          <div
-            role="slider"
-            tabIndex={0}
-            aria-label={`${vocab.benchName(spec.bench)} floor, ${bd.unit}`}
-            aria-orientation="vertical"
-            aria-valuemin={pd.y0}
-            aria-valuemax={pd.y1}
-            aria-valuenow={pd.yv ?? pd.yi(yp)}
-            aria-valuetext={
-              pd.yv === null ? "Not set" : fmtB(spec.bench, pd.yv)
-            }
-            className={"handle y-handle " + (!yc ? "ghost" : "")}
-            style={{ top: percent(yp) }}
-            onPointerDown={(ev) => {
-              ev.preventDefault();
-              drag.current = "y";
-              ev.currentTarget.setPointerCapture(ev.pointerId);
-              move(ev.clientX, ev.clientY);
-            }}
-            onKeyDown={(ev) => {
-              const d =
-                ev.key === "ArrowUp" ? 1 : ev.key === "ArrowDown" ? -1 : 0;
-              if (d) {
-                ev.preventDefault();
-                setY(
-                  (pd.yv ?? pd.yi(yp)) +
-                    d *
-                      (bd.hi ? 1 : -1) *
-                      (bd.d === 3 ? 0.005 : 0.5) *
-                      (ev.shiftKey ? 10 : 1),
-                );
+          {spec.basis !== "estimate" && (
+            <div
+              role="slider"
+              tabIndex={0}
+              aria-label={`${vocab.basisName(spec)} floor, ${bd.unit}`}
+              aria-orientation="vertical"
+              aria-valuemin={pd.y0}
+              aria-valuemax={pd.y1}
+              aria-valuenow={pd.yv ?? pd.yi(yp)}
+              aria-valuetext={
+                pd.yv === null ? "Not set" : fmtB(spec.bench, pd.yv)
               }
-            }}
-          >
-            <span>
-              {yc
-                ? `${vocab.benchName(spec.bench)} ${bd.hi ? "≥" : "≤"} ${fmtB(spec.bench, pd.yv)}${yc.f === "bench" && yc.indep ? " · independent" : ""}`
-                : `Drag to set a ${vocab.benchName(spec.bench)} floor`}
-            </span>
-          </div>
+              className={"handle y-handle " + (!yc ? "ghost" : "")}
+              style={{ top: percent(yp) }}
+              onPointerDown={(ev) => {
+                ev.preventDefault();
+                drag.current = "y";
+                ev.currentTarget.setPointerCapture(ev.pointerId);
+                move(ev.clientX, ev.clientY);
+              }}
+              onKeyDown={(ev) => {
+                const d =
+                  ev.key === "ArrowUp" ? 1 : ev.key === "ArrowDown" ? -1 : 0;
+                if (d) {
+                  ev.preventDefault();
+                  setY(
+                    (pd.yv ?? pd.yi(yp)) +
+                      d *
+                        (bd.hi ? 1 : -1) *
+                        (bd.d === 3 ? 0.005 : 0.5) *
+                        (ev.shiftKey ? 10 : 1),
+                  );
+                }
+              }}
+            >
+              <span>
+                {yc
+                  ? `${vocab.basisName(spec)} ${bd.hi ? "≥" : "≤"} ${fmtB(spec.bench, pd.yv)}${yc.f === "bench" && yc.indep ? " · independent" : ""}`
+                  : `Drag to set a ${vocab.basisName(spec)} floor`}
+              </span>
+            </div>
+          )}
           {hover && (
             <div
               className="chart-tooltip"
@@ -486,7 +492,7 @@ export function Canvas({
                 {hover.m.labName} · via {hover.best.o.provider}
               </small>
               <span>
-                {vocab.benchName(spec.bench)}: {fmtB(spec.bench, hover.cap)}{" "}
+                {vocab.basisName(spec)}: {fmtB(spec.bench, hover.cap)}{" "}
                 {hover.capR ? fmtCI(spec.bench, hover.capR) : "no interval"} ·{" "}
                 {hover.labOnly ? "Lab-reported" : "Independent"}
               </span>
@@ -534,7 +540,7 @@ export function Canvas({
         {ax.log ? ", log scale" : ""})
       </div>
       <div className="winning-caption">
-        Best {vocab.benchName(spec.bench)} you can get at each {ax.label.toLowerCase()}{" "}
+        Best {vocab.basisName(spec)} you can get at each {ax.label.toLowerCase()}{" "}
         {ax.low ? "cap" : "minimum"}
       </div>
       <div className="winning-strip">
@@ -589,7 +595,7 @@ export function Canvas({
           {missing
             .map(
               (r) =>
-                `${r.m.name} (${r.cap === null ? "no " + vocab.benchName(spec.bench) : "no " + ax.label.toLowerCase()})`,
+                `${r.m.name} (${r.cap === null ? "no " + vocab.basisName(spec) : "no " + ax.label.toLowerCase()})`,
             )
             .join(", ")}
         </small>

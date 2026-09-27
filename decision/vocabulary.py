@@ -16,8 +16,8 @@ list of facets or benchmarks of its own:
   verified row (``models``), how many have one not reported by their own lab
   (``independent_models``), and the range of those values. A benchmark with
   none is not listed.
-* ``domains``: every registered domain with a listed benchmark, its
-  benchmarks ordered direct first, then by how many models they cover.
+* ``domains``: every registered domain with a listed benchmark, its capability
+  estimate coverage, and its benchmarks ordered for the explicit drill-down.
 * ``models``: every lineup and archive model, by ID, with the ``display_name``
   and lab (``lab``, ``lab_name``) its card gives. A name the card does not
   give is ``null``; a client shows the ID, never a name made from the slug.
@@ -49,6 +49,7 @@ from decision.contract import CONTRACT_VERSION, DEFAULT_TASK_TOKENS, TaskType
 from decision.filter import _INDEPENDENT as INDEPENDENT_MEASURERS
 
 VOCABULARY_VERSION = 1
+MIN_FRONTIER_COVERAGE = 0.50
 
 _ORDERED = ("=", "!=", "<", "<=", ">", ">=", "between")
 OPERATORS: Mapping[str, tuple[str, ...]] = {
@@ -61,8 +62,92 @@ OPERATORS: Mapping[str, tuple[str, ...]] = {
 _LITERALS = ("unbounded", "not_offered")
 
 
+class FrontierCoverageError(ValueError):
+    """A domain's default basis would leave most directly measured models unranked."""
+
+
 def _lineup(snapshot: Any) -> list[str]:
     return [cid for cid in snapshot.candidates() if snapshot.lifecycle(cid) != "retired"]
+
+
+def frontier_coverage(
+    snapshot: Any,
+    domain_id: str,
+    *,
+    benchmark: str | None = None,
+) -> dict[str, float | int]:
+    """Coverage of one ranking basis among lineup models with direct evidence.
+
+    With no ``benchmark``, the basis is the stored domain capability estimate.
+    Passing a benchmark measures the counterfactual single-benchmark basis used
+    by the page's explicit "Measured by" drill-down.
+    """
+    lineup = _lineup(snapshot)
+    by_model: dict[str, list[str]] = {}
+    for candidate in lineup:
+        by_model.setdefault(snapshot.model_of(candidate), []).append(candidate)
+    direct_benchmarks = {
+        benchmark_id
+        for benchmark_id, tags in snapshot.benchmark_domain_tags().items()
+        if (domain_id, "direct") in tags
+    }
+    direct = {
+        model_id
+        for model_id, candidates in by_model.items()
+        if any(
+            row.verified and row.benchmark_id in direct_benchmarks
+            for candidate in candidates
+            for row in snapshot.evidence_for_domain(candidate, domain_id)
+        )
+    }
+    if benchmark is None:
+        ranked = {
+            model_id
+            for model_id in direct
+            if any(
+                snapshot.capability_estimate(candidate, domain_id) is not None
+                for candidate in by_model[model_id]
+            )
+        }
+    else:
+        ranked = {
+            model_id
+            for model_id in direct
+            if any(
+                row.verified
+                for candidate in by_model[model_id]
+                for row in snapshot.evidence(candidate, benchmark)
+            )
+        }
+    ratio = len(ranked) / len(direct) if direct else 1.0
+    return {"ranked": len(ranked), "direct": len(direct), "ratio": ratio}
+
+
+def _estimate_models(snapshot: Any, domain_id: str) -> int:
+    """How many distinct lineup models have a stored estimate for ``domain_id``."""
+    models: set[str] = set()
+    for candidate in _lineup(snapshot):
+        if snapshot.capability_estimate(candidate, domain_id) is not None:
+            models.add(snapshot.model_of(candidate))
+    return len(models)
+
+
+def require_frontier_coverage(
+    snapshot: Any,
+    domain_id: str,
+    *,
+    benchmark: str | None = None,
+) -> dict[str, float | int]:
+    """Fail when a proposed default basis ranks less than half the frontier."""
+    coverage = frontier_coverage(snapshot, domain_id, benchmark=benchmark)
+    if coverage["direct"] and coverage["ratio"] < MIN_FRONTIER_COVERAGE:
+        basis = benchmark or f"{domain_id} capability estimate"
+        raise FrontierCoverageError(
+            f"{domain_id}: default basis {basis} ranks {coverage['ranked']} of "
+            f"{coverage['direct']} lineup models with direct evidence "
+            f"({coverage['ratio']:.1%}); minimum is {MIN_FRONTIER_COVERAGE:.0%}"
+        )
+    return coverage
 
 
 def _number(value: Any) -> float | None:
@@ -209,6 +294,7 @@ def _coverage(snapshot: Any, lineup: list[str], registry: Any) -> dict[str, Any]
 
 def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | None = None,
                      registry: Any = None, cards: Mapping[str, Mapping[str, Any]] | None = None,
+                     enforce_frontier_coverage: bool = False,
                      ) -> dict[str, Any]:
     """The vocabulary of ``snapshot``. ``pages`` maps benchmark IDs to their page
     front matter (for names and metric direction); ``cards`` maps model IDs to
@@ -238,7 +324,14 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         if not members:
             continue
 
-        # The registry's default leads when it has verified lineup evidence.
+        estimate_coverage = (
+            require_frontier_coverage(snapshot, domain.id)
+            if enforce_frontier_coverage
+            else frontier_coverage(snapshot, domain.id)
+        )
+
+        # The registry preference leads the explicit drill-down only when it
+        # has verified lineup evidence. The domain estimate remains default.
         default = (domain.default_benchmark
                    if any(b["id"] == domain.default_benchmark and b["models"] > 0
                           for b in members) else None)
@@ -252,6 +345,11 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
             "id": domain.id,
             "name": domain.name,
             "proxy_only": domain.proxy_only,
+            "default_basis": "capability_estimate",
+            "estimate_models": _estimate_models(snapshot, domain.id),
+            "direct_models": estimate_coverage["direct"],
+            # Kept only to preselect the explicit benchmark drill-down. It is
+            # never the domain's default ranking basis.
             "default_benchmark": default,
             "benchmarks": [row["id"] for row in sorted(members, key=order)],
         })
