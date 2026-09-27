@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
+from cli.modelspec import decide_cmd  # noqa: E402
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes  # noqa: E402
 from decision.vocabulary import build_vocabulary  # noqa: E402
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering  # noqa: E402
@@ -408,15 +409,31 @@ def test_template_file_fields_win_and_where_conditions_concatenate(tmp_path, mon
     _install_template_snapshot(tmp_path, monkeypatch)
     override = tmp_path / "override.yaml"
     override.write_text(
-        "where: [model.context_window >= 250000]\n"
+        "where: [model.context_window >= 200000]\n"
         "optimize: {max: model.context_window}\n",
         encoding="utf-8",
     )
+    seen = []
+    real_validate = decide_cmd.validate_decision
+
+    def capture(spec, *args, **kwargs):
+        seen.append(spec)
+        return real_validate(spec, *args, **kwargs)
+
+    monkeypatch.setattr(decide_cmd, "validate_decision", capture)
     result = CliRunner().invoke(
         cli_mod.app, ["decide", str(override), "--template", "budget-coding", "--check", "--json"]
     )
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout)["ok"] is True
+    assert len(seen[0].where) == 5
+    assert sum(
+        condition.facet == "model.context_window"
+        and condition.op == ">="
+        and condition.value == 200000
+        for condition in seen[0].where
+    ) == 2
+    assert seen[0].optimize.max == "model.context_window"
 
 
 def test_unknown_template_lists_valid_ids(tmp_path, monkeypatch) -> None:

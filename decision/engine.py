@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 
 from decision.computed import with_computed
@@ -19,7 +19,7 @@ from decision.contract import (
     Spec,
     spec_hash,
 )
-from decision.filter import apply
+from decision.filter import FilterResult, apply
 from decision.optimise import EvidenceSelector, optimise
 from decision.relax import fewest, smallest_changes
 from decision.resolve import Resolved, resolve
@@ -102,6 +102,7 @@ def decide(
     facets: FacetLookup | None = None,
     profiles: Mapping[str, InventoryProfile] | None = None,
     evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
+    _filter_trace: Callable[[FilterResult], None] | None = None,
 ) -> Decision:
     """Return a reproducible decision. Explanation work is skipped at ``none``."""
     resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
@@ -122,6 +123,8 @@ def decide(
                 ),
             )
     filtered = apply(resolved, snapshot)
+    if _filter_trace is not None:
+        _filter_trace(filtered)
     ordered, objective_unknown = split_missing(
         run_optimise(snapshot, filtered, spec, selectors, domains)
     )

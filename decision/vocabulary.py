@@ -50,13 +50,12 @@ from decision.contract import (
     DEFAULT_TASK_TOKENS,
     AllOf,
     AnyOf,
-    Compare,
-    InSet,
     Known,
     NotOf,
     TaskType,
-    parse_condition,
+    parse_spec,
 )
+from decision.engine import decide
 from decision.filter import _INDEPENDENT as INDEPENDENT_MEASURERS
 from decision.templates import load_templates
 
@@ -304,81 +303,53 @@ def _coverage(snapshot: Any, lineup: list[str], registry: Any) -> dict[str, Any]
     }
 
 
-def _condition_unavailable_reason(
-    condition: Any,
-    facets: Mapping[str, Mapping[str, Any]],
-    template_id: str,
-) -> str | None:
-    """Explain when lineup coverage makes one Must impossible to answer."""
-    if isinstance(condition, AnyOf):
-        reasons = [
-            _condition_unavailable_reason(child, facets, template_id)
-            for child in condition.any
-        ]
-        return next((reason for reason in reasons if reason), None) if all(reasons) else None
-    if isinstance(condition, AllOf):
-        return next(
-            (reason for child in condition.all
-             if (reason := _condition_unavailable_reason(child, facets, template_id))),
-            None,
-        )
+def _condition_facet(condition: Any) -> str | None:
+    if isinstance(condition, (AnyOf, AllOf)):
+        children = condition.any if isinstance(condition, AnyOf) else condition.all
+        facets = {_condition_facet(child) for child in children}
+        return facets.pop() if len(facets) == 1 else None
     if isinstance(condition, NotOf):
-        return None
-
-    facet_id = condition.known if isinstance(condition, Known) else condition.facet
-    facet = facets.get(facet_id)
-    if facet is None:
-        return None
-    subject = str(facet.get("subject", "subject"))
-    label = str(facet.get("label", facet_id)).lower()
-    if facet.get("known", 0) == 0:
-        return f"No {subject} in this snapshot publishes {label} yet."
-
-    required: list[Any] = []
-    if isinstance(condition, Compare) and condition.op == "=":
-        required = [condition.value]
-    elif isinstance(condition, InSet) and condition.in_ is not None:
-        required = list(condition.in_)
-    if not required or "values" not in facet:
-        return None
-    counts = {row["value"]: row["count"] for row in facet["values"]}
-    if any(counts.get(value, 0) > 0 for value in required):
-        return None
-    if template_id == "eu-data" and facet_id == "offering.region":
-        return "No offering in this snapshot publishes an EU inference region yet."
-    return f"No {subject} in this snapshot publishes a required {label} value yet."
+        return _condition_facet(condition.not_)
+    return condition.known if isinstance(condition, Known) else condition.facet
 
 
-def _template_rows(
-    coverage: Mapping[str, Any], facets: list[Mapping[str, Any]], registry: Any
-) -> list[dict[str, Any]]:
-    """Templates plus a live hint when this snapshot cannot answer one."""
-    class_counts = {row["id"]: row["models"] for row in coverage["classes"]}
-    domain_counts = {row["id"]: row["verified"] for row in coverage["domains"]}
-    facets_by_id = {row["id"]: row for row in facets}
+def _unavailable_reason(
+    decision: Any, funnel: Iterable[Any], template_id: str, registry: Any
+) -> str:
+    """Describe the decision stage that left a template without an answer."""
+    for step in funnel:
+        if step.after or step.may_qualify:
+            continue
+        facet_id = _condition_facet(step._condition)
+        facet = registry.facet(facet_id) if facet_id else None
+        subject = facet.subject if facet else "candidate"
+        label = facet.label if facet and facet.label else step.condition
+        if template_id == "eu-data" and facet_id == "offering.region":
+            label = "Inference region in the EU"
+        before = step.offerings_before if subject == "offering" else step.models_before
+        noun = subject if before == 1 else f"{subject}s"
+        return f"No {subject} passes: {label} — 0 of {before} {noun}"
+    if decision.relax_to:
+        change = decision.relax_to[0]
+        return f"No feasible result; relax {change.condition} to {change.relaxed}."
+    if decision.relax:
+        return f"No feasible result; relax {decision.relax[0]}."
+    return "No feasible result."
+
+
+def _template_rows(snapshot: Any, registry: Any) -> list[dict[str, Any]]:
+    """Templates plus answerability proven by the real decision engine."""
     rows = []
     for template in load_templates(registry=registry):
-        missing_classes = [
-            class_id for class_id in template["needs"]["classes"]
-            if class_counts.get(class_id, 0) == 0
-        ]
-        missing_domains = [
-            domain_id for domain_id in template["needs"]["domains"]
-            if domain_counts.get(domain_id, 0) == 0
-        ]
-        reasons = [
-            *(f"class {class_id} has no lineup models" for class_id in missing_classes),
-            *(f"domain {domain_id} has no lineup coverage" for domain_id in missing_domains),
-        ]
-        for row in template["where"]:
-            reason = _condition_unavailable_reason(
-                parse_condition(row["condition"]), facets_by_id, template["id"]
-            )
-            if reason and reason not in reasons:
-                reasons.append(reason)
+        spec = parse_spec(template["spec"] | {"explain": "none"}, facets=registry.facet)
+        trace = []
+        decision = decide(spec, snapshot, facets=registry.facet, _filter_trace=trace.append)
+        available = bool(decision.results or decision.may_qualify)
         rows.append(template | {
-            "available": not reasons,
-            "unavailable_reason": "; ".join(reasons) if reasons else None,
+            "available": available,
+            "unavailable_reason": None if available else _unavailable_reason(
+                decision, trace[0].funnel, template["id"], registry
+            ),
         })
     return rows
 
@@ -458,5 +429,5 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "models": _model_rows(snapshot, cards or {}),
         "providers": {p.id: p.name for p in registry.providers()},
         "coverage": coverage,
-        "templates": _template_rows(coverage, facets, registry),
+        "templates": _template_rows(snapshot, registry),
     }

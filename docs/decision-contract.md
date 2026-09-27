@@ -638,9 +638,12 @@ it instead of carrying its own list of facets or benchmarks. Built by
 - `templates`: the eight partial decision specs from `registry/templates.yaml`.
   Each row has `id`, `name`, `purpose`, reasoned `where` Musts, reasoned
   `weights` Prefers, optional non-default `task_tokens`, `needs`, `teaches`,
-  and the expanded contract fragment under `spec`. `available` is false, with
-  `unavailable_reason`, when the snapshot has zero lineup models for a needed
-  class or zero coverage for a needed domain. Rows stay present so clients can
+  and the expanded contract fragment under `spec`. The build expands each
+  template and runs it against this same snapshot with `explain: none`.
+  `available` is true exactly when that decision has at least one ranked result
+  or `may_qualify` entry. Otherwise it is false and `unavailable_reason`
+  describes the decision's first Must whose funnel reaches zero, or its
+  `no_feasible` relaxation when no Must does. Rows stay present so clients can
   explain why a template is unavailable. Adding this field is compatible, so
   `vocabulary_version` remains `1` and `contract_version` remains `1.7`.
 - `coverage`: what the lineup holds, so a client can say what an empty answer
