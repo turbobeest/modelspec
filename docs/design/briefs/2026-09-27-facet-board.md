@@ -41,6 +41,10 @@ CLI and API, which is where interpretation belongs: the agent is the model.
    - **Prefer** is a weight slider. It ranks and never excludes.
    Gates and weights must look different. The existing rule holds: *conditions
    filter; they never add points.*
+   On a facet with a scale (cost, context, capability), Prefer can also carry
+   an optional threshold, "and never worse than …". That makes it Must and
+   Prefer at once: for example, cost capped at $0.25 per task *and* cheaper
+   preferred (decided). Yes/no facets stay one state.
 3. **The answer is always on screen and always live.** No "Run decision"
    button. Every control shows how many models survive before it is used.
 4. **Never claim an order the evidence cannot support** (decided). When
