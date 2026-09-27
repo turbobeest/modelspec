@@ -90,6 +90,31 @@ def test_issue_put_runs_the_printed_wrangler_command_without_the_secret(
     assert output.out.count(secret) == 1
 
 
+def test_issue_put_targets_the_named_wrangler_environment(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    secret = "live_OPERATOR_STAGING_TEST_SECRET"
+    calls: list[list[str]] = []
+    monkeypatch.setattr(access_keys, "mint", lambda policy: secret)
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(issue_api_key.subprocess, "run", run)
+
+    result = issue_api_key.main(
+        ["--owner", "x402-smoke", "--env", "staging", "--put"]
+    )
+
+    output = capsys.readouterr()
+    assert result == 0
+    assert len(calls) == 1
+    assert calls[0][calls[0].index("--env") + 1] == "staging"
+    assert secret not in " ".join(calls[0])
+    assert "--env staging" in output.out
+
+
 def test_issue_refuses_a_tier_that_the_worker_does_not_know(
     capsys: pytest.CaptureFixture[str],
 ) -> None:

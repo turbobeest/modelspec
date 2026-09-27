@@ -8,8 +8,9 @@
 // beside this entry point by `api/worker/vendor.py` at build time and never
 // committed. See docs/rank-api.md.
 //
-// Deployed by .github/workflows/rank-api.yml (job `deploy`) on push to main
-// only. No hand deploys: the smoke test is what proves a deploy landed.
+// Production is deployed by .github/workflows/rank-api.yml (job `deploy`) on
+// pushes to main only. The isolated staging environment has a separate,
+// workflow_dispatch-only job. Do not deploy either environment by hand.
 {
   "$schema": "https://unpkg.com/wrangler/config-schema.json",
   "name": "modelspec-rank",
@@ -134,5 +135,40 @@
   },
   "migrations": [
     { "tag": "v1-credits", "new_sqlite_classes": ["CreditsObject"] }
-  ]
+  ],
+  // MODEL-166 follow-up. Wrangler environments deploy as separate Workers;
+  // `staging` therefore becomes modelspec-rank-staging. It has a workers.dev
+  // URL and deliberately clears the production route. Bindings and vars are
+  // non-inheritable and are repeated so no staging request can reach a
+  // production store. Wrangler provisions the two id-less KV namespaces for
+  // the staging Worker on its first manual deploy. Source, read 2026-09-26:
+  // https://developers.cloudflare.com/workers/wrangler/configuration/#automatic-provisioning
+  // https://developers.cloudflare.com/workers/wrangler/environments/#non-inheritable-keys-and-environments
+  "env": {
+    "staging": {
+      "workers_dev": true,
+      "routes": [],
+      "kv_namespaces": [
+        { "binding": "DETERMINATIONS" },
+        { "binding": "ACCESS" }
+      ],
+      "vars": {
+        "EXPORT_ORIGIN": "https://modelspec.dev",
+        "BUILD_COMMIT": "dev",
+        "ACCESS_ENFORCED": "false",
+        "BILLING_ENABLED": "false",
+        "X402_ENABLED": "true",
+        "X402_MAINNET": "false",
+        "X402_NETWORK": "eip155:84532",
+        "X402_ASSET": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        "X402_PAY_TO": "0x1e62c42388271C68ce55e7E39d85912ACB918529",
+        "X402_FACILITATOR_URL": "https://api.cdp.coinbase.com/platform"
+      },
+      "durable_objects": {
+        "bindings": [
+          { "name": "CREDITS", "class_name": "CreditsObject" }
+        ]
+      }
+    }
+  }
 }

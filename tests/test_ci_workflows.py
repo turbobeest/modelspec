@@ -116,6 +116,22 @@ def test_the_rank_worker_deploys_only_from_main() -> None:
             in workflow), "the deploy job is not fenced to pushes on main"
 
 
+def test_staging_rank_worker_deploy_is_manual_and_targets_only_staging() -> None:
+    import yaml
+
+    workflow = yaml.safe_load(RANK_API.read_text(encoding="utf-8"))
+    staging = workflow["jobs"]["deploy-staging"]
+    assert staging["if"] == "github.event_name == 'workflow_dispatch'"
+    assert staging["needs"] == "bundle"
+    staging_text = yaml.safe_dump(staging)
+    assert "vendor.py" in staging_text
+    assert "uv sync --project api/worker --frozen" in staging_text
+    assert "pywrangler deploy --env staging" in staging_text
+
+    production_text = yaml.safe_dump(workflow["jobs"]["deploy"])
+    assert "--env staging" not in production_text
+
+
 def test_deploy_secrets_are_not_in_scope_on_a_pull_request() -> None:
     """The bundle job runs on every PR and must never see a credential."""
     import yaml
