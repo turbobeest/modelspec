@@ -189,6 +189,34 @@ font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:upper
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--ground);font-weight:700}
 .btn.primary:hover{color:var(--ground);filter:brightness(1.1)}
 .btns{display:flex;gap:10px;flex-wrap:wrap}
+.evidence-chart{margin:16px 0 8px;border:1px solid var(--line);background:var(--surface);
+padding:10px}
+.evidence-chart svg,.benchmark-strip svg{display:block;width:100%;height:auto;overflow:visible}
+.chart-axis{stroke:var(--dim);stroke-width:1}.chart-grid{stroke:var(--line);stroke-width:1}
+.chart-label{fill:var(--mute);font-family:var(--mono);font-size:11px}
+.chart-point,.strip-point{stroke:var(--ground);stroke-width:1.5}
+.point-trigger:focus-visible .chart-point,.point-trigger:focus-visible .strip-point,
+.point-pair:hover .chart-point,.point-pair:hover .strip-point{stroke:var(--ink);stroke-width:3}
+.point-detail{display:none;pointer-events:none}
+.point-pair:hover>.point-detail,.point-pair:focus-within>.point-detail,
+.point-trigger:focus-visible~.point-detail,
+.point-detail:target,.point-detail:hover{display:block;pointer-events:auto}
+.point-detail rect{fill:var(--surface);stroke:var(--accent);stroke-width:1.5}
+.point-detail text{fill:var(--ink);font-family:var(--mono);font-size:10px}
+.point-detail .point-source-label{fill:var(--accent);text-decoration:underline}
+.chart-credit{font-family:var(--mono);font-size:11px;color:var(--dim);max-width:none;
+margin:7px 2px 0}
+.chart-credit a{margin-right:8px}
+.strip-groups{display:grid;gap:20px}.strip-group h3{margin:0 0 8px;color:var(--mute)}
+.benchmark-strip{border-top:1px solid var(--line);padding:10px 0 4px}
+.benchmark-strip h4{font-family:var(--sans);font-size:14px;margin:0 0 5px}
+.benchmark-strip h4 a{color:var(--ink);border-bottom:0}
+.benchmark-strip h4 a:hover{color:var(--accent)}
+.benchmark-strip-chart{position:relative;aspect-ratio:760/43}
+.benchmark-strip-asset,.benchmark-strip-focus{position:absolute;inset:0;display:block;width:100%;
+height:100%;border:0}
+.benchmark-strip-focus{pointer-events:none}
+.strip-point.focus{stroke:var(--ink);stroke-width:3}
 @media(max-width:800px){
 .page{padding-left:0}
 :where(.page) h2::before{position:static;display:block;width:auto;margin-bottom:6px}

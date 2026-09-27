@@ -31,7 +31,14 @@ from pipeline.load import (  # noqa: E402
     load_models,
     split_front_matter,
 )
-from pipeline.render import format_score  # noqa: E402
+from pipeline.render import (  # noqa: E402
+    benchmark_chart,
+    benchmark_page,
+    benchmark_strip_asset,
+    format_score,
+    model_benchmark_strips,
+    model_page,
+)
 
 # Parsing 1,143 cards and 1,106 pages costs seconds; the corpus does not change
 # during a run, so load each once for the whole module.
@@ -192,7 +199,7 @@ def test_a_benchmark_reported_only_in_evidence_records_has_coverage(tmp_path: Pa
         "source": "https://src.example/astra", "source_kind": "provider_self_report",
         "model_id_as_evaluated": "Astra", "benchmark_version": "DemoBench",
         "configuration": "launch table", "verified_at": "2026-09-11",
-        "attribution": "verified",
+        "attribution": "verified", "release_date": None,
     }]
 
 
@@ -289,6 +296,272 @@ def test_benchmark_page_shows_each_score_with_its_date_and_attribution(
          "verified provider self report source"],
         ["Old", "Demo Lab", "30.0", "2026-01-01 card", "unverified-legacy"],
     ]
+
+
+def _chart_row(model_id: str, score: float, *, benchmark_id: str = "b",
+               release_date: str = "2026-01-01", source: str | None = None,
+               source_kind: str = "independent_evaluator", version: str = "v1",
+               configuration: str = "default") -> dict:
+    return {
+        "model_id": model_id,
+        "display_name": model_id.rsplit("/", 1)[-1],
+        "provider": "demo",
+        "provider_display": "Demo Lab",
+        "score": score,
+        "unit": "percent",
+        "as_of": "2026-09-01",
+        "date_type": "evaluated",
+        "source": source or f"https://src.example/{model_id.replace('/', '-')}/{benchmark_id}",
+        "source_kind": source_kind,
+        "model_id_as_evaluated": model_id,
+        "benchmark_version": version,
+        "configuration": configuration,
+        "verified_at": "2026-09-02",
+        "attribution": "verified",
+        "release_date": release_date,
+    }
+
+
+def test_benchmark_chart_uses_only_sourced_evidence_and_splits_series() -> None:
+    rows = [
+        _chart_row(
+            f"demo/model-{i}", float(i),
+            release_date=f"2025-{(i % 12) + 1:02d}-01",
+            source_kind=(
+                "benchmark_author", "independent_evaluator", "provider_self_report"
+            )[i % 3],
+            version="v1" if i < 10 else "v2",
+            configuration="default" if i % 2 else "tools",
+        )
+        for i in range(20)
+    ]
+    rows.append({**rows[0], "model_id": "demo/legacy", "attribution": "unverified-legacy"})
+
+    chart = benchmark_chart(_page("b"), rows)
+
+    assert chart.count('class="chart-point') == 20
+    assert "demo/legacy" not in chart
+    assert "benchmark author" in chart
+    assert "independent evaluator" in chart
+    assert "provider self report" in chart
+    assert "source-benchmark-author" in chart
+    assert "source-independent-evaluator" in chart
+    assert "source-provider-self-report" in chart
+    assert chart.count("<g>") == 4
+    assert "Benchmark version: v1" in chart and "Benchmark version: v2" in chart
+    assert "Evidence date: 2026-09-01 (evaluated)" in chart
+    assert "Configuration: default" in chart
+    assert '<a class="point-trigger" href="#p1"' in chart
+    assert '<a href="https://src.example/demo-model-0/b"' in chart
+    assert "Sources drawn:" in chart
+    assert ">source 20</a>" in chart
+
+
+def test_benchmark_chart_needs_twenty_plottable_points() -> None:
+    assert benchmark_chart(_page("b"), [
+        _chart_row(f"demo/model-{i}", float(i)) for i in range(19)
+    ]) == ""
+
+
+def test_benchmark_chart_refuses_to_plot_evidence_without_a_source() -> None:
+    rows = [_chart_row(f"demo/model-{i}", float(i)) for i in range(20)]
+    rows[7]["source"] = ""
+    with pytest.raises(ValueError, match="source_url"):
+        benchmark_chart(_page("b"), rows)
+
+
+def test_benchmark_page_points_disclose_details_without_javascript() -> None:
+    rows = [
+        _chart_row(
+            f"demo/model-{i}", float(i),
+            release_date=f"2025-{(i % 12) + 1:02d}-01",
+        )
+        for i in range(20)
+    ]
+
+    html = benchmark_page(
+        _page("b"), _BUILD, Catalogue(as_of=date(2026, 9, 15)), rows,
+    )
+
+    assert (
+        'class="point-trigger" href="#p1"'
+        in html
+    )
+    assert 'aria-describedby="p1"' in html
+    detail = html.split('id="p1" class="point-detail"', 1)[1]
+    detail = detail.split("</g></g>", 1)[0]
+    assert "Evidence date: 2026-09-01 (evaluated)" in detail
+    assert "Configuration: default" in detail
+    assert 'href="https://src.example/' in detail
+    assert ".point-trigger:focus-visible~.point-detail" in html
+    assert ".point-pair:focus-within>.point-detail" in html
+
+
+def test_model_strip_compacts_comparison_points() -> None:
+    model = _card("demo/focus", evidence=(_evidence("b", 70.0),))
+    rows = [_chart_row("demo/focus", 70.0)] + [
+        _chart_row(f"demo/model-{i}", float(i % 100)) for i in range(2_000)
+    ]
+
+    strip = model_benchmark_strips(model, {"b": _page("b")}, {"b": rows})
+    asset = benchmark_strip_asset(rows)
+
+    assert len(strip.encode("utf-8")) < 5_000
+    assert strip.count('class="point-trigger"') == 0
+    assert "2001 reporting models" in strip
+    assert 'data="/assets/benchmark-strips/b.svg"' in strip
+    geometry = asset.split('<g id="points">', 1)[1].split(
+        '</g><g id="point-interactions">', 1,
+    )[0]
+    assert geometry.count("M") == 2_001
+    assert asset.count('class="point-trigger"') == 2_001
+    assert asset.count("Evidence date: 2026-09-01 (evaluated)") == 2_001
+    assert asset.count('aria-label="Open evidence source"') == 2_001
+    assert "source-independent-evaluator" in asset
+
+
+def test_model_page_writer_enforces_byte_budget(tmp_path: Path) -> None:
+    destination = tmp_path / "index.html"
+
+    with pytest.raises(ValueError, match="model page.*byte budget"):
+        builder.write_model_page(destination, "x" * (builder.MODEL_PAGE_MAX_BYTES + 1))
+
+    assert not destination.exists()
+
+
+def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
+    model = _card("demo/focus", evidence=(
+        _evidence("mmlu_anatomy", 70.0),
+        _evidence("mmlu_marketing", 80.0),
+        _evidence("multipl_e_rust", 60.0),
+    ))
+    pages = {
+        "mmlu_anatomy": Benchmark(
+            "mmlu_anatomy", Path("benchmarks/mmlu_anatomy.md"),
+            {"id": "mmlu_anatomy", "name": "MMLU: Anatomy", "page_kind": "subset",
+             "summary": "MMLU subject subset."}, ""),
+        "mmlu_marketing": Benchmark(
+            "mmlu_marketing", Path("benchmarks/mmlu_marketing.md"),
+            {"id": "mmlu_marketing", "name": "MMLU: Marketing", "page_kind": "subset",
+             "summary": "MMLU subject subset."}, ""),
+        "multipl_e_rust": Benchmark(
+            "multipl_e_rust", Path("benchmarks/multipl_e_rust.md"),
+            {"id": "multipl_e_rust", "name": "MultiPL-E: Rust", "page_kind": "subset",
+             "subcategory": "multilingual code generation",
+             "summary": "The Rust subset of MultiPL-E: HumanEval and MBPP problems "
+                        "translated into Rust and scored with pass@1."}, ""),
+    }
+    coverage = {
+        "mmlu_anatomy": [_chart_row("demo/focus", 70.0, benchmark_id="mmlu_anatomy")]
+                        + [_chart_row(f"demo/a-{i}", float(i), benchmark_id="mmlu_anatomy")
+                           for i in range(9)],
+        "mmlu_marketing": [_chart_row("demo/focus", 80.0, benchmark_id="mmlu_marketing")]
+                          + [_chart_row(f"demo/m-{i}", float(i), benchmark_id="mmlu_marketing")
+                             for i in range(4)],
+        "multipl_e_rust": [_chart_row("demo/focus", 60.0, benchmark_id="multipl_e_rust")]
+                          + [_chart_row(f"demo/r-{i}", float(i), benchmark_id="multipl_e_rust")
+                             for i in range(6)],
+    }
+
+    strips = model_benchmark_strips(model, pages, coverage)
+
+    assert strips.count('class="benchmark-strip"') == 3
+    assert strips.count('class="strip-point focus ') == 3
+    assert strips.count('<object class="benchmark-strip-asset"') == 3
+    assert "MMLU subjects" in strips
+    assert "MultiPL-E languages" in strips
+    assert strips.index("MMLU: Anatomy") < strips.index("MMLU: Marketing")
+    assert strips.index("MMLU: Marketing") < strips.index("MultiPL-E: Rust")
+    assert 'href="/b/mmlu_anatomy/"' in strips
+    assert 'class="strip-point focus ' in strips
+
+
+def test_model_strips_group_production_multipl_e_metadata_as_languages() -> None:
+    benchmark = next(
+        bench for bench in _benchmarks() if bench.benchmark_id == "multipl_e_cpp"
+    )
+    model = _card("demo/focus", evidence=(
+        _evidence(benchmark.benchmark_id, 70.0),
+    ))
+    coverage = {
+        benchmark.benchmark_id: [
+            _chart_row("demo/focus", 70.0, benchmark_id=benchmark.benchmark_id),
+        ],
+    }
+
+    strips = model_benchmark_strips(
+        model, {benchmark.benchmark_id: benchmark}, coverage,
+    )
+
+    assert "MultiPL-E languages" in strips
+
+
+def test_model_strips_count_distinct_reporting_models_for_coverage() -> None:
+    model = _card("demo/focus", evidence=(
+        _evidence("low_coverage", 70.0),
+        _evidence("high_coverage", 80.0),
+    ))
+    pages = {
+        "low_coverage": _page("low_coverage"),
+        "high_coverage": _page("high_coverage"),
+    }
+    coverage = {
+        "low_coverage": [
+            _chart_row("demo/focus", float(score), benchmark_id="low_coverage")
+            for score in range(5)
+        ] + [_chart_row("demo/other", 50.0, benchmark_id="low_coverage")],
+        "high_coverage": [
+            _chart_row("demo/focus", 80.0, benchmark_id="high_coverage"),
+            _chart_row("demo/other", 75.0, benchmark_id="high_coverage"),
+            _chart_row("demo/third", 70.0, benchmark_id="high_coverage"),
+        ],
+    }
+
+    strips = model_benchmark_strips(model, pages, coverage)
+
+    assert strips.index("high_coverage") < strips.index("low_coverage")
+
+
+def test_model_without_evidence_has_no_benchmark_strip_frame() -> None:
+    assert model_benchmark_strips(_card("demo/empty"), {}, {}) == ""
+
+
+def test_model_page_passes_coverage_to_benchmark_strips() -> None:
+    model = _card("demo/focus", evidence=(_evidence("b", 70.0),))
+    benchmark = _page("b")
+    coverage = {
+        "b": [
+            _chart_row("demo/focus", 70.0),
+            _chart_row("demo/other", 65.0),
+        ],
+    }
+
+    html = model_page(
+        model,
+        _BUILD,
+        {"b": benchmark},
+        Catalogue(as_of=date(2026, 9, 15)),
+        evidence_coverage=coverage,
+    )
+
+    assert "Benchmark standing" in html
+    assert 'href="/b/b/"' in html
+    assert html.count('class="strip-point focus ') == 1
+    assert html.count('data="/assets/benchmark-strips/b.svg"') == 1
+    assert 'class="point-trigger"' not in html
+
+
+def test_model_page_without_evidence_omits_benchmark_strip_frame() -> None:
+    html = model_page(
+        _card("demo/empty"),
+        _BUILD,
+        {"b": _page("b")},
+        Catalogue(as_of=date(2026, 9, 15)),
+        evidence_coverage={"b": [_chart_row("demo/other", 65.0)]},
+    )
+
+    assert "Benchmark standing" not in html
+    assert 'class="strip-groups"' not in html
 
 
 # ── presentation ─────────────────────────────────────────────────────────────
