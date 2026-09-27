@@ -84,7 +84,7 @@ export function Share({
         `optimize: ${JSON.stringify(contractSpec.optimize)}`,
         `unknowns: ${contractSpec.unknowns ?? "default"}`,
         `explain: ${contractSpec.explain ?? "full"}`,
-        `limit: ${contractSpec.limit ?? 20}`,
+        `limit: ${contractSpec.limit ?? 500}`,
       ].join("\n");
   const code =
     tab === "Permalink"
