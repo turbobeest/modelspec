@@ -448,7 +448,8 @@ def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
             "multipl_e_rust", Path("benchmarks/multipl_e_rust.md"),
             {"id": "multipl_e_rust", "name": "MultiPL-E: Rust", "page_kind": "subset",
              "subcategory": "multilingual code generation",
-             "summary": "The Rust language subset of MultiPL-E."}, ""),
+             "summary": "The Rust subset of MultiPL-E: HumanEval and MBPP problems "
+                        "translated into Rust and scored with pass@1."}, ""),
     }
     coverage = {
         "mmlu_anatomy": [_chart_row("demo/focus", 70.0, benchmark_id="mmlu_anatomy")]
@@ -473,6 +474,26 @@ def test_model_strips_group_subsets_and_order_by_benchmark_coverage() -> None:
     assert strips.index("MMLU: Marketing") < strips.index("MultiPL-E: Rust")
     assert 'href="/b/mmlu_anatomy/"' in strips
     assert 'class="strip-point focus ' in strips
+
+
+def test_model_strips_group_production_multipl_e_metadata_as_languages() -> None:
+    benchmark = next(
+        bench for bench in _benchmarks() if bench.benchmark_id == "multipl_e_cpp"
+    )
+    model = _card("demo/focus", evidence=(
+        _evidence(benchmark.benchmark_id, 70.0),
+    ))
+    coverage = {
+        benchmark.benchmark_id: [
+            _chart_row("demo/focus", 70.0, benchmark_id=benchmark.benchmark_id),
+        ],
+    }
+
+    strips = model_benchmark_strips(
+        model, {benchmark.benchmark_id: benchmark}, coverage,
+    )
+
+    assert "MultiPL-E languages" in strips
 
 
 def test_model_strips_count_distinct_reporting_models_for_coverage() -> None:

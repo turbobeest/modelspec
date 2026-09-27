@@ -504,11 +504,11 @@ def _benchmark_group(bench: Benchmark) -> str:
     if str(bench.front.get("page_kind") or "") != "subset" or ":" not in bench.name:
         return ""
     parent = bench.name.split(":", 1)[0].strip()
-    description = " ".join((str(bench.front.get("summary") or ""),
-                            str(bench.front.get("subcategory") or ""))).lower()
-    if "language" in description:
+    summary = str(bench.front.get("summary") or "").lower()
+    subcategory = str(bench.front.get("subcategory") or "").lower()
+    if "language" in summary or "multilingual code" in subcategory:
         suffix = "languages"
-    elif "subject" in description:
+    elif "subject" in f"{summary} {subcategory}":
         suffix = "subjects"
     else:
         suffix = "subsets"
