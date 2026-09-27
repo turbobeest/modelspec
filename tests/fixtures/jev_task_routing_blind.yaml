@@ -1,0 +1,31 @@
+# MODEL-112 independently labelled routing holdout.
+# Frozen before any parser, Jev, or baseline inference on these task texts.
+# Domain and class labels use the accepted registries on 2026-09-26.
+read_date: "2026-09-26"
+source_url: https://github.com/turbobeest/modelspec/blob/main/registry/domains.yaml
+conditions: [context_200k, open_weights, commercial_use, low_latency]
+cases:
+  - {id: B01, text: "Repair the failing tests in this Python package and submit a patch.", domain: software_engineering, class: text-generator, conditions: []}
+  - {id: B02, text: "Interactively diagnose a production stack trace; responses must have low latency.", domain: software_engineering, class: text-generator, conditions: [low_latency]}
+  - {id: B03, text: "Power a customer-facing assistant whose output we may use commercially.", domain: chat_preference, class: text-generator, conditions: [commercial_use]}
+  - {id: B04, text: "Solve unfamiliar deduction puzzles with several dependent steps.", domain: reasoning, class: text-generator, conditions: []}
+  - {id: B05, text: "Answer olympiad geometry problems and show the proof.", domain: maths, class: text-generator, conditions: []}
+  - {id: B06, text: "Generate an answer from retrieved passages totaling at least 200,000 tokens.", domain: retrieval, class: text-generator, conditions: [context_200k]}
+  - {id: B07, text: "Generate answers from a large collection of retrieved manuals.", domain: retrieval, class: text-generator, conditions: []}
+  - {id: B08, text: "Edit this essay for clarity while preserving the author's voice.", domain: writing, class: text-generator, conditions: []}
+  - {id: B09, text: "Read a scanned invoice and explain the chart printed on it.", domain: vision_documents, class: text-generator, conditions: []}
+  - {id: B10, text: "Embed support articles for semantic nearest-neighbour search.", domain: retrieval, class: vectoriser, conditions: []}
+  - {id: B11, text: "Self-host open-weight embeddings for cross-language passage search.", domain: multilingual, class: vectoriser, conditions: [open_weights]}
+  - {id: B12, text: "Answer graduate chemistry questions with objectively checkable answers.", domain: engineering_stem, class: text-generator, conditions: []}
+  - {id: B13, text: "Transcribe an English podcast recording into text.", domain: no_match, class: transcriber, conditions: []}
+  - {id: B14, text: "Spot conflicting clauses in a commercial contract.", domain: legal, class: text-generator, conditions: []}
+  - {id: B15, text: "Answer clinical diagnosis questions against a physician rubric.", domain: medical, class: text-generator, conditions: []}
+  - {id: B16, text: "Calculate ratios from a company's financial statements.", domain: finance, class: text-generator, conditions: []}
+  - {id: B17, text: "Draft search-engine-optimised product copy.", domain: marketing_seo, class: text-generator, conditions: []}
+  - {id: B18, text: "Use browser and shell tools to complete a multi-step operational task.", domain: agentic_tool_use, class: text-generator, conditions: []}
+  - {id: B19, text: "Rerank retrieved passages in an interactive search product with low latency.", domain: retrieval, class: orderer, conditions: [low_latency]}
+  - {id: B20, text: "Classify support tickets for a commercial SaaS product; commercial-use rights are required.", domain: chat_preference, class: classifier, conditions: [commercial_use]}
+  - {id: B21, text: "Run a private open-weight reasoning assistant on our own servers.", domain: reasoning, class: text-generator, conditions: [open_weights]}
+  - {id: B22, text: "Summarise a lengthy report without an explicit token minimum.", domain: writing, class: text-generator, conditions: []}
+  - {id: B23, text: "Choose the more helpful of two conversational responses.", domain: chat_preference, class: orderer, conditions: []}
+  - {id: B24, text: "Decide whether an image violates a documented safety policy.", domain: vision_documents, class: classifier, conditions: []}
