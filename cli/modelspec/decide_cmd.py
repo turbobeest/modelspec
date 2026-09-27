@@ -22,6 +22,10 @@ from .vocabulary_cache import (
 )
 
 EXIT_ERROR = 1
+FRESHNESS_KEYS = (
+    "fetched_at", "age_days", "stale", "stale_after_days", "origin",
+    "build_commit", "built_at",
+)
 
 
 def _facet_lookup() -> contract.FacetLookup:
@@ -169,6 +173,14 @@ def _merge_template(template: dict[str, Any], raw: Any) -> dict[str, Any]:
     merged = fragment | raw
     merged["where"] = [*template_where, *file_where]
     return merged
+
+
+def _cache_freshness() -> dict[str, Any]:
+    """Return the common CLI cache provenance, not decision snapshot metadata."""
+    from .snapshot import load
+
+    freshness = load().freshness()
+    return {key: freshness[key] for key in FRESHNESS_KEYS}
 
 
 def decide(
@@ -362,7 +374,7 @@ def decide(
             typer.echo(json.dumps({
                 "schema_version": SCHEMA_VERSION,
                 "command": "decide",
-                "freshness": result["snapshot"]["new"],
+                "freshness": _cache_freshness(),
                 "result": result,
             }, ensure_ascii=False, separators=(",", ":")))
         else:

@@ -40,6 +40,7 @@ info:
   x-error-codes:
   - access_not_configured
   - access_store_not_configured
+  - comparison_snapshot_changed
   - determinations_unavailable
   - export_unavailable
   - insufficient_evidence
@@ -74,6 +75,7 @@ info:
   x-max-request-bytes:
     /v1/rank: 16384
     /v1/decide: 65536
+    /v1/compare: 65536
     /v1/policy-check: 262144
 x-modelspec-access:
   status: wired; enforcement off
@@ -355,7 +357,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DecisionSpec'
-            example:
+            example: &id002
               spec_version: 1
               capabilities:
                 software_engineering: required
@@ -370,7 +372,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DecisionResponse'
-          headers:
+          headers: &id003
             X-ModelSpec-Snapshot:
               description: The verified snapshot that answered (MODEL-159).
               schema:
@@ -449,7 +451,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessRefused'
-        '503':
+        '503': &id004
           description: The snapshot is not published, it cannot be verified, or a live key cannot reach
             the access store. A no_snapshot response includes Retry-After.
           content:
@@ -466,6 +468,100 @@ paths:
               schema:
                 type: integer
                 minimum: 1
+  /v1/compare:
+    post:
+      operationId: compareDecisions
+      summary: Compare one spec against two signed snapshots.
+      parameters:
+      - name: X-ModelSpec-Snapshot
+        in: header
+        required: false
+        description: The current snapshot the caller expects.
+        schema:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComparisonRequest'
+            example:
+              compare_to: snap_0123456789abcdef
+              spec: *id002
+      responses:
+        '200':
+          description: The model-grained difference between two decisions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonResponse'
+          headers: *id003
+        '400':
+          description: The body lacks a valid spec or compare_to snapshot ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRequestRefused'
+        '409':
+          description: The retained snapshot is unavailable or differs from compare_to.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRequestRefused'
+        '404': *id001
+        '405':
+          description: /v1/compare takes POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '413':
+          description: The body is over 65536 bytes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRequestRefused'
+        '502':
+          description: A published snapshot could not be fetched.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionRequestRefused'
+        '402':
+          description: Payment required when X402_ENABLED is on.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
+        '401':
+          description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
+            `error.how_to_get_a_key` says where to get one.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '403':
+          description: 'key_revoked: a key we know and will not serve. Retrying will not help.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '429':
+          description: 'rate_limited: the key''s daily or per-minute window is spent. States the limit,
+            the window and `resets_at`; `Retry-After` is set.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '500':
+          description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
+            or the deployment has no tier table (access_not_configured).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '503': *id004
   /v1/policy-check:
     post:
       operationId: policyCheck
@@ -4386,6 +4482,7 @@ components:
         endpoint:
           type: string
           enum:
+          - compare
           - decide
         snapshot:
           anyOf:
@@ -4401,6 +4498,8 @@ components:
             code:
               type: string
               enum:
+              - comparison_snapshot_changed
+              - comparison_snapshot_unavailable
               - invalid_spec
               - no_snapshot
               - origin_not_allowed
@@ -4437,6 +4536,7 @@ components:
         endpoint:
           type: string
           enum:
+          - compare
           - decide
         snapshot:
           type: 'null'
@@ -4446,6 +4546,43 @@ components:
           - no_snapshot
         message:
           type: string
+    ComparisonRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - compare_to
+      - spec
+      properties:
+        compare_to:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+        spec:
+          $ref: '#/components/schemas/DecisionSpec'
+    ComparisonResponse:
+      type: object
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - compare_to
+      - result
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.7'
+        endpoint:
+          type: string
+          enum:
+          - compare
+        snapshot:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+        compare_to:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+        result:
+          type: object
     PolicyCheckRequest:
       type: object
       additionalProperties: false
@@ -4934,7 +5071,7 @@ components:
       properties:
         checks:
           type: array
-          items: &id002
+          items: &id005
             $ref: '#/components/schemas/PolicyCheck'
         display_name:
           type: string
@@ -5008,7 +5145,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id002
+          items: *id005
         display_name:
           type: string
         failed:
@@ -5067,7 +5204,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id002
+          items: *id005
         display_name:
           type: string
         model_id:

@@ -533,6 +533,12 @@ record IDs, but it does not change ordinary decision output or the decision
 contract. JSON comparison output uses the CLI envelope documented in
 `cli-contract.md`; unchanged comparisons still exit 0.
 
+The hosted equivalent is `POST /v1/compare` with a body containing `spec` and
+`compare_to`. It runs the same comparison function after verifying both signed
+Snapshots. The current static origin does not publish retained Snapshot files,
+so the endpoint reports `comparison_snapshot_unavailable` until that separate
+hosting work ships. See [`decide-api.md`](decide-api.md#comparing-snapshots).
+
 ### Explanation provenance (MODEL-145)
 
 These additive response fields were introduced without changing the 1.0

@@ -51,15 +51,25 @@ def _decision(snapshot: str, rows: list[tuple[str, int, float]]) -> Decision:
     )
 
 
-def _engine_snapshot(prices: dict[str, float], as_of: date):
+def _engine_snapshot(
+    prices: dict[str, float],
+    as_of: date,
+    *,
+    contexts: dict[str, int] | None = None,
+):
     models = []
     offerings = []
     for name, price in prices.items():
         model_id = f"lab/{name}"
-        models.append(model(model_id, facts=[
+        model_facts = [
             fact("model", model_id, "model.class", "text-generator"),
             fact("model", model_id, "model.lifecycle", "active"),
-        ]))
+        ]
+        if contexts is not None:
+            model_facts.append(
+                fact("model", model_id, "model.context_window", contexts[name])
+            )
+        models.append(model(model_id, facts=model_facts))
         offering_id = f"p1/{model_id}/global/standard"
         offerings.append(offering(model_id, "p1", facts=[
             fact("offering", offering_id, "offering.price.input", price,
@@ -99,6 +109,76 @@ def test_price_change_and_new_model_name_exactly_those_models():
         "p1/lab/a/global/standard#offering.price.input",
         "p1/lab/a/global/standard#offering.price.output",
     }
+
+
+def test_newly_passed_and_failed_musts_include_both_values_and_records():
+    old_index = _engine_snapshot(
+        {"entered": 1.0, "left": 1.0},
+        date(2026, 9, 26),
+        contexts={"entered": 100, "left": 200},
+    )
+    new_index = _engine_snapshot(
+        {"entered": 1.0, "left": 1.0},
+        date(2026, 9, 27),
+        contexts={"entered": 200, "left": 100},
+    )
+    spec = parse_spec({
+        "spec_version": 1,
+        "where": ["model.context_window >= 150"],
+        "optimize": {"min": "offering.cost_per_task"},
+        "explain": "full",
+    }, facets=facet)
+
+    result = compare(
+        decide(spec, old_index, facets=facet),
+        decide(spec, new_index, facets=facet),
+    )
+
+    rows = {row["model"]: row for row in result["models"]}
+    assert rows["lab/entered"]["entered"] is True
+    assert rows["lab/left"]["left"] == {"reason": "model.context_window >= 150"}
+    for model_id, old_value, new_value in (
+        ("lab/entered", 100, 200),
+        ("lab/left", 200, 100),
+    ):
+        assert rows[model_id]["values"] == [{
+            "kind": "facet",
+            "facet": "model.context_window",
+            "offering": {"model": model_id, "provider": "p1", "region": "global",
+                         "tier": "standard"},
+            "old": {"value": old_value, "unit": "tokens",
+                    "records": [f"{model_id}#model.context_window"]},
+            "new": {"value": new_value, "unit": "tokens",
+                    "records": [f"{model_id}#model.context_window"]},
+        }]
+
+
+def test_a_newly_unknown_must_keeps_the_old_value_and_provenance():
+    old_index = _engine_snapshot(
+        {"a": 1.0}, date(2026, 9, 26), contexts={"a": 200}
+    )
+    new_index = _engine_snapshot({"a": 1.0}, date(2026, 9, 27))
+    spec = parse_spec({
+        "spec_version": 1,
+        "where": ["model.context_window >= 150"],
+        "optimize": {"min": "offering.cost_per_task"},
+        "explain": "full",
+    }, facets=facet)
+
+    result = compare(
+        decide(spec, old_index, facets=facet),
+        decide(spec, new_index, facets=facet),
+    )
+
+    row, = result["models"]
+    assert row["may_qualify"] == {"old": None, "new": ["model.context_window"]}
+    value, = row["values"]
+    assert value["old"] == {
+        "value": 200,
+        "unit": "tokens",
+        "records": ["lab/a#model.context_window"],
+    }
+    assert value["new"] == {"value": None, "unit": None, "records": []}
 
 
 def test_comparing_a_snapshot_to_itself_has_no_changes():

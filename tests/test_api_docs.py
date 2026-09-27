@@ -200,6 +200,7 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
     assert spec["info"]["x-max-request-bytes"] == {
         "/v1/rank": service.MAX_BODY_BYTES,
         "/v1/decide": decide.MAX_BODY_BYTES,
+        "/v1/compare": decide.MAX_BODY_BYTES,
         "/v1/policy-check": policy.MAX_BODY_BYTES,
     }
 

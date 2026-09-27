@@ -268,6 +268,39 @@ def test_compare_does_not_warn_that_latest_was_ignored(
     assert "Spec snapshot pin ignored" not in result.stdout
 
 
+def test_compare_json_uses_the_common_cache_freshness_keys(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    cache = tmp_path / "cache"
+    (cache / "snapshot.json").write_text(json.dumps({
+        "meta": {
+            "fetched_at": "2026-09-27T12:00:00+00:00",
+            "origin": "https://example.test",
+            "build_commit": "abc123",
+            "built_at": "2026-09-27T11:59:00+00:00",
+        },
+        "data": {
+            "index": {"build": {"commit": "abc123", "export_schema_version": "3.0"}},
+            "candidates": {"candidates": []},
+            "profiles": {"profiles": {}, "featured": []},
+            "hardware": {"nodes": []},
+        },
+    }))
+    snapshot = (
+        cache / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+
+    result = _run(tmp_path, BUDGET_CODING, "--compare-to", str(snapshot), "--json")
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert set(payload["freshness"]) == {
+        "fetched_at", "age_days", "stale", "stale_after_days", "origin",
+        "build_commit", "built_at",
+    }
+    assert payload["freshness"]["build_commit"] == "abc123"
+
+
 def test_check_suggests_a_misspelled_facet(tmp_path: Path, cached_vocabulary: dict) -> None:
     result = _run(
         tmp_path, BUDGET_CODING.replace("model.context_window", "model.context_windw"),

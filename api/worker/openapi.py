@@ -110,6 +110,11 @@ EXAMPLE_DECIDE_REQUEST: dict[str, Any] = {
     "limit": 3,
 }
 
+EXAMPLE_COMPARE_REQUEST: dict[str, Any] = {
+    "compare_to": "snap_0123456789abcdef",
+    "spec": EXAMPLE_DECIDE_REQUEST,
+}
+
 
 def _load(name: str):
     """Import a Worker module from its path; it is not an installed package."""
@@ -573,7 +578,10 @@ _ENTRY_ONLY = {
     "credits_store_not_configured", "missing_holder", "origin_not_allowed",
     "snapshot_refused", "snapshot_unavailable",
 }
-_DECIDE_ONLY = {"invalid_spec", "no_snapshot", "snapshot_not_loaded", "snapshot_changed"}
+_DECIDE_ONLY = {
+    "comparison_snapshot_changed", "comparison_snapshot_unavailable", "invalid_spec",
+    "no_snapshot", "snapshot_changed", "snapshot_not_loaded",
+}
 
 
 def source_error_codes() -> set[str]:
@@ -1720,7 +1728,7 @@ def _decision_schemas() -> dict[str, Any]:
                 "type": "string",
                 "enum": [decide_service.contract.CONTRACT_VERSION],
             },
-            "endpoint": {"type": "string", "enum": ["decide"]},
+            "endpoint": {"type": "string", "enum": ["compare", "decide"]},
             "snapshot": {"anyOf": [
                 {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
                 {"type": "null"},
@@ -1755,10 +1763,32 @@ def _decision_schemas() -> dict[str, Any]:
                 "type": "string",
                 "enum": [decide_service.contract.CONTRACT_VERSION],
             },
-            "endpoint": {"type": "string", "enum": ["decide"]},
+            "endpoint": {"type": "string", "enum": ["compare", "decide"]},
             "snapshot": {"type": "null"},
             "error": {"type": "string", "enum": ["no_snapshot"]},
             "message": {"type": "string"},
+        },
+    }
+    schemas["ComparisonRequest"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["compare_to", "spec"],
+        "properties": {
+            "compare_to": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+            "spec": {"$ref": "#/components/schemas/DecisionSpec"},
+        },
+    }
+    schemas["ComparisonResponse"] = {
+        "type": "object",
+        "required": ["contract_version", "endpoint", "snapshot", "compare_to", "result"],
+        "properties": {
+            "contract_version": {
+                "type": "string", "enum": [decide_service.contract.CONTRACT_VERSION],
+            },
+            "endpoint": {"type": "string", "enum": ["compare"]},
+            "snapshot": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+            "compare_to": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+            "result": {"type": "object"},
         },
     }
     return schemas
@@ -1970,6 +2000,7 @@ def build_spec() -> dict[str, Any]:
                                            for code in sorted(entry_codes)},
             "x-max-request-bytes": {"/v1/rank": service.MAX_BODY_BYTES,
                                     "/v1/decide": decide_service.MAX_BODY_BYTES,
+                                    "/v1/compare": decide_service.MAX_BODY_BYTES,
                                     "/v1/policy-check": policy.MAX_BODY_BYTES},
         },
         "x-modelspec-access": _access(),
@@ -2120,6 +2151,59 @@ def build_spec() -> dict[str, Any]:
                             "Payment required when X402_ENABLED is on. A keyed caller is "
                             "offered the card packs. A keyless caller pays 4,000 atomic "
                             "USDC per credit, multiplied by this spec's explanation weight.",
+                            {"$ref": "#/components/schemas/PaymentRequired"},
+                        ),
+                        **access_responses(),
+                        str(access.HTTP_STORE_UNAVAILABLE): decision_unavailable,
+                    },
+                },
+            },
+            "/v1/compare": {
+                "post": {
+                    "operationId": "compareDecisions",
+                    "summary": "Compare one spec against two signed snapshots.",
+                    "parameters": [{
+                        "name": "X-ModelSpec-Snapshot", "in": "header", "required": False,
+                        "description": "The current snapshot the caller expects.",
+                        "schema": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    }],
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {
+                            "schema": {"$ref": "#/components/schemas/ComparisonRequest"},
+                            "example": EXAMPLE_COMPARE_REQUEST,
+                        }},
+                    },
+                    "responses": {
+                        "200": {
+                            **_json_body(
+                                "The model-grained difference between two decisions.",
+                                {"$ref": "#/components/schemas/ComparisonResponse"},
+                            ),
+                            "headers": decide_snapshot_headers,
+                        },
+                        str(decide_service.HTTP_BAD_REQUEST): _json_body(
+                            "The body lacks a valid spec or compare_to snapshot ID.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_CONFLICT): _json_body(
+                            "The retained snapshot is unavailable or differs from compare_to.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/compare takes POST."
+                        )[1],
+                        str(service.HTTP_PAYLOAD_TOO_LARGE): _json_body(
+                            f"The body is over {decide_service.MAX_BODY_BYTES} bytes.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_BAD_GATEWAY): _json_body(
+                            "A published snapshot could not be fetched.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
+                            "Payment required when X402_ENABLED is on.",
                             {"$ref": "#/components/schemas/PaymentRequired"},
                         ),
                         **access_responses(),
@@ -2455,7 +2539,14 @@ def probe(base_url: str, spec: dict[str, Any] | None = None) -> int:
                 and status == decide_service.HTTP_SERVICE_UNAVAILABLE
                 and payload.get("error") == "no_snapshot"
             )
-            if data is not None and status != 200 and not temporary_decision:
+            unavailable_comparison = (
+                path == "/v1/compare"
+                and status == decide_service.HTTP_CONFLICT
+                and (payload.get("error") or {}).get("code")
+                == "comparison_snapshot_unavailable"
+            )
+            if (data is not None and status != 200
+                    and not temporary_decision and not unavailable_comparison):
                 failures.append(f"{path}: the spec's own example returned HTTP {status}, "
                                 "not 200")
             schema = operation["responses"][str(status)]["content"]["application/json"]["schema"]

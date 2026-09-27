@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from decision.contract import Decision
+from decision.contract import Compare, Decision, InSet, Known, Window, parse_condition
 
 
 def _offering_key(offering: Any) -> tuple[Any, ...]:
@@ -77,7 +77,49 @@ def _values(decision: Decision) -> dict[str, dict[tuple[Any, ...], dict[str, Any
                 "unit": fact.unit,
                 "records": records,
             }
+    for row in decision.eliminated.models:
+        if row.offering is None or row.value is None and not row.values:
+            continue
+        facet = _condition_facet(row.condition)
+        if facet is None:
+            continue
+        offering = _offering_key(row.offering)
+        values[row.model][("facet", offering, facet)] = {
+            "kind": "facet",
+            "facet": facet,
+            "offering": row.offering.model_dump(mode="json"),
+            "value": row.values or row.value,
+            "unit": row.unit,
+            "records": row.records,
+        }
+    for row in decision.may_qualify:
+        if row.offering is None:
+            continue
+        offering = _offering_key(row.offering)
+        for facet in row.unknown:
+            values[row.model].setdefault(("facet", offering, facet), {
+                "kind": "facet",
+                "facet": facet,
+                "offering": row.offering.model_dump(mode="json"),
+                "value": None,
+                "unit": None,
+                "records": [],
+            })
     return values
+
+
+def _condition_facet(condition: str) -> str | None:
+    """Return the one facet named by a leaf Must, or null for a compound Must."""
+    text = condition.removesuffix(": unverified: may qualify")
+    try:
+        parsed = parse_condition(text)
+    except ValueError:
+        return None
+    if isinstance(parsed, Known):
+        return parsed.known
+    if isinstance(parsed, Compare | Window | InSet):
+        return parsed.facet
+    return None
 
 
 def _left_reason(decision: Decision, model: str) -> str:
@@ -103,7 +145,12 @@ def compare(
     old_ranked, new_ranked = _ranked(old), _ranked(new)
     old_may, new_may = _may_qualify(old), _may_qualify(new)
     old_values, new_values = _values(old), _values(new)
-    models = sorted(set(old_ranked) | set(new_ranked) | set(old_may) | set(new_may))
+    old_eliminated = {row.model for row in old.eliminated.models}
+    new_eliminated = {row.model for row in new.eliminated.models}
+    models = sorted(
+        set(old_ranked) | set(new_ranked) | set(old_may) | set(new_may)
+        | old_eliminated | new_eliminated
+    )
     changes = []
     for model in models:
         entered = model in new_ranked and model not in old_ranked
@@ -115,20 +162,19 @@ def compare(
         may = ({"old": old_may.get(model), "new": new_may.get(model)}
                if old_may.get(model) != new_may.get(model) else None)
         value_changes = []
-        if model in old_ranked and model in new_ranked:
-            for key in sorted(set(old_values.get(model, {})) & set(new_values.get(model, {})),
-                              key=str):
-                before, after = old_values[model][key], new_values[model][key]
-                if _measured_value(before) != _measured_value(after):
-                    value_changes.append({
-                        "kind": after["kind"],
-                        **{name: after[name] for name in ("facet", "domain", "offering")
-                           if name in after},
-                        "old": {k: v for k, v in before.items()
-                                if k not in {"kind", "facet", "domain", "offering"}},
-                        "new": {k: v for k, v in after.items()
-                                if k not in {"kind", "facet", "domain", "offering"}},
-                    })
+        for key in sorted(set(old_values.get(model, {})) & set(new_values.get(model, {})),
+                          key=str):
+            before, after = old_values[model][key], new_values[model][key]
+            if _measured_value(before) != _measured_value(after):
+                value_changes.append({
+                    "kind": after["kind"],
+                    **{name: after[name] for name in ("facet", "domain", "offering")
+                       if name in after},
+                    "old": {k: v for k, v in before.items()
+                            if k not in {"kind", "facet", "domain", "offering"}},
+                    "new": {k: v for k, v in after.items()
+                            if k not in {"kind", "facet", "domain", "offering"}},
+                })
         if entered or left or rank or may or value_changes:
             changes.append({
                 "model": model,
