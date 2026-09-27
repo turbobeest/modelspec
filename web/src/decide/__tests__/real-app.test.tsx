@@ -374,6 +374,51 @@ it("requests the estate once after the board decision settles", async () => {
   expect(estateRequests[0].optimize.weights).toEqual({ "-offering.cost_per_task": 1 });
 });
 
+it("reissues an estate request aborted by a newer main decision", async () => {
+  let estateRequests = 0;
+  const zeroQualify = {
+    ...fixture,
+    results: [],
+    may_qualify: fixture.results.slice(0, 3).map(({ offering }) => ({
+      model: offering.model,
+      offering,
+      unknown: ["model.weights_openness"],
+    })),
+    top: [],
+  };
+  const fetch = routeFetch({
+    decide: (init) => {
+      const body = JSON.parse(String(init?.body));
+      const isEstate = body.where.some((condition: string) =>
+        condition.startsWith("offering.provider in"),
+      );
+      if (!isEstate) return json(decisionFor(init));
+      estateRequests += 1;
+      if (estateRequests >= 2) return json(zeroQualify);
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener(
+          "abort",
+          () => reject(new DOMException("Aborted", "AbortError")),
+          { once: true },
+        );
+      });
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByRole("region", { name: "Trade-off canvas" });
+
+  fireEvent.change(screen.getByLabelText("Add provider"), {
+    target: { value: Object.keys(smallVocabulary.providers)[0] },
+  });
+  await waitFor(() => expect(estateRequests).toBe(1));
+  fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
+
+  expect(await screen.findByText("0 models qualify · 3 may qualify")).toBeInTheDocument();
+  expect(estateRequests).toBe(2);
+  expect(screen.queryByText("Checking…")).not.toBeInTheDocument();
+});
+
 it("shows a retry when the estate request fails", async () => {
   const fetch = routeFetch({
     decide: (init) => {

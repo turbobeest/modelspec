@@ -7,9 +7,12 @@ type EvaluatedQuestion = Question;
 
 /** The spec that counts what one answer to a next question would leave. */
 export function probeSpec(spec: DecisionSpec, option: Question["opts"][number]): DecisionSpec {
+  const condition = contractCondition(option.c);
   return {
     ...spec,
-    where: [...(spec.where ?? []), contractCondition(option.c)],
+    where: (spec.where ?? []).includes(condition)
+      ? spec.where
+      : [...(spec.where ?? []), condition],
     explain: "none",
     limit: 500,
   };

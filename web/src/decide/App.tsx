@@ -130,6 +130,7 @@ export function DesignedApp({
   const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary()));
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
     [hostedQuestions, setHostedQuestions] = useState<Question[]>([]),
+    [settledSpecHash, setSettledSpecHash] = useState<string | null>(null),
     [requestState, setRequestState] = useState<
       | { kind: "idle" }
       | { kind: "loading" }
@@ -247,6 +248,8 @@ export function DesignedApp({
     requestAbort.current = controller;
     setHostedDecision(null);
     setHostedQuestions([]);
+    lastEstateRequest.current = null;
+    setSettledSpecHash(null);
     setRequestState({ kind: "loading" });
     const fail = (cause: unknown) =>
       setRequestState({
@@ -297,6 +300,7 @@ export function DesignedApp({
       nextSpec = answer.result.nextSpec;
       if (used && reloaded) setVocabState({ kind: "ready", vocabulary: used });
       setHostedDecision(answer.result.decision);
+      setSettledSpecHash(specHash(requested));
       setHostedQuestions(
         used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec),
       );
@@ -437,7 +441,12 @@ export function DesignedApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vocabulary, board]);
   useEffect(() => {
-    if (!board || !vocabulary || estate.providers.length === 0 || !answered) {
+    if (
+      !board ||
+      !vocabulary ||
+      estate.providers.length === 0 ||
+      settledSpecHash !== specHash(spec)
+    ) {
       setEstateState({ kind: "idle" });
       if (estate.providers.length === 0) lastEstateRequest.current = null;
       return;
@@ -474,7 +483,7 @@ export function DesignedApp({
     return () => { active = false; clearTimeout(timer); clearTimeout(watchdog); controller.abort(); };
     // The key, not the summary/full response object, owns this request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [board, vocabulary, answered, estateRequestKey, estateRetry]);
+  }, [board, vocabulary, settledSpecHash, estateRequestKey, estateRetry]);
   useEffect(() => {
     if (!pendingFind || !vocabulary) return;
     setPendingFind(false);
