@@ -4,7 +4,7 @@
   "questions": [
     {
       "decision": {
-        "decision_id": "dec_56e13586b8ae44b8e00bacb2",
+        "decision_id": "dec_b2a6c66cfe9c0249c5098d8f",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -213,7 +213,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_858941046a5e726defce3762",
+        "decision_id": "dec_c17cb4106ba0562d7587ba49",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -422,7 +422,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_ff47312c45141718d619acbc",
+        "decision_id": "dec_959aab838a676e1b3fcdec6a",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -667,7 +667,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_c12cb33e27adb12d1b8acfe9",
+        "decision_id": "dec_64f2779ab9e5cfa53f91fb19",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -888,7 +888,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_c12cb33e27adb12d1b8acfe9",
+        "decision_id": "dec_64f2779ab9e5cfa53f91fb19",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1109,7 +1109,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_c8e5728594dccca9a782cfb8",
+        "decision_id": "dec_6c5b92976c7f210241e31097",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1267,7 +1267,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_e2d8cb4da6a210d12b22f23c",
+        "decision_id": "dec_11d68b4ea5faaa565554e7b4",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1509,7 +1509,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_90bdde84932b761b8a501876",
+        "decision_id": "dec_b8ebf0a0d4645a3b97183af9",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1659,7 +1659,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_a78ca59abd3c6c4fe0df895d",
+        "decision_id": "dec_76cf972851de4dfbca06988d",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -1808,7 +1808,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_f9568e19aff09d59d065ee98",
+        "decision_id": "dec_932d75528173d1ffc3fb4efe",
         "may_qualify": [
           {
             "model": "meta/muse-spark",
@@ -1865,7 +1865,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_5a21008fc2e693f1518f88ba",
+        "decision_id": "dec_2c192dd563e7fd839b1c78d6",
         "may_qualify": [
           {
             "model": "google/gemini-2-5-flash",
@@ -1934,7 +1934,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_f98e0be2fb7bd660c4190414",
+        "decision_id": "dec_ce92ebb54377dccfeb524b78",
         "may_qualify": [
           {
             "model": "deepseek/deepseek-v3-1",
@@ -2141,7 +2141,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_1dbbc2f285cfcd502899bc8e",
+        "decision_id": "dec_2b5bea38c81101af750321af",
         "may_qualify": [
           {
             "model": "deepseek/deepseek-v3-1",
@@ -2299,7 +2299,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_2fb7a66b7674b254a7f00d79",
+        "decision_id": "dec_22497911879275e9ebf35185",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -2573,7 +2573,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_c34faad451449d31e3dbe225",
+        "decision_id": "dec_799437b7fc21878f2dab7adf",
         "may_qualify": [
           {
             "model": "bytedance/seed1-5-embedding",
@@ -2672,7 +2672,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_57fea6bc8e1b11a3957352e6",
+        "decision_id": "dec_0eee844f49f3f4c3aec282e6",
         "may_qualify": [
           {
             "model": "bytedance/seed1-5-embedding",
@@ -2750,7 +2750,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_737a27578861165310818719",
+        "decision_id": "dec_987da841195ba04977cb616e",
         "may_qualify": [
           {
             "model": "deepseek/deepseek-v3-1",
@@ -2964,7 +2964,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_8416aad54347341db75bfdba",
+        "decision_id": "dec_2dc7936f09280a78a4cfb1d8",
         "may_qualify": [
           {
             "model": "deepseek/deepseek-v3-1",
@@ -3171,7 +3171,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_e41f4319a06c428be005449c",
+        "decision_id": "dec_74a8ae1713ca21dc4980a33d",
         "may_qualify": [
           {
             "model": "qwen/qwen3-8-max-0902",
@@ -3380,7 +3380,7 @@
     },
     {
       "decision": {
-        "decision_id": "dec_a9845b97681ad3a3fdb5fcc4",
+        "decision_id": "dec_b7a88fd71072a5a0538e473f",
         "may_qualify": [],
         "may_qualify_count": 0,
         "out_of_lineup": 1323,
@@ -3406,7 +3406,7 @@
     }
   ],
   "report_date": "2026-09-26",
-  "snapshot": "snap_d86b3f1d7518c0cd",
+  "snapshot": "snap_9c7ab112b9c2ae72",
   "snapshot_as_of": "2026-09-26",
   "snapshot_excluded": {
     "quarantined": 97
