@@ -289,6 +289,110 @@ def test_price_claim_cites_each_contributing_fact_with_its_date(tmp_path: Path) 
     assert "https://prices.example.org/output (read 2026-09-22)" in claim["citation"]
 
 
+def test_value_angle_uses_one_offerings_evidence_and_cost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(generator, "_png", lambda svg, png: False)
+    current = tmp_path / "current.json.gz"
+    offerings = [
+        offering("lab/alpha", provider="p1"),
+        offering("lab/alpha", provider="p2"),
+        offering("lab/beta", provider="p1"),
+    ]
+    prices = {
+        "p1/lab/alpha/global/standard": (0.125, 0.25),
+        "p2/lab/alpha/global/standard": (0.1, 0.2),
+        "p1/lab/beta/global/standard": (0.125, 0.25),
+    }
+    for row in offerings:
+        offering_id = f"{row['provider']}/{row['model']}/global/standard"
+        input_price, output_price = prices[offering_id]
+        row["facts"] = [
+            fact(
+                "offering",
+                offering_id,
+                "offering.price.input",
+                input_price,
+                source="src-pricing",
+            ),
+            fact(
+                "offering",
+                offering_id,
+                "offering.price.output",
+                output_price,
+                source="src-pricing",
+            ),
+        ]
+    evidence_rows = []
+    for offering_id, score in (
+        ("p1/lab/alpha/global/standard", 60.0),
+        ("p2/lab/alpha/global/standard", 55.0),
+        ("p1/lab/beta/global/standard", 50.0),
+    ):
+        row = evidence(
+            offering_id,
+            "swe_bench_pro",
+            score,
+            subject_kind="offering",
+        )
+        row["model_id_as_evaluated"] = row["subject"]["id"].split("/global/", 1)[0].split("/", 1)[1]
+        evidence_rows.append(row)
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[_model("lab/alpha"), _model("lab/beta")],
+            offerings=offerings,
+            evidence=evidence_rows,
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        gate=False,
+        as_of=AS_OF,
+    )
+    built.write(current, key=KEY)
+    report = tmp_path / "accuracy.json"
+    _accuracy(report, built.snapshot_id)
+
+    manifest = generate(
+        model_id="lab/alpha",
+        snapshot_path=current,
+        accuracy_report_path=report,
+        output_dir=tmp_path / "out",
+        snapshot_key=KEY,
+    )
+
+    value = next(draft for draft in manifest["drafts"] if draft["angle"] == "value")
+    evidence_claim = next(claim for claim in value["claims"] if "evidence:" in claim["text"])
+    price_claim = next(claim for claim in value["claims"] if "list price:" in claim["text"])
+    assert evidence_claim["text"] == "Verified swe_bench_pro evidence: 55 percent."
+    assert price_claim["text"] == "Default task cost at list price: $0.0048."
+
+
+def test_neutrality_disclosures_are_sourced_and_dated_for_every_model() -> None:
+    ordinary = generator._disclosure("lab/alpha")
+    supplier = generator._disclosure("typesafe/jev")
+
+    for disclosure in (ordinary, supplier):
+        assert "https://modelspec.dev/legal/neutrality/" in disclosure
+        assert "read 2026-09-23" in disclosure
+
+
+def test_x_fallback_keeps_compact_supplier_and_neutrality_disclosures() -> None:
+    draft = {"title": "Value angle"}
+    text = generator._post_text(
+        draft,
+        generator._disclosure("typesafe/jev"),
+        "x",
+        model_id="typesafe/jev",
+    )
+
+    assert len(text.rstrip("\n")) <= 280
+    assert "TypeSafe" in text
+    assert "ModelSpec pays" in text
+    assert "No referral fees" in text
+    assert "https://modelspec.dev/legal/neutrality/" in text
+    assert "read 2026-09-23" in text
+
+
 def test_local_fit_and_rank_are_separately_sourced(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

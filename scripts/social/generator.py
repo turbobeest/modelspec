@@ -19,7 +19,7 @@ from typing import Any
 
 from api.ranking.engine import neutrality_commitment
 from decision.computed import COST_PER_TASK, with_computed
-from decision.contract import DEFAULT_TASK_TOKENS, Compare, Objective, Spec
+from decision.contract import DEFAULT_TASK_TOKENS, Compare, Objective, Result, Spec
 from decision.engine import decide
 from decision.registry import Domain
 from decision.registry import default as default_registry
@@ -30,6 +30,8 @@ from schema.suppliers import supplier_for
 ROOT = Path(__file__).resolve().parents[2]
 BRAND_MARK = ROOT / "brand" / "2a" / "modelspec-mark-transparent.svg"
 SNAPSHOT_URL = "https://modelspec.dev/api/decision/snapshot.json.gz"
+NEUTRALITY_URL = "https://modelspec.dev/legal/neutrality/"
+NEUTRALITY_READ_DATE = "2026-09-23"
 
 PLATFORM_SIZES: dict[str, tuple[int, int]] = {
     "x": (1200, 675),
@@ -200,8 +202,22 @@ def _snapshot_claim(snapshot: LoadedSnapshot, text: str, number: str) -> dict[st
     return _claim(text, number, SNAPSHOT_URL, snapshot.as_of.isoformat())
 
 
-def _evidence_item(standing: Standing, model_id: str) -> Any:
-    result = standing.results[model_id]
+def _result_candidate_id(result: Result) -> str:
+    offering = result.offering
+    if offering.provider is None:
+        return offering.model
+    if offering.region is None or offering.tier is None:
+        raise ValueError(f"{offering.model}: offering result has incomplete identity")
+    return f"{offering.provider}/{offering.model}/{offering.region}/{offering.tier}"
+
+
+def _evidence_item(standing: Standing, candidate_id: str) -> Any:
+    result = next(
+        (row for row in standing.decision.results if _result_candidate_id(row) == candidate_id),
+        None,
+    )
+    if result is None:
+        result = standing.results[standing.snapshot.model_of(candidate_id)]
     items = [
         item
         for group in result.evidence
@@ -209,13 +225,13 @@ def _evidence_item(standing: Standing, model_id: str) -> Any:
         if item.benchmark == standing.benchmark
     ]
     if not items:
-        raise ValueError(f"{model_id}: decision returned no {standing.benchmark} evidence")
+        raise ValueError(f"{candidate_id}: decision returned no {standing.benchmark} evidence")
     order = max if standing.higher_is_better else min
     return order(items, key=lambda item: item.value)
 
 
-def _evidence_claim(standing: Standing, model_id: str) -> dict[str, str]:
-    item = _evidence_item(standing, model_id)
+def _evidence_claim(standing: Standing, candidate_id: str) -> dict[str, str]:
+    item = _evidence_item(standing, candidate_id)
     value = f"{item.value:g}"
     unit = (item.unit or "points").replace("_", " ")
     verified = next(
@@ -227,7 +243,7 @@ def _evidence_claim(standing: Standing, model_id: str) -> dict[str, str]:
         None,
     )
     if verified is None:
-        raise ValueError(f"{model_id}: {item.benchmark} source has no verification date")
+        raise ValueError(f"{candidate_id}: {item.benchmark} source has no verification date")
     return _claim(
         f"Verified {item.benchmark} evidence: {value} {unit}.",
         value,
@@ -342,7 +358,7 @@ def _value_angle(
             f"within the {_display_class(model_class)} class.",
             "1",
         ),
-        _evidence_claim(standing, model_id),
+        _evidence_claim(standing, winner),
         _price_claim(snapshot, winner, computed.value),
     ]
     return {"angle": "value", "title": "Value angle", "claims": claims}
@@ -450,18 +466,21 @@ def _weekly_movers(
     return {"angle": "weekly_movers", "title": "Weekly movers", "claims": [claim]}
 
 
-def _disclosure(model_id: str) -> str:
+def _disclosure(model_id: str, *, compact: bool = False) -> str:
     pledge = neutrality_commitment()["pledge"]
     supplier = supplier_for(model_id.split("/", 1)[0])
+    source = f"Source: {NEUTRALITY_URL} (read {NEUTRALITY_READ_DATE})"
     if supplier is None:
-        return f"Disclosure: {pledge}"
-    return (
-        f"Disclosure: {supplier.relationship} {supplier.rule} {pledge} "
-        "Source: https://modelspec.dev/legal/neutrality/ (read 2026-09-23)"
-    )
+        return f"Disclosure: {pledge} {source}"
+    if compact:
+        return (
+            f"Disclosure: ModelSpec pays {supplier.display} for catalogue services. "
+            f"{pledge} {source}"
+        )
+    return f"Disclosure: {supplier.relationship} {supplier.rule} {pledge} {source}"
 
 
-def _post_text(draft: Mapping[str, Any], disclosure: str, platform: str) -> str:
+def _post_text(draft: Mapping[str, Any], disclosure: str, platform: str, *, model_id: str) -> str:
     if platform == "x":
         text = (
             f"ModelSpec {draft['title'].lower()}. The attached card has every figure's "
@@ -470,7 +489,7 @@ def _post_text(draft: Mapping[str, Any], disclosure: str, platform: str) -> str:
         if len(text) > 280:
             text = (
                 f"ModelSpec {draft['title'].lower()}. Sourced, dated figures are on the card.\n\n"
-                f"{neutrality_commitment()['pledge']}"
+                f"{_disclosure(model_id, compact=True)}"
             )
         if len(text) > 280:
             raise ValueError("X draft exceeds 280 characters")
@@ -565,7 +584,7 @@ def _png(svg: Path, png: Path) -> bool:
     return True
 
 
-def _write_draft(root: Path, draft: dict[str, Any], disclosure: str) -> None:
+def _write_draft(root: Path, draft: dict[str, Any], disclosure: str, model_id: str) -> None:
     platforms: dict[str, dict[str, str | None]] = {}
     for platform, (width, height) in PLATFORM_SIZES.items():
         directory = root / draft["angle"]
@@ -573,7 +592,9 @@ def _write_draft(root: Path, draft: dict[str, Any], disclosure: str) -> None:
         text_path = directory / f"{platform}.txt"
         svg_path = directory / f"{platform}.svg"
         png_path = directory / f"{platform}.png"
-        text_path.write_text(_post_text(draft, disclosure, platform), encoding="utf-8")
+        text_path.write_text(
+            _post_text(draft, disclosure, platform, model_id=model_id), encoding="utf-8"
+        )
         svg_path.write_text(_svg(draft, disclosure, width, height), encoding="utf-8")
         has_png = _png(svg_path, png_path)
         platforms[platform] = {
@@ -632,7 +653,7 @@ def generate(
     disclosure = _disclosure(model_id)
     for draft in kept:
         _validate_draft(draft)
-        _write_draft(root, draft, disclosure)
+        _write_draft(root, draft, disclosure, model_id)
     manifest = {
         "schema_version": 1,
         "model": model_id,
