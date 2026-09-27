@@ -9,7 +9,8 @@ rule:
 - At least three major providers recorded on the card.
 - A reviewer added it. Slice 1 adds the TypeSafe Jev card.
 - Among the cheapest verified candidates in its class with admitted benchmark evidence.
-- A published quantised artifact is no larger than 24 GB.
+- Verified parameter count, quantised artifact size, and runtime/peak memory at the stated quantisation
+  and context all fit the 24 GB consumer-hardware limit.
 quota:
   frontier-generation: 12
   open-weights-generation: 6
@@ -687,7 +688,7 @@ models:
     parameter_url: https://huggingface.co/api/models/google/gemma-4-26b-a4b-it
     artifact_url: https://huggingface.co/api/models/unsloth/gemma-4-26B-A4B-it-GGUF/tree/main?recursive=true&expand=false
     url: https://huggingface.co/JThomas-CoE/coe-gemma4-coding-hc-14b-a4b-q4_k_m/blob/main/README.md
-    read_date: '2026-09-26'
+    read_date: '2026-09-27'
     note: The published runtime-memory requirement at this quantisation and context is no larger than
       the 24 GB limit.
 - model_id: google/gemma-4-31b-it
@@ -719,7 +720,7 @@ models:
     parameter_url: https://huggingface.co/api/models/google/gemma-4-31B-it
     artifact_url: https://huggingface.co/api/models/unsloth/gemma-4-31B-it-GGUF/tree/main?recursive=true&expand=false
     url: https://canitrun.dev/models/gemma-4-31b/
-    read_date: '2026-09-26'
+    read_date: '2026-09-27'
     note: The published runtime-memory requirement at this quantisation and context is no larger than
       the 24 GB limit.
 - model_id: google/gemma-4-e2b-it
@@ -744,7 +745,7 @@ models:
     parameter_url: https://huggingface.co/api/models/google/gemma-4-E2B-it
     artifact_url: https://huggingface.co/api/models/unsloth/gemma-4-E2B-it-GGUF/tree/main?recursive=true&expand=false
     url: https://runmyllm.com/models/gemma-4-e2b/hardware
-    read_date: '2026-09-26'
+    read_date: '2026-09-27'
     note: The published runtime-memory requirement at this quantisation and context is no larger than
       the 24 GB limit.
 - model_id: google/gemma-4-e4b-it
@@ -762,14 +763,14 @@ models:
     parameter_count: 7996156490
     published_size_bytes: 4977171584
     published_size_gb: 4.977171584
-    runtime_memory_gb: 6.5
-    context_tokens: 4096
-    memory_method: published calculation including weights, KV cache, and runtime overhead
+    runtime_memory_gb: 5.2
+    context_tokens: 8192
+    memory_method: published calculation including weights, 8K KV cache, and runtime overhead
     max_memory_gb: 24
     parameter_url: https://huggingface.co/api/models/google/gemma-4-E4B-it
     artifact_url: https://huggingface.co/api/models/unsloth/gemma-4-E4B-it-GGUF/tree/main?recursive=true&expand=false
-    url: https://localmodel.run/model/gemma-4-e4b
-    read_date: '2026-09-26'
+    url: https://runmyllm.com/models/gemma-4-e4b/hardware
+    read_date: '2026-09-27'
     note: The published runtime-memory requirement at this quantisation and context is no larger than
       the 24 GB limit.
 - model_id: microsoft/phi-4
@@ -794,7 +795,7 @@ models:
     parameter_url: https://huggingface.co/api/models/microsoft/phi-4
     artifact_url: https://huggingface.co/api/models/bartowski/phi-4-GGUF/tree/main?recursive=true&expand=false
     url: https://localllmchecker.com/models/phi-4/
-    read_date: '2026-09-26'
+    read_date: '2026-09-27'
     note: The published runtime-memory requirement at this quantisation and context is no larger than
       the 24 GB limit.
 - model_id: moonshot/kimi-k2-6

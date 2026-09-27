@@ -1065,7 +1065,8 @@ def build() -> dict:
             "At least three major providers recorded on the card.",
             "A reviewer added it. Slice 1 adds the TypeSafe Jev card.",
             "Among the cheapest verified candidates in its class with admitted benchmark evidence.",
-            "A published quantised artifact is no larger than 24 GB.",
+            "Verified parameter count, quantised artifact size, and runtime/peak memory "
+            "at the stated quantisation and context all fit the 24 GB consumer-hardware limit.",
         ],
         "quota": QUOTA,
         "models": models,

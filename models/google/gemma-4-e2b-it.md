@@ -829,7 +829,7 @@ facts:
   state: known
   sources:
   - source_id: model-163-local-google-gemma-4-e2b-it-memory
-    snapshot_ref: sha256:fc87b3489632b9bf180153d49954ccb69242f4ef398674a8d4f85a3d054ed54e
+    snapshot_ref: sha256:e72d40f9c64792d2c75a057b6e944b8740c9aa8101cb2f8a2b85699bf773173b
     cited_regions:
     - row
   checked_sources: []

@@ -3464,7 +3464,7 @@ sources:
   normaliser: text-default
   cited_regions: [{id: row, locator: {kind: page, value: ''}}]
 - id: model-163-local-google-gemma-4-e4b-it-memory
-  url: https://localmodel.run/model/gemma-4-e4b
+  url: https://runmyllm.com/models/gemma-4-e4b/hardware
   fetch: http
   normaliser: html-default
   cited_regions: [{id: row, locator: {kind: page, value: ''}}]

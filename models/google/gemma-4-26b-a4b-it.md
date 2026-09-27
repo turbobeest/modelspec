@@ -866,7 +866,7 @@ facts:
   state: known
   sources:
   - source_id: model-163-local-google-gemma-4-26b-a4b-it-memory
-    snapshot_ref: sha256:c011d4947b4dbf83fbf3f01c41fd0c1c6a47a8aa31ad5f131c6a467ecbbda54a
+    snapshot_ref: sha256:6e208ea9ec77f53a8a5eba6cb22f1fcf578fd299f7ba9d2a99b4d6a5b5873184
     cited_regions:
     - row
   checked_sources: []

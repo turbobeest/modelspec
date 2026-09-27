@@ -9,6 +9,7 @@ import pytest
 import yaml
 
 from decision.model import value_hash
+from scripts.model_163_local import SourceRowMismatchError, parse_memory_configuration
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_MODELS = {
@@ -51,7 +52,73 @@ def test_local_rule_uses_sourced_parameter_artifact_and_runtime_memory(slice_2) 
         assert row["size_source_url"].startswith("https://huggingface.co/api/models/")
         assert row["memory_source_url"].startswith("https://")
         assert row["memory_method"]
-        assert row["read_date"] == "2026-09-26"
+        assert row["read_date"] == "2026-09-27"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        """
+        <html><head><title>Other Model hardware requirements</title></head><body>
+          <h1>Other Model</h1><p>Gemma 4 E2B is also available.</p>
+          <table><thead><tr><th>Quant</th><th>Total @ 8K</th></tr></thead>
+            <tbody><tr><td>Q4_K_M</td><td>3.5 GB</td></tr></tbody>
+          </table>
+        </body></html>
+        """,
+        """
+        <html><head><title>Gemma 4 E2B hardware requirements</title></head><body>
+          <h1>Gemma 4 E2B</h1>
+          <table><thead><tr><th>Quant</th><th>Total @ 8K</th></tr></thead>
+            <tbody>
+              <tr><td>Q4_K_M</td><td>4.1 GB</td></tr>
+              <tr><td>Q8_0</td><td>3.5 GB</td></tr>
+            </tbody>
+          </table>
+        </body></html>
+        """,
+    ],
+    ids=("cross-model", "cross-row"),
+)
+def test_memory_reader_rejects_cross_model_and_cross_row_matches(source: str) -> None:
+    with pytest.raises(SourceRowMismatchError):
+        parse_memory_configuration(
+            source,
+            model_names=("Gemma 4 E2B",),
+            quantisation="Q4_K_M",
+            context_tokens=8192,
+            runtime_memory_gb=3.5,
+        )
+
+
+def test_memory_reader_retains_the_exact_model_configuration_row() -> None:
+    source = """
+    <html><head><title>Gemma 4 E2B hardware requirements</title></head><body>
+      <h1>Gemma 4 E2B</h1><p>Figures are calculated at 8K context.</p>
+      <table><thead><tr><th>Quant</th><th>Weights</th><th>Total VRAM</th></tr></thead>
+        <tbody><tr><td>Q4_K_M</td><td>2.9 GB</td><td>3.5 GB</td></tr></tbody>
+      </table>
+    </body></html>
+    """
+
+    parsed = parse_memory_configuration(
+        source,
+        model_names=("Gemma 4 E2B",),
+        quantisation="Q4_K_M",
+        context_tokens=8192,
+        runtime_memory_gb=3.5,
+    )
+
+    assert parsed["model"] == "Gemma 4 E2B hardware requirements"
+    assert parsed["cited_region"] == {
+        "context": [
+            "Gemma 4 E2B hardware requirements",
+            "Gemma 4 E2B",
+            "Figures are calculated at 8K context.",
+        ],
+        "headers": ["Quant", "Weights", "Total VRAM"],
+        "row": ["Q4_K_M", "2.9 GB", "3.5 GB"],
+    }
 
 
 def test_local_rule_inputs_have_counting_two_key_verifications(

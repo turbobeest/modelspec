@@ -53,6 +53,10 @@ def test_every_entry_has_a_card_and_evidence() -> None:
 
 def test_slice_2_adds_budget_local_and_embedding_coverage_by_rule() -> None:
     document = yaml.safe_load(YAML_PATH.read_text())
+    assert document["rule"][5] == (
+        "Verified parameter count, quantised artifact size, and runtime/peak memory "
+        "at the stated quantisation and context all fit the 24 GB consumer-hardware limit."
+    )
     ids = {row["model_id"] for row in document["models"]}
 
     # Recall names must enter through a general clause, never a reviewer list.

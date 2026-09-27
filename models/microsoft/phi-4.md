@@ -1155,7 +1155,7 @@ facts:
   state: known
   sources:
   - source_id: model-163-local-microsoft-phi-4-memory
-    snapshot_ref: sha256:d11bd682b60e7b7454761c4a9ba9b7cd75051917f42c12488fee9d33a7bbe0b8
+    snapshot_ref: sha256:9728c0372325064b05e65f6b2ad680a9918671fdde986a865ecd85b4b25bdfea
     cited_regions:
     - row
   checked_sources: []
