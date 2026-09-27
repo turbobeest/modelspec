@@ -130,6 +130,28 @@ Top to bottom, beside or below the board:
 4. **Why** panel (exists): contributions, evidence and provenance, condition
    checks, what each condition costs, near misses, why not X, offerings.
 
+## What the person leaves with (decided: all four)
+
+The Share dialog already has a tab for each of these. The design pass makes
+each one complete:
+
+1. **Shareable decision URL.** Works today. It must reopen the same board
+   against the same snapshot, and say so when a newer snapshot exists.
+2. **Procurement-ready summary.** Today it is a table of the conditions each
+   model passed, with a CSV download. It should become one page: the chosen
+   model *and offering*, the gates it passed, the tied alternatives and why
+   they tie, cost per task with the sum shown, and evidence sources with
+   dates. It is for someone justifying the pick to a manager or a security
+   review.
+3. **Ready-to-run config.** Two things: what an engineer wires in (model ID,
+   provider, endpoint), and the exact spec that reproduces the decision
+   through the CLI or API. That spec is the bridge to the agent path. The
+   board's state *is* a decision spec, so the page exports the same file an
+   agent would write.
+4. **A watch on the answer.** Today alerts are saved in the browser and
+   nothing watches them. Design the watch and the "what your answer became"
+   view now; it runs once accounts exist.
+
 ## Saving (phase 1: URLs, not accounts)
 
 A decision is already a URL. Phase 1 saves a board as a URL, plus a list of
@@ -172,7 +194,10 @@ These are tickets, not design. The design should assume they land.
 5. **Data gaps that the board will expose:** speed (0/38), private deployment
    and fits-hardware (0/32). The self-host need cannot be answered well until
    these are researched.
-6. **Stale copy:** "A small classifier turns this into conditions" (it is a
+6. **The CLI tab advertises a command that fails.** It shows
+   `modelspec decide spec.yaml`, but `decide` needs a decision snapshot file
+   and no CLI command downloads one. Phase 2 of this session maps the CLI.
+7. **Stale copy:** "A small classifier turns this into conditions" (it is a
    keyword table) and "SWE-bench Pro is preselected for Measured by" (the
    estimate is preselected since MODEL-167). Both go with the text box.
 
