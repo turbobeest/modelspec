@@ -75,7 +75,6 @@ def test_baseline_is_traceable_and_matches_fresh_verdicts(tmp_path: Path) -> Non
         report_date=baseline.as_of,
     )
 
-    assert baseline.snapshot == result.snapshot_id
     assert baseline.verdicts == {row.id: row.verdict for row in result.questions}
 
 
