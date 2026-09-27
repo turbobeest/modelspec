@@ -66,6 +66,12 @@ import type { BoardSelections, Estate } from "./facet-board/model";
  */
 export const DECISION_WATCHDOG_MS = 20_000;
 
+type EstateRequestState =
+  | { kind: "idle"; settledSpecHash: string | null; generation: number }
+  | { kind: "loading"; settledSpecHash: string; requestKey: string; generation: number }
+  | { kind: "done"; settledSpecHash: string; requestKey: string; generation: number; decision: Decision }
+  | { kind: "error"; settledSpecHash: string; requestKey: string; generation: number };
+
 export function DesignedApp({
   demo,
   board = false,
@@ -112,19 +118,17 @@ export function DesignedApp({
     // "Find models" pressed before the vocabulary arrived: answered when it does.
     [pendingFind, setPendingFind] = useState(false);
   const [estate, setEstate] = useState<Estate>(() => initialBoard?.estate ?? readEstate()),
-    [estateState, setEstateState] = useState<
-      | { kind: "idle" | "loading" }
-      | { kind: "success"; decision: Decision }
-      | { kind: "error" }
-    >({ kind: "idle" }),
-    [estateRetry, setEstateRetry] = useState(0);
+    [estateRequest, setEstateRequest] = useState<EstateRequestState>({
+      kind: "idle",
+      settledSpecHash: null,
+      generation: 0,
+    });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
     questionsAbort = useRef<AbortController | null>(null),
     provTrigger = useRef<HTMLElement | null>(null),
-    initialAnswered = useRef(false),
-    lastEstateRequest = useRef<string | null>(null);
+    initialAnswered = useRef(false);
   // A site deploy can change the snapshot under an open page (MODEL-159). The
   // Worker says so with a 409; every request that hears it shares one reload.
   const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary()));
@@ -212,9 +216,9 @@ export function DesignedApp({
   }, [hostedDecision, shownSpec, shownAxis, dismissed, hostedQuestions, vocabulary, vocab]);
   const liveDecision = mapped.decision;
   const estateDecision = useMemo(() => {
-    if (estateState.kind !== "success" || !vocabulary) return null;
+    if (estateRequest.kind !== "done" || !vocabulary) return null;
     try {
-      return mapDecisionToViewModel(estateState.decision, shownSpec, {
+      return mapDecisionToViewModel(estateRequest.decision, shownSpec, {
         axis: shownAxis,
         dismissed,
         benchmarks: vocab.benchmarks,
@@ -224,7 +228,7 @@ export function DesignedApp({
     } catch {
       return null;
     }
-  }, [estateState, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
+  }, [estateRequest, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
   const decision = demo ? sampleDecision : liveDecision,
     e = decision?.explanation,
     selectedId = selected || e?.shortlist.top?.m.id || e?.may[0]?.m.id || null,
@@ -247,6 +251,12 @@ export function DesignedApp({
     requestAbort.current = controller;
     setHostedDecision(null);
     setHostedQuestions([]);
+    if (board)
+      setEstateRequest((current) => ({
+        kind: "idle",
+        settledSpecHash: null,
+        generation: current.generation,
+      }));
     setRequestState({ kind: "loading" });
     const fail = (cause: unknown) =>
       setRequestState({
@@ -297,6 +307,12 @@ export function DesignedApp({
       nextSpec = answer.result.nextSpec;
       if (used && reloaded) setVocabState({ kind: "ready", vocabulary: used });
       setHostedDecision(answer.result.decision);
+      if (board)
+        setEstateRequest((current) => ({
+          kind: "idle",
+          settledSpecHash: specHash(requested),
+          generation: current.generation,
+        }));
       setHostedQuestions(
         used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec),
       );
@@ -364,6 +380,7 @@ export function DesignedApp({
       spec: board ? toBoardDecisionSpec(sendable(spec), "none") : toDecisionSpec(sendable(spec), "none"),
       questions: candidates,
       signal: controller.signal,
+      deduplicateConditions: board,
       onUpdate: (next) =>
         setHostedQuestions(
           next.map((question) => ({
@@ -437,22 +454,43 @@ export function DesignedApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vocabulary, board]);
   useEffect(() => {
-    if (!board || !vocabulary || estate.providers.length === 0 || !answered) {
-      setEstateState({ kind: "idle" });
-      if (estate.providers.length === 0) lastEstateRequest.current = null;
+    if (!board) return;
+    if (
+      !vocabulary ||
+      estate.providers.length === 0 ||
+      estateRequest.settledSpecHash !== specHash(spec)
+    ) {
+      setEstateRequest((current) => ({
+        kind: "idle",
+        settledSpecHash: current.settledSpecHash,
+        generation: current.generation,
+      }));
       return;
     }
-    const requestKey = `${estateRequestKey}:${estateRetry}`;
-    if (lastEstateRequest.current === requestKey) return;
+    const settledSpecHash = estateRequest.settledSpecHash;
+    const requestKey = estateRequestKey;
+    if (
+      (estateRequest.kind === "done" || estateRequest.kind === "error") &&
+      estateRequest.requestKey === requestKey
+    ) return;
     const controller = new AbortController();
     let active = true;
+    setEstateRequest({
+      kind: "loading",
+      settledSpecHash,
+      requestKey,
+      generation: estateRequest.generation,
+    });
     const watchdog = setTimeout(() => {
       controller.abort();
-      if (active) setEstateState({ kind: "error" });
+      if (active) setEstateRequest({
+        kind: "error",
+        settledSpecHash,
+        requestKey,
+        generation: estateRequest.generation,
+      });
     }, DECISION_WATCHDOG_MS);
     const timer = setTimeout(() => {
-      lastEstateRequest.current = requestKey;
-      setEstateState({ kind: "loading" });
       void retryOnSnapshotChange(
         vocabulary,
         (current) => {
@@ -466,15 +504,48 @@ export function DesignedApp({
         },
         reloadVocabulary,
       ).then((answer) => {
-        if (!controller.signal.aborted) setEstateState({ kind: "success", decision: answer.result });
+        if (!controller.signal.aborted) {
+          active = false;
+          setEstateRequest({
+            kind: "done",
+            settledSpecHash,
+            requestKey,
+            generation: estateRequest.generation,
+            decision: answer.result,
+          });
+        }
       }).catch(() => {
-        if (active) setEstateState({ kind: "error" });
+        if (active) {
+          active = false;
+          setEstateRequest({
+            kind: "error",
+            settledSpecHash,
+            requestKey,
+            generation: estateRequest.generation,
+          });
+        }
       }).finally(() => clearTimeout(watchdog));
     }, 300);
-    return () => { active = false; clearTimeout(timer); clearTimeout(watchdog); controller.abort(); };
+    return () => {
+      const aborted = active;
+      active = false;
+      clearTimeout(timer);
+      clearTimeout(watchdog);
+      controller.abort();
+      if (aborted)
+        setEstateRequest((current) =>
+          current.kind === "loading" && current.requestKey === requestKey
+            ? {
+                kind: "idle",
+                settledSpecHash: current.settledSpecHash,
+                generation: current.generation,
+              }
+            : current,
+        );
+    };
     // The key, not the summary/full response object, owns this request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [board, vocabulary, answered, estateRequestKey, estateRetry]);
+  }, [board, vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
   useEffect(() => {
     if (!pendingFind || !vocabulary) return;
     setPendingFind(false);
@@ -840,7 +911,7 @@ export function DesignedApp({
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
                 <small className="board-tied-note">Tied-group answer: coming (MODEL-170)</small>
-                {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateState.kind === "error" || estateState.kind === "success" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRetry((value) => value + 1)}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+                {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 }))}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
               </section>
               {estate.providers.length > 0 && estateDecision
                 ? <div className="answer-lists">

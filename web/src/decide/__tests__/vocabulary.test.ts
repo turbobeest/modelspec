@@ -277,6 +277,34 @@ describe("the real task parser", () => {
   });
 });
 
+it("keeps production probe bytes unchanged for an equivalent generic facet", () => {
+  const condition = "model.weights_openness = open_weights";
+  const spec: Spec = {
+    ...realBaseSpec(v),
+    conds: [
+      {
+        f: "facet",
+        facet: "model.weights_openness",
+        op: "=",
+        value: "open_weights",
+      },
+    ],
+  };
+  const question = realQuestions(v, spec, []).find((candidate) => candidate.id === "open");
+  const option = question?.opts.find((candidate) => candidate.label === "Yes");
+  if (!option) throw new Error("production open-weights question was not offered");
+  const sent = toDecisionSpec(sendable(v, spec), "none");
+  const beforeBoardDeduplication = JSON.stringify({
+    ...sent,
+    where: [...(sent.where ?? []), condition],
+    explain: "none",
+    limit: 500,
+  });
+
+  expect(JSON.stringify(probeSpec(sent, option))).toBe(beforeBoardDeduplication);
+  expect(probeSpec(sent, option).where).toEqual([condition, condition]);
+});
+
 describe("what is offered", () => {
   it("offers nothing the snapshot has no verified data for", () => {
     const zero = new Set(v.facets.filter((f) => f.known === 0).map((f) => f.id));
