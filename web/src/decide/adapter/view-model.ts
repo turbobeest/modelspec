@@ -577,7 +577,9 @@ function unrankedRow(
     sources,
     names,
   );
-  const selected = evidence.find((item) => item.b === spec.bench) ?? null;
+  const selected = spec.boardWeights === undefined
+    ? evidence.find((item) => item.b === spec.bench) ?? null
+    : null;
   const tests = testsFor(spec, state, unknown, why);
   const failed = tests.flatMap((test, index) => (test.s === -1 ? [index] : []));
   const unresolved = tests.flatMap((test, index) => (test.s === 0 ? [index] : []));
@@ -811,7 +813,12 @@ export function mapDecisionToViewModel(
   });
   const rawRows: CandidateRow[] = [...rawFeasible, ...rawMay, ...rawExcluded];
   const claimed = new Set<string>();
-  const feasible = consolidateRows(rawFeasible, rawRows, claimed);
+  const boardRanksOfferings = spec.boardWeights !== undefined &&
+    Object.keys(spec.boardWeights).length > 0;
+  const feasible = boardRanksOfferings
+    ? rawFeasible.map((candidate) => candidate.row)
+    : consolidateRows(rawFeasible, rawRows, claimed);
+  feasible.forEach((row) => claimed.add(rowModel(row)));
   const may = consolidateRows(rawMay, rawRows, claimed);
   const excluded = consolidateRows(rawExcluded, rawRows, claimed);
   const rows = [...feasible, ...may, ...excluded];

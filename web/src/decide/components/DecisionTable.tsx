@@ -100,7 +100,7 @@ export function DecisionTable({
                 className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row" : ""}`}
                 onClick={() => onSelect(r.m.id)}
               >
-                <td>{r.rank || ""}</td>
+                <td>{spec.boardWeights !== undefined && r.status === 0 ? "" : r.rank ?? ""}</td>
                 <td>
                   <button
                     className="table-model"

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
+import liveSwePreferJson from "../__fixtures__/live-swe-prefer-full.json";
 import App, { DesignedApp } from "../App";
 import { decisionSchema } from "../adapter";
 import {
@@ -15,6 +16,7 @@ import { VOCABULARY_URL } from "../vocabulary";
 
 const fixture = decisionSchema.parse(fixtureJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
+const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 
 /** Keep the legacy full fixture consistent with the objective a UI test sends. */
 function decisionFor(init: RequestInit | undefined, decision = fixture) {
@@ -214,35 +216,45 @@ it("renders every model from the live empty-board decision alphabetically", asyn
   expect(within(answer).queryByText(/no capability data|no evidence for/i)).not.toBeInTheDocument();
 });
 
-it("keeps a capability-ranked model with no estimate and labels the missing evidence", async () => {
+it("keeps capability-unknown models outside the ranked board answer", async () => {
   const fetch = routeFetch({
-    decide: (init) => {
-      const decision = decisionFor(init);
-      const sent = JSON.parse(String(init?.body ?? "{}"));
-      if (!("software_engineering" in (sent.optimize?.weights ?? {}))) return json(decision);
-      return json({
-        ...decision,
-        results: decision.results.map((result, index) => index === 0 ? {
-          ...result,
-          estimates: [],
-          contributions: result.contributions.filter(
-            (contribution) => contribution.dimension !== "software_engineering",
-          ),
-        } : result),
-      });
-    },
+    vocabulary: () => json(realVocabulary),
+    decide: (init) => "software_engineering" in JSON.parse(String(init?.body ?? "{}"))
+      .optimize.weights
+      ? json(liveSwePrefer)
+      : json(liveEmptyBoard),
   });
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp demo={false} board />);
-  await screen.findByRole("region", { name: "Trade-off canvas" });
+  await screen.findByLabelText("Facet board answer");
 
   const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
   fireEvent.click(within(capability).getByLabelText("Prefer"));
 
-  expect(await screen.findByText("no evidence for Software engineering")).toBeInTheDocument();
-  const rankedAnswer = screen.getByText("no evidence for Software engineering")
-    .closest<HTMLElement>(".board-ranked-answer")!;
-  expect(within(rankedAnswer).getByText("Delta 4.7")).toBeInTheDocument();
+  const mayHeading = await screen.findByRole("heading", {
+    name: "May qualify — no Software engineering evidence (7)",
+  });
+  const rankedAnswer = mayHeading.closest<HTMLElement>(".board-ranked-answer")!;
+  fireEvent.click(within(rankedAnswer).getByRole("button", { name: "Show all 41" }));
+
+  const rankedNames = [...rankedAnswer.querySelectorAll(":scope > ol > li strong")]
+    .map((node) => node.textContent);
+  expect(rankedNames).toEqual(liveSwePrefer.results.map((result) =>
+    realVocabulary.models[result.offering.model]?.display_name ?? result.offering.model.split("/").at(-1)
+  ));
+  expect(rankedAnswer.querySelectorAll(":scope > ol .board-interval-track")).toHaveLength(41);
+
+  const mayGroup = mayHeading.closest<HTMLElement>(".board-may-qualify")!;
+  expect(within(mayGroup).getAllByRole("listitem")).toHaveLength(7);
+  expect(mayGroup.querySelector(".board-interval-track")).toBeNull();
+  expect(mayGroup.querySelector(".board-capability")).toBeNull();
+
+  const table = screen.getByRole("region", { name: "Decision table" });
+  for (const candidate of liveSwePrefer.may_qualify) {
+    const name = realVocabulary.models[candidate.model]?.display_name ?? candidate.model.split("/").at(-1)!;
+    const row = within(table).getByRole("button", { name }).closest("tr")!;
+    expect(row.cells[0]).toBeEmptyDOMElement();
+  }
 });
 
 it("requests the estate once after the board decision settles", async () => {
