@@ -81,6 +81,14 @@ them for `--changed-only --llm-reader mistral`.
   to the other value's precision agrees. When the values disagree and the units
   differ, the diff is `unit`. When the units match, the diff is `value`. A
   source that states no unit does not confirm one.
+- **Evidence metadata.** When evidence carries `interval`, `n`, or
+  `quality_flags`, the claim value is the canonical composite of `score`,
+  `interval`, `n`, and sorted `quality_flags`, and the verification target hash
+  covers that entire object. The verifier re-reads every cited region. It
+  confirms the score, both interval bounds, and `n` against the model's row,
+  and combines quality flags found on the model or benchmark across those
+  regions. A missing or different member is a mismatch. Evidence without this
+  metadata keeps the scalar score claim.
 - **Conditions.** Effort and harness must match. If the source states a
   condition that the claim omits, that is a mismatch: a max-effort score filed
   with no effort is not a default score. A date is checked when the claim

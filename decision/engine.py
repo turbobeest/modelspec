@@ -95,8 +95,9 @@ def validate(
     return resolve(spec, facets=facets, profiles=profiles)
 
 
-def _overlaps_raw_evidence(row, others) -> bool:
-    """Whether a selected measurement overlaps another candidate's interval."""
+def _overlaps_raw_evidence(row, others, snapshot) -> bool:
+    """Whether a selected measurement overlaps another model's interval."""
+    model_id = snapshot.model_of(row.candidate_id)
     for contribution in row.contributions:
         if len(contribution.evidence) != 1:
             continue
@@ -105,7 +106,7 @@ def _overlaps_raw_evidence(row, others) -> bool:
         if interval is None:
             continue
         for other in others:
-            if other.candidate_id == row.candidate_id:
+            if snapshot.model_of(other.candidate_id) == model_id:
                 continue
             for compared in other.contributions:
                 if compared.dimension != contribution.dimension or len(compared.evidence) != 1:
@@ -232,7 +233,7 @@ def decide(
             warnings.append("not_separable")
         if (
             len(names) == 1
-            and _overlaps_raw_evidence(row, ordered.results)
+            and _overlaps_raw_evidence(row, ordered.results, snapshot)
             and "not_separable" not in warnings
         ):
             warnings.append("not_separable")
