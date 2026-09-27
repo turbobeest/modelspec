@@ -122,6 +122,24 @@ def test_fit_is_deterministic_and_saturation_reduces_frontier_information() -> N
     assert item.information(4.0) < item.information(0.0)
 
 
+def test_payload_quantizes_learned_floats_for_cross_python_snapshot_ids() -> None:
+    fit = fit_capabilities(synthetic_observations(), SPECS, as_of=AS_OF)
+
+    def floats(value: object):
+        if isinstance(value, float):
+            yield value
+        elif isinstance(value, dict):
+            for child in value.values():
+                yield from floats(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from floats(child)
+
+    payload = fit.to_payload()
+
+    assert all(value == round(value, 10) for value in floats(payload))
+
+
 def test_fractional_random_baseline_is_not_divided_twice() -> None:
     fit = fit_capabilities(
         synthetic_observations(),

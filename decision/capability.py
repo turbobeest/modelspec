@@ -254,7 +254,10 @@ class CapabilityFit:
 
 
 def _round(value: float) -> float:
-    return round(float(value), 12)
+    # CPython releases can differ at the last bit of aggregate float results.
+    # Keep more precision than the decision contract exposes while making the
+    # canonical snapshot payload stable across supported Python versions.
+    return round(float(value), 10)
 
 
 def _sigmoid(value: float) -> float:
