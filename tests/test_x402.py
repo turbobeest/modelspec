@@ -879,7 +879,14 @@ def entry(monkeypatch):
 
     workers.Response = _Response
     workers.WorkerEntrypoint = type("WorkerEntrypoint", (), {})
-    workers.DurableObject = type("DurableObject", (), {})
+    class _DurableObject:
+        # Same signature as the real base: entry.py imports credits_do, which
+        # stays cached in sys.modules, and a later test that constructs
+        # CreditsObject(ctx, env) must not inherit a no-argument __init__.
+        def __init__(self, ctx=None, env=None):
+            self.ctx, self.env = ctx, env
+
+    workers.DurableObject = _DurableObject
     monkeypatch.setitem(sys.modules, "js", js)
     monkeypatch.setitem(sys.modules, "workers", workers)
     for path in (str(REPO_ROOT), str(WORKER_SRC)):
