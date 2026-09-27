@@ -56,18 +56,30 @@ const benchmarkSchema = z.object({
     z.object({ id: z.string(), directness: z.enum(["direct", "proxy"]) }),
   ),
 });
-const boardTemplateSchema = z.object({
+const templateSchema = z.object({
   id: z.string(),
   name: z.string(),
-  description: z.string().optional(),
-  facets: z.array(z.object({
-    id: z.string(),
-    mode: z.enum(["must", "prefer", "both"]),
-    op: z.enum(["=", "!=", "<=", ">=", "in", "not in"]).optional(),
-    value: z.union([scalar, z.array(z.string())]).optional(),
-    weight: z.number().min(0).max(1).optional(),
-    reason: z.string(),
-  })),
+  purpose: z.string(),
+  where: z.array(z.object({ condition: z.string(), reason: z.string() })),
+  weights: z.record(
+    z.string(),
+    z.object({ weight: z.number().positive(), reason: z.string() }),
+  ),
+  task_tokens: z
+    .object({ input: z.number().int().nonnegative(), output: z.number().int().nonnegative() })
+    .optional(),
+  needs: z.object({ classes: z.array(z.string()), domains: z.array(z.string()) }),
+  teaches: z.string(),
+  spec: z.object({
+    spec_version: z.literal(1),
+    where: z.array(z.string()),
+    optimize: z.object({ weights: z.record(z.string(), z.number().positive()) }),
+    task_tokens: z
+      .object({ input: z.number().int().nonnegative(), output: z.number().int().nonnegative() })
+      .optional(),
+  }),
+  available: z.boolean(),
+  unavailable_reason: z.string().nullable(),
 });
 export const vocabularySchema = z.object({
   vocabulary_version: z.literal(1),
@@ -106,8 +118,6 @@ export const vocabularySchema = z.object({
     .default({}),
   /** Provider display names by ID. */
   providers: z.record(z.string(), z.string()).default({}),
-  /** Board-native templates, absent until MODEL-178 is published. */
-  templates: z.array(boardTemplateSchema).optional(),
   /** What the lineup holds, for an empty answer. Absent before MODEL-153's coverage. */
   coverage: z
     .object({
@@ -133,6 +143,8 @@ export const vocabularySchema = z.object({
     })
     .nullable()
     .default(null),
+  /** Data-defined templates. Absent from vocabularies published before MODEL-178. */
+  templates: z.array(templateSchema).optional(),
 });
 export type Vocabulary = z.infer<typeof vocabularySchema>;
 export type VocabFacet = Vocabulary["facets"][number];

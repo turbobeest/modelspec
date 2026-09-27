@@ -47,6 +47,7 @@ from typing import Any
 from decision.computed import with_computed
 from decision.contract import CONTRACT_VERSION, DEFAULT_TASK_TOKENS, TaskType
 from decision.filter import _INDEPENDENT as INDEPENDENT_MEASURERS
+from decision.templates import load_templates
 
 VOCABULARY_VERSION = 1
 MIN_FRONTIER_COVERAGE = 0.50
@@ -292,6 +293,31 @@ def _coverage(snapshot: Any, lineup: list[str], registry: Any) -> dict[str, Any]
     }
 
 
+def _template_rows(coverage: Mapping[str, Any], registry: Any) -> list[dict[str, Any]]:
+    """Templates plus a live hint when this snapshot cannot answer one."""
+    class_counts = {row["id"]: row["models"] for row in coverage["classes"]}
+    domain_counts = {row["id"]: row["verified"] for row in coverage["domains"]}
+    rows = []
+    for template in load_templates(registry=registry):
+        missing_classes = [
+            class_id for class_id in template["needs"]["classes"]
+            if class_counts.get(class_id, 0) == 0
+        ]
+        missing_domains = [
+            domain_id for domain_id in template["needs"]["domains"]
+            if domain_counts.get(domain_id, 0) == 0
+        ]
+        reasons = [
+            *(f"class {class_id} has no lineup models" for class_id in missing_classes),
+            *(f"domain {domain_id} has no lineup coverage" for domain_id in missing_domains),
+        ]
+        rows.append(template | {
+            "available": not reasons,
+            "unavailable_reason": "; ".join(reasons) if reasons else None,
+        })
+    return rows
+
+
 def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | None = None,
                      registry: Any = None, cards: Mapping[str, Mapping[str, Any]] | None = None,
                      enforce_frontier_coverage: bool = False,
@@ -353,6 +379,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
             "default_benchmark": default,
             "benchmarks": [row["id"] for row in sorted(members, key=order)],
         })
+    coverage = _coverage(view, lineup, registry)
     return {
         "vocabulary_version": VOCABULARY_VERSION,
         "contract_version": CONTRACT_VERSION,
@@ -365,5 +392,6 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "domains": domains,
         "models": _model_rows(snapshot, cards or {}),
         "providers": {p.id: p.name for p in registry.providers()},
-        "coverage": _coverage(view, lineup, registry),
+        "coverage": coverage,
+        "templates": _template_rows(coverage, registry),
     }

@@ -20,6 +20,7 @@ from decision.engine import decide
 from decision.registry import default as registry
 from decision.registry import facet as registry_facet
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.templates import load_templates
 from decision.vocabulary import (
     VOCABULARY_VERSION,
     FrontierCoverageError,
@@ -102,6 +103,43 @@ def test_it_names_the_snapshot_and_the_contract(snapshot, vocabulary):
     assert vocabulary["default_task_tokens"] == {
         "input": DEFAULT_TASK_TOKENS.input, "output": DEFAULT_TASK_TOKENS.output}
     json.dumps(vocabulary, allow_nan=False)
+
+
+def test_templates_are_published_with_the_pinned_shape(vocabulary):
+    templates = vocabulary["templates"]
+    assert [row["id"] for row in templates] == [
+        "budget-coding", "private-self-host", "regulated-data", "maths",
+        "retrieval-embeddings", "high-volume", "long-documents", "eu-data",
+    ]
+    assert set(templates[0]) == {
+        "id", "name", "purpose", "where", "weights", "needs", "teaches", "spec",
+        "available", "unavailable_reason",
+    }
+    assert set(templates[5]) == set(templates[0]) | {"task_tokens"}
+    assert templates[0]["spec"] == {
+        "spec_version": 1,
+        "where": [
+            "model.class = text-generator",
+            "model.lifecycle = active",
+            "model.context_window >= 200000",
+            "offering.cost_per_task <= 0.25",
+        ],
+        "optimize": {"weights": {
+            "software_engineering": 0.6,
+            "-offering.cost_per_task": 0.4,
+        }},
+    }
+    assert templates[0]["available"] is True
+    assert templates[0]["unavailable_reason"] is None
+    assert templates[3]["available"] is False
+    assert templates[3]["unavailable_reason"] == "domain maths has no lineup coverage"
+
+
+@pytest.mark.parametrize("template", load_templates(), ids=lambda row: row["id"])
+def test_every_template_parses_resolves_and_runs_against_the_engine(snapshot, template):
+    facets = lookup(snapshot)
+    spec = parse_spec(template["spec"], facets=facets)
+    decide(spec, snapshot, facets=facets)
 
 
 def test_every_lineup_and_archive_model_is_named_from_its_card(vocabulary):

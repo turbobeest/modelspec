@@ -21,7 +21,9 @@ from .vocabulary_cache import (
     load_cached_vocabulary as _load_cached_vocabulary,
 )
 
-SECTIONS = ("facets", "benchmarks", "domains", "providers", "task-types", "coverage")
+SECTIONS = (
+    "facets", "benchmarks", "domains", "providers", "task-types", "coverage", "templates"
+)
 
 
 def load_cached_vocabulary(*, as_json: bool = False) -> dict[str, Any]:
@@ -123,6 +125,14 @@ def _table(section: str, value: Any) -> Table:
         table.add_column("task type")
         for item in value:
             table.add_row(str(item))
+    elif section == "templates":
+        for column in ("id", "name", "available", "purpose"):
+            table.add_column(column)
+        for row in value:
+            table.add_row(
+                row["id"], row.get("name", ""), str(row.get("available", True)),
+                row.get("purpose", ""),
+            )
     else:
         table.add_column("coverage")
         table.add_column("value")
@@ -138,7 +148,7 @@ def _table(section: str, value: Any) -> Table:
 
 def vocab(
     section: Optional[str] = typer.Argument(  # noqa: UP045
-        None, help="facets, benchmarks, domains, providers, task-types or coverage"
+        None, help="facets, benchmarks, domains, providers, task-types, coverage or templates"
     ),
     class_id: Optional[str] = typer.Option(  # noqa: UP045
         None, "--class", help="Limit entries to a model class where coverage permits."
@@ -170,7 +180,7 @@ def vocab(
             f"{name}: {len(vocabulary.get(key, providers if key == 'providers' else []))}"
             for name, key in (("facets", "facets"), ("benchmarks", "benchmarks"),
                               ("domains", "domains"), ("providers", "providers"),
-                              ("task-types", "task_types"))
+                              ("task-types", "task_types"), ("templates", "templates"))
         ))
         typer.echo("next: modelspec vocab facets")
         return

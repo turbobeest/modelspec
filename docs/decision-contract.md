@@ -635,6 +635,14 @@ it instead of carrying its own list of facets or benchmarks. Built by
 - `providers`: every registered provider's display name by ID
   (`registry/providers.yaml`), so a client shows "Anthropic API", not
   `anthropic`.
+- `templates`: the eight partial decision specs from `registry/templates.yaml`.
+  Each row has `id`, `name`, `purpose`, reasoned `where` Musts, reasoned
+  `weights` Prefers, optional non-default `task_tokens`, `needs`, `teaches`,
+  and the expanded contract fragment under `spec`. `available` is false, with
+  `unavailable_reason`, when the snapshot has zero lineup models for a needed
+  class or zero coverage for a needed domain. Rows stay present so clients can
+  explain why a template is unavailable. Adding this field is compatible, so
+  `vocabulary_version` remains `1` and `contract_version` remains `1.7`.
 - `coverage`: what the lineup holds, so a client can say what an empty answer
   was measured against without writing it per question: `as_of` (the snapshot
   date), `models` (lineup size) and `verified` (lineup models with at least one
@@ -645,6 +653,8 @@ it instead of carrying its own list of facets or benchmarks. Built by
   and on a direct one (`direct`).
 
 The field set is additive: a client ignores fields it does not know.
+Templates do not add a spec field. A client expands one before parsing the
+spec, so the decision contract and its hash rules are unchanged.
 
 ## Versioning (MODEL-59)
 
