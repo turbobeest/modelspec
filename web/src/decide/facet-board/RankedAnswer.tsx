@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { money } from "../adapter";
 import type { AdapterDecision, Spec } from "../adapter";
 import type { Vocabulary } from "../vocabulary";
+import { boardHasPreference } from "./model";
 
 const COLLAPSED_COUNT = 8;
 
@@ -15,7 +16,12 @@ export function RankedAnswer({
   vocabulary: Vocabulary;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const rows = decision.explanation.feasible;
+  const ranked = boardHasPreference(spec);
+  const rows = ranked
+    ? decision.explanation.feasible
+    : [...decision.explanation.feasible].sort((left, right) =>
+        left.m.name.localeCompare(right.m.name),
+      );
   const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
   const capability = vocabulary.domains.find((domain) =>
     Object.keys(spec.boardWeights ?? {}).includes(domain.id),
@@ -39,7 +45,8 @@ export function RankedAnswer({
   );
 
   return <section className="panel board-ranked-answer">
-    {inseparable.length > 0 && <p className="board-inseparable">
+    {!ranked && <p className="board-unranked">Not ranked — set a Prefer to rank these</p>}
+    {ranked && inseparable.length > 0 && <p className="board-inseparable">
       The evidence can't separate {inseparable.map((row) => row.m.name).join(", ")}.
     </p>}
     {capability && <div className="board-ranked-columns" aria-hidden="true">

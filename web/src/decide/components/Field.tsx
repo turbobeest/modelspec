@@ -1,6 +1,7 @@
 import type { AdapterDecision, Cond, Spec } from "../adapter";
 import { contractCondition } from "../adapter/view-model";
 import type { Vocabulary } from "../vocabulary";
+import { boardHasPreference } from "../facet-board/model";
 
 function objectiveLabel(id: string, vocabulary?: Vocabulary): string {
   const facetId = id.startsWith("-") ? id.slice(1) : id;
@@ -37,7 +38,9 @@ export function Field({
         ),
       })),
       {
-        label: spec?.boardWeights && Object.keys(spec.boardWeights).length
+        label: boardOnly && spec && !boardHasPreference(spec)
+          ? "Qualifying models"
+          : spec?.boardWeights && Object.keys(spec.boardWeights).length
           ? `Ranking on ${Object.entries(spec.boardWeights).map(([id, weight]) => `${objectiveLabel(id, vocabulary)} ${weight.toFixed(2)}`).join(" · ")}`
           : "Ranked on evidence",
         n: e.feasible.length,

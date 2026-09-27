@@ -154,7 +154,32 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(within(answer).getAllByText("Lab Inc. · via cloud").length).toBeGreaterThan(0);
   expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
   expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
+  expect(within(answer).getByText("Not ranked — set a Prefer to rank these")).toBeInTheDocument();
+  const modelNames = within(answer).getAllByRole("listitem").map((item) =>
+    item.querySelector("strong")?.textContent ?? "",
+  );
+  expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
+  expect(within(narrowing).getByText("Qualifying models")).toBeInTheDocument();
+  expect(within(narrowing).queryByText(/Ranking on/)).not.toBeInTheDocument();
   expect(sentSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
+  expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
+
+  fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
+  const share = screen.getByRole("dialog");
+  fireEvent.click(within(share).getByRole("tab", { name: "Spec YAML" }));
+  expect(share).toHaveTextContent("# unranked: no Prefer set");
+  expect(share).not.toHaveTextContent("-offering.cost_per_task");
+  expect(share).not.toHaveTextContent("optimize:");
+  fireEvent.click(within(share).getByRole("button", { name: "Close Share or act" }));
+
+  fireEvent.click(screen.getByRole("button", { name: /Size of workall Doesn't matter/ }));
+  const context = screen.getByText("Context window").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(context).getByLabelText("Must"));
+  await waitFor(() => expect(sentSpecs(fetch).some((body) =>
+    body.where.includes("model.context_window >= 529096"),
+  )).toBe(true));
+  expect(within(answer).getByText("Not ranked — set a Prefer to rank these")).toBeInTheDocument();
+  expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 });
 
 it("requests the estate once after the board decision settles", async () => {
@@ -173,6 +198,7 @@ it("requests the estate once after the board decision settles", async () => {
   );
   expect(estateRequests).toHaveLength(1);
   expect(estateRequests[0].explain).toBe("summary");
+  expect(estateRequests[0].optimize.weights).toEqual({ "-offering.cost_per_task": 1 });
 });
 
 it("shows a retry when the estate request fails", async () => {
@@ -205,6 +231,8 @@ it("labels capability intervals with their ranking basis and units", async () =>
   fireEvent.click(within(capability).getByLabelText("Prefer"));
 
   expect(await screen.findByText("Software engineering, estimated · 80% interval")).toBeInTheDocument();
+  expect(screen.queryByText("Not ranked — set a Prefer to rank these")).not.toBeInTheDocument();
+  expect(screen.getByText(/Ranking on Software engineering 0.50/)).toBeInTheDocument();
   expect(screen.getAllByText(/capability score$/).length).toBeGreaterThan(0);
   expect(screen.getByLabelText("Delta 4.7 capability interval")).toBeInTheDocument();
 });
