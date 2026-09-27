@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from pathlib import Path
 
@@ -55,16 +56,26 @@ def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
     assert "This report does not gate CI" in result.markdown_path.read_text(encoding="utf-8")
 
 
-def test_baseline_matches_main_snapshot_on_approval_date(tmp_path: Path) -> None:
+def test_baseline_is_traceable_and_matches_fresh_verdicts(tmp_path: Path) -> None:
+    baseline = load_recall_baseline(HERE / "baseline.json")
+    report_path = (
+        HERE.parents[1]
+        / "docs"
+        / "recall"
+        / f"{baseline.as_of.isoformat()}-{baseline.snapshot}.json"
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert report["report_date"] == baseline.as_of.isoformat()
+    assert report["snapshot"] == baseline.snapshot
+
     result = run(
         root=Path(__file__).resolve().parents[2],
         output_dir=tmp_path,
-        report_date=date(2026, 9, 25),
+        report_date=baseline.as_of,
     )
-    baseline = load_recall_baseline(HERE / "baseline.json")
 
-    assert baseline.snapshot == "snap_b5622feaf611736a"
-    assert baseline.as_of == date(2026, 9, 25)
+    assert baseline.snapshot == result.snapshot_id
     assert baseline.verdicts == {row.id: row.verdict for row in result.questions}
 
 
