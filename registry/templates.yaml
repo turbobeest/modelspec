@@ -150,7 +150,7 @@ templates:
     purpose: Find an offering that runs inference in an EU member state and does not train on customer data.
     where:
       - condition: offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}
-        reason: Inference must run in one of the EU's 27 member-state country codes.
+        reason: Inference must run in one of the EU's 27 member-state ISO country codes (EU Publications Office Interinstitutional Style Guide, https://style-guide.europa.eu/en/content/-/isg/topic?identifier=annex-a5-list-countries-territories-currencies, checked 2026-09-27).
       - condition: offering.data.trains_on_customer_data = false
         reason: Customer prompts and outputs must not be available for model training.
     weights:

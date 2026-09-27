@@ -18,6 +18,7 @@ it("ignores every preview field on the production decode and request paths", () 
     selections: {
       "offering.cost_per_task": { mode: "both", op: "<=", value: 0.25, weight: 1 },
     },
+    mustOrder: ["offering.cost_per_task"],
     estate: { providers: ["anthropic"], plans: ["team"], hardware: ["h100"] },
   }));
   expect(preview).toEqual(plain);

@@ -4,7 +4,7 @@ import type { Spec } from "../engine/types";
 import type { Vocabulary, VocabFacet } from "../vocabulary";
 import {
   boardToSpec, defaultFacetOp, defaultFacetValue, facetGroup, GROUP_ORDER,
-  groupFacets, readEstate, supportsPreference, templateToBoard, writeEstate,
+  groupFacets, nextMustOrder, readEstate, supportsPreference, templateToBoard, writeEstate,
 } from "./model";
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
 
@@ -83,9 +83,11 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, estate, onEstate, answer, fit = 0, may = 0 }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0 }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
+  const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
+  const orderedMusts = mustOrder ?? localMustOrder;
   const setSelected = (next: BoardSelections) => {
     if (onSelections) onSelections(next);
     else setLocalSelections(next);
@@ -98,8 +100,10 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   const grouped = useMemo(() => groupFacets(vocabulary), [vocabulary]);
   const update = (id: string, next: FacetSelection) => {
     const all = { ...selected, [id]: next };
+    const nextOrder = nextMustOrder(orderedMusts, selected, id, next);
     if (next.mode !== "off") setExpandedGroups((current) => ({ ...current, [grouped.groups.find((group) => group.facets.some((facet) => facet.id === id))?.name ?? "Other"]: true }));
-    setSelected(all); onSpec(boardToSpec(spec, vocabulary, all));
+    if (onMustOrder) onMustOrder(nextOrder); else setLocalMustOrder(nextOrder);
+    setSelected(all); onSpec(boardToSpec(spec, vocabulary, all, nextOrder));
   };
   const applyTemplate = (template: NonNullable<Vocabulary["templates"]>[number]) => {
     const converted = templateToBoard(template, vocabulary);
@@ -109,7 +113,8 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     const templateSpec = converted.taskTokens
       ? { ...spec, tokIn: converted.taskTokens.input, tokOut: converted.taskTokens.output }
       : spec;
-    setSelected(all); setTemplatesOpen(false); onSpec(boardToSpec(templateSpec, vocabulary, all));
+    if (onMustOrder) onMustOrder(converted.mustOrder); else setLocalMustOrder(converted.mustOrder);
+    setSelected(all); setTemplatesOpen(false); onSpec(boardToSpec(templateSpec, vocabulary, all, converted.mustOrder));
   };
   return <div className="facet-board">
     <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div>{vocabulary.templates?.length ? <button aria-expanded={templatesOpen} onClick={() => setTemplatesOpen(!templatesOpen)}>ⓘ Templates</button> : null}</div>
@@ -117,7 +122,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
     <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
     <div className="board-workspace">
-      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{Object.values(selected).filter((choice) => choice.mode !== "off").length} set</small></span><button onClick={() => { setSelected({}); setExpandedGroups({ "What it's good at": true }); onSpec(boardToSpec(spec, vocabulary, {})); }}>Reset all</button></header>
+      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{Object.values(selected).filter((choice) => choice.mode !== "off").length} set</small></span><button onClick={() => { setSelected({}); if (onMustOrder) onMustOrder([]); else setLocalMustOrder([]); setExpandedGroups({ "What it's good at": true }); onSpec(boardToSpec(spec, vocabulary, {}, [])); }}>Reset all</button></header>
         <div className="facet-columns" aria-hidden="true"><span>Facet</span><span>Known</span><span>State</span></div>
         {grouped.groups.map((group) => {
           const active = group.facets.filter((facet) => selected[facet.id]?.mode && selected[facet.id]?.mode !== "off");

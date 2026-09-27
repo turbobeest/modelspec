@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
   boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, groupFacets,
-  formatBoardCondition, parseBoardCondition, showsFacetBoard, supportsPreference,
+  formatBoardCondition, nextMustOrder, parseBoardCondition, showsFacetBoard, supportsPreference,
   templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
 import type { BoardSelections } from "../facet-board/model";
@@ -37,8 +37,8 @@ describe("facet state mapping", () => {
       task_tokens: { input: 40000, output: 4000 },
       where: [
         "model.class = text-generator", "model.lifecycle = active",
-        "model.class in {text-generator}", "offering.cost_per_task <= 0.25",
         "model.context_window >= 200000", "offering.data.zero_retention = true",
+        "model.class in {text-generator}", "offering.cost_per_task <= 0.25",
       ],
       optimize: { weights: { software_engineering: 0.6, "-offering.cost_per_task": 0.4 } },
       unknowns: "default", explain: "full", limit: 500,
@@ -123,10 +123,10 @@ describe("canonical template mapping", () => {
       ? { ...base, tokIn: converted.taskTokens.input, tokOut: converted.taskTokens.output }
       : base;
     const serialized = toBoardDecisionSpec(
-      boardToSpec(withTokens, realVocabulary, converted.selections),
+      boardToSpec(withTokens, realVocabulary, converted.selections, converted.mustOrder),
       "full",
     );
-    expect([...(serialized.where ?? [])].sort()).toEqual([...template.spec.where].sort());
+    expect(serialized.where).toEqual(template.spec.where);
     expect(serialized.optimize).toEqual(template.spec.optimize);
     if (template.spec.task_tokens) expect(serialized.task_tokens).toEqual(template.spec.task_tokens);
   });
@@ -140,6 +140,53 @@ describe("canonical template mapping", () => {
       weightKey: "-offering.cost_per_task",
     });
   });
+
+  it("appends a new Must after existing Musts", () => {
+    const selections: BoardSelections = {
+      "model.context_window": { mode: "must", op: ">=", value: 200000 },
+    };
+    const nextSelections = {
+      ...selections,
+      "offering.cost_per_task": { mode: "must" as const, op: "<=" as const, value: 0.25 },
+    };
+    const order = nextMustOrder(
+      ["model.context_window"],
+      selections,
+      "offering.cost_per_task",
+      nextSelections["offering.cost_per_task"],
+    );
+    expect(order).toEqual(["model.context_window", "offering.cost_per_task"]);
+    expect(toDecisionSpec(boardToSpec(
+      { ...realBaseSpec(smallVocabulary), conds: [] }, smallVocabulary, nextSelections, order,
+    ), "full").where).toEqual([
+      "model.context_window >= 200000",
+      "offering.cost_per_task <= 0.25",
+    ]);
+  });
+
+  it("keeps a Must in position when its threshold changes", () => {
+    const selections: BoardSelections = {
+      "model.context_window": { mode: "must", op: ">=", value: 200000 },
+      "offering.cost_per_task": { mode: "must", op: "<=", value: 0.25 },
+    };
+    const nextSelections = {
+      ...selections,
+      "model.context_window": { mode: "must" as const, op: ">=" as const, value: 250000 },
+    };
+    const order = nextMustOrder(
+      ["model.context_window", "offering.cost_per_task"],
+      selections,
+      "model.context_window",
+      nextSelections["model.context_window"],
+    );
+    expect(order).toEqual(["model.context_window", "offering.cost_per_task"]);
+    expect(toDecisionSpec(boardToSpec(
+      { ...realBaseSpec(smallVocabulary), conds: [] }, smallVocabulary, nextSelections, order,
+    ), "full").where).toEqual([
+      "model.context_window >= 250000",
+      "offering.cost_per_task <= 0.25",
+    ]);
+  });
 });
 
 it("reopens Must, Prefer and Must+Prefer selections and keeps them after another edit", () => {
@@ -150,14 +197,18 @@ it("reopens Must, Prefer and Must+Prefer selections and keeps them after another
   };
   const restored = decodeBoardState(encodeBoardSpec(realBaseSpec(smallVocabulary), "task$", {
     selections,
+    mustOrder: ["model.context_window", "offering.cost_per_task"],
     estate: { providers: [], plans: [], hardware: [] },
   }));
+  expect(restored?.mustOrder).toEqual(["model.context_window", "offering.cost_per_task"]);
   const onSpec = vi.fn();
   render(<FacetBoard
     vocabulary={smallVocabulary}
     spec={realBaseSpec(smallVocabulary)}
     selections={restored!.selections}
     onSelections={vi.fn()}
+    mustOrder={restored!.mustOrder}
+    onMustOrder={vi.fn()}
     onSpec={onSpec}
     estate={restored!.estate}
     onEstate={vi.fn()}

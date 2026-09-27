@@ -80,6 +80,7 @@ export function DesignedApp({
     [spec, setSpec] = useState<Spec>(initial?.spec || baseSpec),
     [boardBaseSpec, setBoardBaseSpec] = useState<Spec>(initial?.spec || baseSpec),
     [boardSelections, setBoardSelections] = useState<BoardSelections>(initialBoard?.selections ?? {}),
+    [boardMustOrder, setBoardMustOrder] = useState<string[]>(initialBoard?.mustOrder ?? []),
     [axis, setAxis] = useState<Axis>(initial?.x || "task$"),
     [view, setView] = useState(initial || board ? "work" : "arrive");
   const [draft, setDraft] = useState(
@@ -403,7 +404,7 @@ export function DesignedApp({
       if (initialAnswered.current) return;
       initialAnswered.current = true;
       const restored = board
-        ? boardToSpec(initial.spec, vocabulary, initialBoard?.selections ?? {})
+        ? boardToSpec(initial.spec, vocabulary, initialBoard?.selections ?? {}, initialBoard?.mustOrder)
         : initial.spec;
       setBoardBaseSpec(initial.spec);
       setSpec(restored);
@@ -474,10 +475,10 @@ export function DesignedApp({
         null,
         "",
         location.pathname + location.search + (board
-          ? encodeBoardSpec(boardBaseSpec, axis, { selections: boardSelections, estate })
+          ? encodeBoardSpec(boardBaseSpec, axis, { selections: boardSelections, mustOrder: boardMustOrder, estate })
           : encodeSpec(spec, axis)),
       );
-  }, [spec, axis, view, board, boardBaseSpec, boardSelections, estate]);
+  }, [spec, axis, view, board, boardBaseSpec, boardSelections, boardMustOrder, estate]);
   useEffect(() => {
     document.documentElement.dataset.decideTheme = theme;
     return () => {
@@ -499,10 +500,11 @@ export function DesignedApp({
       if (restored) {
         const restoredBoard = board ? decodeBoardState(location.hash) : null;
         const nextSpec = board && vocabulary
-          ? boardToSpec(restored.spec, vocabulary, restoredBoard?.selections ?? {})
+          ? boardToSpec(restored.spec, vocabulary, restoredBoard?.selections ?? {}, restoredBoard?.mustOrder)
           : restored.spec;
         setBoardBaseSpec(restored.spec);
         setBoardSelections(restoredBoard?.selections ?? {});
+        setBoardMustOrder(restoredBoard?.mustOrder ?? []);
         if (restoredBoard) setEstate(restoredBoard.estate);
         setSpec(nextSpec);
         setAxis(restored.x);
@@ -805,6 +807,8 @@ export function DesignedApp({
             onSpec={changeSpec}
             selections={boardSelections}
             onSelections={setBoardSelections}
+            mustOrder={boardMustOrder}
+            onMustOrder={setBoardMustOrder}
             estate={estate}
             onEstate={setEstate}
             fit={decision?.explanation.feasible.length}

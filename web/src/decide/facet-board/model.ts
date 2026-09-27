@@ -17,10 +17,11 @@ export interface FacetSelection {
 export type BoardSelections = Record<string, FacetSelection>;
 export interface BoardTemplateState {
   selections: BoardSelections;
+  mustOrder: string[];
   taskTokens?: { input: number; output: number };
 }
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
-export interface BoardUrlState { selections: BoardSelections; estate: Estate }
+export interface BoardUrlState { selections: BoardSelections; mustOrder: string[]; estate: Estate }
 
 const UNRANKED_OBJECTIVE = { "-offering.cost_per_task": 1 };
 
@@ -37,6 +38,7 @@ const selectionSchema = z.object({
 });
 const boardUrlSchema = z.object({
   selections: z.record(z.string(), selectionSchema).default({}),
+  mustOrder: z.array(z.string()).default([]),
   estate: z.object({
     providers: z.array(z.string()), plans: z.array(z.string()), hardware: z.array(z.string()),
   }),
@@ -121,6 +123,19 @@ export function defaultFacetOp(facet: VocabFacet): FacetSelection["op"] {
   return facet.value_type === "set" && facet.operators.includes("in") ? "in" : "=";
 }
 
+export function nextMustOrder(
+  mustOrder: readonly string[],
+  selections: BoardSelections,
+  facetId: string,
+  next: FacetSelection,
+): string[] {
+  const wasMust = selections[facetId]?.mode === "must" || selections[facetId]?.mode === "both";
+  const isMust = next.mode === "must" || next.mode === "both";
+  if (isMust && !wasMust) return [...mustOrder, facetId];
+  if (!isMust && wasMust) return mustOrder.filter((id) => id !== facetId);
+  return [...mustOrder];
+}
+
 function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond {
   return {
     f: "facet",
@@ -179,12 +194,14 @@ export function templateToBoard(
   vocabulary: Vocabulary,
 ): BoardTemplateState {
   const selections: BoardSelections = {};
+  const mustOrder: string[] = [];
   const addReason = (facetId: string, reason: string) => {
     const current = selections[facetId]?.reason;
     return current && current !== reason ? `${current} ${reason}` : reason;
   };
   for (const row of template.where) {
     const parsed = parseBoardCondition(row.condition);
+    if (!mustOrder.includes(parsed.facetId)) mustOrder.push(parsed.facetId);
     const current = selections[parsed.facetId];
     selections[parsed.facetId] = {
       ...current,
@@ -208,19 +225,30 @@ export function templateToBoard(
       reason: addReason(facetId, preference.reason),
     };
   }
-  return { selections, ...(template.task_tokens ? { taskTokens: template.task_tokens } : {}) };
+  return { selections, mustOrder, ...(template.task_tokens ? { taskTokens: template.task_tokens } : {}) };
 }
 
 /** Convert the visible board literally: gates become where conditions; weights rank only. */
-export function boardToSpec(base: Spec, vocabulary: Vocabulary, selections: BoardSelections): Spec {
+export function boardToSpec(
+  base: Spec,
+  vocabulary: Vocabulary,
+  selections: BoardSelections,
+  mustOrder: readonly string[] = Object.keys(selections),
+): Spec {
   const grouped = groupFacets(vocabulary);
   const synthetic = [...grouped.groups.flatMap((group) => group.facets), ...grouped.untracked];
-  const boardIds = new Set(synthetic.map((facet) => facet.id));
+  const facetsById = new Map(synthetic.map((facet) => [facet.id, facet]));
+  const boardIds = new Set(facetsById.keys());
   const preserved = base.conds.filter((condition) => condition.f !== "facet" || !boardIds.has(condition.facet));
-  const gates = synthetic.flatMap((facet) => {
-    const choice = selections[facet.id];
+  const orderedIds = [...new Set([
+    ...mustOrder,
+    ...Object.keys(selections).filter((id) => !mustOrder.includes(id)),
+  ])];
+  const gates = orderedIds.flatMap((id) => {
+    const facet = facetsById.get(id);
+    const choice = selections[id];
     return choice && (choice.mode === "must" || choice.mode === "both")
-      ? [conditionFor(facet, choice)] : [];
+      && facet ? [conditionFor(facet, choice)] : [];
   });
   const selectedWeights = boardWeightsFromSelections(selections);
   const selectedDomain = Object.keys(selections).find((id) =>
