@@ -25,6 +25,7 @@ import {
   realTemplates,
   sendable,
   switchBenchmark,
+  vocabularySchema,
 } from "../vocabulary";
 import type { Vocabulary } from "../vocabulary";
 import { realVocabulary as v } from "./vocab-fixtures";
@@ -47,6 +48,44 @@ function parsedSpec(vocabulary: Vocabulary, task: string): Spec {
 }
 
 const EDITABLE: FacetOp[] = ["=", "!=", "<=", ">=", "in", "not in"];
+
+describe("published templates", () => {
+  it("accepts vocabularies published before templates existed", () => {
+    const { templates: _templates, ...withoutTemplates } = v;
+    expect(_templates?.length).toBeGreaterThan(0);
+    expect(vocabularySchema.parse(withoutTemplates).templates).toBeUndefined();
+  });
+
+  it("accepts the additive templates field", () => {
+    const parsed = vocabularySchema.parse({
+      ...v,
+      templates: [
+        {
+          id: "maths",
+          name: "Maths and proofs",
+          purpose: "Find a text model for mathematical work.",
+          where: [
+            {
+              condition: "model.class = text-generator",
+              reason: "The answer must be generated as text.",
+            },
+          ],
+          weights: { maths: { weight: 1, reason: "Rank by maths capability." } },
+          needs: { classes: ["text-generator"], domains: ["maths"] },
+          teaches: "Class is a Must and maths quality is a Prefer.",
+          spec: {
+            spec_version: 1,
+            where: ["model.class = text-generator"],
+            optimize: { weights: { maths: 1 } },
+          },
+          available: true,
+          unavailable_reason: null,
+        },
+      ],
+    });
+    expect(parsed.templates?.[0]?.id).toBe("maths");
+  });
+});
 
 /** Every condition the facet editor can produce on each offered facet. */
 function editorConditions(vocabulary: Vocabulary): Cond[] {
@@ -236,6 +275,34 @@ describe("the real task parser", () => {
       "no latency measurements in this snapshot; not applied",
     );
   });
+});
+
+it("keeps production probe bytes unchanged for an equivalent generic facet", () => {
+  const condition = "model.weights_openness = open_weights";
+  const spec: Spec = {
+    ...realBaseSpec(v),
+    conds: [
+      {
+        f: "facet",
+        facet: "model.weights_openness",
+        op: "=",
+        value: "open_weights",
+      },
+    ],
+  };
+  const question = realQuestions(v, spec, []).find((candidate) => candidate.id === "open");
+  const option = question?.opts.find((candidate) => candidate.label === "Yes");
+  if (!option) throw new Error("production open-weights question was not offered");
+  const sent = toDecisionSpec(sendable(v, spec), "none");
+  const beforeBoardDeduplication = JSON.stringify({
+    ...sent,
+    where: [...(sent.where ?? []), condition],
+    explain: "none",
+    limit: 500,
+  });
+
+  expect(JSON.stringify(probeSpec(sent, option))).toBe(beforeBoardDeduplication);
+  expect(probeSpec(sent, option).where).toEqual([condition, condition]);
 });
 
 describe("what is offered", () => {

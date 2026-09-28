@@ -141,8 +141,42 @@ def _fail(payload: dict[str, Any], lines: list[str], as_json: bool) -> None:
     raise typer.Exit(EXIT_ERROR)
 
 
+def _template(templates: list[dict[str, Any]], template_id: str, as_json: bool) -> dict[str, Any]:
+    for row in templates:
+        if row.get("id") == template_id:
+            spec = row.get("spec")
+            if isinstance(spec, dict):
+                return row
+    valid = sorted(str(row.get("id")) for row in templates if isinstance(row.get("id"), str))
+    message = f"unknown template {template_id!r}; valid ids: {', '.join(valid)}"
+    _fail(
+        {"contract_version": contract.CONTRACT_VERSION, "command": "decide",
+         "error": {"code": "unknown_template", "message": message, "valid_ids": valid}},
+        [f"error: {message}"],
+        as_json,
+    )
+
+
+def _merge_template(template: dict[str, Any], raw: Any) -> dict[str, Any]:
+    fragment = dict(template["spec"])
+    if raw is None:
+        return fragment
+    if not isinstance(raw, dict):
+        return raw
+    template_where = fragment.get("where") or []
+    file_where = raw.get("where") or []
+    merged = fragment | raw
+    merged["where"] = [*template_where, *file_where]
+    return merged
+
+
 def decide(
-    spec_path: Path = typer.Argument(..., help="The spec, as YAML."),
+    spec_path: Optional[Path] = typer.Argument(  # noqa: UP045 - Typer reads the annotation
+        None, help="The optional spec, as YAML. Required without --template."
+    ),
+    template: Optional[str] = typer.Option(  # noqa: UP045 - Typer reads the annotation
+        None, "--template", help="Start from a template in the cached vocabulary."
+    ),
     explain: Optional[str] = typer.Option(  # noqa: UP045 - Typer reads the annotation
         None, "--explain", help="Override the spec's explain: none, summary or full."
     ),
@@ -162,17 +196,27 @@ def decide(
 ) -> None:
     """Decide which model or offering fits a spec (the decision contract, v1)."""
     base = {"contract_version": contract.CONTRACT_VERSION, "command": "decide"}
-    try:
-        text = spec_path.read_text()
-    except OSError as exc:
+    if spec_path is None and template is None:
         _fail(
-            base | {"error": {"code": "unreadable", "message": str(exc)}},
-            [f"error: cannot read {spec_path}: {exc.strerror or exc}"],
+            base | {"error": {
+                "code": "spec_required", "message": "pass SPEC.yaml or --template ID"
+            }},
+            ["error: pass SPEC.yaml or --template ID"],
             as_json,
         )
+    text = ""
+    if spec_path is not None:
+        try:
+            text = spec_path.read_text()
+        except OSError as exc:
+            _fail(
+                base | {"error": {"code": "unreadable", "message": str(exc)}},
+                [f"error: cannot read {spec_path}: {exc.strerror or exc}"],
+                as_json,
+            )
 
     vocabulary: dict[str, Any] | None = None
-    if check:
+    if check or template is not None:
         try:
             vocabulary = load_cached_vocabulary()
         except VocabularyMissingError as exc:
@@ -181,9 +225,18 @@ def decide(
         except VocabularyInvalidError as exc:
             _fail(base | {"error": {"code": "decision_failed", "message": str(exc)}},
                   [f"error: {exc}"], as_json)
+    templates = vocabulary.get("templates", []) if vocabulary is not None else []
+    if template is not None and not isinstance(templates, list):
+        message = "cached decision vocabulary has an invalid templates field"
+        _fail(base | {"error": {"code": "decision_failed", "message": message}},
+              [f"error: {message}"], as_json)
     facets = _facet_lookup()
+    selected_template: dict[str, Any] | None = None
     try:
-        raw = contract.load_yaml(text)
+        raw = contract.load_yaml(text) if spec_path is not None else None
+        if template is not None:
+            selected_template = _template(templates, template, as_json)
+            raw = _merge_template(selected_template, raw)
         if explain is not None and isinstance(raw, dict):
             raw = raw | {"explain": explain}
         spec = contract.parse_spec(raw, facets=facets)
@@ -196,6 +249,12 @@ def decide(
         )
 
     base |= {"spec_hash": contract.spec_hash(spec), "explain": spec.explain}
+    template_warning = None
+    if selected_template is not None and not selected_template.get("available", True):
+        template_warning = selected_template.get("unavailable_reason") or (
+            "this template is unavailable against the cached snapshot"
+        )
+        typer.echo(f"warning: {template_warning}", err=True)
     using_cached_snapshot = snapshot_file is None
     if using_cached_snapshot:
         from .snapshot import decision_snapshot_path
@@ -228,6 +287,8 @@ def decide(
             validate_decision(spec, index, facets=facets)
             assert vocabulary is not None
             warnings = _vocabulary_warnings(spec, vocabulary)
+            if template_warning is not None and template_warning not in warnings:
+                warnings.insert(0, template_warning)
             cached_snapshot = vocabulary.get("snapshot")
             if spec.snapshot != "latest" and spec.snapshot != cached_snapshot:
                 warnings.append(

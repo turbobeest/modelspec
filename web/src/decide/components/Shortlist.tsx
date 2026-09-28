@@ -70,8 +70,8 @@ export function Shortlist({
                     <div className="metrics">
                       <span>
                         <small>{bench}</small>
-                        {fmtB(spec.bench, row.cap)}{" "}
-                        <small>{fmtCI(spec.bench, row.capR)}</small>
+                        {fmtB(spec.bench, row.cap!)}{" "}
+                        <small>{fmtCI(spec.bench, row.capR!)}</small>
                         <small>
                           {row.labOnly ? "Lab-reported" : "Independent"}
                         </small>

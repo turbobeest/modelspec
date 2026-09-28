@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
+import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
+import liveSwePreferJson from "../__fixtures__/live-swe-prefer-full.json";
 import { decisionSchema } from "../adapter/contract";
 import {
   mapDecisionToViewModel,
@@ -10,8 +12,46 @@ import { parseTask } from "../engine/reference";
 import { baseSpec } from "../state/spec";
 
 const fixture = decisionSchema.parse(fixtureJson);
+const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
+const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 
 describe("the hosted Decision view-model mapper", () => {
+  it("keeps production strict when a ranked result has no sourced capability evidence", () => {
+    expect(() => mapDecisionToViewModel(liveEmptyBoard, baseSpec, {
+      axis: "task$",
+      dismissed: [],
+    })).toThrow("typesafe/jev-1-13 has no sourced CodeBench Pro evidence in this decision");
+  });
+
+  it("uses only domain estimates for board capability values", () => {
+    const view = mapDecisionToViewModel(liveSwePrefer, {
+      ...baseSpec,
+      bench: "swe_bench_verified",
+      domain: "software_engineering",
+      basis: "estimate",
+      boardWeights: { software_engineering: 1 },
+    }, {
+      axis: "task$",
+      dismissed: [],
+    });
+
+    expect(view.explanation.feasible).toHaveLength(25);
+    expect(view.explanation.feasible.map((row) => `${row.m.lab}/${row.m.id}`)).toEqual(
+      [...new Set(liveSwePrefer.results.map((result) => result.offering.model))],
+    );
+    expect(view.explanation.feasible.find((row) => row.m.id === "gemini-3-7-flash")?.offs)
+      .toHaveLength(2);
+    expect(view.explanation.feasible.every((row) => row.capR?.who === "capability model"))
+      .toBe(true);
+    expect(view.explanation.may).toHaveLength(7);
+    expect(view.explanation.may.every((row) =>
+      row.cap === null && row.capR === null && row.rank === undefined
+    )).toBe(true);
+    expect(view.explanation.rows.every((row) =>
+      row.capR === null || row.capR.who === "capability model"
+    )).toBe(true);
+  });
+
   it("projects the canvas, Pareto frontier, winning strip and shortlist from sourced values", () => {
     const spec = { ...baseSpec, bench: "quality", bar: 70 };
     const view = mapDecisionToViewModel(fixture, spec, {

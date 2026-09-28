@@ -14,8 +14,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
-from decision.snapshot import SnapshotInputs, build_snapshot  # noqa: E402
-from tests.snapshot_records import SOURCES, evidence, model  # noqa: E402
+from cli.modelspec import decide_cmd  # noqa: E402
+from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes  # noqa: E402
+from decision.vocabulary import build_vocabulary  # noqa: E402
+from tests.snapshot_records import SOURCES, evidence, fact, model, offering  # noqa: E402
 
 VALID = """
 spec_version: 1
@@ -346,3 +348,128 @@ def test_check_and_decide_agree_on_every_shipped_spec(
             disagreements.append((name, check.exit_code, decide.exit_code))
     assert len(cases) == 223
     assert disagreements == []
+
+
+def _install_template_snapshot(tmp_path: Path, monkeypatch) -> Path:
+    mid = "lab/coder"
+    models = [model(mid, facts=[
+        fact("model", mid, "model.class", "text-generator"),
+        fact("model", mid, "model.lifecycle", "active"),
+        fact("model", mid, "model.context_window", 300000),
+    ])]
+    oid = f"provider/{mid}/global/standard"
+    offerings = [offering(mid, "provider", facts=[
+        fact("offering", oid, "offering.price.input", 1.0, source="src-pricing"),
+        fact("offering", oid, "offering.price.output", 2.0, source="src-pricing"),
+    ])]
+    built = build_snapshot(SnapshotInputs(
+        models=models,
+        offerings=offerings,
+        evidence=[evidence(mid, "swe_bench_pro", 60)],
+        sources=SOURCES,
+        benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+    ), gate=False)
+    cache = tmp_path / "cache"
+    generation = cache / "decision" / built.snapshot_id
+    generation.mkdir(parents=True)
+    (generation / "snapshot.json.gz").write_bytes(built.to_bytes(key=None))
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    (generation / "vocabulary.json").write_text(
+        json.dumps(build_vocabulary(index), ensure_ascii=False), encoding="utf-8"
+    )
+    (cache / "decision" / "current").write_text(built.snapshot_id + "\n", encoding="utf-8")
+    monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
+    return cache
+
+
+def test_budget_template_matches_the_equivalent_hand_written_spec(tmp_path, monkeypatch) -> None:
+    _install_template_snapshot(tmp_path, monkeypatch)
+    hand = tmp_path / "hand.yaml"
+    hand.write_text(
+        "spec_version: 1\n"
+        "where:\n"
+        "  - model.class = text-generator\n"
+        "  - model.lifecycle = active\n"
+        "  - model.context_window >= 200000\n"
+        "  - offering.cost_per_task <= 0.25\n"
+        "optimize:\n"
+        "  weights:\n"
+        "    software_engineering: 0.6\n"
+        "    -offering.cost_per_task: 0.4\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    templated = runner.invoke(cli_mod.app, ["decide", "--template", "budget-coding", "--json"])
+    written = runner.invoke(cli_mod.app, ["decide", str(hand), "--json"])
+    assert templated.exit_code == written.exit_code == 0, templated.output + written.output
+    assert json.loads(templated.stdout) == json.loads(written.stdout)
+
+
+def test_template_file_fields_win_and_where_conditions_concatenate(tmp_path, monkeypatch) -> None:
+    _install_template_snapshot(tmp_path, monkeypatch)
+    override = tmp_path / "override.yaml"
+    override.write_text(
+        "where: [model.context_window >= 200000]\n"
+        "optimize: {max: model.context_window}\n",
+        encoding="utf-8",
+    )
+    seen = []
+    real_validate = decide_cmd.validate_decision
+
+    def capture(spec, *args, **kwargs):
+        seen.append(spec)
+        return real_validate(spec, *args, **kwargs)
+
+    monkeypatch.setattr(decide_cmd, "validate_decision", capture)
+    result = CliRunner().invoke(
+        cli_mod.app, ["decide", str(override), "--template", "budget-coding", "--check", "--json"]
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["ok"] is True
+    assert len(seen[0].where) == 5
+    assert sum(
+        condition.facet == "model.context_window"
+        and condition.op == ">="
+        and condition.value == 200000
+        for condition in seen[0].where
+    ) == 2
+    assert seen[0].optimize.max == "model.context_window"
+
+
+def test_unknown_template_lists_valid_ids(tmp_path, monkeypatch) -> None:
+    _install_template_snapshot(tmp_path, monkeypatch)
+    result = CliRunner().invoke(cli_mod.app, ["decide", "--template", "missing"])
+    assert result.exit_code == 1
+    assert "unknown template 'missing'" in result.output
+    assert "budget-coding" in result.output
+    assert "eu-data" in result.output
+
+
+def test_vocab_templates_uses_the_cached_vocabulary(tmp_path, monkeypatch) -> None:
+    _install_template_snapshot(tmp_path, monkeypatch)
+    result = CliRunner().invoke(cli_mod.app, ["vocab", "templates"])
+    assert result.exit_code == 0
+    assert "budget-coding" in result.output
+    assert "Coding agent on a budget" in result.output
+    assert "available" in result.output
+    assert "reason" in result.output
+
+
+def test_unavailable_template_warns_but_still_runs(tmp_path, monkeypatch) -> None:
+    cache = _install_template_snapshot(tmp_path, monkeypatch)
+    vocabulary_path = next((cache / "decision").glob("snap_*/vocabulary.json"))
+    vocabulary = json.loads(vocabulary_path.read_text())
+    eu_data = next(row for row in vocabulary["templates"] if row["id"] == "eu-data")
+    eu_data["available"] = False
+    eu_data["unavailable_reason"] = (
+        "No offering in this snapshot publishes an EU inference region yet."
+    )
+    vocabulary_path.write_text(json.dumps(vocabulary))
+
+    result = CliRunner().invoke(cli_mod.app, ["decide", "--template", "eu-data"])
+
+    assert result.exit_code == 0, result.output
+    assert (
+        "warning: No offering in this snapshot publishes an EU inference region yet."
+        in result.output
+    )

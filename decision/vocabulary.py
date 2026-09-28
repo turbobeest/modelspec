@@ -45,8 +45,19 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from decision.computed import with_computed
-from decision.contract import CONTRACT_VERSION, DEFAULT_TASK_TOKENS, TaskType
+from decision.contract import (
+    CONTRACT_VERSION,
+    DEFAULT_TASK_TOKENS,
+    AllOf,
+    AnyOf,
+    Known,
+    NotOf,
+    TaskType,
+    parse_spec,
+)
+from decision.engine import decide
 from decision.filter import _INDEPENDENT as INDEPENDENT_MEASURERS
+from decision.templates import load_templates
 
 VOCABULARY_VERSION = 1
 MIN_FRONTIER_COVERAGE = 0.50
@@ -292,6 +303,57 @@ def _coverage(snapshot: Any, lineup: list[str], registry: Any) -> dict[str, Any]
     }
 
 
+def _condition_facet(condition: Any) -> str | None:
+    if isinstance(condition, (AnyOf, AllOf)):
+        children = condition.any if isinstance(condition, AnyOf) else condition.all
+        facets = {_condition_facet(child) for child in children}
+        return facets.pop() if len(facets) == 1 else None
+    if isinstance(condition, NotOf):
+        return _condition_facet(condition.not_)
+    return condition.known if isinstance(condition, Known) else condition.facet
+
+
+def _unavailable_reason(
+    decision: Any, funnel: Iterable[Any], template_id: str, registry: Any
+) -> str:
+    """Describe the decision stage that left a template without an answer."""
+    for step in funnel:
+        if step.after or step.may_qualify:
+            continue
+        facet_id = _condition_facet(step._condition)
+        facet = registry.facet(facet_id) if facet_id else None
+        subject = facet.subject if facet else "candidate"
+        label = facet.label if facet and facet.label else step.condition
+        if template_id == "eu-data" and facet_id == "offering.region":
+            label = "Inference region in the EU"
+        before = step.offerings_before if subject == "offering" else step.models_before
+        noun = subject if before == 1 else f"{subject}s"
+        return f"No {subject} passes: {label} — 0 of {before} {noun}"
+    if decision.relax_to:
+        change = decision.relax_to[0]
+        return f"No feasible result; relax {change.condition} to {change.relaxed}."
+    if decision.relax:
+        return f"No feasible result; relax {decision.relax[0]}."
+    return "No feasible result."
+
+
+def _template_rows(snapshot: Any, registry: Any) -> list[dict[str, Any]]:
+    """Templates plus answerability proven by the real decision engine."""
+    rows = []
+    for template in load_templates(registry=registry):
+        spec = parse_spec(template["spec"] | {"explain": "none"}, facets=registry.facet)
+        trace = []
+        decision = decide(spec, snapshot, facets=registry.facet, _filter_trace=trace.append)
+        available = bool(decision.results or decision.may_qualify)
+        rows.append(template | {
+            "available": available,
+            "unavailable_reason": None if available else _unavailable_reason(
+                decision, trace[0].funnel, template["id"], registry
+            ),
+        })
+    return rows
+
+
 def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | None = None,
                      registry: Any = None, cards: Mapping[str, Mapping[str, Any]] | None = None,
                      enforce_frontier_coverage: bool = False,
@@ -353,6 +415,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
             "default_benchmark": default,
             "benchmarks": [row["id"] for row in sorted(members, key=order)],
         })
+    coverage = _coverage(view, lineup, registry)
     return {
         "vocabulary_version": VOCABULARY_VERSION,
         "contract_version": CONTRACT_VERSION,
@@ -365,5 +428,6 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "domains": domains,
         "models": _model_rows(snapshot, cards or {}),
         "providers": {p.id: p.name for p in registry.providers()},
-        "coverage": _coverage(view, lineup, registry),
+        "coverage": coverage,
+        "templates": _template_rows(snapshot, registry),
     }

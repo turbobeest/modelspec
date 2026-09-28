@@ -62,6 +62,7 @@ SOURCES = {
     Path("decision/registry.py"): Path("decision/registry.py"),
     Path("decision/resolve.py"): Path("decision/resolve.py"),
     Path("decision/snapshot.py"): Path("decision/snapshot.py"),
+    Path("decision/templates.py"): Path("decision/templates.py"),
     Path("schema/__init__.py"): Path("schema/__init__.py"),
     Path("schema/applicability.py"): Path("schema/applicability.py"),
     Path("schema/card.py"): Path("schema/card.py"),
@@ -71,6 +72,7 @@ SOURCES = {
     Path("registry/harnesses.yaml"): Path("registry/harnesses.yaml"),
     Path("registry/providers.yaml"): Path("registry/providers.yaml"),
     Path("registry/sources.yaml"): Path("registry/sources.yaml"),
+    Path("registry/templates.yaml"): Path("registry/templates.yaml"),
 }
 
 GENERATED_ROOTS = {target.parts[0] for target in SOURCES.values()}
