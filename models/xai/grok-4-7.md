@@ -677,7 +677,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: xhigh;
@@ -690,9 +690,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:da76d3a70760439afe51f8ac9c2d7ff514a0b4147c7b898213209c1765a36c23
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: Grok 4.7
     score: 37.58
@@ -701,7 +702,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-21'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: Terminal-Bench 4.0
     configuration: 'tbench.ai leaderboard row read 2026-09-24: agent Grok Build (xAI), reasoning
       effort xhigh, 330 trials, accuracy 37.58 ± 3.54 (95% CI). The board''s row date is the
@@ -713,9 +714,10 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-143-evidence-terminal-bench-4-0-json
-      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      snapshot_ref: sha256:8f3ea52e3b0e7d6551437b3639827a863f56a14a3e96eb4aa51cfad56570b3a0
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: cursorbench_4
     model_id_as_evaluated: Grok 4.7 (xhigh)
     score: 46.3
@@ -724,7 +726,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-25'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: CursorBench 4.0
     configuration: Cursor's CursorBench 4.0 board read 2026-09-24 (tasks updated 2026-09-10
       per its changelog); the board states no row date, so the reading is dated by the observation.
@@ -736,9 +738,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-cursorbench
-      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      snapshot_ref: sha256:ab4947527a91a28c2407cefd32b05c5d5905a355ff624482d465138294e8f57b
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

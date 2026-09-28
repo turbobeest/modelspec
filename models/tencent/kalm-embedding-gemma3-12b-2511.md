@@ -677,7 +677,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-24'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: MTEB(Multilingual, v2), mean over tasks
     configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
       The JSON states no snapshot date, so the reading is dated by the observation.
@@ -688,9 +688,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-mteb-multilingual-v2-json
-      snapshot_ref: sha256:32f83871582a5ba431612365fb9728de9fb9d516c1c969ed188f4184c74de485
+      snapshot_ref: sha256:970508db7e8e67489ea1ef13584050bca9b74fcab3767846a2bc8e82e3cebbff
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
 deployment:
   api_only: false
   local_inference: true

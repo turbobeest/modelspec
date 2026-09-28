@@ -683,7 +683,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-13, read 2026-09-24. Rank 10, 4723 votes, interval [1480.91, 1498.57].
@@ -695,9 +695,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      snapshot_ref: sha256:84f5c0e5f35bfe7f93552e42c77c2bd2fb7d6ada69af3f7e33c760faed37ddf3
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_elo_vision
     model_id_as_evaluated: muse-spark-1.3-max
     score: 1314.56
@@ -706,7 +707,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: vision/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-13, read 2026-09-24. Rank 8, 1804 votes, interval [1299.74, 1329.38].
@@ -718,9 +719,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision
-      snapshot_ref: sha256:12075d19b12efd468a1bd4314619e07e2f44409bd500c3c2cb0ca3d2b813fa7b
+      snapshot_ref: sha256:fbfe21a53e5da854a416fe094e6891b5c2d0f282ea92676d72d4a0fee920e780
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_webdev
     model_id_as_evaluated: muse-spark-1.3-max
     score: 1658.22
@@ -729,7 +731,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: webdev/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-23, read 2026-09-24. Rank 10, 5342 votes, interval [1648.65, 1667.78].
@@ -741,9 +743,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:da76d3a70760439afe51f8ac9c2d7ff514a0b4147c7b898213209c1765a36c23
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_webdev
     model_id_as_evaluated: muse-spark-1.3 (xHigh)
     score: 1626.2
@@ -752,7 +755,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: webdev/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-23, read 2026-09-24. Rank 15, 4391 votes, interval [1616.13, 1636.27].
@@ -764,9 +767,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:da76d3a70760439afe51f8ac9c2d7ff514a0b4147c7b898213209c1765a36c23
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: cursorbench_4
     model_id_as_evaluated: Muse Spark 1.3
     score: 41.6
@@ -775,7 +779,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-25'
     date_type: evaluated
-    verified_at: '2026-09-25'
+    verified_at: '2026-09-28'
     benchmark_version: CursorBench 4.0
     configuration: Cursor's CursorBench 4.0 board read 2026-09-25; the board states no row date,
       so the reading is dated by the observation. Highest-effort row (max); $2.64 a task.
@@ -785,10 +789,11 @@ benchmarks:
     measured_by: benchmark_author
     sources:
     - source_id: model-160-cursorbench
-      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      snapshot_ref: sha256:ab4947527a91a28c2407cefd32b05c5d5905a355ff624482d465138294e8f57b
       cited_regions:
       - rows
     id: meta/muse-spark-1-3#cursorbench_4#6e9469c005d3
+    observed_at: '2026-09-28'
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

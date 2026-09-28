@@ -677,7 +677,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-24'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: MTEB(eng, v2), mean over tasks
     configuration: MTEB leaderboard backend JSON, benchmarkName MTEB(eng, v2), read
       2026-09-24. Score is meanTask times 100. The JSON has no per-row run date, so
@@ -688,10 +688,11 @@ benchmarks:
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-mteb-eng-v2-json
-      snapshot_ref: sha256:ac7d438631091bcea50b96c0f2e3e83741ad7903e14a2e051bae8d7e7260c583
+    - source_id: model-160-mteb-eng-v2
+      snapshot_ref: sha256:b8df34077fd7cc160f6c6ff2e6abf0d6144811f1c1a6b61e52c4eb78d778cd93
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: mteb_v2_retrieval
     model_id_as_evaluated: Kingsoft-LLM/QZhou-Embedding
     score: 67.12
@@ -700,7 +701,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-24'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: MTEB(eng, v2), Retrieval task type
     configuration: Same JSON read, field scoresByTaskType.Retrieval times 100. Dated
       by the day the board was read.
@@ -710,10 +711,11 @@ benchmarks:
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-mteb-eng-v2-json
-      snapshot_ref: sha256:ac7d438631091bcea50b96c0f2e3e83741ad7903e14a2e051bae8d7e7260c583
+    - source_id: model-160-mteb-eng-v2
+      snapshot_ref: sha256:b8df34077fd7cc160f6c6ff2e6abf0d6144811f1c1a6b61e52c4eb78d778cd93
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

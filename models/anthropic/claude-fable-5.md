@@ -676,7 +676,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -690,9 +690,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      snapshot_ref: sha256:4c99fd5665f6e5745aaaaff66731f8fc8b37659626ce55ed7dad2cc12c71d900
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: claude-fable-5
     score: 1552.39
@@ -701,7 +702,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -715,9 +716,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      snapshot_ref: sha256:323b53f5f53c709fd4e181dd59a928d7d275b38e6281c307648b293925fdc03b
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: claude-fable-5
     score: 1532.14
@@ -726,7 +728,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -740,9 +742,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      snapshot_ref: sha256:51050cf234ba130a5786cf4e32d6f650a87b263b8fff51209a9d1b820c22623a
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: claude-fable-5
     score: 1526.28
@@ -751,7 +754,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
       2026-09-13; style control. Highest-effort row for the product (effort: default; MODEL-123
@@ -764,9 +767,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      snapshot_ref: sha256:2eeb7c07a7bcabaff9ebc1f2f7ff4fe5f607018c9883b3260799cdd1999b5f44
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: claude-fable-5
     score: 1504.13
@@ -775,7 +779,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -789,9 +793,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      snapshot_ref: sha256:97f2b8d590973faf49c61a72be606d026673c083c685710b64aefa9325d4ecf0
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: claude-fable-5
     score: 1511.3
@@ -800,7 +805,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -814,9 +819,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      snapshot_ref: sha256:6eef3af9530f366da3d86f112c6ea9733c41ce956c31a47daf8e109a192979df
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: claude-fable-5
     score: 1517.56
@@ -825,7 +831,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -839,9 +845,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      snapshot_ref: sha256:526ccc1218e07be8833373ce5cf7fc27975914b534b86ac08acf9671b628f010
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: claude-fable-5
     score: 1548.48
@@ -850,7 +857,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -864,9 +871,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      snapshot_ref: sha256:699bca36a93bdf000da6c88fac3568822be06e294e5946cf96bfce5490501dd1
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: claude-fable-5
     score: 1521.41
@@ -875,7 +883,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -889,9 +897,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      snapshot_ref: sha256:2c60aa8ba40ed9a9480e56483d39f39162a294fc9ac295c92a6e760e8487ad7f
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: claude-fable-5
     score: 1495.98
@@ -900,7 +909,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -914,9 +923,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      snapshot_ref: sha256:27a96087822f82d920862b1d4b34ef12a91c320aa07746766c2b5f5869811103
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: claude-fable-5
     score: 1505.28
@@ -925,7 +935,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
       revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
@@ -940,9 +950,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      snapshot_ref: sha256:6764aac77322dc9383d4e194b9f28c571379b15d56349b7ce67e47bb38c8c20f
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: claude-fable-5
     score: 1512.36
@@ -951,7 +962,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
       1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
@@ -966,9 +977,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      snapshot_ref: sha256:49caeb2b4586b0222e12201bcc4dca0818f116d657be63f6dbd6542848aa3911
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: claude-fable-5
     score: 1501.64
@@ -977,7 +989,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
       latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
@@ -992,9 +1004,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      snapshot_ref: sha256:d9d4cce87afea54ca87c4146e654198a2eae110bf7495444ae555d3752ff68b6
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: claude-fable-5
     score: 1528.15
@@ -1003,7 +1016,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
@@ -1018,9 +1031,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      snapshot_ref: sha256:1bf06c413f0788c8679963f12858593c3785e34e8243794d3ebc85142e509727
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: claude-fable-5
     score: 1511.45
@@ -1029,7 +1043,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
@@ -1044,9 +1058,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      snapshot_ref: sha256:3593556c5bea46cf0f93c6d98c401c3f98aa3221eda056f983eed4428a7f7186
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: claude-fable-5
     score: 1309.5
@@ -1055,7 +1070,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -1069,9 +1084,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
+      snapshot_ref: sha256:f2d5b853db284762bd0dabbd65d0a53c0016aac654e96750e1d40398313ca3c6
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_webdev
     model_id_as_evaluated: claude-fable-5-high
     score: 1626.83
@@ -1080,7 +1096,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: high;
@@ -1093,9 +1109,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:da76d3a70760439afe51f8ac9c2d7ff514a0b4147c7b898213209c1765a36c23
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: claude-fable-5_max
     score: 85.86
@@ -1104,7 +1121,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-06'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: GPQA Diamond (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
       read 2026-09-24. Run started 2026-08-06T22:17:56.000Z; effort max; highest-effort run
@@ -1116,9 +1133,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      snapshot_ref: sha256:fd51bd49f0388b2be106166a662fc4f65e0d4158b4f230d615d4647e4b95fe59
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: claude-fable-5_max
     score: 87.02
@@ -1127,7 +1145,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-06-09'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
       read 2026-09-24. Run started 2026-06-09T18:12:35.000Z; effort max; highest-effort run
@@ -1139,9 +1157,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      snapshot_ref: sha256:d19dfd3736a2e103a7b1a6e3ca14ea4907d9756ddcaa92e36e0cfaf1eb7a448d
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: claude-fable-5_xhigh
     score: 70.7
@@ -1150,7 +1169,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-10'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
       prompt
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
@@ -1163,9 +1182,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      snapshot_ref: sha256:fadcdfcce8f8b9704c469aa69d5bfec2780cecd8211de5093faa390af730e7dc
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: frontiercode_v1_1
     model_id_as_evaluated: Fable 5
     score: 53.5
@@ -1174,7 +1194,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-25'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
     configuration: Board row as copied in Epoch AI's benchmark data (frontiercode_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort xhigh; the highest-effort
@@ -1187,9 +1207,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-frontiercode
-      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      snapshot_ref: sha256:62a9280a8be3ac6583e6b83dc7b916217bfc32be4ff00d12fae255fe2babf689
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Claude Fable 5 - Max
     score: 4966.64
@@ -1198,7 +1219,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-25'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
     configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort max; the highest-effort
@@ -1211,9 +1232,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-vending-bench-2
-      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      snapshot_ref: sha256:8724ee26281bff37eb4fe6af19bda2406b8d5fccdd4d54fdbfc44248b32ef12b
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: deepswe_v1_1
     model_id_as_evaluated: claude-fable-5 (max)
     score: 69.72
@@ -1222,7 +1244,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-25'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: DeepSWE v1.1, pass@1, mini-swe-agent
     configuration: Board row as copied in Epoch AI's benchmark data (deepswe_external.csv, https://epoch.ai/data/benchmark_data.zip),
       read 2026-09-24. Effort max; the highest-effort row for the model (MODEL-123 max-effort
@@ -1235,9 +1257,10 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-160-deepswe-v1-1
-      snapshot_ref: sha256:7fcc641eb55d3cfbc8429ea1ef26448ef44bb66772190ee69f8464958c0a79dc
+      snapshot_ref: sha256:64010fde30846107b5210ba17347a269780973bf71eb8ce9c1d316a353733156
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: Fable 5
     score: 44.55
@@ -1246,7 +1269,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-06-09'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: Terminal-Bench 4.0
     configuration: 'tbench.ai leaderboard row read 2026-09-24: agent Claude Code (Anthropic),
       reasoning effort max, 330 trials, accuracy 44.55 ± 3.85 (95% CI). The board''s row date
@@ -1258,9 +1281,10 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-143-evidence-terminal-bench-4-0-json
-      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      snapshot_ref: sha256:8f3ea52e3b0e7d6551437b3639827a863f56a14a3e96eb4aa51cfad56570b3a0
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: tau3_banking
     model_id_as_evaluated: Claude Fable 5 (max)
     score: 39.69
@@ -1269,7 +1293,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-07-23'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: τ-Knowledge τ-Banking (banking_knowledge), pass^1
     configuration: τ-bench leaderboard submission claude-fable-5_sierra_2026-08-04, submitted
       by Sierra; retrieval config alltools; reasoning effort max; user simulator gpt-5.2; tau2-bench
@@ -1282,9 +1306,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-tau-bench-claude-fable-5-sierra-2026-08-04
-      snapshot_ref: sha256:48cd62ae6ca1b65e6c089c7748433bcca36f1efd0ace4d2661ec132c02a10c5f
+      snapshot_ref: sha256:0f4733d163f83d09511b883ca4c8def8279e5d2e1742b7b383a3c3f8c76795c9
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

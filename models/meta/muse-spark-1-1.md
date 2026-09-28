@@ -683,7 +683,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-13, read 2026-09-24. Rank 15, 27615 votes, interval [1475.35, 1485.0].
@@ -695,9 +695,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      snapshot_ref: sha256:84f5c0e5f35bfe7f93552e42c77c2bd2fb7d6ada69af3f7e33c760faed37ddf3
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_elo_vision
     model_id_as_evaluated: muse-spark-1.1
     score: 1294.16
@@ -706,7 +707,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: vision/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-13, read 2026-09-24. Rank 21, 8447 votes, interval [1286.17, 1302.16].
@@ -718,9 +719,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision
-      snapshot_ref: sha256:12075d19b12efd468a1bd4314619e07e2f44409bd500c3c2cb0ca3d2b813fa7b
+      snapshot_ref: sha256:fbfe21a53e5da854a416fe094e6891b5c2d0f282ea92676d72d4a0fee920e780
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_webdev
     model_id_as_evaluated: muse-spark-1.1
     score: 1542.36
@@ -729,7 +731,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: webdev/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-23, read 2026-09-24. Rank 32, 7521 votes, interval [1534.53, 1550.19].
@@ -741,9 +743,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:da76d3a70760439afe51f8ac9c2d7ff514a0b4147c7b898213209c1765a36c23
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: swe_bench_pro
     model_id_as_evaluated: Muse Spark 1.1*
     score: 61.5
@@ -752,7 +755,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-07-09'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: SWE-Bench Pro, public dataset
     configuration: Public-dataset row on the Scale Labs page, read 2026-09-24. Resolve
       rate 61.5, confidence interval upper 3.1, rank 1, createdAt 2026-07-09. The
@@ -765,9 +768,10 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-160-scale-swe-bench-pro-public
-      snapshot_ref: sha256:b0df5d5cbc6fd2c3925e740d0379f6570e00d58b98ca576c8141e6af67dc0666
+      snapshot_ref: sha256:14fdfe38bbc5967b3b624cba2e3b371d49c66ee6fe8b504737de519e92ed08ed
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
