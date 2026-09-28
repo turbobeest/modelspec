@@ -76,6 +76,8 @@ def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
     assert 'cd "$(mktemp -d)"' in commands
     assert "modelspec vocab" in commands
     assert "modelspec snapshot fetch" in commands
+    assert "scripts/package_smoke_fixture.py" in commands
+    assert "--key-id test-package-smoke" in commands
     assert "modelspec decide --template budget-coding" in commands
     assert "modelspec verify --help" in commands
     assert "modelspec verify accuracy --profile pr --config /nonexistent" in commands

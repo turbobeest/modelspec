@@ -154,6 +154,7 @@ jobs:
           assert not ({'docs', 'models', 'tests', 'web'} & roots)"
       - name: Install and run the wheel outside the checkout
         run: |
+          repo_root="$PWD"
           wheel="$(realpath dist/*.whl)"
           venv="$RUNNER_TEMP/modelspec-package-venv"
           python -m venv "$venv"
@@ -171,6 +172,8 @@ jobs:
           fi
           grep -Fq "No such command 'accuracy'" verify-accuracy.txt
           modelspec snapshot fetch
+          "$venv/bin/python" "$repo_root/scripts/package_smoke_fixture.py" \
+            --cache "$MODELSPEC_CACHE" --key-id test-package-smoke
           modelspec vocab >/dev/null
           modelspec decide --template budget-coding >/dev/null
           python -c "from decision.registry import default; assert default().facets()"
