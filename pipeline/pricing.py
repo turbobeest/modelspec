@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from pipeline import brand
+from pipeline import worker_flags
 from pipeline.export import Build
 
 TIERS_REL = Path("api/worker/tiers.json")
@@ -54,6 +55,11 @@ def _buy_form(price_id: str, kind: str) -> str:
             f'<button type="submit">{label}</button></form>')
 
 
+def _product_label(product: dict[str, Any]) -> str:
+    name = html.escape(product["name"])
+    return f"{name} plan" if product["kind"] == "plan" else name
+
+
 def x402_is_live(enabled: bool, mainnet: bool) -> bool:
     """Return whether the pricing page may present production x402 payments."""
     return enabled and mainnet
@@ -96,7 +102,7 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
     cheapest = min(prices.values(), key=lambda row: row["usd"] / row["credits"])
     best_rate = cheapest["usd"] / cheapest["credits"]
     highest_rate = max(row["usd"] / row["credits"] for row in prices.values())
-    cheapest_name = html.escape(cheapest["name"])
+    cheapest_label = _product_label(cheapest)
     network_name = html.escape(NETWORK_NAMES.get(x402_network, x402_network))
     form = _buy_form if billing_live else lambda _price_id, _kind: ""
 
@@ -126,10 +132,10 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
     hero_rate = (f'<div><strong>{_rate(best_rate)}</strong><b>to {_rate(per_call)}</b></div>'
                  if x402_live else
                  f'<div><strong>{_rate(best_rate)}–{_rate(highest_rate)}</strong></div>')
-    hero_detail = (f"One credit. The low end is the {cheapest_name} plan's rate; the high end "
+    hero_detail = (f"One credit. The low end is the {cheapest_label}'s rate; the high end "
                    "is paying per call with no account. A full explanation costs two credits."
                    if x402_live else
-                   f"One credit. The low end is the {cheapest_name} plan's rate; the range "
+                   f"One credit. The low end is the {cheapest_label}'s rate; the range "
                    "covers the plans and packs below. A full explanation costs two credits.")
     agents_panel = f'''<div class="card agents-card" id="agents"><h2>Or let your agents pay as they go</h2><p>No account, no key, no human in the loop. The API answers an unpaid request with HTTP 402 and a price; the agent pays in USDC over x402 and gets its answer in the same exchange.</p><div class="exchange"><div><i>→</i> POST api.modelspec.dev/v1/decide</div><div><em>←</em> 402 Payment Required <span>· 1 credit · {_rate(per_call)} USDC</span></div><div><i>→</i> retry with PAYMENT-SIGNATURE <span>· settled on {network_name}</span></div><div><mark>←</mark> 200 OK <span>· the ranked answer, and a receipt</span></div></div><ul><li>A keyless call costs {_rate(per_call)} a credit, times the answer's weight.</li><li>A keyed agent whose balance runs out is offered the same {len(packs)} packs, paid in USDC. They land in the key's pack balance.</li><li>A per-call payment is settled before the answer is produced; if the service then fails, that payment isn't refunded automatically.</li></ul><div class="endpoints"><span>Point your agent at either endpoint:</span><code>POST {DECIDE_ENDPOINT}\nMCP  {MCP_ENDPOINT}</code></div></div>''' if x402_live else ""
     return f'''<!doctype html>
@@ -150,14 +156,16 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
 
 def write(tree: Path, root: Path, build: Build,
           base: str = "https://modelspec.dev") -> dict[str, Any]:
-    from api.worker import openapi
-
     out = Path(tree) / PAGE_PATH
     out.parent.mkdir(parents=True, exist_ok=True)
-    x402_live = x402_is_live(openapi.x402_enabled(), openapi.x402_mainnet_enabled())
+    variables = worker_flags.production_vars(root)
+    x402_live = x402_is_live(worker_flags.enabled(variables, "X402_ENABLED"),
+                             worker_flags.enabled(variables, "X402_MAINNET"))
     out.write_text(page(load_tiers(root), build=build, base=base,
-                        billing_live=openapi.billing_enabled(), x402_live=x402_live,
-                        x402_network=openapi.x402_network()), encoding="utf-8")
+                        billing_live=worker_flags.enabled(variables, "BILLING_ENABLED"),
+                        x402_live=x402_live,
+                        x402_network=str(variables.get("X402_NETWORK", "eip155:84532"))),
+                   encoding="utf-8")
     assets = Path(tree) / ASSET_DIR
     assets.mkdir(parents=True, exist_ok=True)
     source = Path(__file__).resolve().parent / "pricing_assets"

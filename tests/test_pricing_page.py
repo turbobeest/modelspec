@@ -7,7 +7,7 @@ import re
 from datetime import date
 from pathlib import Path
 
-from pipeline import pricing
+from pipeline import pricing, worker_flags
 from pipeline.export import Build
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -97,6 +97,24 @@ def test_price_changes_need_no_page_code_change() -> None:
     assert {"credits": 8, "usd": 3, "name": tiers["billing"]["prices"][price_id]["name"]} in _payload(html)["plans"]
 
 
+def test_hero_names_the_cheapest_product_kind_and_matches_the_shown_rates() -> None:
+    tiers = json.loads(TIERS_PATH.read_text())
+    prices = list(tiers["billing"]["prices"].values())
+    rates = [row["usd"] / row["credits"] for row in prices]
+    cheapest = min(prices, key=lambda row: row["usd"] / row["credits"])
+    html = _page(tiers, x402_live=False)
+    assert "the Team plan's rate" in html
+    assert f"{pricing._rate(min(rates))}–{pricing._rate(max(rates))}" in html
+    assert cheapest["kind"] == "plan"
+
+    pack = next(row for row in prices if row["kind"] == "pack")
+    pack["usd"] = 1
+    pack["credits"] = 100_000
+    html = _page(tiers, x402_live=False)
+    assert f"the {pack['name']}'s rate" in html
+    assert "pack plan's rate" not in html
+
+
 def test_honesty_contracts_match_cli_billing_and_legal_docs() -> None:
     html = _page()
     assert "offline CLI cost nothing" in html
@@ -152,11 +170,10 @@ def test_endpoints_contact_and_no_third_party_assets() -> None:
 
 
 def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
-    from api.worker import openapi
-
-    assert openapi.billing_enabled() is False
-    assert openapi.x402_enabled() is False
-    assert openapi.x402_mainnet_enabled() is False
+    variables = worker_flags.production_vars(REPO_ROOT)
+    assert worker_flags.enabled(variables, "BILLING_ENABLED") is False
+    assert worker_flags.enabled(variables, "X402_ENABLED") is False
+    assert worker_flags.enabled(variables, "X402_MAINNET") is False
     pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text()
     assert "<form" not in html
@@ -189,14 +206,33 @@ def test_billing_and_x402_render_independently() -> None:
 
 
 def test_x402_requires_mainnet_before_the_page_presents_it() -> None:
-    from api.worker import openapi
-
     for enabled, mainnet in ((False, False), (False, True), (True, False), (True, True)):
         live = pricing.x402_is_live(enabled, mainnet)
         html = _page(x402_live=live, x402_network="eip155:8453")
         assert live is (enabled and mainnet)
         assert ("Or let your agents pay as they go" in html) is live
-    assert openapi.x402_network() == "eip155:84532"
+    assert worker_flags.production_vars(REPO_ROOT)["X402_NETWORK"] == "eip155:84532"
+
+
+def test_worker_flags_read_only_top_level_production_vars(tmp_path: Path) -> None:
+    path = tmp_path / worker_flags.WRANGLER_REL
+    path.parent.mkdir(parents=True)
+    path.write_text('''{
+      "env": {"staging": {"vars": {"X402_ENABLED": "true"}}},
+      /* production follows staging on purpose */
+      "vars": {"X402_ENABLED": "false", "BILLING_ENABLED": "true",},
+    }''')
+    variables = worker_flags.production_vars(tmp_path)
+    assert worker_flags.enabled(variables, "X402_ENABLED") is False
+    assert worker_flags.enabled(variables, "BILLING_ENABLED") is True
+    assert worker_flags.enabled(variables, "X402_MAINNET") is False
+
+
+def test_worker_flag_off_spellings_match_the_worker() -> None:
+    for value in ("0", "no", "off", "", "false", " FALSE "):
+        assert worker_flags.enabled({"FLAG": value}, "FLAG") is False
+    assert worker_flags.enabled({}, "FLAG") is False
+    assert worker_flags.enabled({"FLAG": "yes"}, "FLAG") is True
 
 
 def test_x402_copy_names_the_configured_network() -> None:
