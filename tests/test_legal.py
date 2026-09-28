@@ -608,7 +608,8 @@ def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
 
     model = landing_page.PlotModel("model", "Model", .1, 1, 0, 2, True)
     data = landing_page.LandingData(
-        "2026-09-27", 1, (model,), "model", "model", 1, 1000, 1000, 0, (),
+        "2026-09-27", 1, 40_000, 4_000, 10_000, (model,), "model", "model", 1,
+        1000, 1000, 0, (), 0,
         landing_page._plot_axes([model]),
     )
     footer = landing_page.render(data, variant="live").split("<footer>", 1)[1]

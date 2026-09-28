@@ -237,7 +237,8 @@ def test_the_landing_page_links_to_the_site() -> None:
 
     model = landing.PlotModel("model", "Model", .1, 1, 0, 2, True)
     data = landing.LandingData(
-        "2026-09-27", 1, (model,), "model", "model", 1, 1000, 1000, 0, (),
+        "2026-09-27", 1, 40_000, 4_000, 10_000, (model,), "model", "model", 1,
+        1000, 1000, 0, (), 0,
         landing._plot_axes([model]),
     )
     html = landing.render(data, variant="live")

@@ -16,6 +16,10 @@
   const cheapest = data.models.find((model) => model.id === data.cheapest_id);
   const tiedOthers = data.models.filter((model) => model.tied).length - 1;
   const money = (value) => `$${value.toFixed(3)}`;
+  const compactCount = (value) =>
+    value >= 1000 && value % 1000 === 0
+      ? `${value / 1000}K`
+      : value.toLocaleString();
   const priceTick = (value) => {
     const decimals = Math.max(0, -Math.floor(Math.log10(value)) + 1);
     return `$${value.toFixed(decimals)}`;
@@ -103,7 +107,7 @@
           "font-size": 13,
           "text-anchor": "middle",
         },
-        "cost per coding task (40K tokens in, 4K out)",
+        `cost per coding task (${compactCount(data.task_input_tokens)} tokens in, ${compactCount(data.task_output_tokens)} out)`,
       ),
       el(
         "text",
@@ -230,12 +234,12 @@
       (row) => row.id === document.getElementById("model-pick").value,
     );
     const tie = model.tied ? "is in" : "is not in";
-    const difference = (model.cost - cheapest.cost) * 10000;
+    const difference = (model.cost - cheapest.cost) * data.monthly_tasks;
     const relation =
       difference === 0
         ? "has the same monthly cost as"
         : `${difference < 0 ? "saves" : "costs"} $${Math.abs(difference).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${difference < 0 ? "against" : "more than"}`;
     document.getElementById("pick-result").textContent =
-      `${model.name} ${tie} the tie with the top estimate. It costs ${money(model.cost)} per task. At 10,000 tasks, it ${relation} the cheapest tied model, ${cheapest.name}.`;
+      `${model.name} ${tie} the tie with the top estimate. It costs ${money(model.cost)} per task. At ${data.monthly_tasks.toLocaleString()} tasks, it ${relation} the cheapest tied model, ${cheapest.name}.`;
   });
 })();

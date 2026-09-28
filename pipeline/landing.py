@@ -69,6 +69,9 @@ class PlotAxes:
 class LandingData:
     as_of: str
     benchmark_count: int
+    task_input_tokens: int
+    task_output_tokens: int
+    monthly_tasks: int
     models: tuple[PlotModel, ...]
     leader_id: str
     cheapest_id: str
@@ -77,6 +80,7 @@ class LandingData:
     cheapest_monthly: float
     monthly_gap: float
     routes: tuple[TemplateRoute, ...]
+    template_count: int
     axes: PlotAxes
 
     @property
@@ -213,13 +217,16 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
     cheapest = min(tie, key=lambda model: (model.cost, -model.estimate, model.id))
 
     registry = default()
+    templates = load_templates(registry=registry)
     routes: list[TemplateRoute] = []
-    for template in load_templates(registry=registry):
+    template_count = 0
+    for template in templates:
         spec = parse_spec(template["spec"] | {"explain": "none", "limit": 1},
                           facets=registry.facet)
         answer = decide(spec, loaded, facets=registry.facet)
         if not answer.results:
             continue
+        template_count += 1
         result = answer.results[0]
         candidate = _offering_id(result)
         task_view = with_computed(loaded, spec.task_tokens or DEFAULT_TASK_TOKENS)
@@ -242,6 +249,9 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
             for item in loaded.capability_items.values()
             if any(domain == SOFTWARE_ENGINEERING for domain, _ in item.get("domains", ()))
         }),
+        task_input_tokens=DEFAULT_TASK_TOKENS.input,
+        task_output_tokens=DEFAULT_TASK_TOKENS.output,
+        monthly_tasks=MONTHLY_TASKS,
         models=tuple(sorted(rows, key=lambda model: model.id)),
         leader_id=leader.id,
         cheapest_id=cheapest.id,
@@ -250,6 +260,7 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
         cheapest_monthly=cheapest_monthly,
         monthly_gap=leader_monthly - cheapest_monthly,
         routes=tuple(routes),
+        template_count=template_count,
         axes=_plot_axes(rows),
     )
 
@@ -279,6 +290,12 @@ def build_data(root_value: str, as_of: date) -> LandingData:
 
 def _money(value: float, decimals: int = 0) -> str:
     return f"${value:,.{decimals}f}"
+
+
+def _compact_count(value: int) -> str:
+    if value >= 1_000 and value % 1_000 == 0:
+        return f"{value // 1_000}K"
+    return f"{value:,}"
 
 
 def _logo() -> str:
@@ -315,6 +332,8 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
     )
     payload = json.dumps(asdict(data), separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
     date_label = date.fromisoformat(data.as_of).strftime("%-d %B %Y")
+    task_label = (f"{_compact_count(data.task_input_tokens)} in / "
+                  f"{_compact_count(data.task_output_tokens)} out")
     trust_source = (
         '<h3>Every number is one click from its source.</h3><p>Which benchmark, which date, '
         "who ran it. Independent results sit beside the lab's own claims, and each is labelled.</p>"
@@ -336,16 +355,16 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <svg id="plot" viewBox="0 0 680 560" role="img" aria-label="{html.escape(cheapest.name)} is in the tie at {_money(cheapest.cost, 3)} a task: {data.ratio:.1f}× less."></svg>
 <figcaption id="plot-caption"></figcaption></figure></section>
 <section class="receipt" id="receipt"><div><h2><span class="desktop-only">Same job. </span>Tied on the evidence. {_money(data.monthly_gap)} a month apart.</h2>
-<p>{html.escape(leader.name)} and {html.escape(cheapest.name)} both qualify for a budget coding agent, and their coding estimates overlap. The evidence can't say one is better. At {MONTHLY_TASKS:,} tasks a month, one costs {_money(data.leader_monthly)}. The other costs {_money(data.cheapest_monthly)}.</p>
+<p>{html.escape(leader.name)} and {html.escape(cheapest.name)} both qualify for a budget coding agent, and their coding estimates overlap. The evidence can't say one is better. At {data.monthly_tasks:,} tasks a month, one costs {_money(data.leader_monthly)}. The other costs {_money(data.cheapest_monthly)}.</p>
 <p class="note">Published prices, {date_label} snapshot. Your token counts change the numbers, and the board does the arithmetic in the open.</p></div>
-<div class="paper"><b>One month of coding tasks</b><span>{MONTHLY_TASKS:,} tasks · 40K in / 4K out</span><hr>
-<div><span>{html.escape(leader.name)}</span><span>{_money(data.leader_monthly, 2)}</span></div><small>{_money(leader.cost, 3)} × {MONTHLY_TASKS:,}</small>
-<div><span>{html.escape(cheapest.name)}</span><span>{_money(data.cheapest_monthly, 2)}</span></div><small>{_money(cheapest.cost, 3)} × {MONTHLY_TASKS:,}</small><hr>
+<div class="paper"><b>One month of coding tasks</b><span>{data.monthly_tasks:,} tasks · {task_label}</span><hr>
+<div><span>{html.escape(leader.name)}</span><span>{_money(data.leader_monthly, 2)}</span></div><small>{_money(leader.cost, 3)} × {data.monthly_tasks:,}</small>
+<div><span>{html.escape(cheapest.name)}</span><span>{_money(data.cheapest_monthly, 2)}</span></div><small>{_money(cheapest.cost, 3)} × {data.monthly_tasks:,}</small><hr>
 <div><b>Difference</b><b>{_money(data.monthly_gap, 2)}</b></div><div class="green"><span>Evidence separates them?</span><span>No</span></div></div></section>
 <section class="agents" id="agents"><div><h2>Your agents pick a model thousands of times a day.</h2>
 <p><span class="desktop-only">Most pick the same expensive one every time, because someone hard-coded it last quarter. Give them the board as a command. One offline call per task picks the model that fits that task, explains why, and gives the same answer every time for the same facts.</span><span class="mobile-only">Give them the board as a command. One offline call per task, explained, and the same answer every time for the same facts.</span></p>
 <div class="install-row">{install}<a href="{guide_href}">Read the agent guide</a></div><p class="note">Also as an API, and as an MCP server your agent platform can call.</p></div>
-<div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>top result per template with a published price</span></div></div></div></section>
+<div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>{len(data.routes)} of {data.template_count} templates · the others' top result has no published price</span></div></div></div></section>
 <section class="challenge" id="pick-a-model"><h2>Think you know the best coding model?</h2><form id="pick-form"><label for="model-pick"><span class="desktop-only">Put your pick on the board. See exactly where it lands, and why.</span><span class="mobile-only">Put your pick on the board and see where it lands.</span></label><div><select id="model-pick">{options}</select><button type="submit">Check my pick</button></div><output id="pick-result" aria-live="polite">Choose a model to compare with the top estimate.</output></form></section>
 <section class="trust"><div>{trust_source}</div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p></div></section></main>
 <footer><span>© Sparks and Sawdust LLC</span><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>

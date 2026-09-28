@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from decision.computed import COST_PER_TASK, with_computed
-from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
+from decision.contract import DEFAULT_TASK_TOKENS, TaskTokens, parse_spec
 from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_snapshot_bytes
@@ -64,6 +64,7 @@ def test_landing_sources_contain_no_catalogue_name_or_price_literal(
         assert all(model.name not in source for source in sources)
         assert all(f"${model.cost:.3f}" not in source for source in sources)
     assert not re.search(r"\$\s*\d", "\n".join(sources[1:]))
+    assert not re.search(r"(?i)\b(?:40\s*k|4\s*k|10[_ ,]?000)\b", "\n".join(sources))
 
 
 def test_every_published_template_route_is_an_engine_result(data: landing.LandingData) -> None:
@@ -90,9 +91,38 @@ def test_every_published_template_route_is_an_engine_result(data: landing.Landin
                          cards[result.offering.model].display_name, computed.value))
 
     assert [(route.id, route.name, route.model, route.cost) for route in data.routes] == expected
+    assert data.template_count == len(expected) + len(unpriced_results)
+    # Round 2 deliberately omitted a template whose top result has no computed cost.
+    # Round 3 keeps that decision and requires the terminal to disclose the omission.
     assert "retrieval-embeddings" in unpriced_results
     assert "retrieval-embeddings" not in {route.id for route in data.routes}
     assert all(route.cost is not None for route in data.routes)
+    page = landing.render(data, variant="live")
+    assert (f"{len(data.routes)} of {data.template_count} templates · "
+            "the others' top result has no published price") in page
+
+
+def test_scenario_values_flow_from_landing_data_to_every_display(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(landing, "DEFAULT_TASK_TOKENS", TaskTokens(input=12_000, output=3_000))
+    monkeypatch.setattr(landing, "MONTHLY_TASKS", 4_321)
+    changed = landing._build_data(str(ROOT), date.today(), "scenario-values-round-3")
+    page = landing.render(changed, variant="live")
+    script = (ROOT / "pipeline/landing_assets/landing.js").read_text(encoding="utf-8")
+
+    assert page.count("4,321") == 4
+    assert "12K in / 3K out" in page
+    assert '"task_input_tokens":12000' in page
+    assert '"task_output_tokens":3000' in page
+    assert '"monthly_tasks":4321' in page
+    assert changed.leader_monthly == changed.leader.cost * changed.monthly_tasks
+    assert changed.cheapest_monthly == changed.cheapest.cost * changed.monthly_tasks
+    assert "10,000" not in page
+    assert "40K in / 4K out" not in page
+    assert "compactCount(data.task_input_tokens)" in script
+    assert "compactCount(data.task_output_tokens)" in script
+    assert script.count("data.monthly_tasks") == 2
 
 
 def test_plot_domains_and_ticks_are_derived_from_the_models() -> None:
@@ -140,7 +170,8 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert "Every number has a source." in holding
     assert "When the board opens, each one is a click away." in holding
     assert "Every number is one click from its source." not in holding
-    footer = "top result per template with a published price"
+    footer = (f"{len(data.routes)} of {data.template_count} templates · "
+              "the others' top result has no published price")
     assert footer in live and footer in holding
 
 
