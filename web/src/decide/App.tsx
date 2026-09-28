@@ -310,7 +310,7 @@ export function DesignedApp({
         used &&
         cause instanceof DecideApiError &&
         cause.status === 400 &&
-        (requestHadRefinementWeights || cause.code === "refinement_not_rankable_yet")
+        requestHadRefinementWeights
       ) {
         const folded = foldRefinementWeights(requested, used);
         const fallbackVocabulary = used;

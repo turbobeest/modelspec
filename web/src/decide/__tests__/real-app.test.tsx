@@ -248,6 +248,22 @@ it("does not retry an invalid spec that carried no refinement weights", async ()
   expect(decisionRequests).toBe(1);
 });
 
+it("does not retry the legacy refinement code on a spec that carried no refinement weights", async () => {
+  let decisionRequests = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: () => {
+      decisionRequests += 1;
+      return json({ error: { code: "refinement_not_rankable_yet", message: "Refinements are not ranked yet.", issues: [] } }, 400);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+
+  expect(await screen.findByText("Decision unavailable (refinement_not_rankable_yet).")).toBeInTheDocument();
+  expect(decisionRequests).toBe(1);
+});
+
 it("tries the refinement fold-back only once", async () => {
   let rejectedRefinement = false;
   const fetch = routeFetch({
