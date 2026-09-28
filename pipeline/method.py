@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import gzip
 import html
 import json
 from dataclasses import dataclass
@@ -10,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from api.ranking.engine import neutrality_commitment
+from decision.snapshot import SnapshotIntegrityError, load_public_keys, load_snapshot_bytes
 from pipeline import brand, landing_chrome
 from pipeline.landing import LandingData
 
@@ -22,8 +22,7 @@ GH_TREE = "https://github.com/turbobeest/modelspec/tree/main/"
 
 
 def load_key_ids(root: Path) -> tuple[str, ...]:
-    raw = json.loads((root / KEYS_REL).read_text(encoding="utf-8"))
-    return tuple(str(key["key_id"]) for key in raw.get("keys", ()))
+    return tuple(load_public_keys(root / KEYS_REL))
 
 
 @dataclass(frozen=True)
@@ -33,19 +32,19 @@ class SigningState:
 
 
 def load_signing_state(tree: Path, root: Path) -> SigningState:
-    key_ids = load_key_ids(root)
+    """Report a signature only when the CLI's own verifier accepts the built snapshot."""
+    public_keys = load_public_keys(root / KEYS_REL)
+    key_ids = tuple(public_keys)
     snapshot = tree / SNAPSHOT_REL
-    signed_key_id = None
-    if snapshot.is_file():
-        envelope = json.loads(gzip.decompress(snapshot.read_bytes()))
-        signed_key_id = next(
-            (str(signature.get("key_id")) for signature in envelope.get("signatures", ())
-             if isinstance(signature, dict)
-             and signature.get("alg") == "ed25519"
-             and signature.get("key_id") in key_ids),
-            None,
+    if not (public_keys and snapshot.is_file()):
+        return SigningState(key_ids, None)
+    try:
+        loaded = load_snapshot_bytes(
+            snapshot.read_bytes(), key=None, public_keys=public_keys, source=str(snapshot),
         )
-    return SigningState(key_ids, signed_key_id)
+    except SnapshotIntegrityError:
+        return SigningState(key_ids, None)
+    return SigningState(key_ids, loaded.signature_key_id if loaded.signature_verified else None)
 
 
 def _sources(rows: tuple[tuple[str, str, str], ...]) -> str:
@@ -77,7 +76,7 @@ def _tie_plot(data: LandingData) -> str:
                  f'cy="{y}" r="6" fill="{colour}"/><text class="status" x="730" '
                  f'y="{y + 5}" fill="{colour}">{status}</text>')
     line = sx(data.leader.low)
-    label = f"Real capability ranges. {len(data.tie) - 1} other models overlap the leader."
+    label = f"Real capability ranges. {len(data.tie) - 1} other models overlap the top estimate's range."
     return (f'<svg class="tie-plot" viewBox="0 0 772 420" role="img" aria-label="{label}">'
             '<rect width="772" height="420" rx="6"/><line class="axis-y" x1="150" y1="24" x2="150" y2="370"/>'
             '<line class="axis-x" x1="150" y1="370" x2="752" y2="370"/>'
@@ -89,24 +88,23 @@ def _tie_plot(data: LandingData) -> str:
 def _signing(signing: SigningState) -> str:
     if signing.signed_key_id:
         key_id = html.escape(signing.signed_key_id)
-        state = (f"<p>This snapshot is Ed25519-signed with published key ID "
-                 f"<code>{key_id}</code>.</p><p>Run <code>modelspec snapshot fetch</code> "
-                 "to download the snapshot and verify its signature.</p>")
-        verified = "true"
-    elif signing.published_key_ids:
+        return ('<div class="terminal"><span>reproduce a decision, offline</span><pre>'
+                '<b>$</b> modelspec snapshot fetch\n<b>$</b> modelspec decide spec.yaml --json\n'
+                '  "snapshot": "[SNAPSHOT ID]",\n  "spec_hash": "sha256:[SPEC HASH]",\n'
+                '  "signature_verified": true</pre></div><div class="key">'
+                f'<h3>Public signing key</h3><p>This snapshot is Ed25519-signed with published '
+                f'key ID <code>{key_id}</code>. The signature was verified when this page was '
+                'built, with the same check the CLI runs.</p><p>Run <code>modelspec snapshot '
+                'fetch</code> to download the snapshot and verify its signature yourself.</p>'
+                '<p>The content hash is checked separately.</p></div>')
+    if signing.published_key_ids:
         ids = ", ".join(f"<code>{html.escape(key_id)}</code>"
                         for key_id in signing.published_key_ids)
-        state = (f"<p>A public signing key is published (id {ids}); this snapshot is not yet "
+        state = (f"<p>A public signing key is published (id {ids}); this snapshot is not "
                  "signed with it. Signing key being re-issued.</p>")
-        verified = "false"
     else:
         state = "<p><strong>Signing key being re-issued.</strong></p>"
-        verified = "false"
-    return (f'<div class="terminal"><span>reproduce a decision, offline</span><pre>'
-            '<b>$</b> modelspec snapshot fetch\n<b>$</b> modelspec decide spec.yaml --json\n'
-            '  "snapshot": "[SNAPSHOT ID]",\n  "spec_hash": "sha256:[SPEC HASH]",\n'
-            f'  "signature_verified": {verified}</pre></div><div class="key">'
-            f'<h3>Public signing key</h3>{state}<p>The content hash is checked separately.</p></div>')
+    return f'<div class="key"><h3>Public signing key</h3>{state}</div>'
 
 
 def _section(section_id: str, number: str, title: str, lede: str,
@@ -169,16 +167,19 @@ def page(data: LandingData, signing: SigningState) -> str:
         ("decision/capability.py", "fit_capabilities(): the fit itself", ""),
         ("docs/design/capability-model.md", "why this model, and its rules", ""),
         ("docs/validation/capability-model.md", "the held-out test report", "")))
-    tie_rules = ('<div class="rule-grid"><article><h3>Every overlapping row is flagged</h3>'
-                 '<p>It carries the warning <code>not_separable</code>, and the board names the '
-                 'models the evidence cannot separate. The API keeps a stable transport order '
+    tie_rules = ('<div class="rule-grid"><article><h3>Overlap with any other model</h3>'
+                 '<p>A row is flagged <code>not_separable</code> when its range overlaps the '
+                 'range of any other model in the domain being ranked, not only the leader\'s. '
+                 'Two models can be told apart from the leader and still not from each other. '
+                 'The board names the models the evidence cannot separate. The API keeps a stable transport order '
                  'so a list can travel. Read the flag before the rank.</p></article>'
                  '<article><h3>Inside a tie, choose on something else</h3><p>Ability cannot split '
                  'a tied group. Price, context, licence and the other facets you set can, and '
                  'the board shows them for every row.</p></article></div>')
     ties = (f'<figure>{_tie_plot(data)}<figcaption>{tied} of the other '
             f'{len(data.models) - 1} models reach {html.escape(data.leader.name)}\'s lower bound. '
-            f'Of those tied models, {html.escape(data.cheapest.name)} is cheapest.</figcaption></figure>'
+            f'That is the front-page figure, counted against the top estimate only. '
+            f'Of those, {html.escape(data.cheapest.name)} is cheapest.</figcaption></figure>'
             + tie_rules
             + _sources((("decision/engine.py", "where not_separable is set", ""),
                         ("decision/capability.py", "deterministic_probabilities()", ""),
@@ -234,7 +235,7 @@ def page(data: LandingData, signing: SigningState) -> str:
     sections = (
         _section("evidence", "1 · Where evidence comes from", "Every number starts as a sourced, checked record.", "A value with no source never reaches a decision. Neither does one that only its collector has checked.", evidence, theme="dark")
         + _section("estimate", "2 · The capability estimate", "Ability is estimated per domain, from every benchmark we hold.", "There is no fixed benchmark list and no hand-set weight. Every admitted benchmark with at least two model observations counts, and nobody picks favourites. One leaderboard is one reading, and readings disagree. The estimate uses all of them, and says how sure it is.", estimate, theme="light")
-        + _section("ties", "3 · Ties", "Why the #1 is often a tie.", "Every estimate is a range. When a model's range reaches into the leader's, the evidence can't say which is better, so the page doesn't pretend to.", '<pre>range = estimate ± 1.2816 × sd\ntie   = C.high ≥ L.low</pre>' + ties, theme="dark")
+        + _section("ties", "3 · Ties", "Why the #1 is often a tie.", "Every estimate is a range. When two models' ranges overlap, the evidence can't say which is better, so the page doesn't pretend to.", '<pre>range         = estimate ± 1.2816 × sd\nnot_separable = max(A.low, B.low) ≤ min(A.high, B.high)\n                for any other model B</pre>' + ties, theme="dark")
         + _section("must-prefer", "4 · Must and Prefer", "Must is a gate. Prefer is a weight.", "Every facet on the board has three settings, and each does a different job. Conditions filter. They never add points.", must_prefer, theme="light")
         + _section("unknown", "5 · Unknown means unknown", "A missing fact is never a zero.", "Every condition has three answers: pass, fail and unknown. Unknown is its own answer, with its own rules. A null beats a guess.", unknown, theme="dark")
         + _section("reproducible", "6 · Reproducibility", "Same spec, same snapshot, same answer.", "A decision depends on two things you can name: the question and the evidence. Pin both, and anyone holding the same snapshot file gets the answer you got.", reproducible, theme="light")
