@@ -57,6 +57,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from functools import cache
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
@@ -975,12 +976,27 @@ class SubscriptionPageExtractor:
                 )), None)
                 if access is not None:
                     return [Reading(subject=wanted, value=access)]
-            if "codex" in text.casefold() and any(
-                alias in normalise_name(line)
-                for alias in aliases
-                for line in lines
+            codex_lines = [
+                line for line in lines
                 if "codex" in line.casefold()
-            ):
+                and any(alias in normalise_name(line) for alias in aliases)
+            ]
+            restriction = next((line for line in codex_lines if re.search(
+                r"(?i)(?:\b(?:do|does|did) not include\b.{0,80}\bcodex\b|"
+                r"\bcodex\b.{0,80}\bnot included\b|"
+                r"\bexclude(?:s|d)?\b.{0,80}\bcodex\b|"
+                r"\bwithout\b.{0,80}\bcodex\b|"
+                r"\bcodex\b.{0,80}\bunavailable\b)",
+                line,
+            )), None)
+            if restriction is not None:
+                return [Reading(subject=claim.names[0], value=restriction)]
+            if any(re.search(
+                r"(?i)(?:\binclude(?:s|d)?\b.{0,80}\bcodex\b|"
+                r"\bcodex\b.{0,80}\bincluded\b|"
+                r"\baccess to\b.{0,80}\bcodex\b)",
+                line,
+            ) for line in codex_lines):
                 return [Reading(subject=claim.names[0], value="Codex")]
             claude = re.search(
                 r"(?i)access to both Claude on the web, desktop, and mobile apps and Claude Code "
@@ -1552,6 +1568,34 @@ def _show(claim: Claim) -> JsonValue:
     return claim.value
 
 
+@cache
+def _catalogue_model_aliases() -> Mapping[str, frozenset[str]]:
+    """Canonical model IDs indexed by names published on their cards."""
+    aliases: dict[str, set[str]] = {}
+    for path in (REPO_ROOT / "models").rglob("*.md"):
+        model_id = display_name = None
+        with path.open(encoding="utf-8", errors="replace") as card:
+            for line in card:
+                if line.startswith("model_id:"):
+                    model_id = line.split(":", 1)[1].strip().strip("'\"")
+                elif line.startswith("display_name:"):
+                    display_name = line.split(":", 1)[1].strip().strip("'\"")
+                elif line.strip() == "---" and model_id is not None:
+                    break
+        if not model_id:
+            continue
+        for alias in (model_id, model_id.rsplit("/", 1)[-1], display_name):
+            if alias:
+                aliases.setdefault(normalise_name(alias), set()).add(model_id)
+    return {alias: frozenset(ids) for alias, ids in aliases.items()}
+
+
+def _catalogue_model_id(published: str) -> str | None:
+    label = re.sub(r"(?i)\s+model$", "", published.strip())
+    matches = _catalogue_model_aliases().get(normalise_name(label), frozenset())
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
 def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
     expected, value = _show(claim), claim.value
     if reading.value is None:
@@ -1590,14 +1634,16 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
     if isinstance(value, list):
         if not value and normalise_name(reading.value) in _FALSE:
             return None
-        found_items = {s.strip().casefold()
-                       for s in re.split(r",|;|\band\b", reading.value) if s.strip()}
+        published_items = {
+            s.strip() for s in re.split(r",|;|\band\b", reading.value) if s.strip()
+        }
+        found_items = {item.casefold() for item in published_items}
         claimed_items = {str(v).strip().casefold() for v in value}
         if claimed_items and all("/" in item for item in claimed_items):
-            claimed_items = {normalise_name(item.rsplit("/", 1)[-1]) for item in claimed_items}
             found_items = {
-                re.sub(r"\s+model$", "", normalise_name(item))
-                for item in found_items
+                canonical.casefold() if (canonical := _catalogue_model_id(item))
+                else normalise_name(re.sub(r"(?i)\s+model$", "", item))
+                for item in published_items
             }
         return None if found_items == claimed_items else Diff("value", expected, reading.value)
     expected_name = normalise_name(str(value))

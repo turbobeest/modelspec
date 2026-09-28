@@ -387,6 +387,26 @@ def test_canonical_model_ids_match_published_model_names() -> None:
     assert verify.compare(claim, [verify.Reading("SuperGrok", "Grok 4.6 model")]) == []
 
 
+def test_canonical_model_ids_reject_the_same_slug_from_the_wrong_lab() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="xai/subscription/supergrok#models"),
+        subject="xai/subscription/supergrok",
+        names=("SuperGrok",),
+        field="offering.subscription.models_covered",
+        value=["wrong-lab/grok-4-6"],
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="model-173-xai-consumer-pricing",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    assert verify.compare(
+        claim, [verify.Reading("SuperGrok", "Grok 4.6 model")]
+    ) == [verify.Diff("value", ["wrong-lab/grok-4-6"], "Grok 4.6 model")]
+
+
 @pytest.mark.parametrize("plan", ["SuperGrok", "SuperGrok Plus"])
 def test_subscription_page_models_include_inherited_plan_features(plan) -> None:
     claim = verify.Claim(
@@ -510,6 +530,34 @@ def test_subscription_page_extracts_supported_plan_facts(field, value, names, pa
     readings = verify.SubscriptionPageExtractor().extract(claim, page)
 
     assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        "Plus plans do not include Codex.",
+        "Codex is not included with Plus plans.",
+    ],
+)
+def test_subscription_page_preserves_codex_restrictions(page) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="openai/subscription/plus#agent-use"),
+        subject="openai/subscription/plus",
+        names=("ChatGPT Plus", "Plus plans"),
+        field="offering.subscription.programmatic_or_agent_use",
+        value="Codex",
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert readings == [verify.Reading("ChatGPT Plus", page)]
+    assert verify.compare(claim, readings) == [verify.Diff("value", "Codex", page)]
 
 
 def test_zero_retention_phrase_means_zero_retention_days() -> None:
