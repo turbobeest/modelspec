@@ -11,13 +11,10 @@ from __future__ import annotations
 import functools
 import gzip
 import json
-import shutil
 import subprocess
 import sys
-import sysconfig
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 
 import pytest
@@ -579,93 +576,18 @@ def test_the_original_exit_codes_keep_their_values() -> None:
 
 
 @functools.cache
-def _modelspec_cli() -> str:
-    """Absolute path to the installed ``modelspec`` console script.
-
-    The public entry point is ``[project.scripts] modelspec = cli.modelspec.cli:app``.
-    There is no ``python -m modelspec`` module (``python -m modelspec`` fails), so
-    these tests locate the generated console script for *this* interpreter — the
-    local venv, CI's system Python, or any other install. ``shutil.which`` alone
-    is not enough: ``.venv/bin/python -m pytest`` does not put ``.venv/bin`` on
-    ``PATH``. A missing CLI is an install failure, not a skip.
-    """
-    try:
-        dist = distribution("modelspec-dev")
-    except PackageNotFoundError as exc:
-        raise RuntimeError(
-            "The modelspec-dev distribution is not installed in this interpreter. "
-            "Install it with `pip install -e '.[dev]'` so the `modelspec` "
-            "console script is created."
-        ) from exc
-    if not any(
-        ep.group == "console_scripts" and ep.name == "modelspec"
-        for ep in dist.entry_points
-    ):
-        raise RuntimeError(
-            "The installed modelspec-dev distribution does not declare a "
-            "`modelspec` console script (pyproject.toml [project.scripts])."
-        )
-
-    searched: list[Path] = [
-        Path(sysconfig.get_path("scripts")) / "modelspec",
-        Path(sys.executable).resolve().parent / "modelspec",
-    ]
-    which = shutil.which("modelspec")
-    if which is not None:
-        searched.append(Path(which))
-
-    seen: set[Path] = set()
-    for path in searched:
-        resolved = path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        if path.is_file():
-            return str(path)
-
-    raise RuntimeError(
-        "modelspec console script is declared but was not found on disk. "
-        "Looked in: " + ", ".join(str(p) for p in searched) + ". "
-        "Install the package into this interpreter."
-    )
+def _modelspec_cli() -> list[str]:
+    """Run the CLI module with the interpreter that is running pytest."""
+    return [sys.executable, "-m", "cli.modelspec.cli"]
 
 
-def test_cli_lookup_uses_published_distribution_name(monkeypatch) -> None:
-    looked_up: list[str] = []
-
-    def missing_distribution(name: str):
-        looked_up.append(name)
-        raise PackageNotFoundError(name)
-
-    monkeypatch.setattr(sys.modules[__name__], "distribution", missing_distribution)
-    _modelspec_cli.cache_clear()
-
-    with pytest.raises(RuntimeError, match="modelspec-dev distribution"):
-        _modelspec_cli()
-
-    assert looked_up == ["modelspec-dev"]
-
-
-def test_cli_lookup_names_distribution_when_entry_point_is_missing(
-    monkeypatch,
-) -> None:
-    class DistributionWithoutScripts:
-        entry_points = ()
-
-    monkeypatch.setattr(
-        sys.modules[__name__],
-        "distribution",
-        lambda name: DistributionWithoutScripts(),
-    )
-    _modelspec_cli.cache_clear()
-
-    with pytest.raises(RuntimeError, match="installed modelspec-dev distribution"):
-        _modelspec_cli()
+def test_cli_lookup_uses_the_current_interpreters_module() -> None:
+    assert _modelspec_cli() == [sys.executable, "-m", "cli.modelspec.cli"]
 
 
 def _run(args: list[str], cache: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [_modelspec_cli(), *args],
+        [*_modelspec_cli(), *args],
         capture_output=True, text=True, timeout=120,
         env={
             "PATH": "/usr/bin:/bin",

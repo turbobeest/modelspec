@@ -140,15 +140,20 @@ jobs:
           roots={name.split('/', 1)[0] for name in names};
           assert {'api', 'cli', 'decision', 'pipeline', 'registry', 'schema'} <= roots;
           assert not ({'docs', 'models', 'tests', 'web'} & roots)"
-      - name: Install the wheel in a fresh environment
+      - name: Install and run the wheel outside the checkout
         run: |
-          python -m venv package-venv
-          package-venv/bin/python -m pip install dist/*.whl
-      - name: Run the installed CLI
-        run: |
-          package-venv/bin/modelspec --help
-          package-venv/bin/modelspec decide --help
-          package-venv/bin/python -c "from decision.registry import default; assert default().facets()"
+          wheel="$(realpath dist/*.whl)"
+          venv="$RUNNER_TEMP/modelspec-package-venv"
+          python -m venv "$venv"
+          "$venv/bin/python" -m pip install "$wheel"
+          export PATH="$venv/bin:$PATH"
+          cd "$(mktemp -d)"
+          modelspec --help
+          modelspec decide --help
+          modelspec vocab
+          modelspec snapshot fetch
+          modelspec decide --template budget-coding
+          python -c "from decision.registry import default; assert default().facets()"
 
   required-pytest:
     name: Run pytest
