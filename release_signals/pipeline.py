@@ -248,18 +248,30 @@ class _JsonLd(HTMLParser):
 
 
 class _VisibleText(HTMLParser):
+    _BLOCK_TAGS = {
+        "address", "article", "aside", "blockquote", "br", "div", "footer",
+        "h1", "h2", "h3", "h4", "h5", "h6", "header", "li", "main", "nav",
+        "ol", "p", "section", "table", "td", "th", "tr", "ul",
+    }
+
     def __init__(self) -> None:
         super().__init__()
         self.hidden = 0
         self.parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag.casefold() in {"script", "style"}:
+        tag = tag.casefold()
+        if tag in {"script", "style"}:
             self.hidden += 1
+        elif not self.hidden and tag in self._BLOCK_TAGS:
+            self.parts.append("\n")
 
     def handle_endtag(self, tag: str) -> None:
-        if tag.casefold() in {"script", "style"} and self.hidden:
+        tag = tag.casefold()
+        if tag in {"script", "style"} and self.hidden:
             self.hidden -= 1
+        elif not self.hidden and tag in self._BLOCK_TAGS:
+            self.parts.append("\n")
 
     def handle_data(self, data: str) -> None:
         if not self.hidden:
@@ -280,11 +292,15 @@ def _primary_identity(
     if not matches:
         visible = _VisibleText()
         visible.feed(html)
-        text = " ".join(" ".join(visible.parts).split())
-        normalised_text = attribution.normalise(text)
+        text = "".join(visible.parts)
         normalised_name = attribution.normalise(expected_name)
         normalised_provider = attribution.normalise(expected_provider)
-        if normalised_name not in normalised_text:
+        clauses = [
+            attribution.normalise(clause)
+            for clause in re.split(r"[.!?;:\n]+", text)
+            if attribution.normalise(clause)
+        ]
+        if not any(normalised_name in clause for clause in clauses):
             raise ValueError("the primary source does not name the model")
         explicit_publishers = re.findall(
             rf"\b{re.escape(expected_name)}\s+by\s+([^.!?;:\n]+)",
@@ -304,7 +320,11 @@ def _primary_identity(
             f"{normalised_provider}-launches-{normalised_name}",
             f"{normalised_provider}-releases-{normalised_name}",
         )
-        if not any(relationship in normalised_text for relationship in relationships):
+        if not any(
+            relationship in clause
+            for clause in clauses
+            for relationship in relationships
+        ):
             raise ValueError("the primary source does not identify the stated lab")
         return expected_name, ""
     if len(matches) != 1:

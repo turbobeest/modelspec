@@ -295,6 +295,37 @@ def test_visible_primary_source_with_another_lab_stops_before_drafting(
     assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
 
 
+def test_disconnected_lab_and_model_mentions_stop_before_drafting(
+    tmp_path: Path,
+) -> None:
+    _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    primary_url = "https://acme.example/models"
+    models_dev_url = "https://models.dev/api.json"
+    replies = {
+        models_dev_url: FetchResult(
+            url=models_dev_url,
+            body=(FIXTURES / "models-dev-production.json").read_bytes(),
+            content_type="application/json",
+        ),
+        primary_url: FetchResult(
+            url=primary_url,
+            body=b"<html><body><p>Acme.</p><p>Orbit 2.</p></body></html>",
+            content_type="text/html",
+        ),
+    }
+
+    with pytest.raises(ValueError, match="stated lab"):
+        draft_signal(
+            ReleaseSignal.parse(signal()),
+            root=tmp_path,
+            fetch=lambda url: replies[url],
+            read_date=date(2026, 9, 26),
+            models_dev_url=models_dev_url,
+        )
+
+    assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
+
+
 def test_models_dev_prices_do_not_change_existing_card_prices(
     tmp_path: Path,
 ) -> None:
