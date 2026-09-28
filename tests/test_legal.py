@@ -604,8 +604,13 @@ def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
     """MODEL-70's last criterion: reachable from the landing page and the API docs."""
     from pipeline import render as r
 
-    landing = (REPO_ROOT / "site" / "holding" / "index.html").read_text(encoding="utf-8")
-    footer = landing.split("<footer>", 1)[1]
+    from pipeline import landing as landing_page
+
+    model = landing_page.PlotModel("model", "Model", .1, 1, 0, 2, True)
+    data = landing_page.LandingData(
+        "2026-09-27", 1, (model,), "model", "model", 1, 1000, 1000, 0, ()
+    )
+    footer = landing_page.render(data, variant="live").split("<footer>", 1)[1]
     shell = r.shell(title="t", description="d", canonical=None, body="", build=_build(),
                     site="ModelSpec", nav_links=r.MS_NAV)
     api_docs = (REPO_ROOT / "docs" / "api.md").read_text(encoding="utf-8")
