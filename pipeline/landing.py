@@ -33,6 +33,10 @@ FIRST_RUN = (
     "modelspec snapshot fetch",
     "modelspec decide --template budget-coding",
 )
+TITLE = "ModelSpec — your model is a guess"
+DESCRIPTION = ("See which AI models the evidence can't tell apart, what each one really "
+               "costs, and hand the choice to your agents. Sourced evidence; nobody pays "
+               "to rank higher.")
 ASSET_DIR = "landing-assets"
 DATA_ID = "landing-data"
 DECIDE_PATH = "/decide/"
@@ -365,8 +369,10 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
     )
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ModelSpec — the #1 model is usually a tie</title>
-{robots}{canonical}{brand.head_links()}{brand.social_meta("ModelSpec")}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
+<title>{TITLE}</title>
+<meta name="description" content="{DESCRIPTION}">
+<meta property="og:description" content="{DESCRIPTION}">
+{robots}{canonical}{brand.head_links()}{brand.social_meta(TITLE)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{_logo()}<span class="wordmark"><b>Model</b>Spec</span><nav><a href="#receipt">What it costs you</a><a href="#agents">For agents</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><h1>Your model is a guess.</h1>
