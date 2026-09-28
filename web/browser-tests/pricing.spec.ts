@@ -14,6 +14,10 @@ for (const width of [1440, 390]) {
     await expect(page.locator("[data-best-cost]")).not.toHaveText(before || "");
     const forms = page.locator(`form[action="https://api.modelspec.dev/v1/billing/checkout"]`);
     await expect(forms).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Plans and packs" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Purchase" })).toHaveCount(0);
+    await expect(page.getByText("answer on a free tier today", { exact: false })).toBeVisible();
+    await expect(page.getByText("What would your agents spend at these prices?")).toBeVisible();
     await expect(page.getByText("Or let your agents pay as they go")).toHaveCount(0);
     await expect(page.getByText("Pay per call (x402)")).toHaveCount(0);
     if (process.env.MODELSPEC_SCREENSHOT_DIR) {
