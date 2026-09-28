@@ -371,13 +371,12 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
         '<h3>Every number has a source.</h3><p>Which benchmark, which date, who ran it. '
         'When the board opens, each one is a click away.</p>'
     )
-    card = social_cards.landing_card(data)
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{TITLE}</title>
 <meta name="description" content="{DESCRIPTION}">
 <meta property="og:description" content="{DESCRIPTION}">
-{robots}{canonical}{brand.head_links()}{brand.social_meta(TITLE, image_name=card.filename, image_alt=card.alt)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
+{robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{_logo()}<span class="wordmark"><b>Model</b>Spec</span><nav><a href="#receipt">What it costs you</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><h1>Your model is a guess.</h1>

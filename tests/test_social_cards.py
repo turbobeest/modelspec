@@ -6,6 +6,7 @@ import os
 import struct
 import html
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -46,6 +47,24 @@ def _png_size(path: Path) -> tuple[int, int]:
     data = path.read_bytes()
     assert data[:8] == b"\x89PNG\r\n\x1a\n"
     return struct.unpack(">II", data[16:24])
+
+
+def _assert_clean_layout(report: dict[str, object]) -> None:
+    frame = report["frame"]
+    blocks = report["blocks"]
+    for block in blocks:
+        assert block["left"] >= frame["left"], block
+        assert block["top"] >= frame["top"], block
+        assert block["right"] <= frame["right"], block
+        assert block["bottom"] <= frame["bottom"], block
+    for index, first in enumerate(blocks):
+        for second in blocks[index + 1:]:
+            horizontal = min(first["right"], second["right"]) - max(first["left"], second["left"])
+            vertical = min(first["bottom"], second["bottom"]) - max(first["top"], second["top"])
+            assert horizontal <= 0 or vertical <= 0, (first, second)
+    for element in report["text"]:
+        assert element["scrollWidth"] <= element["clientWidth"], element
+        assert element["scrollHeight"] <= element["clientHeight"], element
 
 
 def test_landing_card_html_uses_exactly_the_page_figures(card_data: landing.LandingData) -> None:
@@ -109,3 +128,58 @@ def test_renderer_writes_both_cards_at_the_contract_size(
     for card in cards:
         assert (tmp_path / card.filename).is_file()
         assert _png_size(tmp_path / card.filename) == (1200, 630)
+
+
+def test_chromium_layout_keeps_every_card_block_separate_and_in_frame(
+    tmp_path: Path, card_data: landing.LandingData,
+) -> None:
+    if not (ROOT / "web" / "node_modules" / "playwright").is_dir():
+        if os.environ.get("CI"):
+            pytest.fail("social card rendering requires npm ci in web/")
+        pytest.skip("social card rendering requires npm ci in web/")
+
+    long_name = "A very long model name with a regional deployment and extended reasoning profile"
+    stress_models = tuple(
+        replace(
+            card_data.models[index % len(card_data.models)],
+            id=f"stress-{index}",
+            name=long_name if index == 1 else f"Stress model {index}",
+            tied=True,
+        )
+        for index in range(102)
+    )
+    stress_data = replace(
+        card_data,
+        models=stress_models,
+        leader_id="stress-0",
+        cheapest_id="stress-1",
+    )
+    cases = (
+        social_cards.card_for_page("/", card_data),
+        social_cards.card_for_page("/decide/"),
+        social_cards.card_for_page("/", stress_data),
+    )
+    for index, card in enumerate(cases):
+        try:
+            report = social_cards.render_card(card, tmp_path / f"layout-{index}.png")
+        except Exception as error:
+            if os.environ.get("CI"):
+                raise
+            pytest.skip(f"Chromium is unavailable: {error}")
+        _assert_clean_layout(report)
+
+
+def test_registry_drives_page_metadata_and_deploy_filenames(
+    card_data: landing.LandingData,
+) -> None:
+    assert social_cards.card_for_page("/", card_data).filename == social_cards.LANDING_IMAGE
+    assert social_cards.card_for_page("/decide/").filename == social_cards.DECIDE_IMAGE
+    assert social_cards.card_filenames() == tuple(
+        registration.filename for registration in social_cards.CARD_REGISTRY
+    )
+    decide = (ROOT / "web" / "decide.html").read_text(encoding="utf-8")
+    card = social_cards.card_for_page("/decide/")
+    assert f'https://modelspec.dev/{card.filename}' in decide
+    assert f'content="{card.alt}"' in decide
+    for tag in social_cards.social_meta_for_page("/decide/").splitlines():
+        assert tag in decide

@@ -8,7 +8,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pipeline import brand  # noqa: E402
+from pipeline import brand, social_cards  # noqa: E402
 
 
 WORKFLOW = Path(__file__).resolve().parents[1] / '.github/workflows/deploy-sites.yml'
@@ -167,8 +167,7 @@ def test_live_mode_deploys_the_composed_dist_and_internal_deploys_its_identical_
 def test_the_live_composition_copies_exactly_the_brand_icon_set():
     step = next(step for step in workflow()['jobs']['build']['steps']
                 if step.get('name') == 'Assemble the live and internal decide sites')
-    expected = (*brand.FILES, 'og-card-landing.png', 'og-card-decide.png')
-    assert f"for icon in {' '.join(expected)}; do" in step['run']
+    assert f"for icon in {' '.join(brand.FILES)} $(python -m pipeline.social_cards filenames); do" in step['run']
     checks = next(step for step in workflow()['jobs']['build']['steps']
                   if step.get('name') == 'Check the pages we promise actually exist')
     for name in brand.FILES:

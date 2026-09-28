@@ -5,9 +5,14 @@ the Playwright Chromium installed by `web/`. The PNGs are build artifacts and
 must not be committed. The landing template receives the same `LandingData` as
 the page, so its figures cannot drift into hand-written copy.
 
-To add the pricing card, construct one `SocialCard` with its filename, alt text,
-headline, and HTML art, add it to the list in `render()`, and point the pricing
-page's `brand.social_meta(...)` call at that filename. `render_card_html(card)`
-provides the shared fonts, mark, navy field, yellow axis, and green baseline;
-the existing two cards are examples. The deploy workflow must also copy and
-assert the new filename when it assembles the live tree.
+`CARD_REGISTRY` is the source of truth for rendering, page metadata, and the
+deploy allowlist. To add the pricing card, add one `CardRegistration` containing
+its filename, factory, and public page mapping. Set `source_page` for a static
+HTML page and put `social-card-meta` markers in its `<head>`; `npm run build`
+fills those markers from the registry. Python-rendered pages use
+`card_for_page(...)`.
+
+`render_card(card, out_path)` renders any supplied `SocialCard` through the
+shared template and writes its PNG in one call. It returns the Chromium layout
+report used by the tests. `render_card_html(card)` exposes the template for
+inspection. The build artifacts are not committed.
