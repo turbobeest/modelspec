@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 
 from decision.model import SourceRef, TargetRef, VerificationActor
-from decision.sources import CopyStore, USER_AGENT, load_sources
+from decision.sources import USER_AGENT, CopyStore, load_sources
 from decision.verify import Claim, Queue
 from scripts.model_143_evidence import evidence_id
 from scripts.model_160_evidence import append_rows, new_row_block
@@ -46,10 +46,12 @@ ROW = re.compile(
 )
 
 
-def fetch_rows() -> list[dict]:
+def fetch_rows(store: CopyStore) -> tuple[list[dict], str]:
     request = urllib.request.Request(URL, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
-        html = response.read().decode("utf-8")
+        raw = response.read()
+    fetched_copy = store.put(raw)
+    html = raw.decode("utf-8")
     rows = []
     for match in ROW.finditer(html):
         row = match.groupdict()
@@ -66,7 +68,23 @@ def fetch_rows() -> list[dict]:
         })
     if not rows:
         raise RuntimeError("Finance Benchmark page contained no v2 rows")
-    return rows
+    projected = json.dumps(
+        {
+            "source_url": URL,
+            "read_date": READ_DATE,
+            "provenance": {
+                "fetched_copy": fetched_copy,
+                "projection": (
+                    "Finance Benchmark v2 rows from the page payload; pass_at_1 "
+                    "converted from a fraction to percent"
+                ),
+            },
+            "rows": rows,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return rows, store.put(projected)
 
 
 def cards(root: Path) -> dict[str, Path]:
@@ -85,13 +103,8 @@ def cards(root: Path) -> dict[str, Path]:
 def collect(root: Path = ROOT) -> tuple[int, list[str]]:
     if SOURCE_ID not in load_sources(root / "registry" / "sources.yaml"):
         raise RuntimeError(f"register {SOURCE_ID} before collecting")
-    rows = fetch_rows()
-    projected = json.dumps(
-        {"source_url": URL, "read_date": READ_DATE, "rows": rows},
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode()
-    ref = CopyStore().put(projected)
+    store = CopyStore()
+    rows, ref = fetch_rows(store)
     by_model = {SOURCE_TO_MODEL.get(row["model"], row["model"]): row for row in rows}
     queue = Queue(root / "verification")
     filed_at = datetime.now(UTC)
@@ -138,7 +151,9 @@ def collect(root: Path = ROOT) -> tuple[int, list[str]]:
             "verified_at": READ_DATE,
             "benchmark_version": "Finance Benchmark v2, harness " + source["harness_version"],
             "configuration": "73 v2 tasks; three attempts per task; temperature zero.",
-            "limitations": "Passes at least once, so this value does not measure repeated-run consistency.",
+            "limitations": (
+                "Passes at least once, so this value does not measure repeated-run consistency."
+            ),
             "measured_by": "independent_evaluator",
             "effort": None,
             "harness": "unregistered",

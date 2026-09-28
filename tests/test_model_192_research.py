@@ -11,7 +11,9 @@ import yaml
 
 from decision.excluded import excluded_sources
 from decision.model import SourceRef, TargetRef, VerificationActor
+from decision.sources import CopyStore
 from decision.verify import Claim, StructuredDataExtractor, compare
+from scripts import model_192_evidence
 
 ROOT = Path(__file__).parents[1]
 REPORT = ROOT / "docs" / "research" / "refinements" / "model-192-coverage.yaml"
@@ -166,7 +168,7 @@ def test_collected_finance_evidence_is_filed_and_verified(
     assert row["measured_by"] == "independent_evaluator"
     assert row["sources"] == [{
         "source_id": FINANCE_SOURCE_ID,
-        "snapshot_ref": "sha256:2c21d1afdee097795e72774a05616b06f330fa08c01f44a7a3e02e3875a5197a",
+        "snapshot_ref": "sha256:a8d3d8dec4605e37bf43a29ef09b35b6e47a78e4bc9e64b701d620d9dfb668d7",
         "cited_regions": ["rows"],
     }]
 
@@ -210,7 +212,6 @@ def test_finance_projection_replays_unit_and_harness() -> None:
                   "harness": "unregistered", "date": "2026-09-28"}],
     })
     # JSON and YAML mappings normalize to the same structured row shape.
-    import json
     claim = Claim(
         target=TargetRef(kind="evidence", id="x"), subject="lab/model",
         names=("lab/model",), field="finance_benchmark_v2", label="pass_at_1",
@@ -224,3 +225,41 @@ def test_finance_projection_replays_unit_and_harness() -> None:
         claim, json.dumps(yaml.safe_load(body))
     )
     assert compare(claim, readings) == []
+
+
+def test_finance_projection_links_to_its_retained_source_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = (
+        b'<script>\\"model_name\\":\\"model\\",'
+        b'\\"provider\\":\\"lab\\",'
+        b'\\"harness_version\\":\\"0.2.0\\",'
+        b'\\"task_set_version\\":\\"v2\\",'
+        b'\\"pass_at_1\\":0.912,'
+        b'\\"completed_at\\":\\"2026-09-28T00:00:00Z\\"</script>'
+    )
+
+    class Response:
+        def __enter__(self) -> Response:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return raw
+
+    monkeypatch.setattr(
+        model_192_evidence.urllib.request,
+        "urlopen",
+        lambda *_args, **_kwargs: Response(),
+    )
+    store = CopyStore(tmp_path / "copies")
+
+    rows, projection_ref = model_192_evidence.fetch_rows(store)
+
+    projection = json.loads(store.get(projection_ref))
+    fetched_copy = projection["provenance"]["fetched_copy"]
+    assert store.get(fetched_copy) == raw
+    assert projection["rows"] == rows
