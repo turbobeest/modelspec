@@ -604,6 +604,8 @@ def main(argv: list[str] | None = None) -> int:
     from pipeline import method
     method_counts = method.write(ms, root, landing_data)
     ms_paths.extend(method_counts["sitemap_paths"])
+    from pipeline import social_cards
+    social_cards.render(ms, landing_data)
     (ms / "decide").mkdir(exist_ok=True)
     (ms / "decide/index.html").write_text(
         '<!doctype html><html><head><meta name="robots" content="noindex">'

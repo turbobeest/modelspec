@@ -69,6 +69,7 @@ jobs:
         working-directory: web
         run: |
           npm ci
+          npx playwright install --with-deps chromium
           npm run build
 
       - name: Test the decide app
@@ -144,8 +145,8 @@ jobs:
           cp -a dist-v1/modelspec/fonts dist/modelspec/fonts
           cp -a dist-v1/modelspec/graph dist/modelspec/graph
           find dist/modelspec/assets -type f -name 'main-*' -delete
-          # The 2a icon set and social card, as pipeline.brand wrote them into the real build.
-          for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest; do
+          # The 2a icon set, fallback card, and build-rendered page cards.
+          for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest og-card-landing.png og-card-decide.png; do
             cp dist-v1/modelspec/$icon dist/modelspec/$icon
           done
           python - <<'PY'
@@ -264,6 +265,8 @@ jobs:
           test -s dist/modelspec/icon-192.png
           test -s dist/modelspec/icon-512.png
           test -s dist/modelspec/og-card.png
+          test -s dist/modelspec/og-card-landing.png
+          test -s dist/modelspec/og-card-decide.png
           test -s dist/modelspec/site.webmanifest
           test ! -e dist/modelspec/downselect
           test ! -e dist/modelspec/models
