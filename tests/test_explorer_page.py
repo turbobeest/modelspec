@@ -1,23 +1,20 @@
-"""MODEL-24 part 3: the graph explorer in the Instrument system.
+"""The graph novelty page and its self-contained runtime assets.
 
 The explorer is a hand-written canvas page. Its JavaScript must come from the
-vendored copies, never a CDN, and it must carry the same nav as every other
-modelspec page.
+vendored copies, never a CDN, and its shell follows the landing page rather
+than the retired catalogue navigation.
 """
 
 from __future__ import annotations
 
 import re
 import sys
-from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from pipeline import build as builder  # noqa: E402
-from pipeline import render as r  # noqa: E402
-from pipeline.export import Build  # noqa: E402
 
 EXPLORER = ROOT / "web3d/explorer.html"
 VENDOR = ROOT / "web3d/vendor"
@@ -31,13 +28,12 @@ def _script_sources(page: str) -> list[str]:
     return re.findall(r"<script\b[^>]*\bsrc=\"([^\"]+)\"", page)
 
 
-def _nav(page: str) -> str:
-    return re.search(r"<nav>.*?</nav>", page, re.S).group(0)
-
-
-def test_the_explorer_links_the_shared_sheet_and_requests_no_space_grotesk() -> None:
+def test_the_explorer_uses_the_landing_system_and_requests_no_space_grotesk() -> None:
     page = _page()
-    assert '<link rel="stylesheet" href="/instrument.css">' in page
+    assert '<link rel="stylesheet" href="/landing-assets/landing.css">' in page
+    assert 'class="graph-header"' in page
+    assert 'class="mark"' in page
+    assert '<nav' not in page
     assert "Space+Grotesk" not in page
     assert "Space Grotesk" not in page
 
@@ -55,19 +51,39 @@ def test_every_vendored_script_the_explorer_loads_exists_and_is_documented() -> 
         assert f"`{name}`" in readme, name
 
 
-def test_the_built_explorer_carries_the_modelspec_nav_and_its_libraries(tmp_path) -> None:
+def test_the_built_explorer_carries_the_landing_shell_and_its_libraries(tmp_path) -> None:
     ms = tmp_path / "modelspec"
     assert builder.ship_explorer(ROOT, ms, '<p class="fresh">as of 2026-09-18</p>') is True
     built = (ms / "graph/index.html").read_text(encoding="utf-8")
 
-    shell = r.shell(title="t", description="d", canonical="https://modelspec.dev/", body="",
-                    build=Build(commit="abc", built_at="2026-09-18T00:00:00Z",
-                                as_of=date(2026, 9, 18)),
-                    site="ModelSpec", nav_links=r.MS_NAV)
-    assert _nav(built) == _nav(shell)
-    assert built.count("<nav>") == 1
-    assert r.NAV_PLACEHOLDER not in built
+    assert '<a class="home" href="/" aria-label="ModelSpec home">' in built
+    assert '<a href="/legal/terms/">Terms</a>' in built
+    assert '<a href="/legal/privacy/">Privacy</a>' in built
+    assert '<a href="/legal/neutrality/">Neutrality</a>' in built
+    assert "/decide/" not in built
+    assert "/downselect/" not in built
+    for retired in ("/m/", "/p/", "/b/"):
+        assert f'href="{retired}' not in built
     assert '<div id="freshness"><p class="fresh">as of 2026-09-18</p></div>' in built
     assert sorted(p.name for p in (ms / "graph/vendor").iterdir()) == [
-        "3d-force-graph.min.js", "README.md", "three.min.js"]
+        "3d-force-graph.min.js", "three.min.js"]
 
+
+def test_dense_views_disclose_the_download_size_before_loading() -> None:
+    page = _page()
+    assert 'if (!v.legible && v.bytes)' in page
+    assert '"Load " + (v.bytes / 1000000).toFixed(1) + " MB "' in page
+
+
+def test_reduced_motion_stops_the_force_engine_and_camera_drift() -> None:
+    page = _page()
+    assert 'matchMedia("(prefers-reduced-motion: reduce)")' in page
+    assert ".cooldownTicks(reduceMotion ? 0 : Infinity)" in page
+    assert "engineSettled && !reduceMotion" in page
+
+
+def test_controls_are_native_keyboard_targets_and_the_page_explains_itself() -> None:
+    page = _page()
+    assert '<button id="close" type="button" aria-label="Close">' in page
+    assert 'document.createElement("button")' in page
+    assert "Models, providers, benchmarks, platforms, and the evidence links between them." in page

@@ -37,6 +37,9 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/models/index.html': b'v1 rankings',
         'dist/modelspec/m/lab/model/index.html': b'unverified model page',
         'dist/modelspec/pricing/index.html': b'v1 pricing',
+        'dist/modelspec/graph/index.html': b'<link rel="canonical" href="https://modelspec.dev/graph/">graph',
+        'dist/modelspec/graph/vendor/three.min.js': b'three',
+        'dist/modelspec/graph/vendor/3d-force-graph.min.js': b'force graph',
         'dist/modelspec/landing-assets/landing.css': b'landing styles',
         'dist/modelspec/landing-assets/landing.js': b'landing script',
         'dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2': b'instrument font',
@@ -65,6 +68,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     live = files(tmp_path / 'dist')
     assert live['modelspec/index.html'] == fixture['dist/modelspec/index.html']
     assert live['modelspec/decide/index.html'] == fixture['web/dist/decide.html']
+    assert live['modelspec/graph/index.html'] == fixture['dist/modelspec/graph/index.html']
+    assert live['modelspec/graph/vendor/three.min.js'] == b'three'
     assert live['modelspec/404.html'] == fixture['web/dist/decide.html']
     index = live['modelspec/index.html'].decode()
     decide = live['modelspec/decide/index.html'].decode()
@@ -88,13 +93,17 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         assert not (tmp_path / 'dist' / 'modelspec' / removed).exists()
 
 
-def test_live_workflow_keeps_api_and_legal_but_has_no_v1_navigation():
+def test_live_workflow_keeps_api_legal_and_the_standalone_graph_only():
     text = WORKFLOW.read_text(encoding='utf-8')
     assert 'cp -a dist-v1/modelspec/api dist/modelspec/api' in text
     assert 'cp -a dist-v1/modelspec/legal dist/modelspec/legal' in text
     assert 'cmp -s' not in text  # compare full trees, not one representative file
     assert 'diff -r dist dist-internal' in text
-    for old_path in ('downselect', 'models', 'providers', 'benchmarks', 'graph', 'pricing'):
+    assert 'cp -a dist-v1/modelspec/graph dist/modelspec/graph' in text
+    assert 'test -s dist/modelspec/graph/index.html' in text
+    assert 'test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d \' \')" = 2' in text
+    assert 'test ! -e dist/modelspec/graph/vendor/README.md' in text
+    for old_path in ('downselect', 'models', 'providers', 'benchmarks', 'pricing'):
         assert f'test -s dist/modelspec/{old_path}' not in text
         assert f'test ! -e dist/modelspec/{old_path}' in text
 

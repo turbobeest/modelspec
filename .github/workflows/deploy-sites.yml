@@ -139,6 +139,7 @@ jobs:
           cp -a web/dist/assets dist/modelspec/assets
           cp -a dist-v1/modelspec/landing-assets dist/modelspec/landing-assets
           cp -a dist-v1/modelspec/fonts dist/modelspec/fonts
+          cp -a dist-v1/modelspec/graph dist/modelspec/graph
           find dist/modelspec/assets -type f -name 'main-*' -delete
           # The 2a icon set and social card, as pipeline.brand wrote them into the real build.
           for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest; do
@@ -158,7 +159,7 @@ jobs:
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
               + "".join(
                   f"  <url><loc>https://modelspec.dev{path}</loc></url>\n"
-                  for path in ("/", "/decide/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
+                  for path in ("/", "/decide/", "/graph/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
               )
               + "</urlset>\n",
               encoding="utf-8",
@@ -179,6 +180,20 @@ jobs:
           cp -a dist dist-internal
           diff -r dist dist-internal
           rm -rf dist-v1
+
+      - name: Check the graph in Chromium
+        env:
+          CI: true
+          MODELSPEC_GRAPH_BASE_URL: http://127.0.0.1:8000
+        run: |
+          cd web
+          npx playwright install --with-deps chromium
+          cd ..
+          python -m http.server 8000 --bind 127.0.0.1 --directory dist/modelspec >/tmp/modelspec-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          cd web
+          npx playwright test --config=playwright.graph.config.ts
 
       - name: Guard the Cloudflare Pages limits
         run: |
@@ -204,9 +219,15 @@ jobs:
           set -e
           test -s dist/modelspec/index.html
           test -s dist/modelspec/decide/index.html
+          test -s dist/modelspec/graph/index.html
+          test -s dist/modelspec/graph/vendor/three.min.js
+          test -s dist/modelspec/graph/vendor/3d-force-graph.min.js
+          test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d ' ')" = 2
+          test ! -e dist/modelspec/graph/vendor/README.md
           test -s dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/decide/"' dist/modelspec/decide/index.html
+          grep -Fq '<link rel="canonical" href="https://modelspec.dev/graph/"' dist/modelspec/graph/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/decide/index.html
           ! grep -Fiq 'X-Robots-Tag' dist/modelspec/_headers
@@ -233,7 +254,6 @@ jobs:
           test -s dist/modelspec/og-card.png
           test -s dist/modelspec/site.webmanifest
           test ! -e dist/modelspec/downselect
-          test ! -e dist/modelspec/graph
           test ! -e dist/modelspec/models
           test ! -e dist/modelspec/providers
           test ! -e dist/modelspec/benchmarks
