@@ -1823,55 +1823,80 @@ def _decision_schemas() -> dict[str, Any]:
         return value
 
     schemas = {names[name]: rewrite(schema) for name, schema in definitions.items()}
-    schemas["DecisionRequestRefused"] = {
-        "type": "object",
-        "required": ["contract_version", "endpoint", "snapshot", "error"],
-        "properties": {
-            "contract_version": {
-                "type": "string",
-                "enum": [decide_service.contract.CONTRACT_VERSION],
-            },
-            "endpoint": {"type": "string", "enum": ["compare", "decide"]},
-            "snapshot": {"anyOf": [
-                {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
-                {"type": "null"},
-            ]},
-            "error": {
-                "type": "object",
-                "required": ["code", "message"],
-                "properties": {
-                    "code": {"type": "string", "enum": sorted(
-                        _DECIDE_ONLY | {"payload_too_large", "snapshot_refused",
-                                        "snapshot_unavailable", "origin_not_allowed"}
-                    )},
-                    "message": {"type": "string"},
-                    "issues": {"type": "array", "items": {"type": "object"}},
-                    "requested": {
-                        "type": "string",
-                        "description": "snapshot_changed only: the X-ModelSpec-Snapshot sent.",
-                    },
-                    "current": {
-                        "type": "string",
-                        "description": "snapshot_changed only: the snapshot that answers now.",
+    def refused(endpoint: str, codes: set[str]) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["contract_version", "endpoint", "snapshot", "error"],
+            "properties": {
+                "contract_version": {
+                    "type": "string",
+                    "enum": [decide_service.contract.CONTRACT_VERSION],
+                },
+                "endpoint": {"type": "string", "enum": [endpoint]},
+                "snapshot": {"anyOf": [
+                    {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    {"type": "null"},
+                ]},
+                "error": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["code", "message"],
+                    "properties": {
+                        "code": {"type": "string", "enum": sorted(codes)},
+                        "message": {"type": "string"},
+                        "issues": {"type": "array", "items": {"type": "object"}},
+                        "requested": {
+                            "type": "string",
+                            "description": (
+                                "snapshot_changed only: the X-ModelSpec-Snapshot sent."
+                            ),
+                        },
+                        "current": {
+                            "type": "string",
+                            "description": (
+                                "snapshot_changed only: the snapshot that answers now."
+                            ),
+                        },
                     },
                 },
             },
-        },
-    }
-    schemas["DecisionSnapshotUnavailable"] = {
-        "type": "object",
-        "required": ["contract_version", "endpoint", "snapshot", "error", "message"],
-        "properties": {
-            "contract_version": {
-                "type": "string",
-                "enum": [decide_service.contract.CONTRACT_VERSION],
+        }
+
+    def snapshot_unavailable(endpoint: str) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["contract_version", "endpoint", "snapshot", "error", "message"],
+            "properties": {
+                "contract_version": {
+                    "type": "string",
+                    "enum": [decide_service.contract.CONTRACT_VERSION],
+                },
+                "endpoint": {"type": "string", "enum": [endpoint]},
+                "snapshot": {"type": "null"},
+                "error": {"type": "string", "enum": ["no_snapshot"]},
+                "message": {"type": "string"},
             },
-            "endpoint": {"type": "string", "enum": ["compare", "decide"]},
-            "snapshot": {"type": "null"},
-            "error": {"type": "string", "enum": ["no_snapshot"]},
-            "message": {"type": "string"},
-        },
+        }
+
+    shared_refusals = {
+        "origin_not_allowed", "payload_too_large", "snapshot_refused",
+        "snapshot_unavailable",
     }
+    schemas["DecisionRequestRefused"] = refused(
+        "decide",
+        shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
+    )
+    schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
+    schemas["ComparisonRequestRefused"] = refused(
+        "compare",
+        shared_refusals | {
+            "comparison_snapshot_changed", "comparison_snapshot_unavailable",
+            "invalid_request", "invalid_spec", "snapshot_changed",
+        },
+    )
+    schemas["ComparisonSnapshotUnavailable"] = snapshot_unavailable("compare")
     schemas["ComparisonRequest"] = {
         "type": "object",
         "additionalProperties": False,
@@ -1881,16 +1906,221 @@ def _decision_schemas() -> dict[str, Any]:
             "spec": {"$ref": "#/components/schemas/DecisionSpec"},
         },
     }
-    comparison_response: dict[str, Any] = {}
-    for response in _comparison_responses():
-        comparison_response = _merge(comparison_response, _infer(response))
-    comparison_response["properties"]["contract_version"]["enum"] = [
-        decide_service.contract.CONTRACT_VERSION
+    nullable_string = copy.deepcopy(
+        schemas["DecisionShownFact"]["properties"]["unit"]
+    )
+    nullable_string.pop("default", None)
+    nullable_string.pop("title", None)
+    offering_ref = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["model", "provider", "region", "tier"],
+        "properties": {
+            "model": {"type": "string", "pattern": decide_service.contract.MODEL_PATTERN},
+            "provider": nullable_string,
+            "region": nullable_string,
+            "tier": nullable_string,
+        },
+    }
+    schemas["ComparisonOfferingRef"] = offering_ref
+    schemas["ComparisonOfferingChange"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["old", "new"],
+        "properties": {
+            "old": {"$ref": "#/components/schemas/ComparisonOfferingRef"},
+            "new": {"$ref": "#/components/schemas/ComparisonOfferingRef"},
+        },
+    }
+    offering = {"oneOf": [
+        {"$ref": "#/components/schemas/ComparisonOfferingRef"},
+        {"$ref": "#/components/schemas/ComparisonOfferingChange"},
+    ]}
+    records = {"type": "array", "items": {"type": "string"}}
+    facet_value = copy.deepcopy(
+        schemas["DecisionShownFact"]["properties"]["value"]
+    )
+    facet_value.pop("default", None)
+    facet_value.pop("title", None)
+    schemas["ComparisonFacetValue"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["value", "unit", "records"],
+        "properties": {
+            "value": facet_value,
+            "unit": nullable_string,
+            "records": records,
+        },
+    }
+    schemas["ComparisonCostValue"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["value", "unit", "records"],
+        "properties": {
+            "value": {"type": "number", "nullable": True},
+            "unit": nullable_string,
+            "records": records,
+        },
+    }
+    schemas["ComparisonCapabilityValue"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["value", "interval", "records"],
+        "properties": {
+            "value": {"type": "number"},
+            "interval": {
+                "type": "array", "items": {"type": "number"},
+                "minItems": 2, "maxItems": 2,
+            },
+            "records": records,
+        },
+    }
+
+    def value_change(kind: str, value_ref: str, extra: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["kind", *extra, "offering", "old", "new"],
+            "properties": {
+                "kind": {"type": "string", "enum": [kind]},
+                **extra,
+                "offering": offering,
+                "old": {"$ref": f"#/components/schemas/{value_ref}"},
+                "new": {"$ref": f"#/components/schemas/{value_ref}"},
+            },
+        }
+
+    schemas["ComparisonFacetChange"] = value_change(
+        "facet", "ComparisonFacetValue", {"facet": {"type": "string"}}
+    )
+    schemas["ComparisonCostChange"] = value_change(
+        "cost_per_task", "ComparisonCostValue", {}
+    )
+    schemas["ComparisonCapabilityChange"] = value_change(
+        "capability", "ComparisonCapabilityValue", {"domain": {"type": "string"}}
+    )
+    schemas["ComparisonValueChange"] = {
+        "oneOf": [
+            {"$ref": "#/components/schemas/ComparisonFacetChange"},
+            {"$ref": "#/components/schemas/ComparisonCostChange"},
+            {"$ref": "#/components/schemas/ComparisonCapabilityChange"},
+        ],
+        "discriminator": {
+            "propertyName": "kind",
+            "mapping": {
+                "facet": "#/components/schemas/ComparisonFacetChange",
+                "cost_per_task": "#/components/schemas/ComparisonCostChange",
+                "capability": "#/components/schemas/ComparisonCapabilityChange",
+            },
+        },
+    }
+    schemas["ComparisonModelChange"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "model", "entered", "left", "rank_changed", "may_qualify", "values",
+        ],
+        "properties": {
+            "model": {"type": "string", "pattern": decide_service.contract.MODEL_PATTERN},
+            "entered": {"type": "boolean"},
+            "left": {
+                "type": "object", "nullable": True,
+                "additionalProperties": False,
+                "required": ["reason"],
+                "properties": {"reason": {"type": "string"}},
+            },
+            "rank_changed": {
+                "type": "object", "nullable": True,
+                "additionalProperties": False,
+                "required": ["old", "new"],
+                "properties": {"old": {"type": "integer"}, "new": {"type": "integer"}},
+            },
+            "may_qualify": {
+                "type": "object", "nullable": True,
+                "additionalProperties": False,
+                "required": ["old", "new"],
+                "properties": {
+                    "old": {
+                        "type": "array", "nullable": True,
+                        "items": {"type": "string"},
+                    },
+                    "new": {
+                        "type": "array", "nullable": True,
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+            "values": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/ComparisonValueChange"},
+            },
+        },
+    }
+    count_names = [
+        "entered", "left", "rank_changed", "may_qualify_changed", "models_changed",
     ]
-    comparison_response["properties"]["endpoint"]["enum"] = ["compare"]
-    for field in ("snapshot", "compare_to"):
-        comparison_response["properties"][field]["pattern"] = "^snap_[A-Za-z0-9:._-]+$"
-    schemas["ComparisonResponse"] = comparison_response
+    snapshot_side = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["id", "as_of"],
+        "properties": {
+            "id": {"type": "string", "pattern": decide_service.contract.SNAPSHOT_PATTERN},
+            "as_of": nullable_string,
+        },
+    }
+    schemas["ComparisonResult"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "changed", "snapshot", "status", "counts", "models", "spec_snapshot_ignored",
+        ],
+        "properties": {
+            "changed": {"type": "boolean"},
+            "snapshot": {
+                "type": "object", "additionalProperties": False,
+                "required": ["old", "new"],
+                "properties": {"old": snapshot_side, "new": snapshot_side},
+            },
+            "status": {
+                "type": "object", "additionalProperties": False,
+                "required": ["old", "new"],
+                "properties": {
+                    side: copy.deepcopy(
+                        schemas["DecisionResponse"]["properties"]["status"]
+                    )
+                    for side in ("old", "new")
+                },
+            },
+            "counts": {
+                "type": "object", "additionalProperties": False,
+                "required": count_names,
+                "properties": {name: {"type": "integer"} for name in count_names},
+            },
+            "models": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/ComparisonModelChange"},
+            },
+            "spec_snapshot_ignored": {"type": "boolean"},
+        },
+    }
+    schemas["ComparisonResponse"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["contract_version", "endpoint", "snapshot", "compare_to", "result"],
+        "properties": {
+            "contract_version": {
+                "type": "string", "enum": [decide_service.contract.CONTRACT_VERSION]
+            },
+            "endpoint": {"type": "string", "enum": ["compare"]},
+            "snapshot": {
+                "type": "string", "pattern": decide_service.contract.SNAPSHOT_PATTERN
+            },
+            "compare_to": {
+                "type": "string", "pattern": decide_service.contract.SNAPSHOT_PATTERN
+            },
+            "result": {"$ref": "#/components/schemas/ComparisonResult"},
+        },
+    }
     return schemas
 
 
@@ -2032,6 +2262,15 @@ def build_spec() -> dict[str, Any]:
             "schema": {"type": "integer", "minimum": 1},
         }
     }
+    comparison_unavailable = refused_by_access(
+        "The snapshot is not published, a retained snapshot cannot be read, or a live "
+        "key cannot reach the access store. A no_snapshot response includes Retry-After.",
+        {"oneOf": [
+            {"$ref": "#/components/schemas/ComparisonSnapshotUnavailable"},
+            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
+        ]},
+    )
+    comparison_unavailable["headers"] = copy.deepcopy(decision_unavailable["headers"])
     decide_snapshot_headers = {
         "X-ModelSpec-Snapshot": {
             "description": "The verified snapshot that answered (MODEL-159).",
@@ -2284,11 +2523,11 @@ def build_spec() -> dict[str, Any]:
                         },
                         str(decide_service.HTTP_BAD_REQUEST): _json_body(
                             "The body lacks a valid spec or compare_to snapshot ID.",
-                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
                         ),
                         str(decide_service.HTTP_CONFLICT): _json_body(
                             "The retained snapshot is unavailable or differs from compare_to.",
-                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
                         ),
                         not_found[0]: not_found[1],
                         str(service.HTTP_METHOD_NOT_ALLOWED): transport(
@@ -2296,18 +2535,18 @@ def build_spec() -> dict[str, Any]:
                         )[1],
                         str(service.HTTP_PAYLOAD_TOO_LARGE): _json_body(
                             f"The body is over {decide_service.MAX_BODY_BYTES} bytes.",
-                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
                         ),
                         str(decide_service.HTTP_BAD_GATEWAY): _json_body(
                             "A published snapshot could not be fetched.",
-                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
                         ),
                         str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
                             "Payment required when X402_ENABLED is on.",
                             {"$ref": "#/components/schemas/PaymentRequired"},
                         ),
                         **access_responses(),
-                        str(access.HTTP_STORE_UNAVAILABLE): decision_unavailable,
+                        str(access.HTTP_STORE_UNAVAILABLE): comparison_unavailable,
                     },
                 },
             },

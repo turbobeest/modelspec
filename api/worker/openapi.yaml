@@ -454,7 +454,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessRefused'
-        '503': &id004
+        '503':
           description: The snapshot is not published, it cannot be verified, or a live key cannot reach
             the access store. A no_snapshot response includes Retry-After.
           content:
@@ -505,13 +505,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DecisionRequestRefused'
+                $ref: '#/components/schemas/ComparisonRequestRefused'
         '409':
           description: The retained snapshot is unavailable or differs from compare_to.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DecisionRequestRefused'
+                $ref: '#/components/schemas/ComparisonRequestRefused'
         '404': *id001
         '405':
           description: /v1/compare takes POST.
@@ -524,13 +524,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DecisionRequestRefused'
+                $ref: '#/components/schemas/ComparisonRequestRefused'
         '502':
           description: A published snapshot could not be fetched.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DecisionRequestRefused'
+                $ref: '#/components/schemas/ComparisonRequestRefused'
         '402':
           description: Payment required when X402_ENABLED is on.
           content:
@@ -564,7 +564,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessRefused'
-        '503': *id004
+        '503':
+          description: The snapshot is not published, a retained snapshot cannot be read, or a live key
+            cannot reach the access store. A no_snapshot response includes Retry-After.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - oneOf:
+                  - $ref: '#/components/schemas/ComparisonSnapshotUnavailable'
+                  - $ref: '#/components/schemas/ComparisonRequestRefused'
+                - $ref: '#/components/schemas/AccessRefused'
+          headers:
+            Retry-After:
+              description: Seconds before retrying a no_snapshot response.
+              schema:
+                type: integer
+                minimum: 1
   /v1/policy-check:
     post:
       operationId: policyCheck
@@ -4472,6 +4488,7 @@ components:
       type: object
     DecisionRequestRefused:
       type: object
+      additionalProperties: false
       required:
       - contract_version
       - endpoint
@@ -4485,7 +4502,6 @@ components:
         endpoint:
           type: string
           enum:
-          - compare
           - decide
         snapshot:
           anyOf:
@@ -4494,6 +4510,7 @@ components:
           - type: 'null'
         error:
           type: object
+          additionalProperties: false
           required:
           - code
           - message
@@ -4501,10 +4518,7 @@ components:
             code:
               type: string
               enum:
-              - comparison_snapshot_changed
-              - comparison_snapshot_unavailable
               - invalid_spec
-              - no_snapshot
               - origin_not_allowed
               - payload_too_large
               - snapshot_changed
@@ -4525,6 +4539,86 @@ components:
               description: 'snapshot_changed only: the snapshot that answers now.'
     DecisionSnapshotUnavailable:
       type: object
+      additionalProperties: false
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - error
+      - message
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.7'
+        endpoint:
+          type: string
+          enum:
+          - decide
+        snapshot:
+          type: 'null'
+        error:
+          type: string
+          enum:
+          - no_snapshot
+        message:
+          type: string
+    ComparisonRequestRefused:
+      type: object
+      additionalProperties: false
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - error
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.7'
+        endpoint:
+          type: string
+          enum:
+          - compare
+        snapshot:
+          anyOf:
+          - type: string
+            pattern: ^snap_[A-Za-z0-9:._-]+$
+          - type: 'null'
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              enum:
+              - comparison_snapshot_changed
+              - comparison_snapshot_unavailable
+              - invalid_request
+              - invalid_spec
+              - origin_not_allowed
+              - payload_too_large
+              - snapshot_changed
+              - snapshot_refused
+              - snapshot_unavailable
+            message:
+              type: string
+            issues:
+              type: array
+              items:
+                type: object
+            requested:
+              type: string
+              description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'
+            current:
+              type: string
+              description: 'snapshot_changed only: the snapshot that answers now.'
+    ComparisonSnapshotUnavailable:
+      type: object
+      additionalProperties: false
       required:
       - contract_version
       - endpoint
@@ -4540,7 +4634,6 @@ components:
           type: string
           enum:
           - compare
-          - decide
         snapshot:
           type: 'null'
         error:
@@ -4561,12 +4654,318 @@ components:
           pattern: ^snap_[A-Za-z0-9:._-]+$
         spec:
           $ref: '#/components/schemas/DecisionSpec'
+    ComparisonOfferingRef:
+      type: object
+      additionalProperties: false
+      required:
+      - model
+      - provider
+      - region
+      - tier
+      properties:
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+        provider: &id004
+          anyOf:
+          - type: string
+          - type: 'null'
+        region: *id004
+        tier: *id004
+    ComparisonOfferingChange:
+      type: object
+      additionalProperties: false
+      required:
+      - old
+      - new
+      properties:
+        old:
+          $ref: '#/components/schemas/ComparisonOfferingRef'
+        new:
+          $ref: '#/components/schemas/ComparisonOfferingRef'
+    ComparisonFacetValue:
+      type: object
+      additionalProperties: false
+      required:
+      - value
+      - unit
+      - records
+      properties:
+        value:
+          anyOf:
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          - items:
+              anyOf:
+              - type: boolean
+              - type: integer
+              - type: number
+              - format: date
+                type: string
+              - type: string
+            type: array
+          - type: 'null'
+        unit: *id004
+        records: &id005
+          type: array
+          items:
+            type: string
+    ComparisonCostValue:
+      type: object
+      additionalProperties: false
+      required:
+      - value
+      - unit
+      - records
+      properties:
+        value:
+          type: number
+          nullable: true
+        unit: *id004
+        records: *id005
+    ComparisonCapabilityValue:
+      type: object
+      additionalProperties: false
+      required:
+      - value
+      - interval
+      - records
+      properties:
+        value:
+          type: number
+        interval:
+          type: array
+          items:
+            type: number
+          minItems: 2
+          maxItems: 2
+        records: *id005
+    ComparisonFacetChange:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - facet
+      - offering
+      - old
+      - new
+      properties:
+        kind:
+          type: string
+          enum:
+          - facet
+        facet:
+          type: string
+        offering: &id006
+          oneOf:
+          - $ref: '#/components/schemas/ComparisonOfferingRef'
+          - $ref: '#/components/schemas/ComparisonOfferingChange'
+        old:
+          $ref: '#/components/schemas/ComparisonFacetValue'
+        new:
+          $ref: '#/components/schemas/ComparisonFacetValue'
+    ComparisonCostChange:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - offering
+      - old
+      - new
+      properties:
+        kind:
+          type: string
+          enum:
+          - cost_per_task
+        offering: *id006
+        old:
+          $ref: '#/components/schemas/ComparisonCostValue'
+        new:
+          $ref: '#/components/schemas/ComparisonCostValue'
+    ComparisonCapabilityChange:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - domain
+      - offering
+      - old
+      - new
+      properties:
+        kind:
+          type: string
+          enum:
+          - capability
+        domain:
+          type: string
+        offering: *id006
+        old:
+          $ref: '#/components/schemas/ComparisonCapabilityValue'
+        new:
+          $ref: '#/components/schemas/ComparisonCapabilityValue'
+    ComparisonValueChange:
+      oneOf:
+      - $ref: '#/components/schemas/ComparisonFacetChange'
+      - $ref: '#/components/schemas/ComparisonCostChange'
+      - $ref: '#/components/schemas/ComparisonCapabilityChange'
+      discriminator:
+        propertyName: kind
+        mapping:
+          facet: '#/components/schemas/ComparisonFacetChange'
+          cost_per_task: '#/components/schemas/ComparisonCostChange'
+          capability: '#/components/schemas/ComparisonCapabilityChange'
+    ComparisonModelChange:
+      type: object
+      additionalProperties: false
+      required:
+      - model
+      - entered
+      - left
+      - rank_changed
+      - may_qualify
+      - values
+      properties:
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+        entered:
+          type: boolean
+        left:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required:
+          - reason
+          properties:
+            reason:
+              type: string
+        rank_changed:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required:
+          - old
+          - new
+          properties:
+            old:
+              type: integer
+            new:
+              type: integer
+        may_qualify:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required:
+          - old
+          - new
+          properties:
+            old:
+              type: array
+              nullable: true
+              items:
+                type: string
+            new:
+              type: array
+              nullable: true
+              items:
+                type: string
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComparisonValueChange'
+    ComparisonResult:
+      type: object
+      additionalProperties: false
+      required:
+      - changed
+      - snapshot
+      - status
+      - counts
+      - models
+      - spec_snapshot_ignored
+      properties:
+        changed:
+          type: boolean
+        snapshot:
+          type: object
+          additionalProperties: false
+          required:
+          - old
+          - new
+          properties:
+            old: &id007
+              type: object
+              additionalProperties: false
+              required:
+              - id
+              - as_of
+              properties:
+                id:
+                  type: string
+                  pattern: ^snap_[A-Za-z0-9:._-]+$
+                as_of: *id004
+            new: *id007
+        status:
+          type: object
+          additionalProperties: false
+          required:
+          - old
+          - new
+          properties:
+            old:
+              enum:
+              - answered
+              - partial
+              - no_feasible
+              title: Status
+              type: string
+            new:
+              enum:
+              - answered
+              - partial
+              - no_feasible
+              title: Status
+              type: string
+        counts:
+          type: object
+          additionalProperties: false
+          required:
+          - entered
+          - left
+          - rank_changed
+          - may_qualify_changed
+          - models_changed
+          properties:
+            entered:
+              type: integer
+            left:
+              type: integer
+            rank_changed:
+              type: integer
+            may_qualify_changed:
+              type: integer
+            models_changed:
+              type: integer
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComparisonModelChange'
+        spec_snapshot_ignored:
+          type: boolean
     ComparisonResponse:
       type: object
+      additionalProperties: false
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - compare_to
+      - result
       properties:
-        compare_to:
-          type: string
-          pattern: ^snap_[A-Za-z0-9:._-]+$
         contract_version:
           type: string
           enum:
@@ -4575,223 +4974,14 @@ components:
           type: string
           enum:
           - compare
-        result:
-          type: object
-          properties:
-            changed:
-              type: boolean
-            counts:
-              type: object
-              properties:
-                entered:
-                  type: integer
-                left:
-                  type: integer
-                may_qualify_changed:
-                  type: integer
-                models_changed:
-                  type: integer
-                rank_changed:
-                  type: integer
-              required:
-              - entered
-              - left
-              - may_qualify_changed
-              - models_changed
-              - rank_changed
-            models:
-              type: array
-              items:
-                type: object
-                properties:
-                  entered:
-                    type: boolean
-                  left:
-                    type: object
-                    nullable: true
-                    properties:
-                      reason:
-                        type: string
-                  may_qualify:
-                    type: object
-                    nullable: true
-                    properties:
-                      new:
-                        type: array
-                        items:
-                          type: string
-                      old:
-                        type: array
-                        items:
-                          type: string
-                  model:
-                    type: string
-                  rank_changed:
-                    type: object
-                    nullable: true
-                    properties:
-                      new:
-                        type: integer
-                      old:
-                        type: integer
-                  values:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        domain:
-                          type: string
-                        facet:
-                          type: string
-                        kind:
-                          type: string
-                        new:
-                          type: object
-                          properties:
-                            interval:
-                              type: array
-                              items:
-                                type: number
-                            records:
-                              type: array
-                              items:
-                                type: string
-                            unit:
-                              type: string
-                            value:
-                              type: number
-                          required:
-                          - records
-                          - value
-                        offering:
-                          type: object
-                          properties:
-                            model:
-                              type: string
-                            new:
-                              type: object
-                              properties:
-                                model:
-                                  type: string
-                                provider:
-                                  type: string
-                                region:
-                                  type: string
-                                tier:
-                                  type: string
-                              required:
-                              - model
-                              - provider
-                              - region
-                              - tier
-                            old:
-                              type: object
-                              properties:
-                                model:
-                                  type: string
-                                provider:
-                                  type: string
-                                region:
-                                  type: string
-                                tier:
-                                  type: string
-                              required:
-                              - model
-                              - provider
-                              - region
-                              - tier
-                            provider:
-                              type: string
-                            region:
-                              type: string
-                            tier:
-                              type: string
-                        old:
-                          type: object
-                          properties:
-                            interval:
-                              type: array
-                              items:
-                                type: number
-                            records:
-                              type: array
-                              items:
-                                type: string
-                            unit:
-                              type: string
-                            value:
-                              type: number
-                          required:
-                          - records
-                          - value
-                      required:
-                      - kind
-                      - new
-                      - offering
-                      - old
-                required:
-                - entered
-                - left
-                - may_qualify
-                - model
-                - rank_changed
-                - values
-            snapshot:
-              type: object
-              properties:
-                new:
-                  type: object
-                  properties:
-                    as_of:
-                      type: string
-                      nullable: true
-                    id:
-                      type: string
-                  required:
-                  - as_of
-                  - id
-                old:
-                  type: object
-                  properties:
-                    as_of:
-                      type: string
-                      nullable: true
-                    id:
-                      type: string
-                  required:
-                  - as_of
-                  - id
-              required:
-              - new
-              - old
-            spec_snapshot_ignored:
-              type: boolean
-            status:
-              type: object
-              properties:
-                new:
-                  type: string
-                old:
-                  type: string
-              required:
-              - new
-              - old
-          required:
-          - changed
-          - counts
-          - models
-          - snapshot
-          - spec_snapshot_ignored
-          - status
         snapshot:
           type: string
           pattern: ^snap_[A-Za-z0-9:._-]+$
-      required:
-      - compare_to
-      - contract_version
-      - endpoint
-      - result
-      - snapshot
+        compare_to:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+        result:
+          $ref: '#/components/schemas/ComparisonResult'
     PolicyCheckRequest:
       type: object
       additionalProperties: false
@@ -5280,7 +5470,7 @@ components:
       properties:
         checks:
           type: array
-          items: &id005
+          items: &id008
             $ref: '#/components/schemas/PolicyCheck'
         display_name:
           type: string
@@ -5354,7 +5544,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id005
+          items: *id008
         display_name:
           type: string
         failed:
@@ -5413,7 +5603,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id005
+          items: *id008
         display_name:
           type: string
         model_id:

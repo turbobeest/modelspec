@@ -35,9 +35,11 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 import os
 import re
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -289,6 +291,73 @@ def test_comparison_result_schema_rejects_missing_and_malformed_fields(
     assert generator._validate(missing, schema, spec)
     assert generator._validate(malformed, schema, spec)
     assert generator._validate(nonsense, schema, spec)
+
+
+def test_comparison_schema_accepts_every_facet_value_and_sparse_offering(
+        spec: dict[str, Any]) -> None:
+    """The schema describes contract values, not only the generator's examples."""
+    contract = generator.decide_service.contract
+    old_values = [False, 1, 1.5, date(2026, 9, 26), "old", ["old"], None]
+    new_values = [True, 2, 2.5, date(2026, 9, 27), "new", ["new"], "known"]
+
+    def decision(snapshot: str, value: Any):
+        offering = contract.OfferingRef(model="lab/value")
+        return contract.Decision(
+            decision_id="dec_" + snapshot.removeprefix("snap_")[:24],
+            snapshot=snapshot,
+            spec_hash="sha256:" + "1" * 64,
+            explain="full",
+            status="answered",
+            results=[contract.Result(rank=1, offering=offering)],
+            top=[contract.CandidateValues(offering=offering, facts=[
+                contract.ShownFact(facet="model.test", value=value),
+            ])],
+        )
+
+    old_snapshot = "snap_" + "a" * 64
+    new_snapshot = "snap_" + "b" * 64
+    schema = spec["components"]["schemas"]["ComparisonResponse"]
+    for old_value, new_value in zip(old_values, new_values, strict=True):
+        result = generator.decide_service.compare_decisions(
+            decision(old_snapshot, old_value),
+            decision(new_snapshot, new_value),
+        )
+        result["spec_snapshot_ignored"] = False
+        response = {
+            "contract_version": contract.CONTRACT_VERSION,
+            "endpoint": "compare",
+            "snapshot": new_snapshot,
+            "compare_to": old_snapshot,
+            "result": result,
+        }
+        serialized = json.loads(json.dumps(response, default=str))
+
+        assert serialized["result"]["models"][0]["values"][0]["offering"] == {
+            "model": "lab/value", "provider": None, "region": None, "tier": None,
+        }
+        assert generator._validate(serialized, schema, spec) == []
+
+
+def test_decision_and_comparison_refusals_keep_endpoint_contracts_separate(
+        spec: dict[str, Any]) -> None:
+    schemas = spec["components"]["schemas"]
+    assert schemas["DecisionRequestRefused"]["properties"]["endpoint"]["enum"] == [
+        "decide"
+    ]
+    assert schemas["DecisionSnapshotUnavailable"]["properties"]["endpoint"]["enum"] == [
+        "decide"
+    ]
+    assert schemas["ComparisonRequestRefused"]["properties"]["endpoint"]["enum"] == [
+        "compare"
+    ]
+    assert schemas["ComparisonSnapshotUnavailable"]["properties"]["endpoint"]["enum"] == [
+        "compare"
+    ]
+
+    responses = spec["paths"]["/v1/compare"]["post"]["responses"]
+    assert responses["400"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ComparisonRequestRefused"
+    }
 
 
 def test_the_policy_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]) -> None:
