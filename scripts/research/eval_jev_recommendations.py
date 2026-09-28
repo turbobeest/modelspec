@@ -498,16 +498,30 @@ def blind_attribution_cases() -> list[Case]:
 
 
 def _claims_and_latest() -> tuple[dict[str, dict], dict[str, dict]]:
+    frozen_payload = yaml.safe_load(FROZEN_SOURCE_EXCERPTS.read_text(encoding="utf-8"))
+    frozen_refs = {row["snapshot_ref"] for row in frozen_payload["excerpts"]}
+    frozen_as_of = max(row["retrieved_at"] for row in frozen_payload["excerpts"])
     claims: dict[str, dict] = {}
     queue = ROOT / "verification/queue/events.jsonl"
     for line in queue.read_text(encoding="utf-8").splitlines():
         row = json.loads(line)
         if claim := row.get("claim"):
             target = claim["target"]
-            claims[f"{target['kind']}:{target['id']}"] = claim
+            key = f"{target['kind']}:{target['id']}"
+            refs = {source["snapshot_ref"] for source in claim["sources"]}
+            old_refs = {
+                source["snapshot_ref"] for source in claims.get(key, {}).get("sources", [])
+            }
+            # This study is a frozen rerun. A weekly refresh may append a newer
+            # claim for the same evidence ID, but its retained copy is not one of
+            # the licensed inputs the published study used.
+            if key not in claims or refs <= frozen_refs or not old_refs <= frozen_refs:
+                claims[key] = claim
     latest: dict[str, dict] = {}
     for line in (ROOT / "verification/log.jsonl").read_text(encoding="utf-8").splitlines():
         row = json.loads(line)
+        if row["date"] > frozen_as_of:
+            continue
         target = row["target"]
         key = f"{target['kind']}:{target['id']}"
         old = latest.get(key)

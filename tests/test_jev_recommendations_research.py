@@ -135,6 +135,64 @@ def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
         assert len(row["text"].split()) <= 90
 
 
+def test_weekly_refresh_claims_do_not_replace_the_study_frozen_inputs(
+    monkeypatch, tmp_path: Path
+) -> None:
+    frozen_ref = "sha256:frozen"
+    refreshed_ref = "sha256:refreshed"
+    target = {"kind": "evidence", "id": "example/model#benchmark"}
+    key = "evidence:example/model#benchmark"
+    frozen_claim = {
+        "target": target,
+        "sources": [{"snapshot_ref": frozen_ref}],
+        "value": 0.75,
+    }
+    refreshed_claim = {
+        "target": target,
+        "sources": [{"snapshot_ref": refreshed_ref}],
+        "value": 0.80,
+    }
+    frozen_verification = {
+        "target": target,
+        "date": "2026-09-25",
+        "outcome": "verified",
+    }
+    refreshed_verification = {
+        "target": target,
+        "date": "2026-09-26",
+        "outcome": "mismatch",
+    }
+
+    queue = tmp_path / "verification/queue"
+    queue.mkdir(parents=True)
+    (queue / "events.jsonl").write_text(
+        "\n".join(
+            json.dumps({"claim": claim}) for claim in (frozen_claim, refreshed_claim)
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "verification/log.jsonl").write_text(
+        "\n".join(
+            json.dumps(row) for row in (frozen_verification, refreshed_verification)
+        ),
+        encoding="utf-8",
+    )
+    frozen_excerpts = tmp_path / "frozen-source-excerpts.yaml"
+    frozen_excerpts.write_text(
+        yaml.safe_dump(
+            {"excerpts": [{"snapshot_ref": frozen_ref, "retrieved_at": "2026-09-25"}]}
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(research, "ROOT", tmp_path)
+    monkeypatch.setattr(research, "FROZEN_SOURCE_EXCERPTS", frozen_excerpts)
+
+    claims, latest = research._claims_and_latest()
+
+    assert claims[key] == frozen_claim
+    assert latest[key] == frozen_verification
+
+
 def test_published_evidence_rerun_names_the_exact_licensed_inputs() -> None:
     labels = yaml.safe_load(research.JUDGMENT_LABELS.read_text(encoding="utf-8"))
     cases = [*research.blind_attribution_cases(), *research.second_key_cases(labels)]
