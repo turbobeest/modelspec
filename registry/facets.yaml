@@ -33,7 +33,7 @@
 # A fact's state (known, unknown, not_disclosed, requires_contract) is separate
 # from its value and is not declared here.
 
-schema_version: 1
+schema_version: 2
 
 units:
   - id: usd_per_billing_period

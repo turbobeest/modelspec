@@ -47,6 +47,16 @@ PROVIDER_KINDS = ("lab_api", "cloud", "inference", "aggregator")
 SHOWN_BY = ("address", "incorporation", "governing_law")
 BASES = ("service_terms", "website_terms")
 
+#: Each registry document has its own compatibility gate. Facets moved to v2
+#: when MODEL-173 added ``string`` to the closed ``value_type.kind`` range;
+#: the other registry document contracts remain at v1.
+REGISTRY_SCHEMA_VERSIONS = {
+    "facets": 2,
+    "providers": 1,
+    "harnesses": 1,
+    "domains": 1,
+}
+
 #: A facet definition shorter than this is a label, not a definition.
 MIN_DEFINITION_WORDS = 12
 
@@ -370,8 +380,9 @@ def _read(root: Path, name: str, key: str) -> list[dict]:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
         raise RegistryError(f"{path}: not valid YAML: {exc}") from exc
-    if data.get("schema_version") != 1:
-        raise RegistryError(f"{path}: schema_version must be 1")
+    expected_version = REGISTRY_SCHEMA_VERSIONS[name]
+    if data.get("schema_version") != expected_version:
+        raise RegistryError(f"{path}: schema_version must be {expected_version}")
     entries = data.get(key)
     if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
         raise RegistryError(f"{path}: `{key}` must be a list of mappings")
