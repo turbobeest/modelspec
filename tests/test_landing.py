@@ -130,7 +130,10 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
     holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
     from pipeline import method
-    method_page.write_text(method.page(changed, ("ed25519-test",)), encoding="utf-8")
+    method_page.write_text(
+        method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+        encoding="utf-8",
+    )
     assembled = directory / "assembled"
     (assembled / "decide").mkdir(parents=True)
     shutil.copyfile(

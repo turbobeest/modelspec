@@ -45,6 +45,7 @@ def test_pricing_page_is_built_with_assets_and_indexing_metadata(tmp_path: Path)
     assert '<link rel="canonical" href="https://modelspec.dev/pricing/">' in html
     assert '<meta name="description"' in html
     assert pricing.FREE_TIER_TITLE in html
+    assert '<a href="/method/">Method</a>' in html
 
 
 def test_all_prices_credits_weights_and_x402_rate_come_from_tiers_json() -> None:

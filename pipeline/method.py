@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import gzip
 import html
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +16,7 @@ from pipeline.landing import LandingData
 PAGE_PATH = Path("method/index.html")
 ASSET_PATH = Path("landing-assets/method.css")
 KEYS_REL = Path("decision/snapshot_keys.json")
+SNAPSHOT_REL = Path("api/decision/snapshot.json.gz")
 GH = "https://github.com/turbobeest/modelspec/blob/main/"
 GH_TREE = "https://github.com/turbobeest/modelspec/tree/main/"
 
@@ -21,6 +24,28 @@ GH_TREE = "https://github.com/turbobeest/modelspec/tree/main/"
 def load_key_ids(root: Path) -> tuple[str, ...]:
     raw = json.loads((root / KEYS_REL).read_text(encoding="utf-8"))
     return tuple(str(key["key_id"]) for key in raw.get("keys", ()))
+
+
+@dataclass(frozen=True)
+class SigningState:
+    published_key_ids: tuple[str, ...]
+    signed_key_id: str | None
+
+
+def load_signing_state(tree: Path, root: Path) -> SigningState:
+    key_ids = load_key_ids(root)
+    snapshot = tree / SNAPSHOT_REL
+    signed_key_id = None
+    if snapshot.is_file():
+        envelope = json.loads(gzip.decompress(snapshot.read_bytes()))
+        signed_key_id = next(
+            (str(signature.get("key_id")) for signature in envelope.get("signatures", ())
+             if isinstance(signature, dict)
+             and signature.get("alg") == "ed25519"
+             and signature.get("key_id") in key_ids),
+            None,
+        )
+    return SigningState(key_ids, signed_key_id)
 
 
 def _sources(rows: tuple[tuple[str, str, str], ...]) -> str:
@@ -61,22 +86,27 @@ def _tie_plot(data: LandingData) -> str:
             + rows + '<text class="axis-label" x="450" y="400" text-anchor="middle">estimated ability in one domain, higher is better</text></svg>')
 
 
-def _signing(key_ids: tuple[str, ...]) -> str:
-    if key_ids:
-        state = "<p>Published key IDs: " + "".join(
-            f"<code>{html.escape(key_id)}</code>" for key_id in key_ids) + "</p>"
-        verified = "true when the downloaded snapshot has a valid signature"
+def _signing(signing: SigningState) -> str:
+    if signing.signed_key_id:
+        key_id = html.escape(signing.signed_key_id)
+        state = (f"<p>This snapshot is Ed25519-signed with published key ID "
+                 f"<code>{key_id}</code>.</p><p>Run <code>modelspec snapshot fetch</code> "
+                 "to download the snapshot and verify its signature.</p>")
+        verified = "true"
+    elif signing.published_key_ids:
+        ids = ", ".join(f"<code>{html.escape(key_id)}</code>"
+                        for key_id in signing.published_key_ids)
+        state = (f"<p>A public signing key is published (id {ids}); this snapshot is not yet "
+                 "signed with it. Signing key being re-issued.</p>")
+        verified = "false"
     else:
-        state = "<p><strong>Signing key being re-issued</strong></p>"
-        verified = "false while no public key is available"
+        state = "<p><strong>Signing key being re-issued.</strong></p>"
+        verified = "false"
     return (f'<div class="terminal"><span>reproduce a decision, offline</span><pre>'
             '<b>$</b> modelspec snapshot fetch\n<b>$</b> modelspec decide spec.yaml --json\n'
             '  "snapshot": "[SNAPSHOT ID]",\n  "spec_hash": "sha256:[SPEC HASH]",\n'
             f'  "signature_verified": {verified}</pre></div><div class="key">'
-            f'<h3>Public signing key</h3>{state}<p>Anyone can verify a snapshot\'s Ed25519 '
-            'signature against the published key set. The signature names its key ID, and the '
-            'CLI checks that ID and signature when <code>modelspec snapshot fetch</code> downloads '
-            'the file. The content hash is checked separately.</p></div>')
+            f'<h3>Public signing key</h3>{state}<p>The content hash is checked separately.</p></div>')
 
 
 def _section(section_id: str, number: str, title: str, lede: str,
@@ -86,7 +116,7 @@ def _section(section_id: str, number: str, title: str, lede: str,
             f'<div class="content">{content}</div></section>')
 
 
-def page(data: LandingData, key_ids: tuple[str, ...]) -> str:
+def page(data: LandingData, signing: SigningState) -> str:
     tied = len(data.tie) - 1
     commitment = neutrality_commitment()
     assertions = "".join(
@@ -116,6 +146,17 @@ def page(data: LandingData, key_ids: tuple[str, ...]) -> str:
                     ("schema/card.py", "source_kind: the three measurer labels", ""),
                     ("decision/model.py", "sources required; the two-key rule", ""),
                     ("tests/test_removed_sources.py", "keeps excluded sources out", ""))))
+    basis = ('<h3>What <code>evidence_basis</code> means</h3><p>The rank export and the '
+             '<code>/v1/rank</code> API label each row\'s inputs with '
+             '<code>evidence_basis</code>. The label describes the inputs. It is not a verdict '
+             'on the model.</p><div class="code-list">'
+             '<code>none</code><span>No usable measurement contributed.</span>'
+             '<code>unverified-legacy</code><span>Every input is an older card value.</span>'
+             '<code>mixed</code><span>Reviewed and older values both contribute.</span>'
+             '<code>partial-verified</code><span>Every input is reviewed, but some the profile asks for are missing.</span>'
+             '<code>verified</code><span>Every weighted benchmark is present and reviewed.</span>'
+             '</div>' + _sources((("pipeline/ranking.py", "_basis(): the evidence_basis labels", ""),)))
+    evidence += basis
     rules = (("No benchmark names in the code", "The fit reads which domains a benchmark counts toward from that benchmark's own page, tagged direct or proxy."),
              ("Direct counts more than proxy", "A direct measurement loads at 1, a proxy at 0.35, so a proxy carries 0.1225 of a direct one's precision."),
              ("Old evidence counts less", "A measurement's precision halves every 365 days, down to a floor of a quarter."),
@@ -128,9 +169,17 @@ def page(data: LandingData, key_ids: tuple[str, ...]) -> str:
         ("decision/capability.py", "fit_capabilities(): the fit itself", ""),
         ("docs/design/capability-model.md", "why this model, and its rules", ""),
         ("docs/validation/capability-model.md", "the held-out test report", "")))
+    tie_rules = ('<div class="rule-grid"><article><h3>Every overlapping row is flagged</h3>'
+                 '<p>It carries the warning <code>not_separable</code>, and the board names the '
+                 'models the evidence cannot separate. The API keeps a stable transport order '
+                 'so a list can travel. Read the flag before the rank.</p></article>'
+                 '<article><h3>Inside a tie, choose on something else</h3><p>Ability cannot split '
+                 'a tied group. Price, context, licence and the other facets you set can, and '
+                 'the board shows them for every row.</p></article></div>')
     ties = (f'<figure>{_tie_plot(data)}<figcaption>{tied} of the other '
             f'{len(data.models) - 1} models reach {html.escape(data.leader.name)}\'s lower bound. '
             f'Of those tied models, {html.escape(data.cheapest.name)} is cheapest.</figcaption></figure>'
+            + tie_rules
             + _sources((("decision/engine.py", "where not_separable is set", ""),
                         ("decision/capability.py", "deterministic_probabilities()", ""),
                         ("docs/decision-contract.md", "p_best and top3_stability", "a-result"))))
@@ -165,8 +214,8 @@ def page(data: LandingData, key_ids: tuple[str, ...]) -> str:
                     'and compact or YAML spelling don\'t change the hash. Changing any field does.'
                     '</p></article><article><h3>The decision id comes from both</h3><p><code>dec_'
                     '</code> plus a hash of the spec hash and the snapshot id.</p></article>'
-                    '<article><h3>Signed at build</h3><p>The CLI verifies a public Ed25519 signature '
-                    'offline against the published key set.</p></article></div>' + _signing(key_ids)
+                    '<article><h3>Signing state at build</h3><p>This page reads the signature block '
+                    'from the decision snapshot that the site publishes.</p></article></div>' + _signing(signing)
                     + _sources((("docs/decision-snapshot.md", "the file format, hash and id", "file-format"),
                                 ("docs/decision-contract.md", "the canonical spec hash", "the-canonical-spec-hash"),
                                 ("docs/snapshot-signing.md", "how snapshots are signed", ""),
@@ -184,7 +233,7 @@ def page(data: LandingData, key_ids: tuple[str, ...]) -> str:
             (6, "Answer", "Ranked where the evidence separates models, and flagged where it can't.", "#ties"))
     sections = (
         _section("evidence", "1 · Where evidence comes from", "Every number starts as a sourced, checked record.", "A value with no source never reaches a decision. Neither does one that only its collector has checked.", evidence, theme="dark")
-        + _section("estimate", "2 · The capability estimate", "Ability is estimated per domain, from every benchmark we hold.", "There is no fixed benchmark list and no hand-set weight. When a benchmark is added it counts, and nobody picks favourites. One leaderboard is one reading, and readings disagree. The estimate uses all of them, and says how sure it is.", estimate, theme="light")
+        + _section("estimate", "2 · The capability estimate", "Ability is estimated per domain, from every benchmark we hold.", "There is no fixed benchmark list and no hand-set weight. Every admitted benchmark with at least two model observations counts, and nobody picks favourites. One leaderboard is one reading, and readings disagree. The estimate uses all of them, and says how sure it is.", estimate, theme="light")
         + _section("ties", "3 · Ties", "Why the #1 is often a tie.", "Every estimate is a range. When a model's range reaches into the leader's, the evidence can't say which is better, so the page doesn't pretend to.", '<pre>range = estimate ± 1.2816 × sd\ntie   = C.high ≥ L.low</pre>' + ties, theme="dark")
         + _section("must-prefer", "4 · Must and Prefer", "Must is a gate. Prefer is a weight.", "Every facet on the board has three settings, and each does a different job. Conditions filter. They never add points.", must_prefer, theme="light")
         + _section("unknown", "5 · Unknown means unknown", "A missing fact is never a zero.", "Every condition has three answers: pass, fail and unknown. Unknown is its own answer, with its own rules. A null beats a guess.", unknown, theme="dark")
@@ -196,13 +245,13 @@ def page(data: LandingData, key_ids: tuple[str, ...]) -> str:
              ("No prompts kept", "A request carries a profile, not prompt text, so there is nothing to keep."),
              ("No guessed values", "A missing value stays missing. It is never filled in, and never counted as zero."),
              ("No fixed benchmark list", "Nobody chooses which benchmarks matter. Every admitted benchmark counts, weighted by the same rules."))
-    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>How ModelSpec decides</title><meta name="description" content="How ModelSpec turns sourced evidence into model decisions, ties and reproducible answers."><link rel="canonical" href="https://modelspec.dev/method/">{brand.head_links()}{brand.social_meta("How ModelSpec decides")}<link rel="stylesheet" href="/landing-assets/landing.css"><link rel="stylesheet" href="/landing-assets/method.css"></head><body><div class="axis" aria-hidden="true"></div>{landing_chrome.method_header()}<main><section class="method-hero"><div><h1>How ModelSpec decides.</h1><p>The front page makes five claims. This page takes each one apart in plain language, and links it to the code, the document or the public data that makes it true. Check it rather than trust it.</p><p>Everything here describes the code on main. Where a figure is needed, the page shows how it is computed, or reads it from the live snapshot.</p></div><nav aria-label="The claims, and where each is answered"><a href="#estimate"><b>Your model is a guess.</b><span>The estimate</span></a><a href="#ties"><b>The evidence can't tell {tied} of these models apart from the top one.</b><span>Ties</span></a><a href="#evidence"><b>Every number is one click from its source.</b><span>Evidence</span></a><a href="#unknown"><b>Unknown means unknown.</b><span>Unknowns</span></a><a href="#neutrality"><b>Nobody pays to rank higher.</b><span>Neutrality</span></a></nav></section><section class="flow"><h2>From a published score to your answer</h2><ol>{''.join(f'<li><a href="{href}"><code>{n}</code><b>{title}</b><span>{text}</span></a></li>' for n, title, text, href in flow)}</ol></section>{sections}<section id="dont" class="dont"><code>8 · What we don't do</code><h2>What we don't do, on purpose.</h2><div>{''.join(f'<article><h3>{title}</h3><p>{text}</p></article>' for title, text in donts)}</div></section><section class="public-data"><div><h2>Check it yourself.</h2><p>The data every answer reads is public, versioned and free to fetch. So is the code that reads it.</p><a class="button" href="/decide/">Open the board</a></div><ul><li><a href="https://modelspec.dev/api/decision/snapshot.json.gz"><code>modelspec.dev/api/decision/snapshot.json.gz</code></a><span>The decision snapshot every answer reads.</span></li><li><a href="https://modelspec.dev/api/decision/vocabulary.json"><code>modelspec.dev/api/decision/vocabulary.json</code></a><span>Every facet, benchmark and domain it knows.</span></li><li><a href="https://modelspec.dev/api/rank/profiles.json"><code>modelspec.dev/api/rank/profiles.json</code></a><span>The ranking floors and the neutrality commitment, as data.</span></li><li><a href="https://modelspec.dev/.well-known/modelspec-snapshot-keys.json"><code>modelspec.dev/.well-known/modelspec-snapshot-keys.json</code></a><span>The public keys that verify a snapshot.</span></li></ul></section></main>{landing_chrome.footer(detail="This page describes the code on main.")}</body></html>'''
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>How ModelSpec decides</title><meta name="description" content="How ModelSpec turns sourced evidence into model decisions, ties and reproducible answers."><link rel="canonical" href="https://modelspec.dev/method/">{brand.head_links()}{brand.social_meta("How ModelSpec decides")}<link rel="stylesheet" href="/landing-assets/landing.css"><link rel="stylesheet" href="/landing-assets/method.css"></head><body><div class="axis" aria-hidden="true"></div>{landing_chrome.method_header()}<main><section class="method-hero"><div><h1>How ModelSpec decides.</h1><p>The front page makes five claims. This page takes each one apart in plain language, and links it to the code, the document or the public data that makes it true. Check it rather than trust it.</p><p>Everything here describes the code on main. Where a figure is needed, the page shows how it is computed, or reads it from the live snapshot.</p></div><nav aria-label="The claims, and where each is answered"><a href="#estimate"><b>Your model is a guess.</b><span>The estimate</span></a><a href="#ties"><b>The evidence can't tell {tied} of these models apart from the top one.</b><span>Ties</span></a><a href="#evidence"><b>Every number is one click from its source.</b><span>Evidence</span></a><a href="#unknown"><b>Unknown means unknown.</b><span>Unknowns</span></a><a href="#neutrality"><b>Nobody pays to rank higher.</b><span>Neutrality</span></a></nav></section><section class="flow"><h2>From a published score to your answer</h2><ol>{''.join(f'<li><a href="{href}"><code>{n}</code><b>{title}</b><span>{text}</span></a></li>' for n, title, text, href in flow)}</ol></section>{sections}<section id="dont" class="dont"><code>8 · What we don't do</code><h2>What we don't do, on purpose.</h2><div>{''.join(f'<article><h3>{title}</h3><p>{text}</p></article>' for title, text in donts)}</div></section><section class="public-data"><div><h2>Check it yourself.</h2><p>The decision snapshot and vocabulary read by decision answers are public, versioned and free to fetch. So is the code that reads them. The <code>/v1/policy-check</code> determinations are private.</p><a class="button" href="/decide/">Open the board</a></div><ul><li><a href="https://modelspec.dev/api/decision/snapshot.json.gz"><code>modelspec.dev/api/decision/snapshot.json.gz</code></a><span>The snapshot that decision answers read.</span></li><li><a href="https://modelspec.dev/api/decision/vocabulary.json"><code>modelspec.dev/api/decision/vocabulary.json</code></a><span>Every facet, benchmark and domain decision answers know.</span></li><li><a href="https://modelspec.dev/api/rank/profiles.json"><code>modelspec.dev/api/rank/profiles.json</code></a><span>The ranking floors and the neutrality commitment, as data.</span></li><li><a href="https://modelspec.dev/.well-known/modelspec-snapshot-keys.json"><code>modelspec.dev/.well-known/modelspec-snapshot-keys.json</code></a><span>The public keys used to verify signed snapshots.</span></li></ul></section></main>{landing_chrome.footer(detail="This page describes the code on main.")}</body></html>'''
 
 
 def write(tree: Path, root: Path, data: LandingData) -> dict[str, Any]:
     out = Path(tree) / PAGE_PATH
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(page(data, load_key_ids(Path(root))), encoding="utf-8")
+    out.write_text(page(data, load_signing_state(Path(tree), Path(root))), encoding="utf-8")
     asset = Path(tree) / ASSET_PATH
     asset.parent.mkdir(parents=True, exist_ok=True)
     source = Path(__file__).parent / "landing_assets/method.css"
