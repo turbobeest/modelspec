@@ -123,3 +123,23 @@
       snapshot_ref: sha256:688d09ddbbfb525eb46fb99d5c04ef668691ac48dd927eb338c45d72965a3947
       cited_regions:
       - page
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - vertex-pricing
+    - model-143-google-gemini-3-7-flash
+  - id: google-vertex-ai/google/gemini-3-7-flash/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-7-flash/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - vertex-pricing
+    - model-143-google-gemini-3-7-flash

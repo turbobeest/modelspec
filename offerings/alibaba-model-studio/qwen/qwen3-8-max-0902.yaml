@@ -123,3 +123,23 @@
       snapshot_ref: sha256:15440ae237e7ba352f8d48e96ed944bd5874adf7dec7c43a2a10ad542c8ce7e1
       cited_regions:
       - page
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - alibaba-model-studio-pricing
+    - model-143-qwen-qwen3-8-max-0902
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - alibaba-model-studio-pricing
+    - model-143-qwen-qwen3-8-max-0902
