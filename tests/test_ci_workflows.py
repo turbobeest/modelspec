@@ -395,6 +395,21 @@ def test_site_build_only_publishes_a_complete_signed_decision_snapshot() -> None
     assert "::error::MODELSPEC_SNAPSHOT_KEY is not configured" not in workflow
 
 
+def test_site_build_reads_the_ed25519_private_key_from_the_repo_secret() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8"))
+    build = workflow["jobs"]["build"]
+    step = next(row for row in build["steps"] if row.get("name") == "Build")
+
+    assert step["env"]["MODELSPEC_SNAPSHOT_ED25519_KEY"] == (
+        "${{ github.event_name != 'pull_request' && "
+        "secrets.MODELSPEC_SNAPSHOT_ED25519_KEY || '' }}"
+    )
+    install = next(row for row in build["steps"] if row.get("name") == "Install dependencies")
+    assert "cryptography" in install["run"]
+
+
 def test_rank_smoke_failure_rolls_back_before_the_job_fails() -> None:
     workflow = RANK_API.read_text(encoding="utf-8")
     assert "wrangler rollback --message" in workflow

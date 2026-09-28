@@ -237,7 +237,9 @@ def snapshot_fetch(
                f"from {origin} (build {result.build_commit[:12]})")
     typer.echo(f"cached at {result.path}")
     if decision["available"]:
-        typer.echo(f"decision   cached from {decision['origin']}")
+        typer.echo(
+            f"decision   cached from {decision['origin']}; {decision['signature_status']}"
+        )
     else:
         typer.echo(f"decision   unavailable: {decision['error']}")
 
@@ -273,7 +275,8 @@ def snapshot_status(as_json: bool = typer.Option(False, "--json")) -> None:
             typer.echo(f"decision   invalid: {decision['error']}")
         elif decision["present"]:
             typer.echo(f"decision   {decision['snapshot_id']} as of {decision['as_of']} "
-                       f"({decision['age_days']:.1f} days cached; signature unverified)")
+                       f"({decision['age_days']:.1f} days cached; "
+                       f"{decision['signature_status']})")
         else:
             typer.echo("decision   not cached")
     if not info["present"]:

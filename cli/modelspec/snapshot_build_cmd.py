@@ -2,9 +2,10 @@
 
 Collects cards, offerings, sources and the verification log, keeps only
 verified values from registered, non-excluded sources, runs the premier-set
-completeness gate, and writes a gzipped snapshot. Signed with
-``MODELSPEC_SNAPSHOT_KEY`` when it is set. Exits 1 on any failure, naming the
-model, facet and source for each gate gap.
+completeness gate, and writes a gzipped snapshot. The Worker HMAC uses
+``MODELSPEC_SNAPSHOT_KEY``. The public Ed25519 signature uses
+``MODELSPEC_SNAPSHOT_ED25519_KEY``. Exits 1 on any failure, naming the model,
+facet and source for each gate gap.
 """
 
 from __future__ import annotations
@@ -38,12 +39,14 @@ def build(
     except ValueError as exc:  # SnapshotError, CompletenessError, a bad --as-of
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(EXIT_ERROR) from exc
-    signed = snap.env_key() is not None
+    hmac_signed = snap.env_key() is not None
+    ed25519_signed = snap.env_ed25519_signer() is not None
     built.write(out)
     lineup = len(built.content["lineup"]["candidates"])
     typer.echo(f"{built.snapshot_id} {built.content_hash}")
     typer.echo(f"{lineup} candidates in the lineup, "
                f"{len(built.content['archive']['candidates'])} in the archive, "
                f"{built.content['out_of_lineup']} models outside the premier lineup; "
-               f"{'signed' if signed else f'unsigned ({snap.KEY_ENV} not set)'}")
+               f"HMAC {'signed' if hmac_signed else 'unsigned'}; "
+               f"Ed25519 {'signed' if ed25519_signed else 'unsigned'}")
     typer.echo(f"written to {out}")
