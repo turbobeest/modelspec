@@ -285,7 +285,14 @@ def test_known_elimination_supersedes_an_older_must_flag_expectation() -> None:
 
 
 def test_overlapping_capability_intervals_count_as_not_separable() -> None:
-    from decision.contract import Decision, Estimate, OfferingRef, Result
+    from decision.contract import (
+        Decision,
+        Estimate,
+        OfferingRef,
+        Result,
+        SeparatedAnswer,
+        TieBreakers,
+    )
     from scripts.recall_run import _top_is_tied
 
     def ranked(rank: int, model_id: str, interval: tuple[float, float]) -> Result:
@@ -299,7 +306,6 @@ def test_overlapping_capability_intervals_count_as_not_separable() -> None:
                     interval=interval,
                 )
             ],
-            warnings=["not_separable"],
         )
 
     decision = Decision(
@@ -308,6 +314,14 @@ def test_overlapping_capability_intervals_count_as_not_separable() -> None:
         spec_hash="sha256:" + "0" * 64,
         explain="none",
         status="answered",
+        answer=SeparatedAnswer(
+            kind="separated",
+            members=["lab/a"],
+            leader="lab/a",
+            basis="leader-overlap score intervals; capability estimates use 80% intervals",
+            tie_breakers=TieBreakers(),
+            deterministic_order=["lab/a"],
+        ),
         results=[ranked(1, "lab/a", (1.0, 2.0)), ranked(2, "lab/b", (1.8, 2.4))],
     )
 

@@ -160,7 +160,7 @@ def _overlaps_raw_evidence(row, others, snapshot) -> bool:
 
 
 _ANSWER_BASIS = (
-    "leader-overlap score or requested-capability intervals; capability interval level 80%"
+    "leader-overlap score intervals; capability estimates use 80% intervals"
 )
 _INDEPENDENT_MEASURERS = frozenset({
     "benchmark_author",
@@ -313,45 +313,18 @@ def _selected_evidence_is_comparable(
     return True
 
 
-def _capability_overlaps(
-    leader: OptimisedResult,
-    other: OptimisedResult,
-    snapshot,
-    domains: frozenset[str],
-) -> bool:
-    for domain in domains:
-        first = snapshot.capability_estimate(leader.candidate_id, domain)
-        second = snapshot.capability_estimate(other.candidate_id, domain)
-        if first is not None and second is not None and max(first.low, second.low) <= min(
-            first.high, second.high
-        ):
-            return True
-    return False
-
-
-def _answer(rows: list[OptimisedResult], snapshot, shown_domains: frozenset[str]):
+def _answer(rows: list[OptimisedResult], snapshot):
     if not rows or rows[0].score_interval is None:
         return None
     leader = rows[0]
     leader_low, leader_high = leader.score_interval
-    capability_is_in_objective = any(
-        contribution.estimate is not None for contribution in leader.contributions
-    )
     members = [
         row
         for row in rows
         if row.score_interval is not None
-        and (
-            (
-                _selected_evidence_is_comparable(leader, row)
-                and max(leader_low, row.score_interval[0])
-                <= min(leader_high, row.score_interval[1])
-            )
-            or (
-                not capability_is_in_objective
-                and _capability_overlaps(leader, row, snapshot, shown_domains)
-            )
-        )
+        and _selected_evidence_is_comparable(leader, row)
+        and max(leader_low, row.score_interval[0])
+        <= min(leader_high, row.score_interval[1])
     ]
     model_ids = [snapshot.model_of(row.candidate_id) for row in members]
     if len(members) == 1:
@@ -462,7 +435,7 @@ def decide(
     probabilities = {}
     model_estimates = {}
     representative_rows = _representative_rows(ordered.results, snapshot)
-    answer = _answer(representative_rows, snapshot, frozenset(shown_domains))
+    answer = _answer(representative_rows, snapshot)
     if spec.optimize.lexicographic is None and spec.optimize.pareto is None:
         from decision.capability import deterministic_probabilities
 

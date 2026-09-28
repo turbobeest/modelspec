@@ -313,7 +313,10 @@ def test_newest_score_holdout_beats_the_benchmark_mean() -> None:
 
 
 def snapshot() -> object:
-    models = [model(f"lab/model-{index}") for index in range(10)]
+    models = [
+        model(f"lab/model-{index}", context=8_000 * (index + 1))
+        for index in range(10)
+    ]
     rows = []
     for row in synthetic_observations():
         stored = evidence(
@@ -761,6 +764,30 @@ def test_weighted_capability_objective_reports_p_best() -> None:
     assert all(result.p_best is not None for result in decision.results)
     by_model = {result.offering.model: result.p_best for result in decision.results}
     assert sum(value for value in by_model.values() if value is not None) == pytest.approx(1)
+
+
+def test_exact_objective_answer_ignores_requested_capability_overlap() -> None:
+    index = snapshot()
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "capabilities": {"software_engineering": "required"},
+            "optimize": {"max": "model.context_window"},
+            "explain": "summary",
+            "limit": 10,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert [result.contributions[0].value for result in decision.results[:2]] == pytest.approx(
+        [1.0, 8 / 9]
+    )
+    assert decision.answer is not None
+    assert decision.answer.kind == "separated"
+    assert decision.answer.members == ["lab/model-9"]
+    assert decision.answer.leader == "lab/model-9"
 
 
 def test_tied_answer_compares_models_to_the_leader_without_following_chains() -> None:

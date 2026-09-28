@@ -834,7 +834,7 @@
       "lab/alpha"
     ],
     "leader": "lab/alpha",
-    "basis": "leader-overlap score or requested-capability intervals; capability interval level 80%",
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
     "tie_breakers": {
       "cheapest": null,
       "open_weights": null,

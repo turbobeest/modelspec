@@ -641,7 +641,7 @@ def test_answer_variants_make_a_tied_leader_unrepresentable() -> None:
     tied = c.TiedAnswer(
         kind="tied",
         members=["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
-        basis="leader-overlap score or requested-capability intervals; capability interval level 80%",
+        basis="leader-overlap score intervals; capability estimates use 80% intervals",
         tie_breakers=tie_breakers,
         deterministic_order=["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
     )
@@ -649,7 +649,7 @@ def test_answer_variants_make_a_tied_leader_unrepresentable() -> None:
         kind="separated",
         members=["anthropic/claude-opus-5-5"],
         leader="anthropic/claude-opus-5-5",
-        basis="leader-overlap score or requested-capability intervals; capability interval level 80%",
+        basis="leader-overlap score intervals; capability estimates use 80% intervals",
         tie_breakers={key: None for key in tie_breakers},
         deterministic_order=["anthropic/claude-opus-5-5"],
     )
@@ -719,14 +719,14 @@ def _samples() -> list:
         kind="separated",
         members=[result.offering.model],
         leader=result.offering.model,
-        basis="leader-overlap score or requested-capability intervals; capability interval level 80%",
+        basis="leader-overlap score intervals; capability estimates use 80% intervals",
         tie_breakers=tie_breakers,
         deterministic_order=[result.offering.model],
     )
     tied_answer = c.TiedAnswer(
         kind="tied",
         members=[result.offering.model, "openai/gpt-6-sol"],
-        basis="leader-overlap score or requested-capability intervals; capability interval level 80%",
+        basis="leader-overlap score intervals; capability estimates use 80% intervals",
         tie_breakers=tie_breakers,
         deterministic_order=[result.offering.model, "openai/gpt-6-sol"],
     )

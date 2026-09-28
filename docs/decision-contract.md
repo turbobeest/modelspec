@@ -399,7 +399,7 @@ same canonical representation it had in 1.0.
   "answer": {
     "kind": "tied",
     "members": ["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
-    "basis": "leader-overlap score or requested-capability intervals; capability interval level 80%",
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
     "tie_breakers": {
       "cheapest": "openai/gpt-6-sol",
       "open_weights": "openai/gpt-6-sol",
@@ -521,13 +521,6 @@ The point-estimate leader anchors the comparison. `members` contains that
 model and every other model whose score interval overlaps the leader's.
 Overlap chains are deliberately not followed. For example, if B overlaps A
 and C overlaps B but not A, A and B are members and C is not.
-
-When a scalar objective contains no capability estimate, an overlapping 80%
-interval on a capability requested by the spec also prevents separation. This
-keeps a precise benchmark point from claiming one winner when the fitted
-capability evidence for the question cannot distinguish the models. A weighted
-objective that includes capability uses its weighted `score_interval` instead,
-so exact cost or speed can separate otherwise overlapping capability estimates.
 
 | Field | Meaning |
 |---|---|
