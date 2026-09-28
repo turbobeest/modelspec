@@ -50,7 +50,7 @@ it("supports keyboard handles, selection, table sorting, layout and modal tabs",
   const modal = screen.getByRole("dialog");
   fireEvent.click(within(modal).getByRole("tab", { name: "CLI" }));
   expect(modal).toHaveTextContent(
-    "modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
+    "pipx install modelspec-dev modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
   );
   fireEvent.click(within(modal).getByRole("tab", { name: "Spec YAML" }));
   expect(modal).toHaveTextContent("fictional");

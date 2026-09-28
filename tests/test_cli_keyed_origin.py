@@ -171,7 +171,7 @@ def _run(args: list[str], cache: Path, key: str | None = None) -> subprocess.Com
            "HOME": str(cache.parent), "PYTHONPATH": str(REPO_ROOT)}
     if key is not None:
         env[snapshot.API_KEY_ENV] = key
-    return subprocess.run([_modelspec_cli(), *args], capture_output=True, text=True,
+    return subprocess.run([*_modelspec_cli(), *args], capture_output=True, text=True,
                           timeout=120, env=env)
 
 
