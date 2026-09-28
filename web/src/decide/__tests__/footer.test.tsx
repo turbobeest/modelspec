@@ -9,6 +9,7 @@ it("links the neutrality, terms and privacy pages on every view", () => {
   render(<App />);
   const nav = screen.getByRole("navigation", { name: "Legal and API" });
   for (const [name, href] of [
+    ["Pricing", "/pricing/"],
     ["Neutrality", "/legal/neutrality/"],
     ["Terms", "/legal/terms/"],
     ["Privacy", "/legal/privacy/"],
