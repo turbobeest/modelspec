@@ -52,6 +52,11 @@ export function DecisionTable({
       .filter((r) => show || r.status !== -1)
       .slice()
       .sort((a, b) => {
+        if (!ranked && sort === "name") {
+          const providerOrder = Number(a.best.o.provider === "Provider not available") -
+            Number(b.best.o.provider === "Provider not available");
+          if (providerOrder !== 0) return providerOrder;
+        }
         const x = val(a),
           y = val(b);
         return (x > y ? 1 : x < y ? -1 : 0) * dir;

@@ -25,6 +25,7 @@ it.each([
     near_misses,
     questions,
     frontier,
+    canvas_rows,
     winning_strip,
     top,
     chart,
@@ -40,6 +41,7 @@ it.each([
   void near_misses;
   void questions;
   void frontier;
+  void canvas_rows;
   void winning_strip;
   void top;
   void chart;

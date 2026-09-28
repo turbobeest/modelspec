@@ -52,7 +52,7 @@ export function Canvas({
   const e = decision.explanation,
     ax = axisDefs[axis],
     bd = decision.benchmarks[spec.bench],
-    pd = plotDomain(e.inScope, spec, axis, bd);
+    pd = plotDomain(decision.canvas_rows, spec, axis, bd);
   const xc = spec.conds.find((c) => c.f === axis),
     yc = spec.conds.find((c) => c.f === "bench" && c.b === spec.bench);
   const xp = pd.xv == null ? (ax.low ? 0.985 : 0.015) : pd.fx(pd.xv),
@@ -179,12 +179,16 @@ export function Canvas({
     for (let v = Math.ceil(pd.x0 / step) * step; v <= pd.x1; v += step)
       xTicks.push(v);
   }
-  const missing = e.inScope.filter((r) => ax.get(r) === null || r.cap === null);
+  const missing = decision.canvas_rows.filter((r) => ax.get(r) === null || r.cap === null);
+  const hasTypeFilter = spec.conds.some((condition) => condition.f === "type");
   return (
     <section className="panel canvas-panel" aria-label="Trade-off canvas">
       <div className="panel-heading">
         <span className="eyebrow">Trade-off canvas</span>
-        <small>Every point is a model, via its best qualifying offering</small>
+        <small>
+          Every point is a model, via its best qualifying offering
+          {!hasTypeFilter ? "; defaults to text generators" : ""}
+        </small>
       </div>
       <div className="axis-selects">
         <label>

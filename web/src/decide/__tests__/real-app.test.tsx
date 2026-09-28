@@ -364,6 +364,11 @@ it("renders the qualifying models from the live empty-board decision alphabetica
   const tableRows = screen.getByLabelText("Decision table").querySelectorAll("tbody tr");
   expect(tableRows[0]?.querySelector("td")?.textContent).toBe("");
   expect(tableRows[0]).toHaveTextContent("Claude Fable 5");
+  const providers = [...tableRows].map((row) => row.children[2]?.textContent ?? "");
+  const firstUnavailable = providers.indexOf("Provider not available");
+  expect(firstUnavailable).toBeGreaterThan(0);
+  expect(providers.slice(firstUnavailable).every((provider) => provider === "Provider not available"))
+    .toBe(true);
 
   const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
   const collapsed = within(canvas).queryByText(/\d+ not plotted/);
@@ -372,6 +377,28 @@ it("renders the qualifying models from the live empty-board decision alphabetica
     fireEvent.click(within(collapsed).getByRole("button", { name: "show" }));
     expect(within(canvas).getByText(/Not plotted:/)).toBeInTheDocument();
   }
+});
+
+it("plots and tabulates domain estimates while the board is unranked", async () => {
+  const fetch = routeFetch({
+    vocabulary: () => json(realVocabulary),
+    decide: () => json(liveSwePrefer),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+
+  const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
+  expect(canvas.querySelectorAll(".point")).toHaveLength(10);
+  expect(canvas).toHaveTextContent("defaults to text generators");
+  const first = liveSwePrefer.results[0].estimates?.[0];
+  if (!first) throw new Error("live capability fixture has no estimate");
+  const modelName = realVocabulary.models[liveSwePrefer.results[0].offering.model]?.display_name ??
+    liveSwePrefer.results[0].offering.model;
+  const modelRow = [...screen.getByLabelText("Decision table").querySelectorAll("tbody tr")]
+    .find((row) => row.textContent?.includes(modelName));
+  expect(modelRow).toHaveTextContent(first.value.toFixed(2));
+  expect(modelRow).toHaveTextContent("±");
+  expect(modelRow?.children[3]).not.toHaveTextContent("not available in this snapshot");
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {

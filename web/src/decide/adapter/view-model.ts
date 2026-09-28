@@ -51,7 +51,7 @@ const slug = (value: string) =>
 
 /** Display and lab names by model ID, from the published vocabulary. */
 export type ModelNames = Readonly<
-  Record<string, { display_name: string | null; lab: string; lab_name: string | null }>
+  Record<string, { display_name: string | null; lab: string; lab_name: string | null; class?: string | null }>
 >;
 interface Names {
   models: ModelNames;
@@ -370,7 +370,7 @@ function modelAndOffering(
     lab,
     labName: named?.lab_name ?? named?.lab ?? lab,
     origin: stringFact(facts, "origin.lab_jurisdiction", sources),
-    type: className ? (CLASS_TO_TYPE[className] ?? null) : null,
+    type: CLASS_TO_TYPE[className ?? named?.class ?? ""] ?? null,
     status: lifecycle === "active" || lifecycle === "retired" ? lifecycle : null,
     open,
     lic: licence === null ? null : valueLabel("licence.commercial_use", licence),
@@ -448,15 +448,9 @@ function rankedRow(
     sources,
     names,
   );
-  const boardWeights = spec.boardWeights;
-  const boardMode = boardWeights !== undefined;
-  const boardCapability = boardMode && spec.domain !== undefined &&
-    Object.hasOwn(boardWeights, spec.domain);
-  const needsCapability = !boardMode || boardCapability;
-  const selected = needsCapability
-    ? evidence.find((item) => item.b === spec.bench) ?? null
-    : null;
-  const estimate = needsCapability && usesDomainEstimate(spec)
+  const boardMode = spec.boardWeights !== undefined;
+  const selected = evidence.find((item) => item.b === spec.bench) ?? null;
+  const estimate = usesDomainEstimate(spec)
     ? result.estimates?.find((item) => item.domain === spec.domain) ?? null
     : null;
   const estimatePart = estimate
@@ -497,9 +491,7 @@ function rankedRow(
         src: estimateItems[0]?.source ?? selected?.src ?? provenance!.source,
       }
     : null;
-  const capability = boardCapability
-    ? estimateEvidence
-    : estimateEvidence ?? selected;
+  const capability = estimateEvidence ?? selected;
   const norm = {
     cap:
       result.contributions.find(
@@ -845,7 +837,16 @@ export function mapDecisionToViewModel(
     };
   }
   const bench = benchmarks[spec.bench];
-  const frontier = pareto(feasible, options.axis, bench.hi);
+  const selectedType = spec.conds.find(
+    (condition): condition is Extract<Cond, { f: "type" }> => condition.f === "type",
+  )?.v ?? "llm";
+  const hasPublishedClasses = Object.values(options.models ?? {}).some(
+    (model) => model.class !== undefined,
+  );
+  const canvasRows = feasible.filter((row) =>
+    row.m.type === selectedType || (!hasPublishedClasses && row.m.type === null && row.cap !== null),
+  );
+  const frontier = pareto(canvasRows, options.axis, bench.hi);
   const firstStep = decision.eliminated.funnel[0];
   const legacyRefs = new Map<string, OfferingRef>();
   [...decision.results.map((row) => row.offering),
@@ -949,8 +950,8 @@ export function mapDecisionToViewModel(
     tip: undefined,
   };
   const notPlotted = axisRecord((axis) =>
-    evalView.inScope
-      .filter((row) => axisValue(row, axis) === null)
+    canvasRows
+      .filter((row) => axisValue(row, axis) === null || row.cap === null)
       .map((row) => row.m.lab + "/" + row.m.id),
   );
   return {
@@ -962,11 +963,12 @@ export function mapDecisionToViewModel(
       (question) => !options.dismissed.includes(question.id),
     ),
     frontier,
-    winning_strip: winningStrip(feasible, options.axis, bench.hi),
+    canvas_rows: canvasRows,
+    winning_strip: winningStrip(canvasRows, options.axis, bench.hi),
     benchmarks,
     not_plotted: notPlotted,
     available_axes: axisRecord((axis) =>
-      evalView.inScope.some((row) => axisValue(row, axis) !== null),
+      canvasRows.some((row) => axisValue(row, axis) !== null && row.cap !== null),
     ),
   };
 }
