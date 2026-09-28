@@ -37,6 +37,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/models/index.html': b'v1 rankings',
         'dist/modelspec/m/lab/model/index.html': b'unverified model page',
         'dist/modelspec/pricing/index.html': b'v1 pricing',
+        'dist/modelspec/method/index.html': b'v1 method',
         'dist/modelspec/graph/index.html': b'<link rel="canonical" href="https://modelspec.dev/graph/">graph',
         'dist/modelspec/graph/vendor/three.min.js': b'three',
         'dist/modelspec/graph/vendor/3d-force-graph.min.js': b'force graph',
@@ -83,6 +84,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
     assert live['modelspec/legal/terms/index.html'] == b'terms'
     assert live['modelspec/pricing/index.html'] == b'v1 pricing'
+    assert live['modelspec/method/index.html'] == b'v1 method'
     assert live['modelspec/pricing-assets/pricing.js'] == b'pricing script'
     assert live['modelspec/openapi.yaml'] == b'openapi'
     assert live['modelspec/.well-known/api-catalog'] == b'catalog'
