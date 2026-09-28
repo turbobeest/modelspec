@@ -60,6 +60,21 @@ try {
         yAxisLabel: box("[data-y-axis-label]"),
         cheapestPoint: box("[data-cheapest-point]"),
         cheapestCallout: box("[data-cheapest-callout]"),
+        plottedCircles: [...document.querySelectorAll("[data-plot-point]")].map((element) => {
+          const bounds = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return {
+            left: bounds.left,
+            top: bounds.top,
+            right: bounds.right,
+            bottom: bounds.bottom,
+            width: bounds.width,
+            height: bounds.height,
+            tied: element.dataset.tied === "true",
+            visible: style.display !== "none" && style.visibility !== "hidden"
+              && Number(style.opacity) > 0 && bounds.width > 0 && bounds.height > 0,
+          };
+        }),
       };
       return { frame, blocks, text, details };
     }));

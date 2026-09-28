@@ -46,6 +46,8 @@ def test_pricing_page_is_built_with_assets_and_indexing_metadata(tmp_path: Path)
     assert '<meta name="description"' in html
     assert pricing.FREE_TIER_TITLE in html
     assert '<a href="/method/">Method</a>' in html
+    assert 'property="og:image" content="https://modelspec.dev/og-card-pricing.png"' in html
+    assert 'name="twitter:image" content="https://modelspec.dev/og-card-pricing.png"' in html
 
 
 def test_all_prices_credits_weights_and_x402_rate_come_from_tiers_json() -> None:
@@ -218,6 +220,8 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert "perCall" not in _payload(html)
     assert "coming soon" not in html.lower()
     assert "opening soon" not in html.lower()
+    assert "People decide free. Agents start free." in html
+    assert "People decide free. Agents pay per answer." not in html
 
 
 def test_billing_and_x402_render_independently() -> None:

@@ -81,15 +81,14 @@ def _assert_landing_plot_geometry(report: dict[str, object]) -> None:
     axis_label = details["yAxisLabel"]
     point = details["cheapestPoint"]
     callout = details["cheapestCallout"]
+    circles = details["plottedCircles"]
     assert all(item is not None for item in (plot, axis, axis_label, point, callout))
+    assert circles
     assert not _boxes_intersect(axis, axis_label), (axis, axis_label)
-    assert callout["left"] >= plot["left"], (callout, plot)
-    assert callout["top"] >= plot["top"], (callout, plot)
-    assert callout["right"] <= plot["right"], (callout, plot)
-    assert callout["bottom"] <= plot["bottom"], (callout, plot)
-    horizontal_gap = max(callout["left"] - point["right"], point["left"] - callout["right"], 0)
-    vertical_gap = max(callout["top"] - point["bottom"], point["top"] - callout["bottom"], 0)
-    assert (horizontal_gap ** 2 + vertical_gap ** 2) ** .5 <= 24, (point, callout)
+    assert not any(_boxes_intersect(callout, circle) for circle in circles), (
+        callout, circles
+    )
+    assert all(circle["visible"] for circle in circles if circle["tied"]), circles
 
 
 def test_landing_card_html_uses_exactly_the_page_figures(card_data: landing.LandingData) -> None:
@@ -133,7 +132,7 @@ def test_other_pages_keep_the_fallback_card() -> None:
     assert 'content="https://modelspec.dev/another/"' in meta
 
 
-def test_renderer_writes_both_cards_at_the_contract_size(
+def test_renderer_writes_every_card_at_the_contract_size(
     tmp_path: Path, card_data: landing.LandingData,
 ) -> None:
     if not (ROOT / "web" / "node_modules" / "playwright").is_dir():
@@ -149,6 +148,7 @@ def test_renderer_writes_both_cards_at_the_contract_size(
     assert {card.filename for card in cards} == {
         social_cards.LANDING_IMAGE,
         social_cards.DECIDE_IMAGE,
+        social_cards.PRICING_IMAGE,
     }
     for card in cards:
         assert (tmp_path / card.filename).is_file()
@@ -199,6 +199,7 @@ def test_chromium_layout_keeps_every_card_block_separate_and_in_frame(
     cases = [
         ("landing", social_cards.card_for_page("/", card_data), True),
         ("decide", social_cards.card_for_page("/decide/"), False),
+        ("pricing", social_cards.card_for_page("/pricing/"), False),
         ("stress", social_cards.card_for_page("/", stress_data), True),
         *((name, social_cards.card_for_page("/", data), True)
           for name, data in edge_cases),
@@ -220,6 +221,7 @@ def test_registry_drives_page_metadata_and_deploy_filenames(
 ) -> None:
     assert social_cards.card_for_page("/", card_data).filename == social_cards.LANDING_IMAGE
     assert social_cards.card_for_page("/decide/").filename == social_cards.DECIDE_IMAGE
+    assert social_cards.card_for_page("/pricing/").filename == social_cards.PRICING_IMAGE
     assert social_cards.card_filenames() == tuple(
         registration.filename for registration in social_cards.CARD_REGISTRY
     )
@@ -229,3 +231,23 @@ def test_registry_drives_page_metadata_and_deploy_filenames(
     assert f'content="{card.alt}"' in decide
     for tag in social_cards.social_meta_for_page("/decide/").splitlines():
         assert tag in decide
+    pricing_page = (ROOT / "pipeline" / "pricing.py").read_text(encoding="utf-8")
+    assert 'social_meta_for_page("/pricing/")' in pricing_page
+
+
+def test_pricing_card_uses_production_flags_and_computed_rates() -> None:
+    from pipeline import pricing, worker_flags
+
+    card = social_cards.pricing_card()
+    assert "People decide free.<br>Agents start free." == card.headline
+    assert "Agents pay per answer" not in card.headline
+    variables = worker_flags.production_vars(ROOT)
+    _, rate_range = pricing.hero_summary(
+        pricing.load_tiers(ROOT),
+        access_enforced=worker_flags.enabled(variables, "ACCESS_ENFORCED"),
+        x402_live=pricing.x402_is_live(
+            worker_flags.enabled(variables, "X402_ENABLED"),
+            worker_flags.enabled(variables, "X402_MAINNET"),
+        ),
+    )
+    assert rate_range in card.content

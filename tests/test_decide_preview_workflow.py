@@ -59,6 +59,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         **{f'dist/modelspec/{name}': f'2a {name}'.encode() for name in brand.FILES},
         'dist/modelspec/og-card-landing.png': b'landing card',
         'dist/modelspec/og-card-decide.png': b'decide card',
+        'dist/modelspec/og-card-pricing.png': b'pricing card',
     }
     for name, content in fixture.items():
         path = tmp_path / name
@@ -99,6 +100,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         assert live[f'modelspec/{name}'] == f'2a {name}'.encode(), name
     assert live['modelspec/og-card-landing.png'] == b'landing card'
     assert live['modelspec/og-card-decide.png'] == b'decide card'
+    assert live['modelspec/og-card-pricing.png'] == b'pricing card'
     for removed in ('downselect', 'models', 'm'):
         assert not (tmp_path / 'dist' / 'modelspec' / removed).exists()
 

@@ -19,11 +19,12 @@ WIDTH = 1200
 HEIGHT = 630
 LANDING_IMAGE = "og-card-landing.png"
 DECIDE_IMAGE = "og-card-decide.png"
+PRICING_IMAGE = "og-card-pricing.png"
 
 
 @dataclass(frozen=True)
 class SocialCard:
-    """One card render request; pricing can add another instance later."""
+    """One social-card render request."""
 
     filename: str
     alt: str
@@ -65,6 +66,56 @@ def _point(model: PlotModel, data: LandingData) -> tuple[float, float]:
     return x, y
 
 
+def _boxes_intersect(first: tuple[float, float, float, float],
+                     second: tuple[float, float, float, float]) -> bool:
+    return (
+        min(first[2], second[2]) > max(first[0], second[0])
+        and min(first[3], second[3]) > max(first[1], second[1])
+    )
+
+
+def _callout_position(data: LandingData) -> tuple[float, float, float, float]:
+    """Place the landing label without covering any plotted point."""
+    point_x, point_y = _point(data.cheapest, data)
+    scale = 420 / 430
+    y_offset = (270 - 270 * scale) / 2
+    css_x = point_x * scale
+    css_y = y_offset + point_y * scale
+    width, height, gap = 190, 72, 12
+    point_radius = 8
+    point_boxes = []
+    for model in data.models:
+        x, y = _point(model, data)
+        radius = 8 if model.id == data.cheapest_id else 5
+        point_boxes.append((
+            x * scale - radius * scale,
+            y_offset + y * scale - radius * scale,
+            x * scale + radius * scale,
+            y_offset + y * scale + radius * scale,
+        ))
+    candidates = (
+        (css_x + point_radius + gap, css_y - height / 2),
+        (css_x - point_radius - gap - width, css_y - height / 2),
+        (css_x - width / 2, css_y - point_radius - gap - height),
+        (css_x - width / 2, css_y + point_radius + gap),
+        (css_x + point_radius + gap, css_y - point_radius - gap - height),
+        (css_x - point_radius - gap - width, css_y - point_radius - gap - height),
+        (css_x + point_radius + gap, css_y + point_radius + gap),
+        (css_x - point_radius - gap - width, css_y + point_radius + gap),
+    )
+    for left, top in candidates:
+        box = (left, top, left + width, top + height)
+        if (left >= 8 and top >= 8 and box[2] <= 412 and box[3] <= 232
+                and not any(_boxes_intersect(box, point) for point in point_boxes)):
+            leader_x = min(max(css_x, left), left + width) / scale
+            leader_css_y = min(max(css_y, top), top + height)
+            leader_y = (leader_css_y - y_offset) / scale
+            return left, top, leader_x, leader_y
+    # Dense plots get a label lane above the SVG instead of losing evidence.
+    left, top = 108, -50
+    return left, top, (left + width / 2) / scale, 0
+
+
 def _landing_plot(data: LandingData) -> str:
     circles = []
     cheapest_point = _point(data.cheapest, data)
@@ -74,21 +125,12 @@ def _landing_plot(data: LandingData) -> str:
         radius = 8 if model.id == data.cheapest_id else 5
         circles.append(
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius}" fill="{colour}"'
+            f' data-plot-point data-tied="{str(model.tied).lower()}"'
             f'{" data-cheapest-point" if model.id == data.cheapest_id else ""}'
             f' opacity="{1 if model.tied else .45}"/>'
         )
     point_x, point_y = cheapest_point
-    css_point_x = point_x * 420 / 430
-    callout_width = 190
-    callout_height = 80
-    gap = 16
-    if css_point_x + gap + callout_width <= 412:
-        callout_left = css_point_x + gap
-        leader_end_x = point_x + gap * 430 / 420
-    else:
-        callout_left = max(8, css_point_x - gap - callout_width)
-        leader_end_x = point_x - gap * 430 / 420
-    callout_top = min(max(point_y - callout_height / 2, 8), 182)
+    callout_left, callout_top, leader_end_x, leader_end_y = _callout_position(data)
     return (
         '<div class="plot" aria-label="A compact view of the landing tie plot">'
         '<svg viewBox="0 0 430 270" aria-hidden="true">'
@@ -96,7 +138,7 @@ def _landing_plot(data: LandingData) -> str:
         '<line class="x-axis" x1="24" y1="240" x2="414" y2="240"/>'
         + "".join(circles)
         + f'<line class="callout-leader" x1="{point_x:.1f}" y1="{point_y:.1f}" '
-        f'x2="{leader_end_x:.1f}" y2="{point_y:.1f}"/></svg>'
+        f'x2="{leader_end_x:.1f}" y2="{leader_end_y:.1f}"/></svg>'
         f'<em data-cheapest-callout style="left:{callout_left:.1f}px;top:{callout_top:.1f}px">'
         f'{html.escape(data.cheapest.name)}</em>'
         '<span data-y-axis-label>capability estimate</span><b>cost per task →</b></div>'
@@ -128,6 +170,30 @@ def decide_card() -> SocialCard:
     )
 
 
+def pricing_card() -> SocialCard:
+    """Create the pricing card from the tiers and production feature flags."""
+    from pipeline import pricing, worker_flags
+
+    tiers = pricing.load_tiers(ROOT)
+    variables = worker_flags.production_vars(ROOT)
+    x402_live = pricing.x402_is_live(
+        worker_flags.enabled(variables, "X402_ENABLED"),
+        worker_flags.enabled(variables, "X402_MAINNET"),
+    )
+    agent_line, rate_range = pricing.hero_summary(
+        tiers,
+        access_enforced=worker_flags.enabled(variables, "ACCESS_ENFORCED"),
+        x402_live=x402_live,
+    )
+    return SocialCard(
+        filename=PRICING_IMAGE,
+        alt=f"ModelSpec pricing: People decide free. {agent_line} {rate_range}.",
+        headline=f"People decide free.<br>{html.escape(agent_line)}",
+        content=(f'<div class="pricing-rate"><span>Configured rates</span>'
+                 f'<strong>{html.escape(rate_range)}</strong></div>'),
+    )
+
+
 def _landing_factory(data: LandingData | None) -> SocialCard:
     if data is None:
         raise ValueError("the landing social card requires LandingData")
@@ -136,6 +202,10 @@ def _landing_factory(data: LandingData | None) -> SocialCard:
 
 def _decide_factory(data: LandingData | None) -> SocialCard:
     return decide_card()
+
+
+def _pricing_factory(data: LandingData | None) -> SocialCard:
+    return pricing_card()
 
 
 CARD_REGISTRY = (
@@ -149,6 +219,8 @@ CARD_REGISTRY = (
         factory=_decide_factory,
         source_page=ROOT / "web" / "decide.html",
     ),
+    CardRegistration(page="/pricing/", title="ModelSpec pricing",
+                     filename=PRICING_IMAGE, factory=_pricing_factory),
 )
 
 
@@ -195,9 +267,10 @@ body:after{{content:"";position:absolute;left:0;right:0;bottom:38px;height:5px;b
 h1{{font-size:64px;line-height:78px;letter-spacing:-2.7px;margin:68px 0 22px;width:620px;max-height:240px;overflow:hidden;overflow-wrap:anywhere;position:relative;z-index:1}}.tie-line{{font:22px/1.45 JetBrains,monospace;color:#C7D1E0;width:590px;max-height:104px;overflow:hidden;overflow-wrap:anywhere;margin:0;position:relative;z-index:1}}
 .plot{{position:absolute;right:56px;bottom:67px;width:420px;height:270px;color:#8491A5;font:13px JetBrains}}
 .plot svg{{position:absolute;inset:0}}.plot .y-axis{{stroke:#F2C94C;stroke-width:2}}.plot .x-axis{{stroke:#3FB68B;stroke-width:4}}.plot .callout-leader{{stroke:#3FB68B;stroke-width:1.5}}.plot span{{position:absolute;right:406px;top:73px;width:34px;height:126px;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}}.plot b{{position:absolute;right:8px;bottom:2px;font-weight:400}}
-.plot em{{position:absolute;width:190px;height:80px;display:flex;align-items:center;padding:0 6px;background:#0B1426;color:#C7D1E0;font:600 14px/1.15 Instrument;font-style:normal;overflow:hidden;overflow-wrap:anywhere}}
+.plot em{{position:absolute;width:190px;height:72px;display:flex;align-items:center;padding:0 6px;background:transparent;color:#EEF2F7;font:600 14px/1.15 Instrument;font-style:normal;overflow:hidden;overflow-wrap:anywhere;text-shadow:-2px -2px 2px #0B1426,2px -2px 2px #0B1426,-2px 2px 2px #0B1426,2px 2px 2px #0B1426,0 0 5px #0B1426}}
 .facets{{position:absolute;right:78px;top:182px;width:335px;margin:0;padding:0;list-style:none;font:24px JetBrains}}
 .facets li{{display:flex;align-items:center;gap:18px;border-bottom:1px solid #2A3B5C;padding:20px 5px}}.facets i{{width:22px;height:22px;border:2px solid #5AA9EC;border-radius:3px}}.facets li:nth-child(2) i{{background:#F2C94C;border-color:#F2C94C}}.facets li:nth-child(3) i{{background:#3FB68B;border-color:#3FB68B}}
+.pricing-rate{{position:absolute;right:78px;top:322px;width:420px;border-left:3px solid #5AA9EC;padding:10px 0 10px 24px}}.pricing-rate span{{display:block;color:#8491A5;font:18px JetBrains;margin-bottom:8px}}.pricing-rate strong{{display:block;color:#EEF2F7;font:600 30px Instrument}}
 </style></head><body><div class="brand" data-content-block>{mark}<b>Model<span>Spec</span></b></div><h1 data-content-block>{card.headline}</h1>{card.content.replace('class="tie-line"', 'class="tie-line" data-content-block').replace('class="plot"', 'class="plot" data-content-block').replace('class="facets"', 'class="facets" data-content-block')}</body></html>'''
 
 
