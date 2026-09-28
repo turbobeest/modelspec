@@ -1,8 +1,8 @@
 # Privacy statement
 
-Version `1.1`, effective 2026-09-23. Adopted by Sparks and Sawdust LLC, which
+Version `1.2`, effective 2026-09-26. Adopted by Sparks and Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
-changed in 1.1 is listed under [Changes](#changes).
+changed since is listed under [Changes](#changes).
 
 This describes **what the service does today**, not what it is planned to do.
 Every claim below names the file that makes it true, so it can be checked and so
@@ -13,12 +13,13 @@ switched on, it is marked **not yet live** and claims nothing.
 
 We do not receive your prompts, because the API has no field for them. We do not
 proxy your model calls, so the content of your inference never reaches us. The
-API keeps nothing from the content of a request: it reads your request, computes
-an answer, returns it and forgets it. If you use an API key or buy credits, we
-keep a hash of the key (never the key), its usage counters and credit balance,
-and the Stripe identifiers of your purchase. Stripe, not us, handles your card.
-Cloudflare, our infrastructure provider, records request metadata as platform
-logs.
+The decision API keeps nothing from the content of a request: it reads your request,
+computes an answer, returns it and forgets it. The separate release-signal
+automation described below stores authenticated public release notices while it
+processes them. If you use an API key or buy credits, we keep a hash of the key
+(never the key), its usage counters and credit balance, and the Stripe identifiers
+of your purchase. Stripe, not us, handles your card. Cloudflare, our infrastructure
+provider, records request metadata as platform logs.
 
 ## What a request contains
 
@@ -51,9 +52,10 @@ forwarding the `Authorization` header you sent, and stores nothing.
 
 ## What we store
 
-**Nothing from the content of your request.** The endpoints compute each answer
-from your request, return it and forget the request: no body, no field of it and
-no answer is written anywhere.
+**Nothing from the content of a rank, decide or policy-check request.** Those
+endpoints compute each answer from your request, return it and forget the request:
+no body, no field of it and no answer is written anywhere. The release-signal
+intake is the deliberately narrow exception described below.
 
 The Worker binds two KV namespaces (`api/worker/wrangler.jsonc`) and one
 Durable Object, each described below. `DETERMINATIONS` holds **our own
@@ -104,6 +106,25 @@ request, no answer, no IP address and no user-agent: our code reads none of
 those into it. A request that presents no key, or a `test_` sandbox key, writes
 nothing to it at all. Card data never reaches this store: Checkout is hosted on
 Stripe.
+
+### The release-signal queue
+
+The same `ACCESS` namespace can hold an authenticated **release signal** from
+Grok Bot (MODEL-113). This automation ships off behind `SIGNALS_ENABLED`; while
+that flag is false, the endpoint returns 404 and writes nothing. When Jamie
+enables it, each pending record contains exactly the public model name, provider
+name, first-seen X URL, timestamp, confidence and signal id submitted by the bot.
+X is discovery only: none of these values becomes model-card evidence.
+
+After the repository workflow handles the signal, it stores an audit record with
+that signal, the processing date, result and pull-request or issue URL. It also
+schedules copies for re-checks after 1, 7 and 30 days. A pending or scheduled
+record is deleted when acknowledged; the audit record remains so the automation's
+actions can be reconstructed. The queue stores no prompt, completion, private X
+message, API key, IP address or user-agent. `SIGNALS_ENABLED` and the HMAC write
+secret must be configured before intake accepts anything. The separate read key
+protects retrieval and acknowledgement by the repository workflow
+(`api/worker/src/signals_service.py`).
 
 ### The credit ledger
 
@@ -240,6 +261,10 @@ what we hold about you, or to have it corrected or deleted, write to
 
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
+
+- **1.2, 2026-09-26.** Disclosed the release-signal queue before it is enabled:
+  the public release fields it stores, its processing audit, its 1-, 7- and
+  30-day re-check records, and its `SIGNALS_ENABLED` switch (MODEL-113).
 
 - **1.1, 2026-09-23.** The credit ledger now records, for each pack bought
   through Stripe, the PaymentIntent id that paid for it and what refunds and

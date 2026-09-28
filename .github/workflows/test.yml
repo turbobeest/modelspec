@@ -118,6 +118,11 @@ jobs:
             "ruff==0.16.6" \
             "mypy==2.3.1" \
             -e ".[dev]"
+      - name: Validate GitHub Actions workflows
+        run: >-
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
+          -shellcheck= -color
+
       - name: Run timing tests serially
         # Wall-clock bounds run alone. Parallel load made a 6 ms load take 211 ms.
         run: python -m pytest -q -p no:xdist -m perf

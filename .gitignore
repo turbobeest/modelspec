@@ -41,6 +41,7 @@ api/worker/python_modules/
 api/worker/src/api/
 api/worker/src/decision/
 api/worker/src/pipeline/
+api/worker/src/release_signals/
 api/worker/src/registry/
 api/worker/src/schema/
 # Wrangler's local state and cache, written by `wrangler dev`.
