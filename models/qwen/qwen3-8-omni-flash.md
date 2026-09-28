@@ -91,7 +91,6 @@ modalities:
     context_window: 1000000
     streaming: null
     fill_in_middle: null
-    json_mode: true
     system_prompt: null
   vision:
     supported: true
@@ -180,7 +179,6 @@ capabilities:
     scientific: false
     planning: false
     multi_step: false
-    chain_of_thought: true
     self_correction: false
     spatial: false
     temporal: false
@@ -188,7 +186,6 @@ capabilities:
     think_budget_control: false
   tool_use:
     overall: null
-    function_calling: true
     mcp_compatible: false
     parallel_tool_calls: false
     tool_selection_accuracy: null
@@ -829,16 +826,10 @@ sources:
   last_scraped_pricing: ''
 card_schema_version: '3.0'
 card_author: models.dev-seeder
-card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_created: '2026-09-28'
+card_updated: '2026-09-28'
 ---
 
 # Qwen3.8 Omni Flash
 
 Qwen3.8 Omni Flash is a Llm Reasoning model from Alibaba / Qwen Team. Part of the qwen family.
-
-## Key Features
-- Extended reasoning / chain-of-thought
-- Function calling / tool use
-- Structured output (JSON mode)
-- File/image attachments
