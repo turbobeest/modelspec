@@ -15,6 +15,7 @@ export interface FacetSelection {
   reason?: string;
 }
 export type BoardSelections = Record<string, FacetSelection>;
+export const refinementSelectionId = (id: string): string => `refinement.${id}`;
 export interface BoardTemplateState {
   selections: BoardSelections;
   mustOrder: string[];
@@ -267,7 +268,7 @@ export function boardToSpec(
     const condition = conditionFor(facet, choice);
     return condition ? [condition] : [];
   });
-  const selectedWeights = boardWeightsFromSelections(selections);
+  const selectedWeights = boardWeightsFromSelections(selections, vocabulary);
   const selectedDomain = Object.keys(selections).find((id) =>
     id.startsWith("capability.") && selections[id].mode !== "off",
   )?.slice("capability.".length);
@@ -285,12 +286,16 @@ export function boardToSpec(
   };
 }
 
-export function boardWeights(_vocabulary: Vocabulary, selections: BoardSelections): Record<string, number> {
-  return boardWeightsFromSelections(selections);
+export function boardWeights(vocabulary: Vocabulary, selections: BoardSelections): Record<string, number> {
+  return boardWeightsFromSelections(selections, vocabulary);
 }
 
-function boardWeightsFromSelections(selections: BoardSelections): Record<string, number> {
-  return Object.fromEntries(Object.entries(selections).flatMap(([facetId, choice]) => {
+function boardWeightsFromSelections(
+  selections: BoardSelections,
+  vocabulary?: Vocabulary,
+): Record<string, number> {
+  const weights = Object.fromEntries(Object.entries(selections).flatMap(([facetId, choice]) => {
+    if (facetId.startsWith("refinement.")) return [];
     if ((choice.mode !== "prefer" && choice.mode !== "both") || !supportsPreference(facetId)) return [];
     const id = choice.weightKey ?? (facetId.startsWith("capability.")
       ? facetId.slice("capability.".length)
@@ -299,6 +304,43 @@ function boardWeightsFromSelections(selections: BoardSelections): Record<string,
       : facetId);
     return [[id, choice.weight ?? 0.5]];
   }));
+  for (const refinement of vocabulary?.refinements ?? []) {
+    const choice = selections[refinementSelectionId(refinement.id)];
+    if (choice?.mode !== "prefer") continue;
+    const refinementWeight = choice.weight ?? 0.5;
+    const parentChoice = selections[`capability.${refinement.parent_domain}`];
+    if (parentChoice?.mode === "prefer" || parentChoice?.mode === "both") {
+      const available = weights[refinement.parent_domain] ?? parentChoice.weight ?? 0.5;
+      const carved = Math.min(refinementWeight, available);
+      weights[refinement.parent_domain] = Math.max(
+        0,
+        available - carved,
+      );
+      weights[refinement.weight_key] = carved;
+      continue;
+    }
+    weights[refinement.weight_key] = refinementWeight;
+  }
+  return weights;
+}
+
+export function refinementWeightKeys(vocabulary: Vocabulary): Set<string> {
+  return new Set((vocabulary.refinements ?? []).map((row) => row.weight_key));
+}
+
+/** Remove refinement objectives for the pre-MODEL-190 engine and restore their parent share. */
+export function foldRefinementWeights(spec: Spec, vocabulary: Vocabulary): Spec {
+  if (!spec.boardWeights) return spec;
+  const refinementsByKey = new Map(
+    (vocabulary.refinements ?? []).map((row) => [row.weight_key, row]),
+  );
+  const weights: Record<string, number> = {};
+  for (const [key, weight] of Object.entries(spec.boardWeights)) {
+    const refinement = refinementsByKey.get(key);
+    if (!refinement) weights[key] = weight;
+    else weights[refinement.parent_domain] = (weights[refinement.parent_domain] ?? 0) + weight;
+  }
+  return { ...spec, boardWeights: weights };
 }
 
 export function toBoardDecisionSpec(spec: Spec, explain: "none" | "summary" | "full"): DecisionSpec {
