@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
-  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
+  allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
   formatBoardCondition, nextMustOrder, parseBoardCondition, showsFacetBoard, supportsPreference,
   templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
@@ -128,6 +128,56 @@ describe("refinements", () => {
     expect(toBoardDecisionSpec(spec, "summary").optimize).toEqual({
       weights: { "software_engineering/python": 0.25 },
     });
+  });
+
+  it.each([
+    { refinements: [["python", 0.4], ["bug_fix", 0.4]] },
+    { refinements: [["python", 0.3], ["bug_fix", 0.3], ["new_feature", 0.3]] },
+  ] as const)("scales $refinements proportionally when the parent is lowered", ({ refinements }) => {
+    const selections: BoardSelections = {
+      "capability.software_engineering": { mode: "prefer", weight: 0.3 },
+      ...Object.fromEntries(refinements.map(([id, weight]) => [
+        `refinement.${id}`, { mode: "prefer", weight },
+      ])),
+    };
+    const allocation = allocateBoardWeights(refinementVocabulary, selections);
+    const expected = 0.3 / refinements.length;
+    for (const [id] of refinements) {
+      expect(allocation.selections[`refinement.${id}`].weight).toBeCloseTo(expected);
+      expect(allocation.refinements[`refinement.${id}`].max).toBeCloseTo(expected);
+    }
+    expect(allocation.general.software_engineering).toBeCloseTo(0);
+    expect(Object.values(allocation.weights).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(0.3);
+    expect(allocateBoardWeights(refinementVocabulary, allocation.selections).weights)
+      .toEqual(allocation.weights);
+  });
+
+  it("uses the same allocation for slider limits, the equation and normalized state", () => {
+    const onSelections = vi.fn();
+    const selections: BoardSelections = {
+      "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+      "refinement.python": { mode: "prefer", weight: 0.3 },
+      "refinement.bug_fix": { mode: "prefer", weight: 0.3 },
+    };
+    render(<FacetBoard
+      vocabulary={refinementVocabulary}
+      spec={realBaseSpec(refinementVocabulary)}
+      selections={selections}
+      onSelections={onSelections}
+      onSpec={vi.fn()}
+      estate={{ providers: [], plans: [], hardware: [] }}
+      onEstate={vi.fn()}
+    />);
+    const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    expect(software).toHaveTextContent("general 0.0 · Bug fix 0.3 · Python 0.3");
+    fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+    expect(within(software).getByLabelText("Weight for Python")).toHaveAttribute("max", "0.3");
+    fireEvent.change(within(software).getByLabelText("Weight for Software engineering"), {
+      target: { value: "0.3" },
+    });
+    const normalized = onSelections.mock.calls.at(-1)![0] as BoardSelections;
+    expect(normalized["refinement.python"].weight).toBe(0.15);
+    expect(normalized["refinement.bug_fix"].weight).toBe(0.15);
   });
 
   it("shows Refine only for an active domain and orders evidence within each kind", () => {

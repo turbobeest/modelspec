@@ -253,6 +253,7 @@ export function DesignedApp({
     requestAbort.current = controller;
     setHostedDecision(null);
     setHostedQuestions([]);
+    setLastSentSpec(null);
     if (board)
       setEstateRequest((current) => ({
         kind: "idle",
@@ -336,8 +337,15 @@ export function DesignedApp({
           setHostedQuestions(used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec));
           setRefinementFallbackKeys(refinementWeightKeys(vocabulary));
           setLastSentSpec(nextSpec);
+          setEstateRequest((current) => ({
+            kind: "idle",
+            settledSpecHash: specHash(requested),
+            generation: current.generation,
+          }));
           setRequestState({ kind: "success", details: "loading" });
         } catch (fallbackCause) {
+          if (controller.signal.aborted || (fallbackCause instanceof Error && fallbackCause.name === "AbortError"))
+            return;
           fail(fallbackCause);
           return;
         }
@@ -378,13 +386,14 @@ export function DesignedApp({
   }
 
   const answered = hostedDecision !== null;
+  const effectiveSpec = board && lastSentSpec ? lastSentSpec : spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
   useEffect(() => {
     if (demo || !answered) return;
     questionsAbort.current?.abort();
     const controller = new AbortController();
     questionsAbort.current = controller;
-    const candidates = questionsFor(spec);
+    const candidates = questionsFor(effectiveSpec);
     // Each probe names the snapshot too; after one 409 the rest use the reload.
     let current = vocabulary;
     const pinned: HostedDecisionEngine = {
@@ -400,7 +409,7 @@ export function DesignedApp({
     };
     void evaluateQuestionOptions({
       engine: pinned,
-      spec: board ? toBoardDecisionSpec(sendable(spec), "none") : toDecisionSpec(sendable(spec), "none"),
+      spec: board ? toBoardDecisionSpec(sendable(effectiveSpec), "none") : toDecisionSpec(sendable(effectiveSpec), "none"),
       questions: candidates,
       signal: controller.signal,
       deduplicateConditions: board,
@@ -422,7 +431,7 @@ export function DesignedApp({
     // `answered`, not the decision: the full explanation replacing the summary
     // must not send every probe again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, board, answered, spec, dismissed, vocabulary]);
+  }, [demo, board, answered, effectiveSpec, dismissed, vocabulary]);
   useEffect(() => {
     if (demo) return;
     const controller = new AbortController();
@@ -519,7 +528,7 @@ export function DesignedApp({
         (current) => {
           const pinned = current ?? vocabulary;
           return hostedEngine.decide(toBoardDecisionSpec(
-            estateSpec(sendableSpec(pinned, spec), estate.providers), "summary",
+            estateSpec(sendableSpec(pinned, effectiveSpec), estate.providers), "summary",
           ), {
             signal: controller.signal,
             snapshot: pinned.snapshot,
@@ -1143,6 +1152,10 @@ export function DesignedApp({
           row={row}
           demo={demo}
           refinementsFolded={board && refinementFallbackKeys.size > 0}
+          boardPermalink={board ? {
+            spec: boardBaseSpec,
+            state: { selections: boardSelections, mustOrder: boardMustOrder, estate },
+          } : undefined}
           onClose={() => setShare(false)}
         />
       )}

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Spec } from "../engine/types";
 import type { Vocabulary, VocabFacet, VocabRefinement } from "../vocabulary";
 import {
-  boardToSpec, defaultFacetOp, defaultFacetValue, facetGroup, GROUP_ORDER,
+  allocateBoardWeights, boardToSpec, defaultFacetOp, defaultFacetValue, facetGroup, GROUP_ORDER,
   groupFacets, nextMustOrder, readEstate, refinementSelectionId, supportsPreference,
   templateToBoard, writeEstate,
 } from "./model";
@@ -51,12 +51,13 @@ const KIND_LABELS = { language: "Language", task: "Task", mode: "Mode", material
 const EVIDENCE_LABELS = { live: "Live", thin: "Thin", not_measured: "Not yet measured", no_benchmark: "No benchmark" } as const;
 const EVIDENCE_ORDER = { live: 0, thin: 1, not_measured: 2, no_benchmark: 3 } as const;
 
-function RefinementRow({ row, choice, parent, fallback, onChange }: { row: VocabRefinement; choice: FacetSelection; parent: FacetSelection; fallback: boolean; onChange: (next: FacetSelection) => void }) {
+function RefinementRow({ row, choice, parent, allocation, fallback, onChange }: { row: VocabRefinement; choice: FacetSelection; parent: FacetSelection; allocation?: { weight: number; max: number }; fallback: boolean; onChange: (next: FacetSelection) => void }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const disabled = row.evidence_state === "not_measured" || row.evidence_state === "no_benchmark";
   const proxyOnly = row.benchmarks.length > 0 && row.benchmarks.every((benchmark) => benchmark.directness === "proxy");
   const parentWeight = parent.mode === "prefer" || parent.mode === "both" ? parent.weight ?? 0.5 : null;
-  const weight = choice.weight ?? (parentWeight === null ? 0.5 : parentWeight / 2);
+  const weight = allocation?.weight ?? choice.weight ?? (parentWeight === null ? 0.5 : parentWeight / 2);
+  const max = allocation?.max ?? parentWeight ?? 1;
   const reason = row.evidence_state === "not_measured" ? "Benchmarks exist; no scores for these models yet"
     : row.evidence_state === "no_benchmark" ? "No public benchmark measures this yet"
     : row.evidence_state === "thin" ? proxyOnly ? "proxy evidence only" : "Order may rest on 1–2 models"
@@ -67,7 +68,7 @@ function RefinementRow({ row, choice, parent, fallback, onChange }: { row: Vocab
     <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label title="Must for refinements is coming"><input type="radio" name={`state-refinement-${row.id}`} disabled />Must</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
     {reason && <small className="refinement-reason">{reason}</small>}
     {fallback && choice.mode === "prefer" && <small className="refinement-fallback">Ranking by {row.name} is coming — shown by general {row.parent_domain.replaceAll("_", " ")} for now</small>}
-    {choice.mode === "prefer" && !disabled && <label className="refinement-weight">{row.name} weight <input aria-label={`Weight for ${row.name}`} type="range" min="0.05" max={parentWeight ?? 1} step="0.05" value={Math.min(weight, parentWeight ?? 1)} onChange={(event) => onChange({ ...choice, mode: "prefer", weight: Number(event.target.value) })} />{weight.toFixed(2)}</label>}
+    {choice.mode === "prefer" && !disabled && <label className="refinement-weight">{row.name} weight <input aria-label={`Weight for ${row.name}`} type="range" min="0" max={max} step="0.05" value={weight} onChange={(event) => onChange({ ...choice, mode: "prefer", weight: Number(event.target.value) })} />{weight.toFixed(2)}</label>}
   </div>;
 }
 
@@ -75,11 +76,11 @@ function Refinements({ rows, selections, parent, fallbackKeys, onChange }: { row
   const [open, setOpen] = useState(false);
   const active = rows.filter((row) => selections[refinementSelectionId(row.id)]?.mode === "prefer");
   const parentWeight = parent.mode === "prefer" || parent.mode === "both" ? parent.weight ?? 0.5 : null;
-  const carved = active.reduce((sum, row) => sum + (selections[refinementSelectionId(row.id)]?.weight ?? 0.5), 0);
-  const general = parentWeight === null ? null : Math.max(0, parentWeight - carved);
+  const allocation = allocateBoardWeights({ refinements: rows }, selections);
+  const general = parentWeight === null ? null : allocation.general[rows[0]?.parent_domain ?? ""] ?? parentWeight;
   return <section className="refinements"><button className="refine-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>Refine</button>
-    {general !== null && active.length > 0 && <div className="refinement-carve"><span>general {general.toFixed(1)}{active.map((row) => ` · ${row.name} ${(selections[refinementSelectionId(row.id)]?.weight ?? 0.5).toFixed(1)}`).join("")}</span><label>General remainder <input aria-label="General remainder" type="range" min="0" max={parentWeight ?? 1} step="0.05" value={general} readOnly /></label></div>}
-    {open && (["language", "task", "mode", "material"] as const).map((kind) => { const grouped = rows.filter((row) => row.kind === kind).sort((left, right) => EVIDENCE_ORDER[left.evidence_state] - EVIDENCE_ORDER[right.evidence_state] || left.name.localeCompare(right.name)); return grouped.length > 0 && <section className="refinement-group" key={kind}><h4>{KIND_LABELS[kind]}</h4>{grouped.map((row) => <RefinementRow key={row.id} row={row} choice={selections[refinementSelectionId(row.id)] ?? { mode: "off" }} parent={parent} fallback={fallbackKeys.has(row.weight_key)} onChange={(next) => onChange(refinementSelectionId(row.id), next)} />)}</section>; })}
+    {general !== null && active.length > 0 && <div className="refinement-carve"><span>general {general.toFixed(1)}{active.map((row) => ` · ${row.name} ${allocation.refinements[refinementSelectionId(row.id)].weight.toFixed(1)}`).join("")}</span><label>General remainder <input aria-label="General remainder" type="range" min="0" max={parentWeight ?? 1} step="0.05" value={general} readOnly /></label></div>}
+    {open && (["language", "task", "mode", "material"] as const).map((kind) => { const grouped = rows.filter((row) => row.kind === kind).sort((left, right) => EVIDENCE_ORDER[left.evidence_state] - EVIDENCE_ORDER[right.evidence_state] || left.name.localeCompare(right.name)); return grouped.length > 0 && <section className="refinement-group" key={kind}><h4>{KIND_LABELS[kind]}</h4>{grouped.map((row) => <RefinementRow key={row.id} row={row} choice={selections[refinementSelectionId(row.id)] ?? { mode: "off" }} parent={parent} allocation={allocation.refinements[refinementSelectionId(row.id)]} fallback={fallbackKeys.has(row.weight_key)} onChange={(next) => onChange(refinementSelectionId(row.id), next)} />)}</section>; })}
   </section>;
 }
 
@@ -146,7 +147,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   });
   const grouped = useMemo(() => groupFacets(vocabulary), [vocabulary]);
   const update = (id: string, next: FacetSelection) => {
-    const all = { ...selected, [id]: next };
+    const all = allocateBoardWeights(vocabulary, { ...selected, [id]: next }).selections;
     const nextOrder = nextMustOrder(orderedMusts, selected, id, next);
     if (next.mode !== "off") setExpandedGroups((current) => ({ ...current, [grouped.groups.find((group) => group.facets.some((facet) => facet.id === id))?.name ?? "Other"]: true }));
     if (onMustOrder) onMustOrder(nextOrder); else setLocalMustOrder(nextOrder);

@@ -2,7 +2,7 @@ import type { Cond, FacetValue, Spec } from "../engine/types";
 import type { DecisionSpec } from "../adapter/contract";
 import { contractCondition, toDecisionSpec } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
-import type { VocabFacet, Vocabulary } from "../vocabulary";
+import type { VocabFacet, VocabRefinement, Vocabulary } from "../vocabulary";
 import { z } from "zod";
 
 export type FacetMode = "off" | "must" | "prefer" | "both";
@@ -268,7 +268,7 @@ export function boardToSpec(
     const condition = conditionFor(facet, choice);
     return condition ? [condition] : [];
   });
-  const selectedWeights = boardWeightsFromSelections(selections, vocabulary);
+  const selectedWeights = allocateBoardWeights(vocabulary, selections).weights;
   const selectedDomain = Object.keys(selections).find((id) =>
     id.startsWith("capability.") && selections[id].mode !== "off",
   )?.slice("capability.".length);
@@ -287,13 +287,29 @@ export function boardToSpec(
 }
 
 export function boardWeights(vocabulary: Vocabulary, selections: BoardSelections): Record<string, number> {
-  return boardWeightsFromSelections(selections, vocabulary);
+  return allocateBoardWeights(vocabulary, selections).weights;
 }
 
-function boardWeightsFromSelections(
+export interface RefinementAllocation {
+  weight: number;
+  max: number;
+}
+
+export interface BoardAllocation {
+  selections: BoardSelections;
+  weights: Record<string, number>;
+  refinements: Record<string, RefinementAllocation>;
+  general: Record<string, number>;
+}
+
+const stableWeight = (weight: number): number => Math.round(weight * 1e12) / 1e12;
+
+/** Resolve every refinement share once for state, controls, display and requests. */
+export function allocateBoardWeights(
+  vocabulary: Pick<Vocabulary, "refinements">,
   selections: BoardSelections,
-  vocabulary?: Vocabulary,
-): Record<string, number> {
+): BoardAllocation {
+  const normalized = { ...selections };
   const weights = Object.fromEntries(Object.entries(selections).flatMap(([facetId, choice]) => {
     if (facetId.startsWith("refinement.")) return [];
     if ((choice.mode !== "prefer" && choice.mode !== "both") || !supportsPreference(facetId)) return [];
@@ -304,24 +320,53 @@ function boardWeightsFromSelections(
       : facetId);
     return [[id, choice.weight ?? 0.5]];
   }));
-  for (const refinement of vocabulary?.refinements ?? []) {
-    const choice = selections[refinementSelectionId(refinement.id)];
-    if (choice?.mode !== "prefer") continue;
-    const refinementWeight = choice.weight ?? 0.5;
-    const parentChoice = selections[`capability.${refinement.parent_domain}`];
-    if (parentChoice?.mode === "prefer" || parentChoice?.mode === "both") {
-      const available = weights[refinement.parent_domain] ?? parentChoice.weight ?? 0.5;
-      const carved = Math.min(refinementWeight, available);
-      weights[refinement.parent_domain] = Math.max(
-        0,
-        available - carved,
-      );
-      weights[refinement.weight_key] = carved;
-      continue;
-    }
-    weights[refinement.weight_key] = refinementWeight;
+  const allocations: Record<string, RefinementAllocation> = {};
+  const general: Record<string, number> = {};
+  const refinementsByParent = new Map<string, VocabRefinement[]>();
+  for (const refinement of vocabulary.refinements ?? []) {
+    const siblings = refinementsByParent.get(refinement.parent_domain) ?? [];
+    siblings.push(refinement);
+    refinementsByParent.set(refinement.parent_domain, siblings);
   }
-  return weights;
+  for (const [parentDomain, refinements] of refinementsByParent) {
+    const active = refinements.filter((refinement) =>
+      selections[refinementSelectionId(refinement.id)]?.mode === "prefer",
+    );
+    const parentChoice = selections[`capability.${parentDomain}`];
+    const parentRanks = parentChoice?.mode === "prefer" || parentChoice?.mode === "both";
+    const parentWeight = parentRanks ? parentChoice.weight ?? 0.5 : null;
+    const requested = active.map((refinement) => ({
+      refinement,
+      selectionId: refinementSelectionId(refinement.id),
+      weight: selections[refinementSelectionId(refinement.id)]?.weight ??
+        (parentWeight === null ? 0.5 : parentWeight / 2),
+    }));
+    const requestedTotal = requested.reduce((sum, item) => sum + item.weight, 0);
+    const scale = parentWeight !== null && requestedTotal > parentWeight
+      ? parentWeight / requestedTotal
+      : 1;
+    const resolved = requested.map((item) => ({ ...item, weight: stableWeight(item.weight * scale) }));
+    const resolvedTotal = resolved.reduce((sum, item) => sum + item.weight, 0);
+    if (parentWeight !== null) {
+      general[parentDomain] = stableWeight(Math.max(0, parentWeight - resolvedTotal));
+      weights[parentDomain] = general[parentDomain];
+    }
+    for (const item of resolved) {
+      normalized[item.selectionId] = {
+        ...selections[item.selectionId],
+        mode: "prefer",
+        weight: item.weight,
+      };
+      allocations[item.selectionId] = {
+        weight: item.weight,
+        max: parentWeight === null
+          ? 1
+          : Math.max(0, parentWeight - (resolvedTotal - item.weight)),
+      };
+      weights[item.refinement.weight_key] = item.weight;
+    }
+  }
+  return { selections: normalized, weights, refinements: allocations, general };
 }
 
 export function refinementWeightKeys(vocabulary: Vocabulary): Set<string> {
