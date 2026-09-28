@@ -81,6 +81,12 @@ export function Share({
       ].join("\n")
     : [
         "# ModelSpec decision contract 1.3",
+        ...(boardPermalink?.state.canvas
+          ? [
+              `# canvas x: ${boardPermalink.state.canvas.x}`,
+              `# canvas y: ${boardPermalink.state.canvas.y}`,
+            ]
+          : []),
         `spec_version: ${contractSpec.spec_version}`,
         `snapshot: ${contractSpec.snapshot ?? "latest"}`,
         ...(contractSpec.task_type

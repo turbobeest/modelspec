@@ -2,6 +2,8 @@ import type { Cond, FacetValue, Spec } from "../engine/types";
 import type { DecisionSpec } from "../adapter/contract";
 import { contractCondition, toDecisionSpec } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
+import { isCanvasAxisId } from "../components/canvas-axis";
+import type { CanvasAxisId } from "../components/canvas-axis";
 import type { VocabFacet, VocabRefinement, Vocabulary } from "../vocabulary";
 import { z } from "zod";
 
@@ -26,7 +28,12 @@ export interface BoardTemplateState {
   taskTokens?: { input: number; output: number };
 }
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
-export interface BoardUrlState { selections: BoardSelections; mustOrder: string[]; estate: Estate }
+export interface BoardUrlState {
+  selections: BoardSelections;
+  mustOrder: string[];
+  estate: Estate;
+  canvas?: { x: CanvasAxisId; y: CanvasAxisId };
+}
 export interface SanitizedBoardState extends Omit<BoardUrlState, "selections"> {
   selections: SanitizedBoardSelections;
   notes: string[];
@@ -52,6 +59,10 @@ const boardUrlSchema = z.object({
   estate: z.object({
     providers: z.array(z.string()), plans: z.array(z.string()), hardware: z.array(z.string()),
   }),
+  canvas: z.object({
+    x: z.string().refine(isCanvasAxisId),
+    y: z.string().refine(isCanvasAxisId),
+  }).optional(),
 });
 
 const GROUPS: Readonly<Record<string, string>> = {
@@ -332,6 +343,7 @@ export function sanitizeBoardState(
     selections: selections as SanitizedBoardSelections,
     mustOrder: [...new Set(state.mustOrder.filter((id) => activeMusts.has(id)))],
     estate: state.estate,
+    ...(state.canvas ? { canvas: state.canvas } : {}),
     notes: [...new Set(notes)],
   };
 }

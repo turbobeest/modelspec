@@ -6,11 +6,27 @@ import {
   setWeight,
   baseSpec,
 } from "../state/spec";
-import { encodeBoardSpec } from "../facet-board/model";
+import { decodeBoardState, encodeBoardSpec } from "../facet-board/model";
 import { toDecisionSpec } from "../adapter/view-model";
 it("round-trips Unicode tasks, conditions and axes through the hash", () => {
   const spec = { ...baseSpec, task: "分析 Rust 🦀" };
   expect(decodeSpec(encodeSpec(spec, "ctx"))).toEqual({ spec, x: "ctx" });
+});
+it("round-trips both trade-off canvas axes through a board permalink", () => {
+  const hash = encodeBoardSpec(baseSpec, "task$", {
+    selections: {},
+    mustOrder: [],
+    estate: { providers: [], plans: [], hardware: [] },
+    canvas: {
+      x: "facet:offering.price.output",
+      y: "capability:maths",
+    },
+  });
+
+  expect(decodeBoardState(hash)?.canvas).toEqual({
+    x: "facet:offering.price.output",
+    y: "capability:maths",
+  });
 });
 it("ignores every preview field on the production decode and request paths", () => {
   const plain = decodeSpec(encodeSpec(baseSpec, "ctx"));
