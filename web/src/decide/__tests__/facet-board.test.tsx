@@ -221,6 +221,33 @@ describe("refinements", () => {
     expect(within(terminal).getByText("proxy evidence only")).toBeInTheDocument();
   });
 
+  it("excludes a saved refinement from counts while its parent is off", () => {
+    render(<FacetBoard
+      vocabulary={refinementVocabulary}
+      spec={realBaseSpec(refinementVocabulary)}
+      onSpec={vi.fn()}
+      estate={{ providers: [], plans: [], hardware: [] }}
+      onEstate={vi.fn()}
+    />);
+
+    const facets = screen.getByRole("region", { name: "Facets" });
+    const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    fireEvent.click(within(software).getByLabelText("Prefer"));
+    fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+    const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
+    fireEvent.click(within(python).getByLabelText("Prefer"));
+
+    expect(within(facets).getByText("2 set")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /What it's good at2 set/ })).toBeInTheDocument();
+
+    const softwareState = within(software).getByRole("radiogroup", { name: "State for Software engineering" });
+    fireEvent.click(within(softwareState).getByLabelText("Doesn't matter"));
+
+    expect(within(facets).getByText("0 set")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /What it's good atall Doesn't matter/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /What it's good at1 set/ })).not.toBeInTheDocument();
+  });
+
   it("restores refinement selection and weight from the board URL", () => {
     const restored = decodeBoardState(encodeBoardSpec(realBaseSpec(refinementVocabulary), "task$", {
       selections: { "refinement.python": { mode: "prefer", weight: 0.3 } },
