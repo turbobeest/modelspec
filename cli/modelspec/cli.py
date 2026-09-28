@@ -957,13 +957,19 @@ def rank(
         "reasoning": "reasoning",
         "chat": "chat_preference",
         "agentic": "agentic_tool_use",
-        "general": "task-specific",
     }.get(use_case.lower(), use_case.lower())
-    replacement = (
-        f"use `{template}` instead."
-        if template
-        else f"use `modelspec decide SPEC.yaml` with a `{domain}` objective instead."
-    )
+    if template:
+        replacement = f"use `{template}` instead."
+    elif use_case.lower() == "general":
+        replacement = (
+            "run `modelspec vocab domains`, choose the domain that matches your task, "
+            "then use it in a `modelspec decide SPEC.yaml` objective."
+        )
+    else:
+        article = "an" if domain.startswith(tuple("aeiou")) else "a"
+        replacement = (
+            f"use `modelspec decide SPEC.yaml` with {article} `{domain}` objective instead."
+        )
     typer.echo(
         "deprecated: modelspec rank uses the retired fixed-benchmark ranking; "
         + replacement,
