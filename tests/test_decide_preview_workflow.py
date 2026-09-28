@@ -57,6 +57,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'web/dist/assets/main-old.js': b'old graph bundle, harmless but unreachable',
         'web/dist/favicon.svg': b'old graph app icon',
         **{f'dist/modelspec/{name}': f'2a {name}'.encode() for name in brand.FILES},
+        'dist/modelspec/og-card-landing.png': b'landing card',
+        'dist/modelspec/og-card-decide.png': b'decide card',
     }
     for name, content in fixture.items():
         path = tmp_path / name
@@ -95,6 +97,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert 'modelspec/landing/index.html' not in live
     for name in brand.FILES:
         assert live[f'modelspec/{name}'] == f'2a {name}'.encode(), name
+    assert live['modelspec/og-card-landing.png'] == b'landing card'
+    assert live['modelspec/og-card-decide.png'] == b'decide card'
     for removed in ('downselect', 'models', 'm'):
         assert not (tmp_path / 'dist' / 'modelspec' / removed).exists()
 
@@ -115,6 +119,15 @@ def test_live_workflow_keeps_api_legal_graph_and_pricing():
         assert f'test -s dist/modelspec/{old_path}' not in text
         assert f'test ! -e dist/modelspec/{old_path}' in text
     assert 'test -s dist/modelspec/pricing/index.html' in text
+
+
+def test_build_job_installs_chromium_before_python_renders_cards():
+    steps = workflow()['jobs']['build']['steps']
+    web_build = next(step['run'] for step in steps if step.get('name') == 'Build the decide app')
+    assert 'npx playwright install --with-deps chromium' in web_build
+    assert next(index for index, step in enumerate(steps)
+                if step.get('name') == 'Build the decide app') < next(
+                    index for index, step in enumerate(steps) if step.get('name') == 'Build')
 
 
 def test_live_build_checks_canonical_and_indexability():
@@ -154,7 +167,8 @@ def test_live_mode_deploys_the_composed_dist_and_internal_deploys_its_identical_
 def test_the_live_composition_copies_exactly_the_brand_icon_set():
     step = next(step for step in workflow()['jobs']['build']['steps']
                 if step.get('name') == 'Assemble the live and internal decide sites')
-    assert f"for icon in {' '.join(brand.FILES)}; do" in step['run']
+    expected = (*brand.FILES, 'og-card-landing.png', 'og-card-decide.png')
+    assert f"for icon in {' '.join(expected)}; do" in step['run']
     checks = next(step for step in workflow()['jobs']['build']['steps']
                   if step.get('name') == 'Check the pages we promise actually exist')
     for name in brand.FILES:

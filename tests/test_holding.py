@@ -24,6 +24,7 @@ from pipeline import build as builder  # noqa: E402
 from pipeline import holding  # noqa: E402
 from pipeline import legal  # noqa: E402
 from pipeline import landing  # noqa: E402
+from pipeline import social_cards  # noqa: E402
 from pipeline.load import load_models  # noqa: E402
 
 SITES = tuple(holding.SITES)
@@ -128,16 +129,19 @@ def test_the_holding_root_is_the_landing_and_the_404_stays_dark(trees):
 def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
     ms = trees["holding"] / "modelspec"
     top = sorted(p.name + ("/" if p.is_dir() else "") for p in ms.iterdir())
-    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/", "openapi.yaml", *brand.FILES,
-                          *holding.WRITTEN])
-    for name in brand.FILES:
+    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/", "openapi.yaml",
+                          *brand.FILES, social_cards.LANDING_IMAGE, *holding.WRITTEN])
+    for name in (*brand.FILES, social_cards.LANDING_IMAGE):
         assert (ms / name).read_bytes() == (trees["real"] / "modelspec" / name).read_bytes(), name
 
 
 def test_the_holding_page_links_the_2a_icons_and_social_card(trees):
     page = (trees["holding"] / "modelspec" / "index.html").read_text(encoding="utf-8")
     assert brand.head_links() in page
-    assert brand.social_meta(landing.TITLE) in page
+    card = social_cards.landing_card(landing.extract_data(page))
+    assert brand.social_meta(
+        landing.TITLE, image_name=card.filename, image_alt=card.alt,
+    ) in page
 
 
 def test_headers_index_only_the_root_and_robots_names_no_sitemap(trees):
