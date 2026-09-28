@@ -2938,8 +2938,8 @@ components:
           title: Sources
           type: array
         contract_version:
-          const: '1.8'
-          default: '1.8'
+          const: '1.9'
+          default: '1.9'
           title: Contract Version
           type: string
         decision_id:
@@ -4304,7 +4304,7 @@ components:
       type: object
     DecisionTruncated:
       additionalProperties: false
-      description: Qualifying rows omitted only because of the requested result limit. Added in 1.8.
+      description: Qualifying rows omitted only because of the requested result limit. Added in 1.9.
       properties:
         offerings:
           default: 0
@@ -4382,7 +4382,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.8'
+          - '1.9'
         endpoint:
           type: string
           enum:
@@ -4433,7 +4433,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.8'
+          - '1.9'
         endpoint:
           type: string
           enum:

@@ -508,8 +508,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.8",
-          "default": "1.8",
+          "const": "1.9",
+          "default": "1.9",
           "title": "Contract Version",
           "type": "string"
         },
@@ -2787,7 +2787,7 @@
     },
     "Truncated": {
       "additionalProperties": false,
-      "description": "Qualifying rows omitted only because of the requested result limit. Added in 1.8.",
+      "description": "Qualifying rows omitted only because of the requested result limit. Added in 1.9.",
       "properties": {
         "models": {
           "default": 0,
@@ -2921,5 +2921,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.8"
+  "x-contract-version": "1.9"
 }
