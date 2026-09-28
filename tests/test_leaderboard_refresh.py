@@ -51,6 +51,33 @@ def test_fixture_board_changes_one_value_and_leaves_one_unchanged() -> None:
     ]
 
 
+def test_model_missing_from_a_readable_board_is_reported_not_deleted() -> None:
+    body = (FIXTURES / "board.json").read_bytes()
+    board = refresh.json_board(
+        key="fixture",
+        source_id="fixture-source",
+        benchmark_ids={"fixture_benchmark"},
+        source_url="https://example.test/leaderboard.json",
+        body=body,
+        observed_at="2026-09-25",
+        value_field="score",
+    )
+
+    changes, failures = refresh.plan_rows(
+        "lab/missing", "models/lab/missing.md", [evidence("Missing Model", 70.0)], board
+    )
+
+    assert changes == []
+    assert failures == [
+        refresh.RowFailure(
+            "lab/missing",
+            "fixture_benchmark",
+            "https://example.test/leaderboard.json",
+            "no unique row for 'Missing Model'",
+        )
+    ]
+
+
 def test_one_board_snapshot_cannot_mix_observation_dates() -> None:
     body = json.dumps({
         "rows": [
@@ -369,6 +396,95 @@ sources:
     )
     assert result.status == "pass"
     assert result.counts["live_readings"] == 1
+
+
+def test_mteb_row_without_its_own_date_uses_the_board_observation_date(
+    monkeypatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "premier").mkdir(parents=True)
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/embedding-model\n", encoding="utf-8"
+    )
+    source_url = "https://example.test/mteb/scores"
+    (root / "registry" / "sources.yaml").write_text(
+        f"""schema_version: 1
+sources:
+- id: fixture-mteb
+  url: {source_url}
+  volatility: live
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {{kind: page, value: ''}}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "embedding-model.md"
+    card.write_text(
+        f"""---
+model_id: lab/embedding-model
+display_name: Fixture Embedding Model
+version: Fixture/Embedding-Model
+benchmarks:
+  evidence:
+  - benchmark_id: mteb_eng_v2
+    model_id_as_evaluated: Fixture/Embedding-Model
+    score: 75.98
+    unit: percent
+    source_url: {source_url}
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: published
+    observed_at: '2026-09-24'
+    verified_at: '2026-09-24'
+    id: lab/embedding-model#mteb_eng_v2#fixture
+    sources:
+    - source_id: fixture-mteb
+      snapshot_ref: sha256:{'a' * 64}
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    raw = (FIXTURES / "mteb_without_row_dates.json").read_bytes()
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.project_mteb(
+        raw,
+        url=source_url,
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-28",
+    )
+    board = refresh._reading_from_projection(
+        key="mteb:mteb_eng_v2",
+        source_id="fixture-mteb",
+        benchmarks=("mteb_eng_v2",),
+        source_url=source_url,
+        projected=projection,
+        observed_at="2026-09-28",
+        value_field="mean_task",
+        fraction=True,
+        store=store,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-09-28", dry_run=False, root=root, source_cache=cache
+    )
+
+    row = refresh._front(card)["benchmarks"]["evidence"][0]
+    verification = json.loads(
+        (root / "verification" / "log.jsonl").read_text(encoding="utf-8")
+    )
+    assert report.quarantined == []
+    assert verification["outcome"] == "verified"
+    assert str(row["evidence_date"]) == "2026-09-28"
+    assert str(row["observed_at"]) == "2026-09-28"
 
 
 def test_unread_board_keeps_the_old_observation_date(monkeypatch, tmp_path: Path) -> None:

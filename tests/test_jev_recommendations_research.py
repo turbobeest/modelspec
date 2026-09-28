@@ -135,6 +135,24 @@ def test_evidence_cases_use_hash_verified_frozen_copies_with_an_empty_cache(
         assert len(row["text"].split()) <= 90
 
 
+def test_weekly_refresh_claims_do_not_replace_the_study_frozen_claim() -> None:
+    claims, latest = research._claims_and_latest()
+    fixture = yaml.safe_load(research.FROZEN_SOURCE_EXCERPTS.read_text(encoding="utf-8"))
+    frozen_refs = {row["snapshot_ref"] for row in fixture["excerpts"]}
+    labels = yaml.safe_load(research.BLIND_ATTRIBUTION_LABELS.read_text(encoding="utf-8"))
+
+    selected = {
+        *(f"evidence:{target}" for target in labels["positive_targets"]),
+        *(f"evidence:{target}" for target in labels["negative_targets"]),
+    }
+    assert {
+        source["snapshot_ref"]
+        for target in selected
+        for source in claims[target]["sources"]
+    } <= frozen_refs
+    assert {latest[target]["date"] for target in selected} <= {"2026-09-25"}
+
+
 def test_published_evidence_rerun_names_the_exact_licensed_inputs() -> None:
     labels = yaml.safe_load(research.JUDGMENT_LABELS.read_text(encoding="utf-8"))
     cases = [*research.blind_attribution_cases(), *research.second_key_cases(labels)]
