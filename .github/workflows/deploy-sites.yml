@@ -133,6 +133,7 @@ jobs:
           cp -a dist-v1/modelspec/openapi.yaml dist/modelspec/openapi.yaml
           cp -a dist-v1/benchgraph/_redirects dist/benchgraph/_redirects
           cp dist-v1/modelspec/index.html dist/modelspec/index.html
+          cp -a dist-v1/modelspec/method dist/modelspec/method
           mkdir -p dist/modelspec/decide
           cp web/dist/decide.html dist/modelspec/decide/index.html
           cp web/dist/decide.html dist/modelspec/404.html
@@ -161,7 +162,7 @@ jobs:
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
               + "".join(
                   f"  <url><loc>https://modelspec.dev{path}</loc></url>\n"
-                  for path in ("/", "/decide/", "/graph/", "/pricing/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
+                  for path in ("/", "/method/", "/decide/", "/graph/", "/pricing/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
               )
               + "</urlset>\n",
               encoding="utf-8",
@@ -220,6 +221,7 @@ jobs:
         run: |
           set -e
           test -s dist/modelspec/index.html
+          test -s dist/modelspec/method/index.html
           test -s dist/modelspec/decide/index.html
           test -s dist/modelspec/graph/index.html
           test -s dist/modelspec/graph/vendor/three.min.js
@@ -231,10 +233,12 @@ jobs:
           test -s dist/modelspec/pricing-assets/pricing.js
           test -s dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
+          grep -Fq '<link rel="canonical" href="https://modelspec.dev/method/"' dist/modelspec/method/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/decide/"' dist/modelspec/decide/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/graph/"' dist/modelspec/graph/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/pricing/"' dist/modelspec/pricing/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html
+          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/method/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/decide/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/graph/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/pricing/index.html

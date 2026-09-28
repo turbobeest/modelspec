@@ -887,6 +887,7 @@ export function DesignedApp({
         <span>ModelSpec is neutral: no referral fees, no paid placement.</span>
         <nav aria-label="Legal and API">
           <a href="/pricing/">Pricing</a>
+          <a href="/method/">How we decide</a>
           <a href="/legal/neutrality/">Neutrality</a>
           <a href="/legal/terms/">Terms</a>
           <a href="/legal/privacy/">Privacy</a>

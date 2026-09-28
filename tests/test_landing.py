@@ -126,8 +126,11 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     directory = tmp_path_factory.mktemp("landing-browser")
     live = directory / "live.html"
     holding = directory / "holding.html"
+    method_page = directory / "method.html"
     live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
     holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+    from pipeline import method
+    method_page.write_text(method.page(changed, ("ed25519-test",)), encoding="utf-8")
     assembled = directory / "assembled"
     (assembled / "decide").mkdir(parents=True)
     shutil.copyfile(
@@ -137,7 +140,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     shutil.copytree(ROOT / "web" / "dist" / "assets", assembled / "assets")
     try:
         completed = subprocess.run(
-            ["node", str(browser_script), str(live), str(holding), str(assembled)],
+            ["node", str(browser_script), str(live), str(holding), str(method_page), str(assembled)],
             cwd=ROOT,
             check=True,
             capture_output=True,
@@ -164,6 +167,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     [
         "altered_data", "challenge", "motion", "responsive", "holding",
         "forwarding", "assembled_decide", "assembled_decide_mobile", "forwarded_state_ranks",
+        "method_responsive",
     ],
 )
 def test_landing_behaviour_in_browser(
