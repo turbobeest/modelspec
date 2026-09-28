@@ -242,8 +242,7 @@ The Worker echoes the exact requesting origin from that list and handles its
 |---|---|---|---|
 | 200 | none | A Decision, including `no_feasible`. | Read `status`, `results`, `may_qualify`, and `relax`. |
 | 400 | `invalid_request` | The body is not valid JSON. | Send one JSON object as the request body. |
-| 400 | `invalid_spec` | The body is not a valid decision Spec. | Apply every item in `error.issues`; unknown fields are not ignored. |
-| 400 | `refinement_not_rankable_yet` | `optimize.weights` names a published refinement before refinement estimates exist. | Remove the refinement weight and rank on its parent domain until MODEL-190 ships. |
+| 400 | `invalid_spec` | The body is not a valid decision Spec. This includes an `optimize.weights` key for a refinement before MODEL-190 adds refinement estimates. | Apply every item in `error.issues`; unknown fields are not ignored. For a refinement weight, remove the named key or use its parent domain. |
 | 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from the internal preview origin or make a server-side request. |
 | 409 | `snapshot_changed` | `X-ModelSpec-Snapshot` names another Snapshot than the one answering. | Reload `/api/decision/vocabulary.json`, rebuild the Spec from it, and retry once with its `snapshot`. |
 | 409 | `snapshot_not_loaded` | The Spec pinned a different Snapshot. | Send `latest`, use the response's loaded Snapshot ID, or retry after the requested Snapshot is deployed. |

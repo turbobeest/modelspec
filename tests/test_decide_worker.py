@@ -346,9 +346,24 @@ def test_refinement_weights_are_rejected_until_the_refinement_estimator_lands(
 
     assert status == 400
     assert body["contract_version"] == "1.11"
-    assert body["error"]["code"] == "refinement_not_rankable_yet"
-    assert "software_engineering/python" in body["error"]["message"]
-    assert "MODEL-190" in body["error"]["message"]
+    assert body["error"] == {
+        "code": "invalid_spec",
+        "message": (
+            "refinement weights are not rankable yet (MODEL-190); remove "
+            "`software_engineering/python` or use the parent domain "
+            "`software_engineering`"
+        ),
+        "issues": [{
+            "path": "optimize.weights.software_engineering/python",
+            "condition": None,
+            "field": "optimize.weights",
+            "reason": (
+                "refinement weights are not rankable yet (MODEL-190); remove "
+                "`software_engineering/python` or use the parent domain "
+                "`software_engineering`"
+            ),
+        }],
+    }
 
 
 def test_a_requested_snapshot_must_be_the_loaded_snapshot(service, snapshot) -> None:

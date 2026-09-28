@@ -321,7 +321,7 @@ def test_refinement_evidence_states_and_counts_use_distinct_lineup_models():
         benchmark_domains=DOMAINS,
     )
     built = build_snapshot(inputs, gate=False, as_of=AS_OF)
-    snapshot = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    snapshot = load_built_snapshot(built, source="refinement coverage test build")
     rows = by_id(build_vocabulary(snapshot, pages=PAGES)["refinements"])
 
     assert rows["python"]["evidence_state"] == "live"
@@ -349,7 +349,7 @@ def test_refinement_counts_use_the_eligible_lineup_classes_for_each_domain():
         },
     )
     built = build_snapshot(inputs, gate=False, as_of=AS_OF)
-    snapshot = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    snapshot = load_built_snapshot(built, source="refinement class coverage test build")
 
     rows = by_id(build_vocabulary(snapshot, pages=PAGES)["refinements"])
 

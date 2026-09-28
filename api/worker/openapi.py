@@ -581,10 +581,7 @@ _ENTRY_ONLY = {
 }
 _DECIDE_ONLY = {
     "comparison_snapshot_changed", "comparison_snapshot_unavailable", "invalid_spec",
-    "no_snapshot",
-    "refinement_not_rankable_yet",
-    "snapshot_not_loaded",
-    "snapshot_changed",
+    "no_snapshot", "snapshot_changed", "snapshot_not_loaded",
 }
 
 
@@ -2033,12 +2030,7 @@ def _decision_schemas() -> dict[str, Any]:
     }
     schemas["DecisionRequestRefused"] = refused(
         "decide",
-        shared_refusals | {
-            "invalid_spec",
-            "refinement_not_rankable_yet",
-            "snapshot_changed",
-            "snapshot_not_loaded",
-        },
+        shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
     )
     schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
     schemas["ComparisonRequestRefused"] = refused(
@@ -2625,8 +2617,8 @@ def build_spec() -> dict[str, Any]:
                             "headers": decide_snapshot_headers,
                         },
                         str(decide_service.HTTP_BAD_REQUEST): _json_body(
-                            "The body is not a contract-v1 spec, or it names a refinement "
-                            "weight that MODEL-190 has not made rankable yet.",
+                            "The body is not a contract-v1 spec. This includes refinement "
+                            "weights, which remain unavailable until MODEL-190.",
                             {"$ref": "#/components/schemas/DecisionRequestRefused"},
                         ),
                         str(decide_service.HTTP_CONFLICT): _json_body(

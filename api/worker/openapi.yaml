@@ -57,7 +57,6 @@ info:
   - origin_not_allowed
   - payload_too_large
   - rate_limited
-  - refinement_not_rankable_yet
   - sandbox_not_available
   - snapshot_changed
   - snapshot_not_loaded
@@ -389,8 +388,8 @@ paths:
               schema:
                 type: string
         '400':
-          description: The body is not a contract-v1 spec, or it names a refinement weight that MODEL-190
-            has not made rankable yet.
+          description: The body is not a contract-v1 spec. This includes refinement weights, which remain
+            unavailable until MODEL-190.
           content:
             application/json:
               schema:
@@ -4852,7 +4851,6 @@ components:
               - invalid_spec
               - origin_not_allowed
               - payload_too_large
-              - refinement_not_rankable_yet
               - snapshot_changed
               - snapshot_not_loaded
               - snapshot_refused

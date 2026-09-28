@@ -403,7 +403,15 @@ def test_decision_and_comparison_refusals_keep_endpoint_contracts_separate(
     decision_codes = schemas["DecisionRequestRefused"]["properties"]["error"][
         "properties"
     ]["code"]["enum"]
-    assert "refinement_not_rankable_yet" in decision_codes
+    assert decision_codes == [
+        "invalid_spec",
+        "origin_not_allowed",
+        "payload_too_large",
+        "snapshot_changed",
+        "snapshot_not_loaded",
+        "snapshot_refused",
+        "snapshot_unavailable",
+    ]
 
     responses = spec["paths"]["/v1/compare"]["post"]["responses"]
     assert responses["400"]["content"]["application/json"]["schema"] == {

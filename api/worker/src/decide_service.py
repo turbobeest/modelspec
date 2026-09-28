@@ -327,15 +327,24 @@ def decide(payload: Any, snapshot, *,
                 if "/" not in key:
                     continue
                 try:
-                    default_registry().refinement_by_weight_key(key)
+                    refinement = default_registry().refinement_by_weight_key(key)
                 except KeyError:
                     continue
+                message = (
+                    "refinement weights are not rankable yet (MODEL-190); remove "
+                    f"`{key}` or use the parent domain `{refinement.parent_domain}`"
+                )
                 return error_response(
-                    "refinement_not_rankable_yet",
-                    f"refinement weight {key!r} is published for discovery but cannot rank "
-                    "until MODEL-190 adds refinement estimates",
+                    "invalid_spec",
+                    message,
                     status=HTTP_BAD_REQUEST,
                     snapshot_id=snapshot.snapshot_id,
+                    issues=[{
+                        "path": f"optimize.weights.{key}",
+                        "condition": None,
+                        "field": "optimize.weights",
+                        "reason": message,
+                    }],
                 )
     facets = _facets(snapshot)
     try:

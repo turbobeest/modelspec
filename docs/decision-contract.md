@@ -828,9 +828,10 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
-- **2.2 — MODEL-189:** The hosted decide API can return the closed error code
-  `refinement_not_rankable_yet` when a spec uses a published refinement weight
-  before MODEL-190 adds refinement estimates.
+- **2.2 — MODEL-189:** The vocabulary adds registered refinements and their
+  evidence coverage. Until MODEL-190 adds refinement estimates, the hosted
+  decide API rejects a refinement weight with the existing closed error code
+  `invalid_spec` and names its parent domain. The error-code enum is unchanged.
 - **2.1 — MODEL-170:** A decision adds the model-level `answer` block. Its
   `kind` is `separated` or `tied`; `members` overlap the point-estimate
   leader's weighted score interval, without following overlap chains. The
