@@ -264,7 +264,7 @@ def test_production_shaped_models_dev_drafts_only_primary_source_facts(
         b"<html><body>Acme Orbit 2 by Evil Labs.</body></html>",
     ],
 )
-def test_visible_primary_source_with_another_lab_stops_before_drafting(
+def test_visible_primary_source_with_another_lab_returns_uncertain_without_drafting(
     tmp_path: Path, body: bytes,
 ) -> None:
     _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
@@ -283,24 +283,30 @@ def test_visible_primary_source_with_another_lab_stops_before_drafting(
         ),
     }
 
-    with pytest.raises(ValueError, match="stated lab"):
-        draft_signal(
-            ReleaseSignal.parse(signal()),
-            root=tmp_path,
-            fetch=lambda url: replies[url],
-            read_date=date(2026, 9, 26),
-            models_dev_url=models_dev_url,
-        )
+    result = draft_signal(
+        ReleaseSignal.parse(signal()),
+        root=tmp_path,
+        fetch=lambda url: replies[url],
+        read_date=date(2026, 9, 26),
+        models_dev_url=models_dev_url,
+    )
 
+    assert result.resolution.status == "uncertain"
+    assert result.resolution.reason == "the primary source does not identify the stated lab"
+    assert result.card_path is None
     assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
 
 
-def test_disconnected_lab_and_model_mentions_stop_before_drafting(
-    tmp_path: Path,
+def test_disconnected_lab_and_model_mentions_are_flagged_for_identity_review(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
 ) -> None:
     _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
+    pending = tmp_path / "pending.json"
+    result_path = tmp_path / "result.json"
+    pending.write_text(json.dumps({"signals": [signal()]}), encoding="utf-8")
     primary_url = "https://acme.example/models"
     models_dev_url = "https://models.dev/api.json"
+    hf_search = "https://huggingface.co/api/models?search=Orbit+2&limit=20"
     replies = {
         models_dev_url: FetchResult(
             url=models_dev_url,
@@ -312,18 +318,21 @@ def test_disconnected_lab_and_model_mentions_stop_before_drafting(
             body=b"<html><body><p>Acme.</p><p>Orbit 2.</p></body></html>",
             content_type="text/html",
         ),
+        hf_search: FetchResult(url=hf_search, body=b"[]", content_type="application/json"),
     }
+    monkeypatch.setattr(processor, "_fetch", lambda url: replies[url])
 
-    with pytest.raises(ValueError, match="stated lab"):
-        draft_signal(
-            ReleaseSignal.parse(signal()),
-            root=tmp_path,
-            fetch=lambda url: replies[url],
-            read_date=date(2026, 9, 26),
-            models_dev_url=models_dev_url,
-        )
+    result = processor.process(pending, result_path, root=tmp_path)
 
+    assert result["status"] == "uncertain"
+    assert result["reason"] == "the primary source does not identify the stated lab"
+    assert json.loads(result_path.read_text(encoding="utf-8")) == result
     assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
+    workflow = (ROOT / ".github" / "workflows" / "release-signals.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "if: steps.classify.outputs.resolution == 'uncertain'" in workflow
+    assert "release signal needs identity review" in workflow
 
 
 def test_models_dev_prices_do_not_change_existing_card_prices(

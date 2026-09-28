@@ -35,6 +35,10 @@ IDENTITY_FIELDS = frozenset({
 })
 
 
+class IdentityUncertainError(ValueError):
+    """The gathered sources do not establish one model and lab identity."""
+
+
 @dataclass(frozen=True)
 class FetchResult:
     url: str
@@ -196,7 +200,7 @@ def _models_dev_listing(payload: object, provider: str, model_name: str) -> tupl
         == attribution.normalise(provider)
     ]
     if len(provider_rows) != 1:
-        raise ValueError("models.dev did not identify exactly one provider")
+        raise IdentityUncertainError("models.dev did not identify exactly one provider")
     provider_id, provider_row = provider_rows[0]
     models = (provider_row or {}).get("models")
     if not isinstance(models, Mapping):
@@ -212,7 +216,9 @@ def _models_dev_listing(payload: object, provider: str, model_name: str) -> tupl
         }
     ]
     if len(matches) != 1:
-        raise ValueError("models.dev did not identify exactly one model listing")
+        raise IdentityUncertainError(
+            "models.dev did not identify exactly one model listing"
+        )
     listing = matches[0]
     if provider_row.get("doc"):
         listing.setdefault("api_docs_url", provider_row["doc"])
@@ -301,7 +307,7 @@ def _primary_identity(
             if attribution.normalise(clause)
         ]
         if not any(normalised_name in clause for clause in clauses):
-            raise ValueError("the primary source does not name the model")
+            raise IdentityUncertainError("the primary source does not name the model")
         explicit_publishers = re.findall(
             rf"\b{re.escape(expected_name)}\s+by\s+([^.!?;:\n]+)",
             text,
@@ -311,7 +317,9 @@ def _primary_identity(
             attribution.normalise(publisher) != normalised_provider
             for publisher in explicit_publishers
         ):
-            raise ValueError("the primary source does not identify the stated lab")
+            raise IdentityUncertainError(
+                "the primary source does not identify the stated lab"
+            )
         relationships = (
             f"{normalised_name}-by-{normalised_provider}",
             f"{normalised_provider}-{normalised_name}",
@@ -325,15 +333,21 @@ def _primary_identity(
             for clause in clauses
             for relationship in relationships
         ):
-            raise ValueError("the primary source does not identify the stated lab")
+            raise IdentityUncertainError(
+                "the primary source does not identify the stated lab"
+            )
         return expected_name, ""
     if len(matches) != 1:
-        raise ValueError("the primary source identifies more than one matching model")
+        raise IdentityUncertainError(
+            "the primary source identifies more than one matching model"
+        )
     row = matches[0]
     publisher = row.get("publisher") or {}
     publisher_name = publisher.get("name") if isinstance(publisher, Mapping) else publisher
     if attribution.normalise(str(publisher_name or "")) != attribution.normalise(expected_provider):
-        raise ValueError("the primary source does not identify the stated lab")
+        raise IdentityUncertainError(
+            "the primary source does not identify the stated lab"
+        )
     published = str(row.get("datePublished") or "")
     if published:
         date.fromisoformat(published)
@@ -369,7 +383,9 @@ def _attribution_result(
     if attribution.supplier_conflict(evidence):
         decided = attribution.decide_deterministically(evidence, registry)
         if decided is None:
-            raise ValueError("supplier attribution needs a person; the judgment is refused")
+            raise IdentityUncertainError(
+                "supplier attribution needs a person; the judgment is refused"
+            )
         return decided
     return attribution.decide_deterministically(evidence, registry)
 
@@ -422,18 +438,23 @@ def gather_signal(
     models_dev_url = require_allowed_source(models_dev_url)
     listing_response = _fetch_allowed(fetch, models_dev_url)
     models_dev_payload = json.loads(listing_response.body)
-    provider_id, listing = _models_dev_listing(
-        models_dev_payload, signal.provider, signal.model_name
-    )
-    attributed = _attribution_result(
-        root=root, payload=models_dev_payload, provider_id=provider_id, listing=listing
-    )
-    if attributed and attributed.writes_creator \
-            and attributed.creator != resolution.model_id.split("/", 1)[0]:
-        raise ValueError(
-            f"signal names lab {signal.provider!r}, but the attribution cascade names "
-            f"{attributed.creator!r}; identity is uncertain"
+    try:
+        provider_id, listing = _models_dev_listing(
+            models_dev_payload, signal.provider, signal.model_name
         )
+        attributed = _attribution_result(
+            root=root, payload=models_dev_payload, provider_id=provider_id, listing=listing
+        )
+        if attributed and attributed.writes_creator \
+                and attributed.creator != resolution.model_id.split("/", 1)[0]:
+            raise IdentityUncertainError(
+                f"signal names lab {signal.provider!r}, but the attribution cascade names "
+                f"{attributed.creator!r}; identity is uncertain"
+            )
+    except IdentityUncertainError as exc:
+        return GatherResult(Resolution(
+            "uncertain", None, resolution.candidates, str(exc)
+        ))
     primary_candidates = [
         require_allowed_source(str(listing[field]))
         for field in PRIMARY_URL_FIELDS if listing.get(field)
@@ -448,7 +469,14 @@ def gather_signal(
         raise ValueError("the listing does not name a primary provider source")
     primary_url = primary_candidates[0]
     primary = _fetch_allowed(fetch, primary_url)
-    display_name, release_date = _primary_identity(primary, signal.model_name, signal.provider)
+    try:
+        display_name, release_date = _primary_identity(
+            primary, signal.model_name, signal.provider
+        )
+    except IdentityUncertainError as exc:
+        return GatherResult(Resolution(
+            "uncertain", None, resolution.candidates, str(exc)
+        ))
     supporting_urls = list(dict.fromkeys(
         require_allowed_source(str(listing[field]))
         for field in SUPPORTING_URL_FIELDS if listing.get(field)

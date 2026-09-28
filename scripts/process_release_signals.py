@@ -134,6 +134,8 @@ def process(
             "recheck_due": recheck.get("due") if recheck else None,
             "pr_url": recheck.get("pr_url") if recheck else None,
         }
+        if resolution.status == "uncertain":
+            result["reason"] = resolution.reason
         if resolution.status == "new":
             drafted = draft_signal(
                 signal,
@@ -142,6 +144,17 @@ def process(
                 read_date=date.today(),
                 discover_huggingface=True,
             )
+            if drafted.resolution.status == "uncertain":
+                result.update({
+                    "status": "uncertain",
+                    "model_id": None,
+                    "candidates": list(drafted.resolution.candidates),
+                    "reason": drafted.resolution.reason,
+                })
+                result_path.write_text(
+                    json.dumps(result, indent=2) + "\n", encoding="utf-8"
+                )
+                return result
             result["card"] = str(drafted.card_path.relative_to(root)) if drafted.card_path else None
             result["sources"] = list(drafted.evidence_urls)
             result["firecrawl_credits"] = drafted.firecrawl_credits
@@ -170,6 +183,17 @@ def process(
                 fetch=_fetch,
                 discover_huggingface=True,
             )
+            if gathered.resolution.status == "uncertain":
+                result.update({
+                    "status": "uncertain",
+                    "model_id": None,
+                    "candidates": list(gathered.resolution.candidates),
+                    "reason": gathered.resolution.reason,
+                })
+                result_path.write_text(
+                    json.dumps(result, indent=2) + "\n", encoding="utf-8"
+                )
+                return result
             result["sources"] = list(gathered.evidence_urls)
             result["gather_failures"] = list(gathered.gather_failures)
             result["card"] = str(update_existing_card(
