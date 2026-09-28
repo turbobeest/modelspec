@@ -153,7 +153,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
 
 @pytest.mark.parametrize(
     "check",
-    ["altered_data", "challenge", "motion", "responsive", "holding"],
+    ["altered_data", "challenge", "motion", "responsive", "holding", "forwarding"],
 )
 def test_landing_behaviour_in_browser(
     landing_browser_results: dict[str, bool], check: str,
@@ -184,8 +184,8 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
 ) -> None:
     live = landing.render(data, variant="live")
     holding = landing.render(data, variant="holding")
-    assert '<meta name="robots" content="noindex">' in live
-    assert 'rel="canonical"' not in live
+    assert '<meta name="robots" content="noindex">' not in live
+    assert '<link rel="canonical" href="https://modelspec.dev/">' in live
     assert '<link rel="canonical" href="https://modelspec.dev/">' in holding
     assert 'content="noindex"' not in holding
     release = "CLI, API and MCP. Install instructions arrive with the public release."
@@ -203,6 +203,23 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert "Every number has a source." in holding
     assert "When the board opens, each one is a click away." in holding
     assert "Every number is one click from its source." not in holding
+    assert 'href="/decide/">Open the board</a>' in live
+    assert 'href="/decide/">Open the board</a>' not in holding
     footer = (f"{len(data.routes)} of {data.template_count} templates · "
               "the others' top result has no published price")
     assert footer in live and footer in holding
+
+
+@pytest.mark.parametrize("key", landing.DECIDE_QUERY_KEYS)
+def test_old_root_query_state_moves_to_decide(key: str) -> None:
+    assert landing.has_decide_state(f"?{key}=value", "")
+
+
+@pytest.mark.parametrize("key", landing.DECIDE_HASH_KEYS)
+def test_old_root_hash_state_moves_to_decide(key: str) -> None:
+    assert landing.has_decide_state("", f"#{key}=value")
+
+
+@pytest.mark.parametrize("search", ["", "?utm_source=launch", "?utm_medium=email&utm_campaign=go"])
+def test_plain_and_campaign_root_urls_stay_on_the_landing(search: str) -> None:
+    assert not landing.has_decide_state(search, "")

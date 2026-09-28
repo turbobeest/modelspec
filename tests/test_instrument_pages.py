@@ -260,7 +260,7 @@ def test_the_generated_shell_and_the_static_pages_share_one_nav() -> None:
     filled = builder.with_site_nav(f"<body>{r.NAV_PLACEHOLDER}</body>",
                                    r.site_nav("ModelSpec", r.MS_NAV), "landing")
     assert filled == ('<body><nav><a class="brand" href="/">ModelSpec</a><div class="links">'
-                      '<a href="/downselect/">Downselect</a><a href="/graph/">Graph</a>'
+                      '<a href="/decide/">Decide</a><a href="/graph/">Graph</a>'
                       '<a href="/models/">Models</a><a href="/providers/">Providers</a>'
                       '<a href="/pricing/">Pricing</a>'
                       '<a href="/benchmarks/">Benchmarks</a>'

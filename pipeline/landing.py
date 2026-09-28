@@ -13,6 +13,7 @@ from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import parse_qsl
 
 from decision.computed import COST_PER_TASK, with_computed
 from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
@@ -34,6 +35,16 @@ FIRST_RUN = (
 )
 ASSET_DIR = "landing-assets"
 DATA_ID = "landing-data"
+DECIDE_PATH = "/decide/"
+DECIDE_QUERY_KEYS = ("demo", "estate", "layout", "simulate", "theme")
+DECIDE_HASH_KEYS = ("s",)
+
+
+def has_decide_state(search: str, hash_value: str) -> bool:
+    """Whether a former-root URL carries state read by the decide app."""
+    query = {key for key, _ in parse_qsl(search.removeprefix("?"), keep_blank_values=True)}
+    fragment = {key for key, _ in parse_qsl(hash_value.removeprefix("#"), keep_blank_values=True)}
+    return bool(query.intersection(DECIDE_QUERY_KEYS) or fragment.intersection(DECIDE_HASH_KEYS))
 
 
 @dataclass(frozen=True)
@@ -307,18 +318,29 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
     """Render one page. Only the board state and indexing metadata vary."""
     leader, cheapest = data.leader, data.cheapest
     tied_others = len(data.tie) - 1
-    board = ('<a class="button primary" href="/">Open the board</a>' if variant == "live"
+    board = (f'<a class="button primary" href="{DECIDE_PATH}">Open the board</a>' if variant == "live"
              else '<span class="board-status">Board opening soon</span>')
-    board_compact = ('<a class="button primary" href="/">Open the board</a>'
+    board_compact = (f'<a class="button primary" href="{DECIDE_PATH}">Open the board</a>'
                      if variant == "live" else '<span class="board-status">Board opening soon</span>')
     install = ('<pre class="install" aria-label="First run">'
                + "\n".join(f'<code>{line}</code>' for line in FIRST_RUN) + '</pre>'
                if package_published else
                '<p class="release-note">CLI, API and MCP. Install instructions arrive with the public release.</p>')
     guide_href = "#agents"
-    canonical = ('<link rel="canonical" href="https://modelspec.dev/">\n'
-                 if variant == "holding" else '')
-    robots = ('' if variant == "holding" else '<meta name="robots" content="noindex">\n')
+    canonical = '<link rel="canonical" href="https://modelspec.dev/">\n'
+    robots = ''
+    forward = ""
+    if variant == "live":
+        query_keys = json.dumps(DECIDE_QUERY_KEYS, separators=(",", ":"))
+        hash_keys = json.dumps(DECIDE_HASH_KEYS, separators=(",", ":"))
+        forward = (
+            "<script>(()=>{const u=new URL(location.href),"
+            f"q={query_keys},h={hash_keys};"
+            "if(q.some(k=>u.searchParams.has(k))||h.some(k=>"
+            "new URLSearchParams(u.hash.slice(1)).has(k)))"
+            f"location.replace('{DECIDE_PATH}'+u.search+u.hash)"
+            "})()</script>\n"
+        )
     routes = "".join(
         '<div class="route"><span class="ticket">T-{0:04d}</span><span class="template">{1}</span>'
         '<span>{2}</span><span class="route-cost">{3}</span></div>'.format(
@@ -342,7 +364,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
         'When the board opens, each one is a click away.</p>'
     )
     return f'''<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ModelSpec — the #1 model is usually a tie</title>
 {robots}{canonical}{brand.head_links()}{brand.social_meta("ModelSpec")}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
 <body><div class="axis" aria-hidden="true"></div>
@@ -382,7 +404,7 @@ def extract_data(page: str) -> LandingData:
 
 def write(tree: Path, data: LandingData, *, variant: Literal["live", "holding"],
           package_published: bool = PACKAGE_PUBLISHED) -> None:
-    target = tree / "landing" if variant == "live" else tree
+    target = tree
     target.mkdir(parents=True, exist_ok=True)
     (target / "index.html").write_text(
         render(data, variant=variant, package_published=package_published), encoding="utf-8")

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import http from "node:http";
 import { chromium } from "playwright";
 
 const [livePath, holdingPath] = process.argv.slice(2);
@@ -10,6 +11,19 @@ const live = fs.readFileSync(livePath, "utf8");
 const holding = fs.readFileSync(holdingPath, "utf8");
 const results = {};
 const browser = await chromium.launch({ headless: true });
+const server = http.createServer((request, response) => {
+  if (request.url?.startsWith("/decide/")) {
+    response.end("<!doctype html><title>decide target</title>");
+    return;
+  }
+  response.setHeader("content-type", "text/html; charset=utf-8");
+  response.end(live);
+});
+await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+const address = server.address();
+assert.notEqual(address, null);
+assert.equal(typeof address, "object");
+const origin = `http://127.0.0.1:${address.port}`;
 
 async function load(page, html) {
   await page.setContent(html);
@@ -94,7 +108,19 @@ try {
   assert.equal(await holdingPage.getByText("Board opening soon").first().isVisible(), true);
   results.holding = true;
   await holdingContext.close();
+
+  const forwarding = await browser.newContext();
+  const forwardingPage = await forwarding.newPage();
+  await forwardingPage.goto(`${origin}/?estate=saved&utm_source=old#s=shared`);
+  await forwardingPage.waitForURL(`${origin}/decide/?estate=saved&utm_source=old#s=shared`);
+  assert.equal(new URL(forwardingPage.url()).pathname, "/decide/");
+  const campaignPage = await forwarding.newPage();
+  await campaignPage.goto(`${origin}/?utm_source=launch`);
+  assert.equal(new URL(campaignPage.url()).pathname, "/");
+  results.forwarding = true;
+  await forwarding.close();
 } finally {
+  server.close();
   await browser.close();
 }
 

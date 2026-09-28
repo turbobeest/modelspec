@@ -127,7 +127,7 @@ def test_the_decide_page_head_links_the_icons_and_the_social_card():
     assert 'property="og:image" content="https://modelspec.dev/og-card.png"' in html
     assert 'property="og:image:width" content="1200"' in html
     assert 'name="twitter:card" content="summary_large_image"' in html
-    assert 'property="og:url" content="https://modelspec.dev/"' in html
+    assert 'property="og:url" content="https://modelspec.dev/decide/"' in html
 
 
 def test_the_v1_landing_links_the_2a_icons():

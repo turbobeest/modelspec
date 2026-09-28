@@ -165,7 +165,7 @@ def build(src: Path, out: Path) -> dict[str, list[str]]:
             if (real / rel).is_file():
                 shutil.copy2(real / rel, tree / rel)
                 kept[name].append(rel)
-        live_landing = real / "landing" / "index.html"
+        live_landing = real / "index.html"
         if not live_landing.is_file():
             raise FileNotFoundError(f"{live_landing} is missing; it must stay published")
         data = landing.extract_data(live_landing.read_text(encoding="utf-8"))

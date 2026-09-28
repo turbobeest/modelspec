@@ -218,7 +218,7 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
     for rel in ("sitemap.xml", "llms.txt", "llms-full.txt", "index.md", "_worker.js",
                 ".well-known/mcp.json", "openapi.yaml", "auth.md", "pricing/index.html",
                 "downselect/index.html", "graph/index.html", "models/index.html",
-                "landing/index.html", "landing-assets/landing.css", "landing-assets/landing.js"):
+                "decide/index.html", "landing-assets/landing.css", "landing-assets/landing.js"):
         assert (ms / rel).is_file(), rel
     files = sorted(path.relative_to(bg).as_posix() for path in bg.rglob("*") if path.is_file())
     assert files == ["_redirects"]
@@ -242,14 +242,12 @@ def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_
         1000, 1000, 0, (), 0,
         landing._plot_axes([model]),
     )
-    (ms / "landing").mkdir()
-    (ms / "landing" / "index.html").write_text(
+    (ms / "index.html").write_text(
         landing.render(data, variant="live"),
         encoding="utf-8",
     )
     for name in ("landing.css", "landing.js"):
         (ms / "landing-assets" / name).write_text("fixture", encoding="utf-8")
-    (ms / "index.html").write_text("real", encoding="utf-8")
     bg = src / "benchgraph"
     bg.mkdir()
     (bg / "_redirects").write_text(builder.BENCHGRAPH_REDIRECTS, encoding="utf-8")

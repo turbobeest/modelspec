@@ -13,7 +13,7 @@ import type { Spec } from "../engine/types";
 import { EMPTY_DECISIONS, EMPTY_SPECS } from "./empty-specs";
 import { json, realVocabulary, routeFetch, smallVocabulary } from "./vocab-fixtures";
 
-beforeEach(() => history.replaceState(null, "", "/"));
+beforeEach(() => history.replaceState(null, "", "/decide/"));
 afterEach(() => vi.unstubAllGlobals());
 
 /** Every token-shaped enum value the vocabulary publishes: snake_case or kebab-case. */
@@ -95,7 +95,7 @@ it.each([
     "fetch",
     routeFetch({ vocabulary: () => json(vocabulary), decide: () => json(decision()) }),
   );
-  history.replaceState(null, "", "/" + encodeSpec(shared, "task$"));
+  history.replaceState(null, "", "/decide/" + encodeSpec(shared, "task$"));
   render(<App />);
   await screen.findByText(landmark);
   // Every row selected in turn, so the Why panel shows each model's facts too.
@@ -111,7 +111,7 @@ it("shows the licence label on the open-weights card", async () => {
     "fetch",
     routeFetch({ vocabulary: () => json(smallVocabulary), decide: () => json(withLicences()) }),
   );
-  history.replaceState(null, "", "/" + encodeSpec(OPEN, "task$"));
+  history.replaceState(null, "", "/decide/" + encodeSpec(OPEN, "task$"));
   render(<App />);
   const card = (await screen.findByText("Best open weights")).closest(".result-card")!;
   expect(card).toHaveTextContent("Permitted with conditions");

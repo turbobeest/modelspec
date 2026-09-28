@@ -26,7 +26,7 @@ def files(root):
 
 def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_path):
     fixture = {
-        'dist/modelspec/index.html': b'v1 landing',
+        'dist/modelspec/index.html': b'<link rel="canonical" href="https://modelspec.dev/">landing',
         'dist/modelspec/api/index.json': b'{"live":true}',
         'dist/modelspec/.well-known/api-catalog': b'catalog',
         'dist/modelspec/legal/terms/index.html': b'terms',
@@ -37,7 +37,6 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/models/index.html': b'v1 rankings',
         'dist/modelspec/m/lab/model/index.html': b'unverified model page',
         'dist/modelspec/pricing/index.html': b'v1 pricing',
-        'dist/modelspec/landing/index.html': b'MODEL-186 landing',
         'dist/modelspec/landing-assets/landing.css': b'landing styles',
         'dist/modelspec/landing-assets/landing.js': b'landing script',
         'dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2': b'instrument font',
@@ -64,11 +63,14 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert files(tmp_path / 'dist-holding') == holding
     assert files(tmp_path / 'dist-internal') == files(tmp_path / 'dist')
     live = files(tmp_path / 'dist')
-    assert live['modelspec/index.html'] == fixture['web/dist/decide.html']
+    assert live['modelspec/index.html'] == fixture['dist/modelspec/index.html']
+    assert live['modelspec/decide/index.html'] == fixture['web/dist/decide.html']
     assert live['modelspec/404.html'] == fixture['web/dist/decide.html']
     index = live['modelspec/index.html'].decode()
+    decide = live['modelspec/decide/index.html'].decode()
     headers = live['modelspec/_headers'].decode()
-    assert '<link rel="canonical" href="https://modelspec.dev/" />' in index
+    assert '<link rel="canonical" href="https://modelspec.dev/">' in index
+    assert '<link rel="canonical" href="https://modelspec.dev/decide/" />' in decide
     assert 'noindex' not in index.lower()
     assert 'x-robots-tag' not in headers.lower()
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
@@ -78,6 +80,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert live['modelspec/assets/decide-abc.js'] == b'decide bundle'
     assert 'modelspec/assets/main-old.js' not in live
     assert 'modelspec/favicon.svg' not in live
+    assert live['modelspec/_redirects'] == b'/landing/  /  301\n'
+    assert 'modelspec/landing/index.html' not in live
     for name in brand.FILES:
         assert live[f'modelspec/{name}'] == f'2a {name}'.encode(), name
     for removed in ('downselect', 'models', 'm', 'pricing'):
@@ -99,6 +103,7 @@ def test_live_build_checks_canonical_and_indexability():
     checks = next(step['run'] for step in workflow()['jobs']['build']['steps']
                   if step.get('name') == 'Check the pages we promise actually exist')
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/\"'" in checks
+    assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/decide/\"'" in checks
     assert "! grep -Eiq '<meta[^>]+noindex'" in checks
     assert "! grep -Fiq 'X-Robots-Tag'" in checks
 

@@ -64,7 +64,7 @@ function decisionFor(init: RequestInit | undefined, decision = fixture) {
   };
 }
 
-beforeEach(() => history.replaceState(null, "", "/"));
+beforeEach(() => history.replaceState(null, "", "/decide/"));
 afterEach(() => vi.unstubAllGlobals());
 
 it("folds unsupported refinement weights into the parent without losing board state", async () => {
@@ -704,7 +704,7 @@ it("shows no stale designed result after a hosted error", async () => {
 it("keeps the fictional backend only behind demo=1", () => {
   const fetch = vi.fn();
   vi.stubGlobal("fetch", fetch);
-  history.replaceState(null, "", "/?demo=1");
+  history.replaceState(null, "", "/decide/?demo=1");
   render(<App />);
   expect(screen.getByText("Fictional sample data")).toBeInTheDocument();
   expect(fetch).not.toHaveBeenCalled();
