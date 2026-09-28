@@ -1842,6 +1842,28 @@ benchmarks:
       cited_regions:
       - rows
     id: openai/gpt-5-4#arena_sc_factuality#76bcb29c51a0
+  - benchmark_id: finance_benchmark_v2
+    model_id_as_evaluated: openai/gpt-5.4
+    score: 63.0137
+    unit: percent
+    source_url: https://finbenchmark.ai/
+    source_kind: independent_evaluator
+    evidence_date: '2026-06-15'
+    date_type: evaluated
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
+    benchmark_version: Finance Benchmark v2, harness 0.1.0
+    configuration: 73 v2 tasks; three attempts per task; temperature zero.
+    limitations: Passes at least once, so this value does not measure repeated-run consistency.
+    measured_by: independent_evaluator
+    effort: null
+    harness: unregistered
+    sources:
+    - source_id: model-192-finance-benchmark-v2
+      snapshot_ref: sha256:2c21d1afdee097795e72774a05616b06f330fa08c01f44a7a3e02e3875a5197a
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#finance_benchmark_v2#b8e36b72ddba
 deployment:
   api_only: false
   local_inference: false

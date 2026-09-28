@@ -1,0 +1,215 @@
+ticket: MODEL-192
+read_date: '2026-09-28'
+candidate_sources:
+- id: swe-bench-multilingual
+  domain: software_engineering
+  url: https://github.com/swe-bench/experiments/tree/main/evaluation/multilingual
+  terms_url: https://github.com/swe-bench/swe-bench.github.io/blob/master/LICENSE
+  read_date: '2026-09-28'
+  reuse: not_permitted
+  lineup_matches: 1
+  note: The official result repository has Claude Opus 4.6, but publishes no licence; the official leaderboard site is CC BY-NC 4.0.
+- id: multi-swe-bench
+  domain: software_engineering
+  url: https://github.com/multi-swe-bench/experiments
+  terms_url: https://github.com/multi-swe-bench/experiments/blob/main/LICENSE
+  read_date: '2026-09-28'
+  reuse: permitted
+  lineup_matches: 0
+  note: Apache-2.0 results, but no exact premier-set model identity appears.
+- id: aider-polyglot
+  domain: software_engineering
+  url: https://github.com/Aider-AI/aider/blob/main/aider/website/_data/polyglot_leaderboard.yml
+  terms_url: https://github.com/Aider-AI/aider/blob/main/LICENSE.txt
+  read_date: '2026-09-28'
+  reuse: permitted
+  lineup_matches: 0
+  note: Apache-2.0 aggregate results and no exact premier-set model identity; no official per-language result table was found.
+- id: multipl-e
+  domain: software_engineering
+  url: https://github.com/nuprl/MultiPL-E
+  terms_url: https://github.com/nuprl/MultiPL-E/blob/main/LICENSE
+  read_date: '2026-09-28'
+  reuse: permitted
+  lineup_matches: 0
+  note: Redistribution is permitted under the repository licence, which separately forbids use as model training data; no exact premier-set identity appears.
+- id: finance-benchmark-v2
+  domain: finance
+  registry_source_id: model-192-finance-benchmark-v2
+  url: https://finbenchmark.ai/
+  terms_url: https://github.com/gaschwanden/finbenchmark/blob/main/LICENSE
+  read_date: '2026-09-28'
+  reuse: permitted
+  lineup_matches: 8
+  note: MIT-licensed direct finance workflow results; eight exact identities were collected and verified.
+- id: financebench
+  domain: finance
+  url: https://github.com/patronus-ai/financebench
+  terms_url: https://github.com/patronus-ai/financebench
+  read_date: '2026-09-28'
+  reuse: unclear
+  lineup_matches: 0
+  note: The repository has no root licence and its published study predates the premier set.
+- id: legalbench
+  domain: legal
+  url: https://github.com/HazyResearch/legalbench
+  terms_url: https://github.com/HazyResearch/legalbench#licenses
+  read_date: '2026-09-28'
+  reuse: unclear
+  lineup_matches: 0
+  note: Licences differ by task, and the official published results have no exact premier-set identity.
+- id: tw-legalbench
+  domain: legal
+  url: https://github.com/feiyuehchen/TW-LegalBench
+  terms_url: https://github.com/feiyuehchen/TW-LegalBench/blob/main/LICENSE-DATA
+  read_date: '2026-09-28'
+  reuse: permitted
+  lineup_matches: 0
+  note: CC BY-SA 4.0 data and machine-readable results, but only GPT-5 and GPT-5.2 among related current families; neither is a premier-set identity.
+coverage:
+- model_id: anthropic/claude-opus-4-6
+  coding_languages: {state: not_disclosed, sources: [swe-bench-multilingual]}
+  finance: {state: known, sources: [finance-benchmark-v2]}
+  legal: {state: not_disclosed, sources: []}
+- model_id: anthropic/claude-opus-5-5
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: google/gemini-3-1-pro-preview
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: google/gemini-3-5-flash
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: known, sources: [finance-benchmark-v2]}
+  legal: {state: not_disclosed, sources: []}
+- model_id: google/gemini-3-7-flash
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: google/gemini-3-8-flash
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: meta/muse-spark
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: meta/muse-spark-1-1
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: meta/muse-spark-1-3
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: openai/gpt-5-4
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: known, sources: [finance-benchmark-v2]}
+  legal: {state: not_disclosed, sources: []}
+- model_id: openai/gpt-5-6-sol
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: known, sources: [finance-benchmark-v2]}
+  legal: {state: not_disclosed, sources: []}
+- model_id: openai/gpt-6-astra
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: openai/gpt-6-sol
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: qwen/qwen3-8-max-0902
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: xai/grok-4-7
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: deepseek/deepseek-v4-pro
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: known, sources: [finance-benchmark-v2]}
+  legal: {state: not_disclosed, sources: []}
+- model_id: moonshot/kimi-k2-6
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: moonshot/kimi-k3
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: known, sources: [finance-benchmark-v2]}
+  legal: {state: not_disclosed, sources: []}
+- model_id: qwen/qwen3-8-flash-next
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: zhipu/glm-5-2
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: zhipu/glm-5-3
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: jcorners/ingot-8b-r3
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: kingsoft/qzhou-embedding
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: microsoft/harrier-oss-v1-27b
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: tencent/kalm-embedding-gemma3-12b-2511
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: querit/querit
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: querit/querit-4b
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: anthropic/claude-fable-5
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: known, sources: [finance-benchmark-v2]}
+  legal: {state: not_disclosed, sources: []}
+- model_id: anthropic/claude-fable-5-1
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: anthropic/claude-opus-4-7
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: known, sources: [finance-benchmark-v2]}
+  legal: {state: not_disclosed, sources: []}
+- model_id: anthropic/claude-opus-5
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+- model_id: typesafe/jev-1-13
+  coding_languages: {state: not_disclosed, sources: []}
+  finance: {state: not_disclosed, sources: []}
+  legal: {state: not_disclosed, sources: []}
+collected_evidence:
+- &fable {card: models/anthropic/claude-fable-5.md, domain: finance, sub_category: null, source_id: model-192-finance-benchmark-v2, source_url: 'https://finbenchmark.ai/', score: 90.411}
+- &opus46 {card: models/anthropic/claude-opus-4-6.md, domain: finance, sub_category: null, source_id: model-192-finance-benchmark-v2, source_url: 'https://finbenchmark.ai/', score: 86.3014}
+- &opus47 {card: models/anthropic/claude-opus-4-7.md, domain: finance, sub_category: null, source_id: model-192-finance-benchmark-v2, source_url: 'https://finbenchmark.ai/', score: 93.1507}
+- &deepseek {card: models/deepseek/deepseek-v4-pro.md, domain: finance, sub_category: null, source_id: model-192-finance-benchmark-v2, source_url: 'https://finbenchmark.ai/', score: 89.0411}
+- &gemini {card: models/google/gemini-3-5-flash.md, domain: finance, sub_category: null, source_id: model-192-finance-benchmark-v2, source_url: 'https://finbenchmark.ai/', score: 83.5616}
+- &kimi {card: models/moonshot/kimi-k3.md, domain: finance, sub_category: null, source_id: model-192-finance-benchmark-v2, source_url: 'https://finbenchmark.ai/', score: 89.0411}
+- &gpt54 {card: models/openai/gpt-5-4.md, domain: finance, sub_category: null, source_id: model-192-finance-benchmark-v2, source_url: 'https://finbenchmark.ai/', score: 63.0137}
+- &sol {card: models/openai/gpt-5-6-sol.md, domain: finance, sub_category: null, source_id: model-192-finance-benchmark-v2, source_url: 'https://finbenchmark.ai/', score: 91.7808}
+card_changes:
+- *fable
+- *opus46
+- *opus47
+- *deepseek
+- *gemini
+- *kimi
+- *gpt54
+- *sol
