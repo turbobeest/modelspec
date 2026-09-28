@@ -838,7 +838,7 @@ def test_tied_answer_compares_models_to_the_leader_without_following_chains() ->
         registry=default_registry(),
         as_of=AS_OF,
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="capability answer test build")
     spec = parse_spec(
         {
             "spec_version": 1,
@@ -884,7 +884,7 @@ def test_one_models_offerings_never_tie_with_each_other_in_the_answer() -> None:
         registry=default_registry(),
         as_of=AS_OF,
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="capability answer test build")
     spec = parse_spec(
         {
             "spec_version": 1,
