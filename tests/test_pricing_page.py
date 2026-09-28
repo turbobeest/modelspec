@@ -112,7 +112,7 @@ def test_billing_off_presents_a_price_list_without_purchase_language() -> None:
     assert ("The hosted API and MCP server answer on a free tier today; these are the "
             "credit prices for paid access.") in html
     assert "Hosted API and MCP answers use prepaid credits" not in html
-    assert re.search(r"\b(checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
+    assert re.search(r"\b(buy|checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
 
 
 def test_price_changes_need_no_page_code_change() -> None:
@@ -212,7 +212,7 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert "Plans and packs" in html
     assert "Purchase" not in html
     assert "answer on a free tier today" in html
-    assert re.search(r"\b(checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
+    assert re.search(r"\b(buy|checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
     assert _payload(html)["payPerCall"] is False
     assert "perCall" not in _payload(html)
     assert "coming soon" not in html.lower()
