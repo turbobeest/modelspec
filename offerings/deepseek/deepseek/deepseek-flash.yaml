@@ -150,3 +150,23 @@
     checked_sources:
     - deepseek-v4-pricing
     verification: null
+  - id: deepseek/deepseek/deepseek-flash/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-flash/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - deepseek-v4-pricing
+    - model-163-deepseek-deepseek-flash
+  - id: deepseek/deepseek/deepseek-flash/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-flash/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - deepseek-v4-pricing
+    - model-163-deepseek-deepseek-flash

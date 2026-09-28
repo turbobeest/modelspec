@@ -178,6 +178,10 @@ sources:
   fetch: conditional_http
   normaliser: html-default
   cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
   - id: gemini-3-1-pro-preview
     locator:
       kind: heading
@@ -194,10 +198,6 @@ sources:
     locator:
       kind: heading
       value: gemini-3.8-flash
-  - id: page
-    locator:
-      kind: page
-      value: ''
 - id: gemini-retention
   url: https://ai.google.dev/gemini-api/docs/usage-policies
   fetch: conditional_http
@@ -1366,105 +1366,6 @@ sources:
   normaliser: text-default
   cited_regions:
   - id: rows
-    locator:
-      kind: page
-      value: ''
-- id: model-163-deepseek-deepseek-flash
-  url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/raw/main/README.md
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-deepseek-deepseek-v3-1
-  url: https://huggingface.co/deepseek-ai/DeepSeek-V3.1/raw/main/README.md
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-deepseek-flash-pricing
-  url: https://api-docs.deepseek.com/quick_start/pricing/
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: page
-    locator:
-      kind: page
-      value: ''
-- id: model-163-google-gemini-2-5-flash
-  url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
-  fetch: http
-  normaliser: html-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-google-gemma-4-26b-a4b-it
-  url: https://huggingface.co/google/gemma-4-26b-a4b-it/raw/main/README.md
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-google-gemma-4-31b-it
-  url: https://huggingface.co/google/gemma-4-31b-it/raw/main/README.md
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-google-gemma-4-e2b-it
-  url: https://huggingface.co/google/gemma-4-E2B-it/raw/main/README.md
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-google-gemma-4-e4b-it
-  url: https://huggingface.co/google/gemma-4-E4B-it/raw/main/README.md
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-microsoft-phi-4
-  url: https://huggingface.co/microsoft/phi-4/raw/main/README.md
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-openai-gpt-6-luna
-  url: https://developers.openai.com/api/docs/models/gpt-6-luna
-  fetch: http
-  normaliser: html-default
-  cited_regions:
-  - id: model-spec
-    locator:
-      kind: page
-      value: ''
-- id: model-163-qwen-qwen3-embedding-8b
-  url: https://huggingface.co/Qwen/Qwen3-Embedding-8B/raw/main/README.md
-  fetch: http
-  normaliser: text-default
-  cited_regions:
-  - id: model-spec
     locator:
       kind: page
       value: ''
@@ -3224,6 +3125,9 @@ sources:
   normaliser: text-default
   cited_regions:
   - id: rows
+    locator:
+      kind: page
+      value: ''
 - id: openai-data
   url: https://platform.openai.com/docs/models/default-usage-policies-by-endpoint
   fetch: conditional_http

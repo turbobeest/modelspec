@@ -148,3 +148,23 @@
     checked_sources:
     - gemini-pricing
     verification: null
+  - id: google-gemini-api/google/gemini-2-5-flash/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-2-5-flash/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - gemini-pricing
+    - model-163-google-gemini-2-5-flash
+  - id: google-gemini-api/google/gemini-2-5-flash/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-2-5-flash/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - gemini-pricing
+    - model-163-google-gemini-2-5-flash
