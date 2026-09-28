@@ -76,6 +76,24 @@ it("keeps internal ticket IDs out of the rendered board", () => {
   expect(document.body).not.toHaveTextContent("MODEL-");
 });
 
+it("counts estimate drivers without presenting the drill-down as the estimate basis", () => {
+  const software = groupFacets(realVocabulary).groups
+    .flatMap((group) => group.facets)
+    .find((facet) => facet.id === "capability.software_engineering");
+  expect(software?.definition).toBe("Capability estimate from 11 benchmarks.");
+
+  render(
+    <FacetBoard
+      vocabulary={realVocabulary}
+      spec={realBaseSpec(realVocabulary)}
+      onSpec={vi.fn()}
+      estate={{ providers: [], plans: [], hardware: [] }}
+      onEstate={vi.fn()}
+    />,
+  );
+  expect(screen.queryByText("Capability estimate from 3 benchmarks.")).not.toBeInTheDocument();
+});
+
 describe("facet state mapping", () => {
   const base = realBaseSpec(smallVocabulary);
   const contract = (selections: BoardSelections) => toBoardDecisionSpec(boardToSpec(base, smallVocabulary, selections), "full");
@@ -376,7 +394,7 @@ it("hides absent templates and expands groups with active canonical template fac
   expect(onSpec).toHaveBeenCalledOnce();
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(cost).queryByText(/coming \(MODEL-172\)/)).not.toBeInTheDocument();
-  expect(screen.getAllByText("Preference controls for these facets are coming soon.").length).toBeGreaterThan(0);
+  expect(screen.queryByText("Preference controls for these facets are coming soon.")).not.toBeInTheDocument();
   expect(screen.queryByText(/Plan pricing is coming soon|Hardware matching is coming soon/)).not.toBeInTheDocument();
 });
 

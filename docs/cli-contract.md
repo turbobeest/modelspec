@@ -36,6 +36,11 @@ where that class has verified coverage. The vocabulary does not declare facet
 applicability by class, so `--class` does not remove facets. A missing cache
 exits 3 and tells the caller to run `modelspec snapshot fetch`.
 
+Vocabulary domain rows may include `estimate_benchmarks`, the benchmark IDs
+that drive stored capability estimates. This list can differ from the domain's
+`benchmarks` drill-down. Vocabulary model rows may include `class`, the model's
+class from the snapshot; older cached vocabularies can omit both fields.
+
 `modelspec decide SPEC.yaml --check` loads the cached decision snapshot, parses
 the spec with decide's registry, and runs decide's resolve stage. It stops before
 filtering and optimisation. Vocabulary coverage is advisory: accepted facets,

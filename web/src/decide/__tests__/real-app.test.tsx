@@ -59,6 +59,27 @@ it("applies visible legacy controls and drops the unsupported parts named in the
   expect(request.where.every((condition: string) => !condition.includes("soft("))).toBe(true);
 });
 
+it("migrates a composer-era permalink navigated to after vocabulary loads", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." });
+  const requestsBeforeNavigation = sentSpecs(fetch).length;
+
+  history.pushState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+  const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
+  expect(note).toHaveTextContent("single-benchmark floor, so it's not applied");
+  expect(note).toHaveTextContent("soft(0.2)");
+  await waitFor(() => {
+    const navigatedRequests = sentSpecs(fetch).slice(requestsBeforeNavigation);
+    expect(navigatedRequests.some((request) => request.where.includes("offering.region in {EU}"))).toBe(true);
+    expect(navigatedRequests.every((request) => !request.where.includes("swe_bench_pro >= 50 @independent"))).toBe(true);
+    expect(navigatedRequests.every((request) => request.where.every((condition: string) => !condition.includes("soft(")))).toBe(true);
+  });
+});
+
 /** Keep the legacy full fixture consistent with the objective a UI test sends. */
 function decisionFor(init: RequestInit | undefined, decision = fixture) {
   const sent = JSON.parse(String(init?.body ?? "{}"));

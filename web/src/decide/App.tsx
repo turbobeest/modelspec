@@ -109,6 +109,7 @@ export function DesignedApp({
     requestAbort = useRef<AbortController | null>(null),
     questionsAbort = useRef<AbortController | null>(null),
     provTrigger = useRef<HTMLElement | null>(null),
+    hashNavigation = useRef<() => void>(() => undefined),
     initialAnswered = useRef(false);
   // A site deploy can change the snapshot under an open page (MODEL-159). The
   // Worker says so with a 409; every request that hears it shares one reload.
@@ -583,6 +584,27 @@ export function DesignedApp({
       delete document.documentElement.dataset.decideTheme;
     };
   }, [theme]);
+  hashNavigation.current = () => {
+    const restored = decodeSpec(location.hash);
+    if (!restored) return;
+    const encodedBoard = decodeBoardState(location.hash);
+    const legacyBoard = !encodedBoard && vocabulary
+      ? legacySpecToBoard(restored.spec, vocabulary, estate)
+      : null;
+    const restoredBoard = encodedBoard ?? legacyBoard;
+    const restoredBase = legacyBoard ? legacyBoardBaseSpec(restored.spec) : restored.spec;
+    const nextSpec = vocabulary && restoredBoard
+      ? boardToSpec(restoredBase, vocabulary, restoredBoard.selections, restoredBoard.mustOrder)
+      : restored.spec;
+    setBoardBaseSpec(restoredBase);
+    setBoardSelections(restoredBoard?.selections ?? {});
+    setBoardMustOrder(restoredBoard?.mustOrder ?? []);
+    if (restoredBoard) setEstate(restoredBoard.estate);
+    setLegacyNotes(legacyBoard?.notes ?? []);
+    changeSpec(nextSpec);
+    setAxis(restored.x);
+    setSelected(null);
+  };
   useEffect(() => {
     const esc = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") {
@@ -591,28 +613,7 @@ export function DesignedApp({
         provTrigger.current?.focus();
       }
     };
-    const hash = () => {
-      const restored = decodeSpec(location.hash);
-      if (restored) {
-        const encodedBoard = decodeBoardState(location.hash);
-        const legacyBoard = !encodedBoard && vocabulary
-          ? legacySpecToBoard(restored.spec, vocabulary, estate)
-          : null;
-        const restoredBoard = encodedBoard ?? legacyBoard;
-        const restoredBase = legacyBoard ? legacyBoardBaseSpec(restored.spec) : restored.spec;
-        const nextSpec = vocabulary && restoredBoard
-          ? boardToSpec(restoredBase, vocabulary, restoredBoard.selections, restoredBoard.mustOrder)
-          : restored.spec;
-        setBoardBaseSpec(restoredBase);
-        setBoardSelections(restoredBoard?.selections ?? {});
-        setBoardMustOrder(restoredBoard?.mustOrder ?? []);
-        if (restoredBoard) setEstate(restoredBoard.estate);
-        setLegacyNotes(legacyBoard?.notes ?? []);
-        setSpec(nextSpec);
-        setAxis(restored.x);
-        setSelected(null);
-      }
-    };
+    const hash = () => hashNavigation.current();
     window.addEventListener("keydown", esc);
     window.addEventListener("hashchange", hash);
     return () => {

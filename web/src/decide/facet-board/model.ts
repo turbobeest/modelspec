@@ -524,7 +524,7 @@ export function groupFacets(vocabulary: Vocabulary) {
   const capabilityFacets: VocabFacet[] = vocabulary.domains.map((domain) => ({
     id: `capability.${domain.id}`,
     label: domain.name,
-    definition: `Capability estimate from ${domain.benchmarks.length} benchmarks.`,
+    definition: `Capability estimate from ${domain.estimate_benchmarks?.length ?? domain.benchmarks.length} benchmarks.`,
     subject: "model",
     value_type: "number",
     unit: null,
