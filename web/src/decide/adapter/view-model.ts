@@ -43,6 +43,36 @@ const ALL_TYPES: TypeKey[] = [
   "decision",
 ];
 
+const TYPE_BY_CLASS = new Map(
+  Object.entries(CLASS_TO_TYPE).map(([modelClass, type]) => [modelClass, type]),
+);
+
+/** Model classes constrained by the same conditions sent to the decision engine. */
+export function selectedModelTypes(spec: Spec): ReadonlySet<TypeKey> | null {
+  let selected = new Set<TypeKey>(ALL_TYPES);
+  let constrained = false;
+  for (const condition of spec.conds) {
+    if (condition.f === "type") {
+      constrained = true;
+      selected = new Set([...selected].filter((type) => type === condition.v));
+      continue;
+    }
+    if (condition.f !== "facet" || condition.facet !== "model.class") continue;
+    constrained = true;
+    const values = Array.isArray(condition.value) ? condition.value : [condition.value];
+    const types = new Set(values.flatMap((value) => {
+      const type = typeof value === "string" ? TYPE_BY_CLASS.get(value) : undefined;
+      return type ? [type] : [];
+    }));
+    selected = new Set([...selected].filter((type) =>
+      condition.op === "!=" || condition.op === "not in"
+        ? !types.has(type)
+        : types.has(type),
+    ));
+  }
+  return constrained ? selected : null;
+}
+
 const slug = (value: string) =>
   value
     .toLowerCase()
@@ -837,14 +867,14 @@ export function mapDecisionToViewModel(
     };
   }
   const bench = benchmarks[spec.bench];
-  const selectedType = spec.conds.find(
-    (condition): condition is Extract<Cond, { f: "type" }> => condition.f === "type",
-  )?.v ?? "llm";
+  const constrainedTypes = selectedModelTypes(spec);
+  const selectedTypes = constrainedTypes ?? new Set<TypeKey>(["llm"]);
   const hasPublishedClasses = Object.values(options.models ?? {}).some(
     (model) => model.class !== undefined,
   );
   const canvasRows = feasible.filter((row) =>
-    row.m.type === selectedType || (!hasPublishedClasses && row.m.type === null && row.cap !== null),
+    (row.m.type !== null && selectedTypes.has(row.m.type)) ||
+      (!hasPublishedClasses && row.m.type === null && row.cap !== null),
   );
   const canvasClassExcluded = feasible.filter((row) => !canvasRows.includes(row));
   const frontier = pareto(canvasRows, options.axis, bench.hi);

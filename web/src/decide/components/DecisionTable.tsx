@@ -39,6 +39,7 @@ export function DecisionTable({
 }) {
   const { label, basisName } = useVocab();
   const ranked = spec.boardWeights === undefined || boardHasPreference(spec);
+  const visibleColumns = ranked ? columns : columns.filter(([key]) => key !== "rank");
   const [sort, setSort] = useState(ranked ? "rank" : "name"),
     [dir, setDir] = useState(1),
     [show, setShow] = useState(true),
@@ -80,7 +81,7 @@ export function DecisionTable({
         <table>
           <thead>
             <tr>
-              {columns.map(([key, title]) => (
+              {visibleColumns.map(([key, title]) => (
                 <th
                   key={key}
                   aria-sort={
@@ -111,7 +112,7 @@ export function DecisionTable({
                 className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row" : ""}`}
                 onClick={() => onSelect(r.m.id)}
               >
-                <td>{ranked ? r.rank ?? "" : ""}</td>
+                {ranked && <td>{r.rank ?? ""}</td>}
                 <td>
                   <button
                     className="table-model"

@@ -8,6 +8,7 @@ import {
   reason,
 } from "../adapter";
 import type { AdapterDecision, Cond, Spec, Row } from "../adapter";
+import { selectedModelTypes } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
 import { useVocab } from "../vocabulary/context";
 import { placeLabels } from "./labels";
@@ -185,7 +186,7 @@ export function Canvas({
   const classExcluded = decision.canvas_class_excluded;
   const decisionModelsExcluded = classExcluded.filter((row) => row.m.type === "decision");
   const allMissing = [...classExcluded, ...missing];
-  const hasTypeFilter = spec.conds.some((condition) => condition.f === "type");
+  const hasTypeFilter = selectedModelTypes(spec) !== null;
   return (
     <section className="panel canvas-panel" aria-label="Trade-off canvas">
       <div className="panel-heading">

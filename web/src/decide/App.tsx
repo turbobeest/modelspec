@@ -302,7 +302,16 @@ export function DesignedApp({
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
       if (controller.signal.aborted) return;
-      if (used && cause instanceof DecideApiError && cause.status === 400 && cause.code === "refinement_not_rankable_yet") {
+      const refinementKeys = used ? refinementWeightKeys(used) : new Set<string>();
+      const requestHadRefinementWeights = Object.keys(
+        used ? sendableSpec(used, requested).boardWeights ?? {} : {},
+      ).some((key) => refinementKeys.has(key));
+      if (
+        used &&
+        cause instanceof DecideApiError &&
+        cause.status === 400 &&
+        (requestHadRefinementWeights || cause.code === "refinement_not_rankable_yet")
+      ) {
         const folded = foldRefinementWeights(requested, used);
         const fallbackVocabulary = used;
         try {

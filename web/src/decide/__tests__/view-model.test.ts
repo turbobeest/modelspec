@@ -203,6 +203,41 @@ describe("the hosted Decision view-model mapper", () => {
     expect(view.not_plotted["task$"]).toEqual(["lab/delta"]);
   });
 
+  it.each([
+    ["decider", "decision"],
+    ["vectoriser", "embed"],
+  ] as const)("plots the %s class selected by a model.class Must", (modelClass, type) => {
+    const classified = decisionSchema.parse({
+      ...fixture,
+      top: fixture.top.map((candidate) => ({
+        ...candidate,
+        facts: candidate.facts.map((fact) => fact.facet === "model.class"
+          ? { ...fact, value: modelClass }
+          : fact),
+      })),
+    });
+    const view = mapDecisionToViewModel(classified, {
+      ...baseSpec,
+      bench: "quality",
+      conds: [{ f: "facet", facet: "model.class", op: "=", value: modelClass }],
+      boardWeights: {},
+    }, {
+      axis: "task$",
+      dismissed: [],
+      models: Object.fromEntries(fixture.results.map((result) => [result.offering.model, {
+        display_name: null,
+        lab: "lab",
+        lab_name: null,
+        class: modelClass,
+      }])),
+    });
+
+    expect(view.canvas_rows).toHaveLength(view.explanation.feasible.length);
+    expect(view.canvas_rows.every((row) => row.m.type === type)).toBe(true);
+    expect(view.frontier.length).toBeGreaterThan(0);
+    expect(view.frontier.every((row) => row.m.type === type)).toBe(true);
+  });
+
   it("keeps an explicit benchmark drill-down on that benchmark", () => {
     const estimated = decisionSchema.parse({
       ...fixture,

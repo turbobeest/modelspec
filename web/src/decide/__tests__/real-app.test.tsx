@@ -166,7 +166,7 @@ function decisionFor(init: RequestInit | undefined, decision = fixture) {
 beforeEach(() => history.replaceState(null, "", "/decide/"));
 afterEach(() => vi.unstubAllGlobals());
 
-it("folds unsupported refinement weights into the parent without losing board state", async () => {
+it("folds invalid refinement weights into the parent without losing board state", async () => {
   let unsupportedRequests = 0;
   const fetch = routeFetch({
     vocabulary: () => json(refinementVocabulary),
@@ -174,7 +174,7 @@ it("folds unsupported refinement weights into the parent without losing board st
       const sent = JSON.parse(String(init?.body));
       if ("software_engineering/python" in sent.optimize.weights) {
         unsupportedRequests += 1;
-        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+        return json({ error: { code: "invalid_spec", message: "Unknown refinement objective.", issues: [] } }, 400);
       }
       return json(decisionFor(init));
     },
@@ -230,6 +230,52 @@ it("folds unsupported refinement weights into the parent without losing board st
   fireEvent.click(within(restoredSoftware).getByRole("button", { name: "Refine" }));
   const restoredPython = within(restoredSoftware).getByText("Python").closest<HTMLElement>(".refinement-row")!;
   expect(within(restoredPython).getByLabelText("Prefer")).toBeChecked();
+});
+
+it("does not retry an invalid spec that carried no refinement weights", async () => {
+  let decisionRequests = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: () => {
+      decisionRequests += 1;
+      return json({ error: { code: "invalid_spec", message: "Invalid plain spec.", issues: [] } }, 400);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+
+  expect(await screen.findByText("Decision unavailable (invalid_spec).")).toBeInTheDocument();
+  expect(decisionRequests).toBe(1);
+});
+
+it("tries the refinement fold-back only once", async () => {
+  let rejectedRefinement = false;
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: (init) => {
+      const sent = JSON.parse(String(init?.body));
+      if ("software_engineering/python" in sent.optimize.weights) rejectedRefinement = true;
+      if (rejectedRefinement)
+        return json({ error: { code: "invalid_spec", message: "Still invalid after folding.", issues: [] } }, 400);
+      return json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+  await screen.findByLabelText("Facet board answer");
+  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(software).getByLabelText("Prefer"));
+  fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+  const callsBeforeRefinement = sentSpecs(fetch).length;
+  const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
+  fireEvent.click(within(python).getByLabelText("Prefer"));
+
+  expect(await screen.findByText("Decision unavailable (invalid_spec).")).toBeInTheDocument();
+  const attempts = sentSpecs(fetch).slice(callsBeforeRefinement)
+    .filter((body) => body.explain === "summary");
+  expect(attempts).toHaveLength(2);
+  expect(attempts[0].optimize.weights).toHaveProperty("software_engineering/python");
+  expect(attempts[1].optimize.weights).not.toHaveProperty("software_engineering/python");
 });
 
 it("lets a newer board request win when an in-flight folded retry is aborted", async () => {
@@ -475,13 +521,19 @@ it("renders the qualifying models from the live empty-board decision alphabetica
   expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
   expect(within(answer).queryByText(/no capability data|no evidence for/i)).not.toBeInTheDocument();
   const tableRows = screen.getByLabelText("Decision table").querySelectorAll("tbody tr");
-  expect(tableRows[0]?.querySelector("td")?.textContent).toBe("");
-  expect(tableRows[0]).toHaveTextContent("Claude Fable 5");
-  const providers = [...tableRows].map((row) => row.children[2]?.textContent ?? "");
+  expect(within(screen.getByLabelText("Decision table")).queryByRole("columnheader", { name: /#/ }))
+    .not.toBeInTheDocument();
+  expect(tableRows[0]?.querySelector("td")).toHaveTextContent("Claude Fable 5");
+  const providers = [...tableRows].map((row) => row.children[1]?.textContent ?? "");
   const firstUnavailable = providers.indexOf("Provider not available");
   expect(firstUnavailable).toBeGreaterThan(0);
   expect(providers.slice(firstUnavailable).every((provider) => provider === "Provider not available"))
     .toBe(true);
+
+  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(capability).getByLabelText("Prefer"));
+  expect(await within(screen.getByLabelText("Decision table")).findByRole("columnheader", { name: /#/ }))
+    .toBeInTheDocument();
 
   const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
   const collapsed = within(canvas).queryByText(/\d+ not plotted/);
@@ -541,6 +593,49 @@ it("explains models excluded from the default text-generator canvas", async () =
   const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
   expect(canvas).toHaveTextContent("Showing text generators; 1 decision model not plotted");
   expect(canvas).toHaveTextContent(/\d+ not plotted/);
+});
+
+it.each([
+  ["Decision model", "decider"],
+  ["Embedding model", "vectoriser"],
+])("plots the selected %s class without the text-generator default caption", async (label, modelClass) => {
+  const vocabulary = {
+    ...realVocabulary,
+    models: Object.fromEntries(Object.entries(realVocabulary.models).map(([id, model]) => [
+      id,
+      { ...model, class: modelClass },
+    ])),
+  };
+  const decision = {
+    ...liveSwePrefer,
+    top: liveSwePrefer.top.map((candidate) => ({
+      ...candidate,
+      facts: candidate.facts.map((fact) => fact.facet === "model.class"
+        ? { ...fact, value: modelClass }
+        : fact),
+    })),
+  };
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabulary),
+    decide: () => json(decision),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+
+  await screen.findByLabelText("Facet board answer");
+  fireEvent.click(screen.getByRole("button", { name: /What it does/ }));
+  const modelType = document.querySelector<HTMLElement>('[data-facet="model.class"]')!;
+  fireEvent.click(within(modelType).getByLabelText("Must"));
+  fireEvent.click(within(modelType).getByLabelText(new RegExp(`^${label}`)));
+
+  await waitFor(() => expect(sentSpecs(fetch).some((body) =>
+    body.where.includes(`model.class = ${modelClass}`),
+  )).toBe(true));
+  const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
+  expect(canvas.querySelectorAll(".point").length).toBeGreaterThan(0);
+  expect(within(canvas).getByLabelText("Pareto frontier").querySelector("path"))
+    .toHaveAttribute("d", expect.stringContaining("M"));
+  expect(canvas).not.toHaveTextContent("defaults to text generators");
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {
