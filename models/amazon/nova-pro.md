@@ -668,45 +668,20 @@ availability:
 benchmarks:
   scores: {}
   evidence:
-  - benchmark_id: aa_lcr
+  - benchmark_id: hle
     model_id_as_evaluated: Nova Pro
-    score: 21.0
+    score: 4.4
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2025-04-10'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Nova Pro
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Nova Pro
-    score: 49.9
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2025-04-10T19:24:55.000Z;
+      effort default; ±0.8 (95% CI).
+    limitations: 'Potential contamination warning: This model was evaluated after the public
+      release of HLE, allowing model builder access to the prompts and solutions.'
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

@@ -8,23 +8,46 @@ script has to tell apart.
 
 from __future__ import annotations
 
+import base64
 import functools
+import gzip
 import json
-import shutil
 import subprocess
 import sys
-import sysconfig
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from typer.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from api.ranking.engine import USE_CASE_PROFILES  # noqa: E402
 from cli.modelspec import offline, snapshot  # noqa: E402
+from decision import snapshot as decision_snapshot  # noqa: E402
+from decision.snapshot import Snapshot as DecisionSnapshot  # noqa: E402
+from decision.snapshot import content_hash as decision_content_hash  # noqa: E402
+from decision.snapshot import snapshot_id_for  # noqa: E402
+
+_TEST_PRIVATE = Ed25519PrivateKey.generate()
+_TEST_SIGNER = decision_snapshot.Ed25519Signer(
+    "test-fixture",
+    _TEST_PRIVATE.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    ),
+)
+_TEST_PUBLIC_KEYS = {
+    "test-fixture": _TEST_PRIVATE.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+}
 
 
 @pytest.fixture
@@ -32,6 +55,15 @@ def cache(tmp_path: Path) -> Path:
     directory = tmp_path / "cache"
     directory.mkdir()
     return directory
+
+
+@pytest.fixture(autouse=True)
+def _pin_test_snapshot_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: dict(_TEST_PUBLIC_KEYS),
+    )
 
 
 def _write(directory: Path, fetched_at: datetime | None = None) -> None:
@@ -56,6 +88,103 @@ def _write(directory: Path, fetched_at: datetime | None = None) -> None:
                                     "memory_gb": 24, "memory_bandwidth_gb_s": 1000}]},
         },
     }), encoding="utf-8")
+
+
+def _decision_artifacts(
+    as_of: str = "2026-09-27",
+    signer: decision_snapshot.Ed25519Signer | None = _TEST_SIGNER,
+) -> tuple[bytes, dict]:
+    content = {
+        "format_version": 1,
+        "as_of": as_of,
+        "facet_subjects": {"model.context_window": "model"},
+        "lineup": {
+            "candidates": [{"id": "a/one", "kind": "model", "model": "a/one",
+                            "lifecycle": "active"}],
+            "facets": {"model.context_window": {
+                "row": [0], "state": ["known"], "value": [128000], "sources": [[]],
+            }},
+            "evidence": {},
+        },
+        "archive": {"candidates": [], "facets": {}, "evidence": {}},
+        "out_of_lineup": 0,
+        "benchmark_domains": {},
+        "capability": {},
+        "sources": {},
+        "excluded": {},
+    }
+    digest = decision_content_hash(content)
+    built = DecisionSnapshot(content, digest, snapshot_id_for(digest))
+    return built.to_bytes(key="publisher-only-key", ed25519_signer=signer), {
+        "vocabulary_version": 1,
+        "snapshot": built.snapshot_id,
+    }
+
+
+def _fetch_bodies() -> dict[str, object]:
+    decision, vocabulary = _decision_artifacts()
+    return {
+        "/api/index.json": {
+            "build": {"commit": "newcommit", "built_at": "2026-09-10T00:00:00+00:00",
+                      "export_schema_version": snapshot.EXPORT_SCHEMA_VERSION},
+        },
+        "/api/rank/candidates.json": {"candidates": []},
+        "/api/rank/profiles.json": {"profiles": {}},
+        "/api/graph/views/hardware.json": {"nodes": []},
+        snapshot.DECISION_SNAPSHOT_ROUTE: decision,
+        snapshot.DECISION_VOCABULARY_ROUTE: vocabulary,
+    }
+
+
+def _mock_http_client(monkeypatch: pytest.MonkeyPatch, bodies: dict[str, object]) -> None:
+    import httpx
+
+    class FakeResponse:
+        status_code = 200
+        headers: dict[str, str] = {}
+
+        def __init__(self, body: object) -> None:
+            self._body = body
+            self.content = body if isinstance(body, bytes) else json.dumps(body).encode()
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._body
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> None:
+            return None
+
+        def get(self, url: str) -> FakeResponse:
+            route = next((route for route in bodies if url.endswith(route)), None)
+            if route is None:
+                raise AssertionError(url)
+            return FakeResponse(bodies[route])
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+
+
+def _install_decision_pair(cache: Path, decision: bytes, vocabulary: dict) -> Path:
+    generation = cache / "decision" / vocabulary["snapshot"]
+    generation.mkdir(parents=True)
+    (generation / "snapshot.json.gz").write_bytes(decision)
+    (generation / "vocabulary.json").write_text(json.dumps(vocabulary))
+    (cache / "decision" / "current").write_text(vocabulary["snapshot"] + "\n")
+    return generation
+
+
+def _write_old_decision_pair(cache: Path) -> tuple[bytes, bytes]:
+    old_snapshot, old_vocabulary = _decision_artifacts("2026-09-26")
+    _install_decision_pair(cache, old_snapshot, old_vocabulary)
+    return old_snapshot, json.dumps(old_vocabulary).encode()
 
 
 # ── the snapshot ─────────────────────────────────────────────────────────────
@@ -97,7 +226,325 @@ def test_an_old_snapshot_is_stale_but_still_loads(cache: Path) -> None:
 
 
 def test_status_reports_absence_without_raising(cache: Path) -> None:
-    assert snapshot.status(cache)["present"] is False
+    status = snapshot.status(cache)
+    assert status["present"] is False
+    assert status["decision_snapshot"]["present"] is False
+
+
+def test_fetch_caches_the_decision_snapshot_and_vocabulary(cache: Path, monkeypatch) -> None:
+    import httpx
+
+    bodies = _fetch_bodies()
+
+    class FakeResponse:
+        status_code = 200
+        headers: dict[str, str] = {}
+
+        def __init__(self, body: object) -> None:
+            self._body = body
+            self.content = body if isinstance(body, bytes) else json.dumps(body).encode()
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._body
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args) -> None:
+            return None
+
+        def get(self, url: str) -> FakeResponse:
+            route = next((route for route in bodies if url.endswith(route)), None)
+            if route is None:
+                return FakeResponse({})
+            return FakeResponse(bodies[route])
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    snapshot.fetch("https://example.test", cache)
+
+    decision_path = snapshot.decision_snapshot_path(cache)
+    current = (cache / "decision" / "current").read_text().strip()
+    assert decision_path == cache / "decision" / current / "snapshot.json.gz"
+    assert decision_path.read_bytes() == bodies[snapshot.DECISION_SNAPSHOT_ROUTE]
+    assert json.loads(snapshot.decision_vocabulary_path(cache).read_text())["snapshot"].startswith(
+        "snap_"
+    )
+    decision_status = snapshot.status(cache)["decision_snapshot"]
+    assert decision_status["present"] is True
+    assert decision_status["signature_verified"] is True
+    assert decision_status["as_of"] == "2026-09-27"
+
+
+def test_fetch_verifies_ed25519_with_the_cli_pinned_key_set(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    signer = decision_snapshot.Ed25519Signer("test-release", private_raw)
+    decision, vocabulary = _decision_artifacts(signer=signer)
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
+    _mock_http_client(monkeypatch, bodies)
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-release": public_raw},
+    )
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["signature_verified"] is True
+    status = snapshot.status(cache)["decision_snapshot"]
+    assert status["signature_verified"] is True
+    assert status["signature_key_id"] == "test-release"
+
+
+def test_fetch_refuses_a_tampered_ed25519_snapshot(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    signer = decision_snapshot.Ed25519Signer("test-release", private_raw)
+    decision, vocabulary = _decision_artifacts(signer=signer)
+    envelope = json.loads(gzip.decompress(decision))
+    envelope["content"]["as_of"] = "2099-01-01"
+    digest = decision_content_hash(envelope["content"])
+    envelope["content_hash"] = digest
+    envelope["snapshot_id"] = snapshot_id_for(digest)
+    forged = gzip.compress(json.dumps(envelope).encode())
+    vocabulary["snapshot"] = envelope["snapshot_id"]
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = forged
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
+    _mock_http_client(monkeypatch, bodies)
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-release": public_raw},
+    )
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["available"] is False
+    assert "Ed25519 signature" in result.decision_fetch["error"]
+    assert not (cache / "decision" / "current").exists()
+
+
+def test_successive_fetches_keep_current_and_previous_generations(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ids = []
+    for day in (25, 26, 27):
+        decision, vocabulary = _decision_artifacts(f"2026-09-{day}")
+        bodies = _fetch_bodies()
+        bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+        bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
+        _mock_http_client(monkeypatch, bodies)
+
+        result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+        assert result["available"] is True
+        ids.append(vocabulary["snapshot"])
+        assert (cache / "decision" / "current").read_text().strip() == ids[-1]
+        generation_ids = {
+            path.name for path in (cache / "decision").iterdir() if path.is_dir()
+        }
+        assert generation_ids == set(ids[-2:])
+
+
+def test_fetch_refuses_decision_hash_mismatch_and_keeps_old_cache(
+    cache: Path, monkeypatch
+) -> None:
+    import httpx
+
+    _write(cache)
+    old_decision, old_vocabulary = _decision_artifacts()
+    _install_decision_pair(cache, old_decision, old_vocabulary)
+    originals = {path: path.read_bytes() for path in (
+        cache / "snapshot.json", snapshot.decision_snapshot_path(cache),
+        snapshot.decision_vocabulary_path(cache),
+    )}
+    bodies = _fetch_bodies()
+    envelope = json.loads(gzip.decompress(bodies[snapshot.DECISION_SNAPSHOT_ROUTE]))
+    envelope["content"]["as_of"] = "2026-09-26"
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = gzip.compress(
+        json.dumps(envelope).encode(), mtime=0
+    )
+
+    class FakeResponse:
+        status_code = 200
+        headers: dict[str, str] = {}
+
+        def __init__(self, body: object) -> None:
+            self._body = body
+            self.content = body if isinstance(body, bytes) else json.dumps(body).encode()
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._body
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *args) -> None:
+            return None
+        def get(self, url: str) -> FakeResponse:
+            for route, body in bodies.items():
+                if url.endswith(route):
+                    return FakeResponse(body)
+            return FakeResponse({})
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    fetched = snapshot.fetch("https://example.test", cache)
+    assert fetched.decision_fetch is not None
+    assert fetched.decision_fetch["available"] is False
+    assert "content hash mismatch" in fetched.decision_fetch["error"]
+    assert snapshot.decision_snapshot_path(cache).read_bytes() == originals[
+        snapshot.decision_snapshot_path(cache)
+    ]
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == originals[
+        snapshot.decision_vocabulary_path(cache)
+    ]
+    assert snapshot.load(cache).build_commit == "newcommit"
+
+
+def test_fetch_refuses_wrong_decision_snapshot_id_and_keeps_old_pair(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_snapshot, old_vocabulary = _write_old_decision_pair(cache)
+    bodies = _fetch_bodies()
+    envelope = json.loads(gzip.decompress(bodies[snapshot.DECISION_SNAPSHOT_ROUTE]))
+    envelope["snapshot_id"] = "snap_wrong"
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = gzip.compress(
+        json.dumps(envelope).encode(), mtime=0
+    )
+    _mock_http_client(monkeypatch, bodies)
+
+    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+    assert result["available"] is False
+    assert "snapshot ID does not match" in result["error"]
+    assert snapshot.decision_snapshot_path(cache).read_bytes() == old_snapshot
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
+
+
+def test_fetch_refuses_vocabulary_snapshot_mismatch_and_keeps_old_pair(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_snapshot, old_vocabulary = _write_old_decision_pair(cache)
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = {
+        "vocabulary_version": 1,
+        "snapshot": "snap_wrong",
+    }
+    _mock_http_client(monkeypatch, bodies)
+
+    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+    assert result["available"] is False
+    assert "vocabulary snapshot does not match" in result["error"]
+    assert snapshot.decision_snapshot_path(cache).read_bytes() == old_snapshot
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
+
+
+def test_current_replace_failure_keeps_old_generation_and_rank_fetch_succeeds(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old_snapshot, old_vocabulary = _write_old_decision_pair(cache)
+    bodies = _fetch_bodies()
+    _mock_http_client(monkeypatch, bodies)
+    old_current = (cache / "decision" / "current").read_text()
+    original_replace = snapshot.os.replace
+    failed = False
+
+    def fail_current_replace(source: Path, target: Path) -> None:
+        nonlocal failed
+        if Path(target) == cache / "decision" / "current" and not failed:
+            failed = True
+            raise OSError("injected current replace failure")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(snapshot.os, "replace", fail_current_replace)
+
+    fetched = snapshot.fetch("https://example.test", cache)
+
+    assert failed is True
+    assert fetched.decision_fetch is not None
+    assert fetched.decision_fetch["available"] is False
+    assert "injected current replace failure" in fetched.decision_fetch["error"]
+    assert (cache / "decision" / "current").read_text() == old_current
+    assert snapshot.decision_snapshot_path(cache).read_bytes() == old_snapshot
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
+    assert snapshot.load(cache).build_commit == "newcommit"
+
+
+def test_status_reports_a_corrupt_decision_snapshot_without_changing_rank_status(
+    cache: Path,
+) -> None:
+    _write(cache)
+    decision, vocabulary = _decision_artifacts()
+    generation = _install_decision_pair(cache, decision, vocabulary)
+    (generation / "snapshot.json.gz").write_bytes(b"not a snapshot")
+
+    result = _run(["snapshot", "status", "--json"], cache)
+
+    assert result.returncode == offline.EXIT_OK
+    decision = json.loads(result.stdout)["result"]["decision_snapshot"]
+    assert decision["present"] is True
+    assert decision["valid"] is False
+    assert "invalid" in decision["error"]
+
+
+@pytest.mark.parametrize("as_json", [False, True])
+def test_fetch_reports_optional_decision_files_as_unavailable(
+    cache: Path, monkeypatch: pytest.MonkeyPatch, as_json: bool
+) -> None:
+    _write(cache)
+    fetched = replace(
+        snapshot.load(cache),
+        decision_fetch={"available": False, "error": "both decision origins returned 404"},
+    )
+    monkeypatch.setattr(snapshot, "fetch", lambda *args, **kwargs: fetched)
+
+    result = CliRunner().invoke(
+        offline.app, ["snapshot", "fetch", *(["--json"] if as_json else [])]
+    )
+
+    assert result.exit_code == offline.EXIT_OK
+    if as_json:
+        decision = json.loads(result.stdout)["result"]["decision_snapshot"]
+        assert decision["available"] is False
+        assert "returned 404" in decision["error"]
+    else:
+        assert "decision   unavailable" in result.stdout
 
 
 # ── the contract ─────────────────────────────────────────────────────────────
@@ -175,6 +622,7 @@ def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monke
 
         def __init__(self, body: dict) -> None:
             self._body = body
+            self.content = body if isinstance(body, bytes) else json.dumps(body).encode()
 
         def raise_for_status(self) -> None:
             return None
@@ -191,6 +639,9 @@ def test_fetch_refuses_incompatible_export_without_clobbering(cache: Path, monke
         "/api/rank/profiles.json": {"profiles": {}},
         "/api/graph/views/hardware.json": {"nodes": []},
     }
+    decision, vocabulary = _decision_artifacts()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
 
     class FakeClient:
         def __init__(self, *args, **kwargs) -> None:
@@ -229,60 +680,32 @@ def test_the_original_exit_codes_keep_their_values() -> None:
 
 
 @functools.cache
-def _modelspec_cli() -> str:
-    """Absolute path to the installed ``modelspec`` console script.
+def _modelspec_cli() -> list[str]:
+    """Run the CLI module with the interpreter that is running pytest."""
+    return [sys.executable, "-m", "cli.modelspec.cli"]
 
-    The public entry point is ``[project.scripts] modelspec = cli.modelspec.cli:app``.
-    There is no ``python -m modelspec`` module (``python -m modelspec`` fails), so
-    these tests locate the generated console script for *this* interpreter — the
-    local venv, CI's system Python, or any other install. ``shutil.which`` alone
-    is not enough: ``.venv/bin/python -m pytest`` does not put ``.venv/bin`` on
-    ``PATH``. A missing CLI is an install failure, not a skip.
-    """
-    try:
-        dist = distribution("modelspec")
-    except PackageNotFoundError as exc:
-        raise RuntimeError(
-            "The modelspec package is not installed in this interpreter. "
-            "Install it with `pip install -e '.[dev]'` so the `modelspec` "
-            "console script is created."
-        ) from exc
-    if not any(
-        ep.group == "console_scripts" and ep.name == "modelspec"
-        for ep in dist.entry_points
-    ):
-        raise RuntimeError(
-            "The installed modelspec distribution does not declare a "
-            "`modelspec` console script (pyproject.toml [project.scripts])."
-        )
 
-    searched: list[Path] = [
-        Path(sysconfig.get_path("scripts")) / "modelspec",
-        Path(sys.executable).resolve().parent / "modelspec",
-    ]
-    which = shutil.which("modelspec")
-    if which is not None:
-        searched.append(Path(which))
-
-    seen: set[Path] = set()
-    for path in searched:
-        resolved = path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        if path.is_file():
-            return str(path)
-
-    raise RuntimeError(
-        "modelspec console script is declared but was not found on disk. "
-        "Looked in: " + ", ".join(str(p) for p in searched) + ". "
-        "Install the package into this interpreter."
+@functools.cache
+def _modelspec_test_cli() -> list[str]:
+    """Run the CLI with the generated public fixture key pinned."""
+    public_key = base64.b64encode(_TEST_PUBLIC_KEYS["test-fixture"]).decode("ascii")
+    bootstrap = (
+        "import base64; "
+        "from decision import snapshot as decision_snapshot; "
+        "decision_snapshot.load_public_keys = lambda: "
+        f"{{'test-fixture': base64.b64decode('{public_key}')}}; "
+        "from cli.modelspec.cli import app; app()"
     )
+    return [sys.executable, "-c", bootstrap]
+
+
+def test_cli_lookup_uses_the_current_interpreters_module() -> None:
+    assert _modelspec_cli() == [sys.executable, "-m", "cli.modelspec.cli"]
 
 
 def _run(args: list[str], cache: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [_modelspec_cli(), *args],
+        [*_modelspec_test_cli(), *args],
         capture_output=True, text=True, timeout=120,
         env={
             "PATH": "/usr/bin:/bin",
@@ -319,7 +742,8 @@ def test_json_output_carries_version_and_freshness(cache: Path) -> None:
     assert payload["command"] == "rank"
     assert payload["freshness"]["build_commit"] == "abc123def456"
     assert payload["freshness"]["export_schema_version"] == snapshot.EXPORT_SCHEMA_VERSION
-    assert "export_schema_version" not in payload  # tree version lives on freshness, not the envelope
+    # The tree version lives on freshness, not the envelope.
+    assert "export_schema_version" not in payload
     assert payload["ranking_status"] == "complete"
     assert payload["ranked_count"] == 1
     assert payload["unranked_count"] == 0
@@ -337,6 +761,8 @@ def test_no_match_is_its_own_exit_code(cache: Path) -> None:
 
 def test_json_status_has_the_common_envelope(cache: Path) -> None:
     _write(cache)
+    decision, _vocabulary = _decision_artifacts()
+    _install_decision_pair(cache, decision, _vocabulary)
 
     result = _run(["snapshot", "status", "--json"], cache)
 
@@ -346,7 +772,67 @@ def test_json_status_has_the_common_envelope(cache: Path) -> None:
     assert payload["command"] == "status"
     assert payload["freshness"]["build_commit"] == "abc123def456"
     assert payload["result"]["present"] is True
+    assert payload["result"]["decision_snapshot"]["present"] is True
+    assert payload["result"]["decision_snapshot"]["snapshot_id"].startswith("snap_")
+    assert payload["result"]["decision_snapshot"]["as_of"] == "2026-09-27"
+    assert "age_days" in payload["result"]["decision_snapshot"]
     assert result.stderr == ""
+
+
+def test_decide_uses_the_cached_decision_snapshot_by_default(cache: Path) -> None:
+    decision, vocabulary = _decision_artifacts()
+    _install_decision_pair(cache, decision, vocabulary)
+    spec = cache.parent / "spec.yaml"
+    spec.write_text(
+        "spec_version: 1\n"
+        "optimize:\n  max: model.context_window\n"
+        "explain: none\n",
+        encoding="utf-8",
+    )
+
+    result = _run(["decide", str(spec), "--json"], cache)
+
+    assert result.returncode == offline.EXIT_OK, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["snapshot"] == vocabulary["snapshot"]
+    assert payload["results"][0]["offering"]["model"] == "a/one"
+
+
+def test_decide_without_a_cached_snapshot_says_to_fetch(cache: Path) -> None:
+    spec = cache.parent / "spec.yaml"
+    spec.write_text(
+        "spec_version: 1\n"
+        "optimize:\n  max: model.context_window\n"
+        "explain: none\n",
+        encoding="utf-8",
+    )
+
+    result = _run(["decide", str(spec), "--json"], cache)
+
+    assert result.returncode == offline.EXIT_ERROR
+    error = json.loads(result.stderr)["error"]
+    assert error["code"] == "snapshot_required"
+    assert "modelspec snapshot fetch" in error["message"]
+
+
+def test_decide_treats_current_pointing_at_missing_generation_as_absent(cache: Path) -> None:
+    decision_root = cache / "decision"
+    decision_root.mkdir()
+    (decision_root / "current").write_text("snap_missing\n")
+    spec = cache.parent / "spec-missing-generation.yaml"
+    spec.write_text(
+        "spec_version: 1\n"
+        "optimize:\n  max: model.context_window\n"
+        "explain: none\n",
+        encoding="utf-8",
+    )
+
+    result = _run(["decide", str(spec), "--json"], cache)
+
+    assert result.returncode == offline.EXIT_ERROR
+    error = json.loads(result.stderr)["error"]
+    assert error["code"] == "snapshot_required"
+    assert "modelspec snapshot fetch" in error["message"]
 
 
 def test_json_missing_snapshot_is_structured_on_stderr(cache: Path) -> None:

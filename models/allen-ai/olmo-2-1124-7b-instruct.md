@@ -833,6 +833,6 @@ card_updated: '2026-09-18'
 
 # OLMo 2 7B Instruct
 
-Carded from Hugging Face Hub [allenai/OLMo-2-1124-7B-Instruct](https://huggingface.co/allenai/OLMo-2-1124-7B-Instruct) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 7,298,617,344. No benchmark evidence attached.
+Carded from Hugging Face Hub [allenai/OLMo-2-1124-7B-Instruct](https://huggingface.co/allenai/OLMo-2-1124-7B-Instruct) because a live leaderboard row had no catalogue card. Hub safetensors total 7,298,617,344. No benchmark evidence attached.
 
 Licence: apache-2.0. Creator distribution https://huggingface.co/allenai/OLMo-2-1124-7B-Instruct/raw/main/README.md (apache-2.0) and Hub cardData.license apache-2.0, read 2026-09-18.

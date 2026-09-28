@@ -12,10 +12,10 @@ import hashlib
 import json
 import re
 import shutil
-import struct
 from pathlib import Path
 from typing import Any, Iterable
 
+from pipeline import brand
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model, REPO_ROOT
 
@@ -44,14 +44,16 @@ SKILLS_SCHEMA = "https://schemas.agentskills.io/discovery/0.2.0/schema.json"
 # Agent Readiness (agent-ready.dev) still fetches `/.well-known/mcp.json`
 # against this registry schema. SEP-2127's later draft prefers an AI Catalog
 # plus `<mcp-url>/server-card` and omits primitives; the ticket wants this
-# well-known path and the four tools listed, so they stay.
+# well-known path and the public tools listed, so they stay.
 MCP_SCHEMA = (
     "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json"
 )
 MCP_NAME = "dev.modelspec/catalogue"
 MCP_NAME_PATTERN = r"^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$"
 MCP_DESCRIPTION_MAX = 100
-MCP_TOOLS = ("rank", "model_info", "list_use_cases", "policy_check")
+MCP_TOOLS = (
+    "rank", "model_info", "list_use_cases", "policy_check", "decide", "vocab"
+)
 _BYTES_WIDTH = 8
 PAGES_FILE_LIMIT = 20_000
 PAGES_ROUTES = {
@@ -156,20 +158,6 @@ def robots_txt(base: str) -> str:
         f"\n"
         f"Sitemap: {base}/sitemap.xml\n"
     )
-
-
-def png_to_ico(png: bytes) -> bytes:
-    """Wrap a PNG in a single-image ICO. No resampling, no external fetch."""
-    if png[:8] != b"\x89PNG\r\n\x1a\n":
-        raise ValueError("not a PNG")
-    if png[12:16] != b"IHDR":
-        raise ValueError("PNG missing IHDR")
-    width, height = struct.unpack(">II", png[16:24])
-    w = 0 if width >= 256 else width
-    h = 0 if height >= 256 else height
-    header = struct.pack("<HHH", 0, 1, 1)
-    entry = struct.pack("<BBBBHHII", w, h, 0, 0, 1, 32, len(png), 22)
-    return header + entry + png
 
 
 def wants_markdown(accept: str | None) -> bool:
@@ -408,6 +396,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- commit: {build.commit}\n"
         f"- eligibility_as_of: {build.as_of.isoformat()}\n"
         f"- html: {MS_BASE}/\n"
+        f"- decide: {MS_BASE}/decide/\n"
         f"- json: {MS_BASE}/api/index.json\n"
         f"- rank: {RANK_API}\n"
         f"- policy-check: {POLICY_API}\n"
@@ -538,7 +527,7 @@ def mcp_card() -> dict[str, Any]:
 
     Schema (2025-10-17): name, description (<=100 chars), version, remotes.
     `tools` is extra; draft-07 additionalProperties default to true, and the
-    ticket requires the four MCP tools named here.
+    The public card lists every MCP tool named here.
     """
     description = (
         "Rank models, inspect cards, list use cases, and check policy."
@@ -566,6 +555,10 @@ def mcp_card() -> dict[str, Any]:
              "description": "GET /api/rank/profiles.json ranking profiles."},
             {"name": "policy_check",
              "description": "POST /v1/policy-check. pass/fail/undetermined."},
+            {"name": "decide",
+             "description": "POST /v1/decide. Downselect from a decision spec."},
+            {"name": "vocab",
+             "description": "GET the decision vocabulary for valid spec values."},
         ],
     }
 
@@ -706,7 +699,7 @@ def auth_markdown(root: Path) -> str:
         "Checks that need the private determination store stay "
         "`undetermined` with `why: tier`. That is not a pass.",
         "- `GET /v1/health` — deploy pin.",
-        "- MCP `https://api.modelspec.dev/mcp` — the four tools, no key.",
+        "- MCP `https://api.modelspec.dev/mcp` — the six tools, no key.",
         "",
         "### Sandbox (`test_` keys)",
         "",
@@ -832,12 +825,8 @@ def llms_full(models: Iterable[Model], benchmarks: Iterable[Benchmark], catalogu
 
 
 def _write_favicon(tree: Path) -> int:
-    png_path = tree / "favicon-64.png"
-    if not png_path.is_file():
-        return 0
-    ico = png_to_ico(png_path.read_bytes())
-    (tree / "favicon.ico").write_bytes(ico)
-    return len(ico)
+    brand.write_icons(tree)
+    return (tree / "favicon.ico").stat().st_size
 
 
 def _copy_functions(root: Path, tree: Path) -> None:
@@ -893,6 +882,10 @@ def ship(*, root: Path, ms: Path, models: list[Model],
     well.mkdir(parents=True, exist_ok=True)
     (well / "api-catalog").write_text(_json(api_catalog()), encoding="utf-8")
     (well / "mcp.json").write_text(_json(mcp_card()), encoding="utf-8")
+    shutil.copy2(
+        root / "decision" / "snapshot_keys.json",
+        well / "modelspec-snapshot-keys.json",
+    )
 
     skill_text = skill_markdown()
     skill_bytes = skill_text.encode("utf-8")

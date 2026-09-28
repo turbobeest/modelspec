@@ -666,16 +666,340 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    ifeval: 12.7
-    bbh: 44.0
-    math_500: 3.4
-    gpqa_diamond: 29.7
-    musr: 42.4
-    mmlu_pro: 27.2
+  scores: {}
+  evidence:
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1199.88
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1199.88 [1195.77, 1203.98], 46616
+      votes, rank 333.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_coding
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1192.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1192.30 [1184.23, 1200.36], 7298
+      votes, rank 355.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_hard_prompts
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1184.67
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1184.67 [1178.22, 1191.12], 12322
+      votes, rank 346.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_math
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1164.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
+      2026-09-13; style control. Highest-effort row for the product (effort: default; MODEL-123
+      max-effort rule). Rating 1164.30 [1156.16, 1172.43], 6599 votes, rank 330.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_creative_writing
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1182.84
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1182.84 [1174.48, 1191.21], 7094
+      votes, rank 326.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_instruction_following
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1170.99
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1170.99 [1165.31, 1176.67], 18240
+      votes, rank 339.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_multi_turn
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1163.88
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1163.88 [1155.68, 1172.07], 7933
+      votes, rank 335.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_expert
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1171.27
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1171.27 [1158.41, 1184.13], 2525
+      votes, rank 329.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_longer_query
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1186.18
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1186.18 [1177.43, 1194.92], 5866
+      votes, rank 336.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_non_english
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1168.22
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1168.22 [1162.79, 1173.64], 20947
+      votes, rank 330.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_medicine
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1213.27
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
+      revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1213.27 [1199.29, 1227.26], 2336
+      votes, rank 318.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_legal
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1221.84
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
+      1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1221.84 [1208.93, 1234.75], 2655
+      votes, rank 323.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_business
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1180.77
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
+      latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1180.77 [1171.37, 1190.17], 5197
+      votes, rank 331.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_science
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1214.58
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1214.58 [1206.53, 1222.62], 7909
+      votes, rank 333.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_writing
+    model_id_as_evaluated: gemma-2-2b-it
+    score: 1192.89
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1192.89 [1186.30, 1199.48], 12543
+      votes, rank 327.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: bbh
+    model_id_as_evaluated: google/gemma-2-2b-it
+    score: 42.0
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-db2ef33d2032
+      snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
+      cited_regions:
+      - rows
+    id: google/gemma-2-2b-it#bbh#653c64a18bb5
+  - benchmark_id: ifeval
+    model_id_as_evaluated: google/gemma-2-2b-it
+    score: 56.7
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-db2ef33d2032
+      snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
+      cited_regions:
+      - rows
+    id: google/gemma-2-2b-it#ifeval#a0393f468763
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: google/gemma-2-2b-it
+    score: 25.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-db2ef33d2032
+      snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
+      cited_regions:
+      - rows
+    id: google/gemma-2-2b-it#mmlu_pro#27ecae94fbb1
+  - benchmark_id: musr
+    model_id_as_evaluated: google/gemma-2-2b-it
+    score: 39.3
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-07-29'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-db2ef33d2032
+      snapshot_ref: sha256:1f98b44ebfa6f5349747b47236eec13cadc263dd6628f9345c1b9af970d972b0
+      cited_regions:
+      - rows
+    id: google/gemma-2-2b-it#musr#e9b392a0b308
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 3.4 and gpqa_diamond 29.7. They were the Open LLM Leaderboard
+    v2 MATH Lvl 5 and GPQA values for jebish7/gemma-2-2b-it, a different repository from this card''s (google/gemma-2-2b-it).
+    MODEL-154, read 2026-09-24: Rechecked ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (google/gemma-2-2b-it,
+    torch.bfloat16, model revision main). IFEval is the mean of strict prompt and instruction accuracy; BBH and MuSR
+    are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages rounded to one decimal, not normalized
+    leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json.'
 deployment:
   api_only: false
   local_inference: true

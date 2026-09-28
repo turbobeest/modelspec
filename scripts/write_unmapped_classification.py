@@ -392,7 +392,7 @@ def main() -> None:
     lines = []
     lines.append("# Unmatched leaderboard names (284)")
     lines.append("")
-    lines.append("Classification of `refusals.unmapped_name` from the 2026-09-10 AA + LM Arena harvest.")
+    lines.append("Classification of `refusals.unmapped_name` from the 2026-09-10 live leaderboard harvest.")
     lines.append("Mapping is explicit. A wrong alias is worse than a refusal.")
     lines.append("")
     lines.append("## Counts")

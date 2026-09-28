@@ -834,4 +834,4 @@ card_updated: '2026-09-10'
 
 # Gemma 4 12B
 
-Carded from Hugging Face Hub [google/gemma-4-12B](https://huggingface.co/google/gemma-4-12B) because a live AA/LM Arena row had no catalogue card. Hub safetensors total 11,959,730,224. No benchmark evidence attached.
+Carded from Hugging Face Hub [google/gemma-4-12B](https://huggingface.co/google/gemma-4-12B) because a live leaderboard row had no catalogue card. Hub safetensors total 11,959,730,224. No benchmark evidence attached.

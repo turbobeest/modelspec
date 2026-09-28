@@ -1,0 +1,1109 @@
+"""The snapshot builder, its completeness gate and its loader (MODEL-138)."""
+
+from __future__ import annotations
+
+import base64
+import gc
+import gzip
+import json
+import random
+import time
+from datetime import date
+from pathlib import Path
+
+import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+from decision import snapshot as snap
+from decision.model import value_hash
+from decision.registry import Registry
+from decision.registry import default as default_registry
+from decision.snapshot import (
+    UNKNOWN,
+    Bitset3,
+    CompletenessError,
+    EvidenceValue,
+    FactValue,
+    SnapshotBuildError,
+    SnapshotError,
+    SnapshotIndex,
+    SnapshotInputs,
+    SnapshotIntegrityError,
+    build_snapshot,
+    load_snapshot,
+)
+from tests.snapshot_records import (
+    SOURCES,
+    evidence,
+    fact,
+    model,
+    offering,
+    thirty_models,
+    verification,
+)
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+AS_OF = date(2026, 9, 24)
+KEY = b"test-key-not-a-secret"
+
+
+def ed25519_keys(key_id: str = "test-2026-09"):
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    return (
+        snap.Ed25519Signer(key_id, private_raw),
+        {key_id: public_raw},
+    )
+
+
+# Completeness tests intentionally exercise a small slice of the real registry
+# so each missing-value assertion stays focused.
+_ALL_REGISTRY = default_registry()
+_FACET_IDS = (
+    "model.context_window",
+    "model.weights_openness",
+    "model.input_modalities",
+    "licence.user_cap",
+    "model.parameters_total",
+    "estimate.capability",
+    "offering.provider",
+    "offering.region",
+    "offering.tier",
+    "offering.price.input",
+    "offering.price.batch_input",
+    "offering.speed.throughput",
+    "evidence.benchmark",
+)
+COMPLETENESS_REGISTRY = Registry(
+    units={},
+    source_kinds={},
+    facets={id_: _ALL_REGISTRY.facet(id_) for id_ in _FACET_IDS},
+    providers={},
+    harnesses={},
+    domains={},
+    named_lists={
+        "benchmarks": lambda: frozenset(),
+        "registry:domains": lambda: frozenset(),
+    },
+)
+REGISTRY = _ALL_REGISTRY
+
+
+def inputs(**overrides) -> SnapshotInputs:
+    base = dict(
+        models=[model("lab/alpha"), model("lab/beta", context=32000),
+                model("lab/old", lifecycle="retired")],
+        offerings=[offering("lab/alpha"), offering("lab/beta", price=0.5, batch=0.25),
+                   offering("lab/old")],
+        evidence=[
+            evidence("lab/alpha", "swe_bench_pro", 55.0),
+            evidence("lab/alpha", "swe_bench_pro", 61.0, measured_by="provider_self_report",
+                     effort="high", day="2026-09-10"),
+            evidence("lab/alpha", "gpqa_diamond", 80.0),
+            evidence("lab/beta", "swe_bench_pro", 40.0, day="2026-05-01"),
+        ],
+        sources=SOURCES,
+        benchmark_domains={
+            "swe_bench_pro": [("software_engineering", "direct")],
+            "gpqa_diamond": [("engineering_stem", "direct"), ("reasoning", "proxy")],
+        },
+    )
+    base.update(overrides)
+    return SnapshotInputs(**base)
+
+
+def build(tmp_path: Path, name="snap.json.gz", *, key=None, premier=None, **overrides) -> Path:
+    selected = COMPLETENESS_REGISTRY if premier is not None else REGISTRY
+    built = build_snapshot(inputs(**overrides), registry=selected, premier=premier, as_of=AS_OF)
+    path = tmp_path / name
+    built.write(path, key=key)
+    return path
+
+
+def load(path: Path, **kw):
+    kw.setdefault("key", None)
+    kw.setdefault("public_keys", {})
+    return load_snapshot(path, **kw)
+
+
+# ── determinism ────────────────────────────────────────────────────────────
+
+
+def test_same_inputs_give_a_byte_identical_snapshot(tmp_path):
+    a = build(tmp_path, "a.json.gz")
+    b = build(tmp_path, "b.json.gz")
+    assert a.read_bytes() == b.read_bytes()
+
+
+def test_input_order_does_not_change_the_snapshot(tmp_path):
+    a = build(tmp_path, "a.json.gz")
+    base = inputs()
+    rng = random.Random(7)
+    shuffled = {}
+    for name in ("models", "offerings", "evidence"):
+        rows = list(getattr(base, name))
+        rng.shuffle(rows)
+        shuffled[name] = rows
+    b = build(tmp_path, "b.json.gz", **shuffled)
+    assert a.read_bytes() == b.read_bytes()
+
+
+def test_signed_snapshots_are_byte_identical_too(tmp_path):
+    assert build(tmp_path, "a", key=KEY).read_bytes() == build(tmp_path, "b", key=KEY).read_bytes()
+
+
+def test_ed25519_signature_is_alongside_hmac_and_names_its_key(tmp_path):
+    signer, public_keys = ed25519_keys()
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    data = built.to_bytes(key=KEY, ed25519_signer=signer)
+    envelope = json.loads(gzip.decompress(data))
+
+    assert envelope["signature"]["alg"] == "hmac-sha256"
+    assert envelope["signatures"] == [{
+        "alg": "ed25519",
+        "key_id": "test-2026-09",
+        "value": envelope["signatures"][0]["value"],
+    }]
+    assert base64.b64decode(envelope["signatures"][0]["value"], validate=True)
+    assert snap.load_snapshot_bytes(data, key=None, public_keys=public_keys).signature_verified
+
+
+def test_ed25519_verification_accepts_any_pinned_rotation_key(tmp_path):
+    old_signer, old_public = ed25519_keys("test-old")
+    new_signer, new_public = ed25519_keys("test-new")
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    data = built.to_bytes(key=None, ed25519_signer=new_signer)
+
+    loaded = snap.load_snapshot_bytes(
+        data,
+        key=None,
+        public_keys=old_public | new_public,
+    )
+
+    assert loaded.signature_verified is True
+    assert loaded.signature_key_id == "test-new"
+
+
+def test_ed25519_refuses_a_rehashed_tampered_snapshot(tmp_path):
+    signer, public_keys = ed25519_keys()
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    envelope = json.loads(gzip.decompress(
+        built.to_bytes(key=None, ed25519_signer=signer)
+    ))
+    envelope["content"]["lineup"]["facets"]["model.context_window"]["value"][0] = 1
+    digest = snap.content_hash(envelope["content"])
+    envelope["content_hash"] = digest
+    envelope["snapshot_id"] = snap.snapshot_id_for(digest)
+    forged = gzip.compress(json.dumps(envelope).encode())
+
+    with pytest.raises(SnapshotIntegrityError, match="Ed25519 signature"):
+        snap.load_snapshot_bytes(forged, key=None, public_keys=public_keys)
+
+
+def test_empty_public_key_set_reports_the_provisioning_state(tmp_path):
+    index = snap.load_snapshot_bytes(
+        build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF).to_bytes(key=KEY),
+        key=None,
+        public_keys={},
+    )
+
+    assert index.signature_verified is False
+    assert index.signature_status == "unsigned (ed25519 key not yet provisioned)"
+
+
+@pytest.mark.parametrize("key_format", ["pem", "raw-base64"])
+def test_ci_ed25519_key_accepts_the_documented_formats(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, key_format: str
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [{
+            "key_id": "test-ci",
+            "alg": "ed25519",
+            "public_key": base64.b64encode(public_raw).decode(),
+        }],
+    }))
+    if key_format == "pem":
+        secret = private.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        ).decode()
+    else:
+        secret = base64.b64encode(private.private_bytes(
+            serialization.Encoding.Raw,
+            serialization.PrivateFormat.Raw,
+            serialization.NoEncryption(),
+        )).decode()
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
+
+    signer = snap.env_ed25519_signer()
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    data = built.to_bytes(key=None)
+    loaded = snap.load_snapshot_bytes(data, key=None)
+
+    assert signer is not None
+    assert signer.key_id == "test-ci"
+    assert loaded.signature_verified is True
+    assert loaded.signature_key_id == "test-ci"
+
+
+def test_empty_public_key_set_skips_env_ed25519_signing_with_a_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    secret = private.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ).decode()
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [],
+    }))
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+
+    with pytest.warns(RuntimeWarning, match="skipping Ed25519 signing"):
+        data = built.to_bytes(key=KEY)
+
+    envelope = json.loads(gzip.decompress(data))
+    assert envelope["signature"]["alg"] == "hmac-sha256"
+    assert envelope["signatures"] == []
+    assert snap.load_snapshot_bytes(data, key=KEY).signature_verified is True
+
+
+def test_unpinned_env_ed25519_key_fails_before_writing_a_signature(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    _, other_public = ed25519_keys("test-other")
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [{
+            "key_id": key_id,
+            "alg": "ed25519",
+            "public_key": base64.b64encode(public).decode(),
+        } for key_id, public in other_public.items()],
+    }))
+    secret = base64.b64encode(private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )).decode()
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+
+    with pytest.raises(SnapshotBuildError, match="not in snapshot-keys.json"):
+        built.to_bytes(key=KEY)
+
+
+def test_in_process_load_ignores_publisher_credentials_but_checks_the_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    _, other_public = ed25519_keys("test-other")
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [{
+            "key_id": key_id,
+            "alg": "ed25519",
+            "public_key": base64.b64encode(public).decode(),
+        } for key_id, public in other_public.items()],
+    }))
+    secret = private.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ).decode()
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+
+    loaded = snap.load_built_snapshot(built, source="test build")
+
+    assert loaded.snapshot_id == built.snapshot_id
+    assert loaded.signature_verified is False
+    tampered_content = json.loads(json.dumps(built.content))
+    tampered_content["lineup"]["facets"]["model.context_window"]["value"][0] = 1
+    tampered = snap.Snapshot(tampered_content, built.content_hash, built.snapshot_id)
+    with pytest.raises(SnapshotIntegrityError, match="content hash mismatch"):
+        snap.load_built_snapshot(tampered, source="tampered test build")
+
+
+def test_snapshot_id_matches_the_contract_pattern(tmp_path):
+    import re
+
+    from decision.contract import SNAPSHOT_PATTERN
+
+    index = load(build(tmp_path))
+    assert re.match(SNAPSHOT_PATTERN, index.snapshot_id)
+    assert index.content_hash.startswith("sha256:")
+    assert index.snapshot_id == "snap_" + index.content_hash.removeprefix("sha256:")[:16]
+
+
+# ── what never enters ──────────────────────────────────────────────────────
+
+
+def test_unverified_and_failed_facts_never_enter(tmp_path):
+    facts = [
+        fact("model", "lab/alpha", "model.context_window", 128000, outcome=None),
+        fact("model", "lab/alpha", "model.weights_openness", "closed_weights", outcome="mismatch"),
+        fact("model", "lab/alpha", "model.input_modalities", ["text"], outcome="unreachable"),
+    ]
+    index = load(build(tmp_path, models=[model("lab/alpha", facts=facts)],
+                       offerings=[], evidence=[]))
+    for facet in ("model.context_window", "model.weights_openness", "model.input_modalities"):
+        assert index.fact("lab/alpha", facet) == UNKNOWN
+    assert index.excluded == {"quarantined": 3}
+
+
+def test_the_verification_log_overrides_an_older_inline_verification(tmp_path):
+    f = fact("model", "lab/alpha", "model.context_window", 128000, outcome=None)
+    later = verification("fact", f["id"], "verified", day="2026-09-22")
+    index = load(build(tmp_path, models=[model("lab/alpha", facts=[f])], offerings=[],
+                       evidence=[], verifications=[later]))
+    assert index.fact("lab/alpha", "model.context_window").value == 128000
+
+    f2 = fact("model", "lab/alpha", "model.context_window", 128000)  # verified 09-20
+    failed = verification("fact", f2["id"], "mismatch", day="2026-09-23")
+    index = load(build(tmp_path, "b", models=[model("lab/alpha", facts=[f2])], offerings=[],
+                       evidence=[], verifications=[failed]))
+    assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
+
+
+def test_changed_value_is_quarantined_until_it_is_reverified(tmp_path):
+    checked = fact("model", "lab/alpha", "model.context_window", 128000)
+    checked["value"] = 64000
+    index = load(build(
+        tmp_path,
+        models=[model("lab/alpha", facts=[checked])],
+        offerings=[],
+        evidence=[],
+    ))
+    assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
+    assert index.excluded == {"quarantined": 1}
+
+
+@pytest.mark.parametrize(
+    ("field", "mutated"),
+    [
+        ("interval", [51.0, 59.0]),
+        ("n", 500),
+        ("quality_flags", ["contamination_warning"]),
+    ],
+)
+def test_changed_evidence_metadata_is_quarantined_until_reverified(
+    tmp_path, field, mutated
+):
+    checked = evidence(
+        "lab/alpha",
+        "swe_bench_pro",
+        55.0,
+        interval=[52.0, 58.0],
+        n=400,
+        quality_flags=["deprecated"],
+    )
+    assert checked["verification"]["target"]["value_hash"] == value_hash({
+        "score": 55.0,
+        "interval": [52.0, 58.0],
+        "n": 400,
+        "quality_flags": ["deprecated"],
+    })
+    checked[field] = mutated
+
+    index = load(build(tmp_path, evidence=[checked]))
+
+    assert index.evidence("lab/alpha", "swe_bench_pro") == ()
+    assert index.excluded == {"quarantined": 1}
+
+
+def test_unverified_evidence_never_enters(tmp_path):
+    rows = [evidence("lab/alpha", "swe_bench_pro", 55.0, outcome=None),
+            evidence("lab/alpha", "swe_bench_pro", 56.0, outcome="mismatch")]
+    index = load(build(tmp_path, evidence=rows))
+    assert index.evidence("lab/alpha", "swe_bench_pro") == ()
+
+
+def test_an_unresolved_source_keeps_a_fact_out(tmp_path):
+    f = fact("model", "lab/alpha", "model.context_window", 128000, source="src-missing")
+    index = load(build(tmp_path, models=[model("lab/alpha", facts=[f])], offerings=[], evidence=[]))
+    assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
+    assert index.excluded == {"unresolved_source": 1}
+
+
+def test_legacy_flat_scores_never_enter(tmp_path):
+    """collect_repo reads cards; `benchmarks.scores` is never read (design §4.2)."""
+    root = _mini_repo(tmp_path)
+    collected = snap.collect_repo(root)
+    assert [m["id"] for m in collected.models] == ["lab/alpha"]
+    benchmarks = {e["benchmark_id"] for e in collected.evidence}
+    assert benchmarks == {"swe_bench_pro"}  # the evidence row, not the scores block
+    built = build_snapshot(collected, registry=REGISTRY, as_of=AS_OF)
+    text = json.dumps(built.content)
+    assert "legacy_only_bench" not in text
+
+
+def _guard():
+    return snap.excluded_sources()
+
+
+def test_the_guard_matches_tests_test_removed_sources():
+    from tests import test_removed_sources as removed
+
+    guard = _guard()
+    assert guard.hosts == tuple(removed.REMOVED_HOSTS)
+    assert guard.text.pattern == removed.REMOVED_TEXT.pattern
+    assert guard.text.flags == removed.REMOVED_TEXT.flags
+    assert guard.ids.pattern == removed.REMOVED_ID.pattern
+
+
+def test_excluded_sources_never_enter(tmp_path):
+    host = _guard().hosts[0]
+    bad_url = f"https://www.{host}/models"
+    sources = {**SOURCES, "src-excluded": bad_url}
+    facts = [fact("model", "lab/alpha", "model.context_window", 128000, source="src-excluded")]
+    rows = [
+        evidence("lab/alpha", "swe_bench_pro", 55.0, source="src-excluded"),
+        evidence("lab/alpha", "gpqa_diamond", 80.0, source_url=bad_url),  # legacy URL field
+        evidence("lab/alpha", "aa_something", 50.0),                      # an owned benchmark id
+    ]
+    built = build_snapshot(
+        inputs(models=[model("lab/alpha", facts=facts)], offerings=[], evidence=rows,
+               sources=sources),
+        registry=REGISTRY, as_of=AS_OF, guard=_guard())
+    path = tmp_path / "s"
+    built.write(path)
+    index = load(path)
+    assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
+    assert index.evidence("lab/alpha", "swe_bench_pro") == ()
+    assert index.evidence("lab/alpha", "gpqa_diamond") == ()
+    assert index.excluded == {"excluded_source": 4}
+    assert host not in gzip.decompress(path.read_bytes()).decode()
+
+
+def test_the_output_scan_fails_a_build_that_names_an_excluded_source():
+    host = _guard().hosts[0]
+    facts = [fact("model", "lab/alpha", "model.weights_openness", f"see {host}")]
+    with pytest.raises(SnapshotBuildError, match="excluded source"):
+        build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[],
+                              evidence=[]),
+                       registry=REGISTRY, as_of=AS_OF, guard=_guard())
+
+
+def test_retired_models_go_to_the_archive(tmp_path):
+    path = build(tmp_path)
+    index = load(path)
+    assert "lab/old" not in index.candidates()
+    assert "lab-api/lab/old/global/standard" not in index.candidates()
+    with_archive = load(path, include_archive=True)
+    assert "lab/old" in with_archive.candidates()
+    assert with_archive.lifecycle("lab/old") == "retired"
+    assert with_archive.lifecycle("lab-api/lab/old/global/standard") == "retired"
+    assert with_archive.fact("lab/old", "model.context_window").value == 128000
+
+
+def test_an_unregistered_facet_fails_loudly():
+    facts = [fact("model", "lab/alpha", "model.colour", "blue")]
+    with pytest.raises(SnapshotBuildError, match="model.colour"):
+        build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[],
+                              evidence=[]), registry=REGISTRY, as_of=AS_OF)
+
+
+def test_an_offering_of_an_unknown_model_fails_loudly():
+    with pytest.raises(SnapshotBuildError, match="lab/ghost"):
+        build_snapshot(inputs(offerings=[offering("lab/ghost")]), registry=REGISTRY, as_of=AS_OF)
+
+
+# ── the completeness gate ──────────────────────────────────────────────────
+
+
+def test_the_gate_passes_a_complete_premier_set(tmp_path):
+    offerings = [offering("lab/alpha", facts=[
+        fact("offering", "lab-api/lab/alpha/global/standard", "offering.price.input", 3.0,
+             source="src-pricing"),
+        fact("offering", "lab-api/lab/alpha/global/standard", "offering.price.batch_input",
+             "not_offered", source="src-pricing"),
+    ])]
+    build(tmp_path, premier=["lab/alpha"], offerings=offerings)
+
+
+def test_the_gate_fails_on_one_missing_guaranteed_fact():
+    facts = model("lab/alpha")["facts"]
+    facts = [f for f in facts if f["facet"] != "model.context_window"]
+    with pytest.raises(CompletenessError) as exc:
+        build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[],
+                              evidence=[]),
+                       registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+    assert [(g.subject, g.facet) for g in exc.value.gaps] == [("lab/alpha", "model.context_window")]
+    message = str(exc.value)
+    assert "lab/alpha" in message and "model.context_window" in message
+    assert "no source" in message
+
+
+def test_the_gate_names_the_source_of_an_unverified_fact():
+    facts = model("lab/alpha")["facts"]
+    facts[0] = fact("model", "lab/alpha", "model.context_window", 128000, outcome="mismatch")
+    with pytest.raises(CompletenessError) as exc:
+        build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[],
+                              evidence=[]),
+                       registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+    (gap,) = exc.value.gaps
+    assert gap.reason == "quarantined (mismatch)"
+    assert gap.sources == (SOURCES["src-lab-docs"],)
+    assert SOURCES["src-lab-docs"] in str(exc.value)
+
+
+def test_the_gate_checks_guaranteed_offering_facets_and_ignores_best_effort():
+    oid = "lab-api/lab/alpha/global/standard"
+    no_price = offering("lab/alpha", facts=[])
+    with pytest.raises(CompletenessError) as exc:
+        build_snapshot(inputs(models=[model("lab/alpha")], offerings=[no_price], evidence=[]),
+                       registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+    assert [(g.subject, g.facet) for g in exc.value.gaps] == [
+        (oid, "offering.price.batch_input"),
+        (oid, "offering.price.input"),
+    ]
+
+
+def test_the_gate_skips_computed_facets():
+    """`estimate.capability` is guaranteed but computed by MODEL-129 (slice 2)."""
+    built = build_snapshot(
+        inputs(offerings=[]),
+        registry=COMPLETENESS_REGISTRY,
+        premier=["lab/alpha"],
+        as_of=AS_OF,
+    )
+    assert built.snapshot_id
+
+
+def test_the_gate_accepts_verified_not_disclosed_states():
+    facts = model("lab/alpha")["facts"]
+    facts[0] = fact("model", "lab/alpha", "model.context_window", None, state="not_disclosed")
+    build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[], evidence=[]),
+                   registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+
+
+def test_the_gate_rejects_an_unknown_state():
+    facts = model("lab/alpha")["facts"]
+    facts[0] = fact("model", "lab/alpha", "model.context_window", None, state="unknown",
+                    source=None, outcome=None)
+    with pytest.raises(CompletenessError, match="model.context_window"):
+        build_snapshot(inputs(models=[model("lab/alpha", facts=facts)], offerings=[], evidence=[]),
+                       registry=COMPLETENESS_REGISTRY, premier=["lab/alpha"], as_of=AS_OF)
+
+
+def test_the_gate_fails_on_a_premier_model_missing_from_the_catalogue():
+    with pytest.raises(CompletenessError, match="lab/ghost"):
+        build_snapshot(inputs(), registry=COMPLETENESS_REGISTRY, premier=["lab/ghost"], as_of=AS_OF)
+
+
+def test_retired_models_leave_the_premier_set():
+    build_snapshot(inputs(models=[model("lab/alpha"), model("lab/old", lifecycle="retired",
+                                                            facts=[])], offerings=[], evidence=[]),
+                   registry=COMPLETENESS_REGISTRY, premier=["lab/alpha", "lab/old"], as_of=AS_OF)
+
+
+def test_premier_file_formats(tmp_path):
+    a = tmp_path / "a.yaml"
+    a.write_text("- lab/b\n- lab/a\n")
+    b = tmp_path / "b.yaml"
+    b.write_text("schema_version: 1\nmodels:\n  - id: lab/a\n  - {model_id: lab/b, reason: top}\n")
+    assert snap.load_premier(a) == ("lab/a", "lab/b")
+    assert snap.load_premier(b) == ("lab/a", "lab/b")
+    bad = tmp_path / "c.yaml"
+    bad.write_text("models: []\n")
+    with pytest.raises(SnapshotBuildError, match="no premier models"):
+        snap.load_premier(bad)
+
+
+# ── the loader ─────────────────────────────────────────────────────────────
+
+
+def _rewrite(path: Path, mutate) -> None:
+    envelope = json.loads(gzip.decompress(path.read_bytes()))
+    mutate(envelope)
+    path.write_bytes(gzip.compress(json.dumps(envelope).encode()))
+
+
+def test_the_loader_rejects_tampered_content(tmp_path):
+    path = build(tmp_path)
+
+    def bump(env):
+        env["content"]["lineup"]["facets"]["model.context_window"]["value"][0] = 10_000_000
+
+    _rewrite(path, bump)
+    with pytest.raises(SnapshotIntegrityError, match="content hash"):
+        load(path)
+
+
+def test_the_loader_rejects_a_recomputed_hash_without_the_key(tmp_path):
+    path = build(tmp_path, key=KEY)
+
+    def forge(env):
+        env["content"]["lineup"]["facets"]["model.context_window"]["value"][0] = 10_000_000
+        digest = snap.content_hash(env["content"])
+        env["content_hash"] = digest
+        env["snapshot_id"] = snap.snapshot_id_for(digest)
+
+    _rewrite(path, forge)
+    with pytest.raises(SnapshotIntegrityError, match="signature"):
+        load(path, key=KEY)
+
+
+def test_the_loader_verifies_a_signature(tmp_path):
+    path = build(tmp_path, key=KEY)
+    assert load(path, key=KEY).signature_verified is True
+    with pytest.raises(SnapshotIntegrityError, match="signature"):
+        load(path, key=b"another-key")
+    assert load(path, key=None).signature_verified is False
+
+
+def test_the_loader_rejects_an_unsigned_snapshot_when_a_key_is_set(tmp_path):
+    with pytest.raises(SnapshotIntegrityError, match="unsigned"):
+        load(build(tmp_path), key=KEY)
+
+
+def test_the_key_comes_from_the_environment(tmp_path, monkeypatch):
+    monkeypatch.setenv(snap.KEY_ENV, KEY.decode())
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    path = tmp_path / "s"
+    built.write(path)  # key from the environment
+    assert load_snapshot(path).signature_verified is True
+    monkeypatch.delenv(snap.KEY_ENV)
+    assert load_snapshot(path, public_keys={}).signature_verified is False
+
+
+def test_the_loader_rejects_a_file_that_is_not_a_snapshot(tmp_path):
+    path = tmp_path / "x"
+    path.write_bytes(gzip.compress(b'{"format": "something-else"}'))
+    with pytest.raises(SnapshotIntegrityError):
+        load(path)
+    path.write_bytes(b"not gzip")
+    with pytest.raises(SnapshotIntegrityError):
+        load(path)
+
+
+# ── the SnapshotIndex protocol ─────────────────────────────────────────────
+
+
+def test_the_index_satisfies_the_protocol(tmp_path):
+    index = load(build(tmp_path))
+    assert isinstance(index, SnapshotIndex)
+    assert list(index.candidates()) == sorted(index.candidates())
+    assert set(index.candidates()) == {
+        "lab/alpha", "lab/beta",
+        "lab-api/lab/alpha/global/standard", "lab-api/lab/beta/global/standard"}
+
+
+def test_facts_carry_state_value_and_sources(tmp_path):
+    index = load(build(tmp_path))
+    assert index.fact("lab/alpha", "model.context_window") == FactValue(
+        "known", 128000, ("src-lab-docs",))
+    assert index.source_url("src-lab-docs") == SOURCES["src-lab-docs"]
+    assert index.fact("lab/alpha", "model.parameters_total") == UNKNOWN
+    with pytest.raises(KeyError, match="lab/nobody"):
+        index.fact("lab/nobody", "model.context_window")
+
+
+def test_offerings_inherit_their_models_facts(tmp_path):
+    index = load(build(tmp_path))
+    oid = "lab-api/lab/beta/global/standard"
+    assert index.fact(oid, "model.context_window").value == 32000
+    assert index.fact(oid, "offering.provider") == FactValue("known", "lab-api", ())
+    assert index.fact(oid, "offering.price.input").value == 0.5
+    assert index.fact("lab/beta", "offering.price.input") == UNKNOWN
+    assert index.model_of(oid) == "lab/beta"
+    assert index.kind(oid) == "offering"
+
+
+def _ids(index, bits):
+    return set(index.ids(bits))
+
+
+def test_ids_where_is_three_valued(tmp_path):
+    index = load(build(tmp_path))
+    r = index.ids_where("offering.price.input", "<", 1)
+    assert isinstance(r, Bitset3)
+    assert _ids(index, r.passing) == {"lab-api/lab/beta/global/standard"}
+    assert _ids(index, r.failing) == {"lab-api/lab/alpha/global/standard"}
+    assert _ids(index, r.unknown) == {"lab/alpha", "lab/beta"}
+    assert r.passing | r.failing | r.unknown == (1 << len(index.candidates())) - 1
+
+
+def test_ids_where_on_numbers_windows_enums_and_sets(tmp_path):
+    index = load(build(tmp_path))
+    ge = index.ids_where("model.context_window", ">=", 100000)
+    assert _ids(index, ge.passing) == {"lab/alpha", "lab-api/lab/alpha/global/standard"}
+    window = index.ids_where("model.context_window", "between", (30000, 40000))
+    assert _ids(index, window.passing) == {"lab/beta", "lab-api/lab/beta/global/standard"}
+    eq = index.ids_where("model.weights_openness", "=", "closed_weights")
+    assert len(_ids(index, eq.passing)) == 4 and eq.failing == 0
+    ne = index.ids_where("model.weights_openness", "in", ["open_weights"])
+    assert ne.passing == 0 and len(_ids(index, ne.failing)) == 4
+    has_image = index.ids_where("model.input_modalities", "contains", "image")
+    assert len(_ids(index, has_image.passing)) == 4
+    known = index.ids_where("model.parameters_total", "known", None)
+    assert known.passing == 0 and known.unknown == 0
+
+
+def test_unbounded_and_not_offered_literals_compare_sensibly(tmp_path):
+    index = load(build(tmp_path))
+    cap = index.ids_where("licence.user_cap", ">=", 1_000_000)
+    assert _ids(index, cap.passing) >= {"lab/alpha", "lab/beta"}
+    batch = index.ids_where("offering.price.batch_input", "<", 1)
+    assert _ids(index, batch.passing) == {"lab-api/lab/beta/global/standard"}
+    assert _ids(index, batch.failing) == {"lab-api/lab/alpha/global/standard"}  # not offered
+
+
+def test_not_disclosed_is_unknown_to_a_filter(tmp_path):
+    facts = model("lab/alpha")["facts"]
+    facts[0] = fact("model", "lab/alpha", "model.context_window", None, state="not_disclosed")
+    index = load(build(tmp_path, models=[model("lab/alpha", facts=facts)], offerings=[],
+                       evidence=[]))
+    assert index.fact("lab/alpha", "model.context_window").state == "not_disclosed"
+    r = index.ids_where("model.context_window", ">", 1)
+    assert _ids(index, r.unknown) == {"lab/alpha"}
+
+
+def test_evidence_with_qualifiers(tmp_path):
+    index = load(build(tmp_path))
+    rows = index.evidence("lab/alpha", "swe_bench_pro")
+    assert [e.value for e in rows] == [55.0, 61.0]
+    assert all(isinstance(e, EvidenceValue) and e.verified for e in rows)
+    first = rows[0]
+    assert (first.version, first.unit, first.measured_by, first.date, first.source_ids) == (
+        "1.0", "percent", "independent_evaluator", date(2026, 8, 1), ("src-board",))
+    assert [e.value for e in index.evidence("lab/alpha", "swe_bench_pro",
+                                            measured_by={"independent_evaluator"})] == [55.0]
+    assert [e.value for e in index.evidence("lab/alpha", "swe_bench_pro", effort="high")] == [61.0]
+    assert [e.value for e in index.evidence("lab/alpha", "swe_bench_pro",
+                                            after=date(2026, 9, 1))] == [61.0]
+    assert index.evidence("lab/alpha", "swe_bench_pro", harness="claude-code@2.1") == ()
+    assert index.evidence("lab/alpha", "nonexistent") == ()
+
+
+def test_evidence_keeps_structured_uncertainty_and_quality_flags(tmp_path):
+    row = evidence(
+        "lab/alpha",
+        "swe_bench_pro",
+        55.0,
+        interval=[51.2, 58.8],
+        n=500,
+        quality_flags=["contamination_warning"],
+    )
+    index = load(build(tmp_path, evidence=[row]))
+
+    [stored] = index.evidence("lab/alpha", "swe_bench_pro")
+    assert stored.interval == (51.2, 58.8)
+    assert stored.n == 500
+    assert stored.quality_flags == ("contamination_warning",)
+
+
+def test_evidence_for_a_domain_carries_directness(tmp_path):
+    index = load(build(tmp_path))
+    reasoning = index.evidence_for_domain("lab/alpha", "reasoning")
+    assert [(e.benchmark_id, e.directness) for e in reasoning] == [("gpqa_diamond", "proxy")]
+    swe = index.evidence_for_domain("lab/alpha", "software_engineering")
+    assert {e.directness for e in swe} == {"direct"} and len(swe) == 2
+    assert index.evidence_for_domain("lab/beta", "reasoning") == ()
+
+
+# ── scale ──────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.perf
+def test_a_thirty_model_snapshot_is_small_and_loads_fast(tmp_path):
+    built = build_snapshot(thirty_models(), registry=REGISTRY, as_of=AS_OF)
+    path = tmp_path / "thirty.json.gz"
+    built.write(path)
+    assert path.stat().st_size < 3_000_000
+    load(path)  # warm imports
+    # Best of five with GC paused: one wall-clock sample on a shared CI runner
+    # measured the runner (211 ms for a load that takes ~6 ms locally). The
+    # 100 ms bound is MODEL-138's acceptance and stays.
+    samples = []
+    gc.disable()
+    try:
+        for _ in range(5):
+            start = time.perf_counter()
+            index = load(path)
+            samples.append(time.perf_counter() - start)
+    finally:
+        gc.enable()
+    elapsed = min(samples)
+    assert len(index.candidates()) == 120
+    assert elapsed < 0.1, f"loaded in {elapsed * 1000:.0f} ms (best of 5)"
+
+
+# ── the CLI and the build step ─────────────────────────────────────────────
+
+
+def _mini_repo(tmp_path: Path) -> Path:
+    root = tmp_path / "repo"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "benchmarks").mkdir()
+    card_facts = [
+        {k: v for k, v in f.items() if k != "subject"} for f in model("lab/alpha")["facts"]]
+    front = {
+        "model_id": "lab/alpha",
+        "status": "active",
+        "facts": card_facts,
+        "benchmarks": {
+            "scores": {"legacy_only_bench": 99.0},
+            "evidence": [{k: v for k, v in evidence("lab/alpha", "swe_bench_pro", 55.0).items()
+                          if k != "subject"}],
+        },
+    }
+    import yaml
+
+    (root / "models" / "lab" / "alpha.md").write_text(
+        "---\n" + yaml.safe_dump(front, sort_keys=True) + "---\n\nProse.\n")
+    (root / "benchmarks" / "swe_bench_pro.md").write_text(
+        "---\nid: swe_bench_pro\ndomains:\n  - {id: software_engineering, directness: direct}\n"
+        "---\n\nProse.\n")
+    (root / "registry").mkdir()
+    (root / "registry" / "sources.yaml").write_text(yaml.safe_dump(
+        {"schema_version": 1, "sources": [{"id": k, "url": v} for k, v in SOURCES.items()]}))
+    offer_dir = root / "offerings" / "lab-api" / "lab"
+    offer_dir.mkdir(parents=True)
+    (offer_dir / "alpha.yaml").write_text(yaml.safe_dump([offering("lab/alpha")]))
+    (root / "premier").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text("- lab/alpha\n")
+    (root / "tests").mkdir()
+    (root / "tests" / "test_removed_sources.py").write_text(
+        (REPO_ROOT / "tests" / "test_removed_sources.py").read_text())
+    return root
+
+
+def test_collect_repo_reads_cards_offerings_sources_and_domains(tmp_path):
+    root = _mini_repo(tmp_path)
+    collected = snap.collect_repo(root)
+    assert collected.sources == SOURCES
+    assert collected.benchmark_domains == {"swe_bench_pro": (("software_engineering", "direct"),)}
+    assert [o["provider"] for o in collected.offerings] == ["lab-api"]
+    index_path = tmp_path / "s"
+    build_snapshot(
+        collected,
+        registry=COMPLETENESS_REGISTRY,
+        premier=["lab/alpha"],
+        as_of=AS_OF,
+    ).write(index_path)
+    index = load(index_path)
+    assert index.fact("lab/alpha", "model.context_window").value == 128000
+    assert [e.value for e in index.evidence("lab/alpha", "swe_bench_pro")] == [55.0]
+
+
+def test_repo_verification_log_quarantine_never_enters_the_snapshot(tmp_path):
+    root = _mini_repo(tmp_path)
+    log_dir = root / "verification"
+    log_dir.mkdir()
+    quarantined = verification(
+        "fact",
+        "lab/alpha#model.context_window",
+        "mismatch",
+        day="2026-09-24",
+        value=128000,
+    )
+    (log_dir / "log.jsonl").write_text(json.dumps(quarantined) + "\n")
+
+    collected = snap.collect_repo(root)
+    assert collected.verifications == [quarantined]
+    index_path = tmp_path / "quarantined.gz"
+    build_snapshot(collected, registry=REGISTRY, as_of=AS_OF).write(index_path)
+    index = load(index_path)
+    assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
+
+
+def test_cli_snapshot_build(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from cli.modelspec import cli as cli_mod
+
+    root = _mini_repo(tmp_path)
+    monkeypatch.setattr(snap, "default_registry", lambda: COMPLETENESS_REGISTRY)
+    monkeypatch.delenv(snap.KEY_ENV, raising=False)
+    out = tmp_path / "out.json.gz"
+    runner = CliRunner()
+    result = runner.invoke(cli_mod.app, ["snapshot", "build", "--root", str(root),
+                                         "--out", str(out), "--as-of", "2026-09-24"])
+    assert result.exit_code == 0, result.output
+    assert "snap_" in result.output
+    assert load(out).fact("lab/alpha", "model.context_window").value == 128000
+
+    # The gate fails the command and names what is missing.
+    (root / "premier" / "slice-1.yaml").write_text("- lab/alpha\n- lab/ghost\n")
+    result = runner.invoke(cli_mod.app, ["snapshot", "build", "--root", str(root),
+                                         "--out", str(out)])
+    assert result.exit_code == 1
+    assert "lab/ghost" in result.output
+
+
+def test_the_site_build_step_is_off_by_default():
+    from pipeline import build as site_build
+
+    args = site_build.parse_args([])
+    assert args.decision_snapshot is False
+
+
+def test_optional_site_snapshot_skips_an_unsigned_build(tmp_path, monkeypatch, capsys):
+    from pipeline import build as site_build
+
+    monkeypatch.delenv(snap.KEY_ENV, raising=False)
+    target = tmp_path / "api" / "decision" / "snapshot.json.gz"
+
+    published = site_build.write_decision_snapshot_if_ready(
+        tmp_path, target, premier=tmp_path / "premier.yaml", as_of=AS_OF
+    )
+
+    assert published is False
+    assert not target.exists()
+    assert capsys.readouterr().err.strip() == (
+        "::warning::decision snapshot not published: "
+        "MODELSPEC_SNAPSHOT_KEY is not configured"
+    )
+
+
+def test_optional_site_snapshot_reports_only_the_first_twenty_gaps(
+    tmp_path, monkeypatch, capsys
+):
+    from pipeline import build as site_build
+
+    root = _mini_repo(tmp_path)
+    missing = [f"lab/ghost-{index:02d}" for index in range(21)]
+    premier = root / "premier" / "slice-1.yaml"
+    premier.write_text("".join(f"- {model_id}\n" for model_id in missing))
+    monkeypatch.setattr(snap, "default_registry", lambda: COMPLETENESS_REGISTRY)
+    monkeypatch.setenv(snap.KEY_ENV, KEY.decode())
+    target = tmp_path / "site" / "api" / "decision" / "snapshot.json.gz"
+
+    published = site_build.write_decision_snapshot_if_ready(
+        root, target, premier=premier, as_of=AS_OF
+    )
+
+    warning = capsys.readouterr().err
+    assert published is False
+    assert not target.exists()
+    assert "::warning::decision snapshot not published: completeness gate found 21 gaps" in warning
+    for model_id in missing[:20]:
+        assert model_id in warning
+    assert missing[20] not in warning
+
+
+def test_writer_stores_the_canonical_content_bytes(tmp_path):
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    raw = gzip.decompress(built.to_bytes(key=KEY))
+    assert raw.startswith(b'{"content":' + snap.canonical_json(built.content) + b',"content_hash":')
+
+
+def test_retained_records_round_trip_all_provenance(tmp_path):
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    row["notes"] = 'Unicode café, braces },"content_hash": and \\"quotes'
+    index = load(build(tmp_path, evidence=[row]))
+    assert index.record(row["id"]) == row
+    assert index.record(row["id"]) == row
+
+
+@pytest.mark.parametrize("canonical", [False, True])
+def test_source_tampering_is_rejected_before_access(tmp_path, canonical):
+    path = build(tmp_path, key=KEY)
+    env = json.loads(gzip.decompress(path.read_bytes()))
+    env["content"]["sources"]["src-board"] += "/tampered"
+    raw = snap.canonical_json(env) if canonical else json.dumps(env).encode()
+    path.write_bytes(gzip.compress(raw))
+    with pytest.raises(SnapshotIntegrityError, match="content hash"):
+        load(path, key=KEY)
+
+
+def test_compact_records_preserve_missing_null_and_nested_values(tmp_path):
+    rows = [evidence("lab/alpha", "swe_bench_pro", 55.0),
+            evidence("lab/alpha", "swe_bench_pro", 61.0)]
+    rows[0]["extra"] = {"empty": {}, "null": None, "nested": {"value": [1, "é"]}}
+    rows[1]["extra"] = None
+    index = load(build(tmp_path, evidence=rows))
+    for row in reversed(rows):
+        assert index.record(row["id"]) == row
+
+
+def test_legacy_retained_records_still_load(tmp_path):
+    path = build(tmp_path)
+    original = load(path)
+    row = evidence("lab/alpha", "swe_bench_pro", 55.0)
+    env = json.loads(gzip.decompress(path.read_bytes()))
+    table = env["content"].pop("record_table")
+    env["content"]["records"] = {rid: original.record(rid) for rid in table["rows"]}
+    env["content_hash"] = snap.content_hash(env["content"])
+    env["snapshot_id"] = snap.snapshot_id_for(env["content_hash"])
+    path.write_bytes(gzip.compress(json.dumps(env).encode()))
+    assert load(path).record(row["id"]) == row
+
+
+def test_pre_provenance_snapshot_plainly_requires_rebuilding_for_explanations(tmp_path):
+    path = build(tmp_path)
+    env = json.loads(gzip.decompress(path.read_bytes()))
+    env["content"].pop("record_table")
+    env["content"].pop("fact_records")
+    env["content_hash"] = snap.content_hash(env["content"])
+    env["snapshot_id"] = snap.snapshot_id_for(env["content_hash"])
+    path.write_bytes(gzip.compress(json.dumps(env).encode()))
+
+    index = load(path)
+    assert "rebuild" in index.explanation_rebuild_required
+    with pytest.raises(SnapshotError, match="rebuild it before explaining"):
+        index.require_explanation_records()
+
+
+def test_duplicate_content_cannot_bypass_integrity(tmp_path):
+    path = build(tmp_path, key=KEY)
+    raw = gzip.decompress(path.read_bytes())
+    path.write_bytes(gzip.compress(raw[:-1] + b',"content":{}}'))
+    with pytest.raises(SnapshotIntegrityError):
+        load(path, key=KEY)
+
+
+def test_compact_record_tampering_is_detected_without_reading_a_record(tmp_path):
+    path = build(tmp_path, key=KEY)
+    env = json.loads(gzip.decompress(path.read_bytes()))
+    env["content"]["record_table"]["values"][0] = '"altered"'
+    path.write_bytes(gzip.compress(snap.canonical_json(env)))
+    with pytest.raises(SnapshotIntegrityError, match="content hash"):
+        load(path, key=KEY)
+
+
+@pytest.mark.parametrize("layout", ["pretty", "space_after_content", "leading_space"])
+def test_signed_noncanonical_json_remains_loadable(tmp_path, layout):
+    path = build(tmp_path, key=KEY)
+    raw = gzip.decompress(path.read_bytes()).decode()
+    if layout == "pretty":
+        raw = json.dumps(json.loads(raw), indent=2)
+    elif layout == "space_after_content":
+        raw = raw.replace(',"content_hash":', ' , "content_hash":')
+    else:
+        raw = " " + raw
+    path.write_bytes(gzip.compress(raw.encode()))
+    assert load(path, key=KEY).signature_verified

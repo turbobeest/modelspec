@@ -677,8 +677,6 @@ benchmarks:
     arena_elo_coding: 1370.0
     arena_elo_math: 1400.0
     arena_elo_overall: 1380.0
-    artificial_analysis_quality_index: 85.0
-    artificial_analysis_speed_index: 71.0
     bbq: 84.2
     chartqa: 87.5
     docvqa: 93.8
@@ -707,18 +705,19 @@ benchmarks:
   benchmark_notes: ''
   evidence:
   - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Gemini 2.5 Pro (May)
-    score: 82.22
+    model_id_as_evaluated: gemini-2.5-pro-preview-05-06
+    score: 66.67
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2025-06-03'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-06-03T09:10:11.019Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 3.36 points.
+    limitations: Epoch AI data, CC BY 4.0.
 deployment:
   api_only: false
   local_inference: false
@@ -828,7 +827,6 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 72.0
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

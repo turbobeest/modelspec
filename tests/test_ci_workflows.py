@@ -35,7 +35,7 @@ def _on_block(workflow_text: str) -> str:
 def test_pytest_workflow_runs_the_test_command_without_masking_it() -> None:
     workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
 
-    assert "run: python -m pytest -q -n auto --dist loadfile" in workflow
+    assert "python -m pytest -q -n auto --dist loadfile" in workflow
     assert "continue-on-error" not in workflow
     assert "|| true" not in workflow
     assert "2>/dev/null" not in workflow
@@ -47,6 +47,203 @@ def test_required_check_job_names_match_branch_protection() -> None:
     deploy_workflow = (WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8")
     assert "    name: Run pytest\n" in test_workflow
     assert "    name: Build both sites\n" in deploy_workflow
+
+
+def test_pytest_aggregator_preserves_the_required_check_contract() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "test.yml").read_text(encoding="utf-8"))
+    jobs = workflow["jobs"]
+    required = jobs["required-pytest"]
+    assert [job.get("name") for job in jobs.values()].count("Run pytest") == 1
+    assert required["name"] == "Run pytest"
+    assert required["needs"] == ["pytest-shards", "pytest-perf-and-collection", "package-smoke"]
+    assert required["if"] == "always()"
+    assert "pip install" not in yaml.safe_dump(required)
+    gate = required["steps"][0]
+    assert gate["name"] == "Require pytest jobs to succeed"
+    assert gate["if"] == "always()"
+    assert gate["env"]["SHARD_RESULT"] == "${{ needs.pytest-shards.result }}"
+    assert gate["env"]["PERF_RESULT"] == \
+        "${{ needs.pytest-perf-and-collection.result }}"
+    assert gate["env"]["PACKAGE_RESULT"] == "${{ needs.package-smoke.result }}"
+    assert 'test "$SHARD_RESULT" = success' in gate["run"]
+    assert 'test "$PERF_RESULT" = success' in gate["run"]
+    assert 'test "$PACKAGE_RESULT" = success' in gate["run"]
+
+
+def test_pytest_matrix_matches_the_file_splitter() -> None:
+    import yaml
+
+    from scripts.pytest_shards import DEFAULT_SHARD_COUNT
+
+    workflow_text = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
+    workflow = yaml.safe_load(workflow_text)
+    matrix = workflow["jobs"]["pytest-shards"]["strategy"]["matrix"]["include"]
+    assert len(matrix) == DEFAULT_SHARD_COUNT
+    assert [entry["index"] for entry in matrix] == list(range(DEFAULT_SHARD_COUNT))
+    assert [entry["label"] for entry in matrix] == [f"{i}/{DEFAULT_SHARD_COUNT}"
+                                                     for i in range(1, 5)]
+    assert f"--shard-count {DEFAULT_SHARD_COUNT}" in workflow_text
+    assert "--shard-index ${{ matrix.index }}" in workflow_text
+    assert 'pytest -q -n auto --dist loadfile -m "not perf"' in workflow_text
+    assert "--junitxml=shard-${{ matrix.index }}-junit.xml" in workflow_text
+    shard_steps = workflow["jobs"]["pytest-shards"]["steps"]
+    timing_upload = next(step for step in shard_steps
+                         if step.get("name") == "Upload test timings")
+    assert timing_upload["if"] == "always()"
+    assert timing_upload["with"]["name"] == "pytest-shard-${{ matrix.index }}-junit"
+    assert timing_upload["with"]["path"] == "shard-${{ matrix.index }}-junit.xml"
+    assert (REPO_ROOT / "tests" / "shard_durations.json").is_file()
+
+
+def test_timing_tests_run_serially_exactly_once() -> None:
+    import yaml
+
+    workflow_text = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
+    workflow = yaml.safe_load(workflow_text)
+    perf_job = workflow["jobs"]["pytest-perf-and-collection"]
+    perf_command = "python -m pytest -q -p no:xdist -m perf"
+    assert workflow_text.count("name: Run timing tests serially") == 1
+    assert workflow_text.count(perf_command) == 1
+    assert any(step.get("run") == perf_command for step in perf_job["steps"])
+
+
+def test_file_splitter_uses_pytest_default_patterns_from_the_repo_root(tmp_path: Path) -> None:
+    from scripts.pytest_shards import test_files
+
+    expected = {
+        tmp_path / "tests" / "feature_test.py",
+        tmp_path / "integration" / "test_feature.py",
+    }
+    for path in expected:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("", encoding="utf-8")
+
+    assert set(test_files(tmp_path)) == expected
+
+
+def test_file_splitter_excludes_pytest_ignored_directories(tmp_path: Path) -> None:
+    from scripts.pytest_shards import test_files
+
+    included = tmp_path / "test_included.py"
+    included.write_text("", encoding="utf-8")
+    for directory in (tmp_path / "node_modules", tmp_path / ".venv"):
+        directory.mkdir()
+        (directory / "test_excluded.py").write_text("", encoding="utf-8")
+    virtualenv = tmp_path / "custom-environment"
+    virtualenv.mkdir()
+    (virtualenv / "pyvenv.cfg").write_text("", encoding="utf-8")
+    (virtualenv / "test_excluded.py").write_text("", encoding="utf-8")
+
+    assert test_files(tmp_path) == [included]
+
+
+def test_file_splitter_honors_pyproject_discovery_options(tmp_path: Path) -> None:
+    from scripts.pytest_shards import test_files
+
+    (tmp_path / "pyproject.toml").write_text(
+        """[tool.pytest.ini_options]
+python_files = ["checks/check_*.py"]
+testpaths = ["checks"]
+norecursedirs = ["generated"]
+""",
+        encoding="utf-8",
+    )
+    expected = tmp_path / "checks" / "check_feature.py"
+    expected.parent.mkdir()
+    expected.write_text("", encoding="utf-8")
+    (tmp_path / "test_outside.py").write_text("", encoding="utf-8")
+    generated = tmp_path / "checks" / "generated"
+    generated.mkdir()
+    (generated / "check_excluded.py").write_text("", encoding="utf-8")
+
+    assert test_files(tmp_path) == [expected]
+
+
+def test_file_splitter_assigns_discovered_set_once(tmp_path: Path) -> None:
+    from scripts.pytest_shards import DEFAULT_SHARD_COUNT, partition_files, test_files
+
+    files = []
+    for relative in ("test_one.py", "suite/two_test.py", "suite/test_three.py"):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative, encoding="utf-8")
+        files.append(path)
+
+    discovered = test_files(tmp_path)
+    assigned = [
+        path
+        for shard in partition_files(discovered, DEFAULT_SHARD_COUNT)
+        for path in shard
+    ]
+    assert len(assigned) == len(set(assigned))
+    assert set(assigned) == set(discovered) == set(files)
+
+
+def test_duration_lpt_beats_size_packing(tmp_path: Path) -> None:
+    from scripts.pytest_shards import partition_files
+
+    durations_by_size = [8.0, 1.0, 7.0, 2.0, 6.0, 3.0]
+    files = []
+    durations = {}
+    for index, (size, duration) in enumerate(
+        zip(range(60, 0, -10), durations_by_size, strict=True)
+    ):
+        path = tmp_path / f"test_{index}.py"
+        path.write_text("x" * size, encoding="utf-8")
+        files.append(path)
+        durations[path.name] = duration
+
+    duration_shards = partition_files(files, 2, root=tmp_path, durations=durations)
+    size_shards = partition_files(
+        files,
+        2,
+        root=tmp_path,
+        durations={path.name: float(path.stat().st_size) for path in files},
+    )
+
+    def longest(shards: list[list[Path]]) -> float:
+        return max(sum(durations[path.name] for path in shard) for shard in shards)
+
+    assert longest(duration_shards) == 14.0
+    assert longest(size_shards) == 16.0
+
+
+def test_file_missing_from_durations_is_still_assigned(tmp_path: Path) -> None:
+    from scripts.pytest_shards import partition_files
+
+    known = tmp_path / "test_known.py"
+    unknown = tmp_path / "test_new.py"
+    known.write_text("known", encoding="utf-8")
+    unknown.write_text("new", encoding="utf-8")
+
+    assigned = partition_files(
+        [known, unknown], 2, root=tmp_path, durations={known.name: 2.0}
+    )
+
+    assert {path for shard in assigned for path in shard} == {known, unknown}
+
+
+def test_junit_refresh_sums_testcases_by_file(tmp_path: Path) -> None:
+    from scripts.refresh_shard_durations import durations_from_junit
+
+    test_file = tmp_path / "tests" / "test_feature.py"
+    test_file.parent.mkdir()
+    test_file.write_text("", encoding="utf-8")
+    xml_file = tmp_path / "shard.xml"
+    xml_file.write_text(
+        """<testsuites><testsuite>
+<testcase classname="tests.test_feature" name="test_one" time="1.25" />
+<testcase classname="tests.test_feature.TestGroup" name="test_two" time="2.5" />
+</testsuite></testsuites>
+""",
+        encoding="utf-8",
+    )
+
+    assert durations_from_junit([xml_file], tmp_path) == {
+        "tests/test_feature.py": 3.75
+    }
 
 
 def test_required_workflows_run_on_every_pull_request() -> None:
@@ -116,6 +313,22 @@ def test_the_rank_worker_deploys_only_from_main() -> None:
             in workflow), "the deploy job is not fenced to pushes on main"
 
 
+def test_staging_rank_worker_deploy_is_manual_and_targets_only_staging() -> None:
+    import yaml
+
+    workflow = yaml.safe_load(RANK_API.read_text(encoding="utf-8"))
+    staging = workflow["jobs"]["deploy-staging"]
+    assert staging["if"] == "github.event_name == 'workflow_dispatch'"
+    assert staging["needs"] == "bundle"
+    staging_text = yaml.safe_dump(staging)
+    assert "vendor.py" in staging_text
+    assert "uv sync --project api/worker --frozen" in staging_text
+    assert "pywrangler deploy --env staging" in staging_text
+
+    production_text = yaml.safe_dump(workflow["jobs"]["deploy"])
+    assert "--env staging" not in production_text
+
+
 def test_deploy_secrets_are_not_in_scope_on_a_pull_request() -> None:
     """The bundle job runs on every PR and must never see a credential."""
     import yaml
@@ -135,6 +348,76 @@ def test_the_bundle_is_proven_to_build_on_every_pull_request() -> None:
     assert "deploy --dry-run" in workflow
     assert "python -m pytest -q tests/test_rank_worker.py" in workflow
     assert "vendor.py --check" in workflow
+
+
+def test_the_worker_bundle_resolves_python_dependencies() -> None:
+    workflow = RANK_API.read_text(encoding="utf-8")
+    assert "astral-sh/setup-uv@" in workflow
+    assert "uv sync --project api/worker --frozen" in workflow
+    assert "uv run --project . pywrangler deploy --dry-run" in workflow
+
+
+def test_deploy_syncs_the_snapshot_verification_secret() -> None:
+    import yaml
+
+    workflow = yaml.safe_load(RANK_API.read_text(encoding="utf-8"))
+    bundle = workflow["jobs"]["bundle"]
+    deploy = workflow["jobs"]["deploy"]
+    assert "MODELSPEC_SNAPSHOT_KEY" not in yaml.safe_dump(bundle)
+    assert deploy["env"]["MODELSPEC_SNAPSHOT_KEY"] == \
+        "${{ secrets.MODELSPEC_SNAPSHOT_KEY }}"
+    deploy_text = yaml.safe_dump(deploy)
+    assert "pywrangler secret put MODELSPEC_SNAPSHOT_KEY" in deploy_text
+    sync = next(step["run"] for step in deploy["steps"]
+                if step.get("name") == "Sync the decision snapshot verification key")
+    missing_key = sync.split("else", 1)[0]
+    assert "::warning::" in missing_key
+    assert "exit 1" not in missing_key
+
+
+def test_deploy_accepts_a_decision_or_the_documented_no_snapshot_response() -> None:
+    workflow = RANK_API.read_text(encoding="utf-8")
+    decide = workflow.index("probe /v1/decide")
+    openapi = workflow.index("python3 api/worker/openapi.py --probe")
+    assert decide < openapi
+    between = workflow[decide:openapi]
+    assert 'snapshot=$(field snapshot)' in between
+    assert 'error=$(field error)' in between
+    assert '[ "$status" = 503 ] && [ "$error" = "no_snapshot" ]' in between
+    assert "signed decision snapshot was not ready" not in between
+
+
+def test_site_build_only_publishes_a_complete_signed_decision_snapshot() -> None:
+    workflow = (WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8")
+    assert "github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY" in workflow
+    assert "--decision-snapshot-if-ready" in workflow
+    assert 'if [ "$GITHUB_EVENT_NAME" != "pull_request" ]' in workflow
+    assert "::error::MODELSPEC_SNAPSHOT_KEY is not configured" not in workflow
+
+
+def test_site_build_reads_the_ed25519_private_key_from_the_repo_secret() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8"))
+    build = workflow["jobs"]["build"]
+    step = next(row for row in build["steps"] if row.get("name") == "Build")
+
+    assert step["env"]["MODELSPEC_SNAPSHOT_ED25519_KEY"] == (
+        "${{ github.event_name != 'pull_request' && "
+        "secrets.MODELSPEC_SNAPSHOT_ED25519_KEY || '' }}"
+    )
+    install = next(row for row in build["steps"] if row.get("name") == "Install dependencies")
+    assert "cryptography" in install["run"]
+
+
+def test_rank_smoke_failure_rolls_back_before_the_job_fails() -> None:
+    workflow = RANK_API.read_text(encoding="utf-8")
+    assert "wrangler rollback --message" in workflow
+    assert "fail_rank()" in workflow
+    rank_checks = workflow[
+        workflow.index("# 3. A ranking") : workflow.index("# 7. The policy-check endpoint")
+    ]
+    assert rank_checks.count("fail_rank ") >= 5
 
 
 def test_the_smoke_test_asserts_the_deployed_version_is_the_one_answering() -> None:

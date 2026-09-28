@@ -29,7 +29,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import offline, snapshot  # noqa: E402
-from tests.test_cli_snapshot import _modelspec_cli, _write  # noqa: E402
+from decision import snapshot as decision_snapshot  # noqa: E402
+from tests.test_cli_snapshot import (  # noqa: E402
+    _TEST_PUBLIC_KEYS,
+    _decision_artifacts,
+    _modelspec_cli,
+    _modelspec_test_cli,
+    _write,
+)
 
 #: A key with a shape the origin would recognise (MODEL-69 mints `live_…`) and
 #: a body distinctive enough that a substring search for it cannot false-match.
@@ -52,6 +59,7 @@ def _export_bodies(commit: str = "keyedcommit01") -> dict[str, Any]:
     """The four required parts, in the shape `snapshot._snapshot_from_raw` wants."""
     from api.ranking.engine import USE_CASE_PROFILES
 
+    decision, vocabulary = _decision_artifacts()
     return {
         "/api/index.json": {"build": {
             "commit": commit, "built_at": datetime.now(UTC).isoformat(),
@@ -70,6 +78,8 @@ def _export_bodies(commit: str = "keyedcommit01") -> dict[str, Any]:
         "/api/graph/views/hardware.json": {"nodes": [{
             "id": "gpu", "label": "Hardware", "display_name": "A GPU",
             "memory_gb": 24, "memory_bandwidth_gb_s": 1000}]},
+        snapshot.DECISION_SNAPSHOT_ROUTE: decision,
+        snapshot.DECISION_VOCABULARY_ROUTE: vocabulary,
     }
 
 
@@ -79,6 +89,7 @@ class Origin:
     def __init__(self) -> None:
         self.mode = "ok"
         self.requires_key = True
+        self.decision_status: int | None = None
         self.redirect_to: str | None = None
         self.seen: list[tuple[str, dict[str, str]]] = []
         self.access_log: list[str] = []
@@ -93,9 +104,9 @@ class Origin:
                 # in a query string would land here, which is the point.
                 origin.access_log.append(fmt % args)
 
-            def _send(self, status: int, body: dict[str, Any],
+            def _send(self, status: int, body: dict[str, Any] | bytes,
                       headers: dict[str, str] | None = None) -> None:
-                blob = json.dumps(body).encode("utf-8")
+                blob = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(blob)))
@@ -121,6 +132,12 @@ class Origin:
                 if origin.requires_key and presented != f"Bearer {KEY}":
                     status, body = REFUSALS["missing" if not presented else "invalid"]
                     self._send(status, body)
+                    return
+                if origin.decision_status is not None and self.path in {
+                    snapshot.DECISION_SNAPSHOT_ROUTE,
+                    snapshot.DECISION_VOCABULARY_ROUTE,
+                }:
+                    self._send(origin.decision_status, {"error": {"code": "unavailable"}})
                     return
                 body = origin.bodies.get(self.path)
                 if body is None:
@@ -156,12 +173,21 @@ def cache(tmp_path: Path) -> Path:
     return directory
 
 
+@pytest.fixture(autouse=True)
+def _pin_test_snapshot_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: dict(_TEST_PUBLIC_KEYS),
+    )
+
+
 def _run(args: list[str], cache: Path, key: str | None = None) -> subprocess.CompletedProcess:
     env = {"PATH": "/usr/bin:/bin", "MODELSPEC_CACHE": str(cache),
            "HOME": str(cache.parent), "PYTHONPATH": str(REPO_ROOT)}
     if key is not None:
         env[snapshot.API_KEY_ENV] = key
-    return subprocess.run([_modelspec_cli(), *args], capture_output=True, text=True,
+    return subprocess.run([*_modelspec_test_cli(), *args], capture_output=True, text=True,
                           timeout=120, env=env)
 
 
@@ -248,6 +274,90 @@ def test_a_keyed_fetch_is_current(origin: Origin, cache: Path) -> None:
     assert fetched.freshness()["stale"] is False
     assert fetched.freshness()["age_days"] == pytest.approx(0.0, abs=0.01)
     assert fetched.build_commit == "keyedcommit01"
+
+
+def test_keyed_origin_falls_back_for_public_decision_files_without_sending_key(
+    origin: Origin, cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    public = Origin()
+    public.requires_key = False
+    public.start()
+    try:
+        del origin.bodies[snapshot.DECISION_SNAPSHOT_ROUTE]
+        del origin.bodies[snapshot.DECISION_VOCABULARY_ROUTE]
+        monkeypatch.setattr(snapshot, "DEFAULT_ORIGIN", public.url)
+
+        fetched = snapshot.fetch(
+            origin.url, cache, credential=snapshot.Credential(secret=KEY)
+        )
+
+        assert fetched.build_commit == "keyedcommit01"
+        assert fetched.decision_fetch == {
+            "available": True,
+            "origin": public.url,
+            "snapshot_id": _decision_artifacts()[1]["snapshot"],
+            "signature_verified": True,
+            "signature_status": "verified (ed25519 key test-fixture)",
+            "signature_key_id": "test-fixture",
+        }
+        assert all("Authorization" not in headers for _, headers in public.seen)
+        assert snapshot.decision_snapshot_path(cache).exists()
+    finally:
+        public.stop()
+
+
+@pytest.mark.parametrize("status_code", [401, 403])
+def test_keyed_origin_falls_back_when_decision_route_refuses_key(
+    origin: Origin, cache: Path, monkeypatch: pytest.MonkeyPatch, status_code: int
+) -> None:
+    public = Origin()
+    public.requires_key = False
+    public.start()
+    try:
+        origin.decision_status = status_code
+        monkeypatch.setattr(snapshot, "DEFAULT_ORIGIN", public.url)
+
+        fetched = snapshot.fetch(
+            origin.url, cache, credential=snapshot.Credential(secret=KEY)
+        )
+
+        assert fetched.decision_fetch == {
+            "available": True,
+            "origin": public.url,
+            "snapshot_id": _decision_artifacts()[1]["snapshot"],
+            "signature_verified": True,
+            "signature_status": "verified (ed25519 key test-fixture)",
+            "signature_key_id": "test-fixture",
+        }
+        assert all("Authorization" not in headers for _, headers in public.seen)
+        assert snapshot.decision_snapshot_path(cache).exists()
+        assert snapshot.decision_vocabulary_path(cache).exists()
+    finally:
+        public.stop()
+
+
+def test_both_decision_origins_unavailable_still_updates_rank_snapshot(
+    origin: Origin, cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    public = Origin()
+    public.requires_key = False
+    for route in (snapshot.DECISION_SNAPSHOT_ROUTE, snapshot.DECISION_VOCABULARY_ROUTE):
+        del origin.bodies[route]
+        del public.bodies[route]
+    public.start()
+    try:
+        monkeypatch.setattr(snapshot, "DEFAULT_ORIGIN", public.url)
+        fetched = snapshot.fetch(
+            origin.url, cache, credential=snapshot.Credential(secret=KEY)
+        )
+    finally:
+        public.stop()
+
+    assert fetched.build_commit == "keyedcommit01"
+    assert fetched.decision_fetch is not None
+    assert fetched.decision_fetch["available"] is False
+    assert "HTTP 404" in fetched.decision_fetch["error"]
+    assert snapshot.load(cache).build_commit == "keyedcommit01"
 
 
 def test_require_fresh_passes_on_a_keyed_fetch_and_fails_on_a_ninety_day_export(

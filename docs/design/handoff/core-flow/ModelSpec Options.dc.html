@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas"></meta>
+<title>ModelSpec · layout options</title>
+<style>body{margin:0;background:#f3f2f1}a{color:#0078d4}a:hover{color:#201f1e}</style>
+</helmet>
+<section data-screen-label="Turn 1" style="padding:48px;font-family:'Segoe UI',system-ui,sans-serif;color:#201f1e;display:flex;flex-direction:column;gap:24px">
+  <div style="max-width:980px;display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#605e5c">Turn 1 · core flow, two arrangements of the same engine</div>
+    <h1 style="margin:0;font-size:32px;font-weight:600;letter-spacing:-.02em">Canvas first vs table first</h1>
+    <p style="margin:0;font-size:15px;color:#323130;line-height:1.5;text-wrap:pretty">Both share one spec bar (task box, chips, add condition), one funnel, one shortlist and one “why” panel. Only the hero changes. The connective tissue: every chip, canvas handle and table row edits the same spec, and the selected model is the same across all views. Each frame is live; pick a template or press Find models.</p>
+  </div>
+  <div style="display:flex;gap:48px;flex-wrap:wrap;align-items:flex-start">
+    <div id="1a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-size:13px;font-weight:700;background:#201f1e;color:#fff;padding:2px 8px;border-radius:3px">1a</span><strong style="font-size:18px">Canvas first (your instinct)</strong></div>
+      <p style="margin:0;max-width:1440px;font-size:14px;color:#605e5c">Trade-off canvas is the hero with the shortlist beside it; the table sits below as the deep dive. Best for builders deciding on two real axes.</p>
+      <iframe src="ModelSpec.dc.html?layout=canvas" title="Option 1a, canvas first" style="width:1440px;height:1400px;border:1px solid #d2d0ce;border-radius:8px;background:#faf9f8"></iframe>
+    </div>
+    <div id="1b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:10px;align-items:baseline"><span style="font-size:13px;font-weight:700;background:#201f1e;color:#fff;padding:2px 8px;border-radius:3px">1b</span><strong style="font-size:18px">Table first (challenger)</strong></div>
+      <p style="margin:0;max-width:1440px;font-size:14px;color:#605e5c">Sortable decision table is the hero with inline reasons per excluded model; the canvas becomes a smaller lens on the right. Best for platform engineers, analysts and reviewers.</p>
+      <iframe src="ModelSpec.dc.html?layout=table" title="Option 1b, table first" style="width:1440px;height:1400px;border:1px solid #d2d0ce;border-radius:8px;background:#faf9f8"></iframe>
+    </div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

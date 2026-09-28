@@ -163,6 +163,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice P"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: retrieval, directness: direct}
+  - {id: multilingual, directness: direct}
 ---
 
 ## What it measures

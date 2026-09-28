@@ -667,59 +667,7 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Gemma 4 E4B
-    score: 32.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Gemma 4 E4B
-    score: 0.57
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Gemma 4 E4B
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Gemma 4 E4B
-    score: 57.58
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+  evidence: []
 deployment:
   api_only: false
   local_inference: true
@@ -874,6 +822,212 @@ sources:
   last_scraped_huggingface: '2026-04-05'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.fits_hardware
+  value:
+  - nvidia_rtx_4090
+  state: known
+  sources:
+  - source_id: model-163-local-google-gemma-4-e4b-it-memory
+    snapshot_ref: sha256:9cc27f893dac3c5767a4568f99ffd26327277ac9c9f0174e55a498007a6eeaf7
+    cited_regions:
+    - row
+  checked_sources: []
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.input_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.output_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.context_window
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.release_date
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-e4b-it
+    snapshot_ref: sha256:b21e4f69614ccd77baa2f3797d05311040dee07b989cb9f0d25111aa4b605b2c
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-e4b-it
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

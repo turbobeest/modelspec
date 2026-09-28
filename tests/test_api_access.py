@@ -374,8 +374,7 @@ def test_sandbox_rows_carry_exactly_the_fields_the_scorer_produces():
                    benchmark_scores={"mmlu_pro": 70.0, "gpqa_diamond": 50.0,
                                      "arena_elo_overall": 1300.0, "ifeval": 80.0,
                                      "math_500": 70.0, "humaneval": 80.0,
-                                     "mt_bench": 8.0, "swe_bench_verified": 50.0,
-                                     "gdpval_aa": 40.0},
+                                     "mt_bench": 8.0, "swe_bench_verified": 50.0},
                    context_window=128_000, cost_input=1.0)],
         "general", limit=5)
     _, body = sandbox.rank_response(sandbox.request_from_payload({"use_case": "general"}),

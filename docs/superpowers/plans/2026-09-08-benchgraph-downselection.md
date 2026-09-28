@@ -7,7 +7,7 @@ Scope accepted September 8, 2026: [active catalogue specification](../specs/2026
 1. Preserve the legacy production pause and Sonnet stop. Inspect live processes, not stale active-job counts. At adoption, all twelve listed Grok workers were defunct; the old supervisor remained suspended and the continuation controller reported `paused-for-quality-audit`.
 2. Add isolated strict evidence and current-model-reference models in `schema/benchmark_eligibility.py`, without changing the page schema consumed by legacy writers.
 3. Add `scripts/benchmarks/downselect.py` to compute deterministic dispositions and an active canonical-ID list at an explicit assessment date. Invalid inputs fail closed. Tests cover freshness boundaries, future dates, stale reference sets, review requirements, aliases, duplicate IDs, different organizations and compatible protocols.
-4. Research six pilot groups: AutomationBench, Terminal-Bench, LiveBench, OpenBookQA/obqa, OpenML discovery entries, SWE-Together. Save source evidence under `benchmarks/_census/eligibility/`. Assess exact versions; a family's current release cannot refresh old variants.
+4. Research six pilot groups; four remain after MODEL-117: LiveBench, OpenBookQA/obqa, OpenML discovery entries, SWE-Together. Save source evidence under `benchmarks/_census/eligibility/`. Assess exact versions; a family's current release cannot refresh old variants.
 5. Independently review primary evidence, construct initial reference and evidence records, run the gate, and publish a local report with explicit unresolved reasons. Do not present a purposive six-group sample as an estimate of the full census acceptance rate.
 
 ## Follow-through after the pilot
@@ -25,4 +25,4 @@ The evidence schema, deterministic report command and batch selection admission 
 
 Legacy supervisor/checkpoint migration and serving integration remain outstanding; their pause is intentional while the new verification batches establish evidence. The eligible profile already has a draft, so eligibility does not imply a new page or a completed article review.
 
-Batch 002 added six independently reviewed profiles using a fixed chart in AA's dated September 4 release. The current report has seven active profiles, one alias and seven unverified identifiers. A bounded replacement runner now owns those seven profiles, with seven Grok slots, explicit eligibility rechecks, separate source-review sessions, preserved pre-edit snapshots, approval hashes, a shared exclusive lock and soft stop handling. Focused tests now total 35 passing cases. Automatic checkpoints and serving integration remain outstanding; the legacy controller stays paused and Sonnet stays disabled. See the eligibility README for live state paths and adoption instructions.
+Batch 002 added six independently reviewed profiles. They, and the pilot's one active profile, were removed with their evidence on 2026-09-24 (MODEL-117); the current report has no active profiles.

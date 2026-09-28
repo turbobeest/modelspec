@@ -669,85 +669,975 @@ availability:
 benchmarks:
   scores: {}
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Kimi K2.6
-    score: 81.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: kimi-k2.6
-    score: 1460.73
-    unit: elo
-    source_url: https://lmarena.ai/leaderboard
+    score: 1460.44
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: Text Arena overall, style-controlled
-    configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
-      style-controlled. Style-control overall is not raw overall and is not a category
-      Elo. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Kimi K2.6
-    score: 8.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1460.44 [1455.91, 1464.98], 37502
+      votes, rank 52.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_elo_style_control#0457d27fd6c3
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_coding
+    model_id_as_evaluated: kimi-k2.6
+    score: 1513.99
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Kimi K2.6
-    score: 30.77
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1513.99 [1506.95, 1521.03], 10398
+      votes, rank 39.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_coding#de84c5062b96
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_hard_prompts
+    model_id_as_evaluated: kimi-k2.6
+    score: 1484.73
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1484.73 [1479.44, 1490.01], 24291
+      votes, rank 50.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_hard_prompts#ba47fa15092f
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_math
+    model_id_as_evaluated: kimi-k2.6
+    score: 1478.07
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
+      2026-09-13; style control. Highest-effort row for the product (effort: default; MODEL-123
+      max-effort rule). Rating 1478.07 [1464.57, 1491.57], 1931 votes, rank 27.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_math#e6c53599f64c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_creative_writing
+    model_id_as_evaluated: kimi-k2.6
+    score: 1430.7
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1430.70 [1422.22, 1439.18], 5821
+      votes, rank 65.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_creative_writing#614f6bb2965a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_instruction_following
+    model_id_as_evaluated: kimi-k2.6
+    score: 1453.72
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1453.72 [1447.25, 1460.19], 12215
+      votes, rank 51.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_instruction_following#1150e4ca057b
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_multi_turn
+    model_id_as_evaluated: kimi-k2.6
+    score: 1459.44
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1459.44 [1451.27, 1467.60], 6553
+      votes, rank 69.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_multi_turn#f75aa44e457d
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_expert
+    model_id_as_evaluated: kimi-k2.6
+    score: 1501.57
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1501.57 [1491.23, 1511.91], 3505
+      votes, rank 32.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_expert#c6e295d4bd3c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_longer_query
+    model_id_as_evaluated: kimi-k2.6
+    score: 1475.74
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1475.74 [1469.51, 1481.96], 15529
+      votes, rank 45.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_longer_query#267f68d7a70f
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_non_english
+    model_id_as_evaluated: kimi-k2.6
+    score: 1448.97
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1448.97 [1443.54, 1454.41], 20342
+      votes, rank 51.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_non_english#fbdeeb0f8eb4
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_medicine
+    model_id_as_evaluated: kimi-k2.6
+    score: 1470.9
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
+      revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1470.90 [1458.97, 1482.83], 2702
+      votes, rank 69.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_medicine#edd6755dc698
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_legal
+    model_id_as_evaluated: kimi-k2.6
+    score: 1461.67
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
+      1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1461.67 [1450.24, 1473.09], 2844
+      votes, rank 69.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_legal#dcc8fcdb37ba
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_business
+    model_id_as_evaluated: kimi-k2.6
+    score: 1455.48
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
+      latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1455.48 [1447.77, 1463.19], 7473
+      votes, rank 61.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_business#ad9530a2bcd5
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_science
+    model_id_as_evaluated: kimi-k2.6
+    score: 1477.44
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1477.44 [1469.32, 1485.55], 6226
+      votes, rank 61.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_science#4d184c5f164a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_writing
+    model_id_as_evaluated: kimi-k2.6
+    score: 1438.36
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1438.36 [1431.12, 1445.59], 8851
+      votes, rank 65.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_writing#734d4b819b1c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_vision
+    model_id_as_evaluated: kimi-k2.6
+    score: 1262.37
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1262.37 [1255.30, 1269.44], 15347
+      votes, rank 37.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_sc_vision#86df970cfee2
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
+      cited_regions:
+      - rows
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: kimi-k2.6
+    score: 1508.6
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1508.60 [1501.20, 1516.00], 9587 votes, rank 45.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: moonshot/kimi-k2-6#arena_webdev#0f3c176169e6
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Kimi K2.6
-    score: 91.11
+    model_id_as_evaluated: kimi-k2.6
+    score: 90.78
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2026-05-01'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: scicode
-    model_id_as_evaluated: Kimi K2.6
-    score: 51.5
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2026-05-01T17:25:36.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.72 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k2-6#gpqa_diamond#4b86fab1a201
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
+  - benchmark_id: frontiermath_tiers_1_3_v2
+    model_id_as_evaluated: kimi-k2.6
+    score: 57.19
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://epoch.ai/frontiermath
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2026-06-10'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: SciCode
-    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
+      read 2026-09-24. Run started 2026-06-10T19:47:36.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.94 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k2-6#frontiermath_tiers_1_3_v2#debe969d7468
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
+  - benchmark_id: simpleqa_verified
+    model_id_as_evaluated: kimi-k2.6
+    score: 34.9
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/simpleqa-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-08-10'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
+      prompt
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
+      read 2026-09-24. Run started 2026-08-10T21:35:30.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.51 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k2-6#simpleqa_verified#0ec5d94f82ca
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: kimi-k2.6
+    score: 76.65
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/swe-bench-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-05-08'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Verified (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (swe_bench_verified.csv),
+      read 2026-09-24. Run started 2026-05-08T10:21:24.110Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.92 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k2-6#swe_bench_verified#141378cad40d
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-swe-bench-verified-csv
+      snapshot_ref: sha256:1b11e51afaab550c3cd39ceb4c28da4cbdd79208bf381dea2407a758cb8276b3
+      cited_regions:
+      - rows
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: Kimi K2.6
+    score: 6204.57
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-26'
+    date_type: evaluated
+    verified_at: '2026-09-26'
+    benchmark_version: Vending-Bench 2, mean final balance over 5 runs
+    configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
+      https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort default; the highest-effort
+      row for the model (MODEL-123 max-effort rule).
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: moonshot/kimi-k2-6#vending_bench_2#326dc36c6254
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      cited_regions:
+      - rows
+  - benchmark_id: aime_2026
+    model_id_as_evaluated: Kimi K2.6 (Think)
+    score: 95.83
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2026
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-25'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2026, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-26; the table states no run
+      date, so the reading is dated by the observation. Effort thinking; highest-effort
+      row for the model. MathArena lists final-answer competitions as deprecated.
+    limitations: 'MathArena marks this row: model was released after competition release, so
+      contamination is possible.'
+    id: moonshot/kimi-k2-6#aime_2026#70e2ae8035a9
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-161-matharena-aime-2026
+      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
+      cited_regions:
+      - rows
+    - source_id: model-161-matharena-aime-2026-quality
+      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+      cited_regions:
+      - rows
+    quality_flags:
+    - deprecated
+    - contamination_warning
+  - benchmark_id: arena_sc_english
+    model_id_as_evaluated: kimi-k2.6
+    score: 1467.48
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.48 [1461.75,
+      1473.21], 17160 votes, rank 55. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_english#1debb5f14c98
+  - benchmark_id: arena_sc_chinese
+    model_id_as_evaluated: kimi-k2.6
+    score: 1525.77
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1525.77 [1511.49,
+      1540.04], 1886 votes, rank 21. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_chinese#04f321622015
+  - benchmark_id: arena_sc_japanese
+    model_id_as_evaluated: kimi-k2.6
+    score: 1442.95
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / japanese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1442.95 [1413.93,
+      1471.98], 467 votes, rank 36. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:378ee68fcc262e62231ba63141c81baffe954e5edb48ca7f0d21726b0417dadb
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_japanese#4fd91ecd7c9f
+  - benchmark_id: arena_sc_korean
+    model_id_as_evaluated: kimi-k2.6
+    score: 1422.51
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / korean, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1422.51 [1399.49,
+      1445.53], 713 votes, rank 45. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:d02642dc7233db6fed665cc6abdf94d487b7d4d64a2d6bb7c33ff0bea0f8755c
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_korean#dcbee107a5fe
+  - benchmark_id: arena_sc_russian
+    model_id_as_evaluated: kimi-k2.6
+    score: 1452.85
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1452.85 [1442.95,
+      1462.74], 3814 votes, rank 63. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_russian#f238d0ea6ef6
+  - benchmark_id: arena_sc_spanish
+    model_id_as_evaluated: kimi-k2.6
+    score: 1457.57
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / spanish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1457.57 [1440.46,
+      1474.68], 1320 votes, rank 47. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:53285f933382c2e23254c68a5e01a25705206262f3000e8f5954e40597697cc1
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_spanish#8305074e78f9
+  - benchmark_id: arena_sc_german
+    model_id_as_evaluated: kimi-k2.6
+    score: 1456.74
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / german, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1456.74 [1435.08,
+      1478.40], 724 votes, rank 53. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:5bc7f8c29190254b708e3b1b9c9130570cb30292791a5ac70d6baf464245a845
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_german#ba53a76d053c
+  - benchmark_id: arena_sc_french
+    model_id_as_evaluated: kimi-k2.6
+    score: 1473.05
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1473.05 [1456.03,
+      1490.06], 1501 votes, rank 66. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_french#ee62b93ace91
+  - benchmark_id: arena_sc_polish
+    model_id_as_evaluated: kimi-k2.6
+    score: 1445.22
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / polish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1445.22 [1423.93,
+      1466.51], 740 votes, rank 69. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c24dd604059a7b6a389b724e9819f1da9b856a619642c7b69e5124f146a92635
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_polish#4a3a8c8538a7
+  - benchmark_id: arena_sc_vision_ocr
+    model_id_as_evaluated: kimi-k2.6
+    score: 1277.67
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / ocr, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1277.67 [1270.32,
+      1285.03], 11005 votes, rank 36. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1370bca68e20f410db1d74c3c5cc4deade992317d0334c3516f50b66938da114
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_vision_ocr#3d1b194798cc
+  - benchmark_id: arena_sc_vision_diagram
+    model_id_as_evaluated: kimi-k2.6
+    score: 1292.45
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / diagram, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1292.45 [1281.87,
+      1303.03], 4017 votes, rank 36. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:947bbb0cc1b11be394d53298f60b967420a1837ea2cccf9a2972bc6bd013c6bb
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_vision_diagram#baf8d0c4d171
+  - benchmark_id: arena_sc_vision_homework
+    model_id_as_evaluated: kimi-k2.6
+    score: 1302.15
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / homework, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1302.15 [1288.75,
+      1315.55], 2136 votes, rank 27. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1a362e13f2481ace58aff43129253330adaf3b8d01910b4be8bc67b8e87f68e7
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_vision_homework#48a9ed1e3233
+  - benchmark_id: arena_sc_document
+    model_id_as_evaluated: kimi-k2.6
+    score: 1450.74
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: document / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1450.74 [1443.10,
+      1458.37], 11291 votes, rank 27. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-document
+      snapshot_ref: sha256:ca71d77b360678771f5300146465c8e6298970b38f4dac38a224686a0af59f4d
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_document#f50cf87ee769
+  - benchmark_id: arena_sc_industry_software_it_services
+    model_id_as_evaluated: kimi-k2.6
+    score: 1502.89
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
+      1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1502.89 [1496.79,
+      1508.99], 15050 votes, rank 38. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_industry_software_it_services#352afa0247dc
+  - benchmark_id: arena_sc_industry_entertainment_sports_media
+    model_id_as_evaluated: kimi-k2.6
+    score: 1427.41
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
+      split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1427.41 [1419.66,
+      1435.16], 7607 votes, rank 66. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_industry_entertainment_sports_media#707e823d5492
+  - benchmark_id: arena_sc_industry_mathematical
+    model_id_as_evaluated: kimi-k2.6
+    score: 1484.07
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1484.07 [1470.75,
+      1497.40], 2046 votes, rank 35. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_industry_mathematical#6e24a064aab3
+  - benchmark_id: arena_sc_factuality
+    model_id_as_evaluated: kimi-k2.6
+    score: 1455.34
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1455.34 [1451.62,
+      1459.06], 37456 votes, rank 48. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-factuality
+      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      cited_regions:
+      - rows
+    id: moonshot/kimi-k2-6#arena_sc_factuality#e61adbc1cbb3
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -905,10 +1795,419 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - video
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 262144
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 262144
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-moonshot-kimi-k2-6
+    snapshot_ref: sha256:617e481660ab7611028cf94fef06f75ec67b5623380f9073eca8b970f607a72a
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: permitted
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-moonshot-kimi-k2-6
+    snapshot_ref: sha256:617e481660ab7611028cf94fef06f75ec67b5623380f9073eca8b970f607a72a
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-moonshot-kimi-k2-6
+  - model-143-kimi-k2-6-guide
+  - model-143-kimi-k3-guide
+  - model-143-kimi-k2-6-license
+  - model-143-hf-metadata-moonshot-kimi-k2-6
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-moonshot-kimi-k2-6
+    snapshot_ref: sha256:617e481660ab7611028cf94fef06f75ec67b5623380f9073eca8b970f607a72a
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-moonshot-kimi-k2-6
+  - model-143-kimi-k2-6-guide
+  - model-143-kimi-k3-guide
+  - model-143-kimi-k2-6-license
+  - model-143-hf-metadata-moonshot-kimi-k2-6
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-moonshot-kimi-k2-6
+    snapshot_ref: sha256:617e481660ab7611028cf94fef06f75ec67b5623380f9073eca8b970f607a72a
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-moonshot-kimi-k2-6
+  - model-143-kimi-k2-6-guide
+  - model-143-kimi-k3-guide
+  - model-143-kimi-k2-6-license
+  - model-143-hf-metadata-moonshot-kimi-k2-6
+- facet: model.release_date
+  value: '2026-04-21'
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-moonshot-kimi-k2-6
+    snapshot_ref: sha256:617e481660ab7611028cf94fef06f75ec67b5623380f9073eca8b970f607a72a
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-hf-metadata-moonshot-kimi-k2-6
+    snapshot_ref: sha256:617e481660ab7611028cf94fef06f75ec67b5623380f9073eca8b970f607a72a
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k2-6-license
+    snapshot_ref: sha256:1d4ab2d8404287de44429024a78b58d3aabc4df9d0c490e73fec9ff1fd842529
+    cited_regions:
+    - audit
+  - source_id: model-143-hf-metadata-moonshot-kimi-k2-6
+    snapshot_ref: sha256:617e481660ab7611028cf94fef06f75ec67b5623380f9073eca8b970f607a72a
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-moonshot-kimi-k2-6
+  - model-143-kimi-k2-6-guide
+  - model-143-kimi-k3-guide
+  - model-143-kimi-k2-6-license
+  - model-143-hf-metadata-moonshot-kimi-k2-6
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-moonshot-kimi-k2-6
+    snapshot_ref: sha256:95db3be1d0473e482c7aa901f237ad7af8bb7929625a777b27428081bb8ea9f7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-kimi-k2-6-guide
+    snapshot_ref: sha256:3d5a698cf776fcbe743fc02d2335e23f45dbb9a2c5fbba66195a4b1c861bc275
+    cited_regions:
+    - audit
+  - source_id: model-143-kimi-k3-guide
+    snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
+    cited_regions:
+    - audit
+- id: moonshot/kimi-k2-6#model.parameters_total
+  subject:
+    kind: model
+    id: moonshot/kimi-k2-6
+  facet: model.parameters_total
+  value: 1026879376368
+  state: known
+  sources:
+  - source_id: model-161-kimi-k2-6-rtx-4090-fit
+    snapshot_ref: sha256:3ba8c9403c6503b48f5f5dc3f1a8fc4d1da9a41718c7ac30a09682c696e89090
+    cited_regions:
+    - rows
+- id: moonshot/kimi-k2-6#model.fits_hardware
+  subject:
+    kind: model
+    id: moonshot/kimi-k2-6
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-161-kimi-k2-6-rtx-4090-fit
+    snapshot_ref: sha256:3ba8c9403c6503b48f5f5dc3f1a8fc4d1da9a41718c7ac30a09682c696e89090
+    cited_regions:
+    - rows
+  - source_id: model-161-nvidia-rtx-4090-memory
+    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-26'
 ---
 
 # Kimi K2.6

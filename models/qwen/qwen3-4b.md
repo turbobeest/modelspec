@@ -671,32 +671,20 @@ benchmarks:
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Qwen3 4B
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Qwen3 4B
-    score: 52.22
+    model_id_as_evaluated: qwen3-4b
+    score: 52.34
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2026-08-28'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2026-08-28T17:40:19.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 3.01 points.
+    limitations: Epoch AI data, CC BY 4.0.
 deployment:
   api_only: false
   local_inference: true

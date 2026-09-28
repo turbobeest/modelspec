@@ -731,8 +731,8 @@ benchmarks:
     mmlu_world_religions: 81.9
     ifeval: 22.7
     bbh: 45.2
-    math_500: 3.0
-    gpqa_diamond: 29.2
+    math_lvl5: 3.0
+    gpqa_pooled: 29.2
     musr: 40.3
     mmlu_pro: 29.5
   evidence:
@@ -1535,12 +1535,37 @@ benchmarks:
     benchmark_version: Open LLM Leaderboard v1
     configuration: Open LLM Leaderboard v1 harness task winogrande (5-shot, acc), x100.
     limitations: ''
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 3.02
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 MATH Lvl 5
+    configuration: Open LLM Leaderboard v2 contents row mistralai/Mistral-7B-v0.3, column "MATH Lvl 5 Raw" x100 (raw
+      accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: mistralai/Mistral-7B-v0.3
+    score: 29.19
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-16'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 GPQA
+    configuration: Open LLM Leaderboard v2 contents row mistralai/Mistral-7B-v0.3, column "GPQA Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v1, open-llm-leaderboard-v2
   benchmark_as_of: 2024-07
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
-    LLM Leaderboard v2 "GPQA Raw" value for mistralai/Mistral-7B-v0.3; math_500 holds the Open LLM Leaderboard v2
-    "MATH Lvl 5 Raw" value for mistralai/Mistral-7B-v0.3. Each value is confirmed for this exact model but is not
-    the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
+  benchmark_notes: 'MODEL-116, 2026-09-24: the Open LLM Leaderboard v2 "MATH Lvl 5 Raw" and "GPQA Raw" values for
+    mistralai/Mistral-7B-v0.3 moved from math_500 and gpqa_diamond to math_lvl5 and gpqa_pooled, and are promoted
+    to evidence.'
 deployment:
   api_only: false
   local_inference: true

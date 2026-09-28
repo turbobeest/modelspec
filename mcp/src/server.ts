@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
+import decisionContract from "../../docs/decision-contract.schema.json";
 import {
   asToolResult,
   fetchOrigin,
@@ -14,6 +15,8 @@ export const TOOL_NAMES = [
   "model_info",
   "list_use_cases",
   "policy_check",
+  "decide",
+  "vocab",
 ] as const;
 
 const NULL_RULE =
@@ -84,6 +87,97 @@ const policyInput = z
     offset: z.number().int().min(0).optional(),
   })
   .passthrough();
+
+type JsonSchemaObject = Exclude<
+  Parameters<typeof z.fromJSONSchema>[0],
+  boolean
+>;
+
+function decisionSpecJsonSchema(): JsonSchemaObject {
+  if (
+    decisionContract.$schema !== "https://json-schema.org/draft/2020-12/schema" ||
+    !("Spec" in decisionContract.$defs)
+  ) {
+    throw new Error("decision-contract.schema.json has no decision Spec definition");
+  }
+  return {
+    $schema: decisionContract.$schema,
+    $defs: decisionContract.$defs,
+    $ref: "#/$defs/Spec",
+  } as JsonSchemaObject;
+}
+
+const decisionSpecSchema = decisionSpecJsonSchema();
+const decisionSpecValidator = z.fromJSONSchema(decisionSpecSchema);
+const decisionSpecInput = {
+  "~standard": {
+    version: 1 as const,
+    vendor: "modelspec",
+    validate(value: unknown) {
+      const result = decisionSpecValidator.safeParse(value);
+      return result.success ? { value } : { issues: result.error.issues };
+    },
+    jsonSchema: {
+      input: () => decisionSpecSchema,
+      output: () => decisionSpecSchema,
+    },
+  },
+};
+
+const vocabInput = z.object({
+  section: z
+    .enum([
+      "facets",
+      "benchmarks",
+      "domains",
+      "providers",
+      "task_types",
+      "coverage",
+    ])
+    .optional()
+    .describe("Return only this vocabulary section"),
+});
+
+const SPEC_GUIDANCE =
+  "Read vocab first for valid facet ids. Put Musts in where: these gates exclude. " +
+  "Put Prefers in optimize.weights: weights rank and never exclude. Unknown values " +
+  "go to may_qualify instead of being dropped. Pin snapshot for reproducibility. " +
+  "Example for a coding agent on a budget: " +
+  '{"spec_version":1,"snapshot":"latest","capabilities":{"software_engineering":"required"},' +
+  '"where":["model.class = text-generator","model.context_window >= 200000",' +
+  '"offering.cost_per_task <= 0.25"],"optimize":{"weights":' +
+  '{"software_engineering":0.6,"-offering.cost_per_task":0.4}}}. ';
+
+type DecisionBody = {
+  status?: unknown;
+  results?: unknown;
+  may_qualify?: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function decisionSummary(body: unknown): string {
+  const decision: DecisionBody = isRecord(body) ? body : {};
+  const status = typeof decision.status === "string" ? decision.status : "unknown";
+  const results = Array.isArray(decision.results) ? decision.results : [];
+  const models = results
+    .flatMap((result) => {
+      if (!isRecord(result) || !isRecord(result.offering)) return [];
+      const model = result.offering.model;
+      return typeof model === "string" ? [model] : [];
+    })
+    .filter((model, index, all) => all.indexOf(model) === index)
+    .slice(0, 5);
+  const mayQualify = Array.isArray(decision.may_qualify)
+    ? decision.may_qualify.length
+    : 0;
+  return (
+    `status: ${status}; top models: ${models.length ? models.join(", ") : "none"}; ` +
+    `may qualify: ${mayQualify}`
+  );
+}
 
 export type McpFactoryContext = {
   requestInfo?: Request;
@@ -181,6 +275,56 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     async (args) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/policy-check`;
       return asToolResult(await fetchOrigin(origin, postInit(args, authorization), env.RANK));
+    },
+  );
+
+  server.registerTool(
+    "decide",
+    {
+      description:
+        "Downselect models by proxying POST https://api.modelspec.dev/v1/decide. " +
+        SPEC_GUIDANCE +
+        "The decision response is returned unchanged with a short summary. " +
+        "Authorization from the MCP client is forwarded. " +
+        NULL_RULE,
+      inputSchema: decisionSpecInput,
+    },
+    async (spec) => {
+      const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/decide`;
+      const envelope = await fetchOrigin(
+        origin,
+        postInit(spec, authorization),
+        env.RANK,
+      );
+      const result = asToolResult(envelope);
+      if (result.isError) return result;
+      return {
+        ...result,
+        content: [
+          ...result.content,
+          { type: "text" as const, text: decisionSummary(envelope.body) },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "vocab",
+    {
+      description:
+        "Read the decision vocabulary from the public static site before writing a " +
+        "decide spec. It lists valid facet ids, benchmarks, domains, providers, task " +
+        "types, and coverage. Pass section to return only one section. " +
+        SPEC_GUIDANCE,
+      inputSchema: vocabInput,
+    },
+    async ({ section }) => {
+      const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
+      const envelope = await fetchOrigin(origin);
+      if (envelope.status < 400 && section && isRecord(envelope.body)) {
+        envelope.body = envelope.body[section];
+      }
+      return asToolResult(envelope);
     },
   );
 

@@ -678,6 +678,368 @@ benchmarks:
     live_code_bench: 83.8
     math_500: 89.1
     mmlu_pro: 79.5
+  evidence:
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1389.56
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1389.56 [1384.89, 1394.23], 26569 votes,
+      rank 163.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_coding
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1430.76
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1430.76 [1422.27, 1439.25], 5439 votes,
+      rank 172.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_hard_prompts
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1403.05
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1403.05 [1396.93, 1409.16], 12707 votes,
+      rank 170.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_math
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1405.0
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
+      2026-09-13; style control. Highest-effort row for the product (effort: high; MODEL-123
+      max-effort rule). Rating 1405.00 [1389.41, 1420.59], 1438 votes, rank 137.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_creative_writing
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1323.1
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1323.10 [1312.65, 1333.54], 3494 votes,
+      rank 196.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_instruction_following
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1372.29
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1372.29 [1364.69, 1379.89], 6905 votes,
+      rank 171.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_multi_turn
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1372.22
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1372.22 [1362.82, 1381.63], 4382 votes,
+      rank 180.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_expert
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1400.66
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1400.66 [1382.80, 1418.53], 1176 votes,
+      rank 167.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_longer_query
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1369.23
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1369.23 [1361.00, 1377.47], 5823 votes,
+      rank 190.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_non_english
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1377.81
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1377.81 [1372.05, 1383.57], 15175 votes,
+      rank 156.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_medicine
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1404.64
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
+      revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1404.64 [1388.38, 1420.90], 1418 votes,
+      rank 167.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_legal
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1396.31
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
+      1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1396.31 [1381.52, 1411.11], 1683 votes,
+      rank 168.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_business
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1379.98
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
+      latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1379.98 [1370.90, 1389.07], 4795 votes,
+      rank 170.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_science
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1397.75
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1397.75 [1388.16, 1407.33], 4179 votes,
+      rank 172.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_writing
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1351.46
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1351.46 [1343.40, 1359.51], 6079 votes,
+      rank 181.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_vision
+    model_id_as_evaluated: gpt-5-mini-high
+    score: 1182.72
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1182.72 [1174.55, 1190.89], 28970 votes,
+      rank 90.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: gpt-5-mini-2025-08-07_high
+    score: 75.0
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-10-30'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-10-30T09:59:56.459Z; effort high; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.28 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: frontiermath_tiers_1_3_v2
+    model_id_as_evaluated: gpt-5-mini-2025-08-07_high
+    score: 46.67
+    unit: percent
+    source_url: https://epoch.ai/frontiermath
+    source_kind: independent_evaluator
+    evidence_date: '2026-06-12'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
+      read 2026-09-24. Run started 2026-06-12T16:48:15.000Z; effort high; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.96 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: simpleqa_verified
+    model_id_as_evaluated: gpt-5-mini-2025-08-07_high
+    score: 21.6
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/simpleqa-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-08-10'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
+      prompt
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
+      read 2026-09-24. Run started 2026-08-10T21:35:29.000Z; effort high; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.30 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: gpt-5-mini-2025-08-07_medium
+    score: 64.67
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/swe-bench-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-02-01'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Verified (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (swe_bench_verified.csv),
+      read 2026-09-24. Run started 2026-02-01T11:28:37.125Z; effort medium; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.17 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: GPT-5 mini
+    score: -31.18
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Vending-Bench 2, mean final balance over 5 runs
+    configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
+      https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort unknown; the highest-effort
+      row for the model (MODEL-123 max-effort rule).
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
+  - benchmark_id: hle
+    model_id_as_evaluated: gpt-5-mini-2025-08-07
+    score: 19.44
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2025-08-22'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2025-08-22T21:44:43.000Z;
+      effort default; ±1.55 (95% CI).
+    limitations: 'Potential contamination warning: This model was evaluated after the public
+      release of HLE, allowing model builder access to the prompts and solutions.'
+  - benchmark_id: aime_2025
+    model_id_as_evaluated: GPT-5-mini (high)
+    score: 87.5
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2025
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2025, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-24; the table states no run date,
+      so the reading is dated by the observation. Effort high; highest-effort row for the model.
+      MathArena lists final-answer competitions as deprecated.
+    limitations: 'MathArena marks this row: model was released after competition release, so
+      contamination is possible.'
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

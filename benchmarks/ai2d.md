@@ -78,6 +78,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice E"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: vision_documents, directness: direct}
 ---
 
 ## What it measures

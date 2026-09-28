@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>ModelSpec · model decision prototype</title>
+<style>
+:root,[data-ms-theme="light"]{--bg:#faf9f8;--surface:#ffffff;--surface2:#f3f2f1;--line:#edebe9;--line2:#d2d0ce;--ink:#201f1e;--ink2:#323130;--muted:#605e5c;--faint:#a19f9d;--accent:#0078d4;--accentInk:#ffffff;--accentSoft:#deecf9;--warn:#7a4a00;--warnSoft:#fff4ce;--bad:#a4262c;--badSoft:#fde7e9;--good:#0b6a0b;--goodSoft:#dff6dd;--navy:#0B1426;--shadow:0 10px 32px rgba(11,20,38,.16)}
+[data-ms-theme="dark"]{--bg:#0B1426;--surface:#111d33;--surface2:#18284a;--line:#223452;--line2:#34496e;--ink:#f3f2f1;--ink2:#e1dfdd;--muted:#a9b4c8;--faint:#6f7f9b;--accent:#5aa9ec;--accentInk:#0B1426;--accentSoft:#15365a;--warn:#f4c95d;--warnSoft:#3a3117;--bad:#f28b94;--badSoft:#3d1e24;--good:#7fd07a;--goodSoft:#173a1f;--navy:#1d3a66;--shadow:0 10px 32px rgba(0,0,0,.5)}
+*{box-sizing:border-box}
+body{margin:0;background:#faf9f8}
+a{color:var(--accent)}a:hover{color:var(--ink)}
+input[type=range]{accent-color:var(--accent)}
+button{font:inherit}
+</style>
+</helmet>
+<div data-ms-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--ink);font-family:'Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums;font-size:14px;line-height:1.45">
+
+<header style="position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;height:56px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--line)">
+  <button onClick="{{ goHome }}" aria-label="ModelSpec home" style="display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer;color:var(--ink)">
+    <svg aria-hidden="true" width="28" height="28" viewBox="0 0 32 32" style="display:block;flex:none">
+      <rect x="0" y="0" width="32" height="32" rx="3" fill="var(--navy)"></rect>
+      <path d="M6 4.5V26H28" fill="none" stroke="#8fa3c2" stroke-width="1.2" stroke-linecap="square"></path>
+      <path d="M8.6 23.2C9.8 17.4 10.9 10.6 12.6 9.8C14.3 9 15 17.2 16.2 18.6C17.3 17.4 18.1 9.9 19.9 9.8C21.7 9.7 21.8 18.6 23.4 21.2C24.2 22.5 25.4 22.4 26.4 21.2" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+      <circle cx="8.6" cy="23.2" r="1.5" fill="#5aa9ec"></circle>
+      <circle cx="12.6" cy="9.8" r="1.5" fill="#5aa9ec"></circle>
+      <circle cx="16.2" cy="18.6" r="1.5" fill="#5aa9ec"></circle>
+      <circle cx="19.9" cy="9.8" r="1.5" fill="#5aa9ec"></circle>
+      <circle cx="23.4" cy="21.2" r="1.5" fill="#5aa9ec"></circle>
+    </svg>
+    <span style="font-size:17px;font-weight:600;letter-spacing:-.02em">Model<span style="font-weight:300">Spec</span></span>
+  </button>
+  <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--warn);background:var(--warnSoft);padding:3px 8px;border-radius:3px;white-space:nowrap">Fictional sample data</span>
+  <div style="flex:1"></div>
+  <sc-if value="{{ showSnap }}" hint-placeholder-val="{{ false }}">
+    <span title="Snapshot ID: reproduces this decision exactly" style="font-family:'Cascadia Code',Consolas,ui-monospace,monospace;font-size:12px;color:var(--muted);white-space:nowrap">{{ snapshot }}</span>
+  </sc-if>
+  <div role="group" aria-label="Layout" style="display:flex;border:1px solid var(--line2);border-radius:2px;overflow:hidden">
+    <button onClick="{{ setCanvas }}" aria-pressed="{{ isCanvasLayout }}" style="border:0;padding:6px 12px;font-size:12.5px;white-space:nowrap;cursor:pointer;background:{{ layoutA.bg }};color:{{ layoutA.fg }}">Canvas first</button>
+    <button onClick="{{ setTable }}" aria-pressed="{{ isTableLayout }}" style="border:0;border-left:1px solid var(--line2);padding:6px 12px;font-size:12.5px;white-space:nowrap;cursor:pointer;background:{{ layoutB.bg }};color:{{ layoutB.fg }}">Table first</button>
+  </div>
+  <button onClick="{{ toggleTheme }}" aria-label="Toggle light or dark mode" style="border:1px solid var(--line2);background:var(--surface);color:var(--ink);border-radius:2px;padding:6px 12px;font-size:12.5px;white-space:nowrap;cursor:pointer">{{ themeLabel }}</button>
+  <sc-if value="{{ isWork }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ openShare }}" style="border:0;background:var(--accent);color:var(--accentInk);border-radius:2px;padding:7px 14px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer">Share or act</button>
+  </sc-if>
+</header>
+
+<sc-if value="{{ isArrive }}" hint-placeholder-val="{{ true }}">
+<main data-screen-label="01 Arrive" style="max-width:1000px;margin:0 auto;padding:80px 24px 72px;display:flex;flex-direction:column;gap:40px">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Model decision engine</div>
+    <h1 style="font-size:52px;line-height:1.04;font-weight:300;letter-spacing:-.035em;margin:0;max-width:860px;text-wrap:balance">Which AI model fits your task, under your constraints, and why.</h1>
+    <p style="font-size:17px;color:var(--muted);max-width:660px;margin:0;text-wrap:pretty">Describe the task or set conditions. ModelSpec filters {{ stats.models }} models across {{ stats.offerings }} provider offerings, ranks what is left on evidence, and shows the source of every number. Independent measurements sit next to lab claims.</p>
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--line2);border-radius:2px;padding:18px 18px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 0 var(--line)">
+    <label for="ms-task" style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Describe your task</label>
+    <textarea id="ms-task" rows="2" value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="e.g. Refactor a large Rust codebase, precision matters" style="width:100%;resize:none;border:0;outline:none;background:transparent;color:var(--ink);font:inherit;font-size:22px;line-height:1.35;letter-spacing:-.01em"></textarea>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px">
+      <span style="font-size:13px;color:var(--muted);flex:1;min-width:240px">A small classifier turns this into conditions you can see and edit. There is no chat.</span>
+      <button onClick="{{ onFind }}" style="border:0;background:var(--accent);color:var(--accentInk);border-radius:2px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer">Find models  ↵</button>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Or start from a template</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+      <sc-for list="{{ templates }}" as="t" hint-placeholder-count="3">
+        <button onClick="{{ t.onClick }}" style="text-align:left;background:var(--surface);border:1px solid var(--line2);border-radius:2px;padding:16px;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;gap:10px" style-hover="border-color:var(--accent)">
+          <span style="font-size:16px;font-weight:600">{{ t.name }}</span>
+          <span style="font-size:13px;color:var(--muted)">{{ t.task }}</span>
+          <span style="display:flex;flex-wrap:wrap;gap:4px">
+            <sc-for list="{{ t.chips }}" as="c" hint-placeholder-count="3"><span style="font-size:11.5px;padding:2px 6px;border-radius:3px;background:var(--surface2);color:var(--ink2)">{{ c }}</span></sc-for>
+          </span>
+          <span style="font-size:13px;color:var(--ink2);border-top:1px solid var(--line);padding-top:10px;display:flex;gap:6px;align-items:baseline"><strong style="font-size:22px;font-weight:300">{{ t.n }}</strong> qualify<span style="color:var(--warn)">{{ t.mayText }}</span></span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)">Or <button onClick="{{ onStartConstraints }}" style="background:none;border:0;padding:0;color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px">start from constraints</button> and add conditions one at a time.</div>
+</main>
+</sc-if>
+
+<sc-if value="{{ isWork }}" hint-placeholder-val="{{ false }}">
+<main data-screen-label="02 Decide" style="max-width:1640px;margin:0 auto;padding:18px 24px 72px;display:flex;flex-direction:column;gap:14px">
+
+  <section aria-label="Your spec" style="background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--ink);border-radius:0;padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:1 1 380px;display:flex;flex-direction:column;gap:4px;min-width:0">
+        <label for="ms-task2" style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Task</label>
+        <input id="ms-task2" value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="Describe your task (optional), then press Enter" style="width:100%;border:0;border-bottom:1px solid var(--line2);outline:none;background:transparent;color:var(--ink);font:inherit;font-size:18px;padding:4px 0" style-focus="border-bottom-color:var(--accent)"></input>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Tokens per task</span>
+        <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">
+          <input aria-label="Input tokens per task" type="number" step="1000" min="0" value="{{ spec.tokIn }}" onChange="{{ onTokIn }}" style="width:96px;border:1px solid var(--line2);border-radius:3px;background:var(--surface);color:var(--ink);padding:4px 6px;font:inherit;font-size:13px;text-align:right"></input> in
+          <input aria-label="Output tokens per task" type="number" step="500" min="0" value="{{ spec.tokOut }}" onChange="{{ onTokOut }}" style="width:84px;border:1px solid var(--line2);border-radius:3px;background:var(--surface);color:var(--ink);padding:4px 6px;font:inherit;font-size:13px;text-align:right"></input> out
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:340px">
+        <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Rank by (weights sum to 1)</span>
+        <div style="display:flex;gap:14px">
+          <sc-for list="{{ weights }}" as="w" hint-placeholder-count="3">
+            <label style="display:flex;flex-direction:column;gap:0;font-size:12px;color:var(--ink2);min-width:100px">
+              <span style="display:flex;justify-content:space-between;gap:6px"><span>{{ w.label }}</span><strong>{{ w.valText }}</strong></span>
+              <input type="range" min="0" max="1" step="0.05" value="{{ w.val }}" onChange="{{ w.onChange }}" aria-label="{{ w.aria }}" style="width:100%"></input>
+            </label>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+      <sc-if value="{{ parsing }}" hint-placeholder-val="{{ false }}">
+        <span style="display:flex;gap:6px"><span style="width:120px;height:30px;border-radius:2px;background:var(--surface2)"></span><span style="width:160px;height:30px;border-radius:2px;background:var(--surface2)"></span><span style="width:140px;height:30px;border-radius:2px;background:var(--surface2)"></span></span>
+        <span style="font-size:12.5px;color:var(--muted)">Reading your task…</span>
+      </sc-if>
+      <sc-if value="{{ notParsing }}" hint-placeholder-val="{{ true }}">
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+          <span style="display:inline-flex;align-items:stretch;border:1px solid {{ c.border }};border-radius:2px;background:{{ c.bg }};overflow:hidden">
+            <button onClick="{{ c.onEdit }}" aria-expanded="{{ c.editing }}" aria-label="{{ c.aria }}" style="display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--ink);padding:5px 8px 5px 10px;font-size:13px;cursor:pointer">
+              <span>{{ c.label }}</span>
+              <span style="font-size:11px;color:var(--muted)">{{ c.meta }}</span>
+            </button>
+            <button onClick="{{ c.onRemove }}" aria-label="{{ c.ariaRemove }}" style="border:0;border-left:1px solid var(--line);background:none;color:var(--muted);padding:0 8px;cursor:pointer;font-size:14px">×</button>
+          </span>
+        </sc-for>
+        <button onClick="{{ toggleAdd }}" aria-expanded="{{ addOpen }}" style="border:1px dashed var(--line2);background:none;color:var(--accent);border-radius:2px;padding:5px 10px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer">+ add condition</button>
+      </sc-if>
+    </div>
+    <sc-if value="{{ hasTrace }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)">
+        <span>Read from your task:</span>
+        <sc-for list="{{ trace }}" as="t" hint-placeholder-count="2"><span><span style="color:var(--ink2)">“{{ t.word }}”</span> → {{ t.note }}</span></sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid var(--line2);border-radius:2px;padding:10px;display:flex;flex-direction:column;gap:8px;max-width:620px;background:var(--surface)">
+        <input autoFocus="{{ true }}" value="{{ addQ }}" onChange="{{ onAddQ }}" onKeyDown="{{ onAddKey }}" placeholder="Search any facet: residency, retention, latency, licence…" aria-label="Search facets" style="border:1px solid var(--line2);border-radius:2px;padding:7px 10px;background:var(--surface);color:var(--ink);font:inherit;outline:none" style-focus="border-color:var(--accent)"></input>
+        <div role="listbox" style="display:flex;flex-direction:column;max-height:260px;overflow:auto">
+          <sc-for list="{{ addResults }}" as="f" hint-placeholder-count="5">
+            <button role="option" onClick="{{ f.onClick }}" style="display:flex;justify-content:space-between;gap:12px;text-align:left;border:0;background:none;color:var(--ink);padding:7px 8px;border-radius:3px;cursor:pointer" style-hover="background:var(--surface2)">
+              <span>{{ f.label }}</span><span style="font-size:12px;color:var(--muted)">{{ f.hint }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ hasEdit }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid var(--accent);border-radius:2px;padding:12px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;background:var(--surface)">
+        <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Edit condition</span><strong style="font-size:14px">{{ edit.title }}</strong></div>
+        <sc-if value="{{ edit.hasNum }}" hint-placeholder-val="{{ false }}">
+          <label style="display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)">{{ edit.numLabel }}
+            <span style="display:flex;align-items:center;gap:6px"><input type="number" step="{{ edit.step }}" value="{{ edit.num }}" onChange="{{ edit.onNum }}" style="width:120px;border:1px solid var(--line2);border-radius:3px;background:var(--surface);color:var(--ink);padding:5px 8px;font:inherit;text-align:right"></input><span style="color:var(--ink2)">{{ edit.unit }}</span></span>
+          </label>
+        </sc-if>
+        <sc-if value="{{ edit.hasOpts }}" hint-placeholder-val="{{ false }}">
+          <div role="group" style="display:flex;border:1px solid var(--line2);border-radius:2px;overflow:hidden">
+            <sc-for list="{{ edit.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" aria-pressed="{{ o.on }}" style="border:0;border-right:1px solid var(--line2);padding:6px 12px;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};font-size:13px">{{ o.label }}</button></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ edit.hasSoft }}" hint-placeholder-val="{{ false }}">
+          <div role="group" aria-label="Hard or soft" style="display:flex;border:1px solid var(--line2);border-radius:2px;overflow:hidden">
+            <sc-for list="{{ edit.hardSoft }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" aria-pressed="{{ o.on }}" title="{{ o.title }}" style="border:0;border-right:1px solid var(--line2);padding:6px 12px;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};font-size:13px">{{ o.label }}</button></sc-for>
+          </div>
+        </sc-if>
+        <span style="font-size:12px;color:var(--muted);max-width:300px">{{ edit.note }}</span>
+        <div style="flex:1"></div>
+        <button onClick="{{ edit.onRemove }}" style="border:1px solid var(--line2);background:none;color:var(--bad);border-radius:2px;padding:6px 12px;cursor:pointer;font-size:13px">Remove</button>
+        <button onClick="{{ edit.onClose }}" style="border:0;background:var(--ink);color:var(--surface);border-radius:2px;padding:7px 14px;cursor:pointer;font-size:13px;font-weight:600">Done</button>
+      </div>
+    </sc-if>
+  </section>
+
+  <section aria-label="How the field narrowed" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px">
+    <div style="background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--ink);border-radius:0;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Narrowing, in the order you set conditions</span><span style="font-size:12px;color:var(--muted)">{{ funnelSummary }}</span></div>
+      <ol style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px 6px">
+        <sc-for list="{{ funnel }}" as="f" hint-placeholder-count="5">
+          <li title="{{ f.title }}" style="display:flex;flex-direction:column;gap:4px;min-width:0;padding-right:4px">
+            <span style="font-size:30px;font-weight:300;letter-spacing:-.03em;line-height:1;color:{{ f.color }}">{{ f.n }}</span>
+            <span style="height:6px;border-radius:2px;background:var(--surface2);position:relative;overflow:hidden"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ f.w }};background:{{ f.bar }};transition:{{ motion.w }}"></span><span style="position:absolute;top:0;bottom:0;left:{{ f.w }};width:{{ f.mw }};background:var(--warn);opacity:.55;transition:{{ motion.w }}"></span></span>
+            <span style="font-size:11.5px;color:var(--ink2);line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">{{ f.label }}</span>
+            <span style="font-size:11px;color:var(--muted)">{{ f.delta }}</span>
+          </li>
+        </sc-for>
+      </ol>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--ink);border-radius:0;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Next questions, most narrowing first</span>
+      <sc-for list="{{ suggestions }}" as="q" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:5px;padding:6px 0;border-top:1px solid var(--line)">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><span style="font-size:13.5px;font-weight:600;min-width:0">{{ q.q }}</span><button onClick="{{ q.onDismiss }}" style="border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer;padding:0;white-space:nowrap;flex:none">Doesn't matter</button></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{ q.opts }}" as="o" hint-placeholder-count="2">
+              <button onClick="{{ o.onClick }}" style="display:flex;gap:8px;align-items:baseline;border:1px solid var(--line2);background:var(--surface);color:var(--ink);border-radius:2px;padding:4px 9px;font-size:12.5px;white-space:nowrap;cursor:pointer" style-hover="border-color:var(--accent)"><span>{{ o.label }}</span><span style="color:var(--muted);font-size:11.5px">{{ o.result }}</span></button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ noSuggestions }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--muted)">No further question would narrow the field.</span></sc-if>
+    </div>
+  </section>
+
+  <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+    <div role="alert" style="background:var(--badSoft);border:1px solid var(--bad);border-radius:2px;padding:16px 18px;display:flex;gap:16px;align-items:center">
+      <div style="flex:1"><strong style="color:var(--bad)">Couldn't load snapshot {{ snapshot }}.</strong><div style="color:var(--ink2);font-size:13px">The catalogue service didn't respond in 8 s. Your spec is kept in the link, so nothing is lost. Results below are hidden rather than shown stale.</div></div>
+      <button onClick="{{ onRetry }}" style="border:0;background:var(--ink);color:var(--surface);border-radius:2px;padding:8px 14px;font-weight:600;cursor:pointer">Retry</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showResults }}" hint-placeholder-val="{{ true }}">
+  <div style="display:grid;grid-template-columns:{{ grid.cols }};grid-template-areas:{{ grid.areas }};gap:14px;align-items:start">
+
+    <section aria-label="Trade-off canvas" style="grid-area:canvas;background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--ink);border-radius:0;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted);white-space:nowrap">Trade-off canvas</span>
+        <div style="flex:1"></div>
+        <label style="font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center">x
+          <select value="{{ xAxis }}" onChange="{{ onX }}" style="border:1px solid var(--line2);border-radius:3px;background:var(--surface);color:var(--ink);padding:3px 6px;font:inherit;font-size:12.5px">
+            <sc-for list="{{ xOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+          </select></label>
+        <label style="font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center">y
+          <select value="{{ spec.bench }}" onChange="{{ onY }}" style="border:1px solid var(--line2);border-radius:3px;background:var(--surface);color:var(--ink);padding:3px 6px;font:inherit;font-size:12.5px">
+            <sc-for list="{{ yOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+          </select></label>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)">
+        <span style="display:flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent)"></span>Qualifies · independent</span>
+        <span style="display:flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:50%;border:2px solid var(--accent)"></span>Qualifies · lab-reported only</span>
+        <span style="display:flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:10px;height:10px;border-radius:50%;border:2px dashed var(--warn)"></span>May qualify</span>
+        <span style="display:flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:7px;height:7px;border-radius:50%;background:var(--faint)"></span>Excluded</span>
+        <span style="display:flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:2px;height:12px;background:var(--muted)"></span>Interval</span>
+      </div>
+      <div style="display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-rows:{{ canvasH }} 30px;">
+        <div style="position:relative">
+          <sc-for list="{{ yTicks }}" as="t" hint-placeholder-count="5"><span style="position:absolute;right:8px;top:{{ t.p }};transform:translateY(-50%);font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:10.5px;color:var(--muted)">{{ t.label }}</span></sc-for>
+        </div>
+        <div ref="{{ plotRef }}" style="position:relative;border-left:1px solid var(--line2);border-bottom:1px solid var(--line2);touch-action:none">
+          <sc-for list="{{ yTicks }}" as="t" hint-placeholder-count="5"><span style="position:absolute;left:0;right:0;top:{{ t.p }};height:1px;background:var(--line)"></span></sc-for>
+          <sc-for list="{{ xTicks }}" as="t" hint-placeholder-count="5"><span style="position:absolute;top:0;bottom:0;left:{{ t.p }};width:1px;background:var(--line)"></span></sc-for>
+          <sc-if value="{{ xh.on }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:0;bottom:0;left:{{ xh.shadeL }};width:{{ xh.shadeW }};background:var(--surface2);opacity:.75;transition:{{ motion.pos }}"></span></sc-if>
+          <sc-if value="{{ yh.on }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:0;right:0;top:{{ yh.p }};bottom:0;background:var(--surface2);opacity:.75;transition:{{ motion.pos }}"></span></sc-if>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+            <path d="{{ frontierPath }}" fill="none" stroke="var(--ink)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
+          </svg>
+          <sc-for list="{{ cis }}" as="c" hint-placeholder-count="0"><span style="position:absolute;left:{{ c.l }};top:{{ c.t }};height:{{ c.h }};width:2px;margin-left:-1px;background:{{ c.color }};opacity:{{ c.op }};transition:{{ motion.pos }}"></span></sc-for>
+          <sc-for list="{{ points }}" as="p" hint-placeholder-count="0">
+            <button onClick="{{ p.onClick }}" onMouseEnter="{{ p.onEnter }}" onMouseLeave="{{ p.onLeave }}" onFocus="{{ p.onEnter }}" onBlur="{{ p.onLeave }}" aria-label="{{ p.aria }}" style="position:absolute;left:{{ p.l }};top:{{ p.t }};width:{{ p.size }};height:{{ p.size }};transform:translate(-50%,-50%);border-radius:50%;padding:0;cursor:pointer;background:{{ p.bg }};border:{{ p.border }};opacity:{{ p.op }};box-shadow:{{ p.ring }};z-index:{{ p.z }};transition:{{ motion.pos }}"></button>
+          </sc-for>
+          <sc-for list="{{ labels }}" as="p" hint-placeholder-count="0">
+            <span aria-hidden="true" style="position:absolute;left:{{ p.l }};top:{{ p.t }};transform:{{ p.tf }};font-size:12px;font-weight:{{ p.fw }};color:{{ p.color }};white-space:nowrap;pointer-events:none;z-index:4;text-shadow:0 0 3px var(--surface),0 0 3px var(--surface),0 0 3px var(--surface);transition:{{ motion.pos }}">{{ p.text }}</span>
+          </sc-for>
+          <sc-if value="{{ xh.show }}" hint-placeholder-val="{{ false }}">
+            <div role="slider" tabIndex="0" aria-label="{{ xh.aria }}" aria-valuetext="{{ xh.label }}" onPointerDown="{{ xh.onDown }}" onKeyDown="{{ xh.onKey }}" style="position:absolute;top:-6px;bottom:0;left:{{ xh.p }};width:18px;margin-left:-9px;cursor:ew-resize;z-index:6;transition:{{ motion.handle }}" style-focus="outline:2px solid var(--accent);outline-offset:2px">
+              <span style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--accent);opacity:{{ xh.op }}"></span>
+              <span style="position:absolute;top:0;transform:{{ xh.tf }};left:9px;background:var(--accent);color:var(--accentInk);font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:3px;white-space:nowrap">{{ xh.label }}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ yh.show }}" hint-placeholder-val="{{ false }}">
+            <div role="slider" tabIndex="0" aria-label="{{ yh.aria }}" aria-valuetext="{{ yh.label }}" onPointerDown="{{ yh.onDown }}" onKeyDown="{{ yh.onKey }}" style="position:absolute;left:0;right:0;top:{{ yh.p }};height:18px;margin-top:-9px;cursor:ns-resize;z-index:6;transition:{{ motion.handle }}" style-focus="outline:2px solid var(--accent);outline-offset:2px">
+              <span style="position:absolute;left:0;right:0;top:8px;height:2px;background:var(--accent);opacity:{{ yh.op }}"></span>
+              <span style="position:absolute;left:6px;top:-12px;background:var(--accent);color:var(--accentInk);font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:3px;white-space:nowrap">{{ yh.label }}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ hasHover }}" hint-placeholder-val="{{ false }}">
+            <div role="tooltip" style="position:absolute;left:{{ hover.l }};top:{{ hover.t }};transform:{{ hover.tf }};z-index:10;background:var(--surface);border:1px solid var(--line2);box-shadow:var(--shadow);border-radius:2px;padding:10px 12px;min-width:220px;pointer-events:none;display:flex;flex-direction:column;gap:3px;font-size:12.5px">
+              <strong style="font-size:13.5px">{{ hover.name }}</strong>
+              <span style="color:var(--muted)">{{ hover.sub }}</span>
+              <span>{{ hover.y }}</span>
+              <span>{{ hover.x }}</span>
+              <span style="color:{{ hover.stColor }}">{{ hover.status }}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ emptyCanvas }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;background:var(--surface);border:1px solid var(--line2);border-radius:2px;padding:16px 18px;box-shadow:var(--shadow);width:min(440px,90%);display:flex;flex-direction:column;gap:8px" data-screen-label="State: nothing qualifies">
+              <strong style="font-size:15px">{{ emptyTitle }}</strong>
+              <span style="font-size:13px;color:var(--muted)">{{ emptyBody }}</span>
+              <sc-for list="{{ nearTop }}" as="n" hint-placeholder-count="2">
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:8px"><span style="font-size:13px"><strong>{{ n.name }}</strong><span style="color:var(--muted)"> · {{ n.why }}</span></span><button onClick="{{ n.onRelax }}" style="border:1px solid var(--accent);background:none;color:var(--accent);border-radius:2px;padding:4px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap">{{ n.relaxLabel }}</button></div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <div></div>
+        <div style="position:relative">
+          <sc-for list="{{ xTicks }}" as="t" hint-placeholder-count="5"><span style="position:absolute;top:6px;left:{{ t.p }};transform:translateX(-50%);font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:10.5px;color:var(--muted);white-space:nowrap">{{ t.label }}</span></sc-for>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--ink2);padding-left:52px"><span>↑ {{ yLabel }}</span><span>{{ xLabel }} →</span></div>
+      <div style="padding-left:52px;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:11.5px;color:var(--muted)">{{ stripTitle }}</span>
+        <div style="position:relative;height:26px;border-radius:3px;overflow:hidden;background:var(--surface2)">
+          <sc-for list="{{ strip }}" as="s" hint-placeholder-count="3"><span title="{{ s.title }}" style="position:absolute;top:0;bottom:0;left:{{ s.l }};width:{{ s.w }};background:{{ s.bg }};border-right:1px solid var(--surface);display:flex;align-items:center;padding:0 6px;font-size:11.5px;color:{{ s.fg }};overflow:hidden;white-space:nowrap;transition:{{ motion.pos }}">{{ s.text }}</span></sc-for>
+        </div>
+      </div>
+      <sc-if value="{{ hasUnplotted }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--muted);padding-left:52px">Not plotted, value unknown on this axis: {{ unplotted }}</span></sc-if>
+    </section>
+
+    <section aria-label="Shortlist" style="grid-area:short;display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Shortlist across trade-offs</span><span style="font-size:12px;color:var(--muted)">{{ shortSummary }}</span></div>
+      <sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
+        <button onClick="{{ c.onClick }}" aria-pressed="{{ c.sel }}" style="text-align:left;background:var(--surface);border:1px solid {{ c.border }};box-shadow:{{ c.shadow }};border-radius:2px;padding:12px 14px;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;gap:6px;width:100%">
+          <span style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--accent)">{{ c.role }}</span><span style="font-size:11.5px;color:var(--muted)">{{ c.roleNote }}</span></span>
+          <sc-if value="{{ c.has }}" hint-placeholder-val="{{ true }}">
+            <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><strong style="font-size:17px;letter-spacing:-.01em">{{ c.name }}</strong><span style="font-size:12.5px;color:var(--muted)">{{ c.lab }} · via {{ c.via }}</span></span>
+            <span style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+              <span style="display:flex;flex-direction:column"><span style="font-size:11px;color:var(--muted)">{{ c.yName }}</span><span style="font-size:15px;font-weight:600">{{ c.y }} <span style="font-size:11.5px;font-weight:400;color:var(--muted)">{{ c.ci }}</span></span><span style="font-size:11px;color:var(--muted)">{{ c.prov }}</span></span>
+              <span style="display:flex;flex-direction:column"><span style="font-size:11px;color:var(--muted)">$ per task</span><span style="font-size:15px;font-weight:600">{{ c.cost }}</span></span>
+              <span style="display:flex;flex-direction:column"><span style="font-size:11px;color:var(--muted)">Output</span><span style="font-size:15px;font-weight:600">{{ c.tps }}</span></span>
+            </span>
+            <sc-if value="{{ c.hasNote }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--warn);background:var(--warnSoft);padding:4px 8px;border-radius:3px">{{ c.note }}</span></sc-if>
+          </sc-if>
+          <sc-if value="{{ c.none }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--muted)">{{ c.noneText }}</span></sc-if>
+        </button>
+      </sc-for>
+      <div data-screen-label="State: may qualify" style="background:var(--surface);border:1px dashed var(--warn);border-radius:2px;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--warn)">May qualify · {{ mayCount }}</span><span style="font-size:11.5px;color:var(--muted)">Passes everything we know</span></div>
+        <sc-for list="{{ mayList }}" as="m" hint-placeholder-count="2">
+          <button onClick="{{ m.onClick }}" style="text-align:left;border:0;border-top:1px solid var(--line);background:none;color:var(--ink);padding:8px 0 0;cursor:pointer;display:flex;flex-direction:column;gap:2px">
+            <span style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><strong>{{ m.name }}</strong><span style="font-size:12px;color:var(--muted)">{{ m.lab }}</span><sc-if value="{{ m.prov }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-weight:400;letter-spacing:0;border:1px solid var(--warn);color:var(--warn);padding:0 5px;border-radius:3px">Provisional</span></sc-if></span>
+            <span style="font-size:12.5px;color:var(--ink2)">Unknown: {{ m.why }}</span>
+          </button>
+        </sc-for>
+        <sc-if value="{{ noMay }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:var(--muted)">None. Every remaining model is known on every condition.</span></sc-if>
+      </div>
+    </section>
+
+    <section aria-label="Decision table" style="grid-area:table;background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--ink);border-radius:0;min-width:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)">
+        <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">{{ tableTitle }}</span>
+        <div style="flex:1"></div>
+        <label style="font-size:12.5px;color:var(--ink2);display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" checked="{{ showExcl }}" onChange="{{ toggleExcl }}"></input>Show {{ exclCount }} excluded, with reasons</label>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr>
+              <sc-for list="{{ cols }}" as="h" hint-placeholder-count="10">
+                <th scope="col" aria-sort="{{ h.ariaSort }}" style="text-align:{{ h.align }};font-weight:600;font-size:11.5px;color:var(--muted);padding:0;border-bottom:1px solid var(--line2);background:var(--surface2);white-space:nowrap"><button onClick="{{ h.onClick }}" style="border:0;background:none;color:inherit;font-weight:600;font-size:11.5px;padding:8px 10px;cursor:pointer;width:100%;text-align:{{ h.align }}">{{ h.label }}{{ h.arrow }}</button></th>
+              </sc-for>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="8">
+              <tr onClick="{{ r.onClick }}" style="cursor:pointer;background:{{ r.bg }};opacity:{{ r.op }};border-bottom:1px solid var(--line)" style-hover="background:var(--surface2)">
+                <td style="padding:7px 10px;color:var(--muted)">{{ r.rank }}</td>
+                <td style="padding:7px 10px;white-space:nowrap"><strong style="font-weight:600">{{ r.name }}</strong><span style="color:var(--muted);font-size:12px"> · {{ r.lab }}</span></td>
+                <td style="padding:7px 10px;white-space:nowrap;color:var(--ink2)">{{ r.via }}</td>
+                <td style="padding:7px 10px;text-align:right;white-space:nowrap"><span>{{ r.y }}</span><span style="color:var(--muted);font-size:11.5px"> {{ r.ci }} {{ r.provMark }}</span></td>
+                <td style="padding:7px 10px;text-align:right">{{ r.cost }}</td>
+                <td style="padding:7px 10px;text-align:right;color:var(--ink2)">{{ r.pin }}</td>
+                <td style="padding:7px 10px;text-align:right;color:var(--ink2)">{{ r.pout }}</td>
+                <td style="padding:7px 10px;text-align:right;color:var(--ink2)">{{ r.ttft }}</td>
+                <td style="padding:7px 10px;text-align:right;color:var(--ink2)">{{ r.tps }}</td>
+                <td style="padding:7px 10px;text-align:right;color:var(--ink2)">{{ r.ctx }}</td>
+                <td style="padding:7px 10px;color:var(--ink2)">{{ r.weights }}</td>
+                <td style="padding:7px 10px;min-width:220px"><span style="font-size:12px;font-weight:600;color:{{ r.stColor }}">{{ r.status }}</span><span style="font-size:12px;color:var(--muted)"> {{ r.reason }}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px">
+        <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Eliminations by condition</span>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 16px">
+          <sc-for list="{{ elimGroups }}" as="g" hint-placeholder-count="3">
+            <div style="font-size:12.5px"><div style="font-weight:600;color:var(--ink2)">{{ g.label }} <span style="color:var(--muted);font-weight:400">· {{ g.n }}</span></div><div style="color:var(--muted)">{{ g.names }}</div></div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Why this result" data-screen-label="03 Why" style="grid-area:detail;background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--ink);border-radius:0;min-width:0">
+      <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><h2 style="margin:0;font-size:24px;font-weight:600;letter-spacing:-.015em">{{ d.name }}</h2><span style="color:var(--muted)">{{ d.sub }}</span></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{ d.badges }}" as="b" hint-placeholder-count="2"><span style="font-size:11px;font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-weight:400;letter-spacing:0;padding:2px 7px;border-radius:3px;border:1px solid {{ b.color }};color:{{ b.color }}">{{ b.text }}</span></sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right"><strong style="font-size:15px;color:{{ d.stColor }}">{{ d.status }}</strong><span style="font-size:13px;color:var(--ink2);max-width:420px">{{ d.statusWhy }}</span></div>
+      </div>
+      <sc-if value="{{ d.isProv }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="State: provisional" style="margin:14px 18px 0;padding:10px 12px;border:1px dashed var(--warn);border-radius:2px;background:var(--warnSoft);font-size:13px;color:var(--ink)"><strong>Provisional.</strong> {{ d.provText }}</div>
+      </sc-if>
+      <sc-if value="{{ d.isRetired }}" hint-placeholder-val="{{ false }}">
+        <div style="margin:14px 18px 0;padding:10px 12px;border:1px solid var(--line2);border-radius:2px;background:var(--surface2);font-size:13px"><strong>Retired, in the live archive.</strong> {{ d.retText }}</div>
+      </sc-if>
+      <sc-if value="{{ d.hasInsep }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="State: not separable" style="margin:14px 18px 0;padding:10px 12px;border:1px solid var(--line2);border-radius:2px;font-size:13px;display:flex;gap:10px;align-items:center"><span aria-hidden="true" style="font-size:16px;color:var(--muted)">≈</span><span><strong>Evidence too thin to separate these.</strong> {{ d.insepText }}</span></div>
+      </sc-if>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:0">
+        <div style="padding:16px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">What each weight contributes</span>
+            <sc-for list="{{ d.contrib }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span>{{ c.label }}</span><strong>{{ c.value }}</strong></div>
+                <div style="position:relative;height:10px;background:var(--surface2);border-radius:2px" aria-label="{{ c.aria }}" role="img">
+                  <span style="position:absolute;left:0;top:0;bottom:0;width:{{ c.wMax }};border:1px solid var(--line2);border-radius:2px"></span>
+                  <span style="position:absolute;left:0;top:0;bottom:0;width:{{ c.w }};background:var(--accent);border-radius:2px;transition:{{ motion.w }}"></span>
+                </div>
+                <span style="font-size:11.5px;color:var(--muted)">{{ c.note }}</span>
+              </div>
+            </sc-for>
+            <span style="font-size:11.5px;color:var(--muted)">Outlined track = the weight you set. Filled = how much of it this model earns against the others that qualify. Conditions never add to this; they only filter.</span>
+          </div>
+          <sc-if value="{{ hasTip }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:14px">
+            <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Tipping point</span>
+            <span style="font-size:13.5px;text-wrap:pretty">{{ tip.text }}</span>
+            <div style="position:relative;padding-top:6px">
+              <div style="position:relative;height:6px;border-radius:3px;background:var(--surface2)"><span style="position:absolute;top:0;bottom:0;left:{{ tip.l }};width:{{ tip.w }};background:var(--accentSoft);border:1px solid var(--accent);border-radius:3px"></span></div>
+              <input type="range" min="0" max="1" step="0.01" value="{{ tip.val }}" onChange="{{ tip.onChange }}" aria-label="Weight on $ per task" style="width:100%;margin:4px 0 0"></input>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)"><span>$ per task weight 0</span><span>{{ tip.cur }}</span><span>1</span></div>
+            </div>
+          </div>
+          </sc-if>
+        </div>
+        <div style="padding:16px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:8px">
+          <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Evidence</span>
+          <sc-for list="{{ d.evidence }}" as="e" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 0;border-top:1px solid var(--line)">
+              <span style="font-size:13px;font-weight:600">{{ e.b }}</span>
+              <span style="font-size:14px;font-weight:600;text-align:right">{{ e.v }} <span style="font-weight:400;font-size:11.5px;color:var(--muted)">{{ e.ci }}</span></span>
+              <span style="font-size:12px;color:var(--muted)">{{ e.cond }}</span>
+              <button onClick="{{ e.onProv }}" aria-label="{{ e.aria }}" style="justify-self:end;border:1px solid {{ e.pColor }};color:{{ e.pColor }};background:{{ e.pBg }};border-radius:3px;font-size:11px;font-weight:600;padding:1px 6px;cursor:pointer">{{ e.pLabel }}</button>
+            </div>
+          </sc-for>
+          <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted);margin-top:8px">Facts</span>
+          <sc-for list="{{ d.facts }}" as="f" hint-placeholder-count="4">
+            <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0"><span style="color:var(--muted)">{{ f.k }}</span><span style="text-align:right">{{ f.v }}</span></div>
+          </sc-for>
+          <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted);margin-top:8px">What the lab didn't report</span>
+          <span style="font-size:13px;color:var(--ink2)">{{ d.missing }}</span>
+        </div>
+        <div style="padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+          <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Against your conditions · {{ d.offName }}</span>
+          <sc-for list="{{ d.checks }}" as="k" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;font-size:13px;align-items:start"><span aria-label="{{ k.sr }}" style="font-weight:700;color:{{ k.color }};text-align:center">{{ k.icon }}</span><span><span>{{ k.label }}</span><span style="color:var(--muted)"> {{ k.why }}</span></span></div>
+          </sc-for>
+          <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted);margin-top:10px">What each condition costs you</span>
+          <sc-for list="{{ costs }}" as="c" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:3px;font-size:12.5px">
+              <div style="display:flex;justify-content:space-between;gap:10px"><span>{{ c.label }}</span><strong>{{ c.pts }}</strong></div>
+              <div style="height:4px;background:var(--surface2);border-radius:2px;position:relative"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ c.w }};background:var(--ink2);border-radius:2px;transition:{{ motion.w }}"></span></div>
+              <span style="color:var(--muted);font-size:11.5px">{{ c.note }}</span>
+            </div>
+          </sc-for>
+          <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted);margin-top:10px">Near misses</span>
+          <sc-for list="{{ near }}" as="n" hint-placeholder-count="2">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12.5px"><span><strong>{{ n.name }}</strong><span style="color:var(--muted)"> would qualify if you relaxed “{{ n.cond }}”: {{ n.why }}</span></span><button onClick="{{ n.onRelax }}" style="border:1px solid var(--line2);background:none;color:var(--accent);border-radius:2px;padding:3px 8px;font-size:12px;cursor:pointer;white-space:nowrap">{{ n.relaxLabel }}</button></div>
+          </sc-for>
+          <sc-if value="{{ noNear }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:var(--muted)">No model is one condition away.</span></sc-if>
+          <span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted);margin-top:10px">Why not…</span>
+          <select value="{{ whyNot }}" onChange="{{ onWhyNot }}" aria-label="Ask why a model is not the pick" style="border:1px solid var(--line2);border-radius:2px;background:var(--surface);color:var(--ink);padding:6px 8px;font:inherit;font-size:13px">
+            <option value="">Pick any model…</option>
+            <sc-for list="{{ allModels }}" as="m" hint-placeholder-count="5"><option value="{{ m.id }}">{{ m.label }}</option></sc-for>
+          </select>
+          <sc-if value="{{ hasWhyNot }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;background:var(--surface2);border-radius:2px;padding:8px 10px;display:flex;flex-direction:column;gap:3px"><strong>{{ wn.head }}</strong><sc-for list="{{ wn.lines }}" as="l" hint-placeholder-count="2"><span style="color:var(--ink2)">{{ l }}</span></sc-for></div></sc-if>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--line);padding:14px 18px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline"><span style="font-family:'Cascadia Code','Cascadia Mono',Consolas,ui-monospace,monospace;font-size:11.5px;font-weight:400;letter-spacing:0;color:var(--muted)">Offerings · same model, different terms</span><span style="font-size:12px;color:var(--muted);font-family:'Cascadia Code',Consolas,monospace">{{ d.derivation }}</span></div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="font-size:11.5px;color:var(--muted);text-align:left"><th style="padding:6px 8px;font-weight:600">Provider</th><th style="padding:6px 8px;font-weight:600">Regions</th><th style="padding:6px 8px;font-weight:600;text-align:right">Input $/1M</th><th style="padding:6px 8px;font-weight:600;text-align:right">Output $/1M</th><th style="padding:6px 8px;font-weight:600;text-align:right">$ per task</th><th style="padding:6px 8px;font-weight:600;text-align:right">First token</th><th style="padding:6px 8px;font-weight:600;text-align:right">Output tok/s</th><th style="padding:6px 8px;font-weight:600">Retention</th><th style="padding:6px 8px;font-weight:600">Against your conditions</th></tr></thead>
+          <tbody><sc-for list="{{ d.offers }}" as="o" hint-placeholder-count="3"><tr style="border-top:1px solid var(--line);background:{{ o.bg }}">
+            <td style="padding:7px 8px;white-space:nowrap"><strong style="font-weight:600">{{ o.provider }}</strong><span style="font-size:11.5px;color:var(--accent)"> {{ o.used }}</span></td>
+            <td style="padding:7px 8px;color:var(--ink2)">{{ o.regions }}</td>
+            <td style="padding:7px 8px;text-align:right">{{ o.pin }}</td><td style="padding:7px 8px;text-align:right">{{ o.pout }}</td><td style="padding:7px 8px;text-align:right;font-weight:600">{{ o.cost }}</td>
+            <td style="padding:7px 8px;text-align:right">{{ o.ttft }}</td><td style="padding:7px 8px;text-align:right">{{ o.tps }}</td><td style="padding:7px 8px">{{ o.ret }}</td>
+            <td style="padding:7px 8px"><span style="font-weight:600;color:{{ o.stColor }}">{{ o.status }}</span><span style="color:var(--muted);font-size:12px"> {{ o.why }}</span></td>
+          </tr></sc-for></tbody>
+        </table></div>
+      </div>
+      </sc-if>
+      <sc-if value="{{ noDetail }}" hint-placeholder-val="{{ true }}"><div style="padding:24px 18px;color:var(--muted);font-size:13.5px">Select a model on the canvas, in the shortlist or in the table to see why it lands where it does.</div></sc-if>
+    </section>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isLoading }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="State: loading" aria-busy="true" style="display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:14px">
+      <div style="height:560px;border-radius:2px;background:var(--surface);border:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px"><span style="width:160px;height:12px;background:var(--surface2);border-radius:2px"></span><span style="flex:1;background:var(--surface2);border-radius:2px;opacity:.7"></span><span style="font-size:13px;color:var(--muted)">Loading snapshot {{ snapshot }} · {{ stats.models }} models, {{ stats.offerings }} offerings</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px"><span style="height:120px;background:var(--surface);border:1px solid var(--line);border-radius:2px"></span><span style="height:120px;background:var(--surface);border:1px solid var(--line);border-radius:2px"></span><span style="height:120px;background:var(--surface);border:1px solid var(--line);border-radius:2px"></span></div>
+    </div>
+  </sc-if>
+</main>
+</sc-if>
+
+<sc-if value="{{ hasProv }}" hint-placeholder-val="{{ false }}">
+  <div role="dialog" aria-label="Provenance" style="position:fixed;left:{{ prov.x }};top:{{ prov.y }};z-index:60;width:320px;background:var(--surface);border:1px solid var(--line2);border-radius:2px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:13.5px">{{ prov.title }}</strong><button onClick="{{ closeProv }}" aria-label="Close provenance" style="border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1">×</button></div>
+    <sc-for list="{{ prov.rows }}" as="r" hint-placeholder-count="5"><div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px"><span style="color:var(--muted)">{{ r.k }}</span><span style="text-align:right;word-break:break-all">{{ r.v }}</span></div></sc-for>
+  </div>
+</sc-if>
+
+<sc-if value="{{ share }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeShare }}" style="position:fixed;inset:0;z-index:70;background:rgba(11,20,38,.45);display:flex;align-items:center;justify-content:center;padding:24px">
+    <div role="dialog" aria-modal="true" aria-label="Share or act" onClick="{{ stop }}" data-screen-label="04 Share" style="width:min(860px,100%);max-height:90vh;overflow:auto;background:var(--surface);color:var(--ink);border-radius:3px;box-shadow:var(--shadow);display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)"><strong style="font-size:17px">Share or act on this decision</strong><span style="font-family:'Cascadia Code',Consolas,monospace;font-size:12px;color:var(--muted);white-space:nowrap">{{ snapshot }}</span><div style="flex:1"></div><button onClick="{{ closeShare }}" aria-label="Close" style="border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>
+      <div role="tablist" style="display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--line)">
+        <sc-for list="{{ shareTabs }}" as="t" hint-placeholder-count="6"><button role="tab" aria-selected="{{ t.on }}" onClick="{{ t.onClick }}" style="border:0;background:none;color:{{ t.fg }};border-bottom:2px solid {{ t.line }};padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer">{{ t.label }}</button></sc-for>
+      </div>
+      <div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:13px;color:var(--ink2)">{{ shareIntro }}</span>
+        <sc-if value="{{ shareIsCode }}" hint-placeholder-val="{{ true }}">
+          <pre style="margin:0;font-family:'Cascadia Code',Consolas,ui-monospace,monospace;font-size:12.5px;line-height:1.55;background:var(--surface2);border:1px solid var(--line);border-radius:2px;padding:14px;white-space:pre-wrap;word-break:break-all;max-height:360px;overflow:auto">{{ shareCode }}</pre>
+          <div style="display:flex;gap:10px;align-items:center"><button onClick="{{ onCopy }}" style="border:0;background:var(--accent);color:var(--accentInk);border-radius:2px;padding:8px 14px;font-weight:600;cursor:pointer">{{ copyLabel }}</button><span style="font-size:12px;color:var(--muted)">Same snapshot, same answer. Agents get a structured decision back.</span></div>
+        </sc-if>
+        <sc-if value="{{ shareIsAlerts }}" hint-placeholder-val="{{ false }}">
+          <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3"><label style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px;cursor:pointer;padding:6px 0;border-top:1px solid var(--line)"><input type="checkbox" checked="{{ a.on }}" onChange="{{ a.onChange }}" style="margin-top:3px"></input><span><strong style="font-weight:600">{{ a.label }}</strong><span style="display:block;color:var(--muted);font-size:12.5px">{{ a.note }}</span></span></label></sc-for>
+          <div style="display:flex;gap:10px;align-items:center"><button onClick="{{ onSaveAlert }}" style="border:0;background:var(--accent);color:var(--accentInk);border-radius:2px;padding:8px 14px;font-weight:600;cursor:pointer">{{ saveLabel }}</button><span style="font-size:12px;color:var(--muted)">One email per change. No digests, no marketing.</span></div>
+        </sc-if>
+        <sc-if value="{{ shareIsProc }}" hint-placeholder-val="{{ false }}">
+          <table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;font-size:11.5px;color:var(--muted)"><th style="padding:6px 8px">Policy clause</th><th style="padding:6px 8px">Result</th><th style="padding:6px 8px">Evidence</th></tr></thead>
+            <tbody><sc-for list="{{ proc }}" as="p" hint-placeholder-count="5"><tr style="border-top:1px solid var(--line)"><td style="padding:7px 8px">{{ p.clause }}</td><td style="padding:7px 8px;font-weight:700;color:{{ p.color }}">{{ p.result }}</td><td style="padding:7px 8px;color:var(--ink2);font-size:12.5px">{{ p.ev }}</td></tr></sc-for></tbody></table>
+          <div style="display:flex;gap:10px;align-items:center"><button onClick="{{ onExportCsv }}" style="border:0;background:var(--accent);color:var(--accentInk);border-radius:2px;padding:8px 14px;font-weight:600;cursor:pointer">Download CSV</button><span style="font-size:12px;color:var(--muted)">Unknowns stay unknown in the export.</span></div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;canvas&quot;,&quot;table&quot;],&quot;default&quot;:&quot;canvas&quot;,&quot;tsType&quot;:&quot;'canvas'|'table'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;},&quot;simulate&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;loading&quot;,&quot;error&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;'none'|'loading'|'error'&quot;}}">
+class Component extends DCLogic {
+  state = { E: null, D: null, view: 'arrive', parsing: false, spec: null, trace: [], sel: null, xAxis: 'task$', theme: null, layout: null, addOpen: false, addQ: '', edit: null, share: false, shareTab: 'link', prov: null, whyNot: '', sortK: 'rank', sortDir: 1, draft: 'Refactor a large Rust codebase, precision matters', copied: false, dismissed: [], reduced: false, retried: false, showExcl: true, hover: null, alerts: { beat: true, terms: true, retire: false }, saved: false };
+  plotRef = React.createRef();
+  componentDidMount() {
+    import('./modelspec-data.js').then(E => {
+      const D = E.buildCatalogue(); const st = { E, D };
+      const h = location.hash.match(/s=([^&]+)/);
+      if (h) { try { const spec = JSON.parse(decodeURIComponent(atob(h[1]))); st.spec = this.norm(spec); st.view = 'work'; st.draft = spec.task || ''; st.xAxis = spec.x || 'task$'; } catch (e) {} }
+      this.setState(st);
+    });
+    const q = new URLSearchParams(location.search);
+    this.setState({ layout: q.get('layout'), theme: q.get('theme'), reduced: matchMedia('(prefers-reduced-motion: reduce)').matches });
+    this.onResize = () => this.setState({ vw: window.innerWidth }); this.onResize(); window.addEventListener('resize', this.onResize);
+    window.addEventListener('pointermove', this.onMove); window.addEventListener('pointerup', this.onUp); window.addEventListener('keydown', this.onEsc);
+  }
+  componentWillUnmount() { window.removeEventListener('pointermove', this.onMove); window.removeEventListener('pointerup', this.onUp); window.removeEventListener('keydown', this.onEsc); }
+  componentDidUpdate() { const t = this.theme(); document.body.style.background = t === 'dark' ? '#0B1426' : '#faf9f8'; }
+  theme() { return this.state.theme || this.props.theme || 'light'; }
+  norm(spec) { spec.conds = spec.conds.map(c => c.id ? c : { ...c, id: Math.random().toString(36).slice(2, 8) }); return spec; }
+  setSpec(fn, extra) {
+    this.setState(s => {
+      const spec = this.norm(typeof fn === 'function' ? fn(s.spec) : fn);
+      try { history.replaceState(null, '', location.pathname + location.search + '#s=' + btoa(encodeURIComponent(JSON.stringify({ ...spec, x: s.xAxis })))); } catch (e) {}
+      return { spec, ...(extra || {}) };
+    });
+  }
+  onEsc = e => { if (e.key === 'Escape') this.setState({ share: false, prov: null, addOpen: false, edit: null }); };
+  // ---------- flow
+  find = () => {
+    const { E, draft, spec } = this.state; if (!E) return;
+    this.setState({ parsing: true, view: 'work', edit: null, addOpen: false });
+    clearTimeout(this.pt);
+    this.pt = setTimeout(() => {
+      const p = E.parseTask(draft);
+      const keep = spec && this.state.view === 'work' ? spec.conds.filter(c => !c.from && !p.conds.some(n => n.f === c.f && (n.f !== 'bench' || n.b === c.b))) : [];
+      this.setSpec({ task: draft, tokIn: spec?.tokIn || 40000, tokOut: spec?.tokOut || 4000, bench: p.bench, w: p.w, conds: p.conds.concat(keep) }, { parsing: false, trace: p.trace, sel: null, whyNot: '', xAxis: p.bench === 'RetrievalEval v2' ? 'in$' : 'task$' });
+    }, 420);
+  };
+  useTemplate = t => { this.setSpec(JSON.parse(JSON.stringify({ ...t.spec, task: t.task })), { view: 'work', draft: t.task, trace: [], sel: null, dismissed: [], xAxis: t.id === 'embed' ? 'task$' : 'task$' }); };
+  addCond = c => { const id = Math.random().toString(36).slice(2, 8); this.setSpec(s => ({ ...s, conds: s.conds.filter(x => !(x.f === c.f && (x.f !== 'bench' || x.b === c.b))).concat({ ...c, id }) }), { addOpen: false, addQ: '', edit: null }); return id; };
+  updCond = (id, patch) => this.setSpec(s => ({ ...s, conds: s.conds.map(c => c.id === id ? { ...c, ...patch } : c) }));
+  removeCond = id => this.setSpec(s => ({ ...s, conds: s.conds.filter(c => c.id !== id) }), { edit: null });
+  setWeight(k, v) {
+    this.setSpec(s => {
+      const w = { ...s.w }; const others = Object.keys(w).filter(x => x !== k); const rest = 1 - v; const sum = others.reduce((a, x) => a + w[x], 0);
+      others.forEach(x => { w[x] = sum > 0 ? rest * w[x] / sum : rest / others.length; }); w[k] = v;
+      Object.keys(w).forEach(x => w[x] = Math.round(w[x] * 100) / 100);
+      return { ...s, w };
+    });
+  }
+  // ---------- canvas drag
+  onMove = e => {
+    if (!this.drag || !this.plotRef.current || !this.sc) return;
+    const r = this.plotRef.current.getBoundingClientRect();
+    if (this.drag === 'x') this.setX(this.sc.xInv(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width))));
+    else this.setFloor(this.sc.yInv(Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))));
+  };
+  onUp = () => { this.drag = null; };
+  niceX(v) {
+    const a = this.AX[this.state.xAxis];
+    if (a.cond === 'ctx') { const snaps = [32000, 64000, 128000, 200000, 256000, 400000, 500000, 1000000, 2000000]; return snaps.reduce((b, x) => Math.abs(Math.log(x / v)) < Math.abs(Math.log(b / v)) ? x : b, snaps[0]); }
+    if (a.cond === 'ttft') return Math.round(v / 10) * 10;
+    if (a.cond === 'tps') return Math.round(v / 5) * 5;
+    return Number(v.toPrecision(2));
+  }
+  setX(v) {
+    const a = this.AX[this.state.xAxis]; const val = this.niceX(v);
+    const c = this.state.spec.conds.find(x => x.f === a.cond);
+    if (c) this.updCond(c.id, { [a.key]: val }); else this.addCond({ f: a.cond, [a.key]: val });
+  }
+  setFloor(v) {
+    const { spec, E } = this.state; const d = E.BENCH[spec.bench].d; const step = d === 3 ? 0.005 : d === 2 ? 0.01 : 0.5;
+    const val = Math.round(v / step) * step; const fixed = Number(val.toFixed(d));
+    const c = spec.conds.find(x => x.f === 'bench' && x.b === spec.bench);
+    if (c) this.updCond(c.id, { min: fixed }); else this.addCond({ f: 'bench', b: spec.bench, min: fixed, indep: true });
+  }
+  // ---------- render
+  renderVals() {
+    const s = this.state, E = s.E, D = s.D;
+    const theme = this.theme(); const layout = s.layout || this.props.layout || 'canvas'; const sim = this.props.simulate || 'none';
+    const seg = on => ({ bg: on ? 'var(--ink)' : 'var(--surface)', fg: on ? 'var(--surface)' : 'var(--ink)' });
+    const motion = s.reduced ? { pos: 'none', w: 'none', handle: 'none' } : { pos: 'left .55s cubic-bezier(.2,.7,.2,1), top .55s cubic-bezier(.2,.7,.2,1), width .55s cubic-bezier(.2,.7,.2,1), height .55s cubic-bezier(.2,.7,.2,1), opacity .3s', w: 'width .45s cubic-bezier(.2,.7,.2,1), left .45s cubic-bezier(.2,.7,.2,1)', handle: this.drag ? 'none' : 'left .3s, top .3s' };
+    const base = {
+      theme, themeLabel: theme === 'dark' ? 'Light mode' : 'Dark mode', motion,
+      toggleTheme: () => this.setState({ theme: theme === 'dark' ? 'light' : 'dark' }),
+      isCanvasLayout: layout === 'canvas', isTableLayout: layout === 'table', layoutA: seg(layout === 'canvas'), layoutB: seg(layout === 'table'),
+      setCanvas: () => this.setState({ layout: 'canvas' }), setTable: () => this.setState({ layout: 'table' }),
+      goHome: () => this.setState({ view: 'arrive', edit: null, addOpen: false }),
+      isArrive: s.view === 'arrive', isWork: s.view === 'work' && !!s.spec, showSnap: s.view === 'work' && !!s.spec && (s.vw || 1440) >= 1100,
+      draft: s.draft, onDraft: e => this.setState({ draft: e.target.value }),
+      onDraftKey: e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.find(); } },
+      onFind: this.find, plotRef: this.plotRef, stop: e => e.stopPropagation(),
+    };
+    if (!D) return { ...base, stats: { models: '25', offerings: '…' }, templates: [] };
+    const money = E.money, BENCH = E.BENCH;
+    base.stats = { models: D.models.length, offerings: D.offerings };
+    base.templates = E.TEMPLATES.map(t => { const dd = E.evaluate(D, t.spec, { lite: true }); return { name: t.name, task: t.task, chips: t.spec.conds.filter(c => c.f !== 'active').map(c => E.condLabel(c, D)), n: dd.feasible.length, mayText: dd.may.length ? `+ ${dd.may.length} may qualify` : '', onClick: () => this.useTemplate(t) }; });
+    base.onStartConstraints = () => this.setSpec({ task: '', tokIn: 40000, tokOut: 4000, bench: 'CodeBench Pro', w: { cap: 0.6, cost: 0.3, speed: 0.1 }, conds: [{ f: 'type', v: 'llm' }, { f: 'active' }] }, { view: 'work', draft: '', trace: [], addOpen: true, sel: null });
+    if (!base.isWork) return base;
+
+    const spec = s.spec, B = spec.bench, bd = BENCH[B];
+    const dec = E.evaluate(D, spec);
+    const snapshot = 'snap_2026-09-24_' + (Math.abs([...JSON.stringify(spec.conds.map(c => ({ ...c, id: 0 }))) + spec.tokIn + spec.tokOut + JSON.stringify(spec.w)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) | 0, 7)).toString(16).slice(0, 6));
+    const rowOf = id => dec.rows.find(r => r.m.id === id);
+    const statusTxt = r => r.status === 1 ? 'Qualifies' : r.status === 0 ? 'May qualify' : 'Excluded';
+    const stColor = st => st === 1 ? 'var(--good)' : st === 0 ? 'var(--warn)' : 'var(--muted)';
+    const fmtY = r => r && r.capR ? E.fmtB(B, r.capR.v) : '—';
+    const ciY = r => r && r.capR && r.capR.ci != null ? E.fmtCI(B, r.capR) : '';
+    const provShort = r => !r || !r.capR ? 'no result' : r.capR.by === 'indep' ? 'Independent' : 'Lab-reported';
+    const fmtTps = v => v == null ? 'unknown' : v + ' tok/s';
+    const fmtMs = v => v == null ? 'unknown' : E.num(v) + ' ms';
+    const openProv = (m, x) => ev => { ev.stopPropagation(); const rc = ev.currentTarget.getBoundingClientRect(); this.setState({ prov: { x: Math.min(window.innerWidth - 340, rc.left) + 'px', y: Math.min(window.innerHeight - 260, rc.bottom + 6) + 'px', title: `${m.name} · ${x.b}`, rows: [{ k: 'Value', v: `${E.fmtB(x.b, x.v)} ${x.ci != null ? E.fmtCI(x.b, x) : '(no interval published)'} · ${BENCH[x.b].unit}` }, { k: 'Measured by', v: x.by === 'indep' ? `${x.who} (independent)` : `${x.who} (lab-reported)` }, { k: 'Effort setting', v: x.effort }, { k: 'Harness', v: x.harness }, { k: 'Date', v: x.date }, { k: 'Source', v: x.src }] } }); };
+
+    // chips
+    const funnel = dec.funnel;
+    const chips = spec.conds.map((c, i) => {
+      const removed = funnel[i].n - funnel[i + 1].n; const label = E.condLabel(c, D);
+      return { label, meta: [c.soft ? 'soft' : '', c.from ? 'from task' : '', removed ? '−' + removed : ''].filter(Boolean).join(' · '), editing: s.edit === c.id, border: s.edit === c.id ? 'var(--accent)' : c.soft ? 'var(--warn)' : 'var(--line2)', bg: c.from ? 'var(--accentSoft)' : 'var(--surface)', aria: `Edit condition: ${label}`, ariaRemove: `Remove condition: ${label}`, onEdit: () => this.setState({ edit: s.edit === c.id ? null : c.id, addOpen: false }), onRemove: () => this.removeCond(c.id) };
+    });
+    // editor
+    let edit = null; const ec = spec.conds.find(c => c.id === s.edit);
+    if (ec) {
+      const numDefs = { ctx: ['min', 'Minimum', 'tokens', 1000], 'task$': ['max', 'Maximum', 'USD per task', 0.005], 'in$': ['max', 'Maximum', '$ per 1M input tokens', 0.1], ttft: ['max', 'Maximum', 'ms to first token', 50], tps: ['min', 'Minimum', 'output tokens/s', 10], bench: ['min', 'Floor', bd && ec.b ? BENCH[ec.b].unit + ' on ' + ec.b : '', BENCH[ec.b]?.d === 3 ? 0.005 : 0.5] };
+      const nd = numDefs[ec.f];
+      const opt = (label, on, fn) => ({ label, on, onClick: fn, ...seg(on) });
+      let opts = [];
+      if (ec.f === 'open') opts = [opt('Require', ec.v !== false, () => this.updCond(ec.id, { v: true })), opt('Exclude', ec.v === false, () => this.updCond(ec.id, { v: false }))];
+      if (ec.f === 'resid') opts = ['EU', 'US', 'UK'].map(v => opt(v, ec.v === v, () => this.updCond(ec.id, { v })));
+      if (ec.f === 'bench') opts = [opt('Independent only', !!ec.indep, () => this.updCond(ec.id, { indep: true })), opt('Any source', !ec.indep, () => this.updCond(ec.id, { indep: false }))];
+      if (ec.f === 'type') opts = Object.keys(E.TYPES).map(v => opt(E.TYPES[v], ec.v === v, () => { const nb = Object.keys(BENCH).find(b => BENCH[b].types.includes(v)); this.setSpec(sp => ({ ...sp, bench: nb, conds: sp.conds.map(c => c.id === ec.id ? { ...c, v } : c) })); }));
+      edit = {
+        title: E.condLabel(ec, D), hasNum: !!nd, numLabel: nd ? nd[1] : '', unit: nd ? nd[2] : '', step: nd ? nd[3] : 1, num: nd ? ec[nd[0]] : 0,
+        onNum: e => { const v = parseFloat(e.target.value); if (!isNaN(v)) this.updCond(ec.id, { [nd[0]]: v }); },
+        hasOpts: opts.length > 0, opts, hasSoft: !['type', 'active'].includes(ec.f),
+        hardSoft: [{ ...opt('Hard', !ec.soft, () => this.updCond(ec.id, { soft: false })), title: 'Excludes anything that fails' }, { ...opt('Soft', !!ec.soft, () => this.updCond(ec.id, { soft: true })), title: 'Keeps models that fail, flagged. Adds no points.' }],
+        note: ec.soft ? 'Soft: models outside this are kept and flagged. It never adds points.' : ec.f === 'bench' ? 'Also draggable on the canvas y axis.' : ['task$', 'in$', 'ttft', 'tps', 'ctx'].includes(ec.f) ? 'Also draggable on the canvas when this is the x axis.' : '',
+        onRemove: () => this.removeCond(ec.id), onClose: () => this.setState({ edit: null }),
+      };
+    }
+    // add condition
+    const q = s.addQ.trim().toLowerCase();
+    const addResults = E.FACETS.filter(f => !q || q.split(/\s+/).every(w => (f.k + ' ' + f.label.toLowerCase()).includes(w))).map(f => ({ label: f.label, hint: f.hint, onClick: () => { const id = this.addCond(f.c); this.setState({ edit: id }); } }));
+    // suggestions
+    const sugg = E.suggestions(D, spec, s.dismissed).filter(x => x.gain > 0).slice(0, 3).map(x => ({ q: x.q, onDismiss: () => this.setState({ dismissed: s.dismissed.concat(x.id) }), opts: x.opts.map(o => ({ label: o.label, result: `→ ${o.n}${o.may ? ' + ' + o.may + ' may' : ''}`, onClick: () => this.addCond(o.c) })) }));
+    // funnel
+    const N0 = funnel[0].n;
+    const fl = funnel.map((f, i) => ({ n: f.n, label: f.label, w: (100 * (f.n - f.may) / N0) + '%', mw: (100 * f.may / N0) + '%', bar: i === funnel.length - 1 ? 'var(--accent)' : 'var(--ink2)', color: i === funnel.length - 1 ? 'var(--accent)' : 'var(--ink)', delta: i === 0 ? `${D.offerings} offerings` : (funnel[i - 1].n - f.n ? `−${funnel[i - 1].n - f.n}` : 'no change') + (f.may ? ` · ${f.may} may` : ''), title: `${f.label}: ${f.n} remain${f.may ? `, ${f.may} of them unknown on something` : ''}` }));
+    fl.push({ n: dec.feasible.length, label: 'Ranked on evidence', w: (100 * dec.feasible.length / N0) + '%', mw: (100 * dec.may.length / N0) + '%', bar: 'var(--accent)', color: 'var(--accent)', delta: `+ ${dec.may.length} may qualify`, title: 'Confirmed on every condition' });
+    fl[fl.length - 2].bar = 'var(--ink2)'; fl[fl.length - 2].color = 'var(--ink)';
+
+    // ---------- canvas
+    const AX = this.AX = {
+      'task$': { label: '$ per task', unit: 'USD per task, from your token counts', log: true, low: true, get: r => r.cost, cond: 'task$', key: 'max', fmt: money },
+      'in$': { label: 'Input price', unit: '$ per 1M input tokens', log: true, low: true, get: r => r.best.o.in, cond: 'in$', key: 'max', fmt: v => E.per1M(v) + '/1M' },
+      ttft: { label: 'Time to first token', unit: 'ms', log: true, low: true, get: r => r.best.o.ttft, cond: 'ttft', key: 'max', fmt: v => E.num(Math.round(v)) + ' ms' },
+      tps: { label: 'Output throughput', unit: 'tokens/s', log: false, low: false, get: r => r.best.o.tps, cond: 'tps', key: 'min', fmt: v => Math.round(v) + ' tok/s' },
+      ctx: { label: 'Context length', unit: 'tokens', log: true, low: false, get: r => r.m.ctx, cond: 'ctx', key: 'min', fmt: E.tok },
+    };
+    const ax = AX[s.xAxis] || AX['task$'];
+    const plotRows = dec.inScope.filter(r => ax.get(r) != null && r.cap != null && !(r.m.status === 'retired' && r.status === -1 && false));
+    const unplotted = dec.inScope.filter(r => ax.get(r) == null || r.cap == null).map(r => `${r.m.name} (${r.cap == null ? 'no ' + B : 'no ' + ax.label.toLowerCase()})`);
+    const xc = spec.conds.find(c => c.f === ax.cond), yc = spec.conds.find(c => c.f === 'bench' && c.b === B);
+    const xs = plotRows.map(r => ax.get(r)).concat(xc ? [xc[ax.key]] : []);
+    const ys = plotRows.flatMap(r => [r.cap - (r.capR.ci || 0), r.cap + (r.capR.ci || 0)]).concat(yc ? [yc.min] : []);
+    let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    if (!isFinite(x0)) { x0 = 0.001; x1 = 1; } if (!isFinite(y0)) { y0 = 0; y1 = 100; }
+    const T = v => ax.log ? Math.log10(Math.max(v, 1e-9)) : v, Ti = v => ax.log ? Math.pow(10, v) : v;
+    let tx0 = T(x0), tx1 = T(x1); const px = (tx1 - tx0 || 1) * 0.07; tx0 -= px; tx1 += px;
+    const py = (y1 - y0 || 1) * 0.1; y0 -= py; y1 += py;
+    const hiB = bd.hi;
+    const fx = v => (T(v) - tx0) / (tx1 - tx0), fy = v => hiB ? 1 - (v - y0) / (y1 - y0) : (v - y0) / (y1 - y0);
+    this.sc = { xInv: f => Ti(tx0 + f * (tx1 - tx0)), yInv: f => hiB ? y0 + (1 - f) * (y1 - y0) : y0 + f * (y1 - y0) };
+    const pc = f => (Math.max(0, Math.min(1, f)) * 100).toFixed(3) + '%';
+    const niceStep = (span, n) => { const r = span / n, p = Math.pow(10, Math.floor(Math.log10(r))); return [1, 2, 2.5, 5, 10].map(m => m * p).find(m => m >= r); };
+    const ystep = niceStep(y1 - y0, 5); const yTicks = [];
+    for (let v = Math.ceil(y0 / ystep) * ystep; v <= y1 + 1e-9; v += ystep) yTicks.push({ p: pc(fy(v)), label: E.fmtB(B, v).replace(/\.0%$/, '%') });
+    const xTicks = [];
+    if (ax.log) { for (let e = Math.floor(tx0); e <= Math.ceil(tx1); e++) [1, 2, 5].forEach(m => { const v = m * Math.pow(10, e); const f = fx(v); if (f >= 0.02 && f <= 0.98) xTicks.push({ p: pc(f), label: ax.fmt(v) }); }); }
+    else { const st = niceStep(x1 - x0, 6); for (let v = Math.ceil(Ti(tx0) / st) * st; v <= Ti(tx1); v += st) xTicks.push({ p: pc(fx(v)), label: ax.fmt(v) }); }
+    // frontier on current axes
+    const fe = plotRows.filter(r => r.status === 1).sort((a, b) => ax.low ? ax.get(a) - ax.get(b) : ax.get(b) - ax.get(a));
+    let bestY = hiB ? -Infinity : Infinity; const frontier = [];
+    fe.forEach(r => { if (hiB ? r.cap > bestY : r.cap < bestY) { frontier.push(r); bestY = r.cap; } });
+    const frontierPath = frontier.length > 1 ? frontier.map((r, i) => `${i ? 'L' : 'M'}${(fx(ax.get(r)) * 100).toFixed(3)} ${(fy(r.cap) * 100).toFixed(3)}`).join(' ') : '';
+    const sl = dec.shortlist; const shortIds = [sl.top, sl.value, sl.clears, sl.open].filter(Boolean).map(r => r.m.id);
+    const selId = s.sel || sl.top?.m.id || dec.may[0]?.m.id || null;
+    const points = [], labels = [], cis = [], placed = [];
+    const ordered = plotRows.slice().sort((a, b) => (b.m.id === selId) - (a.m.id === selId) || b.status - a.status);
+    ordered.forEach(r => {
+      const l = pc(fx(ax.get(r))), t = pc(fy(r.cap)); const isSel = r.m.id === selId;
+      const st = r.status; const lab = r.labOnly;
+      const bg = st === 1 ? (lab ? 'var(--surface)' : 'var(--accent)') : st === 0 ? 'var(--surface)' : 'var(--faint)';
+      const border = st === 1 ? '2px solid var(--accent)' : st === 0 ? '2px dashed var(--warn)' : '0';
+      points.push({ l, t, size: st === -1 ? '8px' : isSel ? '16px' : '13px', bg, border, op: st === -1 ? 0.45 : 1, ring: isSel ? '0 0 0 3px var(--surface), 0 0 0 5px var(--ink)' : 'none', z: st === -1 ? 1 : isSel ? 5 : 3,
+        aria: `${r.m.name}, ${statusTxt(r)}, ${B} ${fmtY(r)} ${provShort(r)}, ${ax.label} ${ax.fmt(ax.get(r))}`, onClick: () => this.setState({ sel: r.m.id, whyNot: '' }),
+        onEnter: () => this.setState({ hover: r.m.id }), onLeave: () => this.setState(ss => ss.hover === r.m.id ? { hover: null } : null) });
+      if (r.capR.ci != null && st !== -1) cis.push({ l, t: pc(fy(r.cap + (hiB ? r.capR.ci : -r.capR.ci))), h: (Math.abs(fy(r.cap + r.capR.ci) - fy(r.cap - r.capR.ci)) * 100).toFixed(3) + '%', color: st === 1 ? 'var(--accent)' : 'var(--warn)', op: 0.45 });
+      const showLab = st !== -1 && (frontier.includes(r) || shortIds.includes(r.m.id) || isSel || st === 0);
+      if (showLab) { const right = fx(ax.get(r)) > 0.72; const H = layout === 'table' ? 300 : 460; let py = fy(r.cap) * H, dy = 0; const fxx = fx(ax.get(r));
+        for (let k = 0; k < 8; k++) { const a0 = right ? fxx - 0.17 : fxx, a1 = right ? fxx : fxx + 0.17; const clash = placed.some(p => Math.abs(p.y - (py + dy)) < 15 && p.a0 < a1 && a0 < p.a1); if (!clash) break; dy += 15; }
+        placed.push({ y: py + dy, a0: right ? fxx - 0.17 : fxx, a1: right ? fxx : fxx + 0.17 });
+        labels.push({ l, t, tf: (right ? 'translate(calc(-100% - 12px), ' : 'translate(12px, ') + `calc(-50% + ${dy}px))`, text: r.m.name + (st === 0 ? ' · may qualify' : '') + (lab && st === 1 ? ' · lab-reported' : ''), fw: isSel ? 700 : 600, color: st === 0 ? 'var(--warn)' : 'var(--ink)' }); }
+    });
+    const xVal = xc ? xc[ax.key] : null, yVal = yc ? yc.min : null;
+    const xp = xVal != null ? fx(xVal) : (ax.low ? 0.985 : 0.015), yp = yVal != null ? fy(yVal) : 0.985;
+    const keyStep = (dir, big) => { if (ax.log) return v => v * Math.pow(big ? 1.3 : 1.08, dir); const st = big ? 50 : 5; return v => v + dir * st; };
+    const xh = { show: true, on: xVal != null, p: pc(xp), op: xVal != null ? 1 : 0.5, shadeL: ax.low ? pc(xp) : '0%', shadeW: ax.low ? pc(1 - xp) : pc(xp), tf: xp > 0.7 ? 'translateX(calc(-100% - 2px)) translateY(-18px)' : 'translateY(-18px)',
+      label: xVal != null ? `${ax.low ? '≤' : '≥'} ${ax.fmt(xVal)}` : `Drag to set a ${ax.low ? 'cap' : 'minimum'}`, aria: `${ax.label} ${ax.low ? 'cap' : 'minimum'}, ${ax.unit}`,
+      onDown: e => { e.preventDefault(); this.drag = 'x'; this.onMove(e); },
+      onKey: e => { const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key]; if (!d) return; e.preventDefault(); const cur = xVal ?? this.sc.xInv(xp); this.setX(keyStep(d, e.shiftKey)(cur)); } };
+    const yh = { show: true, on: yVal != null, p: pc(yp), op: yVal != null ? 1 : 0.5, label: yVal != null ? `${B} ${hiB ? '≥' : '≤'} ${E.fmtB(B, yVal)}${yc.indep ? ' · independent' : ''}` : `Drag to set a ${B} floor`, aria: `${B} floor, ${bd.unit}`,
+      onDown: e => { e.preventDefault(); this.drag = 'y'; this.onMove(e); },
+      onKey: e => { const d = { ArrowUp: 1, ArrowDown: -1 }[e.key]; if (!d) return; e.preventDefault(); const st = (bd.d === 3 ? 0.005 : 0.5) * (e.shiftKey ? 10 : 1); this.setFloor((yVal ?? this.sc.yInv(yp)) + d * st * (hiB ? 1 : -1)); } };
+    // winning strip
+    const strip = []; const SN = 60;
+    for (let i = 0; i < SN; i++) {
+      const f = (i + 0.5) / SN, xv = this.sc.xInv(f);
+      const pool = plotRows.filter(r => r.status === 1 && (ax.low ? ax.get(r) <= xv : ax.get(r) >= xv));
+      const w = pool.sort((a, b) => hiB ? b.cap - a.cap : a.cap - b.cap)[0];
+      const id = w ? w.m.id : null; const last = strip[strip.length - 1];
+      if (last && last.id === id) last.n++; else strip.push({ id, i, n: 1, r: w });
+    }
+    const stripV = strip.map(g => ({ l: (100 * g.i / SN) + '%', w: (100 * g.n / SN) + '%', text: g.r && g.n >= 5 ? g.r.m.name : '', bg: !g.r ? 'transparent' : g.id === sl.top?.m.id ? 'var(--accentSoft)' : 'var(--surface)', fg: 'var(--ink2)', title: g.r ? `${g.r.m.name}: best ${B} here (${fmtY(g.r)})` : 'Nothing qualifies at this point' }));
+    let hover = null;
+    if (s.hover) { const r = rowOf(s.hover); if (r && ax.get(r) != null && r.cap != null) { const fxv = fx(ax.get(r)), fyv = fy(r.cap); hover = { l: pc(fxv), t: pc(fyv), tf: `translate(${fxv > 0.6 ? 'calc(-100% - 14px)' : '14px'}, ${fyv > 0.6 ? 'calc(-100% - 8px)' : '8px'})`, name: r.m.name, sub: `${r.m.labName} · via ${r.best.o.provider}`, y: `${B}: ${fmtY(r)} ${ciY(r)} · ${provShort(r)}`, x: `${ax.label}: ${ax.fmt(ax.get(r))}`, status: r.status === -1 ? 'Excluded: ' + (r.best.t[r.dropAt]?.why || '') : r.status === 0 ? 'May qualify: ' + r.best.unks.map(i => r.best.t[i].why).join('; ') : `Qualifies · #${r.rank} on your weights`, stColor: stColor(r.status) }; } }
+    const nothing = dec.feasible.length === 0;
+    const relaxItem = n => ({ name: n.row.m.name, cond: E.condLabel(n.cond, D), why: n.why, relaxLabel: n.relaxed ? 'Relax to ' + E.condLabel(n.relaxed, D).replace(/^.*?(≤|≥)/, '$1') : 'Drop condition', onRelax: () => n.relaxed ? this.updCond(n.cond.id, n.relaxed) : this.removeCond(n.cond.id) });
+    const nearTop = dec.nearMisses.slice(0, 3).map(relaxItem);
+
+    // ---------- shortlist cards
+    const seen = {};
+    const card = (role, r, note, none) => {
+      if (!r) return { role, has: false, none: true, noneText: none, roleNote: '', border: 'var(--line)', shadow: 'none', onClick: () => {} };
+      const dup = seen[r.m.id]; seen[r.m.id] = role;
+      const insep = dec.insep(r); const softs = r.best.softs.map(i => E.condLabel(spec.conds[i], D));
+      const noteTxt = [insep.length ? `Not separable from ${insep.map(x => x.m.name).join(', ')} on ${B}` : '', r.labOnly ? 'Ranked on a lab-reported score' : '', softs.length ? 'Outside your preference: ' + softs.join(', ') : ''].filter(Boolean).join(' · ');
+      return { role, roleNote: dup ? `same as ${dup.toLowerCase()}` : note, has: true, none: false, name: r.m.name, lab: r.m.labName, via: r.best.o.provider, yName: B, y: fmtY(r), ci: ciY(r), prov: provShort(r), cost: money(r.cost), tps: fmtTps(r.tps), hasNote: !!noteTxt, note: noteTxt, sel: r.m.id === selId, border: r.m.id === selId ? 'var(--accent)' : 'var(--line)', shadow: r.m.id === selId ? '0 0 0 1px var(--accent)' : 'none', onClick: () => this.setState({ sel: r.m.id, whyNot: '' }) };
+    };
+    const wtxt = `${B} ${spec.w.cap.toFixed(2)} · $ ${spec.w.cost.toFixed(2)} · speed ${spec.w.speed.toFixed(2)}`;
+    const cards = [
+      card('Best overall for your weights', sl.top, sl.top ? `#1 of ${dec.feasible.length}` : '', 'Nothing qualifies yet.'),
+      card('Best value', sl.value, `most ${B} per $`, 'Nothing qualifies yet.'),
+      card('Cheapest that clears your bar', sl.clears, sl.bar != null ? `bar: ${E.fmtB(B, sl.bar)}` : 'no bar set; any score', 'Nothing clears your bar.'),
+      card('Best open weights', sl.open, sl.open ? sl.open.m.lic : '', 'No open-weights model qualifies.' + (dec.nearMisses.find(n => n.row.m.open) ? ` Closest: ${dec.nearMisses.find(n => n.row.m.open).row.m.name} (${dec.nearMisses.find(n => n.row.m.open).why}).` : '')),
+    ];
+    const mayList = dec.may.map(r => ({ name: r.m.name, lab: r.m.labName, prov: !!r.m.provisional, why: r.unrankedWhy || [...new Set(r.best.unks.map(i => r.best.t[i].why))].join('; '), onClick: () => this.setState({ sel: r.m.id, whyNot: '' }) }));
+
+    // ---------- table
+    const colDefs = [['rank', '#', 'left'], ['name', 'Model', 'left'], ['via', 'Offering', 'left'], ['y', B, 'right'], ['cost', '$ per task', 'right'], ['pin', 'In $/1M', 'right'], ['pout', 'Out $/1M', 'right'], ['ttft', 'First token', 'right'], ['tps', 'Tok/s', 'right'], ['ctx', 'Context', 'right'], ['weights', 'Weights', 'left'], ['status', 'Status', 'left']];
+    const sortVal = { rank: r => r.status === 1 ? r.rank : r.status === 0 ? 500 : 1000 + r.dropAt, name: r => r.m.name, via: r => r.best.o.provider, y: r => r.cap ?? -1, cost: r => r.cost ?? 1e9, pin: r => r.best.o.in ?? 1e9, pout: r => r.best.o.out ?? 1e9, ttft: r => r.best.o.ttft ?? 1e9, tps: r => r.best.o.tps ?? -1, ctx: r => r.m.ctx ?? -1, weights: r => r.m.open ? 0 : 1, status: r => -r.status };
+    const cols = colDefs.map(([k, label, align]) => ({ label, align, arrow: s.sortK === k ? (s.sortDir > 0 ? ' ↑' : ' ↓') : '', ariaSort: s.sortK === k ? (s.sortDir > 0 ? 'ascending' : 'descending') : 'none', onClick: () => this.setState(ss => ({ sortK: k, sortDir: ss.sortK === k ? -ss.sortDir : 1 })) }));
+    let trows = dec.rows.filter(r => r.status !== -1 || s.showExcl);
+    const sv = sortVal[s.sortK]; trows = trows.slice().sort((a, b) => { const A = sv(a), Bv = sv(b); return (A > Bv ? 1 : A < Bv ? -1 : 0) * s.sortDir; });
+    const tableRows = trows.map(r => ({ rank: r.status === 1 ? r.rank : '', name: r.m.name, lab: r.m.labName, via: r.best.o.provider, y: fmtY(r), ci: ciY(r), provMark: r.capR ? (r.capR.by === 'indep' ? '● ind.' : '○ lab') : '', cost: money(r.cost), pin: E.per1M(r.best.o.in), pout: E.per1M(r.best.o.out), ttft: fmtMs(r.best.o.ttft), tps: r.best.o.tps ?? '—', ctx: E.tok(r.m.ctx), weights: r.m.open ? 'Open' : 'Closed', status: statusTxt(r), stColor: stColor(r.status), reason: r.status === -1 ? '· ' + (r.best.t[r.dropAt]?.why || '') : r.status === 0 ? '· ' + (r.unrankedWhy || r.best.unks.map(i => r.best.t[i].why).join('; ')) : '', bg: r.m.id === selId ? 'var(--accentSoft)' : 'transparent', op: r.status === -1 ? 0.62 : 1, onClick: () => this.setState({ sel: r.m.id, whyNot: '' }) }));
+    const groups = {}; dec.excluded.forEach(r => { const k = r.dropAt; (groups[k] = groups[k] || []).push(r); });
+    const elimGroups = Object.keys(groups).sort((a, b) => a - b).map(k => ({ label: 'Failed: ' + E.condLabel(spec.conds[k], D), n: groups[k].length, names: groups[k].map(r => r.m.name).join(', ') }));
+
+    // ---------- detail
+    let d = null;
+    const sr = selId && rowOf(selId);
+    if (sr) {
+      const m = sr.m; const o = sr.best.o; const age = E.daysAgo(m.rel);
+      const badges = [{ text: E.TYPES[m.type], color: 'var(--muted)' }, { text: m.open ? 'Open weights · ' + m.lic : 'Closed weights', color: 'var(--muted)' }];
+      if (m.provisional) badges.push({ text: 'Provisional', color: 'var(--warn)' });
+      if (m.status === 'retired') badges.push({ text: 'Retired', color: 'var(--bad)' });
+      const insep = sr.status === 1 ? dec.insep(sr) : [];
+      const contrib = sr.status === 1 ? [
+        { label: `${B}`, value: `${fmtY(sr)} ${ciY(sr)}`, w: (sr.parts.cap * 100) + '%', wMax: (spec.w.cap * 100) + '%', note: `${provShort(sr)} · qualifying field ${E.fmtB(B, Math.min(...dec.feasible.map(x => x.cap)))} to ${E.fmtB(B, Math.max(...dec.feasible.map(x => x.cap)))}`, aria: `${B} weight ${spec.w.cap}, earns ${Math.round(sr.norm.cap * 100)} percent of it` },
+        { label: '$ per task', value: money(sr.cost), w: (sr.parts.cost * 100) + '%', wMax: (spec.w.cost * 100) + '%', note: `qualifying field ${money(Math.min(...dec.feasible.map(x => x.cost)))} to ${money(Math.max(...dec.feasible.map(x => x.cost)))}, compared on a log scale`, aria: `Cost weight ${spec.w.cost}` },
+        { label: 'Output throughput', value: fmtTps(sr.tps), w: (sr.parts.speed * 100) + '%', wMax: (spec.w.speed * 100) + '%', note: sr.tps == null ? 'unknown, so it earns nothing here' : `qualifying field ${Math.min(...dec.feasible.filter(x => x.tps != null).map(x => x.tps))} to ${Math.max(...dec.feasible.filter(x => x.tps != null).map(x => x.tps))} tok/s`, aria: `Speed weight ${spec.w.speed}` },
+      ] : [];
+      const benchesReported = new Set(m.bench.map(x => x.b)); const relevant = Object.keys(BENCH).filter(b => BENCH[b].types.includes(m.type));
+      const labMissing = relevant.filter(b => !m.bench.some(x => x.b === b && x.by === 'lab'));
+      d = {
+        name: m.name, sub: `${m.labName} · released ${m.rel}${age < 60 ? ` (${age} days ago)` : ''}`, badges,
+        status: sr.status === 1 ? `Qualifies · #${sr.rank} of ${dec.feasible.length}` : statusTxt(sr), stColor: stColor(sr.status),
+        statusWhy: sr.status === -1 ? sr.best.t[sr.dropAt]?.why : sr.status === 0 ? 'Unknown: ' + (sr.unrankedWhy || [...new Set(sr.best.unks.map(i => sr.best.t[i].why))].join('; ')) : `Best offering: ${o.provider}, ${money(sr.cost)} per task`,
+        isProv: !!m.provisional, provText: `Released ${age} days ago. ${m.bench.filter(x => x.by === 'lab').length} lab-reported scores, ${m.bench.filter(x => x.by === 'indep').length} independent. Speed not yet measured. Scheduled updates at +1, +7 and +30 days.`,
+        isRetired: m.status === 'retired', retText: `Retired ${m.retiredOn}. Kept so past decisions stay reproducible; excluded while “Offered now” is on.`,
+        hasInsep: insep.length > 0, insepText: insep.map(x => `${x.m.name}: ${fmtY(x)} ${ciY(x)}`).join('; ') + ` vs ${m.name}: ${fmtY(sr)} ${ciY(sr)}. The intervals overlap, so the order between them is decided by cost and speed, not ${B}.`,
+        contrib: contrib.length ? contrib : [{ label: 'Not ranked', value: '', w: '0%', wMax: '0%', note: sr.status === 0 ? 'Models that may qualify are not ranked until the unknowns are resolved.' : 'Excluded models are not ranked.', aria: 'Not ranked' }],
+        evidence: m.bench.slice().sort((a, b) => a.b.localeCompare(b.b) || (a.by === 'indep' ? -1 : 1)).map(x => ({ b: x.b, v: E.fmtB(x.b, x.v), ci: x.ci != null ? E.fmtCI(x.b, x) : 'no interval', cond: `${BENCH[x.b].unit} · effort ${x.effort} · ${x.harness} · ${x.date}`, pLabel: x.by === 'indep' ? 'Independent' : 'Lab-reported', pColor: x.by === 'indep' ? 'var(--ink2)' : 'var(--warn)', pBg: x.by === 'indep' ? 'var(--surface)' : 'var(--warnSoft)', aria: `Provenance for ${x.b} ${E.fmtB(x.b, x.v)}`, onProv: openProv(m, x) })),
+        facts: [{ k: 'Context', v: m.ctx ? E.num(m.ctx) + ' tokens' : 'not published' }, { k: 'Licence', v: m.lic + (m.commercial === false ? ' (no commercial use)' : '') }, { k: 'Origin jurisdiction', v: m.origin }, { k: 'Lifecycle', v: m.status === 'retired' ? 'Retired ' + m.retiredOn : 'Active' }, { k: 'Offerings', v: m.offerings.length + ' providers' }],
+        missing: labMissing.length ? `${m.labName} published no ${labMissing.join(', ')} result for this model.` : `${m.labName} reported on every benchmark we track for ${E.TYPES[m.type]}s.`,
+        offName: o.provider,
+        checks: spec.conds.map((c, i) => { const t = sr.best.t[i]; const soft = t.s === -1 && c.soft; return { label: E.condLabel(c, D), icon: t.s === 1 ? '✓' : t.s === 0 ? '?' : soft ? '~' : '✕', sr: t.s === 1 ? 'passes' : t.s === 0 ? 'unknown' : soft ? 'outside preference' : 'fails', color: t.s === 1 ? 'var(--good)' : t.s === 0 ? 'var(--warn)' : soft ? 'var(--warn)' : 'var(--bad)', why: t.why ? '· ' + t.why : '' }; }),
+        derivation: `$/task = ${E.num(spec.tokIn)} × ${E.per1M(o.in)}/1M + ${E.num(spec.tokOut)} × ${E.per1M(o.out)}/1M = ${money(sr.cost)}`,
+        offers: sr.offs.map(x => ({ provider: x.o.provider, used: x === sr.best ? '· used for ranking' : '', regions: x.o.regions ? x.o.regions.join(', ') : 'not stated', pin: E.per1M(x.o.in), pout: E.per1M(x.o.out), cost: money(x.cost), ttft: fmtMs(x.o.ttft), tps: x.o.tps ?? 'unknown', ret: x.o.ret == null ? 'not published' : x.o.ret === 'contract' ? '0 d with enterprise contract' : x.o.ret + ' days', status: statusTxt({ status: x.s }), stColor: stColor(x.s), why: x.s === -1 ? '· ' + x.fails.map(i => x.t[i].why).join('; ') : x.s === 0 ? '· ' + x.unks.map(i => x.t[i].why).join('; ') : '', bg: x === sr.best ? 'var(--accentSoft)' : 'transparent' })),
+      };
+    }
+    // costs, tipping, near
+    const maxPts = Math.max(1e-9, ...dec.costs.map(c => c.pts || 0));
+    const costs = dec.costs.map(c => ({ label: c.label, pts: c.pts == null ? '—' : c.pts < (bd.d === 3 ? 0.0005 : 0.05) ? 'costs nothing' : `−${E.fmtB(B, c.pts).replace('%', '')} ${bd.pct ? 'pts' : ''}`.trim(), w: ((c.pts || 0) / maxPts * 100) + '%', note: c.pts > 0 && c.bestAlt ? `Without it, the best ${B} would be ${c.bestAlt.m.name} at ${fmtY(c.bestAlt)}${c.unlocks > 0 ? `; ${c.unlocks} more would qualify` : ''}` : c.unlocks > 0 ? `${c.unlocks} more would qualify without it` : 'Removing it changes nothing' }));
+    let tip = null;
+    if (dec.tip && sl.top) {
+      const lo = dec.tip.lo ? dec.tip.lo.at : 0, hi = dec.tip.hi ? dec.tip.hi.at : 1;
+      const parts = [`${sl.top.m.name} stays #1 while the $ per task weight is between ${lo.toFixed(2)} and ${hi.toFixed(2)}.`];
+      if (dec.tip.hi) parts.push(`Above ${hi.toFixed(2)}, ${dec.tip.hi.who.m.name} takes #1.`);
+      if (dec.tip.lo) parts.push(`Below ${lo.toFixed(2)}, ${dec.tip.lo.who.m.name} does.`);
+      tip = { text: parts.join(' '), l: (lo * 100) + '%', w: ((hi - lo) * 100) + '%', val: spec.w.cost, cur: 'now ' + spec.w.cost.toFixed(2), onChange: e => this.setWeight('cost', parseFloat(e.target.value)) };
+    }
+    const near = dec.nearMisses.slice(0, 4).map(relaxItem);
+    // why not
+    let wn = null;
+    if (s.whyNot) {
+      const r = rowOf(s.whyNot);
+      if (r) {
+        if (r.status === 1 && sl.top && r.m.id === sl.top.m.id) wn = { head: `${r.m.name} is the current #1.`, lines: [] };
+        else if (r.status === 1) { const t = sl.top; wn = { head: `${r.m.name} qualifies and ranks #${r.rank}.`, lines: [`${B}: ${fmtY(r)} vs ${fmtY(t)} for ${t.m.name}`, `$ per task: ${money(r.cost)} vs ${money(t.cost)}`, `Output: ${fmtTps(r.tps)} vs ${fmtTps(t.tps)}`] }; }
+        else if (r.status === 0) wn = { head: `${r.m.name} may qualify; it isn't ranked yet.`, lines: r.unrankedWhy ? [r.unrankedWhy] : r.best.unks.map(i => `Unknown on “${E.condLabel(spec.conds[i], D)}”: ${r.best.t[i].why}`) };
+        else wn = { head: `${r.m.name} is excluded.`, lines: [...new Set(r.best.fails.map(i => `${E.condLabel(spec.conds[i], D)}: ${r.best.t[i].why}`))] };
+      }
+    }
+    // share
+    const cleanSpec = { task: spec.task || undefined, tokens_per_task: { input: spec.tokIn, output: spec.tokOut }, conditions: spec.conds.map(c => { const { id, from, ...rest } = c; return { ...rest, hard: !c.soft }; }), objective: { weights: { [B]: spec.w.cap, usd_per_task: spec.w.cost, output_tokens_per_s: spec.w.speed } }, explain: 'full', snapshot };
+    const yaml = ['# ModelSpec spec (fictional sample data)', `snapshot: ${snapshot}`, spec.task ? `task: "${spec.task}"` : null, 'tokens_per_task:', `  input: ${spec.tokIn}`, `  output: ${spec.tokOut}`, 'conditions:', ...spec.conds.map(c => '  - ' + E.condLabel(c, D).replace(/"/g, '') + (c.soft ? '   # soft' : '')), 'objective:', '  weights:', `    "${B}": ${spec.w.cap}`, `    usd_per_task: ${spec.w.cost}`, `    output_tokens_per_s: ${spec.w.speed}`, 'explain: full'].filter(x => x != null).join('\n');
+    const link = `https://modelspec.example/d/${snapshot}#s=${btoa(encodeURIComponent(JSON.stringify(spec))).slice(0, 48)}…`;
+    const codes = {
+      link: `https://modelspec.example/decide#s=${btoa(encodeURIComponent(JSON.stringify(spec)))}`,
+      api: `curl https://api.modelspec.example/v1/decide \\\n  -H "Authorization: Bearer $MODELSPEC_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(cleanSpec, null, 2)}'`,
+      cli: `modelspec decide \\\n  --snapshot ${snapshot} \\\n  --tokens ${spec.tokIn}:${spec.tokOut} \\\n${spec.conds.map(c => `  --where "${E.condLabel(c, D)}${c.soft ? ' (soft)' : ''}"`).join(' \\\n')} \\\n  --weights "${B}=${spec.w.cap},usd_per_task=${spec.w.cost},tps=${spec.w.speed}" \\\n  --explain full`,
+      yaml,
+    };
+    const tabs = [['link', 'Permalink'], ['api', 'API call'], ['cli', 'CLI'], ['yaml', 'Spec YAML'], ['alerts', 'Save and alert'], ['proc', 'Procurement review']];
+    const intros = { link: 'The whole spec is encoded in the link. Anyone who opens it sees this decision on this snapshot, and can change it.', api: 'Hand this decision to an agent. The response is a structured decision: results, may-qualify, eliminations, near misses and tipping points.', cli: 'Same spec, from a terminal.', yaml: 'Check the spec into a repo so your pipeline can re-run it.', alerts: `Watch this spec. We re-run it on every new snapshot${sl.top ? ` and tell you when something changes for ${sl.top.m.name}` : ''}.`, proc: `Yes, no or unknown per clause for ${sr ? sr.m.name + ' via ' + sr.best.o.provider : 'the selected model'}, with sources. Unknowns are listed, not assumed.` };
+    const proc = sr ? spec.conds.map((c, i) => { const t = sr.best.t[i]; return { clause: E.condLabel(c, D), result: t.s === 1 ? 'Yes' : t.s === 0 ? 'Unknown' : 'No', color: t.s === 1 ? 'var(--good)' : t.s === 0 ? 'var(--warn)' : 'var(--bad)', ev: t.why || (c.f === 'bench' ? (() => { const x = E.benchVal(sr.m, c.b, c.indep); return x ? `${E.fmtB(c.b, x.v)} · ${x.who} · ${x.date} · ${x.src}` : ''; })() : ['resid', 'ret0', 'task$', 'in$', 'ttft', 'tps'].includes(c.f) ? `${sr.best.o.provider} terms, snapshot ${snapshot}` : `Catalogue entry, snapshot ${snapshot}`) }; }) : [];
+    const alertsDef = [['beat', 'A new model beats this pick', 'Qualifies under this spec and ranks above the current #1.'], ['terms', "This pick's terms change", 'Price, regions, retention or licence on the offering you use.'], ['retire', 'This pick is scheduled for retirement', 'Deprecation notices from the lab or provider.']];
+    const loading = sim === 'loading';
+    const err = sim === 'error' && !s.retried;
+    return {
+      ...base, snapshot, spec, parsing: s.parsing, notParsing: !s.parsing, chips, hasTrace: s.trace.length > 0 && !s.parsing, trace: s.trace,
+      addOpen: s.addOpen, toggleAdd: () => this.setState({ addOpen: !s.addOpen, edit: null }), addQ: s.addQ, onAddQ: e => this.setState({ addQ: e.target.value }), onAddKey: e => { if (e.key === 'Enter' && addResults[0]) addResults[0].onClick(); }, addResults,
+      hasEdit: !!edit, edit: edit || {},
+      onTokIn: e => { const v = parseInt(e.target.value, 10); if (!isNaN(v)) this.setSpec(sp => ({ ...sp, tokIn: v })); },
+      onTokOut: e => { const v = parseInt(e.target.value, 10); if (!isNaN(v)) this.setSpec(sp => ({ ...sp, tokOut: v })); },
+      weights: [['cap', B.replace(' Pro', ' Pro')], ['cost', '$ per task'], ['speed', 'Tok/s']].map(([k, label]) => ({ label, val: spec.w[k], valText: spec.w[k].toFixed(2), aria: `Weight on ${label}`, onChange: e => this.setWeight(k, parseFloat(e.target.value)) })),
+      suggestions: sugg, noSuggestions: sugg.length === 0, funnel: fl, funnelSummary: `${dec.feasible.length} qualify · ${dec.may.length} may qualify · ${dec.excluded.length} excluded`,
+      isError: err, onRetry: () => this.setState({ retried: true }), showResults: !err && !loading, isLoading: loading && !err,
+      grid: (s.vw || 1440) < 1200 ? { cols: 'minmax(0,1fr)', areas: layout === 'table' ? '"table" "canvas" "short" "detail"' : '"canvas" "short" "detail" "table"' } : layout === 'table' ? { cols: 'minmax(0,1fr) 420px', areas: '"table canvas" "table short" "detail detail"' } : { cols: 'minmax(0,1fr) 400px', areas: '"canvas short" "detail detail" "table table"' },
+      canvasH: layout === 'table' ? '300px' : '460px',
+      xAxis: s.xAxis, xOpts: Object.keys(AX).map(k => ({ v: k, label: `${AX[k].label} (${AX[k].unit})` })), yOpts: Object.keys(BENCH).filter(b => BENCH[b].types.includes(spec.conds.find(c => c.f === 'type')?.v || 'llm')).map(b => ({ v: b, label: `${b} (${BENCH[b].unit})` })),
+      onX: e => this.setState({ xAxis: e.target.value }), onY: e => this.setSpec(sp => ({ ...sp, bench: e.target.value })),
+      xLabel: `${ax.label} (${ax.unit}${ax.log ? ', log scale' : ''})`, yLabel: `${B} (${bd.unit}${hiB ? '' : ', lower is better'})`,
+      yTicks, xTicks, frontierPath, points, labels, cis, xh, yh, hasHover: !!hover, hover: hover || {},
+      emptyCanvas: nothing, emptyTitle: dec.may.length ? `Nothing is confirmed. ${dec.may.length} may qualify.` : 'Nothing qualifies under these conditions.', emptyBody: dec.may.length ? 'See the may-qualify list. Or relax one condition:' : 'These are one condition away:',
+      nearTop, strip: stripV, stripTitle: `Best ${B} you can get at each ${ax.label.toLowerCase()} ${ax.low ? 'cap' : 'minimum'}`, hasUnplotted: unplotted.length > 0, unplotted: unplotted.join(', '),
+      cards, shortSummary: wtxt, mayList, mayCount: dec.may.length, noMay: dec.may.length === 0,
+      tableTitle: `Decision table · ${dec.feasible.length} qualify, ${dec.may.length} may`, showExcl: s.showExcl, toggleExcl: () => this.setState({ showExcl: !s.showExcl }), exclCount: dec.excluded.length, cols, tableRows, elimGroups,
+      hasDetail: !!d, noDetail: !d, d: d || {}, hasTip: !!tip, tip: tip || {}, costs, near, noNear: near.length === 0,
+      whyNot: s.whyNot, onWhyNot: e => this.setState({ whyNot: e.target.value }), allModels: D.models.map(m => ({ id: m.id, label: `${m.name} · ${m.labName}` })), hasWhyNot: !!wn, wn: wn || { lines: [] },
+      hasProv: !!s.prov, prov: s.prov || { rows: [] }, closeProv: () => this.setState({ prov: null }),
+      share: s.share, openShare: () => this.setState({ share: true, copied: false }), closeShare: () => this.setState({ share: false }),
+      shareTabs: tabs.map(([k, label]) => ({ label, on: s.shareTab === k, fg: s.shareTab === k ? 'var(--ink)' : 'var(--muted)', line: s.shareTab === k ? 'var(--accent)' : 'transparent', onClick: () => this.setState({ shareTab: k, copied: false }) })),
+      shareIntro: intros[s.shareTab], shareIsCode: !!codes[s.shareTab], shareCode: codes[s.shareTab] || '', shareIsAlerts: s.shareTab === 'alerts', shareIsProc: s.shareTab === 'proc',
+      copyLabel: s.copied ? 'Copied' : 'Copy', onCopy: () => { try { navigator.clipboard.writeText(codes[s.shareTab]); } catch (e) {} this.setState({ copied: true }); },
+      alerts: alertsDef.map(([k, label, note]) => ({ label, note, on: s.alerts[k], onChange: () => this.setState(ss => ({ alerts: { ...ss.alerts, [k]: !ss.alerts[k] }, saved: false })) })),
+      saveLabel: s.saved ? 'Saved · watching this spec' : 'Save and watch', onSaveAlert: () => this.setState({ saved: true }),
+      proc, onExportCsv: () => { const csv = 'clause,result,evidence\n' + proc.map(p => [p.clause, p.result, p.ev].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `modelspec-${snapshot}.csv`; a.click(); },
+    };
+  }
+}
+</script>
+</body>
+</html>

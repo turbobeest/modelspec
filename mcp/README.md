@@ -33,7 +33,7 @@ new hostname.
 
 ## Tools
 
-All four pass through the origin. Null on a card means not researched.
+All six pass through the origin. Null on a card means not researched.
 
 | Tool | Origin |
 |---|---|
@@ -41,9 +41,21 @@ All four pass through the origin. Null on a card means not researched.
 | `model_info` | `GET https://modelspec.dev/api/models/<id>.json` |
 | `list_use_cases` | `GET https://modelspec.dev/api/rank/profiles.json` |
 | `policy_check` | `POST https://api.modelspec.dev/v1/policy-check` |
+| `decide` | `POST https://api.modelspec.dev/v1/decide` |
+| `vocab` | `GET https://modelspec.dev/api/decision/vocabulary.json` |
 
-`policy_check` forwards an `Authorization` header if the MCP client sent one.
-Without a key the origin answers the free tier.
+`rank`, `policy_check`, and `decide` use the `RANK` service binding because a
+same-zone Worker fetch to the public API hostname reaches the zone origin and
+returns 522. `policy_check` and `decide` forward an `Authorization` header if
+the MCP client sent one. Without a key the origin answers the free tier.
+
+`decide` accepts the decision spec defined by
+[`docs/decision-contract.md`](../docs/decision-contract.md). Its MCP input
+schema comes from the generated `docs/decision-contract.schema.json`, so the
+API and MCP contracts cannot drift. Read `vocab` first for valid facet ids.
+Use `where` for Musts that exclude and `optimize.weights` for Prefers that
+rank without excluding. Unknown capability values appear in `may_qualify`.
+Pin `snapshot` to reproduce a decision.
 
 ## Client config
 

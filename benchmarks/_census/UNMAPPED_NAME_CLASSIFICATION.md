@@ -1,6 +1,6 @@
 # Unmatched leaderboard names (284)
 
-Classification of `refusals.unmapped_name` from the 2026-09-10 AA + LM Arena harvest.
+Classification of `refusals.unmapped_name` from the 2026-09-10 live leaderboard harvest.
 Mapping is explicit. A wrong alias is worse than a refusal.
 
 ## Counts
@@ -432,8 +432,8 @@ Unrankable is "no flat scores and no evidence". Ranking profiles cannot order th
 
 Of the 463 unrankable LLM/VLM cards:
 
-- **75** have a name that appears on the AA/Arena harvest (strict slug match). Aliases, new cards, and the next attach pass can move these. This is the crawl-fixable set inside the 601.
-- **388** have no row on those two boards. They become rankable only if someone runs evals or another source (Open LLM Leaderboard, papers) is attached. Crawling AA/Arena again will not find them.
+- **75** have a name that appears on the live-board harvest (strict slug match). Aliases, new cards, and the next attach pass can move these. This is the crawl-fixable set inside the 601.
+- **388** have no row on those boards. They become rankable only if someone runs evals or another source (Open LLM Leaderboard, papers) is attached. Crawling those boards again will not find them.
 
 Deprecated/sunset among the 604: **0** (status is widely still `active` even for old weights). Preview/alpha/beta: **25**.
 
@@ -441,13 +441,13 @@ Deprecated/sunset among the 604: **0** (status is widely still `active` even for
 
 It is not a reachable goal with the current ranking profiles and public boards.
 
-A hard floor of **96 / 604 (~16%)** cannot be ranked no matter how completely AA and LM Arena are matched: image, video, audio, OCR, base checkpoints, and serving quants. The harvest already refused Arena's image/video snapshots because they are not ranked keys.
+A hard floor of **96 / 604 (~16%)** cannot be ranked no matter how completely the live boards are matched: image, video, audio, OCR, base checkpoints, and serving quants. The harvest already refused Arena's image/video snapshots because they are not ranked keys.
 
 A practical crawl ceiling on the remaining 508 is much lower than 508:
 
 - **~75** LLM/VLM cards are sitting on the boards we already fetched and failed to match (this task).
 - **~45** embedding/safety cards need different boards (MTEB, HELM-safety), which this harvest did not take.
-- **~388** LLM/VLM cards have no public row on AA or LM Arena. Matching cannot create those scores.
+- **~388** LLM/VLM cards have no public row on the live boards. Matching cannot create those scores.
 
 The 104 missing names we carded were not in the 601 (they had no card). They are new unrankable rows until `LEDGER_TO_CARD` is extended and attach runs. Many of those 104 *are* on the live boards, so they are the highest-yield follow-up after aliases.
 

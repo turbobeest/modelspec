@@ -1,26 +1,24 @@
 # Chart check, 2026-09-24 (MODEL-130 phase 1, round 3)
 
-A bar was read off the publisher's page, then compared with the evidence rows on the cards. Cards were not edited. Nine pages, 48 charts, 39 transcribed, 9 left `needs_reading`. 851 bars.
+A bar was read off the publisher's page, then compared with the evidence rows on the cards. Cards were not edited. Seven pages, 34 charts, 30 transcribed, 4 left `needs_reading`. 708 bars.
 
-Same-source evidence is compared first, for every role. Artificial Analysis bars are `evaluated`. A second harness of the same model and benchmark is `other_configuration` when one sibling matches the row. A different unit is `unit_differs`. A non-headline metric is `other_metric`. A bar with no catalogue page is `no_benchmark_page`.
+Same-source evidence is compared first, for every role. A second harness of the same model and benchmark is `other_configuration` when one sibling matches the row. A different unit is `unit_differs`. A non-headline metric is `other_metric`. A bar with no catalogue page is `no_benchmark_page`.
 
 | Class | Bars |
 | --- | ---: |
-| matched | 26 |
+| matched | 19 |
 | other_configuration | 7 |
 | mismatched | 0 |
-| unit_differs | 2 |
-| other_metric | 4 |
-| no_benchmark_page | 298 |
-| not_held | 491 |
-| competitor_gap | 11 |
-| competitor_unresolved | 12 |
+| unit_differs | 0 |
+| other_metric | 1 |
+| no_benchmark_page | 293 |
+| not_held | 377 |
+| competitor_gap | 7 |
+| competitor_unresolved | 4 |
 
 The seven `other_configuration` bars are DeepSeek-V4.1-Flash on Terminal-Bench 2.1, same page as the card's 90.6. That row is DeepSeek Harness Minimal, and the 90.6 bar matches. The other scaffolds are Claude Code 88.0, Codex 84.1, OpenCode 85.0, Pi 86.1, mini-SWE 90.3, DSH Standard 85.8, and DSH PTC 85.8.
 
-The two `unit_differs` bars are AA-Briefcase on the v4.2 article. The chart prints Elo. The card holds the index-normalised percent from that same article, `clamp((Elo − 500) / 2000)`. GPT-6 Astra is 1565 Elo and 53. GLM-5.3 is 1521 Elo and 51.
-
-The four `other_metric` bars are AutomationBench-AA tasks completed (Astra 41.6, Fable 5.1 32.1, Opus 5 28.3) and the DeepSeek-V4.1-Flash HLE text-only subset at 39.1. Astra's AutomationBench-AA Score of 68.5 matches the card.
+The `other_metric` bar is the DeepSeek-V4.1-Flash HLE text-only subset at 39.1.
 
 ## Coverage
 
@@ -28,51 +26,49 @@ Headline subject bars with a catalogue id. Held means a same-source row exists, 
 
 | Model | Held / published | Matched |
 | --- | ---: | ---: |
-| openai/gpt-6-astra | 7/14 | 7 |
-| openai/gpt-6-sol | 0/2 | 0 |
+| openai/gpt-6-astra | 6/11 | 6 |
+| openai/gpt-6-sol | 0/1 | 0 |
 | openai/gpt-5-4 | 0/0 | 0 |
 | openai/o3 | 0/0 | 0 |
 | openai/o3-mini | 0/0 | 0 |
 | openai/o4-mini | 0/0 | 0 |
 | openai/gpt-4-1 | 0/0 | 0 |
 | openai/gpt-4-1-mini | 0/0 | 0 |
-| google/gemini-3-8-flash | 2/15 | 2 |
+| google/gemini-3-8-flash | 2/11 | 2 |
 | google/gemini-2-5-pro | 0/0 | 0 |
 | google/gemini-2-5-flash | 0/0 | 0 |
-| deepseek/deepseek-flash | 19/20 | 12 |
+| deepseek/deepseek-flash | 17/18 | 10 |
 | deepseek/deepseek-v3-2 | 0/0 | 0 |
 | deepseek/deepseek-v3-2-exp | 1/11 | 1 |
 | qwen/qwen3-235b-a22b | 0/21 | 0 |
 | deepseek/deepseek-v3-1-terminus | 0/11 | 0 |
-| deepseek/deepseek-v4-pro | 0/8 | 0 |
-| deepseek/deepseek-v4-flash | 0/8 | 0 |
-| google/gemini-3-7-flash | 0/15 | 0 |
-| openai/gpt-5-6-sol | 0/12 | 0 |
+| deepseek/deepseek-v4-pro | 0/7 | 0 |
+| deepseek/deepseek-v4-flash | 0/7 | 0 |
+| google/gemini-3-7-flash | 0/11 | 0 |
+| openai/gpt-5-6-sol | 0/10 | 0 |
 | qwen/qwen3-32b | 0/7 | 0 |
 | qwen/qwen3-30b-a3b | 0/6 | 0 |
 | qwen/qwen3-4b | 0/6 | 0 |
 
-Astra's seven matches are the evidence rows that cite `openai.com/index/gpt-6-astra/`: GPQA Diamond 96.0, Terminal-Bench 4.0 57.9, Terminal-Bench Science 64.6, BrowseComp 91.5, HLE with tools 57.2, ARC-AGI-2 95.0, AutomationBench 41.4.
+Astra's six matches are the evidence rows that cite `openai.com/index/gpt-6-astra/`: GPQA Diamond 96.0, Terminal-Bench 4.0 57.9, Terminal-Bench Science 64.6, BrowseComp 91.5, HLE with tools 57.2, ARC-AGI-2 95.0.
 
 Gemini 3.8 Flash matches the two rows that cite the model card: Terminal-bench 2.1 at 89.4 and CharXiv Reasoning at 86.2. The launch post repeats those tables under a different URL.
 
-DeepSeek-V4.1-Flash (`deepseek/deepseek-flash`) holds 19 of 20 headline bars from the README. Twelve match, including Terminal-Bench 2.1 at 90.6. Seven are the other scaffolds above. ZeroBench-main at 49.0 has no row from that page. The HLE text-only 39.1 is `other_metric` and is outside this denominator.
+DeepSeek-V4.1-Flash (`deepseek/deepseek-flash`) holds 17 of 18 headline bars from the README. Ten match, including Terminal-Bench 2.1 at 90.6. Seven are the other scaffolds above. ZeroBench-main at 49.0 has no row from that page. The HLE text-only 39.1 is `other_metric` and is outside this denominator.
 
-DeepSeek-V3.2-Exp matches Terminal-bench 37.7, the only row the card cites from that README. Qwen3-235B-A22B's evidence cites the Artificial Analysis leaderboard and the arena dataset. The blog adds one catalogue bar, MultiIF 71.9, so the denominator is 21. GPT-6 Sol's evidence cites Zapier. The other subject rows in the table are publisher models on these pages whose cards do not cite the page.
+DeepSeek-V3.2-Exp matches Terminal-bench 37.7, the only row the card cites from that README. Qwen3-235B-A22B's evidence cites the arena dataset. The blog adds one catalogue bar, MultiIF 71.9, so the denominator is 21. The other subject rows in the table are publisher models on these pages whose cards do not cite the page.
 
 ## Mismatched bars
 
-None. GDP.pdf all-pass on the v4.2 article matches the card rows from that URL. GPT-6 Astra (max) is 33.2. GLM-5.3 (max) is 11.8.
+None.
 
 ## Competitor gaps above 2 points
 
-One gap. Claude Fable 5.1 on Terminal-Bench 4.0 is 52.0 in the v4.3 article (`https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-3`). The card holds 55.8 from the Anthropic system card (`https://www.anthropic.com/claude-fable-5-1-system-card`) and 57.88 from tbench.ai (`https://www.tbench.ai/leaderboard`). The gap versus the closer row is −3.8.
-
-Eleven bars are `competitor_gap` in total. The other ten are within 2 points.
+None. Seven bars are `competitor_gap`. Each is within 2 points.
 
 ## Uncatalogued benchmarks
 
-298 bars have `benchmark_id: null`. The count is how many times the label was printed, across pages.
+293 bars have `benchmark_id: null`. The count is how many times the label was printed, across pages.
 
 | Benchmark as labelled | Bars |
 | --- | ---: |
@@ -89,17 +85,16 @@ Eleven bars are `competitor_gap` in total. The other ten are within 2 points.
 | NL2Repo | 7 |
 | ArenaHard | 6 |
 | CodeForces | 6 |
-| FrontierCode extended | 6 |
-| FrontierCode main | 6 |
+| FrontierCode 1.1 Extended | 6 |
+| FrontierCode 1.1 Main | 6 |
 | ProgramBench | 6 |
 | SEC-Bench Pro | 6 |
-| Agents' Last Exam | 5 |
 | ARC-AGI-1 | 5 |
+| Agents' Last Exam | 5 |
 | BenchCAD | 5 |
 | Codeforces | 5 |
-| Coding Agent Index | 5 |
 | Computer-use safety | 5 |
-| FrontierMath Tier 4 | 5 |
+| FrontierMath Tier 4 (v2) | 5 |
 | INCLUDE | 5 |
 | BabyVision | 4 |
 | Chartography | 4 |
@@ -114,12 +109,12 @@ Eleven bars are `competitor_gap` in total. The other ten are within 2 points.
 | ExploitBench June-August 2026 | 2 |
 | ExploitGym honeypot | 2 |
 | GeneBench Pro | 2 |
-| Hallucination | 2 |
 | HMMT 2025 | 2 |
-| LifeSciBench | 2 |
+| Hallucination | 2 |
 | LVBench static | 2 |
-| MedChemBench | 2 |
-| OpenScore String Quartets | 2 |
+| LifeSciBench | 2 |
+| MedChemBench (Internal) | 2 |
+| OpenScore String Quartets (1 - OMR-NED) | 2 |
 | CVBench | 1 |
 | Image to text safety | 1 |
 | Impossible ExploitGym | 1 |
@@ -131,22 +126,14 @@ Eleven bars are `competitor_gap` in total. The other ten are within 2 points.
 
 ## Second reading
 
-Reader B (claude-opus, 2026-09-24) is recorded on 35 charts. The 13 OpenAI charts still have one reading: both OpenAI pages returned 403, so those sources are `unpaired_source` and nothing from them was written onto the fixtures. No `only_b` bar was added to a fixture. Paired printed values agree, so no bar is marked `disputed`. The class counts above are unchanged from round 2.
+Reader B (claude-opus, 2026-09-24) is recorded on 23 charts. The 11 OpenAI charts still have one reading: both OpenAI pages returned 403, so those sources are `unpaired_source` and nothing from them was written onto the fixtures. No `only_b` bar was added to a fixture. Paired printed values agree, so no bar is marked `disputed`.
 
 A page source is paired with the HTML and prose charts. Image charts are paired from the image file, through the sha256 in the phase 1 manifest. Two items pair when the model, the benchmark, and the setting match after normalisation. A model and benchmark that appear once on each side pair even when the surrounding prose differs. A repeated setting has to match as well.
 
 | Source | A | B | Paired | Agree | Disagree | only_a | only_b | Unpaired |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| aa-1.png | 22 | 68 | 21 | 21 | 0 | 1 | 47 | 0 |
-| aa-2.png | 0 | 107 | 0 | 0 | 0 | 0 | 107 | 0 |
-| aa-3.png | 22 | 70 | 22 | 22 | 0 | 0 | 48 | 0 |
-| aa-4.png | 22 | 70 | 22 | 22 | 0 | 0 | 48 | 0 |
-| aa-5.png | 0 | 243 | 0 | 0 | 0 | 0 | 243 | 0 |
-| aa-6.png | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| artificialanalysis.ai/.../intelligence-index-v4-2 | 0 | 7 | 0 | 0 | 0 | 0 | 7 | 0 |
-| artificialanalysis.ai/.../intelligence-index-v4-3 | 21 | 31 | 21 | 21 | 0 | 0 | 10 | 0 |
-| deepmind.google/.../gemini-3-8-flash/ | 90 | 102 | 90 | 90 | 0 | 0 | 12 | 0 |
-| ds-agentic.png | 19 | 19 | 19 | 19 | 0 | 0 | 0 | 0 |
+| deepmind.google/.../gemini-3-8-flash/ | 78 | 90 | 78 | 78 | 0 | 0 | 12 | 0 |
+| ds-agentic.png | 14 | 14 | 14 | 14 | 0 | 0 | 0 | 0 |
 | ds-cost.png | 0 | 9 | 0 | 0 | 0 | 0 | 9 | 0 |
 | ds-kv.png | 0 | 7 | 0 | 0 | 0 | 0 | 7 | 0 |
 | g-attack.png | 16 | 48 | 16 | 16 | 0 | 0 | 32 | 0 |
@@ -156,13 +143,13 @@ A page source is paired with the HTML and prose charts. Image charts are paired 
 | g-harvey.webp | 6 | 6 | 6 | 6 | 0 | 0 | 0 | 0 |
 | g-hle.webp | 6 | 6 | 6 | 6 | 0 | 0 | 0 | 0 |
 | g-rwvuln.png | 3 | 3 | 3 | 3 | 0 | 0 | 0 | 0 |
-| g-table.png | 85 | 97 | 85 | 85 | 0 | 0 | 12 | 0 |
+| g-table.png | 73 | 85 | 73 | 73 | 0 | 0 | 12 | 0 |
 | g-vals.webp | 6 | 6 | 6 | 6 | 0 | 0 | 0 | 0 |
 | blog.google/.../3-8-flash-and-3-8-flash-cyber/ | 0 | 6 | 0 | 0 | 0 | 0 | 6 | 0 |
 | huggingface.co/.../DeepSeek-V3.2-Exp | 28 | 28 | 26 | 26 | 0 | 2 | 2 | 0 |
-| huggingface.co/.../DeepSeek-V4.1-Flash | 176 | 179 | 173 | 173 | 0 | 3 | 6 | 0 |
-| openai.com/index/gpt-6-astra/ | 139 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
-| openai.com/index/introducing-gpt-6-sol-and-luna/ | 10 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| huggingface.co/.../DeepSeek-V4.1-Flash | 169 | 172 | 166 | 166 | 0 | 3 | 6 | 0 |
+| openai.com/index/gpt-6-astra/ | 123 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| openai.com/index/introducing-gpt-6-sol-and-luna/ | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
 | qwen-235.jpg | 58 | 58 | 58 | 58 | 0 | 0 | 0 | 0 |
 | qwen-30.jpg | 42 | 63 | 42 | 42 | 0 | 0 | 21 | 0 |
 | qwen-base.jpg | 75 | 75 | 75 | 75 | 0 | 0 | 0 | 0 |
@@ -170,7 +157,7 @@ A page source is paired with the HTML and prose charts. Image charts are paired 
 | qwen-post.png | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | qwenlm.github.io/blog/qwen3/ | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-Totals: agree 696, disagree 0, only_a 6, only_b 751, unparsed 0, unpaired_source 2.
+Totals: agree 574, disagree 0, only_a 5, only_b 241, unparsed 0, unpaired_source 2.
 
 ### Printed disagreements
 
@@ -180,17 +167,12 @@ None. Every paired bar is printed on both sides, and the digits agree.
 
 0 outside reader B's stated uncertainty. The paired bars are printed. Reader B's estimated items are `only_b`: charts this pass left `needs_reading`, plus scatters and extra series on images that were only partly transcribed.
 
-`only_b` is coverage reader A missed, and those bars were not added to the fixtures. The large groups are aa-5 (243, per-evaluation small multiples), aa-2 (107, output-token chart), g-deepswe (76), the cost scatters under aa-3 (48), aa-4 (48) and aa-1 (47), g-attack ASR@1 and ASR@10 segments (32), g-cwe (30), qwen-budget (28), and the extra series on qwen-30 (21).
+`only_b` is coverage reader A missed, and those bars were not added to the fixtures. The large groups are g-deepswe (76), g-attack ASR@1 and ASR@10 segments (32), g-cwe (30), qwen-budget (28), and the extra series on qwen-30 (21).
 
-Six bars stayed `only_a` because the model string or the setting differs:
+Five bars stayed `only_a` because the model string or the setting differs:
 
-- aa-1: reader A has Gemini 3.5 Flash (high) at 47. Reader B's 47 on that chart is Gemini 3.8 Flash (high).
 - DeepSeek-V3.2-Exp, BrowseComp-zh: reader A calls the section reasoning with no tools (45.0 and 47.9). Reader B calls it agentic tool use (45 and 47.9).
 - DeepSeek-V4.1-Flash HLE: reader B marks GLM-5.3 42.0, DS-V4-Pro 42.7, and DS-V4-Flash 37.8 as the text-only subset. Reader A recorded those same digits as the headline HLE cell.
-
-### GDP.pdf on the v4.2 article
-
-Reader B's printed all-pass bars agree with reader A. GPT-6 Astra (max) is 33.2 on both sides. GLM-5.3 (max) is 11.8 on both sides. The card still holds 33.0 and 12.0 from the same URL, so both bars stay `mismatched` and `known_mismatch`.
 
 ### g-deepswe, g-harvey, g-hle, g-vals
 
@@ -200,7 +182,7 @@ g-harvey, g-hle, and g-vals each match g-table on all six models. Harvey all-pas
 
 ## Phase 2a: Anthropic and xAI
 
-Reader A, 2026-09-24. Cards were not edited. Thirteen pages, 552 charts, 26 transcribed, 526 left `needs_reading`. 746 bars. The full checker, including phase 1, is 22 pages, 600 charts, 1,597 bars, and exits clean.
+Reader A, 2026-09-24. Cards were not edited. Thirteen pages, 535 charts, 25 transcribed, 510 left `needs_reading`. 624 bars. The full checker, including phase 1, is 20 pages, 569 charts, 1,332 bars, and exits clean.
 
 ### Pages
 
@@ -224,20 +206,20 @@ Fetched.
 
 Not fetched. `https://x.ai/news` returned 403. The three post URLs returned 200. None of those posts links a model card. `https://www.anthropic.com/news/claude-fable-5-mythos-5` is the earlier Fable 5 post, so it is not a source for 5.1.
 
-The 526 `needs_reading` charts are the Figure and Table captions in the five system cards that this pass did not transcribe, plus launch charts whose points are not labelled: the Sonnet 5 BrowseComp and OSWorld effort plots, the Opus 4.8 misalignment chart, the Grok 4.7 CursorBench scatter, the Opus 5 Frontier-Bench effort plot, and ten other images on the Opus 5 post. Summary tables, the launch grids with printed cells, and the charts whose labels were read are the 26 transcribed charts.
+The 510 `needs_reading` charts are the Figure and Table captions in the five system cards that this pass did not transcribe, plus launch charts whose points are not labelled: the Sonnet 5 BrowseComp and OSWorld effort plots, the Opus 4.8 misalignment chart, the Grok 4.7 CursorBench scatter, the Opus 5 Frontier-Bench effort plot, and ten other images on the Opus 5 post. Summary tables, the launch grids with printed cells, and the charts whose labels were read are the 25 transcribed charts.
 
 ### Bars
 
 | Class | Bars |
 | --- | ---: |
-| matched | 27 |
+| matched | 24 |
 | other_configuration | 2 |
 | mismatched | 0 |
 | unit_differs | 0 |
 | other_metric | 2 |
-| no_benchmark_page | 306 |
-| not_held | 407 |
-| competitor_unresolved | 2 |
+| no_benchmark_page | 301 |
+| not_held | 294 |
+| competitor_unresolved | 1 |
 
 The two `other_configuration` bars are Claude Opus 5.5 on Terminal-Bench 4.0 from the system card. The summary table's 66.4 matches the card. The section also prints 66.36 at xhigh and 64.8 at max.
 
@@ -247,17 +229,17 @@ Headline subject bars with a catalogue id. Held means a same-source row exists, 
 
 | Model | Held / published | Matched |
 | --- | ---: | ---: |
-| anthropic/claude-opus-5-5 | 10/27 | 8 |
-| anthropic/claude-fable-5-1 | 6/44 | 6 |
+| anthropic/claude-opus-5-5 | 9/19 | 7 |
+| anthropic/claude-fable-5-1 | 6/34 | 6 |
 | anthropic/claude-mythos-5-1 | 1/3 | 1 |
-| anthropic/claude-opus-5 | 1/66 | 1 |
-| anthropic/claude-sonnet-5 | 1/22 | 1 |
-| anthropic/claude-opus-4-8 | 2/50 | 2 |
-| xai/grok-4-7 | 0/5 | 0 |
-| xai/grok-4-6 | 0/10 | 0 |
-| xai/grok-4-5 | 0/7 | 0 |
+| anthropic/claude-opus-5 | 1/51 | 1 |
+| anthropic/claude-sonnet-5 | 1/19 | 1 |
+| anthropic/claude-opus-4-8 | 2/41 | 2 |
+| xai/grok-4-7 | 0/2 | 0 |
+| xai/grok-4-6 | 0/3 | 0 |
+| xai/grok-4-5 | 0/3 | 0 |
 
-Opus 5.5 matches the rows that cite its system card: SWE-bench Pro 89.9, SWE-bench Multilingual 93.9, SWE-bench Multimodal 61.4, Terminal-Bench 4.0 66.4, Terminal-Bench Science 58.7, HLE 64.4, HLE with tools 67.7, AutomationBench 40.0.
+Opus 5.5 matches the rows that cite its system card: SWE-bench Pro 89.9, SWE-bench Multilingual 93.9, SWE-bench Multimodal 61.4, Terminal-Bench 4.0 66.4, Terminal-Bench Science 58.7, HLE 64.4, HLE with tools 67.7.
 
 Fable 5.1 matches SWE-bench Pro 81.2, SWE-bench Multilingual 89.1, SWE-bench Multimodal 54.7, Terminal-Bench Science 52.6, ARC-AGI-2 90.0, and Terminal-Bench 4.0. The table prints 56. The card holds 55.8. A whole number is ±0.5, so 56 matches 55.8. Mythos 5.1's parenthetical 61 matches the card's 60.9 the same way.
 
@@ -267,30 +249,15 @@ Opus 4.8 matches SWE-bench Verified 88.6 and GPQA Diamond 93.6. Opus 5 matches S
 
 None.
 
-Gemini 3.1 Pro on GPQA Diamond, Table 8.1.A of the Claude Opus 4.8 system card, prints 94.3. The Gemini card's row for that benchmark is 94.14 from https://artificialanalysis.ai/leaderboards/models, `source_kind: independent_evaluator`. An `official_reports` bar is checked against `provider_self_report` rows only. This card has none for GPQA Diamond, so the bar is `not_held` and that row is context. The `known_mismatch` mark is removed. The card was not edited.
+Gemini 3.1 Pro on GPQA Diamond, Table 8.1.A of the Claude Opus 4.8 system card, prints 94.3. An `official_reports` bar is checked against `provider_self_report` rows only. This card has none for GPQA Diamond, so the bar is `not_held`. The `known_mismatch` mark is removed. The card was not edited.
 
 ### Gaps above 2 points
 
 No same-unit competitor gap in this pass is larger than 2 points. There is no `competitor_gap` bar.
 
-Twelve bars print GDPval-AA or AA-Briefcase as Elo. Each rival card holds an `independent_evaluator` percent or normalised Elo percent for that benchmark and no `provider_self_report`, so the bar is `not_held`. The row below is context.
-
-| Model | Chart | Chart unit | Card | Card unit | Card source |
-| --- | ---: | --- | ---: | --- | --- |
-| GPT-5.6 Sol | 1711 | elo | 56.21 | percent | https://artificialanalysis.ai/leaderboards/models |
-| Gemini 3.1 Pro | 1314 | elo | 20.2 | percent | https://artificialanalysis.ai/leaderboards/models |
-| GPT-6 Astra | 1542 | elo | 54 | normalized Elo percent | https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2 |
-| GPT-6 Astra | 1569 | elo | 53 | normalized Elo percent | https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v4-2 |
-| GPT-5.6 Sol | 1588 | elo | 56.21 | percent | https://artificialanalysis.ai/leaderboards/models |
-| GPT-5.6 Sol | 1736 | elo | 56.21 | percent | https://artificialanalysis.ai/leaderboards/models |
-| Gemini 3.5 Flash | 1357 | elo | 37.95 | percent | https://artificialanalysis.ai/leaderboards/models |
-| GPT-5.6 Sol | 1728 | elo | 56.21 | percent | https://artificialanalysis.ai/leaderboards/models |
-
-1711 is on both the Fable 5.1 system card and https://www.anthropic.com/claude-fable-and-mythos-5-1. 1314 is on both the Opus 4.8 system card and https://www.anthropic.com/news/claude-opus-4-8. 1542 is on both the Opus 5.5 system card and https://www.anthropic.com/claude-opus-5-5. 1588 is on the Opus 5.5 launch page. 1736 is on both the Opus 5 system card and https://www.anthropic.com/news/claude-opus-5. 1357 is on the Sonnet 5 system card. 1728 is on https://x.ai/news/grok-4-6. 1569 is AA-Briefcase on the Opus 5.5 system card.
-
 ### Uncatalogued benchmarks
 
-306 bars have `benchmark_id: null`. The count is how many times the label was printed.
+301 bars have `benchmark_id: null`. The count is how many times the label was printed.
 
 | Benchmark as labelled | Bars |
 | --- | ---: |
@@ -327,12 +294,6 @@ The Sonnet 5 launch table, in the column marked for reference, prints 82.7. The 
 
 `anthropic/claude-opus-4-8` has no `terminal_bench_v2_1` evidence row.
 
-### Opus 4.8 on GDPval-AA v2
-
-The Sonnet 5 launch table prints 1615. The Opus 5 system card and the Opus 5 launch table print 1593. Both readers recorded both. Both rows are labelled GDPval-AA v2.
-
-`anthropic/claude-opus-4-8` holds `gdpval_aa` 49.45 percent, `source_kind: independent_evaluator`, from the Artificial Analysis leaderboard column `gdpvalNormalized`. That row is the normalized percent, not these Elo figures.
-
 ### Opus 5 on FrontierCode v1.1 Main
 
 The Opus 5 card and the Opus 5 launch table print 53.4. Both readers recorded both.
@@ -357,29 +318,11 @@ The Opus 5 card prints 70.6, one OSWorld 2.0 figure. The Fable 5.1 card and page
 
 `anthropic/claude-opus-5` has no `osworld` row.
 
-### Opus 5 on GDPval-AA v2
-
-The Opus 5 card and launch table print 1861. The Fable 5.1 card and page print 1824. Both readers recorded both. Both rows are labelled GDPval-AA v2.
-
-`anthropic/claude-opus-5` holds `gdpval_aa` 61.75 percent, `source_kind: independent_evaluator`, from the Artificial Analysis leaderboard column `gdpvalNormalized`.
-
-### Opus 5 on AA-Briefcase
-
-The Opus 5 card prints 1720, labelled AA-Briefcase. The Fable 5.1 card prints 1685, labelled AA-Briefcase. The Opus 5.5 card prints 1673, labelled AA-Briefcase v1.1. Both readers recorded all three. The v1.1 label is on the 1673 row.
-
-`anthropic/claude-opus-5` has no `aa_briefcase` row.
-
-### Opus 5 on AutomationBench
-
-The Opus 5 card prints 26.0. The Fable 5.1 card and page, and the Opus 5.5 card, print 26.9. Both readers recorded both figures. The rows share the AutomationBench label.
-
-`anthropic/claude-opus-5` has no `automationbench` row. `anthropic/claude-opus-5-5` holds `automationbench` 40.0, `source_kind: provider_self_report`, from its own card, and 42.47, `source_kind: benchmark_author`, from Zapier. Those rows are the Opus 5.5 score.
-
 ### Fable 5 on the Opus 5 card and the Fable 5.1 card
 
-The Opus 5 card, labelled Fable 5, prints HLE 56.5 and 63.9, GDPval-AA v2 1747, AA-Briefcase 1574, and AutomationBench 17.4. Both readers recorded these.
+The Opus 5 card, labelled Fable 5, prints HLE 56.5 and 63.9. Both readers recorded these.
 
-The Fable 5.1 card prints HLE 57.8 and 63.8, GDPval-AA v2 1723, AA-Briefcase 1572, AutomationBench 17.1, and HealthBench Professional 63.3. Reader A labelled the model Fable 5. Reader B labelled the column Claude Fable 5/ Mythos 5. Both readers recorded the numbers.
+The Fable 5.1 card prints HLE 57.8 and 63.8, and HealthBench Professional 63.3. Reader A labelled the model Fable 5. Reader B labelled the column Claude Fable 5/ Mythos 5. Both readers recorded the numbers.
 
 HealthBench Professional 66.0 is on the Opus 5 card. Reader A labelled that bar Mythos 5 and noted the footnote on the Fable 5 cell. Reader B labelled the bar Fable 5 and recorded the footnote. Both recorded 66.0, and both recorded 63.3 on the Fable 5.1 card. Both rows are HealthBench Professional.
 
@@ -407,27 +350,15 @@ The Fable 5.1 card and page print 77.9 partial and 41.7 strict. The Opus 5.5 car
 
 ### GPT-5.6 Sol
 
-GDPval-AA v2 is 1736 on the Opus 5 card and launch table, 1711 on the Fable 5.1 card and page, and 1728 on the Grok 4.6 page. Both readers recorded all three. All three rows are labelled GDPval-AA v2.
-
-AA-Briefcase is 1505 on the Opus 5 card and 1502 on the Fable 5.1 card and the Grok 4.6 page. Both readers recorded both. These rows have no v1.1 label.
-
-AutomationBench is 18.1 on the Opus 5 card, 19.6 on the Fable 5.1 card and page, and 28.8 on the Opus 5.5 page. Both readers recorded all three.
-
 ARC-AGI-1 is 97.5 on the Opus 5 card. Reader A's bar there is labelled xhigh. The Fable 5.1 card prints 96.5 with no xhigh label. Both readers recorded both numbers. The xhigh label is on the 97.5 row.
 
-`openai/gpt-5-6-sol` holds `gdpval_aa` 56.21 percent, `source_kind: independent_evaluator`, from the Artificial Analysis leaderboard column `gdpvalNormalized`. The card has no `aa_briefcase`, `automationbench`, or `arc_agi_1` row.
+`openai/gpt-5-6-sol` has no `arc_agi_1` row.
 
 ### GPT-5.5 on Terminal-Bench 2.1
 
 The Opus 4.8 card and launch table print 78.2. The card row is labelled Terminus-2 public harness. The Sonnet 5 card prints 83.4, labelled Codex CLI. Both readers recorded both. Both rows are Terminal-Bench 2.1. The harness name differs.
 
 `openai/gpt-5-5` has no `terminal_bench_v2_1` row.
-
-### Opus 4.8 on AutomationBench
-
-The Opus 4.8 card prints 15.5. The Opus 5 card prints 17.0. Both readers recorded both. Both rows are AutomationBench.
-
-`anthropic/claude-opus-4-8` has no `automationbench` row.
 
 ### Toolathlon Pass@1
 
@@ -463,17 +394,11 @@ The Grok 4.6 table prints 54. The Grok 4.5 page prints 53. Both readers recorded
 
 `xai/grok-4-5` has no DeepSWE evidence row.
 
-### Grok 4.6 on its page and on the Grok 4.7 page
-
-The Grok 4.6 page prints GDPval-AA v2 Elo 1753 and AA-Briefcase 1577. Both readers recorded both. The Grok 4.7 page prints GDPval 1605, labelled high on the chart tab, and AA-Briefcase 1546. Both readers recorded both. Reader A's 1605 bar uses benchmark id `gdpval`. Reader A's 1546 table bar is labelled AA Briefcase v1.1. Reader A's 1577 bar has no v1.1 label. Reader A's 1753 bar is labelled GDPVal-AA v2.
-
-`xai/grok-4-6` has no evidence rows. `xai/grok-4-7` holds `terminal_bench_v4_0` 37.58, `source_kind: benchmark_author`, from https://www.tbench.ai/leaderboard. It has no GDPval or AA-Briefcase row.
-
 ### Opus 4.7 on Terminal-Bench 2.1, from the Grok 4.5 page
 
 The Grok 4.5 page prints 78.9, labelled max. The Opus 4.8 card prints 66.1, labelled Terminus-2 public harness. Both readers recorded both. Both rows are Terminal-Bench 2.1.
 
-`anthropic/claude-opus-4-7` has no `terminal_bench_v2_1` row. It holds `gdpval_aa` 44.79 percent, `source_kind: independent_evaluator`, from the Artificial Analysis leaderboard.
+`anthropic/claude-opus-4-7` has no `terminal_bench_v2_1` row.
 
 ### Fable on SWE-bench Pro, from the Grok 4.5 page
 
@@ -483,10 +408,624 @@ The Grok 4.5 page prints 80.4, labelled Fable max, resolve rate. The Opus 5 card
 
 ## OpenAI second reading
 
-Reader B (claude-opus, 2026-09-24) read both OpenAI pages in a browser. Before this pairing change the two pages were agree 40, disagree 0, only_a 109, only_b 735. After it they are agree 149, disagree 0, only_a 0, only_b 626. Every paired value agrees. There is no disagreement between two printed numbers, and no disagreement between two hover-tooltip numbers. The OpenAI charts now record reader B. No bar is `disputed`. The checker classes are unchanged: matched 53, other_configuration 9, mismatched 0, unit_differs 2, other_metric 6, no_benchmark_page 604, not_held 898, competitor_gap 11, competitor_unresolved 14.
+Reader B (claude-opus, 2026-09-24) read both OpenAI pages in a browser. The two pages are agree 129, disagree 0, only_a 0, only_b 551. Every paired value agrees. There is no disagreement between two printed numbers, and no disagreement between two hover-tooltip numbers. The OpenAI charts record reader B. No bar is `disputed`. The checker classes are matched 43, other_configuration 9, mismatched 0, unit_differs 0, other_metric 3, no_benchmark_page 594, not_held 671, competitor_gap 7, competitor_unresolved 5.
 
 Reader B's Astra file says the Coding table prints "-" for Claude Opus 5 on Internal Database Migration Tasks, and the chart on that page plots Opus 5 at 61.1%. That 61.1% is the dashed score-only line on the Database Migration chart. Reader A's fixture has no Internal Database Migration row and no 61.1.
 
 The Coding table's FrontierCode 1.1 Extended cell for Claude Opus 5 is 63.6%. On the FrontierCode 1.1 Extended chart the Medium point is 63.6%. Low is 55.8%, High is 58.5%, Xhigh is 56.9%, and Max is 58.9%. Reader A's fixture holds 63.6% for that table cell, for Claude Opus 5 and for Claude Fable 5.1. It does not hold the other effort points.
 
 Agents' Last Exam, Claude Opus 5 at high effort, is 55.2% on the Astra page and 55.9% on the Sol and Luna page. GPT-5.6 Sol at max effort is 52.7% on the Astra page and 52.8% on the Sol and Luna page. Reader A's fixture does not hold these four chart points. The 55.9 in the Astra fixture is GPT-5.6 Sol on SRE-Bench. The Sol and Luna fixture holds GPT-6 Sol at max effort, 56.4%, which is a different point and agrees with reader B.
+
+## Phase 2b batches 1 and 2, second reading
+
+Reader B is claude-opus, 2026-09-24. Reader A is the fixture. A disagreement on a printed cell is `disputed`, with both values on the bar. No disagreement in these two batches is a hover tooltip or an embedded chart series. Every pair below is two printed cells.
+
+The check over all 98 fixtures, 723 charts, 10433 bars:
+
+| Class | Bars |
+| --- | ---: |
+| matched | 53 |
+| other_configuration | 9 |
+| mismatched | 0 |
+| unit_differs | 0 |
+| other_metric | 52 |
+| no_benchmark_page | 5356 |
+| not_held | 4727 |
+| competitor_gap | 43 |
+| competitor_unresolved | 193 |
+| disputed | 0 |
+
+### Batch 1
+
+agree 1445, disagree 17, only_a 604, only_b 970, unpaired 5.
+
+The five unpaired sources are the three `kimi-file.kimi.ai` image URLs, `https://longcat.chat/blog/longcat-2.0/` (not fetched), and `https://www.stepfun.com/step-5-preview` (no fixture with that page). The Kimi K3 coding and agents jpgs pair on their own. The LongCat SVG pairs on its own.
+
+Printed disagreements, Hy3 appendix (`https://huggingface.co/tencent/Hy3`, image of the appendix). Reader B's starred cells keep the star in the transcribed text.
+
+| Model | Benchmark | Reader A | Reader B |
+| --- | --- | ---: | ---: |
+| Seed-2.1 pro | WideSearch | 76.8 | 76.4* |
+| Seed-2.1 pro | DeepSearchQA | 90.4 | 90.8* |
+| GPT-5.5 | DeepSearchQA | 85.5 | 95.5* |
+| Seed-2.1 pro | Apex-Agent (pass@1) | 32.8 | 33.8 |
+| Seed-2.1 pro | ClawEval (pass^3) | 63.1 | 62.1* |
+| DeepSeek-V4 pro | e-bench (internal) | 37.6 | 34.5* |
+| Seed-2.1 pro | e-bench (internal) | 42.9 | 47.9* |
+| DeepSeek-V4 pro | Hy-FinModelBench (internal) | 54.5 | 57.6* |
+| Seed-2.1 pro | Hy-FinModelBench (internal) | 57.2 | 52.2* |
+| Gemini-3.1-pro-preview | Hy-FinModelBench (internal) | 54.8 | 54.6* |
+
+Printed disagreements, MiniMax-M3 card chart. YC-Bench is final assets. Reader B's text keeps the `M`.
+
+| Model | Benchmark | Reader A | Reader B |
+| --- | --- | ---: | ---: |
+| Kimi K2.6 Thinking | Terminal-Bench 2.1 | 55.9 | 53.9 |
+| MiniMax M3 | YC-Bench | 2.34 | 2.1M |
+| Claude Opus 4.7 | YC-Bench | 2.24 | 2.2M |
+| GPT 5.5 | YC-Bench | 1.34 | 1.3M |
+| Gemini 3.1 Pro | YC-Bench | 1.14 | 1.1M |
+| Claude Sonnet 4.6 | YC-Bench | 0.34 | 0.1M |
+| DeepSeek V4 Pro | YC-Bench | 0.54 | 0.5M |
+
+Check over the 19 batch-1 fixtures, 32 charts, 2363 bars:
+
+| Class | Bars |
+| --- | ---: |
+| matched | 7 |
+| other_configuration | 0 |
+| mismatched | 0 |
+| unit_differs | 0 |
+| other_metric | 0 |
+| no_benchmark_page | 1540 |
+| not_held | 772 |
+| competitor_gap | 1 |
+| competitor_unresolved | 43 |
+| disputed | 0 |
+
+### Batch 2
+
+agree 1803, disagree 5, only_a 772, only_b 1176, unpaired 0.
+
+Printed disagreements, Gemma 4 technical report (`https://arxiv.org/abs/2607.02770`), MATH-Vision, max resolution, 1120 vision tokens, thinking.
+
+| Model | Reader A | Reader B |
+| --- | ---: | ---: |
+| Gemma 4 12B | 79.7 | 76.7 |
+| Gemma 4 26B-A4B | 82.4 | 80.3 |
+| Gemma 4 31B | 85.6 | 83.4 |
+| Gemma 4 E2B | 52.4 | 53.0 |
+| Gemma 4 E4B | 59.5 | 59.2 |
+
+Check over the 18 batch-2 fixtures, 41 charts, 2570 bars:
+
+| Class | Bars |
+| --- | ---: |
+| matched | 3 |
+| other_configuration | 0 |
+| mismatched | 0 |
+| unit_differs | 0 |
+| other_metric | 20 |
+| no_benchmark_page | 1626 |
+| not_held | 890 |
+| competitor_gap | 0 |
+| competitor_unresolved | 31 |
+| disputed | 0 |
+
+## Phase 2b batches 3 and 4, second reading
+
+Reader B is claude-opus, 2026-09-24. Reader A is the fixture. A disagreement on a printed cell is `disputed`, with both values on the bar.
+
+The check over all 98 fixtures, 723 charts, 10433 bars:
+
+| Class | Bars |
+| --- | ---: |
+| matched | 53 |
+| other_configuration | 9 |
+| mismatched | 0 |
+| unit_differs | 0 |
+| other_metric | 52 |
+| no_benchmark_page | 5356 |
+| not_held | 4727 |
+| competitor_gap | 43 |
+| competitor_unresolved | 193 |
+| disputed | 0 |
+
+### Batch 3
+
+agree 1304, disagree 21, only_a 986, only_b 1619, unpaired 1.
+
+The unpaired source is `muse-glimmer-methodology.pdf`. No fixture has that file hash.
+
+Printed disagreements, `https://www.liquid.ai/blog/lfm2-5-8b-a1b`, knowledge and instruction following.
+
+| Model | Benchmark | Reader A | Reader B |
+| --- | --- | ---: | ---: |
+| Granite-4.0-H-Tiny | IFEval | 9.37 | 82.23 |
+| Qwen3.5-4B | IFEval | 17.20 | 87.8 |
+| Qwen3.5-4B | IFBench | 16.99 | 50.38 |
+| Qwen3-30B-A3B-Thinking-2507 | IFEval | 18.80 | 90.82 |
+| Gemma-4-E2B-IT | IFEval | 7.00 | 82.93 |
+| Gemma-4-E2B-IT | IFBench | 15.05 | 33.53 |
+| Gemma-4-E4B-IT | IFEval | 8.10 | 87.74 |
+| Gemma-4-E4B-IT | IFBench | 36.06 | 39.48 |
+| Gemma-4-26B-A4B-IT | IFEval | 14.37 | 91.4 |
+| gpt-oss-20b | IFEval | 14.57 | 86.73 |
+
+Printed disagreements, same page, math and tool use. The version is the bar's configuration.
+
+| Model | Benchmark | Reader A | Reader B |
+| --- | --- | ---: | ---: |
+| Granite-4.0-H-Tiny | BFCLv3 | 4.93 | 56.89 |
+| Granite-4.0-H-Tiny | BFCLv4 | 3.33 | 28.52 |
+| Qwen3-30B-A3B-Thinking-2507 | BFCLv3 | 71.67 | 73.39 |
+| Qwen3-30B-A3B-Thinking-2507 | BFCLv4 | 66.67 | 50.53 |
+| Gemma-4-26B-A4B-IT | BFCLv3 | 68.67 | 68.87 |
+| Gemma-4-26B-A4B-IT | BFCLv4 | 72.00 | 55.87 |
+| gpt-oss-20b | BFCLv3 | 68.53 | 62.52 |
+| gpt-oss-20b | BFCLv4 | 68.67 | 49.88 |
+
+Printed disagreement, Nemotron 3 Ultra accuracy image on `https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16`. Nemotron-3-Ultra NVFP4, Terminal-Bench 2.1, configuration NVFP4: reader A 63.9, reader B 53.9.
+
+Estimated from SVG coordinates, `https://thinkingmachines.ai/news/introducing-inkling/`, Terminal-Bench 2.1, best harness. Reader B marked these unprinted, uncertainty ±0.1. Reader A's bars are printed.
+
+| Model | Reader A | Reader B |
+| --- | ---: | ---: |
+| Kimi K2.5 | 51.3 | 49.5 |
+| Kimi K2.6 | 71.3 | 70.2 |
+
+Check over the 22 batch-3 fixtures, 49 charts, 2450 bars:
+
+| Class | Bars |
+| --- | ---: |
+| matched | 0 |
+| other_configuration | 0 |
+| mismatched | 0 |
+| unit_differs | 0 |
+| other_metric | 9 |
+| no_benchmark_page | 771 |
+| not_held | 1573 |
+| competitor_gap | 35 |
+| competitor_unresolved | 62 |
+| disputed | 0 |
+
+### Batch 4
+
+agree 1348, disagree 0, only_a 448, only_b 787, unpaired 0.
+
+No printed disagreement, and no tooltip or embedded-chart disagreement.
+
+Check over the 19 batch-4 fixtures, 32 charts, 1718 bars:
+
+| Class | Bars |
+| --- | ---: |
+| matched | 0 |
+| other_configuration | 0 |
+| mismatched | 0 |
+| unit_differs | 0 |
+| other_metric | 20 |
+| no_benchmark_page | 825 |
+| not_held | 821 |
+| competitor_gap | 0 |
+| competitor_unresolved | 52 |
+| disputed | 0 |
+
+## Publisher inconsistencies, phase 2b
+
+Reader A is the fixture. A pair is double-read when both numbers are bars in those fixtures, for the model and benchmark named below. The label on the bar is the setting.
+
+### GLM-5.2 MCP-Atlas, 77.0 and 76.8
+
+The fixtures hold 76.8, labelled MCP-Atlas (Public Set), on `https://z.ai/blog/glm-5.2`, `https://huggingface.co/blog/zai-org/glm-52-blog`, and `https://huggingface.co/zai-org/GLM-5.2` (the table). The Hy3 appendix also holds 76.8 for GLM-5.2, labelled MCP atlas (public), starred, cited from that model's own report. There is no 77.0 bar. The GLM-5.2 card image has no transcribed bars. This pair is not double-read.
+
+### GPT-5.5 PostTrainBench, 28.4 and 25.0
+
+The fixtures hold 28.4 on the same three GLM-5.2 pages, and on the Kimi K3 card and arXiv report, labelled PostTrainBench, xhigh on the Kimi pages. There is no 25.0 bar. This pair is not double-read.
+
+### GLM-5.2 CritPt, 20.9 and 16.7
+
+Double-read. 20.9 is on `https://z.ai/blog/glm-5.2` and `https://huggingface.co/zai-org/GLM-5.2`, labelled CritPt. 16.7 is on `https://huggingface.co/blog/zai-org/glm-52-blog`, labelled CritPt.
+
+### Step 3.7 Flash Terminal-Bench 2.1, 59.5 and 59.6
+
+Double-read. 59.5 is the card chart on `https://huggingface.co/stepfun-ai/Step-3.7-Flash`. 59.6 is the blog table on `https://static.stepfun.com/blog/step-3.7-flash/`. Both bars are labelled Terminal-Bench 2.1.
+
+### Kimi K3 blog charts against the Kimi card and the arXiv report
+
+The blog is `https://www.kimi.com/blog/kimi-k3`, labelled max or xhigh on the launch chart. The card is `https://huggingface.co/moonshotai/Kimi-K3`. The report is `https://arxiv.org/abs/2607.24653`, Table 2, max effort in the column header. Each pair below is double-read.
+
+Fable 5, Terminal-Bench 2.1: 84.6 on the blog, 88.0 on the card and the report.
+
+JobBench: Kimi K3 is 52.9 on the blog and 54.3 on the card and the report. GPT-5.6 Sol is 46.5 on the blog and 45.4 on the card and the report.
+
+### Opus 4.8 Cybergym, 83.1 and 78.3
+
+Double-read. 83.1 is on `https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731`, max effort, DeepSeek Harness minimal mode on the public code-agent rows. 78.3 is on `https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-Vision-Exp`, max effort, DeepSeek Harness minimal mode on the text-agent rows. Both bars are labelled Cybergym.
+
+### Hy3 BrowseComp, GLM-5.2 at 79.3 and GLM-5.1 at 79.3
+
+The appendix on `https://huggingface.co/tencent/Hy3` holds GLM-5.1 BrowseComp 79.3, unstarred, Tencent's own testing. The overview chart on that card has no transcribed bars. There is no GLM-5.2 BrowseComp bar on that card. This pair is not double-read.
+
+### Agents' Last Exam, GLM-5.2 23.8 and 20.4, Opus 4.8 25.7 and 27.0
+
+Double-read.
+
+GLM-5.2 at 23.8 is labelled Agents' Last Exam (ALE-CLI) on the GLM-5.3 blog and card. The same 23.8 is labelled Agents' Last Exam on the DeepSeek-V4-Flash-0731 card, max effort, public code-agent rows.
+
+GLM-5.2 at 20.4 is labelled Agents' Last Exam on the Kimi card and arXiv report, max, and on the GLM-5.3-Flash blog and card.
+
+Opus 4.8 at 25.7 is labelled Agents' Last Exam (ALE-CLI) on the GLM-5.3 blog and card. The same 25.7 is labelled Agents' Last Exam on both DeepSeek cards: 0731, public code-agent rows, and Vision-Exp, text-agent rows, both max effort.
+
+Opus 4.8 at 27.0 is labelled Agents' Last Exam on the Kimi card and arXiv report, max; on the GLM-5.3-Flash blog and card; on `https://qwen.ai/blog?id=qwen3.8`, Pass@1; and on `https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B`, labelled Agents' Last Exam (Pass / Score).
+
+### Terminal-Bench 2.1, GPT-5.5 and DeepSeek-V4-Pro
+
+Double-read for the GPT-5.5 values 84.0, 83.4, 78.2, 82.7, and 73.8.
+
+| Value | Where it is a bar |
+| ---: | --- |
+| 84.0 | Hy3 appendix; GLM-5.2 blog, HF blog, and card |
+| 83.4 | Kimi blog, Kimi card, and Kimi arXiv report; GLM-5.2 blog, HF blog, and card; Sonnet 5 system card; Nex-N2-Pro card |
+| 78.2 | Gemini 3.5 Flash model card and launch post, labelled Terminus-2 harness; Opus 4.8 card and system card |
+| 82.7 | Step 3.7 Flash card chart and blog table |
+| 73.8 | LongCat-2.0 card |
+
+DeepSeek-V4-Pro is double-read for 64.0, 59.6, and 72.0. 64.0 is on the Hy3 appendix, the K-EXAONE-2 card, and the Inkling card. 59.6 is on the MiniMax-M3 card chart. 72.0 is on the Step 3.7 Flash blog table and the Nex-N2-Pro card.
+
+### Kimi K3 on the Step 5 page
+
+`https://www.stepfun.com/step-5-preview` is not a fixture. Reader A's fixtures hold Kimi K3 at 33.4 on τ³-Banking, max, on the arXiv report. There is no 46.0 bar on τ³-Banking. The Step 5 pair is not double-read.
+
+### Gemini 3.1 Pro Terminal-Bench 2.1, Terminus-2, 70.3 and 73.8, and OpenAI 70.7
+
+Double-read. 70.3 is on the Gemini 3.5 Flash model card and launch post, labelled Terminus-2 harness. 73.8 is on the Gemini 3.6 Flash model card, labelled Terminus-2 harness. 70.7 is on `https://openai.com/index/gpt-5-6/`, and also on the LongCat-2.0 card and the three GLM-5.2 pages.
+
+### GPT-5.5 Terminal-Bench 2.1, DeepMind 78.2 and OpenAI 85.6
+
+Double-read. 78.2 is on the Gemini 3.5 Flash model card and launch post, labelled Terminus-2 harness, and on the Opus 4.8 card and system card. 85.6 is on `https://openai.com/index/gpt-5-6/`, appendix comparison table, with no further setting on the bar.
+
+### Claude Opus 4.8 Terminal-Bench 2.1, Qwen 84.6 and OpenAI 78.9
+
+Double-read. 84.6 is on `https://qwen.ai/blog?id=qwen3.8`, model label Opus4.8, no further setting on the bar. 78.9 is on `https://openai.com/index/gpt-5-6/`, appendix comparison table, no further setting on the bar.
+
+### GPT-5.6 Sol GPQA Diamond, Qwen 94.1 and OpenAI 94.6
+
+Double-read. 94.1 is on `https://qwen.ai/blog?id=qwen3.8`, model label GPT5.6 Sol (max), configuration Max, and on the Qwen3.8-2.4T README, model label GPT 5.6 Sol (max). 94.6 is on `https://openai.com/index/gpt-5-6/`, appendix, model label GPT-5.6 Sol, no further setting on the bar.
+
+### GPT-5.6 Sol Agents' Last Exam, Qwen 53.6 and OpenAI 52.7 and 53.6
+
+Double-read. The Qwen 3.8 blog holds two bars for GPT5.6 Sol (max): 53.6, configuration Max, Score, and 30.6, configuration Max, Pass@1. The Qwen3.8-2.4T README also holds 53.6. The OpenAI appendix holds 52.7 for GPT-5.6 Sol. The OpenAI introduction chart holds 53.6 for GPT-5.6 Sol, and that bar's configuration says the appendix table prints 52.7 for the same name.
+
+### Gemini 3.1 Pro MMMU-Pro, 81.8 and 80.5
+
+Double-read. 81.8 is on `https://qwen.ai/blog?id=qwen3.7-plus`, model label Gemini-3.1 Pro. 80.5 is on the Gemini 3.5 Flash model card and launch post, labelled no tools; on the MiniMax-M3 card chart; and on the OpenAI GPT-5.6 appendix, model label Gemini 3.1 Pro Preview, no tools.
+
+### Qwen3.7-Plus CharXiv, 84.4 and 85.8, without a code interpreter
+
+Double-read. 84.4 is on `https://qwen.ai/blog?id=qwen3.7-plus`, labelled without a code interpreter. 85.8, labelled without CI, is on `https://qwen.ai/blog?id=qwen3.8`, `https://huggingface.co/Qwen/Qwen3.8-27B`, `https://qwen.ai/blog?id=qwen3.8-flash-next`, and `https://huggingface.co/Qwen/Qwen3.8-Flash-Next`.
+
+### Qwen3.7-Plus SWE-bench Pro, 57.6 and 55.8
+
+Double-read. 57.6 is on `https://qwen.ai/blog?id=qwen3.7-plus`, configuration "Corrected task set", and on `https://huggingface.co/Qwen/Qwen3.8-27B`. 55.8 is on `https://qwen.ai/blog?id=qwen3.8-flash-next` and `https://huggingface.co/Qwen/Qwen3.8-Flash-Next`.
+
+### Qwen3.7-Max CoWorkBench, 67.2 and 64.6
+
+Double-read. 67.2 is on `https://qwen.ai/blog?id=qwen3.7`. 64.6 is on `https://qwen.ai/blog?id=qwen3.8` and `https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B`. The bars are labelled CoWorkBench.
+
+### Gemma 4 Tau2, E4B 42.2 and E2B 24.5, and the report's domain scores
+
+The model card `https://ai.google.dev/gemma/docs/core/model_card_4` holds Tau2 42.2 for Gemma 4 E4B and 24.5 for Gemma 4 E2B, each labelled average over 3.
+
+The technical report `https://arxiv.org/abs/2607.02770` holds the domain scores, labelled thinking. E4B is airline 52.0, retail 67.1, telecom 18.4. E2B is airline 31.0, retail 34.6, telecom 19.7. The report fixture has no bar at 45.8 and no bar at 28.4. The pair of averages against those two means is not double-read. The card averages and the six domain scores are bars.
+
+### OpenAI GPT-5.6 BrowseComp, 92.2 and 90.4
+
+Double-read, both on `https://openai.com/index/gpt-5-6/`. The appendix table holds GPT-5.6 Sol at 90.4 and GPT-5.6 Sol Ultra at 92.2, the Ultra bar labelled Ultra. The introduction chart on that page does not add a second Sol bar at 92.2.
+
+### Liquid LFM2.5-8B-A1B, BFCLv3 64.36 and 64.79, BFCLv4 48.50 and 49.73
+
+Double-read. 64.36 (v3) and 48.50 (v4) are on `https://www.liquid.ai/blog/lfm2-5-8b-a1b` and `https://huggingface.co/LiquidAI/LFM2.5-8B-A1B`, both on the improvements table, labelled a comparison with LFM2-8B-A1B.
+
+64.79 (v3) and 49.73 (v4) are on the same Hugging Face card, on the math-and-agentic table and on the chart `LFM2.5-8B-A1B benchmarks`. That chart's `image_sha256` is `aa5ec505ef83146334e5da4b00e7c4a5a2931166e022b822c9f22a7341e864f4`, the manifest digest for `lfm8-benchmarks`.
+
+The blog's math-and-tool-use chart also holds 64.79 and 49.73, labelled τ² Telecom and τ² Retail.
+
+### Qwen3.5-4B Multi-IF, 67.43 and 55.67
+
+Double-read. 67.43 is on `https://huggingface.co/LiquidAI/LFM2.5-8B-A1B`, labelled Qwen3.5-4B, Multi-IF. 55.67 is on `https://www.liquid.ai/blog/lfm2-5-2-6b` and `https://huggingface.co/LiquidAI/LFM2.5-2.6B` (the table and the evaluation image), labelled Qwen3.5-4B (4.7B), Multi-IF.
+
+### Gemma-4-E4B BFCLv4, 33.92 and 46.39
+
+Double-read. 33.92 is on `https://huggingface.co/LiquidAI/LFM2.5-8B-A1B`, labelled Gemma-4-E4B-IT, BFCL v4. 46.39 is on `https://www.liquid.ai/blog/lfm2-5-2-6b` and `https://huggingface.co/LiquidAI/LFM2.5-2.6B` (the table and the evaluation image), labelled gemma-4-E4B-it (8B), BFCL v4.
+
+The 8B blog's math-and-tool-use chart also holds 33.92, labelled Gemma-4-E4B-IT, τ² Retail.
+
+### Granite 4.2 8B BFCL v4, 52.39 and 50.29
+
+Double-read. 52.39 is on the three model-card tables, `https://huggingface.co/ibm-granite/granite-4.2-3b`, `granite-4.2-8b`, and `granite-4.2-30b`, labelled 8B Dense, BFCL v4. 50.29 is on `https://huggingface.co/blog/ibm-granite/granite-4-2`, the same label. No figure chart holds 50.29.
+
+### Granite τ³-bench, 45.78 / 58.06 / 62.00 and 51.0 / 66.3 / 68.0
+
+The card tables hold 45.78, 58.06, and 62.00, labelled τ³-bench (AVG), for 3B Dense, 8B Dense, and 30B Dense. The HF blog table holds the same three numbers, labelled τ³-bench. The research-blog competitor chart holds 62.00 for Granite 4.2 30b, labelled Tau3 Bench.
+
+There is no bar at 51.0, 66.3, or 68.0 for those models on τ³-bench. The figure side of the pair is not double-read.
+
+### Inkling, HF card and Thinking Machines pages
+
+Double-read.
+
+MCP Atlas: 74.1 is on the Inkling card. 76.0 is on the introducing-inkling page (effort=0.99, and a second bar labelled all tasks), the inkling-small page (all tasks), and the Inkling-Small card (public / all, all tasks).
+
+### Nemotron 3 Ultra MCP Atlas, 42.7 and 44.7
+
+44.7 is on `https://thinkingmachines.ai/news/introducing-inkling/`, `https://thinkingmachines.ai/news/inkling-small/` (all tasks), `https://huggingface.co/thinkingmachines/Inkling`, and `https://huggingface.co/thinkingmachines/Inkling-Small` (public / all, all tasks). There is no 42.7 bar for Nemotron 3 Ultra on MCP Atlas. This pair is not double-read.
+
+### Cohere vision chart, MMMU 75 and 65
+
+The vision chart on `https://cohere.com/blog/command-a-plus` holds MMMU 75 for Command A+ and MMMU 65 for Command A Vision. The same chart holds CharXiv 88 and 82, and CharXiv reasoning 53 and 47. The footnote says CharXiv reasoning and descriptive are separate bars. The fixture has no bar at 75.1 or 65.3.
+
+### Nemotron 3 Ultra τ³ Banking, 22.6 and 13.8
+
+Double-read. 22.6 is on `https://research.nvidia.com/labs/nemotron/files/NVIDIA-Nemotron-3-Ultra-Technical-Report.pdf`, TauBench V3, Banking: one bar labelled N-3-Ultra 550B-A55B, and one labelled Nemotron 3 Ultra, BF16, vLLM 0.17.1. The same table holds 19.2 for NVFP4, vLLM 0.22.0. 13.8 is on `https://thinkingmachines.ai/news/introducing-inkling/`, `https://thinkingmachines.ai/news/inkling-small/`, and both Inkling cards.
+
+### DeepSeek V4 Pro Terminal-Bench 2.1, 49.2 and 64.0
+
+Double-read. 49.2 is on the Nemotron 3 Ultra technical report and on `https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16`, labelled DS-v4-Pro 1.6T-A49B. 64.0 is on the Inkling page and card (best harness), the K-EXAONE card (DSV4 Pro, max, BF16 table), the Motif 3 card (DS-v4-Pro 1.6T-A49B; temperature 1.0, top_p 0.95, max length 262144), the Hy3 appendix (starred, cited from that model's own testing), and the GLM-5.2 blog, HF blog, and card (Terminal Bench 2.1, Terminus-2).
+
+### DeepSeek V4 Flash BrowseComp, 46.9 and 73.2
+
+Double-read. 46.9 is on the Nemotron 3 Ultra technical report and card, labelled DS-v4-Flash 284B-A13B. 73.2 is on the Inkling-Small page and card (with context management), the Step 3.7 Flash blog table, and the Hy3 appendix (unstarred, Tencent's own testing).
+
+### Gemma 4 26B SWE-bench Verified, 57.40 and 17.4
+
+Double-read. 57.40 is on `https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16`, the reasoning table, labelled Gemma 4 26B A4B. The accuracy image on that card holds 57.4 for the same label. 17.4 is on `https://cohere.com/blog/north-mini-code` and `https://huggingface.co/CohereLabs/North-Mini-Code-1.0`, labelled Gemma4, model id `google/gemma-4-26b-a4b-it`, average of 3 seeds, temperature 1.0, top_p 0.95. The figure footnote says Gemma's agentic-coding scores are cited from the Qwen team.
+
+### Gemma 4 IFBench, 77.25 and 47.25
+
+Double-read. 77.25 is on the Nemotron 3.5 Lightning card, labelled Gemma 4 26B A4B, configuration Loose. 47.25 is on `https://huggingface.co/LiquidAI/LFM2.5-8B-A1B`, the knowledge table and the benchmark image, labelled Gemma-4-26B-A4B-IT.
+
+### Nex-N2-Pro, DeepSeek V4 Pro Toolathlon, 52.8 and 51.8
+
+Double-read, both on `https://huggingface.co/nex-agi/Nex-N2-Pro`. 52.8 is the benchmark-overview chart, labelled DeepSeek V4 Pro. 51.8 is the evaluation table, labelled DeepSeek-V4-Pro.
+
+### Solar Open 2, Upstage blog and Hugging Face card
+
+Double-read. The blog is `https://www.upstage.ai/blog/en/solar-pro-4`. The card is `https://huggingface.co/upstage/Solar-Open2-250B`.
+
+| Benchmark | Blog | Card |
+| --- | ---: | ---: |
+| GPQA Diamond | 85.6 | 86.3 |
+| SWE-bench Verified | 69.2, OpenHands, in-house evaluation | 70.4 |
+| LiveCodeBench | 87.0, in-house evaluation, no version on the bar | 92.4, LiveCodeBench (v6) |
+
+### MiniCPM5-1B, a 29-point drop and an average of 22.8
+
+The MiniCPM5-1B fixture has no bar at 29 and no bar at 22.8. This pair is not double-read.
+
+### DeepSeek-V4-Pro Terminal-Bench 2.1, 64.0 and 72.0
+
+Double-read.
+
+| Value | Where it is a bar |
+| ---: | --- |
+| 64.0 | `https://huggingface.co/Motif-Technologies/Motif-3`, labelled DS-v4-Pro 1.6T-A49B, temperature 1.0, top_p 0.95, max length 262144. Also the K-EXAONE card, labelled DSV4 Pro (max), BF16 table, column labelled max |
+| 72.0 | `https://huggingface.co/nex-agi/Nex-N2-Pro`, the evaluation table and the benchmark-overview chart |
+
+### Gemma-4-E4B-it Multi-IF, 45.9 and 80.92
+
+Double-read. 45.9 is on `https://huggingface.co/openbmb/MiniCPM5-2B`, configuration "Reproduced by OpenBMB." 80.92 is on `https://huggingface.co/inclusionAI/Ling-3.0-tiny`, configuration Thinking.
+
+### Gemini image Elo
+
+The three image cards each store side-by-side human Elo for that card: `https://deepmind.google/models/model-cards/gemini-3-1-flash-image/`, `gemini-3-1-flash-lite-image`, and `gemini-3-pro-image` (the PDF `41109d8b6467be8aeb42df84132894a321d64145a4152ac2153211e2d018dea1`). Bar settings name thinking, no thinking, search, or the column without the search suffix, and the table's plus-minus. A number on one card is a different setting from a number on another card.
+
+## Third reading (phase 2b)
+
+Reader C is claude-sonnet, 2026-09-24. Reader A is grok-build-4.7. Reader B is claude-opus. Each of the 43 disputed bars now keeps all three readings under `resolution.rule: two_of_three`. The bar's `score` is the value two of those readings share. The check then treats the bar like any other bar.
+
+A value counts only when two independent readers agree within the printed precision. A third reading that agrees with neither leaves the bar `disputed`. Every one of these 43 agreed with either A or B.
+
+7 bars resolved to reader A. 36 resolved to reader B.
+
+| Source | To A | To B |
+| --- | ---: | ---: |
+| `https://arxiv.org/abs/2607.02770` | 5 | 0 |
+| `https://www.liquid.ai/blog/lfm2-5-8b-a1b` | 0 | 18 |
+| `https://huggingface.co/MiniMaxAI/MiniMax-M3` | 0 | 7 |
+| `https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16` | 0 | 1 |
+| `https://huggingface.co/tencent/Hy3` | 0 | 10 |
+| `https://thinkingmachines.ai/news/introducing-inkling/` | 2 | 0 |
+
+### Hy3 star
+
+The appendix footnote says a starred cell is Tencent's own testing of that model, and an unstarred cell is cited from elsewhere. The fixture had those two meanings reversed. The footnote and every configuration line now follow the footnote. The unstarred chart is `official_reports`. The starred chart is `vendor_run`.
+
+`competitor_numbers` is one value for a whole chart. The two charts are how the fixture separates the two provenances. Seed-2.1 pro on Apex-Agent (pass@1) prints 33.8 with no star, so that bar is on the unstarred chart. A cell that prints two figures, such as a left-hand number and a right-hand number, is already two bars, and both of those bars stay on the starred chart. A star that applies to only one half of such a cell shares the starred chart's provenance.
+
+### MiniMax-M3 YC-Bench
+
+YC-Bench is final assets in millions of US dollars, printed as `$2.1M` and the same shape for the other columns. The unit is `USD millions`. The score is the millions count: MiniMax M3 2.1, MiniMax M2.7 0.0, Claude Opus 4.7 2.2, GPT 5.5 1.3, Gemini 3.1 Pro 1.1, Claude Sonnet 4.6 0.1, DeepSeek V4 Pro 0.5. The six resolved bars keep the printed suffix on the readings, for example `2.1M`. MiniMax M2.7 had been stored as 0.04 with unit `score`. That cell was outside the 43. The chart prints `0.0M`. GLM 5.1 Thinking and Kimi K2.6 Thinking are dashes on that row and have no bar.
+
+### Nemotron 3 Ultra, Terminal-Bench 2.1
+
+The resolved 53.9 is the NVFP4 bar on the accuracy figure, configuration `NVFP4`. The BF16 bar on that figure is 56.4, configuration `BF16`. The README table's N-3-Ultra 550B-A55B cell is also 56.4, and its configuration is `BF16`. The two numbers are separate bars with separate configurations.
+
+### Check
+
+`scripts/chart_check.py` exited 0. 98 fixtures, 723 charts, 10433 bars.
+
+| Class | Bars |
+| --- | ---: |
+| matched | 53 |
+| other_configuration | 9 |
+| mismatched | 0 |
+| unit_differs | 0 |
+| other_metric | 52 |
+| no_benchmark_page | 5356 |
+| not_held | 4727 |
+| competitor_gap | 43 |
+| competitor_unresolved | 193 |
+| disputed | 0 |
+
+The per-bar confirmation below marks 11 further bars on the Liquid 8B blog disputed.
+
+## Per-bar confirmation
+
+`confirmed_by` on a bar names the readers whose reading agrees with the stored score. A pair that agrees names both readers. A two-of-three resolution names the two who agree. A bar one reader recorded names that reader. A chart can list two readers and still have bars only one of them confirmed. One confirming reader does not fail the check. A bar two readers paired with different values is disputed until a third reading settles it two-of-three. That bar names no confirming reader. A bar that already carries a two-of-three resolution stays settled.
+
+Pairing was recomputed on the current fixtures. `only_a` is a fixture bar the second reading did not pair. The before column is that recompute before the label rules. Phase 2b batch 2 was 760 on this tree. After the rules, phase 1 and phase 2a are unchanged.
+
+| Phase | only_a before | only_a after |
+| --- | ---: | ---: |
+| phase 1 | 45 | 45 |
+| phase 2a | 213 | 213 |
+| phase 2b batch 1 | 604 | 588 |
+| phase 2b batch 2 | 760 | 739 |
+| phase 2b batch 3 | 986 | 753 |
+| phase 2b batch 4 | 448 | 370 |
+
+The rules pair a different spelling of the same bar. `AIME 26` pairs with `aime_2026`. `SWEBench` pairs with `swe_bench`, and `StrongREJECT` with `strong_reject`. `Public` on SWE-bench Pro and `Lite` on Global-MMLU count whether they were written on the name or the setting. `HMMT Feb 2026` is `hmmt2026`. `HMMT Nov. 2025` stays a different benchmark. `ForecastBench` glued to the next word is split, and with search stays apart from no search. `Qwen3.5397B` is Qwen 3.5 and 397B. `N-3-Ultra` is Nemotron 3 Ultra, and BF16 stays apart from NVFP4. Nano Banana is the Gemini image nickname. `3.6 Flash` and `3.5 Flash-Lite` are Gemini. `Diffusion Gemma` pairs with `DiffusionGemma`. `TauBench V3 — Average` is the TauBench V3 headline. A `(column …)` note is not a second model. A matching number is not enough to pair, and a missing version is not filled in.
+
+Phase 2b batch 3 disagreements went from 2 to 13. `AIME26` now meets `aime_2026`, and `Multi-IF` meets `multiif`. Eleven of those disagreements are on the Liquid 8B blog, `https://www.liquid.ai/blog/lfm2-5-8b-a1b`. Three are Multi-IF: Qwen3.5-4B, Gemma-4-E2B-IT, and Gemma-4-E4B-IT. Eight are AIME 2026: LFM2.5-8B-A1B, Granite-4.0-H-Tiny, Qwen3.5-4B, Qwen3-30B-A3B-Thinking-2507, Gemma-4-E2B-IT, Gemma-4-E4B-IT, Gemma-4-26B-A4B-IT, and gpt-oss-20b. Reader A and reader B recorded different numbers. Each bar is `disputed` and keeps both readings. `confirmed_by` is absent. A third reading of the whole page settles a bar when two of the three readings agree. The stored Multi-IF figure for Qwen3.5-4B, Gemma-4-E2B-IT, and Gemma-4-E4B-IT is the same number as that model's IFEval bar. Reader A's Multi-IF cell lines up with the IFEval column. `.chart-check/per-bar/disputes-blind.yaml` lists the 11 bars with no scores. `.chart-check/per-bar/liquid-8b-all-bars-blind.yaml` lists every bar on the page, also with no scores.
+
+This run of the checker counts matched 53, other_configuration 9, mismatched 0, other_metric 52, no_benchmark_page 5356, not_held 4699, competitor_gap 34, competitor_unresolved 219, disputed 11. The confirmation split:
+
+| Phase | Two or more | One |
+| --- | ---: | ---: |
+| phase 1 | 663 | 45 |
+| phase 2a | 411 | 213 |
+| phase 2b batch 1 | 1479 | 884 |
+| phase 2b batch 2 | 1841 | 729 |
+| phase 2b batch 3 | 1548 | 891 |
+| phase 2b batch 4 | 1364 | 354 |
+| Total | 7306 | 3116 |
+
+| Class | Two or more | One |
+| --- | ---: | ---: |
+| matched | 38 | 15 |
+| other_configuration | 0 | 9 |
+| other_metric | 6 | 46 |
+| no_benchmark_page | 3752 | 1604 |
+| not_held | 3282 | 1417 |
+| competitor_gap | 33 | 1 |
+| competitor_unresolved | 195 | 24 |
+
+Matched bars confirmed by two or more readers: 38 of 53. By phase, that is 17 and 2 in phase 1, 11 and 13 in phase 2a, 7 and 0 in phase 2b batch 1, 3 and 0 in batch 2, and none in batches 3 and 4.
+
+Before the second reading, 3,116 bars were confirmed by one reader and 7,306 by two or more. The 11 disputed bars named no confirming reader and were in neither column. `single-read-blind.yaml` was written before this correction and still has 3,127 rows, including those 11. The rows sent to the second reading are in `disputes-blind.yaml` and `liquid-8b-all-bars-blind.yaml`. 37 charts had every bar confirmed by one reader. The per-fixture and per-chart counts from before that reading are in `.chart-check/per-bar/report.md`.
+
+The phase 1 section above says the 11 OpenAI charts still have one reading. That was before the browser reading. Before the second reading, phase 1 confirmed 663 of 708 bars with both readers and 45 with one.
+
+### Second reading
+
+Reader D is claude-sonnet, 2026-09-24. Reader A is grok-build-4.7. Reader B is claude-opus. D read the 3,062 single-read bars in the four chunks and every bar on the Liquid 8B blog, `https://www.liquid.ai/blog/lfm2-5-8b-a1b`. A reading counts when it agrees with another within the printed precision. Where the readings do not produce one agreed value, the bar stays disputed and names no confirming reader. No card was edited.
+
+Eight ids on the Liquid list, all on "Knowledge and instruction following" and labelled Non-Hallucination, no longer have a bar. Those bars were removed before this reading and were not put back.
+
+`scripts/chart_check.py` after this reading: 98 pages, 723 charts, 10,402 bars. Mismatched is 0.
+
+| Class | Bars |
+| --- | ---: |
+| matched | 53 |
+| other_configuration | 9 |
+| mismatched | 0 |
+| other_metric | 49 |
+| no_benchmark_page | 5335 |
+| not_held | 4674 |
+| competitor_gap | 34 |
+| competitor_unresolved | 214 |
+| disputed | 34 |
+
+| Phase | Two or more | One |
+| --- | ---: | ---: |
+| phase 1 | 708 | 0 |
+| phase 2a | 621 | 0 |
+| phase 2b batch 1 | 2338 | 0 |
+| phase 2b batch 2 | 2570 | 0 |
+| phase 2b batch 3 | 2416 | 2 |
+| phase 2b batch 4 | 1713 | 0 |
+| Total | 10366 | 2 |
+
+| Class | Two or more | One |
+| --- | ---: | ---: |
+| matched | 53 | 0 |
+| other_configuration | 9 | 0 |
+| other_metric | 49 | 0 |
+| no_benchmark_page | 5335 | 0 |
+| not_held | 4672 | 2 |
+| competitor_gap | 34 | 0 |
+| competitor_unresolved | 214 | 0 |
+
+10,366 bars are confirmed by two or more readers. 2 are confirmed by one. 34 disputed bars name no confirming reader and are in neither column. Matched bars confirmed by two or more readers: 53 of 53. By phase, that is 19 in phase 1, 24 in phase 2a, 7 in phase 2b batch 1, and 3 in batch 2.
+
+The two single bars are Command A+ and Command A Vision, benchmark `charxiv`, on the Vision benchmarks chart of `cohere-command-a-plus`. D did not locate a value. The footnote says CharXiv reasoning and descriptive are separate bars, and the reasoning bars are already `charxiv_reasoning`. These two bars are labelled `charxiv` with an empty configuration, so `metric` was not set. `.chart-check/per-bar/still-single-blind.yaml` lists them.
+
+23 bars were removed from the LongCat-2.0 chart "Benchmark charts" (`meituan-longcat-2-0`). D reported that the SVG contains the Terminal-Bench 2.1, SWE-bench Pro, SWE-bench Multilingual, FORTE, RWSearch, and BrowseComp panels. Each removed bar is IFEval, WritingBench, IMO-AnswerBench, or GPQA-Diamond, and the same model and benchmark already has a bar on an HTML-table chart in that fixture. IFEval, IMO-AnswerBench, and GPQA-Diamond each lost six bars: LongCat-2.0, Gemini 3.1 Pro, GPT-5.5, and Claude Opus 4.6, 4.7, and 4.8. WritingBench lost five: LongCat-2.0, Gemini 3.1 Pro, GPT-5.5, and Claude Opus 4.7 and 4.8. There is no Claude Opus 4.6 WritingBench bar on that chart.
+
+On the Liquid 8B blog, 22 bars resolved to the value reader B and reader D share. That includes the 11 bars that were disputed: Multi-IF for Qwen3.5-4B, Gemma-4-E2B-IT, and Gemma-4-E4B-IT, and AIME 2026 for LFM2.5-8B-A1B, Granite-4.0-H-Tiny, Qwen3.5-4B, Qwen3-30B-A3B-Thinking-2507, Gemma-4-E2B-IT, Gemma-4-E4B-IT, Gemma-4-26B-A4B-IT, and gpt-oss-20b. 18 bars that already carried a two-of-three resolution still agree with D and were left as settled. 18 further bars were confirmed by every reader who agrees with the stored score. 24 bars on "Math and tool use" stay disputed. Each is a BFCLv3, BFCLv4, Tau² Telecom, or Tau² Retail cell whose stored score disagrees with D. Reader B transcribed those cells, and the pairer does not attach that transcription: its benchmark key keeps the words "Tool use" (`bfcl 3 tools` against the fixture's `bfcl 3`). Reader D's value disagrees with the stored score, so the bar names no confirming reader. The improvements table and the math table are separate cells. On the improvements table, LFM2.5-8B-A1B is 64.36 on BFCLv3 and 48.50 on BFCLv4. On the math table, D read 64.79 and 49.73 for those two benchmarks. `.chart-check/per-bar/disputes-2-blind.yaml` lists the 34 bars that are still disputed, with no scores.
+
+Ten of those 34 are outside the Liquid blog. Two are K-Knowledge on `upstage-solar-open2-250b` (GPT-5.4 mini and DeepSeek-V4-Flash). Three are ArXivMath on the Claude Opus 5.5 system card, high, xhigh, and max effort. Two are on `tencent-hy3`: DeepSeek-V4 pro on DeepSWE, and Seed-2.1 pro on WildClawBench. Three are `genai_bench` on `google-gemini-3-1-flash-image`: Gemini 2.5 Flash Image, Gemini 3 Pro Image, and GPT-Image 1.5. Each of those ten has no paired reading from reader B.
+
+### Third reading
+
+Reader E is claude-opus-third, 2026-09-24, a separate reading from the earlier claude-opus pass. Reader A is grok-build-4.7. Reader D is claude-sonnet. Reader B is claude-opus. E read the 34 bars that were still disputed, and both CharXiv panels for the two Command A bars that had one reading.
+
+A value is kept when E's digits agree with exactly one earlier value, within the printed precision. `50.00` and `49.73` differ by 0.27. The precision of `50.00` is 0.005, so they disagree. The resolution quotes `"50.00"`. A bare YAML float would load as 50, and the check would treat it as plus or minus 0.5. The same quote is used for a printed tenth such as `929.0`.
+
+E agreed with exactly one earlier value on all 34 bars. Each bar now has `resolution.rule: two_of_three`. The score is the agreed value. `confirmed_by` names every reader in that cluster, in the order the resolution lists them. The six charts that hold these bars list claude-opus-third among their readings.
+
+On the Liquid 8B blog, the 24 "Math and tool use" bars are BFCLv3, BFCLv4, Tau² Telecom, and Tau² Retail. Reader B's file records the same cells on the chart "Math and agentic workflows", where the setting starts with `group: Tool use`. The match is the model label plus the benchmark. BFCLv3 is `bfcl` with configuration `v3`. BFCLv4 is `bfcl` with configuration `v4`. Tau² Telecom is `tau2` with configuration `Telecom.`. Tau² Retail is `tau2` with configuration `Retail.`. Each of the 24 bars matched one cell. The headline chart and the predecessor table are other cells. On that Tool use table, reader B prints 64.79 and 49.73 for LFM2.5-8B-A1B on BFCLv3 and BFCLv4. The headline chart and the predecessor table print 64.36 and 48.50 for those two. On all 24 bars, B and D printed the same number and E printed that number. A printed a different number. The score is the shared number. `confirmed_by` is claude-opus, claude-sonnet, and claude-opus-third.
+
+The other ten:
+
+| Bars | Agrees with | Score |
+| --- | --- | --- |
+| ArXivMath, Claude Opus 5, high, xhigh, and max, on the Opus 5.5 system card | D | 71.5, 75.4, 78.1 |
+| GenAI-Bench visual quality, Gemini 2.5 Flash Image, Gemini 3 Pro Image, and GPT-Image 1.5 | A | 929.0, 1043.0, 975.0 |
+| DeepSWE right-hand figure for DeepSeek-V4 pro, and WildClawBench left-hand figure for Seed-2.1 pro, on `tencent-hy3` | D | 9.7 and 61.7 |
+| K-Knowledge, GPT-5.4 mini and DeepSeek-V4-Flash | A | 79.5 and 81.2 |
+
+`confirmed_by` on those ten is the agreeing earlier reader and claude-opus-third.
+
+Command A+ stored 88 and Command A Vision stored 82, on bars labelled `charxiv`. E read CharXiv reasoning as 53 and 47, and CharXiv descriptive as 88 and 82. A's stored number is the descriptive panel, and E confirms that panel's value. `metric` is `CharXiv descriptive`. The label is `CharXiv (descriptive)`. `confirmed_by` is grok-build-4.7 and claude-opus-third. The reasoning bars were already `charxiv_reasoning`, at 53 and 47.
+
+`scripts/chart_check.py` exited 0. 98 pages, 723 charts, 10,402 bars. Mismatched is 0. Disputed is 0.
+
+| Class | Bars |
+| --- | ---: |
+| matched | 53 |
+| other_configuration | 9 |
+| mismatched | 0 |
+| other_metric | 54 |
+| no_benchmark_page | 5342 |
+| not_held | 4696 |
+| competitor_gap | 34 |
+| competitor_unresolved | 214 |
+| disputed | 0 |
+
+| Phase | Two or more | One |
+| --- | ---: | ---: |
+| phase 1 | 708 | 0 |
+| phase 2a | 624 | 0 |
+| phase 2b batch 1 | 2340 | 0 |
+| phase 2b batch 2 | 2570 | 0 |
+| phase 2b batch 3 | 2442 | 0 |
+| phase 2b batch 4 | 1718 | 0 |
+| Total | 10402 | 0 |
+
+| Class | Two or more | One |
+| --- | ---: | ---: |
+| matched | 53 | 0 |
+| other_configuration | 9 | 0 |
+| other_metric | 54 | 0 |
+| no_benchmark_page | 5342 | 0 |
+| not_held | 4696 | 0 |
+| competitor_gap | 34 | 0 |
+| competitor_unresolved | 214 | 0 |
+
+10,402 bars are confirmed by two or more readers. None are confirmed by one. No disputed bar is left out of those columns. Matched bars confirmed by two or more readers: 53 of 53.
+
+`scripts/chart_check_pr.py --base origin/main` exited 0. Blocking rows: none. It lists 25 removed bars as informational. 23 are the LongCat bars from the second reading. The other two are Command A+ and Command A Vision `charxiv`. The bar key includes `metric`, and that field is now set, so the old key is reported as removed. The bars remain on the chart under the new key, with two confirming readers.
+
+The same report used to print a negative omitted count when fewer rows than the cap of 50 were listed. It now prints the omitted line only when the hidden count is positive. This run listed all 25 removed bars and printed no omitted line.
+

@@ -794,8 +794,6 @@ benchmarks:
   os_world: null
 
   # --- Composite / Aggregated ---
-  artificial_analysis_quality_index: null       # AAII v3 composite
-  artificial_analysis_speed_index: null
   openrouter_usage_rank: null
   open_llm_leaderboard_v2: null                # HF composite score
   fmti_score: null                             # Stanford Foundation Model Transparency Index

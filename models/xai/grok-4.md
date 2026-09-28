@@ -674,45 +674,6 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Grok 4
-    score: 68.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Grok 4
-    score: 2.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Grok 4
-    score: 87.68
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: grok-4-0709
     score: 1410.98
@@ -727,6 +688,21 @@ benchmarks:
       style-controlled. Style-control overall is not raw overall and is not a category
       Elo. evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
+  - benchmark_id: aime_2025
+    model_id_as_evaluated: Grok 4
+    score: 92.5
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2025
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2025, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-24; the table states no run date,
+      so the reading is dated by the observation. Effort default; highest-effort row for the
+      model. MathArena lists final-answer competitions as deprecated.
+    limitations: 'MathArena marks this row: model was released after competition release, so
+      contamination is possible.'
 deployment:
   api_only: false
   local_inference: false

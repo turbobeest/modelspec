@@ -43,6 +43,11 @@ Fill every key of `BenchmarkCard` you can source. Notes on the hard ones:
 - `harness`: the exact task name in lm-evaluation-harness, inspect_evals, HELM, OpenCompass or
   BIG-bench when you can confirm it from their task lists.
 - `released` is `YYYY` or `YYYY-MM` from the paper or repository, not the arXiv v1 date guessed.
+- `domains` (optional): the domains the benchmark measures, each
+  `{id: <domain>, directness: direct|proxy}`, with ids from `registry/domains.yaml`. `direct` when
+  the benchmark's tasks are instances of the domain as defined there; `proxy` when they only
+  correlate with it, cover a slice of it, or measure preference rather than correctness. Leave a
+  domain out rather than guess.
 - `freshness.researched` is today's date; `freshness.researched_by` is the agent label you were given.
 
 ## Body sections

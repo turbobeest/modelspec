@@ -24,7 +24,6 @@ P3 (discoveries): 6225, of which shortlist: 2323
 - awesome:benchflow-ai/awesome-evals: 76
 - aggregator:evalplus.github.io: 67
 - firecrawl_search_page: 61
-- aggregator:artificialanalysis.ai: 55
 - awesome:Yeti-791/Awesome-Offensive-AI-Agentic-Landscape: 53
 - aggregator:vals.ai: 35
 - awesome:reasoning-survey/Awesome-Reasoning-Foundation-Models: 33
@@ -52,7 +51,7 @@ P3 (discoveries): 6225, of which shortlist: 2323
 
 ## P3 candidates seen in three or more sources
 
-- Humanity's Last Exam (5: aggregator:artificialanalysis.ai, aggregator:llm-stats.com, awesome:benchflow-ai/awesome-evals, awesome:meetrais/awesome-llm-evals, awesome:reasoning-survey/Awesome-Reasoning-Foundation-Models)
+- Humanity's Last Exam (4: aggregator:llm-stats.com, awesome:benchflow-ai/awesome-evals, awesome:meetrais/awesome-llm-evals, awesome:reasoning-survey/Awesome-Reasoning-Foundation-Models)
 - Multi-SWE-bench (4: arxiv, awesome:benchflow-ai/awesome-evals, awesome:ttxs69/awesome-coding-agent-eval, hf_datasets)
 - open-asr-leaderboard (3: arxiv, hf_datasets, hf_spaces)
 - AIR-Bench 2024 (3: arxiv, awesome:benchflow-ai/awesome-evals, hf_datasets)

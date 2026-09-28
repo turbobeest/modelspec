@@ -689,8 +689,8 @@ benchmarks:
     configuration: Claude Fable 5.1 & Claude Mythos 5.1 System Card (dated September
       1, 2026), section 8, body text naming Mythos 5.1. 10 trials per task (660 trials),
       Claude Code --bare, max thinking effort; SE ±1.6-2 pts.
-    limitations: Mythos 5.1 is access-restricted; Artificial Analysis and LMArena list
-      no Mythos 5.1 row.
+    limitations: Mythos 5.1 is access-restricted; LMArena lists no Mythos 5.1
+      row.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

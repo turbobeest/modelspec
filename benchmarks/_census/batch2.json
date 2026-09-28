@@ -63,7 +63,6 @@
     "GPQA"
    ],
    "sources": [
-    "aggregator:artificialanalysis.ai",
     "aggregator:llm-stats.com",
     "helm",
     "inspect_evals",
@@ -71,7 +70,6 @@
     "opencompass"
    ],
    "urls": [
-    "https://artificialanalysis.ai/evaluations",
     "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/gpqa",
     "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/gpqa",
     "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/gpqa",
@@ -848,11 +846,9 @@
    "name": "IFBench",
    "aliases": [],
    "sources": [
-    "aggregator:artificialanalysis.ai",
     "opencompass"
    ],
    "urls": [
-    "https://artificialanalysis.ai/evaluations",
     "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/IFBench"
    ],
    "harness": {

@@ -669,6 +669,36 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
+  evidence:
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: gemini-3.1-pro-preview-customtools
+    score: 75.62
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/swe-bench-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-02-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Verified (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (swe_bench_verified.csv),
+      read 2026-09-24. Run started 2026-02-24T13:34:48.126Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.95 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: Gemini 3.1 Pro Custom Tools
+    score: 3774.25
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Vending-Bench 2, mean final balance over 5 runs
+    configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
+      https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort default; the highest-effort
+      row for the model (MODEL-123 max-effort rule).
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
 deployment:
   api_only: false
   local_inference: false

@@ -51,14 +51,41 @@ These were learned expensively during 2026-09-09/10. Do not rediscover them.
 9. **Widening a contract range bumps its major** (MODEL-59): nullable, a new enum
    value, or may-be-absent. See the versioning rule in [`../cli-contract.md`](../cli-contract.md).
 
+## Pytest CI shards
+
+The required `Run pytest` check aggregates four file-level jobs. The splitter
+uses stable longest-processing-time packing with the measured per-file weights
+in `tests/shard_durations.json`. It never divides a module because several
+modules share process-wide fixtures. The splitter estimates a new file from its
+byte-size share of the measured suite. Inspect the predicted balance after
+adding tests with:
+
+```bash
+python scripts/pytest_shards.py --shard-count 4 --summary
+```
+
+The workflow compares the combined shard node IDs with an unsharded
+`pytest --collect-only -q -m "not perf"` collection. The required check fails
+if a file is missing or duplicated.
+
+Each shard uploads its JUnit timings as `pytest-shard-N-junit`. Refresh the
+committed weights from a completed GitHub Actions run with:
+
+```bash
+rm -rf /tmp/modelspec-pytest-junit
+mkdir -p /tmp/modelspec-pytest-junit
+gh run download <run-id> -p 'pytest-shard-*-junit' -D /tmp/modelspec-pytest-junit
+python scripts/refresh_shard_durations.py /tmp/modelspec-pytest-junit
+```
+
 ## Three floors — stop treating these as backlog
 
 Of ~604 unrankable cards:
 
 * **~96 can never be ranked** under current profiles — image, video, audio, OCR,
   base models, serving quants. No profile weights a benchmark they could score on.
-* **~388 are LLMs not present on Artificial Analysis or LM Arena.** More crawling
-  will never find them.
+* **~388 are LLMs not present on the live leaderboards.** More crawling will
+  never find them.
 * **246 cards have no parameter count because the weights are closed.**
 
 And the trap: **carding a missing model raises the unrankable count** until its

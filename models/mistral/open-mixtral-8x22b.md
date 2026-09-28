@@ -667,30 +667,111 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    bbh: 48.5
-    gpqa_diamond: 36.1
-    ifeval: 77.8
-    math_500: 56.2
-    mmlu_pro: 52.3
-    musr: 18.5
     gsm8k: 88.0
   benchmark_source: open-llm-leaderboard-v2, llm-stats
   benchmark_as_of: 2026-04
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 56.2 and gpqa_diamond 36.1. They came from a hand-typed
+    table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
+    for mistralai/Mixtral-8x22B-v0.1 has MATH Lvl 5 Raw 18.4 and GPQA Raw 37.6). MODEL-154, read 2026-09-24: Rechecked
+    ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (mistralai/Mixtral-8x22B-v0.1, torch.bfloat16,
+    model revision b03e260818710044a2f088d88fab12bb220884fb). IFEval is the mean of strict prompt and instruction
+    accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages rounded
+    to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json.'
   evidence:
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Mixtral 8x22B
-    score: 33.23
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-v0.1
+    score: 62.4
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2024-06-23'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-16b7b22edf8d
+      snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x22b#bbh#e072aa6ff7d3
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-v0.1
+    score: 25.8
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-16b7b22edf8d
+      snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x22b#ifeval#c17188b57bc9
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-v0.1
+    score: 46.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-16b7b22edf8d
+      snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x22b#mmlu_pro#a6545c6f5d29
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Mixtral-8x22B-v0.1
+    score: 40.4
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-06-23'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-16b7b22edf8d
+      snapshot_ref: sha256:44bf4c61c73f850dfa8e1db15c1d5e17e1a118a527aee1eb2a03c4a37701f93d
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x22b#musr#1a744a2d0654
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: open-mixtral-8x22b
+    score: 34.06
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-01-27'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-01-27T00:00:00.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.07 points.
+    limitations: Epoch AI data, CC BY 4.0.
 deployment:
   api_only: false
   local_inference: false

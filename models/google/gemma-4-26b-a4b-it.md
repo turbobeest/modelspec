@@ -677,26 +677,13 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Gemma 4 26B A4B
-    score: 65.67
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemma-4-26b-a4b
     score: 1438.45
     unit: elo
     source_url: https://lmarena.ai/leaderboard
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2026-09-13'
     date_type: evaluated
     verified_at: '2026-09-10'
     benchmark_version: Text Arena overall, style-controlled
@@ -704,45 +691,20 @@ benchmarks:
       style-controlled. Style-control overall is not raw overall and is not a category
       Elo. evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Gemma 4 26B A4B
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Gemma 4 26B A4B
-    score: 10.65
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Gemma 4 26B A4B
-    score: 79.19
+    model_id_as_evaluated: gemma-4-26b-a4b-it_minimal
+    score: 73.23
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2026-08-06'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2026-08-06T23:59:25.000Z; effort minimal; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 3.15 points.
+    limitations: Epoch AI data, CC BY 4.0.
 deployment:
   api_only: false
   local_inference: true
@@ -897,6 +859,212 @@ sources:
   last_scraped_huggingface: '2026-04-05'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.fits_hardware
+  value:
+  - nvidia_rtx_4090
+  state: known
+  sources:
+  - source_id: model-163-local-google-gemma-4-26b-a4b-it-memory
+    snapshot_ref: sha256:6e208ea9ec77f53a8a5eba6cb22f1fcf578fd299f7ba9d2a99b4d6a5b5873184
+    cited_regions:
+    - row
+  checked_sources: []
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.input_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: model.output_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: model.context_window
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: model.release_date
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-google-gemma-4-26b-a4b-it
+    snapshot_ref: sha256:4f463225c4fe49ec120115b0f9bb6713ff1556293a909903ffdae3df7bf974da
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-google-gemma-4-26b-a4b-it
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

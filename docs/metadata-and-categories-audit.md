@@ -11,7 +11,6 @@ The V2 template pulls from 8 sources. The real ecosystem has **25+** meaningful 
 | **models.dev** | Canonical model IDs, pricing, context limits, TOML-structured data | ✅ |
 | **HuggingFace Hub** | Model weights, lineage, training data, community forks, download counts | ✅ |
 | **LMArena (Chatbot Arena)** | Human-preference ELO ratings — overall, coding, math, vision, style-control, hard prompts | Partial — only overall ELO |
-| **Artificial Analysis** | Inference speed (TPS, TTFT, latency), price-performance ratios, quality index (AAII) | ❌ |
 | **Vellum AI Leaderboard** | Curated non-saturated benchmarks, side-by-side frontier comparison | ❌ |
 | **Vals.ai** | Enterprise-specific benchmarks (CaseLaw, TaxEval, MortgageTax, CorpFin) | ❌ |
 | **LiveBench** | Contamination-resistant live benchmarks, monthly-refreshed questions | ❌ |
@@ -165,8 +164,6 @@ Regardless of category, every model card should also track:
 | `arena_elo_math` | LMArena math-specific ELO |
 | `arena_elo_vision` | LMArena vision-specific ELO |
 | `arena_elo_hard_prompts` | LMArena hard prompts ELO |
-| `artificial_analysis_quality_index` | AAII v3 composite score |
-| `artificial_analysis_speed_index` | TPS ranking |
 | `openrouter_usage_rank` | Developer usage ranking |
 
 ### Complete `model_type` Taxonomy

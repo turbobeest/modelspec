@@ -1,14 +1,8 @@
 {
- "about": "A frozen slice of the built export and, per vector, the sha256 of the pre-MODEL-110 rank_report in canonical form (floats to 10 significant digits, keys sorted). See tests/test_unranked_candidates.py.",
+ "about": "A frozen slice of the built export and, per vector, the sha256 of the rank_report in canonical form (floats to 10 significant digits, keys sorted), without unranked_candidates. Captured from the pre-MODEL-110 scorer; re-frozen on 2026-09-24 after MODEL-117 removed two sources' values from the export and the benchmarks those sources own from the profiles, with the digests recomputed from the same scorer; openai/gpt-6-astra was added so a thin-evidence reason still appears. See tests/test_unranked_candidates.py.",
  "candidates": [
   {
-   "benchmark_scores": {
-    "aa_lcr": 75.67,
-    "critpt": 10.86,
-    "gdpval_aa": 29.66,
-    "gpqa_diamond": 87.58,
-    "scicode": 42.94
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": 1048576,
    "cost_input": null,
@@ -24,18 +18,10 @@
    "rehost_of": null,
    "release_date": "2026-08-19",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "gpqa_diamond": 42.73
-   },
+   "benchmark_scores": {},
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
     "tool_use": "tier-2",
@@ -55,14 +41,10 @@
    "rehost_of": null,
    "release_date": "2024-08-19",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "gpqa_diamond": 38.69
-   },
+   "benchmark_scores": {},
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
     "tool_use": "tier-2",
@@ -82,14 +64,10 @@
    "rehost_of": null,
    "release_date": "2025-02-27",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "gpqa_diamond": 30.2
-   },
+   "benchmark_scores": {},
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
     "tool_use": "tier-2",
@@ -109,14 +87,10 @@
    "rehost_of": null,
    "release_date": "2024-08-19",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "gpqa_diamond": 30.0
-   },
+   "benchmark_scores": {},
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
     "tool_use": "tier-2",
@@ -136,16 +110,10 @@
    "rehost_of": null,
    "release_date": "2025-02-27",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aa_lcr": 16.0,
-    "critpt": 0.0,
-    "gpqa_diamond": 32.22
-   },
+   "benchmark_scores": {},
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
     "tool_use": "tier-2",
@@ -165,11 +133,7 @@
    "rehost_of": null,
    "release_date": "2025-07-01",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {},
@@ -219,7 +183,6 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 27.33,
     "aider_polyglot": 28.0,
     "arena_elo_coding": 1270.0,
     "arena_elo_hard_prompts": 1343.3,
@@ -228,9 +191,7 @@
     "arena_elo_style_control": 1322.4,
     "arena_elo_vision": 1126.8,
     "bbq": 84.5,
-    "critpt": 0.0,
-    "gdpval_aa": 0.0,
-    "gpqa_diamond": 40.81,
+    "gpqa_diamond": 51.2,
     "helm_safety": 89.8,
     "humaneval": 82.5,
     "ifeval": 80.5,
@@ -272,12 +233,7 @@
    "rehost_of": null,
    "release_date": "2024-10-22",
    "scores_as_of": "2026-04",
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {
@@ -332,7 +288,6 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 27.67,
     "ai2d": 88.7,
     "arena_elo_coding": 1170.0,
     "arena_elo_hard_prompts": 1263.2,
@@ -342,9 +297,8 @@
     "arena_elo_vision": 1000.8,
     "bbq": 83.5,
     "chartqa": 81.1,
-    "critpt": 0.0,
     "docvqa": 88.8,
-    "gpqa_diamond": 37.37,
+    "gpqa_diamond": 41.2,
     "gsm8k": 88.9,
     "helm_safety": 88.2,
     "humaneval": 75.9,
@@ -375,11 +329,7 @@
    "rehost_of": null,
    "release_date": "2024-03-13",
    "scores_as_of": "2026-04",
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {
@@ -394,7 +344,7 @@
     "bbq": 86.5,
     "chartqa": 80.8,
     "docvqa": 89.3,
-    "gpqa_diamond": 48.89,
+    "gpqa_diamond": 59.4,
     "gsm8k": 95.0,
     "helm_safety": 90.8,
     "humaneval": 84.9,
@@ -440,7 +390,6 @@
    "release_date": "2024-02-29",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "gpqa_diamond",
     "metr_time_horizon_50",
     "metr_time_horizon_80"
    ]
@@ -497,15 +446,12 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 74.33,
     "arena_elo_coding": 1320.0,
     "arena_elo_hard_prompts": 1436.6,
     "arena_elo_math": 1300.0,
     "arena_elo_overall": 1310.0,
     "arena_elo_style_control": 1413.18,
-    "critpt": 0.0,
-    "gdpval_aa": 17.72,
-    "gpqa_diamond": 67.17,
+    "gpqa_diamond": 62.1,
     "humaneval": 86.2,
     "ifeval": 85.0,
     "live_code_bench": 51.1,
@@ -522,7 +468,6 @@
     "multipl_e_ruby": 66.2,
     "multipl_e_scala": 60.5,
     "multipl_e_swift": 65.5,
-    "scicode": 42.25,
     "swe_bench_verified": 73.3,
     "terminal_bench": 41.0
    },
@@ -550,16 +495,13 @@
    "release_date": "2025-10-15",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
+    "arena_elo_style_control"
    ]
   },
   {
-   "benchmark_scores": {},
+   "benchmark_scores": {
+    "terminal_bench_v4_0": 60.9
+   },
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
     "reasoning:multi_step": "tier-2",
@@ -583,11 +525,12 @@
    "rehost_of": null,
    "release_date": "2026-09-01",
    "scores_as_of": null,
-   "verified_benchmarks": []
+   "verified_benchmarks": [
+    "terminal_bench_v4_0"
+   ]
   },
   {
    "benchmark_scores": {
-    "arena_elo_overall": 1410.0,
     "browsecomp": 86.9,
     "charxiv_reasoning": 86.1,
     "charxiv_reasoning_tools": 93.2,
@@ -596,16 +539,11 @@
     "graphwalks_parents_256k_1m": 97.7,
     "hle": 56.8,
     "hle_tools": 64.7,
-    "humaneval": 93.2,
-    "ifeval": 92.1,
     "lab_bench_figqa": 79.7,
     "lab_bench_figqa_tools": 89.0,
-    "math_500": 96.4,
     "metr_time_horizon_50": 1044.780145,
     "metr_time_horizon_80": 185.911829,
-    "mmlu_pro": 85.2,
     "mmmlu": 92.67,
-    "mt_bench": 9.4,
     "osworld": 79.6,
     "screenspot_pro": 79.5,
     "screenspot_pro_tools": 92.8,
@@ -646,8 +584,28 @@
    "release_date": "2026-04-07",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
+    "browsecomp",
+    "charxiv_reasoning",
+    "charxiv_reasoning_tools",
+    "gpqa_diamond",
+    "graphwalks_bfs_256k_1m",
+    "graphwalks_parents_256k_1m",
+    "hle",
+    "hle_tools",
+    "lab_bench_figqa",
+    "lab_bench_figqa_tools",
     "metr_time_horizon_50",
-    "metr_time_horizon_80"
+    "metr_time_horizon_80",
+    "mmmlu",
+    "osworld",
+    "screenspot_pro",
+    "screenspot_pro_tools",
+    "swe_bench_multilingual",
+    "swe_bench_multimodal",
+    "swe_bench_pro",
+    "swe_bench_verified",
+    "terminal_bench_2",
+    "usamo_2026"
    ]
   },
   {
@@ -702,21 +660,20 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 69.33,
     "aider_polyglot": 82.1,
     "aime_2025": 82.0,
     "alpaca_eval": 55.2,
-    "arena_elo_coding": 1420.0,
+    "arena_elo_coding": 1401.95,
     "arena_elo_hard_prompts": 1455.5,
     "arena_elo_math": 1400.0,
-    "arena_elo_overall": 1410.0,
-    "arena_elo_style_control": 1413.72,
+    "arena_elo_overall": 1365.67,
+    "arena_elo_style_control": 1413.88,
     "arena_elo_vision": 1207.5,
     "bbq": 88.2,
     "chartqa": 86.8,
     "docvqa": 93.2,
     "finbench": 71.2,
-    "gpqa_diamond": 79.6,
+    "gpqa_diamond": 78.4,
     "helm_safety": 92.5,
     "humaneval": 93.2,
     "ifeval": 92.1,
@@ -790,36 +747,32 @@
    "release_date": "2025-05-22",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
+    "arena_elo_coding",
+    "arena_elo_overall",
     "arena_elo_style_control",
-    "gpqa_diamond",
     "metr_time_horizon_50",
     "metr_time_horizon_80"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 78.0,
     "aider_polyglot": 82.1,
     "aime_2025": 82.0,
     "alpaca_eval": 55.2,
-    "arena_elo_coding": 1420.0,
+    "arena_elo_coding": 1533.92,
     "arena_elo_hard_prompts": 1534.7,
     "arena_elo_math": 1400.0,
-    "arena_elo_overall": 1410.0,
-    "arena_elo_style_control": 1497.57,
+    "arena_elo_overall": 1497.54,
+    "arena_elo_style_control": 1497.35,
     "arena_elo_vision": 1295.0,
-    "artificial_analysis_quality_index": 88.0,
-    "artificial_analysis_speed_index": 62.0,
     "bbq": 88.2,
     "browsecomp": 83.7,
     "chartqa": 86.8,
     "charxiv_reasoning": 61.5,
     "charxiv_reasoning_tools": 78.9,
-    "critpt": 12.57,
     "docvqa": 93.2,
     "finbench": 71.2,
-    "gpqa_diamond": 89.6,
+    "gpqa_diamond": 91.3,
     "graphwalks_bfs_256k_1m": 38.7,
     "helm_safety": 92.5,
     "hle": 40.0,
@@ -923,22 +876,17 @@
    "release_date": "2026-02-05",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
+    "arena_elo_coding",
+    "arena_elo_overall",
     "arena_elo_style_control",
-    "critpt",
-    "gpqa_diamond",
     "metr_time_horizon_50",
     "metr_time_horizon_80"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 77.67,
     "arena_elo_style_control": 1472.85,
-    "critpt": 20.86,
-    "gdpval_aa": 49.45,
-    "gpqa_diamond": 92.02,
-    "scicode": 54.4,
+    "gpqa_diamond": 93.6,
     "swe_bench_verified": 88.6
    },
    "capability_tiers": {
@@ -958,17 +906,21 @@
    "release_date": "2026-05-28",
    "scores_as_of": null,
    "verified_benchmarks": [
-    "aa_lcr",
     "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
     "gpqa_diamond",
-    "scicode",
     "swe_bench_verified"
    ]
   },
   {
-   "benchmark_scores": {},
+   "benchmark_scores": {
+    "hle": 64.4,
+    "hle_tools": 67.7,
+    "swe_bench_multilingual": 93.9,
+    "swe_bench_multimodal": 61.4,
+    "swe_bench_pro": 89.9,
+    "terminal_bench_science": 58.7,
+    "terminal_bench_v4_0": 66.4
+   },
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
     "tool_use:function_calling": "tier-2"
@@ -985,27 +937,30 @@
    "rehost_of": null,
    "release_date": "2026-09-22",
    "scores_as_of": null,
-   "verified_benchmarks": []
+   "verified_benchmarks": [
+    "hle",
+    "hle_tools",
+    "swe_bench_multilingual",
+    "swe_bench_multimodal",
+    "swe_bench_pro",
+    "terminal_bench_science",
+    "terminal_bench_v4_0"
+   ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 70.33,
     "aider_polyglot": 75.5,
     "alpaca_eval": 50.8,
-    "arena_elo_coding": 1390.0,
+    "arena_elo_coding": 1380.57,
     "arena_elo_hard_prompts": 1430.5,
     "arena_elo_math": 1370.0,
-    "arena_elo_overall": 1380.0,
-    "arena_elo_style_control": 1390.37,
+    "arena_elo_overall": 1339.29,
+    "arena_elo_style_control": 1390.69,
     "arena_elo_vision": 1207.0,
-    "artificial_analysis_quality_index": 85.0,
-    "artificial_analysis_speed_index": 73.0,
     "bbq": 87.5,
     "chartqa": 84.2,
-    "critpt": 0.29,
     "docvqa": 91.5,
-    "gdpval_aa": 15.95,
-    "gpqa_diamond": 77.68,
+    "gpqa_diamond": 74.1,
     "helm_safety": 91.8,
     "humaneval": 91.5,
     "ifeval": 90.4,
@@ -1075,31 +1030,24 @@
    "release_date": "2025-05-22",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond"
+    "arena_elo_coding",
+    "arena_elo_overall",
+    "arena_elo_style_control"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 72.33,
     "aider_polyglot": 75.5,
     "alpaca_eval": 50.8,
-    "arena_elo_coding": 1380.0,
+    "arena_elo_coding": 1485.74,
     "arena_elo_hard_prompts": 1485.0,
     "arena_elo_math": 1360.0,
-    "arena_elo_overall": 1370.0,
-    "arena_elo_style_control": 1455.14,
-    "artificial_analysis_quality_index": 86.0,
-    "artificial_analysis_speed_index": 71.0,
+    "arena_elo_overall": 1438.25,
+    "arena_elo_style_control": 1455.09,
     "bbq": 87.5,
     "chartqa": 84.2,
-    "critpt": 1.14,
     "docvqa": 91.5,
-    "gdpval_aa": 24.46,
-    "gpqa_diamond": 83.43,
+    "gpqa_diamond": 72.5,
     "helm_safety": 91.8,
     "humaneval": 90.8,
     "ifeval": 89.3,
@@ -1137,7 +1085,6 @@
     "multipl_e_scala": 68.5,
     "multipl_e_swift": 73.5,
     "multipl_e_typescript": 88.2,
-    "scicode": 45.72,
     "swe_bench_agent": 55.8,
     "swe_bench_verified": 62.1,
     "tau_bench": 61.5,
@@ -1169,28 +1116,20 @@
    "release_date": "2025-09-29",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
+    "arena_elo_coding",
+    "arena_elo_overall",
+    "arena_elo_style_control"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 80.0,
     "arena_elo_coding": 1390.0,
     "arena_elo_hard_prompts": 1498.7,
     "arena_elo_math": 1370.0,
     "arena_elo_overall": 1380.0,
     "arena_elo_style_control": 1472.39,
     "arena_elo_vision": 1271.1,
-    "artificial_analysis_quality_index": 85.0,
-    "artificial_analysis_speed_index": 73.0,
-    "critpt": 3.14,
-    "gdpval_aa": 39.77,
-    "gpqa_diamond": 87.47,
+    "gpqa_diamond": 74.1,
     "humaneval": 91.5,
     "ifeval": 90.4,
     "math_500": 93.8,
@@ -1205,7 +1144,6 @@
     "multipl_e_ruby": 76.5,
     "multipl_e_scala": 70.2,
     "multipl_e_swift": 74.8,
-    "scicode": 50.12,
     "swe_bench_verified": 65.3,
     "terminal_bench_2": 59.1
    },
@@ -1233,12 +1171,7 @@
    "release_date": "2026-02-17",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
+    "arena_elo_style_control"
    ]
   },
   {
@@ -1344,63 +1277,10 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 57.67,
-    "aider_polyglot": 65.8,
-    "aime_2025": 79.8,
-    "alpaca_eval": 45.2,
-    "arena_elo_coding": 1370.0,
     "arena_elo_hard_prompts": 1418.1,
-    "arena_elo_math": 1400.0,
-    "arena_elo_overall": 1360.0,
     "arena_elo_style_control": 1397.97,
-    "artificial_analysis_quality_index": 84.0,
-    "artificial_analysis_speed_index": 40.0,
-    "bbh": 68.7,
-    "critpt": 0.57,
-    "gdpval_aa": 0.0,
-    "gpqa_diamond": 70.81,
-    "humaneval": 89.2,
-    "ifeval": 86.5,
-    "live_code_bench": 52.1,
     "math_500": 97.3,
-    "medqa": 92.1,
-    "mmlu_astronomy": 76.5,
-    "mmlu_biology": 84.2,
-    "mmlu_business_ethics": 77.8,
-    "mmlu_chemistry": 78.5,
-    "mmlu_clinical_knowledge": 83.5,
-    "mmlu_computer_science": 85.5,
-    "mmlu_jurisprudence": 74.5,
-    "mmlu_physics": 82.8,
-    "mmlu_pro": 79.8,
-    "mmlu_professional_accounting": 68.2,
-    "mmlu_professional_law": 72.5,
-    "mt_bench": 9.0,
-    "multipl_e": 84.6,
-    "multipl_e_cpp": 83.5,
-    "multipl_e_csharp": 80.5,
-    "multipl_e_go": 80.5,
-    "multipl_e_java": 87.2,
-    "multipl_e_javascript": 86.8,
-    "multipl_e_julia": 62.1,
-    "multipl_e_kotlin": 72.5,
-    "multipl_e_lua": 55.8,
-    "multipl_e_perl": 50.2,
-    "multipl_e_php": 77.8,
-    "multipl_e_python": 92.8,
-    "multipl_e_r": 58.5,
-    "multipl_e_ruby": 65.5,
-    "multipl_e_rust": 75.1,
-    "multipl_e_scala": 60.2,
-    "multipl_e_swift": 65.2,
-    "multipl_e_typescript": 86.1,
-    "musr": 33.5,
-    "scicode": 38.31,
-    "swe_bench_agent": 42.5,
-    "swe_bench_verified": 49.2,
-    "tau_bench": 48.8,
-    "terminal_bench": 5.7,
-    "wildbench": 72.5
+    "swe_bench_verified": 49.2
    },
    "capability_tiers": {
     "coding": "tier-2",
@@ -1425,71 +1305,15 @@
    "release_date": "2025-01-20",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
     "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
+    "math_500",
+    "swe_bench_verified"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 55.67,
-    "aider_polyglot": 65.8,
-    "aime_2025": 82.5,
-    "alpaca_eval": 45.2,
-    "arena_elo_coding": 1380.0,
     "arena_elo_hard_prompts": 1433.6,
-    "arena_elo_math": 1410.0,
-    "arena_elo_overall": 1370.0,
-    "arena_elo_style_control": 1421.34,
-    "artificial_analysis_quality_index": 84.0,
-    "artificial_analysis_speed_index": 40.0,
-    "bbh": 68.7,
-    "critpt": 1.43,
-    "gpqa_diamond": 81.31,
-    "humaneval": 90.5,
-    "ifeval": 88.0,
-    "live_code_bench": 77.0,
-    "math_500": 97.5,
-    "medqa": 92.1,
-    "mmlu_astronomy": 76.5,
-    "mmlu_biology": 84.2,
-    "mmlu_business_ethics": 77.8,
-    "mmlu_chemistry": 78.5,
-    "mmlu_clinical_knowledge": 83.5,
-    "mmlu_computer_science": 85.5,
-    "mmlu_jurisprudence": 74.5,
-    "mmlu_physics": 82.8,
-    "mmlu_pro": 81.0,
-    "mmlu_professional_accounting": 68.2,
-    "mmlu_professional_law": 72.5,
-    "mt_bench": 9.0,
-    "multipl_e": 84.6,
-    "multipl_e_cpp": 83.5,
-    "multipl_e_csharp": 82.1,
-    "multipl_e_go": 80.5,
-    "multipl_e_java": 87.2,
-    "multipl_e_javascript": 86.8,
-    "multipl_e_julia": 64.5,
-    "multipl_e_kotlin": 74.8,
-    "multipl_e_lua": 57.8,
-    "multipl_e_perl": 52.5,
-    "multipl_e_php": 79.5,
-    "multipl_e_python": 92.8,
-    "multipl_e_r": 60.2,
-    "multipl_e_ruby": 67.2,
-    "multipl_e_rust": 75.1,
-    "multipl_e_scala": 62.5,
-    "multipl_e_swift": 67.5,
-    "multipl_e_typescript": 86.1,
-    "musr": 33.5,
-    "swe_bench_agent": 42.5,
-    "swe_bench_verified": 53.8,
-    "tau_bench": 48.8,
-    "terminal_bench": 5.7,
-    "wildbench": 72.5
+    "arena_elo_style_control": 1421.34
    },
    "capability_tiers": {
     "coding": "tier-2",
@@ -1514,37 +1338,13 @@
    "release_date": "2025-05-28",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gpqa_diamond"
+    "arena_elo_style_control"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 73.33,
-    "aider_polyglot": 58.5,
-    "alpaca_eval": 42.8,
-    "arena_elo_coding": 1350.0,
     "arena_elo_hard_prompts": 1446.6,
-    "arena_elo_math": 1330.0,
-    "arena_elo_overall": 1340.0,
     "arena_elo_style_control": 1425.25,
-    "artificial_analysis_quality_index": 80.0,
-    "artificial_analysis_speed_index": 70.0,
-    "bbh": 64.1,
-    "bbq": 73.5,
-    "critpt": 2.86,
-    "gdpval_aa": 15.51,
-    "gpqa_diamond": 84.04,
-    "gsm8k": 89.3,
-    "helm_safety": 78.2,
-    "humaneval": 88.5,
-    "ifeval": 87.0,
-    "live_code_bench": 59.3,
-    "math_500": 92.5,
-    "mmlu_pro": 78.8,
-    "mt_bench": 8.8,
     "multipl_e_csharp": 82.5,
     "multipl_e_julia": 64.2,
     "multipl_e_kotlin": 75.2,
@@ -1554,15 +1354,7 @@
     "multipl_e_r": 60.2,
     "multipl_e_ruby": 68.5,
     "multipl_e_scala": 63.2,
-    "multipl_e_swift": 68.5,
-    "musr": 29.8,
-    "swe_bench_agent": 35.8,
-    "swe_bench_verified": 42.5,
-    "tau_bench": 41.2,
-    "terminal_bench": 37.7,
-    "terminal_bench_2": 46.4,
-    "toxigen": 82.5,
-    "wildbench": 70.2
+    "multipl_e_swift": 68.5
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -1589,37 +1381,14 @@
    "release_date": "2025-12-01",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond"
+    "arena_elo_style_control"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 72.33,
-    "aider_polyglot": 58.5,
-    "alpaca_eval": 42.8,
-    "arena_elo_coding": 1350.0,
     "arena_elo_hard_prompts": 1447.7,
-    "arena_elo_math": 1330.0,
-    "arena_elo_overall": 1340.0,
     "arena_elo_style_control": 1422.38,
-    "artificial_analysis_quality_index": 80.0,
-    "artificial_analysis_speed_index": 70.0,
-    "bbh": 64.1,
-    "bbq": 73.5,
-    "critpt": 1.43,
-    "gpqa_diamond": 79.7,
-    "gsm8k": 89.3,
-    "helm_safety": 78.2,
-    "humaneval": 88.5,
-    "ifeval": 87.0,
     "live_code_bench": 55.4,
-    "math_500": 92.5,
-    "mmlu_pro": 78.8,
-    "mt_bench": 8.8,
     "multipl_e_csharp": 83.2,
     "multipl_e_julia": 65.5,
     "multipl_e_kotlin": 76.5,
@@ -1630,14 +1399,7 @@
     "multipl_e_ruby": 69.5,
     "multipl_e_scala": 64.5,
     "multipl_e_swift": 69.8,
-    "musr": 29.8,
-    "swe_bench_agent": 35.8,
-    "swe_bench_verified": 42.5,
-    "tau_bench": 41.2,
-    "terminal_bench": 37.7,
-    "terminal_bench_2": 46.4,
-    "toxigen": 82.5,
-    "wildbench": 70.2
+    "terminal_bench": 37.7
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -1664,10 +1426,8 @@
    "release_date": "2025-09-29",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
     "arena_elo_style_control",
-    "critpt",
-    "gpqa_diamond"
+    "terminal_bench"
    ]
   },
   {
@@ -1691,31 +1451,21 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 69.0,
     "ai2d": 95.8,
     "aider_polyglot": 71.2,
     "aime_2025": 86.7,
     "alpaca_eval": 51.5,
-    "arena_elo_coding": 1370.0,
+    "arena_elo_coding": 1452.3,
     "arena_elo_hard_prompts": 1460.5,
     "arena_elo_math": 1400.0,
-    "arena_elo_overall": 1380.0,
-    "arena_elo_style_control": 1445.62,
+    "arena_elo_overall": 1457.77,
+    "arena_elo_style_control": 1445.5,
     "arena_elo_vision": 1246.0,
-    "artificial_analysis_quality_index": 85.0,
-    "artificial_analysis_speed_index": 71.0,
     "bbq": 84.2,
     "chartqa": 87.5,
-    "critpt": 2.57,
     "docvqa": 93.8,
     "finbench": 69.8,
-    "flores_en_de": 63.2,
-    "flores_en_es": 68.1,
-    "flores_en_ja": 58.1,
-    "flores_en_zh": 56.8,
-    "gdpval_aa": 5.79,
-    "gpqa_diamond": 84.44,
-    "gsm8k": 90.8,
+    "gpqa_diamond": 80.5,
     "helm_safety": 88.5,
     "humaneval": 91.2,
     "ifeval": 91.0,
@@ -1724,7 +1474,6 @@
     "math_500": 95.2,
     "mathvista": 67.8,
     "medqa": 80.2,
-    "mgsm": 87.5,
     "mmlu_astronomy": 79.8,
     "mmlu_biology": 87.2,
     "mmlu_business_ethics": 81.2,
@@ -1757,7 +1506,6 @@
     "multipl_e_swift": 72.5,
     "multipl_e_typescript": 86.5,
     "ocrbench": 85.2,
-    "scicode": 46.3,
     "swe_bench_agent": 55.5,
     "swe_bench_verified": 63.8,
     "tau_bench": 58.2,
@@ -1789,12 +1537,9 @@
    "release_date": "2025-03-20",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
+    "arena_elo_coding",
+    "arena_elo_overall",
+    "arena_elo_style_control"
    ]
   },
   {
@@ -1806,13 +1551,11 @@
     "arena_elo_coding": 1370.0,
     "arena_elo_math": 1400.0,
     "arena_elo_overall": 1380.0,
-    "artificial_analysis_quality_index": 85.0,
-    "artificial_analysis_speed_index": 71.0,
     "bbq": 84.2,
     "chartqa": 87.5,
     "docvqa": 93.8,
     "finbench": 69.8,
-    "gpqa_diamond": 82.22,
+    "gpqa_diamond": 80.5,
     "helm_safety": 88.5,
     "humaneval": 91.2,
     "ifeval": 91.0,
@@ -1852,9 +1595,7 @@
    "rehost_of": null,
    "release_date": "2025-05-06",
    "scores_as_of": "2026-04",
-   "verified_benchmarks": [
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {},
@@ -1874,13 +1615,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aa_lcr": 78.33,
-    "critpt": 2.0,
-    "gdpval_aa": 36.24,
-    "gpqa_diamond": 86.16,
-    "scicode": 44.21
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": 131072,
    "cost_input": null,
@@ -1896,22 +1631,10 @@
    "rehost_of": null,
    "release_date": "2026-09-04",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "miracl": 61.2,
-    "mteb_pair_classification": 84.0,
-    "mteb_reranking": 58.1,
-    "mteb_sts": 85.8,
-    "mteb_summarization": 29.7
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": null,
@@ -1949,13 +1672,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "miracl": 61.2,
-    "mteb_pair_classification": 84.0,
-    "mteb_reranking": 58.1,
-    "mteb_sts": 85.8,
-    "mteb_summarization": 29.7
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": null,
@@ -1976,15 +1693,10 @@
   {
    "benchmark_scores": {
     "beir": 55.8,
-    "miracl": 61.2,
     "mteb_classification": 71.2,
     "mteb_clustering": 50.2,
     "mteb_overall": 66.5,
-    "mteb_pair_classification": 84.0,
-    "mteb_reranking": 58.1,
-    "mteb_retrieval": 63.8,
-    "mteb_sts": 85.8,
-    "mteb_summarization": 29.7
+    "mteb_retrieval": 63.8
    },
    "capability_tiers": {},
    "context_window": null,
@@ -2004,18 +1716,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "beir": 57.0,
-    "miracl": 63.5,
-    "mteb_classification": 72.0,
-    "mteb_clustering": 51.5,
-    "mteb_overall": 67.8,
-    "mteb_pair_classification": 84.5,
-    "mteb_reranking": 59.5,
-    "mteb_retrieval": 65.0,
-    "mteb_sts": 86.2,
-    "mteb_summarization": 30.2
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": 0.02,
@@ -2034,18 +1735,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "beir": 57.0,
-    "miracl": 63.5,
-    "mteb_classification": 72.0,
-    "mteb_clustering": 51.5,
-    "mteb_overall": 67.8,
-    "mteb_pair_classification": 84.5,
-    "mteb_reranking": 59.5,
-    "mteb_retrieval": 65.0,
-    "mteb_sts": 86.2,
-    "mteb_summarization": 30.2
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": 0.02,
@@ -2064,13 +1754,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "miracl": 63.5,
-    "mteb_pair_classification": 84.5,
-    "mteb_reranking": 59.5,
-    "mteb_sts": 86.2,
-    "mteb_summarization": 30.2
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": 0.02,
@@ -2089,13 +1773,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "miracl": 63.5,
-    "mteb_pair_classification": 84.5,
-    "mteb_reranking": 59.5,
-    "mteb_sts": 86.2,
-    "mteb_summarization": 30.2
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": 0.02,
@@ -2114,13 +1792,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "miracl": 63.5,
-    "mteb_pair_classification": 84.5,
-    "mteb_reranking": 59.5,
-    "mteb_sts": 86.2,
-    "mteb_summarization": 30.2
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": 0.02,
@@ -2184,7 +1856,6 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 50.0,
     "aider_polyglot": 15.6,
     "arena_elo_coding": 1320.0,
     "arena_elo_hard_prompts": 1338.0,
@@ -2194,10 +1865,8 @@
     "arena_elo_vision": 1146.5,
     "bbq": 81.8,
     "chartqa": 90.0,
-    "critpt": 0.0,
     "docvqa": 94.4,
-    "gdpval_aa": 0.0,
-    "gpqa_diamond": 67.07,
+    "gpqa_diamond": 69.8,
     "helm_safety": 86.5,
     "humaneval": 85.5,
     "ifeval": 83.0,
@@ -2218,7 +1887,6 @@
     "multipl_e_ruby": 60.2,
     "multipl_e_scala": 54.5,
     "multipl_e_swift": 59.8,
-    "scicode": 31.71,
     "toxigen": 89.8
    },
    "capability_tiers": {
@@ -2243,52 +1911,28 @@
    "release_date": "2025-04-01",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
     "chartqa",
-    "critpt",
     "docvqa",
-    "gdpval_aa",
     "gpqa_diamond",
     "mathvista",
     "mgsm",
     "mmlu_pro",
-    "mmmu",
-    "scicode"
+    "mmmu"
    ]
   },
   {
    "benchmark_scores": {
-    "arena_elo_coding": 1290.0,
     "arena_elo_hard_prompts": 1329.0,
-    "arena_elo_math": 1270.0,
-    "arena_elo_overall": 1280.0,
     "arena_elo_style_control": 1321.9,
     "arena_elo_vision": 1127.2,
-    "bbq": 80.5,
     "chartqa": 88.8,
     "docvqa": 94.4,
     "gpqa_diamond": 57.2,
-    "helm_safety": 85.2,
-    "humaneval": 80.2,
-    "ifeval": 79.0,
-    "live_code_bench": 29.9,
-    "math_500": 76.5,
     "mathvista": 70.7,
     "medqa": 52.0,
     "mgsm": 90.6,
     "mmlu_pro": 74.3,
-    "mmmu": 69.4,
-    "multipl_e_csharp": 72.8,
-    "multipl_e_julia": 52.5,
-    "multipl_e_kotlin": 63.2,
-    "multipl_e_lua": 46.5,
-    "multipl_e_perl": 41.2,
-    "multipl_e_php": 70.5,
-    "multipl_e_r": 48.8,
-    "multipl_e_ruby": 56.5,
-    "multipl_e_scala": 50.8,
-    "multipl_e_swift": 56.2,
-    "toxigen": 88.5
+    "mmmu": 69.4
    },
    "capability_tiers": {
     "coding": "tier-2",
@@ -2356,13 +2000,7 @@
    ]
   },
   {
-   "benchmark_scores": {
-    "miracl": 65.8,
-    "mteb_pair_classification": 84.0,
-    "mteb_reranking": 56.5,
-    "mteb_sts": 82.5,
-    "mteb_summarization": 29.5
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": 0.008,
@@ -2444,58 +2082,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aider_polyglot": 65.8,
-    "aime_2025": 82.5,
-    "alpaca_eval": 45.2,
-    "arena_elo_coding": 1380.0,
-    "arena_elo_math": 1410.0,
-    "arena_elo_overall": 1370.0,
-    "artificial_analysis_quality_index": 84.0,
-    "artificial_analysis_speed_index": 40.0,
-    "bbh": 68.7,
-    "gpqa_diamond": 73.2,
-    "humaneval": 90.5,
-    "ifeval": 88.0,
-    "live_code_bench": 77.0,
-    "math_500": 97.5,
-    "mmlu_astronomy": 76.5,
-    "mmlu_biology": 84.2,
-    "mmlu_business_ethics": 77.8,
-    "mmlu_chemistry": 78.5,
-    "mmlu_clinical_knowledge": 83.5,
-    "mmlu_computer_science": 85.5,
-    "mmlu_jurisprudence": 74.5,
-    "mmlu_physics": 82.8,
-    "mmlu_pro": 81.0,
-    "mmlu_professional_accounting": 68.2,
-    "mmlu_professional_law": 72.5,
-    "mt_bench": 9.0,
-    "multipl_e": 84.6,
-    "multipl_e_cpp": 83.5,
-    "multipl_e_csharp": 82.1,
-    "multipl_e_go": 80.5,
-    "multipl_e_java": 87.2,
-    "multipl_e_javascript": 86.8,
-    "multipl_e_julia": 64.5,
-    "multipl_e_kotlin": 74.8,
-    "multipl_e_lua": 57.8,
-    "multipl_e_perl": 52.5,
-    "multipl_e_php": 79.5,
-    "multipl_e_python": 92.8,
-    "multipl_e_r": 60.2,
-    "multipl_e_ruby": 67.2,
-    "multipl_e_rust": 75.1,
-    "multipl_e_scala": 62.5,
-    "multipl_e_swift": 67.5,
-    "multipl_e_typescript": 86.1,
-    "musr": 33.5,
-    "swe_bench_agent": 42.5,
-    "swe_bench_verified": 53.8,
-    "tau_bench": 48.8,
-    "terminal_bench": 5.7,
-    "wildbench": 72.5
-   },
+   "benchmark_scores": {},
    "capability_tiers": {
     "coding": "tier-2",
     "coding:code_completion": "tier-2",
@@ -2598,23 +2185,19 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 68.33,
     "ai2d": 95.2,
     "aider_polyglot": 68.5,
     "alpaca_eval": 52.1,
-    "arena_elo_coding": 1360.0,
+    "arena_elo_coding": 1391.2,
     "arena_elo_hard_prompts": 1430.8,
     "arena_elo_math": 1320.0,
-    "arena_elo_overall": 1340.0,
-    "arena_elo_style_control": 1414.41,
+    "arena_elo_overall": 1382.77,
+    "arena_elo_style_control": 1414.47,
     "arena_elo_vision": 1213.5,
-    "artificial_analysis_quality_index": 84.0,
-    "artificial_analysis_speed_index": 76.0,
     "bbq": 86.5,
     "chartqa": 88.5,
-    "critpt": 0.0,
     "docvqa": 94.1,
-    "gpqa_diamond": 66.57,
+    "gpqa_diamond": 69.5,
     "helm_safety": 90.5,
     "humaneval": 90.2,
     "ifeval": 89.5,
@@ -2682,32 +2265,26 @@
    "release_date": "2025-04-14",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gpqa_diamond"
+    "arena_elo_coding",
+    "arena_elo_overall",
+    "arena_elo_style_control"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 44.0,
     "ai2d": 91.5,
     "aider_polyglot": 32.4,
     "alpaca_eval": 52.1,
-    "arena_elo_coding": 1310.0,
+    "arena_elo_coding": 1367.23,
     "arena_elo_hard_prompts": 1402.3,
     "arena_elo_math": 1290.0,
-    "arena_elo_overall": 1300.0,
-    "arena_elo_style_control": 1382.32,
+    "arena_elo_overall": 1340.21,
+    "arena_elo_style_control": 1382.52,
     "arena_elo_vision": 1202.1,
-    "artificial_analysis_quality_index": 74.0,
-    "artificial_analysis_speed_index": 89.0,
     "bbq": 86.5,
     "chartqa": 88.5,
-    "critpt": 0.0,
     "docvqa": 94.1,
-    "gdpval_aa": 0.0,
-    "gpqa_diamond": 66.36,
+    "gpqa_diamond": 60.1,
     "helm_safety": 90.5,
     "humaneval": 86.5,
     "ifeval": 85.0,
@@ -2753,16 +2330,13 @@
    "release_date": "2025-04-14",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond"
+    "arena_elo_coding",
+    "arena_elo_overall",
+    "arena_elo_style_control"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 20.33,
     "ai2d": 95.2,
     "aider_polyglot": 8.9,
     "alpaca_eval": 52.1,
@@ -2772,14 +2346,10 @@
     "arena_elo_overall": 1250.0,
     "arena_elo_style_control": 1321.4,
     "arena_elo_vision": 1088.9,
-    "artificial_analysis_quality_index": 65.0,
-    "artificial_analysis_speed_index": 94.0,
     "bbq": 86.5,
     "chartqa": 88.5,
-    "critpt": 0.0,
     "docvqa": 94.1,
-    "gdpval_aa": 0.0,
-    "gpqa_diamond": 51.21,
+    "gpqa_diamond": 48.3,
     "helm_safety": 90.5,
     "humaneval": 78.5,
     "ifeval": 78.0,
@@ -2824,84 +2394,12 @@
    "rehost_of": null,
    "release_date": "2025-04-14",
    "scores_as_of": "2026-04",
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {
-    "ai2d": 94.2,
-    "aider_polyglot": 58.2,
-    "alpaca_eval": 48.5,
-    "arena_elo_coding": 1300.0,
     "arena_elo_hard_prompts": 1456.0,
-    "arena_elo_math": 1270.0,
-    "arena_elo_overall": 1290.0,
-    "arena_elo_style_control": 1443.0,
-    "arena_elo_vision": 1310.0,
-    "artificial_analysis_quality_index": 82.0,
-    "artificial_analysis_speed_index": 78.0,
-    "bbq": 85.8,
-    "chartqa": 85.2,
-    "docvqa": 92.8,
-    "finbench": 68.5,
-    "flores_en_de": 67.3,
-    "flores_en_es": 71.2,
-    "flores_en_ja": 61.4,
-    "flores_en_zh": 59.7,
-    "gpqa_diamond": 53.6,
-    "gsm8k": 95.0,
-    "helm_safety": 89.2,
-    "humaneval": 90.2,
-    "ifeval": 84.3,
-    "legalbench": 72.1,
-    "live_code_bench": 31.7,
-    "math_500": 76.6,
-    "mathvista": 63.8,
-    "medqa": 78.5,
-    "mgsm": 90.5,
-    "mmlu_astronomy": 78.2,
-    "mmlu_biology": 86.8,
-    "mmlu_business_ethics": 80.2,
-    "mmlu_chemistry": 80.2,
-    "mmlu_clinical_knowledge": 85.5,
-    "mmlu_computer_science": 87.5,
-    "mmlu_jurisprudence": 78.5,
-    "mmlu_physics": 83.5,
-    "mmlu_pro": 72.6,
-    "mmlu_professional_accounting": 70.5,
-    "mmlu_professional_law": 76.8,
-    "mmmu": 69.1,
-    "mt_bench": 9.1,
-    "multipl_e": 83.0,
-    "multipl_e_cpp": 82.5,
-    "multipl_e_csharp": 82.1,
-    "multipl_e_go": 79.1,
-    "multipl_e_java": 86.5,
-    "multipl_e_javascript": 85.8,
-    "multipl_e_julia": 62.8,
-    "multipl_e_kotlin": 75.8,
-    "multipl_e_lua": 58.5,
-    "multipl_e_perl": 55.2,
-    "multipl_e_php": 80.5,
-    "multipl_e_python": 90.2,
-    "multipl_e_r": 60.5,
-    "multipl_e_ruby": 70.2,
-    "multipl_e_rust": 72.8,
-    "multipl_e_scala": 64.5,
-    "multipl_e_swift": 68.2,
-    "multipl_e_typescript": 84.2,
-    "ocrbench": 73.6,
-    "realworldqa": 75.4,
-    "swe_bench_agent": 32.1,
-    "swe_bench_verified": 38.4,
-    "tau_bench": 42.5,
-    "terminal_bench": 35.2,
-    "toxigen": 92.8,
-    "wildbench": 75.8
+    "arena_elo_style_control": 1443.0
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -2928,77 +2426,11 @@
   },
   {
    "benchmark_scores": {
-    "ai2d": 94.2,
-    "aider_polyglot": 58.2,
-    "alpaca_eval": 48.5,
-    "arena_elo_coding": 1300.0,
     "arena_elo_hard_prompts": 1336.8,
-    "arena_elo_math": 1270.0,
-    "arena_elo_overall": 1290.0,
     "arena_elo_style_control": 1345.1,
-    "arena_elo_vision": 1310.0,
-    "artificial_analysis_quality_index": 82.0,
-    "artificial_analysis_speed_index": 78.0,
-    "bbq": 85.8,
-    "chartqa": 85.2,
-    "docvqa": 92.8,
-    "finbench": 68.5,
-    "flores_en_de": 67.3,
-    "flores_en_es": 71.2,
-    "flores_en_ja": 61.4,
-    "flores_en_zh": 59.7,
-    "gpqa_diamond": 52.63,
-    "gsm8k": 95.0,
-    "helm_safety": 89.2,
-    "humaneval": 90.2,
-    "ifeval": 84.3,
-    "legalbench": 72.1,
-    "live_code_bench": 31.7,
     "math_500": 76.6,
-    "mathvista": 63.8,
-    "medqa": 78.5,
     "metr_time_horizon_50": 6.991195,
-    "metr_time_horizon_80": 1.267009,
-    "mgsm": 90.5,
-    "mmlu_astronomy": 78.2,
-    "mmlu_biology": 86.8,
-    "mmlu_business_ethics": 80.2,
-    "mmlu_chemistry": 80.2,
-    "mmlu_clinical_knowledge": 85.5,
-    "mmlu_computer_science": 87.5,
-    "mmlu_jurisprudence": 78.5,
-    "mmlu_physics": 83.5,
-    "mmlu_pro": 72.6,
-    "mmlu_professional_accounting": 70.5,
-    "mmlu_professional_law": 76.8,
-    "mmmu": 69.1,
-    "mt_bench": 9.1,
-    "multipl_e": 83.0,
-    "multipl_e_cpp": 82.5,
-    "multipl_e_csharp": 82.1,
-    "multipl_e_go": 79.1,
-    "multipl_e_java": 86.5,
-    "multipl_e_javascript": 85.8,
-    "multipl_e_julia": 62.8,
-    "multipl_e_kotlin": 75.8,
-    "multipl_e_lua": 58.5,
-    "multipl_e_perl": 55.2,
-    "multipl_e_php": 80.5,
-    "multipl_e_python": 90.2,
-    "multipl_e_r": 60.5,
-    "multipl_e_ruby": 70.2,
-    "multipl_e_rust": 72.8,
-    "multipl_e_scala": 64.5,
-    "multipl_e_swift": 68.2,
-    "multipl_e_typescript": 84.2,
-    "ocrbench": 73.6,
-    "realworldqa": 75.4,
-    "swe_bench_agent": 32.1,
-    "swe_bench_verified": 38.4,
-    "tau_bench": 42.5,
-    "terminal_bench": 35.2,
-    "toxigen": 92.8,
-    "wildbench": 75.8
+    "metr_time_horizon_80": 1.267009
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -3022,84 +2454,15 @@
    "release_date": "2024-05-13",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "gpqa_diamond",
     "metr_time_horizon_50",
     "metr_time_horizon_80"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 41.0,
-    "ai2d": 94.2,
-    "aider_polyglot": 58.2,
-    "alpaca_eval": 48.5,
-    "arena_elo_coding": 1300.0,
     "arena_elo_hard_prompts": 1326.3,
-    "arena_elo_math": 1270.0,
-    "arena_elo_overall": 1290.0,
     "arena_elo_style_control": 1334.3,
-    "arena_elo_vision": 1310.0,
-    "artificial_analysis_quality_index": 82.0,
-    "artificial_analysis_speed_index": 78.0,
-    "bbq": 85.8,
-    "chartqa": 85.2,
-    "critpt": 0.0,
-    "docvqa": 92.8,
-    "finbench": 68.5,
-    "flores_en_de": 67.3,
-    "flores_en_es": 71.2,
-    "flores_en_ja": 61.4,
-    "flores_en_zh": 59.7,
-    "gpqa_diamond": 52.12,
-    "gsm8k": 95.0,
-    "helm_safety": 89.2,
-    "humaneval": 90.2,
-    "ifeval": 84.3,
-    "legalbench": 72.1,
-    "live_code_bench": 31.7,
-    "math_500": 76.6,
-    "mathvista": 63.8,
-    "medqa": 78.5,
-    "mgsm": 90.5,
-    "mmlu_astronomy": 78.2,
-    "mmlu_biology": 86.8,
-    "mmlu_business_ethics": 80.2,
-    "mmlu_chemistry": 80.2,
-    "mmlu_clinical_knowledge": 85.5,
-    "mmlu_computer_science": 87.5,
-    "mmlu_jurisprudence": 78.5,
-    "mmlu_physics": 83.5,
-    "mmlu_pro": 72.6,
-    "mmlu_professional_accounting": 70.5,
-    "mmlu_professional_law": 76.8,
-    "mmmu": 69.1,
-    "mt_bench": 9.1,
-    "multipl_e": 83.0,
-    "multipl_e_cpp": 82.5,
-    "multipl_e_csharp": 82.1,
-    "multipl_e_go": 79.1,
-    "multipl_e_java": 86.5,
-    "multipl_e_javascript": 85.8,
-    "multipl_e_julia": 62.8,
-    "multipl_e_kotlin": 75.8,
-    "multipl_e_lua": 58.5,
-    "multipl_e_perl": 55.2,
-    "multipl_e_php": 80.5,
-    "multipl_e_python": 90.2,
-    "multipl_e_r": 60.5,
-    "multipl_e_ruby": 70.2,
-    "multipl_e_rust": 72.8,
-    "multipl_e_scala": 64.5,
-    "multipl_e_swift": 68.2,
-    "multipl_e_typescript": 84.2,
-    "ocrbench": 73.6,
-    "realworldqa": 75.4,
-    "swe_bench_agent": 32.1,
-    "swe_bench_verified": 38.4,
-    "tau_bench": 42.5,
-    "terminal_bench": 35.2,
-    "toxigen": 92.8,
-    "wildbench": 75.8
+    "humaneval": 90.2
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -3123,45 +2486,17 @@
    "release_date": "2024-08-06",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gpqa_diamond"
+    "humaneval"
    ]
   },
   {
    "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1400.0,
     "arena_elo_hard_prompts": 1447.9,
-    "arena_elo_math": 1380.0,
-    "arena_elo_overall": 1390.0,
     "arena_elo_style_control": 1433.4,
     "arena_elo_vision": 1225.2,
-    "gpqa_diamond": 77.2,
-    "humaneval": 92.1,
-    "ifeval": 91.8,
     "legalbench": 86.0,
-    "live_code_bench": 84.6,
-    "math_500": 95.5,
-    "medqa": 93.0,
     "metr_time_horizon_50": 203.012577,
-    "metr_time_horizon_80": 38.312431,
-    "mmlu_pro": 84.8,
-    "multipl_e_csharp": 88.5,
-    "multipl_e_julia": 70.5,
-    "multipl_e_kotlin": 82.8,
-    "multipl_e_lua": 65.5,
-    "multipl_e_perl": 62.8,
-    "multipl_e_php": 85.2,
-    "multipl_e_r": 68.2,
-    "multipl_e_ruby": 78.2,
-    "multipl_e_scala": 72.5,
-    "multipl_e_swift": 76.5,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 69.3,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8,
-    "terminal_bench_2": 77.3
+    "metr_time_horizon_80": 38.312431
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -3193,37 +2528,10 @@
   },
   {
    "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1410.0,
     "arena_elo_hard_prompts": 1474.6,
-    "arena_elo_math": 1390.0,
-    "arena_elo_overall": 1400.0,
     "arena_elo_style_control": 1454.6,
     "arena_elo_vision": 1249.1,
-    "artificial_analysis_quality_index": 88.0,
-    "artificial_analysis_speed_index": 70.0,
-    "gpqa_diamond": 79.1,
-    "humaneval": 93.8,
-    "ifeval": 92.5,
-    "live_code_bench": 86.8,
-    "math_500": 96.8,
-    "medqa": 96.4,
-    "mmlu_pro": 86.0,
-    "multipl_e_csharp": 89.2,
-    "multipl_e_julia": 71.8,
-    "multipl_e_kotlin": 83.5,
-    "multipl_e_lua": 66.8,
-    "multipl_e_perl": 63.5,
-    "multipl_e_php": 86.5,
-    "multipl_e_r": 69.5,
-    "multipl_e_ruby": 79.8,
-    "multipl_e_scala": 73.8,
-    "multipl_e_swift": 77.8,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 71.5,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8,
-    "terminal_bench_2": 52.8
+    "medqa": 96.4
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -3252,33 +2560,7 @@
   },
   {
    "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1410.0,
-    "arena_elo_math": 1390.0,
-    "arena_elo_overall": 1400.0,
-    "artificial_analysis_quality_index": 88.0,
-    "artificial_analysis_speed_index": 70.0,
-    "gpqa_diamond": 79.1,
-    "humaneval": 93.8,
-    "ifeval": 92.5,
-    "live_code_bench": 83.6,
-    "math_500": 96.8,
-    "mmlu_pro": 86.0,
-    "multipl_e_csharp": 89.2,
-    "multipl_e_julia": 71.8,
-    "multipl_e_kotlin": 83.5,
-    "multipl_e_lua": 66.8,
-    "multipl_e_perl": 63.5,
-    "multipl_e_php": 86.5,
-    "multipl_e_r": 69.5,
-    "multipl_e_ruby": 79.8,
-    "multipl_e_scala": 73.8,
-    "multipl_e_swift": 77.8,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 71.5,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8,
-    "terminal_bench_2": 52.8
+    "live_code_bench": 83.6
    },
    "capability_tiers": {
     "coding": "tier-2",
@@ -3307,40 +2589,18 @@
   },
   {
    "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1400.0,
+    "arena_elo_coding": 1480.04,
     "arena_elo_hard_prompts": 1507.2,
-    "arena_elo_math": 1380.0,
-    "arena_elo_overall": 1390.0,
-    "arena_elo_style_control": 1465.61,
+    "arena_elo_overall": 1452.64,
+    "arena_elo_style_control": 1465.66,
     "gpqa_diamond": 92.8,
     "graphwalks_bfs_256k_1m": 21.4,
     "hle": 39.8,
     "hle_tools": 52.1,
-    "humaneval": 92.1,
-    "ifeval": 91.8,
-    "live_code_bench": 84.6,
-    "math_500": 95.5,
-    "medqa": 93.0,
     "metr_time_horizon_50": 341.735276,
     "metr_time_horizon_80": 53.877851,
-    "mmlu_pro": 84.8,
-    "multipl_e_csharp": 88.5,
-    "multipl_e_julia": 70.5,
-    "multipl_e_kotlin": 82.8,
-    "multipl_e_lua": 65.5,
-    "multipl_e_perl": 62.8,
-    "multipl_e_php": 85.2,
-    "multipl_e_r": 68.2,
-    "multipl_e_ruby": 78.2,
-    "multipl_e_scala": 72.5,
-    "multipl_e_swift": 76.5,
     "osworld": 75.0,
-    "swe_bench_agent": 55.2,
     "swe_bench_pro": 57.7,
-    "swe_bench_verified": 69.3,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8,
     "terminal_bench_2": 75.1,
     "usamo_2026": 95.2
    },
@@ -3368,6 +2628,8 @@
    "release_date": "2026-03-05",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
+    "arena_elo_coding",
+    "arena_elo_overall",
     "arena_elo_style_control",
     "metr_time_horizon_50",
     "metr_time_horizon_80"
@@ -3375,33 +2637,9 @@
   },
   {
    "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1400.0,
     "arena_elo_hard_prompts": 1483.9,
-    "arena_elo_math": 1380.0,
-    "arena_elo_overall": 1390.0,
     "arena_elo_style_control": 1457.8,
-    "arena_elo_vision": 1241.2,
-    "gpqa_diamond": 77.2,
-    "humaneval": 92.1,
-    "ifeval": 91.8,
-    "live_code_bench": 84.6,
-    "math_500": 95.5,
-    "mmlu_pro": 84.8,
-    "multipl_e_csharp": 88.5,
-    "multipl_e_julia": 70.5,
-    "multipl_e_kotlin": 82.8,
-    "multipl_e_lua": 65.5,
-    "multipl_e_perl": 62.8,
-    "multipl_e_php": 85.2,
-    "multipl_e_r": 68.2,
-    "multipl_e_ruby": 78.2,
-    "multipl_e_scala": 72.5,
-    "multipl_e_swift": 76.5,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 69.3,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8
+    "arena_elo_vision": 1241.2
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -3430,35 +2668,9 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 67.33,
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1400.0,
     "arena_elo_hard_prompts": 1417.2,
-    "arena_elo_math": 1380.0,
-    "arena_elo_overall": 1390.0,
     "arena_elo_style_control": 1402.7,
-    "arena_elo_vision": 1191.8,
-    "critpt": 5.14,
-    "gpqa_diamond": 76.06,
-    "humaneval": 92.1,
-    "ifeval": 91.8,
-    "live_code_bench": 84.6,
-    "math_500": 95.5,
-    "mmlu_pro": 84.8,
-    "multipl_e_csharp": 88.5,
-    "multipl_e_julia": 70.5,
-    "multipl_e_kotlin": 82.8,
-    "multipl_e_lua": 65.5,
-    "multipl_e_perl": 62.8,
-    "multipl_e_php": 85.2,
-    "multipl_e_r": 68.2,
-    "multipl_e_ruby": 78.2,
-    "multipl_e_scala": 72.5,
-    "multipl_e_swift": 76.5,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 69.3,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8
+    "arena_elo_vision": 1191.8
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -3483,39 +2695,10 @@
    "rehost_of": null,
    "release_date": "2026-03-17",
    "scores_as_of": "2026-04",
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1400.0,
-    "arena_elo_math": 1380.0,
-    "arena_elo_overall": 1390.0,
-    "gpqa_diamond": 77.2,
-    "humaneval": 92.1,
-    "ifeval": 91.8,
-    "live_code_bench": 84.6,
-    "math_500": 95.5,
-    "mmlu_pro": 84.8,
-    "multipl_e_csharp": 88.5,
-    "multipl_e_julia": 70.5,
-    "multipl_e_kotlin": 82.8,
-    "multipl_e_lua": 65.5,
-    "multipl_e_perl": 62.8,
-    "multipl_e_php": 85.2,
-    "multipl_e_r": 68.2,
-    "multipl_e_ruby": 78.2,
-    "multipl_e_scala": 72.5,
-    "multipl_e_swift": 76.5,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 69.3,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8
-   },
+   "benchmark_scores": {},
    "capability_tiers": {
     "coding": "tier-1",
     "reasoning": "tier-1",
@@ -3543,11 +2726,8 @@
   },
   {
    "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1350.0,
     "arena_elo_hard_prompts": 1401.8,
     "arena_elo_math": 1330.0,
-    "arena_elo_overall": 1340.0,
     "arena_elo_style_control": 1389.5,
     "arena_elo_vision": 1181.9,
     "gpqa_diamond": 68.2,
@@ -3555,21 +2735,7 @@
     "ifeval": 88.0,
     "live_code_bench": 83.8,
     "math_500": 89.1,
-    "mmlu_pro": 79.5,
-    "multipl_e_csharp": 88.5,
-    "multipl_e_julia": 70.5,
-    "multipl_e_kotlin": 82.8,
-    "multipl_e_lua": 65.5,
-    "multipl_e_perl": 62.8,
-    "multipl_e_php": 85.2,
-    "multipl_e_r": 68.2,
-    "multipl_e_ruby": 78.2,
-    "multipl_e_scala": 72.5,
-    "multipl_e_swift": 76.5,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 62.8,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8
+    "mmlu_pro": 79.5
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -3598,11 +2764,8 @@
   },
   {
    "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1300.0,
     "arena_elo_hard_prompts": 1353.3,
     "arena_elo_math": 1280.0,
-    "arena_elo_overall": 1290.0,
     "arena_elo_style_control": 1336.4,
     "arena_elo_vision": 1145.6,
     "gpqa_diamond": 55.1,
@@ -3610,21 +2773,7 @@
     "ifeval": 82.5,
     "live_code_bench": 47.0,
     "math_500": 78.2,
-    "mmlu_pro": 70.3,
-    "multipl_e_csharp": 88.5,
-    "multipl_e_julia": 70.5,
-    "multipl_e_kotlin": 82.8,
-    "multipl_e_lua": 65.5,
-    "multipl_e_perl": 62.8,
-    "multipl_e_php": 85.2,
-    "multipl_e_r": 68.2,
-    "multipl_e_ruby": 78.2,
-    "multipl_e_scala": 72.5,
-    "multipl_e_swift": 76.5,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 62.8,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8
+    "mmlu_pro": 70.3
    },
    "capability_tiers": {
     "coding": "tier-1",
@@ -3652,32 +2801,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aider_polyglot": 72.1,
-    "arena_elo_coding": 1400.0,
-    "arena_elo_math": 1380.0,
-    "arena_elo_overall": 1390.0,
-    "gpqa_diamond": 77.2,
-    "humaneval": 92.1,
-    "ifeval": 91.8,
-    "live_code_bench": 84.6,
-    "math_500": 95.5,
-    "mmlu_pro": 84.8,
-    "multipl_e_csharp": 88.5,
-    "multipl_e_julia": 70.5,
-    "multipl_e_kotlin": 82.8,
-    "multipl_e_lua": 65.5,
-    "multipl_e_perl": 62.8,
-    "multipl_e_php": 85.2,
-    "multipl_e_r": 68.2,
-    "multipl_e_ruby": 78.2,
-    "multipl_e_scala": 72.5,
-    "multipl_e_swift": 76.5,
-    "swe_bench_agent": 55.2,
-    "swe_bench_verified": 69.3,
-    "tau_bench": 58.5,
-    "terminal_bench": 48.8
-   },
+   "benchmark_scores": {},
    "capability_tiers": {
     "coding": "tier-1",
     "reasoning": "tier-1",
@@ -3702,6 +2826,48 @@
    "release_date": "2025-10-06",
    "scores_as_of": "2026-04",
    "verified_benchmarks": []
+  },
+  {
+   "benchmark_scores": {
+    "arc_agi_2": 95.0,
+    "arena_elo_coding": 1488.58,
+    "arena_elo_overall": 1443.72,
+    "arena_elo_style_control": 1479.77,
+    "browsecomp": 91.5,
+    "gpqa_diamond": 96.0,
+    "hle_tools": 57.2,
+    "terminal_bench_science": 64.6,
+    "terminal_bench_v4_0": 57.9
+   },
+   "capability_tiers": {
+    "agent:web_browsing": "tier-2",
+    "reasoning:chain_of_thought": "tier-2",
+    "tool_use:computer_use": "tier-2",
+    "tool_use:function_calling": "tier-2"
+   },
+   "context_window": 1050000,
+   "cost_input": 10.0,
+   "display_name": "GPT-6 Astra",
+   "fits": {},
+   "model_id": "openai/gpt-6-astra",
+   "model_subtypes": [],
+   "model_type": "llm-reasoning",
+   "open_weights": false,
+   "provider": "OpenAI",
+   "rehost_of": null,
+   "release_date": "2026-09-04",
+   "scores_as_of": null,
+   "verified_benchmarks": [
+    "arc_agi_2",
+    "arena_elo_coding",
+    "arena_elo_overall",
+    "arena_elo_style_control",
+    "browsecomp",
+    "gpqa_diamond",
+    "hle_tools",
+    "terminal_bench_science",
+    "terminal_bench_v4_0"
+   ]
   },
   {
    "benchmark_scores": {},
@@ -3744,13 +2910,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aa_lcr": 59.33,
-    "critpt": 0.29,
-    "gdpval_aa": 16.38,
-    "gpqa_diamond": 70.2,
-    "scicode": 26.27
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": 131072,
    "cost_input": null,
@@ -3766,13 +2926,7 @@
    "rehost_of": null,
    "release_date": "2026-09-06",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {},
@@ -3801,19 +2955,15 @@
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 0.0,
     "aider_polyglot": 68.2,
     "alpaca_eval": 44.5,
-    "arena_elo_coding": 1350.0,
+    "arena_elo_coding": 1385.15,
     "arena_elo_hard_prompts": 1440.4,
     "arena_elo_math": 1360.0,
-    "arena_elo_overall": 1340.0,
-    "arena_elo_style_control": 1374.94,
+    "arena_elo_overall": 1366.11,
+    "arena_elo_style_control": 1374.89,
     "arena_elo_vision": 1214.6,
-    "artificial_analysis_quality_index": 82.0,
-    "artificial_analysis_speed_index": 55.0,
-    "critpt": 0.0,
-    "gpqa_diamond": 70.0,
+    "gpqa_diamond": 71.1,
     "gsm8k": 94.4,
     "humaneval": 89.5,
     "ifeval": 88.5,
@@ -3874,48 +3024,20 @@
    "release_date": "2025-04",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gpqa_diamond"
+    "arena_elo_coding",
+    "arena_elo_overall",
+    "arena_elo_style_control"
    ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 0.0,
     "aider_polyglot": 40.0,
     "aime_2025": 72.9,
-    "alpaca_eval": 38.2,
-    "arena_elo_coding": 1320.0,
     "arena_elo_hard_prompts": 1367.6,
-    "arena_elo_math": 1330.0,
-    "arena_elo_overall": 1310.0,
     "arena_elo_style_control": 1347.0,
-    "artificial_analysis_quality_index": 76.0,
-    "artificial_analysis_speed_index": 70.0,
-    "bbh": 62.8,
-    "critpt": 0.29,
-    "gdpval_aa": 0.0,
-    "gpqa_diamond": 66.77,
-    "humaneval": 85.2,
+    "gpqa_diamond": 68.4,
     "ifeval": 85.0,
-    "live_code_bench": 54.6,
-    "math_500": 97.2,
-    "mmlu_pro": 74.8,
-    "mt_bench": 8.5,
-    "multipl_e_csharp": 78.2,
-    "multipl_e_julia": 59.2,
-    "multipl_e_kotlin": 70.5,
-    "multipl_e_lua": 53.5,
-    "multipl_e_perl": 48.5,
-    "multipl_e_php": 75.8,
-    "multipl_e_r": 55.5,
-    "multipl_e_ruby": 63.5,
-    "multipl_e_scala": 58.2,
-    "multipl_e_swift": 63.8,
-    "musr": 30.1,
-    "scicode": 36.0,
-    "wildbench": 65.5
+    "math_500": 97.2
    },
    "capability_tiers": {
     "coding": "tier-2",
@@ -3943,24 +3065,15 @@
    "release_date": "2025-04",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
+    "aider_polyglot",
     "aime_2025",
-    "critpt",
-    "gdpval_aa",
     "gpqa_diamond",
     "ifeval",
-    "math_500",
-    "scicode"
+    "math_500"
    ]
   },
   {
-   "benchmark_scores": {
-    "aa_lcr": 79.67,
-    "critpt": 11.14,
-    "gdpval_aa": 57.35,
-    "gpqa_diamond": 92.32,
-    "scicode": 50.58
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": 262144,
    "cost_input": null,
@@ -3976,25 +3089,17 @@
    "rehost_of": null,
    "release_date": "2026-08-24",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 45.67,
     "aider_polyglot": 72.5,
     "arena_elo_coding": 1380.0,
     "arena_elo_hard_prompts": 1413.6,
     "arena_elo_math": 1340.0,
     "arena_elo_overall": 1350.0,
     "arena_elo_style_control": 1387.32,
-    "critpt": 0.0,
-    "gpqa_diamond": 61.82,
+    "gpqa_diamond": 70.5,
     "humaneval": 92.5,
     "ifeval": 88.0,
     "live_code_bench": 58.5,
@@ -4040,25 +3145,11 @@
    "release_date": "2025-04",
    "scores_as_of": "2026-04",
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gpqa_diamond"
+    "arena_elo_style_control"
    ]
   },
   {
-   "benchmark_scores": {
-    "beir": 57.5,
-    "miracl": 60.0,
-    "mteb_classification": 72.5,
-    "mteb_clustering": 52.0,
-    "mteb_overall": 68.0,
-    "mteb_pair_classification": 85.5,
-    "mteb_reranking": 65.6,
-    "mteb_retrieval": 65.5,
-    "mteb_sts": 81.1,
-    "mteb_summarization": 30.5
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": 0.008,
@@ -4077,18 +3168,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "beir": 57.5,
-    "miracl": 60.0,
-    "mteb_classification": 72.5,
-    "mteb_clustering": 52.0,
-    "mteb_overall": 68.0,
-    "mteb_pair_classification": 85.5,
-    "mteb_reranking": 65.6,
-    "mteb_retrieval": 65.5,
-    "mteb_sts": 81.1,
-    "mteb_summarization": 30.5
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": null,
    "cost_input": null,
@@ -4167,11 +3247,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aa_lcr": 21.33,
-    "critpt": 1.14,
-    "gpqa_diamond": 71.31
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": 262400,
    "cost_input": null,
@@ -4187,20 +3263,10 @@
    "rehost_of": null,
    "release_date": "2025-09-24",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aa_lcr": 70.0,
-    "critpt": 8.86,
-    "gdpval_aa": 27.21,
-    "gpqa_diamond": 85.66,
-    "scicode": 40.97
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": 262144,
    "cost_input": null,
@@ -4216,13 +3282,7 @@
    "rehost_of": null,
    "release_date": "2026-07-28",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {
@@ -4275,11 +3335,7 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aa_lcr": 0.0,
-    "critpt": 0.0,
-    "gpqa_diamond": 27.17
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": 65536,
    "cost_input": null,
@@ -4295,18 +3351,10 @@
    "rehost_of": null,
    "release_date": "2025-09-01",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {
-    "aa_lcr": 0.0,
-    "critpt": 0.0,
-    "gpqa_diamond": 25.56
-   },
+   "benchmark_scores": {},
    "capability_tiers": {},
    "context_window": 65536,
    "cost_input": null,
@@ -4322,11 +3370,7 @@
    "rehost_of": null,
    "release_date": "2025-08-13",
    "scores_as_of": null,
-   "verified_benchmarks": [
-    "aa_lcr",
-    "critpt",
-    "gpqa_diamond"
-   ]
+   "verified_benchmarks": []
   },
   {
    "benchmark_scores": {},
@@ -4435,7 +3479,9 @@
    "verified_benchmarks": []
   },
   {
-   "benchmark_scores": {},
+   "benchmark_scores": {
+    "terminal_bench_v4_0": 37.58
+   },
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
     "tool_use:function_calling": "tier-2"
@@ -4452,16 +3498,13 @@
    "rehost_of": null,
    "release_date": "2026-09-21",
    "scores_as_of": null,
-   "verified_benchmarks": []
+   "verified_benchmarks": [
+    "terminal_bench_v4_0"
+   ]
   },
   {
    "benchmark_scores": {
-    "aa_lcr": 80.0,
-    "arena_elo_style_control": 1474.16,
-    "critpt": 15.43,
-    "gdpval_aa": 58.46,
-    "gpqa_diamond": 91.21,
-    "scicode": 51.62
+    "arena_elo_style_control": 1474.16
    },
    "capability_tiers": {
     "reasoning:chain_of_thought": "tier-2",
@@ -4487,12 +3530,7 @@
    "release_date": "2026-08-26",
    "scores_as_of": null,
    "verified_benchmarks": [
-    "aa_lcr",
-    "arena_elo_style_control",
-    "critpt",
-    "gdpval_aa",
-    "gpqa_diamond",
-    "scicode"
+    "arena_elo_style_control"
    ]
   },
   {
@@ -4522,32 +3560,32 @@
  "device": "apple_m3_ultra",
  "golden": {
   "agentic_price": {
-   "canonical_sha256": "ca6eb92d3b3f1ae57c641d585bdabf245857c7485a3eb68cb3209d3a5d05eb7a",
-   "ranked_count": 26
-  },
-  "coding": {
-   "canonical_sha256": "415dbabc0084342c4894d32a6e378f8c13da4932f851a8cb624be733451a0b79",
-   "ranked_count": 37
-  },
-  "embedding_rehosts": {
-   "canonical_sha256": "3eb08cded57d4f13e79d77abcadaf4880700f81fb42eff3f99002687db731d6e",
+   "canonical_sha256": "4b2ff20cc9809ea7c74761bd63313fed647cba4cf8c6d69db54496f1fbb00ef6",
    "ranked_count": 11
   },
+  "coding": {
+   "canonical_sha256": "ffbecf3d1391c4f2873b462e4fc3730d0d4a1aae7797059e50a0b9106280be48",
+   "ranked_count": 18
+  },
+  "embedding_rehosts": {
+   "canonical_sha256": "8bac91c9dd968cfc41e3aba1354b44e8a781cbaaa611499ed6095df3c62d2040",
+   "ranked_count": 7
+  },
   "general_wizard_floor": {
-   "canonical_sha256": "22bf87781dec4d2c1da501b33fdae5dd603137ccf8d173ab3191f6e1a78bd152",
-   "ranked_count": 48
+   "canonical_sha256": "1accad5080f85d042729571da30dd38e323c71b67df1c15f128cdb62c554f433",
+   "ranked_count": 26
   },
   "rag_open_weights": {
-   "canonical_sha256": "c004d6572f2b40a73b209612359e95d0639a081dc3d98fa355048dab837fcdd6",
-   "ranked_count": 10
+   "canonical_sha256": "a19a2434d355d6d1e473a75d42fdb5bd82be3204319e0b3dac935c9b6f7dd10e",
+   "ranked_count": 6
   },
   "reasoning_on_device": {
-   "canonical_sha256": "8452dfc0e076eccd87d06e70a0962a767fc936aad362571b8a8bedd9fe5065ed",
-   "ranked_count": 10
+   "canonical_sha256": "cef0180fa10adea013ae539d44421b0d80ec88b9fcf002ff2440d76737f1e7f0",
+   "ranked_count": 3
   },
   "vision_limit_zero": {
-   "canonical_sha256": "6dd3748d51a3ca0d8b8aa94600695a91d3c4519a0ca1c815bed04b5801357517",
-   "ranked_count": 16
+   "canonical_sha256": "a432f2835ee8f161f79e30cce1c51e8158250e33445748da2bb9f13032d4fb1c",
+   "ranked_count": 13
   }
  },
  "vectors": {

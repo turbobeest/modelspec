@@ -1,0 +1,145 @@
+- model: openai/gpt-6-sol
+  provider: openai
+  region: global
+  tier: standard
+  facts:
+  - id: openai/openai/gpt-6-sol/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.price.input
+    value: 2.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-sol-pricing
+      snapshot_ref: sha256:6f9b9247933c347f6c881b2ce54ee9f54125314dc9c6c80a44513b69a0dcfa95
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.price.output
+    value: 10.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-sol-pricing
+      snapshot_ref: sha256:6f9b9247933c347f6c881b2ce54ee9f54125314dc9c6c80a44513b69a0dcfa95
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.price.cached_input
+    value: 0.2
+    state: known
+    sources:
+    - source_id: openai-gpt-6-sol-pricing
+      snapshot_ref: sha256:6f9b9247933c347f6c881b2ce54ee9f54125314dc9c6c80a44513b69a0dcfa95
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.price.batch_input
+    value: 1.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-sol-pricing
+      snapshot_ref: sha256:6f9b9247933c347f6c881b2ce54ee9f54125314dc9c6c80a44513b69a0dcfa95
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.price.batch_output
+    value: 5.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-sol-pricing
+      snapshot_ref: sha256:6f9b9247933c347f6c881b2ce54ee9f54125314dc9c6c80a44513b69a0dcfa95
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.data.retention
+    value: 30
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: requires_contract
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.attestation.baa
+    value: true
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-sol/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - openai-data
+    - model-143-openai-gpt-6-sol
+  - id: openai/openai/gpt-6-sol/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-sol/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - openai-data
+    - model-143-openai-gpt-6-sol

@@ -862,4 +862,4 @@ card_updated: '2026-09-10'
 
 Meta Superintelligence Labs' local agentic VLM, released 2026-08-10 under Apache 2.0. Hub: [meta-models/Muse-Glimmer-30B](https://huggingface.co/meta-models/Muse-Glimmer-30B). Distilled from Muse Spark. Dense transformer plus a ~1.8B ViT-G/14 perception encoder. Hub safetensors total 29,776,626,688. Text+image in, text out; 131,072-token context. Attention is a 3-local / 1-global pattern with sliding window 2048; `attention_type` left null because that is not a single MHA/GQA/sliding-window value.
 
-Muse Spark is already carded (misfiled at `meta/muse-spark`). This is a distinct, smaller distilled model, not a serving SKU. LM Arena style-control Elo from 2026-09-10 is attached under the evaluator name `muse-glimmer`. The AA row `Muse Glimmer (high)` is an effort variant and was not attached.
+Muse Spark is already carded (misfiled at `meta/muse-spark`). This is a distinct, smaller distilled model, not a serving SKU. LM Arena style-control Elo from 2026-09-10 is attached under the evaluator name `muse-glimmer`.

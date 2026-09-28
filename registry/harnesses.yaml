@@ -1,0 +1,79 @@
+# The harness registry (MODEL-133; design §4.1 and §12.4).
+#
+# A harness is the agent scaffold a model runs inside. Evidence and outcome
+# records are kept per harness version, because the same model performs
+# differently in different harnesses.
+#
+# Canonical IDs are `name@major.minor`, for example `claude-code@2.1`. A patch
+# or build suffix resolves to its registered major.minor (`claude-code@2.1.282`
+# is `claude-code@2.1`). Anything that does not resolve to a registered version
+# (an unknown name, an unregistered version, free text) is reported as the
+# literal `unregistered`, never passed through as free text. New harnesses and
+# versions are added here by a registry PR. Loader: decision/registry.py.
+#
+# Entry fields
+#   id         kebab-case harness name, the part before `@`
+#   name, url  as the harness names itself; its home page, or null with a
+#              `url_note` when there is no public one
+#   versions   registered `id@major.minor` versions, each with the source the
+#              version was read from and the date it was read
+#
+# Versions seeded 2026-09-24 are the current release line on that date. Older
+# lines are added when evidence or outcome records need them.
+
+schema_version: 1
+
+unregistered: unregistered
+
+harnesses:
+  - id: claude-code
+    name: Claude Code
+    url: https://github.com/anthropics/claude-code
+    versions:
+      - id: claude-code@2.1
+        source: https://registry.npmjs.org/@anthropic-ai/claude-code/latest
+        read: "2026-09-24"
+        note: npm latest was 2.1.282.
+  - id: codex-cli
+    name: Codex CLI
+    url: https://github.com/openai/codex
+    versions:
+      - id: codex-cli@0.156
+        source: https://registry.npmjs.org/@openai/codex/latest
+        read: "2026-09-24"
+        note: npm latest was 0.156.1.
+  - id: aider
+    name: Aider
+    url: https://aider.chat/
+    versions:
+      - id: aider@0.86
+        source: https://pypi.org/pypi/aider-chat/json
+        read: "2026-09-24"
+        note: PyPI aider-chat latest was 0.86.2.
+  - id: openhands
+    name: OpenHands
+    url: https://github.com/All-Hands-AI/OpenHands
+    versions:
+      - id: openhands@1.11
+        source: https://pypi.org/pypi/openhands-ai/json
+        read: "2026-09-24"
+        note: PyPI openhands-ai latest was 1.11.0.
+  - id: cursor-agent
+    name: Cursor CLI (cursor-agent)
+    url: https://cursor.com/cli
+    versions:
+      - id: cursor-agent@2026.09
+        source: https://cursor.com/install
+        read: "2026-09-24"
+        note: >-
+          Cursor versions its CLI by date (the installer named
+          2026.09.23-86fc751), so major.minor is year.month.
+  - id: dpf-native
+    name: DPF native harness
+    url: null
+    url_note: DPF's own harness, the reference user's (design §2). It has no public URL yet.
+    versions:
+      - id: dpf-native@1.0
+        source: null
+        read: "2026-09-24"
+        note: Named by the design (§4.1) as the first DPF harness version.

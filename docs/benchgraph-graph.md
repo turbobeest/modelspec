@@ -138,7 +138,7 @@ Limits:
 
 Example on the real pages (`capability=agentic&include_watch=true&require_scores=true&top_n=3&min_spread=2`):
 `metr_time_horizon_50` (watch, 22 scored models, spread 660.6),
-`metr_time_horizon_80` (watch, 22, 116.0), `gdpval_aa` (open, 124, 3.3).
+`metr_time_horizon_80` (watch, 22, 116.0).
 With defaults, `capability=coding` returns `open` pages such as
 `aider_polyglot`, `bigcodebench`, `bird_sql` with `spread: null`.
 

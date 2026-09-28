@@ -138,7 +138,6 @@ Current model cards dump all 750 fields even when null. Switch to `exclude_defau
 
 Scheduled scraping from:
 - LMArena (Arena ELO, refreshes weekly)
-- Artificial Analysis (speed/cost, refreshes daily)
 - Open LLM Leaderboard (HuggingFace, refreshes on new submissions)
 - MultiPL-E (per-language coding scores)
 - LiveCodeBench (continuously updated coding eval)

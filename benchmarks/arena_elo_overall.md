@@ -100,6 +100,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice D"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: chat_preference, directness: direct}
 ---
 
 ## What it measures

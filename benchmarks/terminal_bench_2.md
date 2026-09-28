@@ -111,6 +111,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice M"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: agentic_tool_use, directness: direct}
+  - {id: software_engineering, directness: proxy}
 ---
 
 ## What it measures

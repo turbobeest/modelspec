@@ -201,7 +201,7 @@ modelspec rank --use-case coding --hardware macbook_air_m4_24gb --format json
 
 ### Tech Stack
 - **Language**: Python (Click or Typer for CLI framework)
-- **Distribution**: pip install modelspec + homebrew tap
+- **Distribution**: `pipx install modelspec-dev`
 - **Config**: ~/.modelspec/config.yaml for default hardware, downselect profiles
 - **Cache**: Local SQLite cache of recent queries
 - **Output**: Rich terminal formatting (Rich library) + JSON mode for piping
@@ -360,7 +360,6 @@ Automated system that discovers new models, scrapes metadata sources, fills gaps
 | Ollama Library | Daily | GGUF availability, tags, sizes | P0 |
 | Provider pricing pages | Weekly | Cost section | P0 |
 | LMArena API/scrape | Weekly | Arena ELO scores (6 categories) | P1 |
-| Artificial Analysis | Weekly | Speed, latency, quality index | P1 |
 | HELM results | Weekly | Safety scores, holistic eval | P1 |
 | HF Open LLM Leaderboard | Weekly | GPQA, MATH, MMLU-Pro | P1 |
 | LiveBench | Monthly | Contamination-resistant scores | P1 |
@@ -624,7 +623,6 @@ modelspec/
 │   │   ├── models_dev.py
 │   │   ├── huggingface.py
 │   │   ├── ollama.py
-│   │   ├── artificial_analysis.py
 │   │   ├── lmarena.py
 │   │   ├── helm.py
 │   │   ├── cloud_catalogs.py

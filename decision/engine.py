@@ -1,0 +1,310 @@
+"""Run the slice-1 decision stages against one offline snapshot."""
+
+from __future__ import annotations
+
+import hashlib
+from collections.abc import Callable, Mapping
+from dataclasses import replace
+
+from decision.computed import with_computed
+from decision.contract import (
+    DEFAULT_TASK_TOKENS,
+    Decision,
+    Estimate,
+    FacetLookup,
+    InventoryProfile,
+    MayQualify,
+    OfferingRef,
+    Result,
+    Spec,
+    Truncated,
+    spec_hash,
+)
+from decision.filter import FilterResult, apply
+from decision.optimise import EvidenceSelector, optimise
+from decision.relax import fewest, smallest_changes
+from decision.resolve import Resolved, resolve
+from decision.snapshot import ExplanationIndex
+
+
+def _objective_names(spec: Spec) -> list[str]:
+    objective = spec.optimize
+    return (
+        [objective.max]
+        if objective.max
+        else [objective.min]
+        if objective.min
+        else [step.facet for step in objective.lexicographic]
+        if objective.lexicographic
+        else list(objective.weights or objective.pareto)
+    )
+
+
+def offering_ref(snapshot, cid: str) -> OfferingRef:
+    if snapshot.kind(cid) == "model":
+        return OfferingRef(model=cid)
+    return OfferingRef(
+        model=snapshot.model_of(cid),
+        **{
+            key: snapshot.fact(cid, "offering." + key).value
+            for key in ("provider", "region", "tier")
+        },
+    )
+
+
+def split_missing(ordered):
+    """Rank only complete rows; a missing objective value is a capability unknown.
+
+    Principle 1 of the design: unknown means may qualify, never ranked last
+    and never dropped. Returns the ranked stage result and, per candidate
+    without a value, the objective facets it is unknown on.
+    """
+    missing = set(ordered.missing)
+    ranked = tuple(row for row in ordered.results if row.candidate_id not in missing)
+    return replace(ordered, results=ranked), {
+        cid: list(ordered.unknown.get(cid, ())) for cid in ordered.missing}
+
+
+def run_optimise(snapshot, filtered, spec, selectors, domains):
+    penalties = {}
+    for penalty in filtered.penalties:
+        for cid in penalty.failing + penalty.unknown:
+            penalties.setdefault(cid, {})[penalty.condition] = penalty.penalty
+    return optimise(
+        snapshot,
+        filtered.feasible,
+        spec.optimize,
+        penalties=penalties,
+        evidence_selectors=selectors,
+        domains=domains,
+    )
+
+
+def validate(
+    spec: Spec,
+    snapshot: ExplanationIndex,
+    *,
+    facets: FacetLookup | None = None,
+    profiles: Mapping[str, InventoryProfile] | None = None,
+) -> Resolved:
+    """Run the decision stages through resolve, stopping before filtering."""
+    if snapshot is None:
+        raise ValueError("a loaded decision snapshot is required")
+    snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
+    if spec.explain in ("summary", "full"):
+        snapshot.require_explanation_records()
+    return resolve(spec, facets=facets, profiles=profiles)
+
+
+def _overlaps_raw_evidence(row, others, snapshot) -> bool:
+    """Whether a selected measurement overlaps another model's interval."""
+    model_id = snapshot.model_of(row.candidate_id)
+    for contribution in row.contributions:
+        if len(contribution.evidence) != 1:
+            continue
+        evidence = contribution.evidence[0]
+        interval = evidence.interval
+        if interval is None:
+            continue
+        for other in others:
+            if snapshot.model_of(other.candidate_id) == model_id:
+                continue
+            for compared in other.contributions:
+                if compared.dimension != contribution.dimension or len(compared.evidence) != 1:
+                    continue
+                other_evidence = compared.evidence[0]
+                measurement_identity = (
+                    evidence.benchmark_id,
+                    evidence.version,
+                    evidence.unit,
+                    evidence.subcategory,
+                    evidence.effort,
+                    evidence.harness,
+                )
+                other_identity = (
+                    other_evidence.benchmark_id,
+                    other_evidence.version,
+                    other_evidence.unit,
+                    other_evidence.subcategory,
+                    other_evidence.effort,
+                    other_evidence.harness,
+                )
+                if measurement_identity != other_identity:
+                    continue
+                other_interval = other_evidence.interval
+                if other_interval is not None and max(interval[0], other_interval[0]) <= min(
+                    interval[1], other_interval[1]
+                ):
+                    return True
+    return False
+
+
+def decide(
+    spec: Spec,
+    snapshot: ExplanationIndex,
+    *,
+    facets: FacetLookup | None = None,
+    profiles: Mapping[str, InventoryProfile] | None = None,
+    evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
+    _filter_trace: Callable[[FilterResult], None] | None = None,
+    comparison: bool = False,
+) -> Decision:
+    """Return a reproducible decision. Explanation work is skipped at ``none``.
+
+    ``comparison`` retains named facts for every returned candidate in the
+    intermediate Decision. Ordinary full decisions still cap ``top`` at 20.
+    """
+    resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
+    # Computed facets (offering.cost_per_task) depend on the spec, so the
+    # remaining stages use the same per-decision view validation prepared for.
+    snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
+    domains = frozenset(snapshot.domain_ids())
+    requested = frozenset(spec.capabilities or {})
+    selectors = dict(evidence_selectors or {})
+    names = _objective_names(spec)
+    for signed in names:
+        name = signed.removeprefix("-")
+        if resolved.facets(name).subject == "evidence" and name not in domains:
+            selectors.setdefault(
+                name,
+                EvidenceSelector.from_qualifiers(
+                    name, resolved.objective_qualifiers.get(name), domains=requested
+                ),
+            )
+    filtered = apply(resolved, snapshot)
+    if _filter_trace is not None:
+        _filter_trace(filtered)
+    ordered, objective_unknown = split_missing(
+        run_optimise(snapshot, filtered, spec, selectors, domains)
+    )
+    digest = spec_hash(spec)
+    objective_domains = [name.removeprefix("-") for name in names
+                         if name.removeprefix("-") in domains]
+    shown_domains = sorted(requested | set(objective_domains))
+    proxy_only_domains = {
+        domain
+        for domain in shown_domains
+        if {
+            directness
+            for item in snapshot.capability_items.values()
+            for tagged_domain, directness in item.get("domains", ())
+            if tagged_domain == domain
+        }
+        == {"proxy"}
+    }
+    probability_domain = (
+        objective_domains[0] if len(objective_domains) == 1 and len(names) == 1 else None
+    )
+    probabilities = {}
+    model_estimates = {}
+    if probability_domain is not None:
+        from decision.capability import CapabilityEstimate, deterministic_probabilities
+
+        for row in ordered.results:
+            model_id = snapshot.model_of(row.candidate_id)
+            stored = snapshot.capability_estimate(row.candidate_id, probability_domain)
+            if stored is not None:
+                model_estimates.setdefault(
+                    model_id,
+                    CapabilityEstimate(stored.value, stored.low, stored.high, stored.sd),
+                )
+        probabilities = deterministic_probabilities(
+            model_estimates,
+            seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain}",
+        )
+
+    returned_rows = ordered.results[: spec.limit]
+    omitted_rows = ordered.results[spec.limit :]
+    returned_models = {
+        snapshot.model_of(row.candidate_id) for row in returned_rows
+    }
+    omitted_models = {
+        snapshot.model_of(row.candidate_id) for row in omitted_rows
+    } - returned_models
+    truncated = Truncated(
+        offerings=sum(snapshot.kind(row.candidate_id) == "offering" for row in omitted_rows),
+        models=len(omitted_models),
+    )
+    results = []
+    for i, row in enumerate(returned_rows):
+        model_id = snapshot.model_of(row.candidate_id)
+        stored_estimates = [
+            (domain, snapshot.capability_estimate(row.candidate_id, domain))
+            for domain in shown_domains
+        ]
+        estimates = [
+            Estimate(domain=domain, value=estimate.value, interval=(estimate.low, estimate.high))
+            for domain, estimate in stored_estimates
+            if estimate is not None
+        ]
+        warnings = list(row.warnings)
+        if row.candidate_id in filtered.deprecated:
+            warnings.append("deprecated")
+        if any(estimate.domain in proxy_only_domains for estimate in estimates):
+            warnings.append("proxy_evidence_only")
+        current = model_estimates.get(model_id)
+        if current is not None and any(
+            other_id != model_id
+            and max(current.low, other.low) <= min(current.high, other.high)
+            for other_id, other in model_estimates.items()
+        ):
+            warnings.append("not_separable")
+        if (
+            len(names) == 1
+            and _overlaps_raw_evidence(row, ordered.results, snapshot)
+            and "not_separable" not in warnings
+        ):
+            warnings.append("not_separable")
+        p_best, top3 = probabilities.get(model_id, (None, None))
+        results.append(Result(
+            rank=i + 1,
+            offering=offering_ref(snapshot, row.candidate_id),
+            estimates=estimates or None,
+            p_best=p_best,
+            top3_stability=top3,
+            soft_penalty=row.soft_penalty,
+            warnings=warnings,
+        ))
+    relax, relax_to = [], []
+    if ordered.status == "no_feasible":
+        # Never the class or a requested domain: that would change the question.
+        if not filtered.feasible:
+            relax = fewest(resolved, snapshot, requested)
+            relax_to = smallest_changes(resolved, snapshot, requested)
+        if not relax:
+            relax = [ordered.reason or "no candidates in the snapshot"]
+    decision = Decision(
+        decision_id="dec_"
+        + hashlib.sha256((digest + snapshot.snapshot_id).encode()).hexdigest()[:24],
+        spec_hash=digest,
+        snapshot=snapshot.snapshot_id,
+        signature_verified=getattr(snapshot, "signature_verified", False),
+        explain=spec.explain,
+        status="partial"
+        if ordered.status == "answered" and filtered.may_qualify
+        else ordered.status,
+        results=results,
+        relax=relax,
+        relax_to=relax_to,
+        may_qualify=[
+            MayQualify(
+                model=snapshot.model_of(cid),
+                offering=offering_ref(snapshot, cid),
+                unknown=unknown,
+            )
+            for cid, unknown in sorted(
+                [(m.candidate, list(m.unknown)) for m in filtered.may_qualify]
+                + list(objective_unknown.items())
+            )
+        ],
+        truncated=truncated,
+        out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
+    )
+    if spec.explain != "none":
+        from decision.explain import explain
+
+        explain(
+            decision, resolved, snapshot, filtered, ordered, selectors, domains,
+            comparison=comparison,
+        )
+    return decision

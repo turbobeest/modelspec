@@ -666,15 +666,15 @@ availability:
   other_platforms: []
 benchmarks:
   scores:
-    ifeval: 0.0
     bbh: 47.4
-    math_500: 0.0
-    gpqa_diamond: 31.4
+    gpqa_pooled: 31.4
     musr: 39.9
     mmlu_pro: 31.7
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2025-03
-  benchmark_notes: ''
+  benchmark_notes: 'MODEL-116, 2026-09-24: the Open LLM Leaderboard v2 "GPQA Raw" value for THUDM/glm-4-9b-chat moved
+    from gpqa_diamond to gpqa_pooled. The same run (THUDM/glm-4-9b-chat, open-llm-leaderboard/results) scored exactly
+    0 on every MATH Lvl 5 and IFEval subtask, a failed generative run, so MATH Lvl 5 and ifeval are left empty.'
 deployment:
   api_only: false
   local_inference: true

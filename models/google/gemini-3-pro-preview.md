@@ -696,6 +696,106 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [25.650451, 103.295501] minutes. METR states measurements above 16 hours are unreliable on this suite.
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: gemini-3-pro-preview
+    score: 92.61
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-11-19'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-11-19T15:16:10.279Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.65 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: gemini-3-pro-preview
+    score: 72.93
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/swe-bench-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-02-13'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Verified (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (swe_bench_verified.csv),
+      read 2026-09-24. Run started 2026-02-13T10:43:27.233Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.02 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: Gemini 3 Pro
+    score: 5478.16
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Vending-Bench 2, mean final balance over 5 runs
+    configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
+      https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort default; the highest-effort
+      row for the model (MODEL-123 max-effort rule).
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
+  - benchmark_id: hle
+    model_id_as_evaluated: gemini-3-pro-preview
+    score: 37.52
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2025-11-19'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2025-11-19T23:50:49.000Z;
+      effort default; ±1.9 (95% CI).
+    limitations: 'Potential contamination warning: This model was evaluated after the public
+      release of HLE, allowing model builder access to the prompts and solutions.'
+  - benchmark_id: swe_bench_pro
+    model_id_as_evaluated: gemini-3-pro-preview
+    score: 43.3
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/swe_bench_pro_public
+    source_kind: independent_evaluator
+    evidence_date: '2025-11-26'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-Bench Pro, public dataset, Scale Labs leaderboard
+    configuration: 'Scale Labs leaderboard entry read 2026-09-24; entry created 2025-11-26T20:56:30.000Z;
+      effort default; ±3.6 (95% CI). Harness: the board''s default scaffold (the board marks
+      mini-swe-agent runs with an asterisk).'
+    limitations: ''
+  - benchmark_id: aime_2026
+    model_id_as_evaluated: Gemini 3 Pro (preview)
+    score: 91.67
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2026
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2026, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-24; the table states no run date,
+      so the reading is dated by the observation. Effort default; highest-effort row for the
+      model. MathArena lists final-answer competitions as deprecated.
+    limitations: ''
+  - benchmark_id: aime_2025
+    model_id_as_evaluated: Gemini 3 Pro (preview)
+    score: 95.0
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2025
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2025, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-24; the table states no run date,
+      so the reading is dated by the observation. Effort default; highest-effort row for the
+      model. MathArena lists final-answer competitions as deprecated.
+    limitations: 'MathArena marks this row: model was released after competition release, so
+      contamination is possible.'
   benchmark_source: livecodebench, aider, swe-bench, terminal-bench, provider-reports, domain-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''

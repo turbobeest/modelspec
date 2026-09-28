@@ -16,6 +16,7 @@ import html
 import math
 import posixpath
 import re
+from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable
 from datetime import date
 from pathlib import Path
@@ -219,6 +220,34 @@ font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:upper
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--ground);font-weight:700}
 .btn.primary:hover{color:var(--ground);filter:brightness(1.1)}
 .btns{display:flex;gap:10px;flex-wrap:wrap}
+.evidence-chart{margin:16px 0 8px;border:1px solid var(--line);background:var(--surface);
+padding:10px}
+.evidence-chart svg,.benchmark-strip svg{display:block;width:100%;height:auto;overflow:visible}
+.chart-axis{stroke:var(--dim);stroke-width:1}.chart-grid{stroke:var(--line);stroke-width:1}
+.chart-label{fill:var(--mute);font-family:var(--mono);font-size:11px}
+.chart-point,.strip-point{stroke:var(--ground);stroke-width:1.5}
+.point-trigger:focus-visible .chart-point,.point-trigger:focus-visible .strip-point,
+.point-pair:hover .chart-point,.point-pair:hover .strip-point{stroke:var(--ink);stroke-width:3}
+.point-detail{display:none;pointer-events:none}
+.point-pair:hover>.point-detail,.point-pair:focus-within>.point-detail,
+.point-trigger:focus-visible~.point-detail,
+.point-detail:target,.point-detail:hover{display:block;pointer-events:auto}
+.point-detail rect{fill:var(--surface);stroke:var(--accent);stroke-width:1.5}
+.point-detail text{fill:var(--ink);font-family:var(--mono);font-size:10px}
+.point-detail .point-source-label{fill:var(--accent);text-decoration:underline}
+.chart-credit{font-family:var(--mono);font-size:11px;color:var(--dim);max-width:none;
+margin:7px 2px 0}
+.chart-credit a{margin-right:8px}
+.strip-groups{display:grid;gap:20px}.strip-group h3{margin:0 0 8px;color:var(--mute)}
+.benchmark-strip{border-top:1px solid var(--line);padding:10px 0 4px}
+.benchmark-strip h4{font-family:var(--sans);font-size:14px;margin:0 0 5px}
+.benchmark-strip h4 a{color:var(--ink);border-bottom:0}
+.benchmark-strip h4 a:hover{color:var(--accent)}
+.benchmark-strip-chart{position:relative;aspect-ratio:760/43}
+.benchmark-strip-asset,.benchmark-strip-focus{position:absolute;inset:0;display:block;width:100%;
+height:100%;border:0}
+.benchmark-strip-focus{pointer-events:none}
+.strip-point.focus{stroke:var(--ink);stroke-width:3}
 @media(max-width:800px){
 .page{padding-left:0}
 :where(.page) h2::before{position:static;display:block;width:auto;margin-bottom:6px}
@@ -271,6 +300,396 @@ def format_score(value: Any, unit: Any) -> str:
     if unit == "percent":
         return f"{value}%"
     return f"{value} {unit}".strip()
+
+
+CHART_MIN_POINTS = 20
+SOURCE_KINDS = ("benchmark_author", "independent_evaluator", "provider_self_report")
+SERIES_COLOURS = ("#63c9d9", "#f5b342", "#a78bfa", "#4ade80", "#f87171",
+                  "#8fa4d4", "#78b5a2", "#f59e0b", "#e879f9", "#94a3b8")
+
+
+def _release_day(value: Any) -> date | None:
+    """Parse the precision model cards disclose without inventing finer precision."""
+    text = str(value or "").strip()
+    try:
+        if re.fullmatch(r"\d{4}", text):
+            return date(int(text), 1, 1)
+        if re.fullmatch(r"\d{4}-\d{2}", text):
+            year, month = (int(part) for part in text.split("-"))
+            return date(year, month, 1)
+        return date.fromisoformat(text)
+    except ValueError:
+        return None
+
+
+def _series_key(row: dict[str, Any]) -> tuple[str, str]:
+    return (str(row.get("benchmark_version") or "version not stated"),
+            str(row.get("configuration") or "configuration not stated"))
+
+
+def _source_url(row: dict[str, Any]) -> str:
+    url = str(row.get("source") or "").strip()
+    if not url.startswith(("http://", "https://")):
+        raise ValueError(
+            f"chart evidence for {row.get('model_id')!r} has no valid source_url"
+        )
+    return url
+
+
+def _marker(kind: str, x: float, y: float, colour: str, css_class: str) -> str:
+    attrs = f'class="{css_class} source-{esc(kind.replace("_", "-"))}" fill="{colour}"'
+    if kind == "benchmark_author":
+        return f'<circle {attrs} cx="{x:.1f}" cy="{y:.1f}" r="5"/>'
+    if kind == "provider_self_report":
+        return (f'<path {attrs} d="M{x:.1f},{y - 6:.1f} L{x + 6:.1f},{y:.1f} '
+                f'L{x:.1f},{y + 6:.1f} L{x - 6:.1f},{y:.1f} Z"/>')
+    return f'<rect {attrs} x="{x - 5:.1f}" y="{y - 5:.1f}" width="10" height="10"/>'
+
+
+def _point_markup(row: dict[str, Any], marker: str, point_id: str, *,
+                  panel_x: float, panel_y: float, panel_width: float,
+                  panel_height: float) -> str:
+    """A persistent no-JavaScript disclosure with a direct source link."""
+    source = _source_url(row)
+    name = row.get("display_name") or row.get("model_id")
+    score = format_score(row.get("score"), row.get("unit"))
+    evidence_date = row.get("as_of") or "unknown"
+    date_type = row.get("date_type") or "date type not stated"
+    configuration = row.get("configuration") or "not stated"
+    version = row.get("benchmark_version") or "not stated"
+    source_kind = str(row.get("source_kind") or "not stated").replace("_", " ")
+    line_one = f"{name}: {score} | Evidence date: {evidence_date} ({date_type})"
+    line_two = f"Configuration: {configuration} | Benchmark version: {version}"
+    source_y = panel_y + panel_height - 7
+    return (
+        f'<g class="point-pair">'
+        f'<a class="point-trigger" href="#{esc(point_id)}" '
+        f'aria-describedby="{esc(point_id)}" '
+        f'aria-label="Show evidence details for {esc(name)}">{marker}</a>'
+        f'<g id="{esc(point_id)}" class="point-detail" role="tooltip">'
+        f'<rect x="{panel_x:.1f}" y="{panel_y:.1f}" width="{panel_width:.1f}" '
+        f'height="{panel_height:.1f}" rx="3"/>'
+        f'<text x="{panel_x + 8:.1f}" y="{panel_y + 13:.1f}">{esc(line_one)}</text>'
+        f'<text x="{panel_x + 8:.1f}" y="{panel_y + 27:.1f}">{esc(line_two)}</text>'
+        f'<text x="{panel_x + 8:.1f}" y="{source_y:.1f}">Source kind: '
+        f'{esc(source_kind)}</text>'
+        f'<a href="{esc(source)}" rel="nofollow noopener" aria-label="Open evidence source">'
+        f'<text class="point-source-label" x="{panel_x + panel_width - 83:.1f}" '
+        f'y="{source_y:.1f}">Open source</text></a>'
+        f'</g></g>'
+    )
+
+
+def _credit_line(rows: list[dict[str, Any]]) -> str:
+    sources: list[str] = []
+    for row in rows:
+        source = _source_url(row)
+        if source not in sources:
+            sources.append(source)
+    links = "".join(
+        f'<a href="{esc(source)}" rel="nofollow noopener">source {i}</a>'
+        for i, source in enumerate(sources, 1)
+    )
+    return f'<p class="chart-credit">Sources drawn: {links}</p>'
+
+
+def benchmark_chart(bench: Benchmark, covered: list[dict[str, Any]]) -> str:
+    """A build-time SVG of sourced evidence against model release date."""
+    points: list[tuple[dict[str, Any], date]] = []
+    undated = 0
+    for row in covered:
+        if row.get("attribution") != "verified":
+            continue
+        released = _release_day(row.get("release_date"))
+        if released is None or not isinstance(row.get("score"), (int, float)):
+            undated += 1
+            continue
+        _source_url(row)
+        points.append((row, released))
+    if len(points) < CHART_MIN_POINTS:
+        return ""
+
+    width, height = 900, 360
+    left, right, top, bottom = 70, 24, 24, 82
+    plot_w, plot_h = width - left - right, height - top - bottom
+    days = [released.toordinal() for _, released in points]
+    scores = [float(row["score"]) for row, _ in points]
+    day_min, day_max = min(days), max(days)
+    score_min, score_max = min(scores), max(scores)
+    if day_min == day_max:
+        day_min -= 1
+        day_max += 1
+    if score_min == score_max:
+        score_min -= 1.0
+        score_max += 1.0
+    score_pad = (score_max - score_min) * .06
+    score_min -= score_pad
+    score_max += score_pad
+
+    def x(day: int) -> float:
+        return left + (day - day_min) / (day_max - day_min) * plot_w
+
+    def y(score: float) -> float:
+        return top + (score_max - score) / (score_max - score_min) * plot_h
+
+    grid: list[str] = []
+    for i in range(5):
+        value = score_min + (score_max - score_min) * i / 4
+        yy = y(value)
+        grid.append(
+            f'<line class="chart-grid" x1="{left}" y1="{yy:.1f}" '
+            f'x2="{width-right}" y2="{yy:.1f}"/>'
+        )
+        grid.append(
+            f'<text class="chart-label" x="{left-9}" y="{yy+4:.1f}" '
+            f'text-anchor="end">{value:.1f}</text>'
+        )
+    for ordinal, anchor in ((day_min, "start"), (day_max, "end")):
+        xx = x(ordinal)
+        grid.append(
+            f'<text class="chart-label" x="{xx:.1f}" y="{height-bottom+22}" '
+            f'text-anchor="{anchor}">{date.fromordinal(ordinal).isoformat()}</text>'
+        )
+
+    grouped: dict[tuple[str, str], list[tuple[dict[str, Any], date]]] = defaultdict(list)
+    for row, released in points:
+        grouped[_series_key(row)].append((row, released))
+    marks: list[str] = []
+    point_number = 0
+    for index, key in enumerate(sorted(grouped)):
+        colour = SERIES_COLOURS[index % len(SERIES_COLOURS)]
+        series_marks = []
+        for row, released in grouped[key]:
+            point_number += 1
+            kind = str(row.get("source_kind") or "")
+            marker = _marker(kind, x(released.toordinal()), y(float(row["score"])), colour,
+                             "chart-point")
+            series_marks.append(_point_markup(
+                row, marker, f"p{point_number}",
+                panel_x=left + 4, panel_y=top + 4, panel_width=650, panel_height=52,
+            ))
+        marks.append("<g>" + "".join(series_marks) + "</g>")
+
+    kinds = "● benchmark author · ■ independent evaluator · ◆ provider self report"
+    svg = (f'<div class="evidence-chart" id="evidence-chart"><svg viewBox="0 0 {width} {height}" '
+           f'role="img" aria-labelledby="chart-title-{esc(bench.benchmark_id)}">'
+           f'<title id="chart-title-{esc(bench.benchmark_id)}">'
+           f'{esc(bench.name)} evidence by model release date</title>'
+           + "".join(grid)
+           + f'<line class="chart-axis" x1="{left}" y1="{top}" x2="{left}" y2="{height-bottom}"/>'
+           + f'<line class="chart-axis" x1="{left}" y1="{height-bottom}" '
+           f'x2="{width-right}" y2="{height-bottom}"/>'
+           + f'<text class="chart-label" x="16" y="{top + plot_h / 2:.1f}" '
+           f'transform="rotate(-90 16 {top + plot_h / 2:.1f})" '
+           f'text-anchor="middle">Score</text>'
+           + f'<text class="chart-label" x="{left + plot_w / 2:.1f}" '
+           f'y="{height-bottom+40}" text-anchor="middle">Model release date</text>'
+           + "".join(marks)
+           + f'<text class="chart-label" x="{left}" y="{height-24}">'
+           f'{len(grouped)} version/configuration series; each tooltip names its series.</text>'
+           + f'<text class="chart-label" x="{left}" y="{height-8}">Markers: {esc(kinds)}</text>'
+           + "</svg>" + _credit_line([row for row, _ in points]) + "</div>")
+    omitted = (f" {undated} sourced row{'s were' if undated != 1 else ' was'} not placed because "
+               f"the model release date is unknown." if undated else "")
+    return _section(
+        "Evidence over time",
+        svg,
+        "Each point is sourced evidence. Position on the x axis is the model release date, "
+        f"not the evidence date.{omitted}",
+    )
+
+
+def _benchmark_group(bench: Benchmark) -> str:
+    """Derive subset headings from page metadata instead of a benchmark list."""
+    if str(bench.front.get("page_kind") or "") != "subset" or ":" not in bench.name:
+        return ""
+    parent = bench.name.split(":", 1)[0].strip()
+    summary = str(bench.front.get("summary") or "").lower()
+    subcategory = str(bench.front.get("subcategory") or "").lower()
+    if "language" in summary or "multilingual code" in subcategory:
+        suffix = "languages"
+    elif "subject" in f"{summary} {subcategory}":
+        suffix = "subjects"
+    else:
+        suffix = "subsets"
+    return f"{parent} {suffix}"
+
+
+def _compact_marker_path(kind: str, x: float, y: float) -> str:
+    """One path segment for a comparison point in a compact model strip."""
+    if kind == "benchmark_author":
+        return f"M{x - 4:.1f},{y:.1f}a4,4 0 1,0 8,0a4,4 0 1,0 -8,0"
+    if kind == "provider_self_report":
+        return f"M{x:.1f},{y - 5:.1f}l5,5l-5,5l-5,-5z"
+    return f"M{x - 4:.1f},{y - 4:.1f}h8v8h-8z"
+
+
+def _strip_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    sourced = [row for row in rows if row.get("attribution") == "verified"
+               and isinstance(row.get("score"), (int, float))]
+    for row in sourced:
+        _source_url(row)
+    return sourced
+
+
+def _strip_range(sourced: list[dict[str, Any]]) -> tuple[float, float]:
+    scores = [float(row["score"]) for row in sourced]
+    lo, hi = min(scores), max(scores)
+    if lo == hi:
+        return lo - 1.0, hi + 1.0
+    return lo, hi
+
+
+def benchmark_strip_asset(rows: list[dict[str, Any]]) -> str:
+    """Shared comparison geometry and evidence disclosures for model pages."""
+    sourced = _strip_rows(rows)
+    if not sourced:
+        return ""
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in sourced:
+        grouped[_series_key(row)].append(row)
+    lo, hi = _strip_range(sourced)
+    width = 760
+    left, right = 12, 12
+
+    def x(score: float) -> float:
+        return left + (score - lo) / (hi - lo) * (width - left - right)
+
+    geometry: list[str] = []
+    interactions: list[str] = []
+    point_number = 0
+    for index, key in enumerate(sorted(grouped)):
+        colour = SERIES_COLOURS[index % len(SERIES_COLOURS)]
+        paths: dict[str, list[str]] = defaultdict(list)
+        for row in grouped[key]:
+            kind = str(row.get("source_kind") or "")
+            xx = x(float(row["score"]))
+            paths[kind].append(_compact_marker_path(kind, xx, 17))
+            point_number += 1
+            hit_target = (
+                f'<circle class="strip-hit-target" cx="{xx:.1f}" cy="17" r="7"/>'
+            )
+            interactions.append(_point_markup(
+                row, hit_target, f"p{point_number}",
+                panel_x=0, panel_y=0, panel_width=width, panel_height=43,
+            ))
+        version, configuration = key
+        marks = "".join(
+            f'<path class="source-{esc(kind.replace("_", "-"))}" fill="{colour}" '
+            f'stroke="#07080a" stroke-width="1" d="{"".join(parts)}"/>'
+            for kind, parts in sorted(paths.items())
+        )
+        geometry.append(
+            f'<g aria-label="Benchmark version: {esc(version)}; '
+            f'configuration: {esc(configuration)}">{marks}</g>'
+        )
+    asset_css = (
+        ".chart-grid{stroke:#2a3038;stroke-width:1}"
+        ".chart-label{fill:#929aa6;font:11px ui-monospace,SFMono-Regular,monospace}"
+        ".strip-hit-target{fill:transparent;stroke:transparent;cursor:pointer}"
+        ".point-trigger:focus-visible .strip-hit-target,.point-pair:hover .strip-hit-target{"
+        "fill:#f5f7fa;fill-opacity:.22;stroke:#f5f7fa;stroke-width:2}"
+        ".point-detail{display:none;pointer-events:none}"
+        ".point-pair:hover>.point-detail,.point-pair:focus-within>.point-detail,"
+        ".point-trigger:focus-visible~.point-detail,.point-detail:target,.point-detail:hover{"
+        "display:block;pointer-events:auto}"
+        ".point-detail rect{fill:#14181f;stroke:#63c9d9;stroke-width:1.5}"
+        ".point-detail text{fill:#eef2f7;font:10px ui-monospace,SFMono-Regular,monospace}"
+        ".point-detail .point-source-label{fill:#63c9d9;text-decoration:underline}"
+    )
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 43">'
+        f'<style>{asset_css}</style>'
+        f'<line class="chart-grid" x1="{left}" y1="17" x2="{width-right}" y2="17"/>'
+        f'<text class="chart-label" x="{left}" y="39">{lo:g}</text>'
+        f'<text class="chart-label" x="{width-right}" y="39" text-anchor="end">{hi:g}</text>'
+        f'<g id="points">{"".join(geometry)}</g>'
+        f'<g id="point-interactions">{"".join(interactions)}</g></svg>'
+    )
+
+
+def _strip_svg(rows: list[dict[str, Any]], model_id: str, benchmark_id: str) -> str:
+    sourced = _strip_rows(rows)
+    if not sourced:
+        return ""
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in sourced:
+        grouped[_series_key(row)].append(row)
+    lo, hi = _strip_range(sourced)
+    width = 760
+    left, right, height = 12, 12, 43
+
+    def x(score: float) -> float:
+        return left + (score - lo) / (hi - lo) * (width - left - right)
+
+    focus_marks: list[str] = []
+    for index, key in enumerate(sorted(grouped)):
+        colour = SERIES_COLOURS[index % len(SERIES_COLOURS)]
+        for row in grouped[key]:
+            if row.get("model_id") != model_id:
+                continue
+            kind = str(row.get("source_kind") or "")
+            xx = x(float(row["score"]))
+            focus_marks.append(_marker(kind, xx, 17, colour, "strip-point focus"))
+    asset = f"/assets/benchmark-strips/{esc(benchmark_id)}.svg"
+    return (
+        '<div class="benchmark-strip-chart">'
+        f'<object class="benchmark-strip-asset" data="{asset}" type="image/svg+xml" '
+        f'aria-label="Sourced evidence distribution for {esc(benchmark_id)}">'
+        f'<a href="/b/{esc(benchmark_id)}/">Open benchmark evidence chart</a>'
+        '</object>'
+        f'<svg class="benchmark-strip-focus" viewBox="0 0 {width} {height}" '
+        f'aria-hidden="true">{"".join(focus_marks)}</svg></div>'
+    )
+
+
+def model_benchmark_strips(model: Model, benchmarks: dict[str, Benchmark],
+                           coverage: dict[str, list[dict[str, Any]]]) -> str:
+    """Compact evidence distributions for every benchmark this model reports."""
+    ids = {str(row.get("benchmark_id")) for row in model.evidence}
+    entries: list[tuple[str, Benchmark, list[dict[str, Any]], str]] = []
+    for benchmark_id in sorted(ids):
+        bench = benchmarks.get(benchmark_id)
+        rows = coverage.get(benchmark_id, [])
+        if bench is None or not any(row.get("attribution") == "verified" for row in rows):
+            continue
+        entries.append((_benchmark_group(bench), bench, rows,
+                        _strip_svg(rows, model.model_id, benchmark_id)))
+    entries = [entry for entry in entries if entry[3]]
+    if not entries:
+        return ""
+
+    groups: dict[str, list[tuple[Benchmark, list[dict[str, Any]], str]]] = defaultdict(list)
+    for group, bench, rows, strip in entries:
+        groups[group].append((bench, rows, strip))
+
+    def sourced_model_count(rows: list[dict[str, Any]]) -> int:
+        return len({row["model_id"] for row in rows
+                    if row.get("attribution") == "verified"})
+
+    ordered_groups = sorted(
+        groups.items(),
+        key=lambda item: max(sourced_model_count(rows) for _, rows, _ in item[1]),
+        reverse=True,
+    )
+    blocks: list[str] = []
+    for group, items in ordered_groups:
+        items.sort(key=lambda item: (-sourced_model_count(item[1]), item[0].name.lower()))
+        strips = "".join(
+            '<article class="benchmark-strip">'
+            f'<h4><a href="/b/{esc(bench.benchmark_id)}/">{esc(bench.name)}</a> '
+            f'<span class="meta">{sourced_model_count(rows)} reporting models</span>'
+            f'</h4>{strip}</article>'
+            for bench, rows, strip in items
+        )
+        heading = f'<h3>{esc(group)}</h3>' if group else ""
+        blocks.append(f'<div class="strip-group">{heading}{strips}</div>')
+    return _section(
+        "Benchmark standing",
+        f'<div class="strip-groups">{"".join(blocks)}</div>',
+        "Every point is sourced evidence. This model is outlined. Select any point for its "
+        "evidence date, type, configuration, and source.",
+    )
 
 
 def esc(value: Any) -> str:
@@ -371,7 +790,7 @@ def human_count(value: Any) -> str:
     return f"{n:,.0f}"
 
 
-MS_NAV = [("Downselect", "/downselect/"), ("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Pricing", "/pricing/"), ("Benchmarks", "/benchmarks/"), ("API", "/api/index.json")]
+MS_NAV = [("Decide", "/decide/"), ("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Pricing", "/pricing/"), ("Benchmarks", "/benchmarks/"), ("API", "/api/index.json")]
 
 
 def _write(path: Path, text: str) -> None:
@@ -968,7 +1387,8 @@ def _stat_cell(label: str, value: str, extra: str = "") -> str:
 
 def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
                catalogue: Catalogue, relations: Any = None,
-               pages: Collection[str] | None = None) -> str:
+               pages: Collection[str] | None = None,
+               evidence_coverage: dict[str, list[dict[str, Any]]] | None = None) -> str:
     front = model.front
     scores = model.scores
     as_of = model.scores_as_of
@@ -997,13 +1417,14 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
         sections = (lineage_section(rel, pages, model.display_name)
                     + hardware_section(rel) + platforms_section(rel)
                     + competitors_section(rel, pages))
+    strips = model_benchmark_strips(model, benchmarks, evidence_coverage or {})
 
     body = f"""
 <h1>{esc(model.display_name)}</h1>
 <p class="meta">{esc(model.provider_display)} &middot; <span class="mono">{esc(model.model_id)}</span></p>{supplier_disclosure(front)}
 {chips}
 {stat_strip(model)}
-{sections}{authoring_guide_section(front)}
+{sections}{authoring_guide_section(front)}{strips}
 {evidence_section(model)}
 <h2>Reported benchmark scores</h2>
 {stale if scores else NO_SCORES}
@@ -1489,6 +1910,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 <p><span class="pill {esc(status)}">{esc(status)}</span></p>
 <div class="{notice_class}">{esc(blurb)}{reasons}{alias_note}</div>
 {fact_strip(facts)}
+{benchmark_chart(bench, covered)}
 {f'<h2>What it measures</h2><p>{esc(measures)}</p>' if measures else ''}
 {f'<h2>Task format</h2><p>{esc(task)}</p>' if task else ''}
 {f'<div class="prose">{prose}</div>' if prose else ''}

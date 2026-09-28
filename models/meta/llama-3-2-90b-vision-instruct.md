@@ -677,6 +677,21 @@ benchmarks:
     helm_safety: 84.5
     bbq: 79.8
     toxigen: 87.5
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Llama-3.2-90B-Vision-Instruct
+    score: 41.04
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-01-27'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-01-27T00:00:00.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.29 points.
+    limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: llm-stats, multimodal-evals, safety-evals
   benchmark_as_of: 2026-04
   benchmark_notes: ''

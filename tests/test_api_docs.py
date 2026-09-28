@@ -33,10 +33,13 @@ network.
 
 from __future__ import annotations
 
+import copy
 import importlib.util
+import json
 import os
 import re
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +58,7 @@ from api.ranking.engine import (  # noqa: E402
 
 REFERENCE = REPO_ROOT / "docs" / "api.md"
 POLICY_REFERENCE = REPO_ROOT / "docs" / "api-policy-check.md"
+DECIDE_REFERENCE = REPO_ROOT / "docs" / "decide-api.md"
 SPEC_PATH = REPO_ROOT / "api" / "worker" / "openapi.yaml"
 TIERS_PATH = REPO_ROOT / "api" / "worker" / "tiers.json"
 ENTRY = REPO_ROOT / "api" / "worker" / "src" / "entry.py"
@@ -78,11 +82,18 @@ def _load(path: Path, name: str):
 generator = _load(REPO_ROOT / "api" / "worker" / "openapi.py", "modelspec_openapi_generator")
 service = generator.service
 policy = generator.policy
+decide = generator.decide_service
 
 
 @pytest.fixture(scope="module")
 def spec() -> dict[str, Any]:
     return yaml.safe_load(SPEC_PATH.read_text(encoding="utf-8"))
+
+
+def test_generator_prefers_repository_packages_to_the_vendored_subset() -> None:
+    """The generated src/pipeline package does not contain build-only modules."""
+    source = (REPO_ROOT / "api" / "worker" / "openapi.py").read_text(encoding="utf-8")
+    assert "for path in (str(SRC), str(REPO_ROOT)):" in source
 
 
 @pytest.fixture(scope="module")
@@ -133,6 +144,36 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
         "`python api/worker/openapi.py` and commit the result.")
 
 
+def test_payment_required_schema_accepts_keyed_and_keyless_offers(
+        spec: dict[str, Any]) -> None:
+    schema = spec["components"]["schemas"]["PaymentRequired"]
+    price_schema = schema["properties"]["error"]["properties"]["price"]
+    assert {"placeholder", "placeholder_note"} <= set(price_schema["required"])
+    config = generator.x402.Config(
+        enabled=True,
+        mainnet=False,
+        network=generator.x402.NETWORK_BASE_SEPOLIA,
+        asset=generator.x402._norm_addr(generator.x402.USDC_BASE_SEPOLIA),
+        pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
+        price_atomic=4_000,
+        facilitator_url=generator.x402.DEFAULT_ORIGIN,
+        resource_origin="https://api.modelspec.dev",
+        packs=generator.x402.packs_from_policy(generator.access_config.load_policy()),
+    )
+    envelope = {"schema_version": "1.0", "service_commit": "test"}
+    keyed = generator.x402.payment_required_body(
+        config, envelope, "https://api.modelspec.dev/v1/decide",
+        offer_packs=True,
+    )
+    keyless = generator.x402.payment_required_body(
+        config, envelope, "https://api.modelspec.dev/v1/decide",
+        offer_packs=False, units=2,
+    )
+
+    assert generator._validate(keyed, schema, spec) == []
+    assert generator._validate(keyless, schema, spec) == []
+
+
 def test_the_spec_describes_exactly_the_endpoints_the_worker_routes(spec: dict[str, Any]) -> None:
     """Read from `entry.ACCEPTED_ENDPOINTS`, the list every 404 names back."""
     import ast
@@ -160,7 +201,11 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
         *sorted(LOCAL_PLATFORMS | CLOUD_PLATFORMS | PROVIDER_PLATFORMS), None]
     assert properties["limit"]["maximum"] == service.MAX_LIMIT
     assert spec["info"]["x-max-request-bytes"] == {
-        "/v1/rank": service.MAX_BODY_BYTES, "/v1/policy-check": policy.MAX_BODY_BYTES}
+        "/v1/rank": service.MAX_BODY_BYTES,
+        "/v1/decide": decide.MAX_BODY_BYTES,
+        "/v1/compare": decide.MAX_BODY_BYTES,
+        "/v1/policy-check": policy.MAX_BODY_BYTES,
+    }
 
 
 def test_the_policy_request_vocabulary_is_the_parsers(spec: dict[str, Any]) -> None:
@@ -203,6 +248,116 @@ def test_the_spec_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]
 
     problems = generator._validate(body, spec["components"]["schemas"]["RankResponse"], spec)
     assert problems == [], problems
+
+
+def test_comparison_result_schema_rejects_missing_and_malformed_fields(
+        spec: dict[str, Any]) -> None:
+    schema = spec["components"]["schemas"]["ComparisonResponse"]
+    for response in generator._comparison_responses():
+        assert generator._validate(response, schema, spec) == []
+
+    valid = {
+        "contract_version": generator.decide_service.contract.CONTRACT_VERSION,
+        "endpoint": "compare",
+        "snapshot": "snap_new",
+        "compare_to": "snap_old",
+        "result": {
+            "changed": False,
+            "snapshot": {
+                "old": {"id": "snap_old", "as_of": "2026-09-26"},
+                "new": {"id": "snap_new", "as_of": "2026-09-27"},
+            },
+            "status": {"old": "answered", "new": "answered"},
+            "counts": {
+                "entered": 0,
+                "left": 0,
+                "rank_changed": 0,
+                "may_qualify_changed": 0,
+                "models_changed": 0,
+            },
+            "models": [],
+            "spec_snapshot_ignored": False,
+        },
+    }
+    assert generator._validate(valid, schema, spec) == []
+
+    missing = copy.deepcopy(valid)
+    del missing["result"]["counts"]
+    malformed = copy.deepcopy(valid)
+    malformed["result"]["models"] = "not an array"
+    nonsense = copy.deepcopy(valid)
+    nonsense["result"] = {"nonsense": 1}
+
+    assert generator._validate(missing, schema, spec)
+    assert generator._validate(malformed, schema, spec)
+    assert generator._validate(nonsense, schema, spec)
+
+
+def test_comparison_schema_accepts_every_facet_value_and_sparse_offering(
+        spec: dict[str, Any]) -> None:
+    """The schema describes contract values, not only the generator's examples."""
+    contract = generator.decide_service.contract
+    old_values = [False, 1, 1.5, date(2026, 9, 26), "old", ["old"], None]
+    new_values = [True, 2, 2.5, date(2026, 9, 27), "new", ["new"], "known"]
+
+    def decision(snapshot: str, value: Any):
+        offering = contract.OfferingRef(model="lab/value")
+        return contract.Decision(
+            decision_id="dec_" + snapshot.removeprefix("snap_")[:24],
+            snapshot=snapshot,
+            spec_hash="sha256:" + "1" * 64,
+            explain="full",
+            status="answered",
+            results=[contract.Result(rank=1, offering=offering)],
+            top=[contract.CandidateValues(offering=offering, facts=[
+                contract.ShownFact(facet="model.test", value=value),
+            ])],
+        )
+
+    old_snapshot = "snap_" + "a" * 64
+    new_snapshot = "snap_" + "b" * 64
+    schema = spec["components"]["schemas"]["ComparisonResponse"]
+    for old_value, new_value in zip(old_values, new_values, strict=True):
+        result = generator.decide_service.compare_decisions(
+            decision(old_snapshot, old_value),
+            decision(new_snapshot, new_value),
+        )
+        result["spec_snapshot_ignored"] = False
+        response = {
+            "contract_version": contract.CONTRACT_VERSION,
+            "endpoint": "compare",
+            "snapshot": new_snapshot,
+            "compare_to": old_snapshot,
+            "result": result,
+        }
+        serialized = json.loads(json.dumps(response, default=str))
+
+        assert serialized["result"]["models"][0]["values"][0]["offering"] == {
+            "model": "lab/value", "provider": None, "region": None, "tier": None,
+        }
+        assert generator._validate(serialized, schema, spec) == []
+
+
+def test_decision_and_comparison_refusals_keep_endpoint_contracts_separate(
+        spec: dict[str, Any]) -> None:
+    schemas = spec["components"]["schemas"]
+    assert schemas["DecisionRequestRefused"]["properties"]["endpoint"]["enum"] == [
+        "decide"
+    ]
+    assert schemas["DecisionSnapshotUnavailable"]["properties"]["endpoint"]["enum"] == [
+        "decide"
+    ]
+    assert schemas["ComparisonRequestRefused"]["properties"]["endpoint"]["enum"] == [
+        "compare"
+    ]
+    assert schemas["ComparisonSnapshotUnavailable"]["properties"]["endpoint"]["enum"] == [
+        "compare"
+    ]
+
+    responses = spec["paths"]["/v1/compare"]["post"]["responses"]
+    assert responses["400"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ComparisonRequestRefused"
+    }
 
 
 def test_the_policy_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]) -> None:
@@ -257,6 +412,12 @@ def test_the_spec_will_not_let_undetermined_pass_for_a_pass(spec: dict[str, Any]
         "a failed row carrying a `passed` key validated")
 
 
+def test_no_snapshot_response_documents_retry_after(spec: dict[str, Any]) -> None:
+    unavailable = spec["paths"]["/v1/decide"]["post"]["responses"]["503"]
+    assert "Retry-After" in unavailable["headers"]
+    assert unavailable["headers"]["Retry-After"]["schema"]["minimum"] == 1
+
+
 # ── every error, with its fix ────────────────────────────────────────────────
 
 def _codes_of(*modules: str) -> set[str]:
@@ -266,20 +427,32 @@ def _codes_of(*modules: str) -> set[str]:
     for name in modules:
         tree = ast.parse((ENTRY.parent / f"{name}.py").read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            if (isinstance(node, ast.Call) and getattr(node.func, "id", "") == "RequestError"
+            call_name = (
+                node.func.id if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                else node.func.attr
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                else ""
+            )
+            if (isinstance(node, ast.Call)
+                    and call_name in {"RequestError", "error_response"}
                     and node.args and isinstance(node.args[0], ast.Constant)):
                 codes.add(node.args[0].value)
             if isinstance(node, ast.Dict):
                 codes |= {v.value for k, v in zip(node.keys, node.values)
-                          if isinstance(k, ast.Constant) and k.value == "code"
+                          if isinstance(k, ast.Constant) and k.value in {"code", "error"}
                           and isinstance(v, ast.Constant) and isinstance(v.value, str)}
     return codes
 
 
 def test_every_error_code_the_worker_emits_has_a_documented_fix(
         reference: str, policy_reference: str) -> None:
-    assert _codes_of("rank_service", "policy_service", "entry") == generator.source_error_codes()
-    transport = set(generator.entry_error_codes())
+    assert _codes_of(
+        "rank_service", "decide_service", "policy_service", "entry"
+    ) == generator.source_error_codes()
+    decide_transport = {
+        "no_snapshot", "origin_not_allowed", "snapshot_refused", "snapshot_unavailable"
+    }
+    transport = set(generator.entry_error_codes()) - decide_transport
     for text, name, modules in ((reference, "docs/api.md", ("rank_service",)),
                                 (policy_reference, "docs/api-policy-check.md",
                                  ("policy_service",))):
@@ -288,6 +461,17 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
         assert missing == [], f"{name} does not tell a caller what to do about: {missing}"
         for code, fix in fixes.items():
             assert len(fix.split()) >= 3, f"{name}: {code} has no usable fix: {fix!r}"
+
+    decide_fixes = _error_table(DECIDE_REFERENCE.read_text(encoding="utf-8"))
+    decide_codes = _codes_of("decide_service") | {
+        "invalid_request", "payload_too_large", *decide_transport,
+    }
+    missing = sorted(decide_codes - set(decide_fixes))
+    assert missing == [], f"docs/decide-api.md has no fix for: {missing}"
+
+
+def test_comparison_snapshot_unavailable_is_advertised(spec: dict[str, Any]) -> None:
+    assert "comparison_snapshot_unavailable" in spec["info"]["x-error-codes"]
 
 
 def test_every_refusal_status_is_documented(reference: str, policy_reference: str) -> None:
@@ -515,3 +699,21 @@ def test_ci_checks_the_spec_and_probes_it_after_a_deploy() -> None:
                     reason="set MODELSPEC_LIVE_API=1 to call api.modelspec.dev")
 def test_a_request_built_only_from_the_spec_succeeds_against_the_live_service() -> None:
     assert generator.probe("https://api.modelspec.dev") == 0
+
+
+def test_probe_validator_accepts_json_schema_null_type():
+    """pydantic writes Optional fields as anyOf [T, {"type": "null"}]; the
+    post-deploy probe must accept null there and reject a non-null value for
+    a null-only schema. (A live /v1/decide `chart: null` failed it.)"""
+    import importlib.util
+    spec_obj = importlib.util.spec_from_file_location(
+        "openapi_probe", REPO_ROOT / "api" / "worker" / "openapi.py")
+    mod = importlib.util.module_from_spec(spec_obj)
+    spec_obj.loader.exec_module(mod)
+    optional = {"anyOf": [{"type": "string"}, {"type": "null"}]}
+    assert mod._validate(None, optional, {}) == []
+    assert mod._validate("svg", optional, {}) == []
+    assert mod._validate(3, optional, {}) != []
+    assert mod._validate(None, {"type": "null"}, {}) == []
+    assert mod._validate("x", {"type": "null"}, {}) != []
+    assert mod._validate(None, {"type": "string"}, {}) != []

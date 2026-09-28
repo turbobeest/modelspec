@@ -26,7 +26,6 @@ BUILD = Build(commit="abc", built_at="2026-09-15T00:00:00Z", as_of=date(2026, 9,
 STATIC_PAGES = {
     "modelspec landing": ROOT / "site/holding/index.html",
     "wizard": ROOT / "web3d/downselect.v2.html",
-    "graph explorer": ROOT / "web3d/explorer.html",
 }
 
 
@@ -241,8 +240,7 @@ def test_a_page_with_no_long_facts_has_no_notes_section() -> None:
 
 # ── one nav per site ─────────────────────────────────────────────────────────
 
-STATIC_NAV_PAGES = ("site/holding/index.html", "web3d/downselect.v2.html",
-                    "web3d/explorer.html")
+STATIC_NAV_PAGES = ("site/holding/index.html", "web3d/downselect.v2.html")
 
 
 def test_static_pages_hold_the_placeholder_and_no_nav_of_their_own() -> None:
@@ -260,7 +258,7 @@ def test_the_generated_shell_and_the_static_pages_share_one_nav() -> None:
     filled = builder.with_site_nav(f"<body>{r.NAV_PLACEHOLDER}</body>",
                                    r.site_nav("ModelSpec", r.MS_NAV), "landing")
     assert filled == ('<body><nav><a class="brand" href="/">ModelSpec</a><div class="links">'
-                      '<a href="/downselect/">Downselect</a><a href="/graph/">Graph</a>'
+                      '<a href="/decide/">Decide</a><a href="/graph/">Graph</a>'
                       '<a href="/models/">Models</a><a href="/providers/">Providers</a>'
                       '<a href="/pricing/">Pricing</a>'
                       '<a href="/benchmarks/">Benchmarks</a>'

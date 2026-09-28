@@ -1,0 +1,45 @@
+schema_version: 1
+
+# Every threshold and external-call budget used by scripts/accuracy.py lives here.
+freshness:
+  lineup_evidence_grace_days: 7
+  live_leaderboard_max_age_days: 30
+
+data_fidelity:
+  sample_size: 12
+  random_seed: modelspec-nightly-accuracy-v1
+  max_firecrawl_credits: 10
+
+reference:
+  top_k: 5
+  minimum_rank_correlation: 0.5
+  minimum_common_models: 2
+
+deterministic:
+  test_paths:
+    - tests/test_decision_cli.py
+    - tests/test_decision_compact_explain.py
+    - tests/test_decision_compatibility.py
+    - tests/test_decision_contract.py
+    - tests/test_decision_cost_per_task.py
+    - tests/test_decision_filter.py
+    - tests/test_decision_optimise.py
+    - tests/test_decision_explain.py
+    - tests/test_decision_independence.py
+    - tests/test_decision_model.py
+    - tests/test_decision_offering_evidence.py
+    - tests/test_decision_recall_fixes.py
+    - tests/test_decision_registry.py
+    - tests/test_decision_relax.py
+    - tests/test_decision_snapshot.py
+    - tests/test_decision_sources.py
+    - tests/test_decision_verify.py
+    - tests/test_decision_vocabulary.py
+
+parity:
+  python_test_paths:
+    - tests/test_decide_worker.py
+    - tests/test_decide_page_specs.py
+  web_test_paths:
+    - src/decide/__tests__/contract.test.ts
+    - src/decide/__tests__/vocabulary.test.ts

@@ -1,10 +1,21 @@
 [project]
-name = "modelspec"
+name = "modelspec-dev"
 version = "0.1.0"
-description = "An open-source model intelligence platform. Catalog every AI model, map it to hardware, rank what's best for you."
+description = "A sourced model decision engine with an offline command-line interface"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "pydantic>=2.0",
     "pyyaml>=6.0",
@@ -13,7 +24,13 @@ dependencies = [
     "rich>=13.0",
     "typer>=0.12",
     "click>=8.0",
+    "cryptography>=43,<46",
 ]
+
+[project.urls]
+Homepage = "https://modelspec.dev"
+Repository = "https://github.com/turbobeest/modelspec"
+Documentation = "https://github.com/turbobeest/modelspec/tree/main/docs"
 
 [project.optional-dependencies]
 dev = [
@@ -35,6 +52,26 @@ modelspec = "cli.modelspec.cli:app"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+only-include = [
+    "cli",
+    "decision",
+    "schema",
+    "api/__init__.py",
+    "api/class_fit.py",
+    "api/classes.py",
+    "api/ranking",
+    "pipeline/__init__.py",
+    "pipeline/class_export.py",
+    "pipeline/hardware.py",
+    "pipeline/hosts.py",
+    "pipeline/load.py",
+    "pipeline/ranking.py",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+registry = "registry"
 
 [tool.ruff]
 target-version = "py311"

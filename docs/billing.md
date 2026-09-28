@@ -30,12 +30,24 @@ A key with remaining credits receives the paid answer, including cited
 commercial-use and data-residency determinations. Only a successful result
 draws credits (4xx / 5xx / no-match cost nothing). Draw order: monthly
 allowance first, then pack credits, oldest expiry first. Weights live in
-`api/worker/tiers.json`: rank = 1 credit, policy-check = 5 credits.
+`api/worker/tiers.json`: rank = 1 credit, policy-check = 5 credits, decision
+explanation `none` or `summary` = 1 credit, and decision explanation `full` =
+2 credits.
 
-A key with zero remaining credits is not an error: it receives the free-tier
-answer (10 rank/day, 5/min, no determinations) plus a `credits.exhausted`
-field naming where to buy. Paid keys have no daily cap; the burst limit is
-configuration (`credits.burst_limit`, 60/min as shipped).
+A key with zero remaining credits depends on the x402 switch. When
+`X402_ENABLED` is off, it receives the free-tier answer (10 rank/day, 5/min,
+no determinations) plus a `credits.exhausted` field naming where to buy. When
+`X402_ENABLED` is on, it receives HTTP 402 with all four card-pack offers from
+`tiers.json`; it does not receive the free-tier answer. Paid keys have no daily
+cap; the burst limit is configuration (`credits.burst_limit`, 60/min as
+shipped).
+
+Keyless browser requests from the production site and internal preview are a
+separate case. With x402 on, they receive the free-tier answer and use the
+`free` row's daily and burst limits, keyed by a SHA-256 digest of
+`CF-Connecting-IP`. Other keyless callers receive the per-call 402. `Origin`
+can be spoofed, but a spoofed value grants only this rate-limited free tier. It
+does not grant credits or paid determinations.
 
 Cancellation, failed payment, or expiry **zeros the monthly allowance at
 once**. Pack credits are unaffected. That is MODEL-73's immediate-downgrade
@@ -93,7 +105,8 @@ module.
 `api/worker/tiers.json` (injected as `TIER_POLICY`):
 
 - `credits.weights.rank` / `credits.weights.policy-check` — credits drawn on a
-  successful result
+  successful result. `credits.weights.decide.*` sets the decision weights by
+  explanation level
 - `credits.burst_limit` — per-minute burst for a funded key
 - `credits.pack_expiry_days` — pack and x402 top-up expiry (365 as shipped)
 - `billing.prices.<stripe_price_id>` — `{kind: plan\|pack, credits, name, usd,
@@ -105,6 +118,10 @@ module.
 
 Changing a credit amount, a weight, burst, or a mapping is an edit to that
 file. Tests prove a price/credit change needs no code change.
+
+The `kind: pack` rows are also the x402 pack table. x402 sells the same four
+packs at the same prices in USDC. Both rails ADD credits to the same ledger
+bucket and use `credits.pack_expiry_days`.
 
 Shipped Prices (**live**, Sparks and Sawdust LLC ModelSpec account `acct_1UHN0tBPydVRHUBj`, 2026-09-19):
 

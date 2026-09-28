@@ -958,8 +958,7 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
 # ═══════════════════════════════════════════════════════════════
 #
 # The census verifies benchmarks that publish current, dated results for
-# current models. In practice that means Artificial Analysis index components,
-# because those are the ones that do. The profiles below weight the classic
+# current models, and few do. The profiles below weight the classic
 # benchmarks a reader expects — HumanEval, SWE-bench Verified, GPQA Diamond —
 # and the two sets did not overlap at all, so no reviewed evidence could move
 # any ranking.
@@ -976,26 +975,17 @@ USE_CASE_PROFILES: dict[str, dict[str, Any]] = {
 VERIFIED_INDEX_WEIGHT = 0.20
 
 #: Verified benchmarks, mapped onto profiles by the category their benchgraph
-#: page declares. All seven declare higher_is_better, unit %, max_score 100,
+#: page declares. Both declare higher_is_better, unit %, max_score 100,
 #: which is where their ranges below come from — read, not assumed.
 VERIFIED_ADDITIONS: dict[str, list[str]] = {
     "coding": ["scicode"],
-    "agentic": ["aa_briefcase", "automationbench_aa", "gdpval_aa"],
     "reasoning": ["critpt"],
-    "rag": ["aa_lcr", "gdp_pdf_aa"],
     "science": ["scicode", "critpt"],
-    "general": ["gdpval_aa"],
 }
 
 BENCHMARK_RANGES.update({
     # Confirmed from each benchmark's page: higher_is_better, %, max 100.
-    "aa_briefcase": (0.0, 100.0),
-    "aa_lcr": (0.0, 100.0),
-    "automationbench": (0.0, 100.0),
-    "automationbench_aa": (0.0, 100.0),
     "critpt": (0.0, 100.0),
-    "gdp_pdf_aa": (0.0, 100.0),
-    "gdpval_aa": (0.0, 100.0),
     "scicode": (0.0, 100.0),
 })
 

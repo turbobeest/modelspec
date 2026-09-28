@@ -690,6 +690,22 @@ benchmarks:
     live_code_bench: 54.2
     aider_polyglot: 72.0
     terminal_bench: 39.2
+  evidence:
+  - benchmark_id: aime_2025
+    model_id_as_evaluated: Claude-Opus-4.0 (Think)
+    score: 70.0
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2025
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2025, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-24; the table states no run date,
+      so the reading is dated by the observation. Effort thinking; highest-effort row for the
+      model. MathArena lists final-answer competitions as deprecated.
+    limitations: 'MathArena marks this row: model was released after competition release, so
+      contamination is possible.'
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

@@ -679,6 +679,23 @@ benchmarks:
     mmlu_pro: 82.0
     mgsm: 89.3
     gsm8k: 97.1
+  evidence:
+  - benchmark_id: hle
+    model_id_as_evaluated: o1 Pro
+    score: 8.12
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2025-04-10'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2025-04-10T21:16:40.000Z;
+      effort default; ±1.07 (95% CI).
+    limitations: '9% (216 prompts) failed due to a post-training bug and were counted as failures.
+      OpenAI has been informed and is working on a fix. ; Potential contamination warning: This
+      model was evaluated after the public release of HLE, allowing model builder access to
+      the prompts and solutions.'
   benchmark_source: lmarena.ai, provider-reports, llm-stats
   benchmark_as_of: 2026-04
   benchmark_notes: ''

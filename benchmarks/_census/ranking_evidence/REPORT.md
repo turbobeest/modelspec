@@ -2,20 +2,18 @@
 
 Verified against `benchmarks/_census/ranking_evidence/raw/` on 2026-09-09.
 No live Firecrawl. Attachments went through `scripts/attach_evidence.py` and
-`LEDGER_TO_CARD` only.
+`LEDGER_TO_CARD` only. Rows and ids from two sources whose terms do not permit
+this project's use were removed on 2026-09-24 (MODEL-117) and are omitted below.
 
 ## Ranked benchmark set
 
 78 keys: every `benchmark_weights` entry on `USE_CASE_PROFILES` after
 `_apply_verified_additions()` (the live set ranking actually uses).
 
-Classic profile keys plus the seven verified additions: `aa_briefcase`,
-`aa_lcr`, `aider_polyglot`, `aime_2025`, `aime_2026`, `alpaca_eval`,
+Classic profile keys plus the verified additions: `aider_polyglot`, `aime_2025`, `aime_2026`, `alpaca_eval`,
 `arc_challenge`, `arena_elo_coding`, `arena_elo_hard_prompts`, `arena_elo_math`,
-`arena_elo_overall`, `arena_elo_style_control`, `arena_elo_vision`,
-`automationbench_aa`, `bbh`, `bbq`, `beir`, `chartqa`, `clip_score`, `critpt`,
-`docvqa`, `fid`, `finbench`, `finqa`, `flores`, `gdp_pdf_aa`, `gdpval_aa`,
-`gpqa_diamond`, `gsm8k`, `hellaswag`, `helm_safety`, `humaneval`, `ifeval`,
+`arena_elo_overall`, `arena_elo_style_control`, `arena_elo_vision`, `bbh`, `bbq`, `beir`, `chartqa`, `clip_score`, `critpt`,
+`docvqa`, `fid`, `finbench`, `finqa`, `flores`, `gpqa_diamond`, `gsm8k`, `hellaswag`, `helm_safety`, `humaneval`, `ifeval`,
 `legalbench`, `live_code_bench`, `math_500`, `mathvista`, `medmcqa`, `medqa`,
 `mgsm`, `miracl`, `mmlu_astronomy`, `mmlu_biology`, `mmlu_business_ethics`,
 `mmlu_chemistry`, `mmlu_clinical_knowledge`, `mmlu_computer_science`,
@@ -34,14 +32,10 @@ variants.
 
 ## Overlap
 
-The prior run's "7 AA pairs on GPT-6 Astra, including gpqa_diamond / mmlu_pro /
-swe_bench_verified" is **stale**. Those three classic keys were not verified
-before this attach. The live 7 were the census additions on Astra only.
-
 | | pairs | models | ranked keys covered |
 | --- | ---: | ---: | --- |
-| Before | **7** | 1 (`openai/gpt-6-astra`) | `aa_briefcase`, `aa_lcr`, `automationbench_aa`, `critpt`, `gdp_pdf_aa`, `gdpval_aa`, `scicode` |
-| After | **44** | 14 | the 7 above plus `aime_2025`, `aime_2026`, `chartqa`, `docvqa`, `gpqa_diamond`, `ifeval`, `math_500`, `mathvista`, `mgsm`, `mmlu_pro`, `mmmu`, `swe_bench_verified` |
+| Before | **7** | 1 (`openai/gpt-6-astra`) | census additions, since removed (MODEL-117) |
+| After | **44** | 14 | the 7 above (since removed) plus `aime_2025`, `aime_2026`, `chartqa`, `docvqa`, `gpqa_diamond`, `ifeval`, `math_500`, `mathvista`, `mgsm`, `mmlu_pro`, `mmmu`, `swe_bench_verified` |
 
 +37 new verified (model, ranked-benchmark) pairs. Classic keys still missing
 on most cards include `humaneval`, `terminal_bench` (v1.0), `live_code_bench`
@@ -90,7 +84,7 @@ Arena Elo family.
 | deepseek/deepseek-v4-flash | gpqa_diamond | 88.1 | same | 2026-04-26 | published |
 | deepseek/deepseek-v4-flash | swe_bench_verified | 79.0 | same | 2026-04-26 | published |
 
-Astra's seven pre-existing AA rows are unchanged. `evidence_date` 2026-09-03 for
+`evidence_date` 2026-09-03 for
 Astra GPQA is OpenAI's own dating of https://openai.com/index/gpt-6-astra/
 ("Research Sep 3, 2026") on the GPT-5.6 article in this cache; the Astra
 markdown itself has no dateline. Gemma 4's day is the technical-report date
@@ -119,9 +113,7 @@ different benchmark key.
 - MMMU-Pro (OpenAI, Gemini, Gemma, Llama). Ranked key is `mmmu`.
 - τ2-bench / τ³-Bench. Ranked key is original `tau_bench` (superseded).
 - ChartQAPro vs `chartqa`.
-- AutomationBench (Zapier pass rate) vs ranked `automationbench_aa` (AA protocol).
-- gdp.pdf / GDP.PDF vs ranked `gdp_pdf_aa`.
-- SciCode on Gemini 3.1 Pro: 59%, protocol unpinned (AA subproblem pass@1 vs
+- SciCode on Gemini 3.1 Pro: 59%, protocol unpinned (subproblem pass@1 vs
   publisher main-problem resolve rate).
 
 ### Date unpinned
@@ -140,14 +132,6 @@ different benchmark key.
 Every provider comparison column was dropped. Examples: OpenAI tables of Claude
 and Gemini; Anthropic tables of GPT and Gemini; GLM / Qwen / DeepSeek / Grok
 tables of other labs; Gemma 4 columns for Gemma 3 27B.
-
-### Unit mismatch (would poison ranking ranges)
-
-- GDPval-AA / GDPVal-AA v2 reported as raw Elo (OpenAI 1747.8, Grok 1753,
-  Anthropic 1890 / 1861 / 1618, Gemini 1317 / 1545). Ranked `gdpval_aa` is
-  AA's normalized Elo percent on (0, 100). No conversion applied.
-- AA-Briefcase reported as Elo (Grok 1577, Opus 5 1720). Ranked `aa_briefcase`
-  on Astra is already verified as normalized percent from the AA article.
 
 ### No score present (charts, 404, empty)
 
@@ -170,7 +154,6 @@ These are **not** ranked today. Do not fold them into a nearby ranked id.
 | MMMU-Pro | `mmmu_pro` | no |
 | OSWorld 2.0 / OSWorld-Verified | `osworld` | no |
 | τ2-bench / τ³-Bench | successors of `tau_bench` | no |
-| AutomationBench (Zapier) | `automationbench` | no |
 | FrontierCode, CursorBench, DeepSWE, ARC-AGI-3, HLE, BrowseComp | various | no |
 
 ## Cached pages that yielded nothing, and why
@@ -194,7 +177,7 @@ These are **not** ranked today. Do not fold them into a nearby ranked id.
 | `qwen-3-8-hf.md` | Qwen3.8-Max / 2.4T-A95B GPQA Diamond 92.6 present; date unpinned |
 | `qwen3-32b-hf.md` | No ranked scores (points at the blog; LEXam only) |
 | `qwen3-blog.md` | Dated 2025-04-29; scores are images |
-| `xai-grok-4-6.md` | Dated 2026-08-12; AA Intelligence / GDPVal-AA Elo / Terminal-Bench v3.0 / AA-Briefcase Elo — none are attachable ranked cells |
+| `xai-grok-4-6.md` | Dated 2026-08-12; Terminal-Bench v3.0 and the other cells are not attachable ranked cells |
 | `glm-5-1-hf.md` | Duplicate of the dated blog table; blog used as the source |
 
 Pages that **did** yield attached rows: `openai-gpt-6-astra-full.md` /

@@ -3,16 +3,17 @@
 The spec is **not** written by hand. Everything a caller could build a wrong
 request from — the accepted fields, the enums, the limits, the status codes, the
 error codes, the shape of a ranked row or a policy verdict — is read out of the
-implementation. It covers both endpoints the Worker serves: `POST /v1/rank`
-(MODEL-68) and `POST /v1/policy-check` (MODEL-80).
+implementation. It covers `POST /v1/rank` (MODEL-68), `POST /v1/decide`
+(MODEL-151), and `POST /v1/policy-check` (MODEL-80).
 
-* the request vocabulary comes from `rank_service`, `policy_service` and
+* the request vocabulary comes from `rank_service`, `decision.contract`,
+  `policy_service` and
   `api.ranking.engine` (`USE_CASE_PROFILES`, `HOSTING_MODES`, `KNOWN_RUNTIMES`,
   `MAX_LIMIT`, `MAX_BODY_BYTES`, the `HTTP_*` constants, and the field sets
   `policy_service._reject_unknown` is called with, read from its syntax tree);
-* every response schema is **inferred from a real response**: this module builds
-  small synthetic exports, calls `rank_service.rank`, `policy_service.check` and
-  both `error_response`s, and describes the bodies that come back. The ranked
+* every response schema comes from executable code: this module builds small
+  synthetic exports, calls `rank_service.rank`, `policy_service.check` and
+  both `error_response`s, and reads the decision models' generated schema. The ranked
   rows are `pipeline.ranking.rank_report` rows and the policy catalogue is
   built by `pipeline.policy_export` from real `ModelCard`s, so a field added to
   either appears in the spec on the next generation with nobody editing YAML;
@@ -23,8 +24,9 @@ implementation. It covers both endpoints the Worker serves: `POST /v1/rank`
   siblings' keys, so a spec-driven client cannot read an `undetermined` check
   as a pass;
 * the error codes are cross-checked against the source. `source_error_codes`
-  walks the syntax tree of `rank_service.py`, `policy_service.py` and
-  `entry.py` for every code any of them can emit, and generation **fails** if
+  walks the syntax tree of `rank_service.py`, `decide_service.py`,
+  `policy_service.py` and `entry.py` for every code any of them can emit, and
+  generation **fails** if
   one is not exercised here. A new refusal cannot be added to the Worker
   without appearing in the spec.
 
@@ -62,6 +64,7 @@ import ast
 import copy
 import importlib.util
 import json
+import re
 import sys
 import urllib.request
 from pathlib import Path
@@ -99,12 +102,28 @@ EXAMPLE_REQUEST: dict[str, Any] = {
     "limit": 3,
 }
 
+EXAMPLE_DECIDE_REQUEST: dict[str, Any] = {
+    "spec_version": 1,
+    "capabilities": {"software_engineering": "required"},
+    "optimize": {"max": "software_engineering"},
+    "explain": "none",
+    "limit": 3,
+}
+
+EXAMPLE_COMPARE_REQUEST: dict[str, Any] = {
+    "compare_to": "snap_0123456789abcdef",
+    "spec": EXAMPLE_DECIDE_REQUEST,
+}
+
 
 def _load(name: str):
     """Import a Worker module from its path; it is not an installed package."""
-    for path in (str(REPO_ROOT), str(SRC)):
-        if path not in sys.path:
-            sys.path.insert(0, path)
+    # insert(0) reverses this order. Keep the complete repository packages
+    # ahead of the generated Worker subset while this build-time tool runs.
+    for path in (str(SRC), str(REPO_ROOT)):
+        while path in sys.path:
+            sys.path.remove(path)
+        sys.path.insert(0, path)
     spec = importlib.util.spec_from_file_location(f"modelspec_worker_{name}", SRC / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -112,12 +131,14 @@ def _load(name: str):
 
 
 service = _load("rank_service")
+decide_service = _load("decide_service")
 policy = _load("policy_service")
 sandbox = _load("access_sandbox")
 #: Imported by its own name, not `_load`ed: its dataclasses and its sibling
 #: imports (`access_keys`, `access_kv`, …) resolve through `sys.modules`, which
 #: `_load` put `src/` on the path for.
 access = importlib.import_module("access")
+access_config = importlib.import_module("access_config")
 billing_mod = importlib.import_module("billing")
 #: Same reason as `access`: `x402.Config` is a dataclass, and `_load` does not
 #: put the module in `sys.modules` before the decorator runs.
@@ -551,9 +572,16 @@ _POLICY_ERROR_PROBES: dict[str, tuple[dict[str, Any], bool]] = {
 #: Codes raised by the transport in `entry.py`, which cannot be driven from
 #: CPython (it imports the Workers runtime). Their statuses are read out of its
 #: syntax tree by `entry_error_codes`, not asserted here.
-_ENTRY_ONLY = {"not_found", "method_not_allowed", "payload_too_large", "export_unavailable",
-              "payment_required", "payment_failed", "invalid_payment", "x402_not_configured",
-              "credits_store_not_configured", "missing_holder"}
+_ENTRY_ONLY = {
+    "not_found", "method_not_allowed", "payload_too_large", "export_unavailable",
+    "payment_required", "payment_failed", "invalid_payment", "x402_not_configured",
+    "credits_store_not_configured", "missing_holder", "origin_not_allowed",
+    "snapshot_refused", "snapshot_unavailable",
+}
+_DECIDE_ONLY = {
+    "comparison_snapshot_changed", "comparison_snapshot_unavailable", "invalid_spec",
+    "no_snapshot", "snapshot_changed", "snapshot_not_loaded",
+}
 
 
 def source_error_codes() -> set[str]:
@@ -563,18 +591,30 @@ def source_error_codes() -> set[str]:
     adding a refusal to the Worker and forgetting the docs is a failed build.
     """
     codes: set[str] = set()
-    for path in (SRC / "rank_service.py", SRC / "policy_service.py", SRC / "entry.py"):
+    for path in (
+        SRC / "rank_service.py",
+        SRC / "decide_service.py",
+        SRC / "policy_service.py",
+        SRC / "entry.py",
+    ):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             # RequestError("code", "message", ...)
             if isinstance(node, ast.Call):
-                name = node.func.id if isinstance(node.func, ast.Name) else None
+                name = (
+                    node.func.id if isinstance(node.func, ast.Name)
+                    else node.func.attr if isinstance(node.func, ast.Attribute)
+                    else None
+                )
                 if name == "RequestError" and node.args and isinstance(node.args[0], ast.Constant):
+                    codes.add(str(node.args[0].value))
+                if (name == "error_response" and node.args
+                        and isinstance(node.args[0], ast.Constant)):
                     codes.add(str(node.args[0].value))
             # {"code": "...", ...}
             if isinstance(node, ast.Dict):
                 for key, value in zip(node.keys, node.values):
-                    if (isinstance(key, ast.Constant) and key.value == "code"
+                    if (isinstance(key, ast.Constant) and key.value in {"code", "error"}
                             and isinstance(value, ast.Constant) and isinstance(value.value, str)):
                         codes.add(value.value)
     return codes
@@ -740,7 +780,8 @@ def _probe_policy_errors() -> dict[str, tuple[int, dict[str, Any]]]:
 
 def _check_every_code_is_probed(rank_errors: dict[str, Any],
                                 policy_errors: dict[str, Any]) -> None:
-    missing = source_error_codes() - set(rank_errors) - set(policy_errors) - _ENTRY_ONLY
+    missing = (source_error_codes() - set(rank_errors) - set(policy_errors)
+               - _ENTRY_ONLY - _DECIDE_ONLY)
     if missing:
         raise SystemExit(
             "the Worker can return error code(s) the spec would not document: "
@@ -1026,13 +1067,17 @@ def _x402() -> dict[str, Any]:
         found = re.search(rf'"{name}"\s*:\s*"([^"]*)"', live)
         return found.group(1) if found else default
 
+    tier_policy = access_config.load_policy()
+    packs = x402.packs_from_policy(tier_policy)
     return {
         "wired": True,
         "enabled": x402_enabled(),
         "mainnet": x402.flag(var("X402_MAINNET", "false")),
         "network": var("X402_NETWORK", x402.NETWORK_BASE_SEPOLIA),
-        "price_atomic": int(var("X402_PRICE_ATOMIC", "1000")),
-        "placeholder_price": True,
+        "per_credit_atomic": packs[0].atomic // packs[0].credits,
+        "keyless_price_rule": "4000 atomic USDC per endpoint credit",
+        "packs": [{"name": row.name, "credits": row.credits,
+                   "usd": row.usd, "atomic": row.atomic} for row in packs],
         "facilitator": var("X402_FACILITATOR_URL", x402.DEFAULT_ORIGIN),
         "docs": "docs/x402.md",
     }
@@ -1648,6 +1693,437 @@ def _policy_schemas(used: set[str]) -> dict[str, Any]:
     }
 
 
+def _comparison_responses() -> list[dict[str, Any]]:
+    """Representative envelopes produced by the executable comparison code."""
+    c = decide_service.contract
+    old_snapshot = "snap_" + "a" * 64
+    new_snapshot = "snap_" + "b" * 64
+
+    def offering(model: str, provider: str = "p1"):
+        return c.OfferingRef(
+            model=model, provider=provider, region="global", tier="standard"
+        )
+
+    def result(rank: int, model: str, price: float, *, provider: str = "p1",
+               estimate: float | None = None):
+        estimates = None if estimate is None else [c.Estimate(
+            domain="software_engineering", value=estimate,
+            interval=(estimate - 0.1, estimate + 0.1),
+        )]
+        return c.Result(
+            rank=rank,
+            offering=offering(model, provider),
+            estimates=estimates,
+            contributions=[c.Contribution(
+                dimension="-offering.cost_per_task",
+                raw_value=price,
+                unit="usd_per_task",
+                records=[f"{provider}/{model}/global/standard#price"],
+            )],
+        )
+
+    def shown(model: str, value: int, *, provider: str = "p1"):
+        return c.CandidateValues(
+            offering=offering(model, provider),
+            facts=[c.ShownFact(
+                facet="model.context_window",
+                value=value,
+                unit="tokens",
+                record_id=f"{model}#model.context_window",
+            )],
+        )
+
+    old = c.Decision(
+        decision_id="dec_" + "a" * 24,
+        snapshot=old_snapshot,
+        spec_hash="sha256:" + "1" * 64,
+        explain="full",
+        status="partial",
+        results=[
+            result(1, "lab/a", 0.044, estimate=0.6),
+            result(2, "lab/stable", 0.060),
+            result(3, "lab/left", 0.070),
+        ],
+        top=[shown("lab/a", 100), shown("lab/stable", 128000), shown("lab/left", 64000)],
+        may_qualify=[c.MayQualify(
+            model="lab/uncertain",
+            offering=offering("lab/uncertain"),
+            unknown=["model.context_window"],
+        )],
+    )
+    new = c.Decision(
+        decision_id="dec_" + "b" * 24,
+        snapshot=new_snapshot,
+        spec_hash="sha256:" + "1" * 64,
+        explain="full",
+        status="partial",
+        results=[
+            result(1, "lab/stable", 0.061),
+            result(2, "lab/a", 0.088, provider="p2", estimate=0.7),
+            result(3, "lab/new", 0.080),
+        ],
+        top=[
+            shown("lab/stable", 128000),
+            shown("lab/a", 200, provider="p2"),
+            shown("lab/new", 32000),
+        ],
+        may_qualify=[c.MayQualify(
+            model="lab/uncertain",
+            offering=offering("lab/uncertain"),
+            unknown=["model.maximum_output"],
+        )],
+    )
+
+    def envelope(result: dict[str, Any]) -> dict[str, Any]:
+        result["spec_snapshot_ignored"] = False
+        return {
+            "contract_version": c.CONTRACT_VERSION,
+            "endpoint": "compare",
+            "snapshot": new_snapshot,
+            "compare_to": old_snapshot,
+            "result": result,
+        }
+
+    return [
+        envelope(decide_service.compare_decisions(
+            old, new, old_as_of="2026-09-26", new_as_of="2026-09-27"
+        )),
+        envelope(decide_service.compare_decisions(new, new)),
+    ]
+
+
+def _decision_schemas() -> dict[str, Any]:
+    """Convert the generated decision-contract definitions to component refs."""
+    definitions = copy.deepcopy(decide_service.contract.json_schema()["$defs"])
+    names = {
+        name: "DecisionSpec" if name == "Spec" else
+        "DecisionResponse" if name == "Decision" else
+        "Decision" + name
+        for name in definitions
+    }
+
+    def rewrite(value):
+        if isinstance(value, dict):
+            return {
+                key: (
+                    "#/components/schemas/" + names[item.removeprefix("#/$defs/")]
+                    if key == "$ref" and isinstance(item, str) and item.startswith("#/$defs/")
+                    else rewrite(item)
+                )
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [rewrite(item) for item in value]
+        if isinstance(value, str):
+            return re.sub(
+                r"model\([a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*\)",
+                "model(lab/example-model)",
+                value,
+            )
+        return value
+
+    schemas = {names[name]: rewrite(schema) for name, schema in definitions.items()}
+    def refused(endpoint: str, codes: set[str]) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["contract_version", "endpoint", "snapshot", "error"],
+            "properties": {
+                "contract_version": {
+                    "type": "string",
+                    "enum": [decide_service.contract.CONTRACT_VERSION],
+                },
+                "endpoint": {"type": "string", "enum": [endpoint]},
+                "snapshot": {"anyOf": [
+                    {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    {"type": "null"},
+                ]},
+                "error": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["code", "message"],
+                    "properties": {
+                        "code": {"type": "string", "enum": sorted(codes)},
+                        "message": {"type": "string"},
+                        "issues": {"type": "array", "items": {"type": "object"}},
+                        "requested": {
+                            "type": "string",
+                            "description": (
+                                "snapshot_changed only: the X-ModelSpec-Snapshot sent."
+                            ),
+                        },
+                        "current": {
+                            "type": "string",
+                            "description": (
+                                "snapshot_changed only: the snapshot that answers now."
+                            ),
+                        },
+                    },
+                },
+            },
+        }
+
+    def snapshot_unavailable(endpoint: str) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["contract_version", "endpoint", "snapshot", "error", "message"],
+            "properties": {
+                "contract_version": {
+                    "type": "string",
+                    "enum": [decide_service.contract.CONTRACT_VERSION],
+                },
+                "endpoint": {"type": "string", "enum": [endpoint]},
+                "snapshot": {"type": "null"},
+                "error": {"type": "string", "enum": ["no_snapshot"]},
+                "message": {"type": "string"},
+            },
+        }
+
+    shared_refusals = {
+        "origin_not_allowed", "payload_too_large", "snapshot_refused",
+        "snapshot_unavailable",
+    }
+    schemas["DecisionRequestRefused"] = refused(
+        "decide",
+        shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
+    )
+    schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
+    schemas["ComparisonRequestRefused"] = refused(
+        "compare",
+        shared_refusals | {
+            "comparison_snapshot_changed", "comparison_snapshot_unavailable",
+            "invalid_request", "invalid_spec", "snapshot_changed",
+        },
+    )
+    schemas["ComparisonSnapshotUnavailable"] = snapshot_unavailable("compare")
+    schemas["ComparisonRequest"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["compare_to", "spec"],
+        "properties": {
+            "compare_to": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+            "spec": {"$ref": "#/components/schemas/DecisionSpec"},
+        },
+    }
+    nullable_string = copy.deepcopy(
+        schemas["DecisionShownFact"]["properties"]["unit"]
+    )
+    nullable_string.pop("default", None)
+    nullable_string.pop("title", None)
+    offering_ref = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["model", "provider", "region", "tier"],
+        "properties": {
+            "model": {"type": "string", "pattern": decide_service.contract.MODEL_PATTERN},
+            "provider": nullable_string,
+            "region": nullable_string,
+            "tier": nullable_string,
+        },
+    }
+    schemas["ComparisonOfferingRef"] = offering_ref
+    schemas["ComparisonOfferingChange"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["old", "new"],
+        "properties": {
+            "old": {"$ref": "#/components/schemas/ComparisonOfferingRef"},
+            "new": {"$ref": "#/components/schemas/ComparisonOfferingRef"},
+        },
+    }
+    offering = {"oneOf": [
+        {"$ref": "#/components/schemas/ComparisonOfferingRef"},
+        {"$ref": "#/components/schemas/ComparisonOfferingChange"},
+    ]}
+    records = {"type": "array", "items": {"type": "string"}}
+    facet_value = copy.deepcopy(
+        schemas["DecisionShownFact"]["properties"]["value"]
+    )
+    facet_value.pop("default", None)
+    facet_value.pop("title", None)
+    schemas["ComparisonFacetValue"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["value", "unit", "records"],
+        "properties": {
+            "value": facet_value,
+            "unit": nullable_string,
+            "records": records,
+        },
+    }
+    schemas["ComparisonCostValue"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["value", "unit", "records"],
+        "properties": {
+            "value": {"type": "number", "nullable": True},
+            "unit": nullable_string,
+            "records": records,
+        },
+    }
+    schemas["ComparisonCapabilityValue"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["value", "interval", "records"],
+        "properties": {
+            "value": {"type": "number"},
+            "interval": {
+                "type": "array", "items": {"type": "number"},
+                "minItems": 2, "maxItems": 2,
+            },
+            "records": records,
+        },
+    }
+
+    def value_change(kind: str, value_ref: str, extra: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["kind", *extra, "offering", "old", "new"],
+            "properties": {
+                "kind": {"type": "string", "enum": [kind]},
+                **extra,
+                "offering": offering,
+                "old": {"$ref": f"#/components/schemas/{value_ref}"},
+                "new": {"$ref": f"#/components/schemas/{value_ref}"},
+            },
+        }
+
+    schemas["ComparisonFacetChange"] = value_change(
+        "facet", "ComparisonFacetValue", {"facet": {"type": "string"}}
+    )
+    schemas["ComparisonCostChange"] = value_change(
+        "cost_per_task", "ComparisonCostValue", {}
+    )
+    schemas["ComparisonCapabilityChange"] = value_change(
+        "capability", "ComparisonCapabilityValue", {"domain": {"type": "string"}}
+    )
+    schemas["ComparisonValueChange"] = {
+        "oneOf": [
+            {"$ref": "#/components/schemas/ComparisonFacetChange"},
+            {"$ref": "#/components/schemas/ComparisonCostChange"},
+            {"$ref": "#/components/schemas/ComparisonCapabilityChange"},
+        ],
+        "discriminator": {
+            "propertyName": "kind",
+            "mapping": {
+                "facet": "#/components/schemas/ComparisonFacetChange",
+                "cost_per_task": "#/components/schemas/ComparisonCostChange",
+                "capability": "#/components/schemas/ComparisonCapabilityChange",
+            },
+        },
+    }
+    schemas["ComparisonModelChange"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "model", "entered", "left", "rank_changed", "may_qualify", "values",
+        ],
+        "properties": {
+            "model": {"type": "string", "pattern": decide_service.contract.MODEL_PATTERN},
+            "entered": {"type": "boolean"},
+            "left": {
+                "type": "object", "nullable": True,
+                "additionalProperties": False,
+                "required": ["reason"],
+                "properties": {"reason": {"type": "string"}},
+            },
+            "rank_changed": {
+                "type": "object", "nullable": True,
+                "additionalProperties": False,
+                "required": ["old", "new"],
+                "properties": {"old": {"type": "integer"}, "new": {"type": "integer"}},
+            },
+            "may_qualify": {
+                "type": "object", "nullable": True,
+                "additionalProperties": False,
+                "required": ["old", "new"],
+                "properties": {
+                    "old": {
+                        "type": "array", "nullable": True,
+                        "items": {"type": "string"},
+                    },
+                    "new": {
+                        "type": "array", "nullable": True,
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+            "values": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/ComparisonValueChange"},
+            },
+        },
+    }
+    count_names = [
+        "entered", "left", "rank_changed", "may_qualify_changed", "models_changed",
+    ]
+    snapshot_side = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["id", "as_of"],
+        "properties": {
+            "id": {"type": "string", "pattern": decide_service.contract.SNAPSHOT_PATTERN},
+            "as_of": nullable_string,
+        },
+    }
+    schemas["ComparisonResult"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "changed", "snapshot", "status", "counts", "models", "spec_snapshot_ignored",
+        ],
+        "properties": {
+            "changed": {"type": "boolean"},
+            "snapshot": {
+                "type": "object", "additionalProperties": False,
+                "required": ["old", "new"],
+                "properties": {"old": snapshot_side, "new": snapshot_side},
+            },
+            "status": {
+                "type": "object", "additionalProperties": False,
+                "required": ["old", "new"],
+                "properties": {
+                    side: copy.deepcopy(
+                        schemas["DecisionResponse"]["properties"]["status"]
+                    )
+                    for side in ("old", "new")
+                },
+            },
+            "counts": {
+                "type": "object", "additionalProperties": False,
+                "required": count_names,
+                "properties": {name: {"type": "integer"} for name in count_names},
+            },
+            "models": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/ComparisonModelChange"},
+            },
+            "spec_snapshot_ignored": {"type": "boolean"},
+        },
+    }
+    schemas["ComparisonResponse"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["contract_version", "endpoint", "snapshot", "compare_to", "result"],
+        "properties": {
+            "contract_version": {
+                "type": "string", "enum": [decide_service.contract.CONTRACT_VERSION]
+            },
+            "endpoint": {"type": "string", "enum": ["compare"]},
+            "snapshot": {
+                "type": "string", "pattern": decide_service.contract.SNAPSHOT_PATTERN
+            },
+            "compare_to": {
+                "type": "string", "pattern": decide_service.contract.SNAPSHOT_PATTERN
+            },
+            "result": {"$ref": "#/components/schemas/ComparisonResult"},
+        },
+    }
+    return schemas
+
+
 def build_spec() -> dict[str, Any]:
     # Two real answers, merged: the example request (whose `managed_api` hosting
     # populates `applied.unbound`) and a fully constrained one (which binds every
@@ -1693,6 +2169,7 @@ def build_spec() -> dict[str, Any]:
     for sample in _health_samples():
         health_schema = _merge(health_schema, _infer(sample))
     policy_schemas = _policy_schemas(used)
+    decision_schemas = _decision_schemas()
 
     access_errors = _access_refusals()
     access_error: dict[str, Any] = {}
@@ -1724,6 +2201,23 @@ def build_spec() -> dict[str, Any]:
             },
         }
 
+    payment_required_error = _infer(x402.payment_required_body(
+        x402.Config(
+            enabled=True, mainnet=False,
+            network=x402.NETWORK_BASE_SEPOLIA,
+            asset=x402._norm_addr(x402.USDC_BASE_SEPOLIA),
+            pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
+            price_atomic=4000,
+            facilitator_url=x402.DEFAULT_ORIGIN,
+            resource_origin=_ORIGIN,
+            packs=x402.packs_from_policy(access_config.load_policy()),
+        ),
+        {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
+        "https://api.modelspec.dev/v1/rank",
+        offer_packs=True,
+    ))["properties"]["error"]
+    payment_required_error["required"].remove("packs")
+
     def transport(status: int, description: str) -> tuple[str, dict[str, Any]]:
         return str(status), _json_body(description,
                                        {"$ref": "#/components/schemas/TransportError"})
@@ -1753,6 +2247,43 @@ def build_spec() -> dict[str, Any]:
                 "(tier_not_configured), or the deployment has no tier table "
                 "(access_not_configured)."),
         }
+
+    decision_unavailable = refused_by_access(
+        "The snapshot is not published, it cannot be verified, or a live key cannot "
+        "reach the access store. A no_snapshot response includes Retry-After.",
+        {"oneOf": [
+            {"$ref": "#/components/schemas/DecisionSnapshotUnavailable"},
+            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+        ]},
+    )
+    decision_unavailable["headers"] = {
+        "Retry-After": {
+            "description": "Seconds before retrying a no_snapshot response.",
+            "schema": {"type": "integer", "minimum": 1},
+        }
+    }
+    comparison_unavailable = refused_by_access(
+        "The snapshot is not published, a retained snapshot cannot be read, or a live "
+        "key cannot reach the access store. A no_snapshot response includes Retry-After.",
+        {"oneOf": [
+            {"$ref": "#/components/schemas/ComparisonSnapshotUnavailable"},
+            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
+        ]},
+    )
+    comparison_unavailable["headers"] = copy.deepcopy(decision_unavailable["headers"])
+    decide_snapshot_headers = {
+        "X-ModelSpec-Snapshot": {
+            "description": "The verified snapshot that answered (MODEL-159).",
+            "schema": {"type": "string"},
+        },
+        "X-ModelSpec-Snapshot-Stale": {
+            "description": (
+                "Present only when the isolate's latest revalidation failed (network, HTTP "
+                "error, or a snapshot that failed verification) and an older verified "
+                "snapshot answered. The value says why."),
+            "schema": {"type": "string"},
+        },
+    }
 
     security_schemes = {
         "bearer": {"type": "http", "scheme": "bearer",
@@ -1807,6 +2338,8 @@ def build_spec() -> dict[str, Any]:
             "x-transport-error-statuses": {code: entry_codes[code]
                                            for code in sorted(entry_codes)},
             "x-max-request-bytes": {"/v1/rank": service.MAX_BODY_BYTES,
+                                    "/v1/decide": decide_service.MAX_BODY_BYTES,
+                                    "/v1/compare": decide_service.MAX_BODY_BYTES,
                                     "/v1/policy-check": policy.MAX_BODY_BYTES},
         },
         "x-modelspec-access": _access(),
@@ -1903,6 +2436,120 @@ def build_spec() -> dict[str, Any]:
                     },
                 },
             },
+            "/v1/decide": {
+                "post": {
+                    "operationId": "decide",
+                    "summary": "Return a decision from the signed published snapshot.",
+                    "parameters": [{
+                        "name": "X-ModelSpec-Snapshot", "in": "header", "required": False,
+                        "description": (
+                            "The snapshot the caller's vocabulary.json describes. When the "
+                            "Worker answers from another snapshot it returns 409 "
+                            "snapshot_changed before reading the spec (MODEL-159)."),
+                        "schema": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    }],
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {
+                            "schema": {"$ref": "#/components/schemas/DecisionSpec"},
+                            "example": EXAMPLE_DECIDE_REQUEST,
+                        }},
+                    },
+                    "responses": {
+                        "200": {
+                            **_json_body(
+                                "A decision pinned to the snapshot that produced it.",
+                                {"$ref": "#/components/schemas/DecisionResponse"},
+                            ),
+                            "headers": decide_snapshot_headers,
+                        },
+                        str(decide_service.HTTP_BAD_REQUEST): _json_body(
+                            "The body is not a contract-v1 spec.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_CONFLICT): _json_body(
+                            "snapshot_not_loaded: the spec pinned a snapshot this isolate "
+                            "has not loaded. snapshot_changed: the X-ModelSpec-Snapshot header "
+                            "names another snapshot than the one answering; reload "
+                            "vocabulary.json and retry once.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/decide takes POST."
+                        )[1],
+                        str(service.HTTP_PAYLOAD_TOO_LARGE): _json_body(
+                            f"The body is over {decide_service.MAX_BODY_BYTES} bytes.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_BAD_GATEWAY): _json_body(
+                            "The published snapshot could not be fetched.",
+                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                        ),
+                        str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
+                            "Payment required when X402_ENABLED is on. A keyed caller is "
+                            "offered the card packs. A keyless caller pays 4,000 atomic "
+                            "USDC per credit, multiplied by this spec's explanation weight.",
+                            {"$ref": "#/components/schemas/PaymentRequired"},
+                        ),
+                        **access_responses(),
+                        str(access.HTTP_STORE_UNAVAILABLE): decision_unavailable,
+                    },
+                },
+            },
+            "/v1/compare": {
+                "post": {
+                    "operationId": "compareDecisions",
+                    "summary": "Compare one spec against two signed snapshots.",
+                    "parameters": [{
+                        "name": "X-ModelSpec-Snapshot", "in": "header", "required": False,
+                        "description": "The current snapshot the caller expects.",
+                        "schema": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    }],
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {
+                            "schema": {"$ref": "#/components/schemas/ComparisonRequest"},
+                            "example": EXAMPLE_COMPARE_REQUEST,
+                        }},
+                    },
+                    "responses": {
+                        "200": {
+                            **_json_body(
+                                "The model-grained difference between two decisions.",
+                                {"$ref": "#/components/schemas/ComparisonResponse"},
+                            ),
+                            "headers": decide_snapshot_headers,
+                        },
+                        str(decide_service.HTTP_BAD_REQUEST): _json_body(
+                            "The body lacks a valid spec or compare_to snapshot ID.",
+                            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_CONFLICT): _json_body(
+                            "The retained snapshot is unavailable or differs from compare_to.",
+                            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
+                        ),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/compare takes POST."
+                        )[1],
+                        str(service.HTTP_PAYLOAD_TOO_LARGE): _json_body(
+                            f"The body is over {decide_service.MAX_BODY_BYTES} bytes.",
+                            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_BAD_GATEWAY): _json_body(
+                            "A published snapshot could not be fetched.",
+                            {"$ref": "#/components/schemas/ComparisonRequestRefused"},
+                        ),
+                        str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
+                            "Payment required when X402_ENABLED is on.",
+                            {"$ref": "#/components/schemas/PaymentRequired"},
+                        ),
+                        **access_responses(),
+                        str(access.HTTP_STORE_UNAVAILABLE): comparison_unavailable,
+                    },
+                },
+            },
             "/v1/policy-check": {
                 "post": {
                     "operationId": "policyCheck",
@@ -1963,22 +2610,9 @@ def build_spec() -> dict[str, Any]:
                 "Health": health_schema,
                 "NoMatch": error_envelope(no_match_schema),
                 "RequestRefused": error_envelope(refused_schema),
+                **decision_schemas,
                 **policy_schemas,
-                "PaymentRequired": error_envelope(_infer(
-                    x402.payment_required_body(
-                        x402.Config(
-                            enabled=True, mainnet=False,
-                            network=x402.NETWORK_BASE_SEPOLIA,
-                            asset=x402._norm_addr(x402.USDC_BASE_SEPOLIA),
-                            pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
-                            price_atomic=1000,
-                            facilitator_url=x402.DEFAULT_ORIGIN,
-                            resource_origin=_ORIGIN,
-                        ),
-                        {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
-                        "https://api.modelspec.dev/v1/rank",
-                    )
-                )["properties"]["error"]),
+                "PaymentRequired": error_envelope(payment_required_error),
                 "CreditsBalance": _infer(x402.balance_body(
                     {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
                     __import__("credits").Balance("key:" + "a" * 64, 3, 1),
@@ -2149,11 +2783,15 @@ def _validate(value: Any, schema: dict[str, Any], spec: dict[str, Any],
     problems: list[str] = []
     if "not" in schema and not _validate(value, schema["not"], spec, path):
         problems.append(f"{path}: carries a key the spec forbids on this variant")
-    if value is None:
-        if not schema.get("nullable") and schema.get("type"):
-            problems.append(f"{path}: null, but the spec says {schema['type']}")
-        return problems
     kind = schema.get("type")
+    if value is None:
+        # JSON Schema's `{"type": "null"}` (what pydantic emits for Optional,
+        # inside anyOf) accepts null; so does OpenAPI's `nullable`.
+        if not schema.get("nullable") and kind and kind != "null":
+            problems.append(f"{path}: null, but the spec says {kind}")
+        return problems
+    if kind == "null":
+        return problems + [f"{path}: {type(value).__name__}, but the spec says null"]
     checks = {
         "object": dict, "array": list, "string": str, "boolean": bool,
         "integer": int, "number": (int, float),
@@ -2235,7 +2873,19 @@ def probe(base_url: str, spec: dict[str, Any] | None = None) -> int:
             if str(status) not in operation["responses"]:
                 failures.append(f"{path}: HTTP {status} is not in the spec")
                 continue
-            if data is not None and status != 200:
+            temporary_decision = (
+                path == "/v1/decide"
+                and status == decide_service.HTTP_SERVICE_UNAVAILABLE
+                and payload.get("error") == "no_snapshot"
+            )
+            unavailable_comparison = (
+                path == "/v1/compare"
+                and status == decide_service.HTTP_CONFLICT
+                and (payload.get("error") or {}).get("code")
+                == "comparison_snapshot_unavailable"
+            )
+            if (data is not None and status != 200
+                    and not temporary_decision and not unavailable_comparison):
                 failures.append(f"{path}: the spec's own example returned HTTP {status}, "
                                 "not 200")
             schema = operation["responses"][str(status)]["content"]["application/json"]["schema"]

@@ -308,11 +308,6 @@ FAMILY_ANNOUNCEMENTS: dict[tuple[str, str], str] = {
 # Independent boards: one URL, many cards. source_kind = independent_evaluator.
 LEADERBOARDS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
-        "https://artificialanalysis.ai/leaderboards/models",
-        "independent_leaderboard",
-        tuple(sorted(TEXT_TOKEN_TYPES)),
-    ),
-    (
         "https://lmarena.ai/leaderboard",
         "independent_leaderboard",
         tuple(sorted(TEXT_TOKEN_TYPES)),
@@ -321,11 +316,6 @@ LEADERBOARDS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "https://huggingface.co/spaces/mteb/leaderboard",
         "independent_leaderboard",
         tuple(sorted(EMBED_TYPES)),
-    ),
-    (
-        "https://artificialanalysis.ai/text-to-image",
-        "independent_leaderboard",
-        tuple(sorted(IMAGE_TYPES)),
     ),
 )
 

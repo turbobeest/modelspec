@@ -56,7 +56,7 @@ paper:
   arxiv: "2507.02833"
   url: "https://arxiv.org/abs/2507.02833"
   year: 2025
-leaderboard_url: "https://artificialanalysis.ai/evaluations/ifbench"
+leaderboard_url: ""
 repo_url: "https://github.com/allenai/IFBench"
 released: "2025-07"
 last_updated: ""
@@ -66,16 +66,13 @@ lineage:
   successors: []
   variants: []
 saturation:
-  status: watch
-  top_score: 83.3
-  as_of: "2026-09"
+  status: unknown
+  top_score: null
+  as_of: ""
   note: >
     At release (mid-2025), the paper reported that even strong instruction-tuned models such as Qwen3-32B
-    and Claude 4 Sonnet scored below 50%. Artificial Analysis's independently run leaderboard, accessed
-    2026-09-08 and tracking 450 models, instead showed Grok 4.3 (medium) leading at 83.3%, with Grok 4.20
-    0309 (Reasoning) and MiniMax-M3 tied close behind at 82.9% each -- both a large rise from the paper's
-    own headline finding and a top tier bunched within half a percentage point of each other, which is why
-    this page reads the benchmark as under watch rather than fully open or saturated.
+    and Claude 4 Sonnet scored below 50%. No current top score is recorded here from a source this
+    catalogue can cite.
 contamination:
   risk: medium
   note: >
@@ -115,9 +112,6 @@ sources:
     accessed: "2026-09-08"
   - url: "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/IFBench"
     title: "OpenCompass IFBench dataset configs"
-    accessed: "2026-09-08"
-  - url: "https://artificialanalysis.ai/evaluations/ifbench"
-    title: "IFBench Benchmark Leaderboard, Artificial Analysis"
     accessed: "2026-09-08"
 freshness:
   researched: "2026-09-08"
@@ -163,8 +157,7 @@ IFBench comes from Valentina Pyatkin, Saumya Malik, Victoria Graf, Hamish Ivison
 Dasigi, Nathan Lambert and Hannaneh Hajishirzi, working at the Allen Institute for AI with the University of
 Washington, published as "Generalizing Verifiable Instruction Following" on arXiv in July 2025 and accepted
 to NeurIPS 2025's Datasets and Benchmarks track. Ai2 maintains the reference dataset and code at
-github.com/allenai/IFBench; Artificial Analysis independently runs and publishes a continuously updated
-leaderboard.
+github.com/allenai/IFBench.
 
 ## Lineage
 
@@ -177,11 +170,8 @@ overfitting to IFEval's fixed set. It has no successor or variant catalogued in 
 
 At release in mid-2025, even strong instruction-tuned models such as Qwen3-32B and Claude 4 Sonnet scored
 below 50%, and reinforcement learning with verifiable rewards measurably improved smaller models
-(Tülu-3-8B rose from 28.9% to 45.9%). Artificial Analysis's independently run leaderboard, accessed
-2026-09-08 and tracking 450 models, instead showed Grok 4.3 (medium) leading at 83.3%, with Grok 4.20 0309
-(Reasoning) and MiniMax-M3 close behind at 82.9% each -- a large rise from the paper's results and a top
-tier bunched within half a point, which is why this page treats it as under watch rather than open or
-saturated. Contamination risk is medium: the test set and verification code have been public for over a
+(Tülu-3-8B rose from 28.9% to 45.9%). No current top score is recorded here from a source this
+catalogue can cite. Contamination risk is medium: the test set and verification code have been public for over a
 year, so specific constraints are plausibly in newer pretraining data, though mechanical, non-answer-matched
 scoring blunts (without eliminating) the reward for memorising one response, and the paper's central finding
 -- that models overfit to constraints they have already seen -- is itself evidence that prior exposure moves

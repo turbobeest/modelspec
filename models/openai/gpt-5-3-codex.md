@@ -708,6 +708,35 @@ benchmarks:
     configuration: Terminal-Bench 2.0 leaderboard (tbench.ai) row GPT-5.3-Codex with the Droid agent, accuracy 0.7730,
       as carried in Epoch AI benchmark_data terminalbench_external.csv (id recMJkgMHRSOjLKpR).
     limitations: Agent harness is Droid (Factory). Other harnesses score the same model 64.7-78.4.
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: gpt-5.3-codex_high
+    score: 74.79
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/swe-bench-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-02-25'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Verified (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (swe_bench_verified.csv),
+      read 2026-09-24. Run started 2026-02-25T10:37:06.792Z; effort high; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.98 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: GPT-5.3-Codex
+    score: 5940.12
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Vending-Bench 2, mean final balance over 5 runs
+    configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
+      https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort default; the highest-effort
+      row for the model (MODEL-123 max-effort rule).
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

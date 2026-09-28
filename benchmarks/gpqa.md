@@ -76,6 +76,7 @@ lineage:
   successors: []
   variants:
     - gpqa_diamond
+    - gpqa_pooled
 saturation:
   status: saturated
   top_score: null

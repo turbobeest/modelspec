@@ -19,9 +19,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from cli.modelspec import snapshot  # noqa: E402
+from pipeline import brand  # noqa: E402
 from pipeline import build as builder  # noqa: E402
 from pipeline import holding  # noqa: E402
 from pipeline import legal  # noqa: E402
+from pipeline import landing  # noqa: E402
 from pipeline.load import load_models  # noqa: E402
 
 SITES = tuple(holding.SITES)
@@ -83,7 +85,7 @@ def test_the_workflow_sends_the_holding_trees_to_production_unless_live():
     assert sorted(deploys) == sorted([
         (f"{production}/modelspec", "modelspec", "main"),
         (f"{production}/benchgraph", "benchgraph", "main"),
-        ("dist/modelspec", "modelspec", "internal"),
+        ("dist-internal/modelspec", "modelspec", "internal"),
         ("dist/benchgraph", "benchgraph", "internal"),
     ])
 
@@ -110,26 +112,41 @@ def test_the_holding_trees_are_dark(trees):
     assert not (ms / "b").exists()
 
 
-def test_the_holding_page(trees):
-    for site, name in holding.SITES.items():
-        tree = trees["holding"] / site
-        page = (tree / "index.html").read_text(encoding="utf-8")
-        assert (tree / "404.html").read_bytes() == (tree / "index.html").read_bytes()
-        assert f"<h1>{name}</h1>" in page
-        assert f"{name} is in preparation. Check back soon." in page
-        assert "© Sparks and Sawdust LLC" in page
-        assert '<meta name="robots" content="noindex">' in page
-        assert 'rel="canonical"' not in page
-        assert "/api/" not in page and "api.modelspec.dev" not in page
-        assert ('href="/legal/terms/"' in page) == (site == "modelspec")
-        assert ('href="/legal/privacy/"' in page) == (site == "modelspec")
+def test_the_holding_root_is_the_landing_and_the_404_stays_dark(trees):
+    tree = trees["holding"] / "modelspec"
+    page = (tree / "index.html").read_text(encoding="utf-8")
+    not_found = (tree / "404.html").read_text(encoding="utf-8")
+    assert "Your model is a guess." in page
+    assert "Board opening soon" in page
+    assert '<link rel="canonical" href="https://modelspec.dev/">' in page
+    assert 'content="noindex"' not in page
+    assert "ModelSpec is in preparation. Check back soon." in not_found
+    assert '<meta name="robots" content="noindex">' in not_found
+    assert 'rel="canonical"' not in not_found
 
 
-def test_headers_noindex_everything_and_robots_names_no_sitemap(trees):
+def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
+    ms = trees["holding"] / "modelspec"
+    top = sorted(p.name + ("/" if p.is_dir() else "") for p in ms.iterdir())
+    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/", "openapi.yaml", *brand.FILES,
+                          *holding.WRITTEN])
+    for name in brand.FILES:
+        assert (ms / name).read_bytes() == (trees["real"] / "modelspec" / name).read_bytes(), name
+
+
+def test_the_holding_page_links_the_2a_icons_and_social_card(trees):
+    page = (trees["holding"] / "modelspec" / "index.html").read_text(encoding="utf-8")
+    assert brand.head_links() in page
+    assert brand.social_meta(landing.TITLE) in page
+
+
+def test_headers_index_only_the_root_and_robots_names_no_sitemap(trees):
     for site in SITES:
         tree = trees["holding"] / site
         headers = (tree / "_headers").read_text(encoding="utf-8")
         assert headers.startswith("/*\n  X-Robots-Tag: noindex\n")
+        assert "/\n  ! X-Robots-Tag\n" in headers
+        assert "/index.html\n  ! X-Robots-Tag\n" in headers
         assert "Link:" not in headers
         robots = (tree / "robots.txt").read_text(encoding="utf-8")
         assert robots == "User-agent: *\nAllow: /\n"
@@ -146,31 +163,13 @@ def test_a_page_left_behind_is_caught(trees, tmp_path):
     assert any(line.startswith("sitemap.xml") for line in bad)
 
 
-def test_no_model_name_or_score_leaks_into_any_page_or_text_file(trees):
-    names = set()
+def test_the_dark_404_does_not_leak_model_names_or_scores(trees):
+    text = _visible_text(
+        (trees["holding"] / "modelspec" / "404.html").read_text(encoding="utf-8")
+    ).lower()
     for model in load_models(ROOT):
-        names.add(model.model_id.lower())
-        if len(model.display_name) >= 5:
-            names.add(model.display_name.lower())
-    checked = 0
-    for site in SITES:
-        tree = trees["holding"] / site
-        for path in sorted(tree.rglob("*")):
-            rel = path.relative_to(tree).as_posix()
-            if not path.is_file() or rel.startswith(("api/", "fonts/")):
-                continue
-            if path.suffix not in {".html", ".md", ".txt", ".xml", ".yaml", ""}:
-                continue
-            text = _visible_text(path.read_text(encoding="utf-8")).lower()
-            hits = [n for n in names if re.search(rf"(?<![\w-]){re.escape(n)}(?![\w-])", text)]
-            assert not hits, (site, rel, hits[:5])
-            if rel in {"index.html", "404.html", "robots.txt"}:
-                # No scores, no counts, no ranks: no digits at all.
-                assert not re.search(r"\d", text), (site, rel)
-            checked += 1
-    # index, 404, _headers, robots, openapi.yaml, and the three legal pages.
-    # benchgraph's holding page is gone, so it no longer adds files here.
-    assert checked >= 8
+        assert model.display_name.lower() not in text
+    assert not re.search(r"\d", text)
 
 
 # ── what stays exactly as the real site publishes it ─────────────────────────
@@ -195,10 +194,11 @@ def test_every_path_the_cli_workers_and_mcp_fetch_is_still_published(trees):
     ms = trees["holding"] / "modelspec"
     entry = (ROOT / "api" / "worker" / "src" / "entry.py").read_text(encoding="utf-8")
     worker = re.findall(r'^[A-Z_]+_PATH = "(/api/[^"]+)"', entry, re.M)
-    assert len(worker) == 3, worker
+    assert len(worker) == 4, worker
     mcp = (ROOT / "mcp" / "src" / "server.ts").read_text(encoding="utf-8")
     assert "/api/rank/profiles.json`" in mcp
-    paths = [*snapshot.PARTS.values(), *snapshot.OPTIONAL_PARTS.values(), *worker,
+    always_published = [path for path in worker if path != "/api/decision/snapshot.json.gz"]
+    paths = [*snapshot.PARTS.values(), *snapshot.OPTIONAL_PARTS.values(), *always_published,
              "/api/rank/profiles.json", "/api/rank/class-fit.json", "/api/build.json"]
     for path in paths:
         assert (ms / path.lstrip("/")).is_file(), path
@@ -209,15 +209,16 @@ def test_every_path_the_cli_workers_and_mcp_fetch_is_still_published(trees):
     assert any((ms / "api" / "benchmarks").glob("*.json"))
 
 
-# ── SITE_MODE=live: today's site ─────────────────────────────────────────────
+# ── the full source tree used to derive holding ──────────────────────────────
 
-def test_live_production_is_the_real_build_unchanged(trees):
-    """Live mode deploys `dist`. Holding mode only reads it."""
+def test_full_build_still_contains_every_source_page_before_composition(trees):
+    """The workflow derives holding before replacing dist with the live composition."""
     ms, bg = trees["real"] / "modelspec", trees["real"] / "benchgraph"
     assert len(list((ms / "m").glob("*/*/index.html"))) == len(load_models(ROOT))
     for rel in ("sitemap.xml", "llms.txt", "llms-full.txt", "index.md", "_worker.js",
                 ".well-known/mcp.json", "openapi.yaml", "auth.md", "pricing/index.html",
-                "downselect/index.html", "graph/index.html", "models/index.html"):
+                "downselect/index.html", "graph/index.html", "models/index.html",
+                "decide/index.html", "landing-assets/landing.css", "landing-assets/landing.js"):
         assert (ms / rel).is_file(), rel
     files = sorted(path.relative_to(bg).as_posix() for path in bg.rglob("*") if path.is_file())
     assert files == ["_redirects"]
@@ -230,9 +231,23 @@ def test_live_production_is_the_real_build_unchanged(trees):
 def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_path):
     src = tmp_path / "src"
     ms = src / "modelspec"
-    for rel in ("api", "legal", "fonts"):
+    for rel in ("api", "legal", "fonts", "landing-assets"):
         (ms / rel).mkdir(parents=True)
-    (ms / "index.html").write_text("real", encoding="utf-8")
+    decision = ms / "api" / "decision" / "snapshot.json.gz"
+    decision.parent.mkdir()
+    decision.write_bytes(b"signed snapshot fixture")
+    model = landing.PlotModel("model", "Fixture Model", .1, 1, 0, 2, True)
+    data = landing.LandingData(
+        "2026-09-27", 1, 40_000, 4_000, 10_000, (model,), "model", "model", 1,
+        1000, 1000, 0, (), 0,
+        landing._plot_axes([model]),
+    )
+    (ms / "index.html").write_text(
+        landing.render(data, variant="live"),
+        encoding="utf-8",
+    )
+    for name in ("landing.css", "landing.js"):
+        (ms / "landing-assets" / name).write_text("fixture", encoding="utf-8")
     bg = src / "benchgraph"
     bg.mkdir()
     (bg / "_redirects").write_text(builder.BENCHGRAPH_REDIRECTS, encoding="utf-8")
@@ -241,6 +256,9 @@ def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_
     assert (out / "benchgraph" / "_redirects").read_bytes() == (bg / "_redirects").read_bytes()
     assert list(_files(out / "benchgraph")) == ["_redirects"]
     assert holding.violations(out / "modelspec", "modelspec") == []
+    assert (out / "modelspec" / "api" / "decision" / "snapshot.json.gz").read_bytes() == (
+        decision.read_bytes()
+    )
     assert not (out / "modelspec" / "b").exists()
 
 

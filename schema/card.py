@@ -773,6 +773,14 @@ class BenchmarkEvidence(BaseModel):
     benchmark_version: str = ""
     configuration: str = ""
     limitations: str = ""
+    #: A published uncertainty interval on the same scale as ``score``.
+    interval: tuple[float, float] | None = None
+    #: The published observation count behind the measurement, when disclosed.
+    n: int | None = Field(default=None, ge=1)
+    #: Structured reasons this measurement is not a clean direct answer.
+    quality_flags: list[Literal["deprecated", "contamination_warning"]] = Field(
+        default_factory=list
+    )
 
     @field_validator("source_url")
     @classmethod
@@ -791,12 +799,28 @@ class BenchmarkEvidence(BaseModel):
             raise ValueError(f"must be an exact ISO date YYYY-MM-DD, got {value!r}") from exc
         return value
 
+    @model_validator(mode="after")
+    def _valid_uncertainty_and_quality(self) -> BenchmarkEvidence:
+        if self.interval is not None:
+            low, high = self.interval
+            if not all(float("-inf") < value < float("inf") for value in (low, high)):
+                raise ValueError("interval bounds must be finite")
+            if low > high:
+                raise ValueError("interval lower bound must not exceed the upper bound")
+            if not low <= self.score <= high:
+                raise ValueError("evidence score must fall within its interval")
+        if len(self.quality_flags) != len(set(self.quality_flags)):
+            raise ValueError("quality_flags must not contain duplicates")
+        return self
+
 
 class Benchmarks(BaseModel):
     # All benchmark scores in a single open-ended dictionary.
     # Keys are benchmark identifiers (e.g. "humaneval", "mmlu_pro",
     # "multipl_e_rust", "mmlu_chemistry", "pubmedqa", "flores_en_zh").
     # No fixed schema — any benchmark can be added without code changes.
+    #: V2 quarantine: the decision engine never reads benchmarks.scores.
+    #: MODEL-118 re-sources these values; v1 retains its existing behavior.
     scores: dict[str, float] = {}
 
     #: Verified, per-score evidence. Everything in `scores` above that has no

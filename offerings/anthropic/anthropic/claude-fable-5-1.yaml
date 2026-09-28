@@ -1,0 +1,146 @@
+- model: anthropic/claude-fable-5-1
+  provider: anthropic
+  region: global
+  tier: standard
+  facts:
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.price.input
+    value: 10.0
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
+      cited_regions:
+      - base-pricing
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.price.output
+    value: 50.0
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
+      cited_regions:
+      - base-pricing
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.price.cached_input
+    value: 0.25
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
+      cited_regions:
+      - base-pricing
+      - cache-multipliers
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.price.batch_input
+    value: 5.0
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
+      cited_regions:
+      - batch-pricing
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.price.batch_output
+    value: 25.0
+    state: known
+    sources:
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:ab2d182f43f6ade4c9ade191c604bcc829c551c1a05309c1fa30ef964c179f20
+      cited_regions:
+      - batch-pricing
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.data.retention
+    value: 30
+    state: known
+    sources:
+    - source_id: anthropic-retention
+      snapshot_ref: sha256:68ebcdaaddf0892b68cc2a1ac52fe2b8477d1245ef9226acad4d2e071c5308aa
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: anthropic-training
+      snapshot_ref: sha256:1190dac269f393343d590cbeacd6c00b04fecee43f60c85caae76f0dbe8ddcf2
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: requires_contract
+    sources:
+    - source_id: anthropic-zdr
+      snapshot_ref: sha256:b60a03c22326e34ab12ef5ac51eceae560d55fb328a05fafaaa6871e788b20ab
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.attestation.soc2
+    value: type_2
+    state: known
+    sources:
+    - source_id: anthropic-attestations
+      snapshot_ref: sha256:1366c875e0ab9796ab73416b6f990fdce833072bfac59cbfb23b122dc38fb0c3
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.attestation.baa
+    value: true
+    state: known
+    sources:
+    - source_id: anthropic-attestations
+      snapshot_ref: sha256:1366c875e0ab9796ab73416b6f990fdce833072bfac59cbfb23b122dc38fb0c3
+      cited_regions:
+      - page
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-pricing
+    - model-143-anthropic-claude-fable-5-1
+  - id: anthropic/anthropic/claude-fable-5-1/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-fable-5-1/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-pricing
+    - model-143-anthropic-claude-fable-5-1

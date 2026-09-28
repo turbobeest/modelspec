@@ -1,0 +1,3389 @@
+# Primary sources through MODEL-163; slice-2 additions read 2026-09-26.
+schema_version: 1
+sources:
+- id: alibaba-model-studio-pricing
+  url: https://www.alibabacloud.com/help/en/model-studio/model-pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: singapore-qwen-max
+    locator:
+      kind: table
+      value: '0'
+- id: alibaba-model-studio-privacy
+  url: https://www.alibabacloud.com/help/en/model-studio/privacy-notice
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-attestations
+  url: https://privacy.claude.com/en/articles/10015870-what-certifications-has-anthropic-obtained
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-pricing
+  url: https://platform.claude.com/docs/en/about-claude/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+  - id: base-pricing
+    locator:
+      kind: table
+      value: '0'
+  - id: cache-multipliers
+    locator:
+      kind: table
+      value: '3'
+  - id: batch-pricing
+    locator:
+      kind: table
+      value: '5'
+- id: anthropic-retention
+  url: https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-training
+  url: https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: anthropic-zdr
+  url: https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: aws-attestations
+  url: https://aws.amazon.com/bedrock/security-compliance/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: aws-pricing
+  url: https://aws.amazon.com/bedrock/pricing/
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+  - id: global-cross-region-anthropic
+    locator:
+      kind: table
+      value: '26'
+- id: aws-retention
+  url: https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: aws-training
+  url: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/omni-opting-out-of-using-your-data-for-service-improvement.html
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: azure-baa
+  url: https://learn.microsoft.com/en-us/azure/compliance/offerings/offering-hipaa-us
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: azure-data
+  url: https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/openai/data-privacy
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: azure-pricing
+  url: https://azure.microsoft.com/en-us/pricing/details/azure-openai/
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+  - id: gpt-6-pricing
+    locator:
+      kind: table
+      value: '1'
+  - id: gpt-5-6-pricing
+    locator:
+      kind: table
+      value: '2'
+  - id: gpt-5-4-pricing
+    locator:
+      kind: table
+      value: '4'
+- id: azure-soc2
+  url: https://learn.microsoft.com/en-us/compliance/regulatory/offering-soc-2
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: deepseek-v4-pricing
+  url: https://api-docs.deepseek.com/quick_start/pricing/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: pricing-table
+    locator:
+      kind: table
+      value: '0'
+- id: gemini-pricing
+  url: https://ai.google.dev/gemini-api/docs/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+  - id: gemini-3-1-pro-preview
+    locator:
+      kind: heading
+      value: gemini-3.1-pro-preview
+  - id: gemini-3-5-flash
+    locator:
+      kind: heading
+      value: gemini-3.5-flash
+  - id: gemini-3-7-flash
+    locator:
+      kind: heading
+      value: gemini-3.7-flash
+  - id: gemini-3-8-flash
+    locator:
+      kind: heading
+      value: gemini-3.8-flash
+- id: gemini-retention
+  url: https://ai.google.dev/gemini-api/docs/usage-policies
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: gemini-zdr
+  url: https://ai.google.dev/gemini-api/docs/zdr
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: google-attestations
+  url: https://cloud.google.com/security/compliance/hipaa-compliance
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: meta-model-api-pricing
+  url: https://ai.developer.meta.com/docs/pricing-rate-limits.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: model-143-alibaba-modelstudio-terms
+  url: https://www.alibabacloud.com/help/en/legal/latest/alibaba-cloud-international-website-product-terms-of-service-v-3-8-0
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-fable-5
+  url: https://platform.claude.com/docs/en/models/fable-5/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-fable-5-1
+  url: https://platform.claude.com/docs/en/models/fable-5-1/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-opus-4-6
+  url: https://platform.claude.com/docs/en/models/opus-4-6/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-opus-4-7
+  url: https://platform.claude.com/docs/en/models/opus-4-7/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-opus-5
+  url: https://platform.claude.com/docs/en/models/opus-5/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-claude-opus-5-5
+  url: https://platform.claude.com/docs/en/models/opus-5-5/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-commercial-terms
+  url: https://www.anthropic.com/legal/commercial-terms
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-models-overview
+  url: https://platform.claude.com/docs/en/models/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-streaming
+  url: https://platform.claude.com/docs/en/build-with-claude/streaming
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-anthropic-structured-outputs
+  url: https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-apache-2-license
+  url: https://www.apache.org/licenses/LICENSE-2.0.txt
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-deepseek-v4-pro
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-function-calling
+  url: https://api-docs.deepseek.com/guides/function_calling
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-json-output
+  url: https://api-docs.deepseek.com/guides/json_mode
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-streaming
+  url: https://api-docs.deepseek.com/guides/streaming
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-deepseek-v4-license
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-arena-text-json
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-arena-vision-json
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-arena-webdev-json
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+  volatility: live
+  url: https://epoch.ai/frontiermath
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-epoch-gpqa-diamond-csv
+  volatility: live
+  url: https://epoch.ai/benchmarks/gpqa-diamond
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-epoch-swe-bench-verified-csv
+  volatility: live
+  url: https://epoch.ai/benchmarks/swe-bench-verified
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-mteb-eng-v2-json
+  volatility: live
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-mteb-multilingual-v2-json
+  volatility: live
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-scale-hle-json
+  volatility: live
+  url: https://labs.scale.com/leaderboard/humanitys_last_exam
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-evidence-terminal-bench-4-0-json
+  volatility: live
+  url: https://www.tbench.ai/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-143-glm-5-3-license
+  url: https://huggingface.co/zai-org/GLM-5.3/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-company
+  url: https://about.google/company-info/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-deprecations
+  url: https://ai.google.dev/gemini-api/docs/deprecations
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-gemini-3-1-pro-preview
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-gemini-3-5-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-gemini-3-7-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-gemini-3-8-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-sec
+  url: https://data.sec.gov/submissions/CIK0001652044.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-streaming
+  url: https://ai.google.dev/gemini-api/docs/text-generation
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-google-terms
+  url: https://ai.google.dev/gemini-api/terms
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-deepseek-deepseek-v4-pro
+  url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Pro
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-jcorners-ingot-8b-r3
+  url: https://huggingface.co/api/models/JCorners/Ingot-8B-R3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-kingsoft-qzhou-embedding
+  url: https://huggingface.co/api/models/Kingsoft-LLM/QZhou-Embedding
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-microsoft-harrier-oss-v1-27b
+  url: https://huggingface.co/api/models/microsoft/harrier-oss-v1-27b
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-moonshot-kimi-k2-6
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K2.6
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-moonshot-kimi-k3
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-querit-querit
+  url: https://huggingface.co/api/models/Querit/Querit
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-querit-querit-4b
+  url: https://huggingface.co/api/models/Querit/Querit-4B
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-qwen-qwen3-8-flash-next
+  url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-tencent-kalm-embedding-gemma3-12b-2511
+  url: https://huggingface.co/api/models/tencent/KaLM-Embedding-Gemma3-12B-2511
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-zhipu-glm-5-2
+  url: https://huggingface.co/api/models/zai-org/GLM-5.2
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-hf-metadata-zhipu-glm-5-3
+  url: https://huggingface.co/api/models/zai-org/GLM-5.3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-jcorners-ingot-8b-r3
+  url: https://huggingface.co/JCorners/Ingot-8B-R3/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kalm-license
+  url: https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/raw/main/LICENSE.txt
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kimi-k2-6-guide
+  url: https://platform.moonshot.ai/docs/guide/use-kimi-k2-thinking-model
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kimi-k2-6-license
+  url: https://huggingface.co/moonshotai/Kimi-K2.6/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kimi-k3-guide
+  url: https://platform.kimi.ai/docs/guide/kimi-k3-quickstart
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kimi-k3-license
+  url: https://huggingface.co/moonshotai/Kimi-K3/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-kingsoft-qzhou-embedding
+  url: https://huggingface.co/Kingsoft-LLM/QZhou-Embedding/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-company
+  url: https://about.fb.com/company-info/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-model-api
+  url: https://ai.meta.com/llama/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-muse-spark
+  url: https://ai.developer.meta.com/docs/models.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-muse-spark-1-1
+  url: https://ai.developer.meta.com/docs/models.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-muse-spark-1-3
+  url: https://ai.developer.meta.com/docs/models.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-release-index
+  url: https://ai.meta.com/events/
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-meta-sec
+  url: https://data.sec.gov/submissions/CIK0001326801.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-microsoft-harrier-oss-v1-27b
+  url: https://huggingface.co/microsoft/harrier-oss-v1-27b/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-mit-license
+  url: https://opensource.org/license/mit
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-moonshot-kimi-k2-6
+  url: https://huggingface.co/moonshotai/Kimi-K2.6/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-moonshot-kimi-k3
+  url: https://huggingface.co/moonshotai/Kimi-K3/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-changelog
+  url: https://developers.openai.com/api/docs/changelog
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-gpt-5-4
+  url: https://developers.openai.com/api/docs/models/gpt-5.4
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-gpt-5-6-sol
+  url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-gpt-6-astra
+  url: https://developers.openai.com/api/docs/models/gpt-6-astra
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-gpt-6-sol
+  url: https://developers.openai.com/api/docs/models/gpt-6-sol
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-models-overview
+  url: https://developers.openai.com/api/docs/models/all
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-reasoning
+  url: https://developers.openai.com/api/docs/guides/reasoning
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-openai-services-agreement
+  url: https://openai.com/policies/services-agreement/
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-querit-querit
+  url: https://huggingface.co/Querit/Querit/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-querit-querit-4b
+  url: https://huggingface.co/Querit/Querit-4B/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-qwen-qwen3-8-flash-next
+  url: https://huggingface.co/Qwen/Qwen3.8-Flash-Next/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-qwen-qwen3-8-max-0902
+  url: https://docs.modelstudio.console.alibabacloud.com/en/model-studio/qwen3-8-max
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-qwen3-8-flash-next-license
+  url: https://huggingface.co/Qwen/Qwen3.8-Flash-Next/raw/main/LICENSE
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-tencent-kalm-embedding-gemma3-12b-2511
+  url: https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-typesafe-jev-1-13
+  url: https://docs.typesafe.ai/
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-typesafe-models
+  url: https://docs.typesafe.ai/models.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-typesafe-system-one
+  url: https://docs.typesafe.ai/concepts/system-one.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-typesafe-terms
+  url: https://typesafe.ai/legal/terms
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-enterprise-faq
+  url: https://x.ai/legal/faq-enterprise
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-enterprise-terms
+  url: https://x.ai/legal/terms-of-service-enterprise
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-function-calling
+  url: https://docs.x.ai/developers/tools/function-calling
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-grok-4-7
+  url: https://docs.x.ai/docs/models/grok-4-7
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-xai-structured-outputs
+  url: https://docs.x.ai/developers/model-capabilities/text/structured-outputs
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-zai-glm-5-2-guide
+  url: https://docs.z.ai/guides/llm/glm-5.2
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-zai-glm-5-3-guide
+  url: https://docs.z.ai/guides/llm/glm-5.3
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: audit
+    locator:
+      kind: page
+      value: ''
+- id: model-143-zhipu-glm-5-2
+  url: https://huggingface.co/zai-org/GLM-5.2/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-143-zhipu-glm-5-3
+  url: https://huggingface.co/zai-org/GLM-5.3/resolve/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-158-anthropic-claude-fable-5-1-system-card
+  url: https://www.anthropic.com/claude-fable-5-1-system-card
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: terminal-bench-4-0
+    locator:
+      kind: page
+      value: ''
+- id: model-160-arena-text
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-arena-text-style-control
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-arena-vision
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/vision/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-arena-vision-style-control
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/vision_style_control/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-arena-document
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/document/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-arena-text-factuality
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_factuality/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-cursorbench
+  volatility: live
+  url: https://cursor.com/cursorbench
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-deepswe-v1-1
+  volatility: live
+  url: https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-epoch-simpleqa-verified-csv
+  volatility: live
+  url: https://epoch.ai/benchmarks/simpleqa-verified
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-epoch-swe-bench-verified-csv
+  volatility: live
+  url: https://epoch.ai/benchmarks/swe-bench-verified
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-frontiercode
+  volatility: live
+  url: https://cognition.com/frontiercode
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-matharena-aime-2026
+  volatility: live
+  url: https://matharena.ai/competition_tables/aime--aime_2026
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-metr-time-horizon-1-1
+  volatility: live
+  url: https://metr.org/assets/benchmark_results_1_1.yaml
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-mteb-eng-v2
+  volatility: live
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-osworld
+  volatility: live
+  url: https://osworld-v2.xlang.ai/
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-scale-swe-bench-pro-public
+  volatility: live
+  url: https://labs.scale.com/leaderboard/swe_bench_pro_public
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-swebench-leaderboard
+  volatility: live
+  url: https://www.swebench.com/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-claude-fable-5-sierra-2026-08-04
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-fable-5_sierra_2026-08-04/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-claude-opus-4-6-sierra-2026-05-05
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-opus-4-6_sierra_2026-05-05/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-claude-opus-4-7-sierra-2026-05-05
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-opus-4-7_sierra_2026-05-05/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-claude-opus-5-sierra-2026-08-04
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/claude-opus-5_sierra_2026-08-04/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-gemini-3-1-pro-preview-sierra-2026-05-05
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/gemini-3-1-pro-preview_sierra_2026-05-05/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-glm-5-2-sierra-2026-08-04
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/glm-5-2_sierra_2026-08-04/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-gpt-5-4-sierra-2026-03-25
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/gpt-5-4_sierra_2026-03-25/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-gpt-5-6-sol-sierra-2026-08-04
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/gpt-5-6-sol_sierra_2026-08-04/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-tau-bench-kimi-k3-sierra-2026-08-04
+  volatility: live
+  url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/kimi-k3_sierra_2026-08-04/submission.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-vending-bench-2
+  volatility: live
+  url: https://andonlabs.com/evals/vending-bench-2
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-045da3eb1e87
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/tiiuae/falcon-40b-instruct/results_2023-12-03T19-30-05.245215.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-048e289b248c
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-34B/results_2023-11-08T19-46-38.378007.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-09bff549b797
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Hermes-2-Pro-Llama-3-8B/results_2024-05-02T09-00-48.637180.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-0cdbc97e2f2e
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-70b-chat-hf/results_2023-10-17T05-07-42.486452.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-2404bc64c999
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-34B-Chat-16K/results_2024-05-26T06-56-54.920335.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-2b8faa8a1145
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/google/gemma-2b/results_2024-02-22T14-01-00.018926.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-2e0af8c86c8b
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/Phi-3-mini-128k-instruct/results_2024-04-25T11-04-08.300273.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-3a39feefc6e7
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mistral-7B-Instruct-v0.1/results_2023-10-24T09-43-48.997990.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-3b963c151fb1
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-9B/results_2024-05-16T10-35-34.857914.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-3f99042454a9
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-llama-2-7b/results_2023-10-22T01-50-03.524306.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-412600e523b7
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/tiiuae/falcon-40b/results_2023-11-27T10-24-56.579363.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-4199875c7069
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Meta-Llama-3-8B/results_2024-05-28T19-40-23.721752.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-459dba707d22
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x7B-Instruct-v0.1/results_2024-01-05T04-20-22.140239.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-49d1fef96000
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Meta-Llama-3-70B-Instruct/results_2024-04-21T11-59-48.701689.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-4b985ffc3a77
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-7b-chat-hf/results_2023-10-15T02-34-15.484281.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-4c6c85818b06
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/phi-2/results_2024-04-15T16-12-26.100927.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-4e3abe9d8005
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-9B-32K/results_2024-05-25T18-20-24.039645.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-51fbae9d823c
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Meta-Llama-3-70B/results_2024-04-21T13-09-06.084236.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-5790352933bd
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-34B/results_2024-05-16T00-23-07.920103.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-5a1fd131eab1
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Meta-Llama-3-8B-Instruct/results_2024-04-19T18-40-48.433302.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-62f123b1e8cb
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Hermes-2-Theta-Llama-3-8B/results_2024-05-27T00-35-30.762626.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-63b4ff14f40d
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-llm-7b-chat/results_2024-01-05T10-38-25.592014.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-650475dc3cda
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-instruct/results_2024-01-05T09-40-26.509293.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-6998cf83690a
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-13b-hf/results_2023-12-02T13-11-49.394544.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-6c31d09660ab
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/allenai/OLMo-1B-hf/results_2024-04-23T06-24-47.411659.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-7be10bea2c4f
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-34B-32K/results_2024-05-26T07-04-09.158901.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-7c13b2412d43
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/baichuan-inc/Baichuan-7B/results_2023-09-22T17-53-01.811068.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-7c5ceaa7fe1f
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-34B-Chat/results_2024-05-15T03-44-20.662749.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-86126911893f
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/google/gemma-2b-it/results_2024-02-22T15-21-47.760131.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-88acbaa3301e
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-34B-200K/results_2024-04-16T04-20-00.686323.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-8cb931b2eb81
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B/results_2023-11-28T00-43-30.370535.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-9ad51b3de802
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Meta-Llama-3-8B-Instruct/results_2024-04-19T09-19-13.454877.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-9f07e96ec376
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mistral-7B-Instruct-v0.2/results_2023-12-12T03-37-50.599841.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-a2db83d692a3
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/tiiuae/falcon-11B/results_2024-05-10T12-57-08.635343.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-a865328e0b66
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/tiiuae/falcon-7b/results_2023-12-03T17-58-16.188347.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-ae2fdf5972a8
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-9B-Chat-16K/results_2024-05-25T18-33-08.508160.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-b37720c251e3
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/tiiuae/falcon-7b-instruct/results_2023-12-03T18-01-45.204079.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-b411691a236c
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/deepseek-ai/deepseek-coder-6.7b-base/results_2024-04-02T21-41-57.054032.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-b5acec34f2b5
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-7b-hf/results_2023-12-02T13-00-54.924067.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-c788c8cc0fc3
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-34B-Chat/results_2023-12-05T03-47-25.491369.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-ce2acb9af1e8
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-9B/results_2024-03-07T00-53-16.402231.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-d07c35ac3594
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-70b-hf/results_2023-12-03T01-14-42.713769.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-d29b3d579be8
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/meta-llama/Llama-2-13b-chat-hf/results_2023-10-14T19-39-26.636545.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-d4b04a77b077
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-SOLAR-10.7B/results_2024-01-04T13-44-46.879799.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-d68a66649f8d
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-6B/results_2024-05-30T17-21-52.581058.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-e21c0e7ff1d6
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Yi-34B/results_2023-12-29T16-55-23.292289.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-e476ebcdb70d
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO/results_2024-01-22T17-09-50.643842.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-e8b8eee41571
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/microsoft/Phi-3-mini-4k-instruct/results_2024-04-25T13-30-16.480959.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-ea341b772aad
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-6B-200K/results_2023-12-02T12-58-15.129366.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-ef18dcc4683c
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-9B-Chat/results_2024-05-16T05-38-57.460156.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-f056592ff29d
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-04-18T04-27-50.095241.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-f4ce6c6fb60f
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/01-ai/Yi-1.5-6B-Chat/results_2024-05-16T14-12-12.578596.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-f4f35ac5027b
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mixtral-8x7B-v0.1/results_2024-01-04T16-34-48.985318.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v1-fef176383565
+  url: https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/23474373f8874f9057d23b97e5a41e911d2721c5/mistralai/Mistral-7B-v0.1/results_2023-12-02T13-02-14.153054.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-022a5eb83f36
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-1B-Base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-0435d7c7017e
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Hermes-3-Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-0589baed3667
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/LLaMA-2-7B-32K/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-10ac5516f60b
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2b-it/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-10d6931f1023
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Nous-Hermes-2-SOLAR-10.7B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-127320e0dfc7
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-Base-3B-v1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-136769cb5ced
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/RWKV/rwkv-raven-14b/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-153991bc92af
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2.5-Mistral-7B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-16b7b22edf8d
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-v0.1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-18606e317e6f
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-40b/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-1a7576e9b9a3
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-7B-Instruct/results_2024-11-07T03-51-21.119041.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-2058284a7643
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-zephyr-3b/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-2440b37b7637
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-Mamba-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-24bf0e9199ab
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-llm-7b-base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-257576f61eeb
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-261ff26b1a6c
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-8b-instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-299b7321e950
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Meta-Llama-3-70B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-2acf8c9b85dc
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.0-1b-a400m-base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-2bb3be6cc94e
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Meta-Llama-3-8B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-2c9dabc42838
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-0.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-33977bd3d90f
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-3B-Base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-37fe6bc5cb2e
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-1B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-3a2971acf094
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-3b-4e1t/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-3ccdc72560df
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-3e4bd774f18c
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.1-1b-a400m-instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-406ddda96121
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-moe-16b-base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-41b051f264a1
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-small/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-423a5645182d
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/mt5-small/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-43ca456ad2df
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-34B-200K/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-46e0a09eb840
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-JT-6B-v1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-488a156533d7
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.1-8b-instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-49c8b0f3e4e3
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-large/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-4bd4d8c7144a
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-4c35de886219
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-9B-200K/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-4c6acb749a24
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-hf/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-4d4b253cabb9
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-11B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-4dd33d2a867b
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/deepseek-ai/deepseek-llm-7b-chat/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-528d401e9900
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-52be3422a196
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-9B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-56fd238af478
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-70b-hf/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-591313014365
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Chat/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-5a02359c436a
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2b/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-5c0a6e0ea9dd
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-5d1058d8498d
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-9B-Chat/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-5eab82af5137
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-5eb856752837
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2b/results_2024-10-24T00-00-00.000000.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-5fcacecfba75
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMo-1B-hf/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-608aec7d7e62
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ibm-granite/granite-3.1-2b-instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-621f5965c74f
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-34B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-631c76e81143
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-34B-Chat/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-64afe26e8540
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Hermes-2-Theta-Llama-3-8B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-6618c8e8af38
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/GPT-NeoXT-Chat-Base-20B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-6c0337986cee
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-7M-Gen-Llama3_1-8B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-6d892166e3fe
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-9B-32K/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-6ef17e8f08b8
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-34B-32K/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-708ef66d9078
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Nous-Hermes-llama-2-7b/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-712d08436bfb
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-71cc8bcbe701
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-xl/results_2024-10-24T00-00-00.000000.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-73654f57858e
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-7375a1bb4069
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Llama3-8B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-73918124b466
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-3.5-mini-instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-74e349ea7cb8
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-Chat-3B-v1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-75e7f5ee9805
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-32B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-7745ba9849a8
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-Coder-14B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-79e7a676234c
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-878fe1d5dc11
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-3-mini-4k-instruct/results_2024-06-17T11-04-33.850464.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-87b55551f5f6
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-40b-instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-881add5abb33
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-88e9c32f0b4f
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B-Chat/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-8ac0464c73b8
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/flan-t5-base/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-8c1538d4a058
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-8c644ad8ecb3
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-3B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-8e4c95a5dc99
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.2/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-8fee2c3f372b
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x22B-Instruct-v0.1/results_2024-06-26T15-18-07.434042.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-9111785434bf
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/phi-2/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-9ac29aae4cee
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-9c7075604dc5
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-34B-Chat/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-9ec632238071
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-Instruct-v0.3/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-9ee9bcbff73b
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-a0d4a4c34cdb
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/RedPajama-INCITE-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-a125e4bb5978
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/DialoGPT-medium/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-a3fc9fde34b9
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/ai21labs/Jamba-v0.1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-a9310e2c6868
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-a96fec9a4280
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-9B-Chat-16K/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-a9a1fae4b235
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-a9f5c91e3b09
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-7b-chat-hf/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-ab4baf2ba301
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/NousResearch/Hermes-2-Pro-Llama-3-8B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-ab8a90e29d5c
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/stabilityai/stablelm-2-1_6b/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-af12f1f21a63
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.1-8B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-af20b21ee305
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b-instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-b15cb033af45
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-13B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-b22408aab222
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2-1.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-b2a6a33491f5
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-v0.1/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-b7bb2568bc11
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mistral-7B-v0.1/results_2024-10-24T00-00-00.000000.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-baad7eadbc7a
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-hf/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-bc492862e9bf
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-7b-it/results_2024-10-24T00-00-00.000000.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-c106b23f2e93
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/teknium/OpenHermes-2-Mistral-7B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-ca5160f3f7b5
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-70b-chat-hf/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-cb8d93614572
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/falcon-7b/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-cc487415d228
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-3B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-cdb3e982b1cc
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/tiiuae/Falcon3-7B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-cdb648166dd5
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-7b-it/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-d0eb128abed6
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Ministral-8B-Instruct-2410/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-d224d7ceab29
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-3B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-d5247d695d91
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Meta-Llama-3-70B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-d8f8f3f1e41f
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/BAAI/Infinity-Instruct-3M-0625-Yi-1.5-9B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-d92e847cb221
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-4-mini-instruct/results_2025-02-28T12-41-07.003145.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-db2ef33d2032
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-2-2b-it/results_2024-07-29T16-25-50.870458.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-e0eae55cc824
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2-0.5B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-e25990329031
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/Qwen/Qwen2.5-0.5B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-e82235f7b81a
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/allenai/OLMoE-1B-7B-0924/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-e85b8ac91450
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-2-13b-chat-hf/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-ec09a9f990c8
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Meta-Llama-3-8B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-ef5fe1b9dd7f
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-3-mini-128k-instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-f03663972ad0
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-6B-Chat/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-f31d3312f266
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/google/gemma-1.1-2b-it/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-f6ed5ac64efd
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/meta-llama/Llama-3.2-1B-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-f6f6d67db80c
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-6B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-f837ef728691
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-34B-Chat-16K/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-f8c7af807038
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-6B-200K/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-fba6bc317570
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/togethercomputer/Llama-2-7B-32K-Instruct/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: oll-v2-fd80d18da80b
+  url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/01-ai/Yi-1.5-34B/results_2025-02-13T18-27-04.338360.json
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+# MODEL-191: retained primary-source regions for existing lineup rows; read 2026-09-27.
+- id: model-191-anthropic-opus-5-5-system-card
+  url: https://www.anthropic.com/claude-opus-5-5-system-card
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: evidence
+    locator:
+      kind: page
+      value: ''
+- id: model-191-anthropic-fable-5-1-system-card
+  url: https://www.anthropic.com/claude-fable-5-1-system-card
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: evidence
+    locator:
+      kind: page
+      value: ''
+- id: model-191-openai-gpt-6-astra
+  url: https://openai.com/index/gpt-6-astra/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: evidence
+    locator:
+      kind: page
+      value: ''
+- id: model-191-deepseek-v4-pro-paper
+  url: https://arxiv.org/abs/2606.19348
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: evidence
+    locator:
+      kind: page
+      value: ''
+# MODEL-161: in-lineup recall data, read 2026-09-26.
+- id: model-161-matharena-aime-2026
+  url: https://matharena.ai/competition_tables/aime--aime_2026
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-matharena-aime-2026-quality
+  url: https://matharena.ai/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-jcorners-ingot-8b-r3-model-card
+  url: https://huggingface.co/api/models/JCorners/Ingot-8B-R3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-jcorners-ingot-8b-r3-mteb
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-kingsoft-qzhou-embedding-model-card
+  url: https://huggingface.co/api/models/Kingsoft-LLM/QZhou-Embedding
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-kingsoft-qzhou-embedding-mteb
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-microsoft-harrier-oss-v1-27b-model-card
+  url: https://huggingface.co/api/models/microsoft/harrier-oss-v1-27b
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-microsoft-harrier-oss-v1-27b-mteb
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-qwen3-8-flash-next-rtx-4090-fit
+  url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+# MODEL-161: in-lineup recall data, read 2026-09-26.
+- id: model-161-nvidia-rtx-4090-memory
+  url: https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+# MODEL-161: in-lineup recall data, read 2026-09-26.
+- id: model-161-deepseek-v4-pro-rtx-4090-fit
+  url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Pro
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-kimi-k2-6-rtx-4090-fit
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K2.6
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-kimi-k3-rtx-4090-fit
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-glm-5-2-rtx-4090-fit
+  url: https://huggingface.co/api/models/zai-org/GLM-5.2
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-161-glm-5-3-rtx-4090-fit
+  url: https://huggingface.co/api/models/zai-org/GLM-5.3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: openai-data
+  url: https://platform.openai.com/docs/models/default-usage-policies-by-endpoint
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-5-4-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-5.4
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-5-6-sol-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-5.6-sol
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-6-astra-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-6-astra
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: openai-gpt-6-sol-pricing
+  url: https://developers.openai.com/api/docs/models/gpt-6-sol
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: typesafe-models
+  url: https://docs.typesafe.ai/models.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: vertex-data
+  url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/vertex-ai-zero-data-retention
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: vertex-pricing
+  url: https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+  - id: gemini-standard
+    locator:
+      kind: table
+      value: '0'
+  - id: gemini-batch
+    locator:
+      kind: table
+      value: '2'
+  - id: partner-anthropic-regional
+    locator:
+      kind: table
+      value: '38'
+- id: xai-grok-4-7
+  url: https://docs.x.ai/developers/models/grok-4.7
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: xai-security
+  url: https://docs.x.ai/developers/faq/security
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: zai-pricing
+  url: https://docs.z.ai/guides/overview/pricing.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+- id: zai-privacy
+  url: https://docs.z.ai/legal-agreement/privacy-policy.md
+  fetch: conditional_http
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator:
+      kind: page
+      value: ''
+
+# MODEL-163: slice-2 lineup additions, read 2026-09-26.
+- id: model-163-bytedance-seed1-5-embedding
+  url: https://seed1-5-embedding.github.io/
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-deepseek-deepseek-flash
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-deepseek-deepseek-v3-1
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V3.1/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-deepseek-flash-pricing
+  url: https://api-docs.deepseek.com/quick_start/pricing/
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: page, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemini-2-5-flash
+  url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemma-4-26b-a4b-it
+  url: https://huggingface.co/google/gemma-4-26b-a4b-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemma-4-31b-it
+  url: https://huggingface.co/google/gemma-4-31b-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemma-4-e2b-it
+  url: https://huggingface.co/google/gemma-4-E2B-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-google-gemma-4-e4b-it
+  url: https://huggingface.co/google/gemma-4-E4B-it/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-microsoft-phi-4
+  url: https://huggingface.co/microsoft/phi-4/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-openai-gpt-6-luna
+  url: https://developers.openai.com/api/docs/models/gpt-6-luna
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+- id: model-163-qwen-qwen3-embedding-8b
+  url: https://huggingface.co/Qwen/Qwen3-Embedding-8B/raw/main/README.md
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: model-spec, locator: {kind: page, value: ''}}]
+
+# MODEL-163: model parameters, quantised artifacts, and runtime memory, read 2026-09-26.
+- id: model-163-local-google-gemma-4-26b-a4b-it-parameters
+  url: https://huggingface.co/api/models/google/gemma-4-26b-a4b-it
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-26b-a4b-it-artifact
+  url: https://huggingface.co/api/models/unsloth/gemma-4-26B-A4B-it-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-26b-a4b-it-memory
+  url: https://huggingface.co/JThomas-CoE/coe-gemma4-coding-hc-14b-a4b-q4_k_m/blob/main/README.md
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-31b-it-parameters
+  url: https://huggingface.co/api/models/google/gemma-4-31B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-31b-it-artifact
+  url: https://huggingface.co/api/models/unsloth/gemma-4-31B-it-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-31b-it-memory
+  url: https://canitrun.dev/models/gemma-4-31b/
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e2b-it-parameters
+  url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e2b-it-artifact
+  url: https://huggingface.co/api/models/unsloth/gemma-4-E2B-it-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e2b-it-memory
+  url: https://runmyllm.com/models/gemma-4-e2b/hardware
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e4b-it-parameters
+  url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e4b-it-artifact
+  url: https://huggingface.co/api/models/unsloth/gemma-4-E4B-it-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-google-gemma-4-e4b-it-memory
+  url: https://runmyllm.com/models/gemma-4-e4b/hardware
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-microsoft-phi-4-parameters
+  url: https://huggingface.co/api/models/microsoft/phi-4
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-microsoft-phi-4-artifact
+  url: https://huggingface.co/api/models/bartowski/phi-4-GGUF/tree/main?recursive=true&expand=false
+  fetch: http
+  normaliser: text-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]
+- id: model-163-local-microsoft-phi-4-memory
+  url: https://localllmchecker.com/models/phi-4/
+  fetch: http
+  normaliser: html-default
+  cited_regions: [{id: row, locator: {kind: page, value: ''}}]

@@ -1,0 +1,864 @@
+{
+  "source_url": "https://matharena.ai/",
+  "read_date": "2026-09-24",
+  "licence": "Ranking table published on matharena.ai. The MathArena code repository is MIT; this file is the expected-performance table embedded in the page, not the competition questions.",
+  "definition": "Expected performance averages normalized scores across questions from non-deprecated competitions, each question equally weighted. Read from the page script releasePoints.",
+  "rows": [
+    {
+      "capability": 84.96454891681746,
+      "creator": "OpenAI",
+      "expected_cost": 1.56313289576082,
+      "name": "GPT-6 Sol (max)",
+      "release_date": "2026-09-22",
+      "slug": "openai_gpt_6_sol"
+    },
+    {
+      "capability": 83.44207932753802,
+      "creator": "Anthropic",
+      "expected_cost": 0.837626493274246,
+      "name": "Claude-Opus-5.5 (high)",
+      "release_date": "2026-09-22",
+      "slug": "anthropic_opus_55_high"
+    },
+    {
+      "capability": 46.69441042063559,
+      "creator": "xAI",
+      "expected_cost": 3.5664360020515296,
+      "name": "Grok 4.7 (xhigh)",
+      "release_date": "2026-09-21",
+      "slug": "xai_grok_47"
+    },
+    {
+      "capability": 43.326184364348784,
+      "creator": "DeepSeek",
+      "expected_cost": 0.17169998667942318,
+      "name": "DeepSeek-V4.1-Flash (Max)",
+      "release_date": "2026-09-10",
+      "slug": "deepseek_deepseek_v41_flash"
+    },
+    {
+      "capability": 87.95504906616016,
+      "creator": "OpenAI",
+      "expected_cost": 2.42254372554606,
+      "name": "GPT-6 Astra (max)",
+      "release_date": "2026-09-04",
+      "slug": "openai_gpt_6_astra"
+    },
+    {
+      "capability": 82.34252123756775,
+      "creator": "OpenAI",
+      "expected_cost": 0.4410393241727307,
+      "name": "GPT-6 Astra (low)",
+      "release_date": "2026-09-04",
+      "slug": "openai_gpt_6_astra_low"
+    },
+    {
+      "capability": 35.256410256410255,
+      "creator": "Google",
+      "expected_cost": 0.5136673616771299,
+      "name": "Gemini 3.8 Flash",
+      "release_date": "2026-09-02",
+      "slug": "gemini_gemini_38_flash"
+    },
+    {
+      "capability": 46.58119658119658,
+      "creator": "Meta AI",
+      "expected_cost": 1.8220872710972271,
+      "name": "Muse Spark 1.3",
+      "release_date": "2026-09-02",
+      "slug": "meta_muse_spark_13"
+    },
+    {
+      "capability": 65.97720146763673,
+      "creator": "Anthropic",
+      "expected_cost": 3.4748819803827646,
+      "name": "Claude-Fable-5.1 (low)",
+      "release_date": "2026-09-01",
+      "slug": "anthropic_fable_51_low"
+    },
+    {
+      "capability": 82.5935177257561,
+      "creator": "Anthropic",
+      "expected_cost": 8.00583039523285,
+      "name": "Claude-Fable-5.1 (high)",
+      "release_date": "2026-09-01",
+      "slug": "anthropic_fable_51_high"
+    },
+    {
+      "capability": 82.67355898193387,
+      "creator": "Anthropic",
+      "expected_cost": 31.105215966755004,
+      "name": "Claude-Fable-5.1 (max)",
+      "release_date": "2026-09-01",
+      "slug": "anthropic_fable_51_max"
+    },
+    {
+      "capability": 29.393288779567083,
+      "creator": "Google",
+      "expected_cost": 0.5939526018993959,
+      "name": "Gemini 3.7 Flash",
+      "release_date": "2026-08-13",
+      "slug": "gemini_gemini_37_flash"
+    },
+    {
+      "capability": 56.12535612535613,
+      "creator": "Qwen",
+      "expected_cost": 3.0700885546058876,
+      "name": "Qwen3.8-Max",
+      "release_date": "2026-08-02",
+      "slug": "qwen_qwen3_8_max"
+    },
+    {
+      "capability": 73.51911614287101,
+      "creator": "Anthropic",
+      "expected_cost": 8.12879338168166,
+      "name": "Claude-Opus-5 (max)",
+      "release_date": "2026-07-24",
+      "slug": "anthropic_opus_5_max"
+    },
+    {
+      "capability": 26.888654389654327,
+      "creator": "Google",
+      "expected_cost": 0.9115810148983731,
+      "name": "Gemini 3.6 Flash",
+      "release_date": "2026-07-21",
+      "slug": "gemini_gemini_36_flash"
+    },
+    {
+      "capability": 50.48896469570129,
+      "creator": "Moonshot AI",
+      "expected_cost": 2.759936217812724,
+      "name": "Kimi K3 (Think)",
+      "release_date": "2026-07-16",
+      "slug": "moonshot_k3"
+    },
+    {
+      "capability": 46.492260635092876,
+      "creator": "Meta AI",
+      "expected_cost": 0.8159162309730157,
+      "name": "Muse Spark 1.1",
+      "release_date": "2026-07-11",
+      "slug": "meta_muse_spark_11"
+    },
+    {
+      "capability": 66.73530921670007,
+      "creator": "OpenAI",
+      "expected_cost": null,
+      "name": "GPT-5.6-Sol (max)",
+      "release_date": "2026-07-09",
+      "slug": "openai_gpt_56_sol"
+    },
+    {
+      "capability": 38.51219408822602,
+      "creator": "xAI",
+      "expected_cost": 1.5182149143092392,
+      "name": "Grok 4.5",
+      "release_date": "2026-07-08",
+      "slug": "xai_grok_45"
+    },
+    {
+      "capability": 26.489508649556104,
+      "creator": "Z.ai",
+      "expected_cost": 1.7721305633330169,
+      "name": "GLM 5.2",
+      "release_date": "2026-06-17",
+      "slug": "glm_glm_52"
+    },
+    {
+      "capability": 55.364436412180176,
+      "creator": "Anthropic",
+      "expected_cost": 19.591173655315323,
+      "name": "Claude-Fable-5 (max)",
+      "release_date": "2026-06-09",
+      "slug": "anthropic_fable_5_max"
+    },
+    {
+      "capability": 20.976726046876884,
+      "creator": "StepFun",
+      "expected_cost": 0.2231721501347629,
+      "name": "Step 3.7 Flash",
+      "release_date": "2026-05-29",
+      "slug": "stepfun_3_7_flash"
+    },
+    {
+      "capability": 43.50276418522671,
+      "creator": "Anthropic",
+      "expected_cost": 14.256995463739328,
+      "name": "Claude-Opus-4.8 (max)",
+      "release_date": "2026-05-28",
+      "slug": "anthropic_opus_48_max"
+    },
+    {
+      "capability": 27.119893264600243,
+      "creator": "Google",
+      "expected_cost": 1.41030627763243,
+      "name": "Gemini 3.5 Flash",
+      "release_date": "2026-05-19",
+      "slug": "gemini_gemini_35_flash"
+    },
+    {
+      "capability": 63.7529695580284,
+      "creator": "OpenAI",
+      "expected_cost": 4.181071199617194,
+      "name": "GPT-5.5 (xhigh)",
+      "release_date": "2026-04-24",
+      "slug": "openai_gpt_55"
+    },
+    {
+      "capability": 29.827623351502552,
+      "creator": "DeepSeek",
+      "expected_cost": 1.9297914228190072,
+      "name": "DeepSeek-v4-Pro (Max)",
+      "release_date": "2026-04-24",
+      "slug": "deepseek_deepseek_v4_pro"
+    },
+    {
+      "capability": 29.654687317792572,
+      "creator": "DeepSeek",
+      "expected_cost": 0.1860936479405162,
+      "name": "DeepSeek-v4-Flash (Max)",
+      "release_date": "2026-04-24",
+      "slug": "deepseek_deepseek_v4_flash"
+    },
+    {
+      "capability": 27.944000657021856,
+      "creator": "Moonshot AI",
+      "expected_cost": 1.3041630808704419,
+      "name": "Kimi K2.6 (Think)",
+      "release_date": "2026-04-20",
+      "slug": "moonshot_k26"
+    },
+    {
+      "capability": 22.9272683526119,
+      "creator": "Anthropic",
+      "expected_cost": 7.196499206455608,
+      "name": "Claude-Opus-4.7 (xhigh)",
+      "release_date": "2026-04-17",
+      "slug": "anthropic_opus_47"
+    },
+    {
+      "capability": 23.581687419377086,
+      "creator": "Z.ai",
+      "expected_cost": 0.9761234294599035,
+      "name": "GLM 5.1",
+      "release_date": "2026-04-05",
+      "slug": "glm_glm_51"
+    },
+    {
+      "capability": 18.270853297559228,
+      "creator": "NVIDIA",
+      "expected_cost": null,
+      "name": "NVIDIA-Nemotron-3-Super",
+      "release_date": "2026-03-10",
+      "slug": "nvidia_nemotron_3_super"
+    },
+    {
+      "capability": 40.72990381567432,
+      "creator": "OpenAI",
+      "expected_cost": 2.5689036381425594,
+      "name": "GPT-5.4 (xhigh)",
+      "release_date": "2026-03-05",
+      "slug": "openai_gpt_54"
+    },
+    {
+      "capability": 55.047864475942475,
+      "creator": "OpenAI",
+      "expected_cost": 34.8202936370841,
+      "name": "GPT-5.4-Pro (xhigh)",
+      "release_date": "2026-03-05",
+      "slug": "openai_gpt_54_pro"
+    },
+    {
+      "capability": 14.909177073527328,
+      "creator": "Qwen",
+      "expected_cost": null,
+      "name": "Qwen3.6-35B",
+      "release_date": "2026-03-02",
+      "slug": "qwen_qwen3_6_35b"
+    },
+    {
+      "capability": 4.401162726796734,
+      "creator": "Qwen",
+      "expected_cost": null,
+      "name": "Qwen3.5-2B",
+      "release_date": "2026-03-02",
+      "slug": "qwen_qwen3_5_2b"
+    },
+    {
+      "capability": 17.326528866332293,
+      "creator": "Qwen",
+      "expected_cost": 0.533852503625317,
+      "name": "Qwen3.5-27B",
+      "release_date": "2026-03-02",
+      "slug": "qwen_qwen3_5_27b"
+    },
+    {
+      "capability": 14.255029548679254,
+      "creator": "Qwen",
+      "expected_cost": 0.048110826720490885,
+      "name": "Qwen3.5-9B",
+      "release_date": "2026-03-02",
+      "slug": "qwen_qwen3_5_9b"
+    },
+    {
+      "capability": 13.136837547094435,
+      "creator": "Qwen",
+      "expected_cost": null,
+      "name": "Qwen3.5-4B",
+      "release_date": "2026-03-02",
+      "slug": "qwen_qwen3_5_4b"
+    },
+    {
+      "capability": 16.17973651736403,
+      "creator": "Qwen",
+      "expected_cost": 0.44681745373345116,
+      "name": "Qwen3.5-35B-A3B",
+      "release_date": "2026-02-25",
+      "slug": "qwen_qwen3_5_35b_a3b"
+    },
+    {
+      "capability": 32.603604133642,
+      "creator": "Google",
+      "expected_cost": 1.592326903538287,
+      "name": "Gemini 3.1 Pro Preview",
+      "release_date": "2026-02-19",
+      "slug": "gemini_gemini_31_pro"
+    },
+    {
+      "capability": 20.08936045499487,
+      "creator": "Google",
+      "expected_cost": 0.16197781330080324,
+      "name": "Gemini 3.1 Pro Preview (low)",
+      "release_date": "2026-02-19",
+      "slug": "gemini_gemini_31_pro_low"
+    },
+    {
+      "capability": 21.29646610440549,
+      "creator": "Qwen",
+      "expected_cost": 0.830701264608338,
+      "name": "Qwen3.5-397b-a17b",
+      "release_date": "2026-02-16",
+      "slug": "qwen_qwen3_5_397b"
+    },
+    {
+      "capability": 12.177122667271119,
+      "creator": "LM-Provers",
+      "expected_cost": null,
+      "name": "QED-Nano",
+      "release_date": "2026-02-15",
+      "slug": "other_qed_nano"
+    },
+    {
+      "capability": 22.209426142521927,
+      "creator": "Z.ai",
+      "expected_cost": 0.929586472692004,
+      "name": "GLM 5",
+      "release_date": "2026-02-11",
+      "slug": "glm_glm_5"
+    },
+    {
+      "capability": 26.820676852142306,
+      "creator": "Anthropic",
+      "expected_cost": 7.2086114264873125,
+      "name": "Claude-Opus-4.6 (High)",
+      "release_date": "2026-02-05",
+      "slug": "anthropic_opus_46"
+    },
+    {
+      "capability": 21.568323189975334,
+      "creator": "StepFun",
+      "expected_cost": 0.16518284741383193,
+      "name": "Step 3.5 Flash",
+      "release_date": "2026-02-02",
+      "slug": "stepfun_3_5_flash"
+    },
+    {
+      "capability": 19.84760448410314,
+      "creator": "Moonshot AI",
+      "expected_cost": 0.7580505547404217,
+      "name": "Kimi K2.5 (Think)",
+      "release_date": "2026-01-27",
+      "slug": "moonshot_k25"
+    },
+    {
+      "capability": 14.347580527844277,
+      "creator": "TIIUAE",
+      "expected_cost": 0.05443019801021858,
+      "name": "Falcon-H1R-7B",
+      "release_date": "2026-01-05",
+      "slug": "tiiuae_7b_reasoning"
+    },
+    {
+      "capability": 22.904526474477134,
+      "creator": "Google",
+      "expected_cost": 0.6244006371282459,
+      "name": "Gemini 3 Flash",
+      "release_date": "2025-12-17",
+      "slug": "gemini_gemini_3_flash"
+    },
+    {
+      "capability": 37.34749235798301,
+      "creator": "OpenAI",
+      "expected_cost": 2.374165072546484,
+      "name": "GPT-5.2 (xhigh)",
+      "release_date": "2025-12-11",
+      "slug": "openai_gpt_52"
+    },
+    {
+      "capability": 27.93811523495764,
+      "creator": "OpenAI",
+      "expected_cost": 1.7152912594140524,
+      "name": "GPT-5.2 (high)",
+      "release_date": "2025-12-11",
+      "slug": "openai_gpt_52_high"
+    },
+    {
+      "capability": 17.54547289205169,
+      "creator": "DeepSeek",
+      "expected_cost": 0.07985361965585434,
+      "name": "DeepSeek-v3.2 (Think)",
+      "release_date": "2025-12-01",
+      "slug": "deepseek_deepseek_v32_dec"
+    },
+    {
+      "capability": 21.762693118659005,
+      "creator": "DeepSeek",
+      "expected_cost": 0.12127696631320718,
+      "name": "DeepSeek-v3.2-Speciale",
+      "release_date": "2025-12-01",
+      "slug": "deepseek_deepseek_v32_special"
+    },
+    {
+      "capability": 16.695915225866806,
+      "creator": "xAI",
+      "expected_cost": 0.07694379213178172,
+      "name": "Grok 4.1 Fast (Reasoning)",
+      "release_date": "2025-11-20",
+      "slug": "xai_grok_41_fast_reasoning"
+    },
+    {
+      "capability": 22.94532174323611,
+      "creator": "Google",
+      "expected_cost": 2.0263983247020736,
+      "name": "Gemini 3 Pro (preview)",
+      "release_date": "2025-11-19",
+      "slug": "gemini_riftrunner"
+    },
+    {
+      "capability": 18.962151483076482,
+      "creator": "OpenAI",
+      "expected_cost": 1.9148344925768255,
+      "name": "GPT-5.1 (high)",
+      "release_date": "2025-11-12",
+      "slug": "openai_gpt_51"
+    },
+    {
+      "capability": 17.50365986976196,
+      "creator": "Moonshot AI",
+      "expected_cost": 0.6962856046089955,
+      "name": "Kimi K2 Thinking",
+      "release_date": "2025-11-06",
+      "slug": "moonshot_k2_thinking"
+    },
+    {
+      "capability": 18.07631235057387,
+      "creator": "Z.ai",
+      "expected_cost": 0.4185172518527393,
+      "name": "GLM 4.6",
+      "release_date": "2025-09-30",
+      "slug": "glm_glm_46"
+    },
+    {
+      "capability": 13.839510105694112,
+      "creator": "Anthropic",
+      "expected_cost": 2.437078900470045,
+      "name": "Claude-Sonnet-4.5 (Think)",
+      "release_date": "2025-09-29",
+      "slug": "anthropic_claude_sonnet_45"
+    },
+    {
+      "capability": 15.749326174426583,
+      "creator": "DeepSeek",
+      "expected_cost": 0.07404290460245477,
+      "name": "DeepSeek-v3.2-Exp (Think)",
+      "release_date": "2025-09-29",
+      "slug": "deepseek_deepseek_v32"
+    },
+    {
+      "capability": 14.436725754274764,
+      "creator": "Qwen",
+      "expected_cost": 0.23712221316063392,
+      "name": "Qwen3-VL-235B Instruct",
+      "release_date": "2025-09-23",
+      "slug": "qwen_qwen3_vl_235b_a22b_instruct"
+    },
+    {
+      "capability": 16.119700671145583,
+      "creator": "xAI",
+      "expected_cost": 0.06661264471503384,
+      "name": "Grok 4 Fast R",
+      "release_date": "2025-09-19",
+      "slug": "xai_grok_4_fast_reasoning"
+    },
+    {
+      "capability": 12.354052412273218,
+      "creator": "MBZUAI",
+      "expected_cost": null,
+      "name": "K2-Think",
+      "release_date": "2025-09-11",
+      "slug": "other_k2_think"
+    },
+    {
+      "capability": 15.592292717974763,
+      "creator": "DeepSeek",
+      "expected_cost": 0.3982892218089817,
+      "name": "DeepSeek-v3.1 (Think)",
+      "release_date": "2025-08-21",
+      "slug": "deepseek_deepseek_v31"
+    },
+    {
+      "capability": 18.93731155171496,
+      "creator": "OpenAI",
+      "expected_cost": 1.7002188384957444,
+      "name": "GPT-5 (high)",
+      "release_date": "2025-08-07",
+      "slug": "openai_gpt_5"
+    },
+    {
+      "capability": 16.302124794522275,
+      "creator": "OpenAI",
+      "expected_cost": 0.3005501752148329,
+      "name": "GPT-5-mini (high)",
+      "release_date": "2025-08-07",
+      "slug": "openai_gpt_5_mini"
+    },
+    {
+      "capability": 14.022675264321235,
+      "creator": "OpenAI",
+      "expected_cost": 0.14277424327061497,
+      "name": "GPT-5-nano (high)",
+      "release_date": "2025-08-07",
+      "slug": "openai_gpt_5_nano"
+    },
+    {
+      "capability": 14.001993943372515,
+      "creator": "OpenAI",
+      "expected_cost": 0.09770392133521316,
+      "name": "GPT OSS 20B (high)",
+      "release_date": "2025-08-05",
+      "slug": "openai_oss_20b"
+    },
+    {
+      "capability": 16.58371572546427,
+      "creator": "OpenAI",
+      "expected_cost": 0.14110647394538384,
+      "name": "GPT OSS 120B (high)",
+      "release_date": "2025-08-05",
+      "slug": "openai_oss_120b"
+    },
+    {
+      "capability": 11.533752276792624,
+      "creator": "Z.ai",
+      "expected_cost": 0.1248983712449668,
+      "name": "GLM 4.5V",
+      "release_date": "2025-08-01",
+      "slug": "glm_glm_45v"
+    },
+    {
+      "capability": 13.044907415199692,
+      "creator": "Z.ai",
+      "expected_cost": 0.31256630991982953,
+      "name": "GLM 4.5 Air",
+      "release_date": "2025-08-01",
+      "slug": "glm_glm_45_air"
+    },
+    {
+      "capability": 14.493542417117839,
+      "creator": "Z.ai",
+      "expected_cost": 0.5361296725270902,
+      "name": "GLM 4.5",
+      "release_date": "2025-08-01",
+      "slug": "glm_glm_45"
+    },
+    {
+      "capability": 12.366224140168374,
+      "creator": "Qwen",
+      "expected_cost": 0.051236077362287226,
+      "name": "Qwen3-30B-A3B-2507-Think",
+      "release_date": "2025-07-25",
+      "slug": "qwen_qwen3_30b_a3b_2507"
+    },
+    {
+      "capability": 9.088734192899759,
+      "creator": "Qwen",
+      "expected_cost": 0.0483131048640382,
+      "name": "Qwen3-4B-2507-Think",
+      "release_date": "2025-07-25",
+      "slug": "qwen_qwen3_4b_2507"
+    },
+    {
+      "capability": 16.650542017379703,
+      "creator": "xAI",
+      "expected_cost": 3.0970207157482625,
+      "name": "Grok 4",
+      "release_date": "2025-07-10",
+      "slug": "xai_grok_4"
+    },
+    {
+      "capability": 13.918596033105482,
+      "creator": "Google",
+      "expected_cost": 2.2856337171817036,
+      "name": "Gemini 2.5 Pro",
+      "release_date": "2025-06-17",
+      "slug": "gemini_gemini_pro_2_5"
+    },
+    {
+      "capability": 14.157245218716108,
+      "creator": "DeepSeek",
+      "expected_cost": 0.4897088414022988,
+      "name": "DeepSeek-R1-0528",
+      "release_date": "2025-05-28",
+      "slug": "deepseek_deepseek_r1_0528"
+    },
+    {
+      "capability": 11.075829713432727,
+      "creator": "Anthropic",
+      "expected_cost": 13.36061287858697,
+      "name": "Claude-Opus-4.0 (Think)",
+      "release_date": "2025-05-22",
+      "slug": "anthropic_claude_opus_4"
+    },
+    {
+      "capability": 13.981208281261162,
+      "creator": "Google",
+      "expected_cost": null,
+      "name": "Gemini 2.5 Pro (05-06)",
+      "release_date": "2025-05-06",
+      "slug": "gemini_gemini_pro_2_5_05_06"
+    },
+    {
+      "capability": 12.011018106177318,
+      "creator": "Qwen",
+      "expected_cost": 0.10060841024875306,
+      "name": "Qwen3-235B-A22B",
+      "release_date": "2025-04-29",
+      "slug": "qwen_qwen3_235b_a22b"
+    },
+    {
+      "capability": 10.054376484719867,
+      "creator": "Qwen",
+      "expected_cost": 0.05993610467297122,
+      "name": "Qwen3-30B-A3B",
+      "release_date": "2025-04-29",
+      "slug": "qwen_qwen3_30b_a3b"
+    },
+    {
+      "capability": 11.466231129303344,
+      "creator": "Google",
+      "expected_cost": 0.9363332221771323,
+      "name": "Gemini 2.5 Flash (Thinking)",
+      "release_date": "2025-04-18",
+      "slug": "gemini_gemini_flash_2_5"
+    },
+    {
+      "capability": 15.431386603702494,
+      "creator": "OpenAI",
+      "expected_cost": 1.1260983277380732,
+      "name": "o3 (high)",
+      "release_date": "2025-04-16",
+      "slug": "openai_o3"
+    },
+    {
+      "capability": 12.531046759469152,
+      "creator": "OpenAI",
+      "expected_cost": 0.3030336985930975,
+      "name": "o4-mini (medium)",
+      "release_date": "2025-04-16",
+      "slug": "openai_o4_mini_medium"
+    },
+    {
+      "capability": 16.26909078576113,
+      "creator": "OpenAI",
+      "expected_cost": 0.6740042007075042,
+      "name": "o4-mini (high)",
+      "release_date": "2025-04-16",
+      "slug": "openai_o4_mini_high"
+    },
+    {
+      "capability": 9.608841856020884,
+      "creator": "OpenAI",
+      "expected_cost": 0.12072121342482894,
+      "name": "o4-mini (low)",
+      "release_date": "2025-04-16",
+      "slug": "openai_o4_mini_low"
+    },
+    {
+      "capability": 8.984954788895246,
+      "creator": "xAI",
+      "expected_cost": 0.03627923511719498,
+      "name": "Grok 3 Mini (low)",
+      "release_date": "2025-04-09",
+      "slug": "xai_grok_3_mini_low"
+    },
+    {
+      "capability": 12.729421035707173,
+      "creator": "xAI",
+      "expected_cost": 0.11388715487967428,
+      "name": "Grok 3 Mini (high)",
+      "release_date": "2025-04-09",
+      "slug": "xai_grok_3_mini_high"
+    },
+    {
+      "capability": 7.301991059624334,
+      "creator": "DeepSeek",
+      "expected_cost": 0.04663437678586663,
+      "name": "DeepSeek-V3-03-24",
+      "release_date": "2025-03-24",
+      "slug": "deepseek_deepseek_v3_03_24"
+    },
+    {
+      "capability": 9.69100676779955,
+      "creator": "Qwen",
+      "expected_cost": 0.205414420659585,
+      "name": "QwQ-32B",
+      "release_date": "2025-03-05",
+      "slug": "qwen_qwq"
+    },
+    {
+      "capability": 7.732567807914722,
+      "creator": "Anthropic",
+      "expected_cost": 4.278117535850339,
+      "name": "Claude-3.7-Sonnet (Think)",
+      "release_date": "2025-02-19",
+      "slug": "anthropic_claude_37"
+    },
+    {
+      "capability": 4.540102772251077,
+      "creator": "Google",
+      "expected_cost": 0.14615890988196475,
+      "name": "gemini-2.0-pro",
+      "release_date": "2025-02-05",
+      "slug": "gemini_gemini_pro_2_0"
+    },
+    {
+      "capability": 4.8096340948425,
+      "creator": "Google",
+      "expected_cost": 0.013530976571891666,
+      "name": "gemini-2.0-flash",
+      "release_date": "2025-02-05",
+      "slug": "gemini_gemini_flash_2_0"
+    },
+    {
+      "capability": 8.290248259653389,
+      "creator": "Google",
+      "expected_cost": null,
+      "name": "gemini-2.0-flash-thinking",
+      "release_date": "2025-02-05",
+      "slug": "gemini_gemini_flash_thinking_2_0"
+    },
+    {
+      "capability": 7.251161727991076,
+      "creator": "OpenAI",
+      "expected_cost": 0.1235384898876606,
+      "name": "o3-mini (low)",
+      "release_date": "2025-01-31",
+      "slug": "openai_o3_mini_low"
+    },
+    {
+      "capability": 10.79266905326399,
+      "creator": "OpenAI",
+      "expected_cost": 0.3342297317159669,
+      "name": "o3-mini (medium)",
+      "release_date": "2025-01-31",
+      "slug": "openai_o3_mini_medium"
+    },
+    {
+      "capability": 12.677715178703291,
+      "creator": "OpenAI",
+      "expected_cost": 0.6184226143516925,
+      "name": "o3-mini (high)",
+      "release_date": "2025-01-31",
+      "slug": "openai_o3_mini"
+    },
+    {
+      "capability": 7.439354064060069,
+      "creator": "DeepSeek",
+      "expected_cost": 0.03284663496478501,
+      "name": "DeepSeek-R1-Distill-14B",
+      "release_date": "2025-01-21",
+      "slug": "deepseek_deepseek_distill_14b"
+    },
+    {
+      "capability": 8.133628239246535,
+      "creator": "DeepSeek",
+      "expected_cost": 0.06483947472214499,
+      "name": "DeepSeek-R1-Distill-32B",
+      "release_date": "2025-01-21",
+      "slug": "deepseek_deepseek_distill_32b"
+    },
+    {
+      "capability": 4.357569815085693,
+      "creator": "DeepSeek",
+      "expected_cost": 0.039761361177447115,
+      "name": "DeepSeek-R1-Distill-1.5B",
+      "release_date": "2025-01-21",
+      "slug": "deepseek_deepseek_distill_1_5b"
+    },
+    {
+      "capability": 7.960386630384275,
+      "creator": "DeepSeek",
+      "expected_cost": 0.07615193618478142,
+      "name": "DeepSeek-R1-Distill-70B",
+      "release_date": "2025-01-21",
+      "slug": "deepseek_deepseek_distill_70b"
+    },
+    {
+      "capability": 9.673457633954603,
+      "creator": "DeepSeek",
+      "expected_cost": 0.28474832747649303,
+      "name": "DeepSeek-R1",
+      "release_date": "2025-01-21",
+      "slug": "deepseek_deepseek_r1"
+    },
+    {
+      "capability": 4.590992599151216,
+      "creator": "DeepSeek",
+      "expected_cost": 0.03616840787726696,
+      "name": "DeepSeek-V3",
+      "release_date": "2024-12-27",
+      "slug": "deepseek_deepseek_v3"
+    },
+    {
+      "capability": 5.6596316051216995,
+      "creator": "Qwen",
+      "expected_cost": 0.11855664664932533,
+      "name": "QwQ-32B-Preview",
+      "release_date": "2024-11-27",
+      "slug": "qwen_qwq_preview"
+    },
+    {
+      "capability": 2.5355319464472266,
+      "creator": "Anthropic",
+      "expected_cost": 0.09573315317035361,
+      "name": "Claude-3.5-Sonnet",
+      "release_date": "2024-10-22",
+      "slug": "anthropic_claude_35"
+    },
+    {
+      "capability": 10.975663037591431,
+      "creator": "OpenAI",
+      "expected_cost": 8.774426448069477,
+      "name": "o1 (medium)",
+      "release_date": "2024-09-12",
+      "slug": "openai_o1"
+    },
+    {
+      "capability": 3.362383229333758,
+      "creator": "OpenAI",
+      "expected_cost": 0.09423022041048709,
+      "name": "gpt-4o",
+      "release_date": "2024-08-06",
+      "slug": "openai_gpt_4o"
+    }
+  ]
+}

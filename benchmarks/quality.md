@@ -150,7 +150,7 @@ freshness:
 
 QuALITY is long-document multiple-choice reading in English. Each item is an article of a few thousand tokens, a question, and four answers. Writers read the full text; they do not write from a summary. Speed-limited annotators fail more than half of the hard subset, so keyword search is not enough. Passages come from Project Gutenberg, Slate, and similar long sources. The average context is 5,159 tokens in the paper, far longer than RACE or CosmosQA.
 
-This page is the NYU dataset. It is not [artificial_analysis_quality_index](artificial_analysis_quality_index.md). [L-Eval](leval.md) reuses a 15-example QuALITY slice and is a different suite.
+This page is the NYU dataset. [L-Eval](leval.md) reuses a 15-example QuALITY slice and is a different suite.
 
 ## How it is scored
 

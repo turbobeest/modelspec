@@ -1,0 +1,185 @@
+{
+  "source_url": "https://labs.scale.com/leaderboard/swe_bench_pro",
+  "read_date": "2026-09-24",
+  "subset": "public",
+  "metric": "resolve_rate",
+  "note": "Public leaderboard table. Rank (UB) is the page's confidence-interval rank. mini_swe_agent marks rows the page stars as mini-swe-agent runs. The primary metric used for ordering is resolve rate.",
+  "licence_note": "Named by the MODEL-136 brief as a leaderboard whose results we may use. Read from the public page on 2026-09-24.",
+  "rows": [
+    {
+      "model": "Muse Spark 1.1",
+      "ub_rank": 1,
+      "resolve_rate": 61.5,
+      "ci": 3.1,
+      "mini_swe_agent": true
+    },
+    {
+      "model": "gpt-5.4 (xHigh)",
+      "ub_rank": 1,
+      "resolve_rate": 59.1,
+      "ci": 3.56,
+      "mini_swe_agent": true
+    },
+    {
+      "model": "Muse Spark",
+      "ub_rank": 3,
+      "resolve_rate": 55.0,
+      "ci": 3.6,
+      "mini_swe_agent": true
+    },
+    {
+      "model": "claude-opus-4-6 (thinking)",
+      "ub_rank": 3,
+      "resolve_rate": 51.9,
+      "ci": 3.61,
+      "mini_swe_agent": true
+    },
+    {
+      "model": "gemini-3.1-pro (thinking)",
+      "ub_rank": 5,
+      "resolve_rate": 46.1,
+      "ci": 3.6,
+      "mini_swe_agent": true
+    },
+    {
+      "model": "claude-opus-4-5-20251101",
+      "ub_rank": 5,
+      "resolve_rate": 45.89,
+      "ci": 3.6,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "claude-4-5-Sonnet",
+      "ub_rank": 5,
+      "resolve_rate": 43.6,
+      "ci": 3.6,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "gemini-3-pro-preview",
+      "ub_rank": 5,
+      "resolve_rate": 43.3,
+      "ci": 3.6,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "claude-4-Sonnet",
+      "ub_rank": 5,
+      "resolve_rate": 42.7,
+      "ci": 3.59,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "gpt-5-2025-08-07 (High)",
+      "ub_rank": 10,
+      "resolve_rate": 41.78,
+      "ci": 3.49,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "gpt-5.2-codex",
+      "ub_rank": 10,
+      "resolve_rate": 41.04,
+      "ci": 3.57,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "claude-4-5-haiku",
+      "ub_rank": 10,
+      "resolve_rate": 39.45,
+      "ci": 3.55,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "qwen3-coder-480b-a35b",
+      "ub_rank": 10,
+      "resolve_rate": 38.7,
+      "ci": 3.55,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "minimax-2.1",
+      "ub_rank": 14,
+      "resolve_rate": 36.81,
+      "ci": 3.55,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "gemini-3-flash",
+      "ub_rank": 14,
+      "resolve_rate": 34.63,
+      "ci": 3.55,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "gpt-5.2",
+      "ub_rank": 16,
+      "resolve_rate": 29.94,
+      "ci": 2.15,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "kimi-k2-instruct",
+      "ub_rank": 16,
+      "resolve_rate": 27.67,
+      "ci": 3.25,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "qwen3-235b-a22b",
+      "ub_rank": 18,
+      "resolve_rate": 21.41,
+      "ci": 2.25,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "gpt-oss-120b",
+      "ub_rank": 19,
+      "resolve_rate": 16.2,
+      "ci": 2.67,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "deepseek-v3p2",
+      "ub_rank": 19,
+      "resolve_rate": 15.56,
+      "ci": 2.63,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "gemma-3-27b-it",
+      "ub_rank": 21,
+      "resolve_rate": 11.38,
+      "ci": 2.15,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "llama3-1-405b-instruct",
+      "ub_rank": 21,
+      "resolve_rate": 11.18,
+      "ci": 2.15,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "glm-4.6",
+      "ub_rank": 21,
+      "resolve_rate": 9.67,
+      "ci": 2.15,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "llama4-maverick-17b-instruct",
+      "ub_rank": 24,
+      "resolve_rate": 5.24,
+      "ci": 1.24,
+      "mini_swe_agent": false
+    },
+    {
+      "model": "codestral-2405",
+      "ub_rank": 25,
+      "resolve_rate": 1.51,
+      "ci": 1.51,
+      "mini_swe_agent": false
+    }
+  ]
+}

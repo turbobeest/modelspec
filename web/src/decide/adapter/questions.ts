@@ -1,0 +1,91 @@
+import type { Question } from "../engine/reference";
+import type { HostedDecisionEngine } from "./hosted";
+import type { DecisionSpec } from "./contract";
+import { contractCondition } from "./view-model";
+
+type EvaluatedQuestion = Question;
+
+/** The spec that counts what one answer to a next question would leave. */
+export function probeSpec(
+  spec: DecisionSpec,
+  option: Question["opts"][number],
+  deduplicateCondition = false,
+): DecisionSpec {
+  const condition = contractCondition(option.c);
+  return {
+    ...spec,
+    where: deduplicateCondition && (spec.where ?? []).includes(condition)
+      ? spec.where
+      : [...(spec.where ?? []), condition],
+    explain: "none",
+    limit: 500,
+  };
+}
+
+export async function evaluateQuestionOptions({
+  engine,
+  spec,
+  questions,
+  signal,
+  onUpdate,
+  deduplicateConditions = false,
+}: {
+  engine: HostedDecisionEngine;
+  spec: DecisionSpec;
+  questions: Question[];
+  signal?: AbortSignal;
+  onUpdate?: (questions: EvaluatedQuestion[]) => void;
+  deduplicateConditions?: boolean;
+}): Promise<EvaluatedQuestion[]> {
+  await new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(resolve, 300);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        window.clearTimeout(timer);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true },
+    );
+  });
+  const output = questions.map((question) => ({
+    ...question,
+    opts: question.opts.map((option) => ({ ...option })),
+  }));
+  const jobs = output.flatMap((question) =>
+    question.opts.map((option) => ({ question, option })),
+  );
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const job = jobs[next];
+      next += 1;
+      try {
+        const answer = await engine.decide(
+          probeSpec(spec, job.option, deduplicateConditions),
+          { signal },
+        );
+        job.option.n = answer.results.length;
+        job.option.may = answer.may_qualify.length;
+      } catch (error) {
+        // Only the page's own abort stops the probes; any other failure is this probe's.
+        if (signal?.aborted) throw error;
+        // One refused probe costs that answer its count, not every question.
+        // The console names the condition, so a refusal can be traced to its spec.
+        job.option.failed = true;
+        console.warn("next-question probe failed", contractCondition(job.option.c), error);
+      }
+      onUpdate?.(output);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(6, jobs.length) }, worker));
+  return output.map((question) => ({
+    ...question,
+    gain: Math.max(
+      0,
+      ...question.opts.map((option) =>
+        option.removes ?? 0,
+      ),
+    ),
+  }));
+}

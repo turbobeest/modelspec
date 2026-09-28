@@ -677,6 +677,59 @@ benchmarks:
     mteb_sts: 80.0
     mteb_pair_classification: 83.0
     mteb_summarization: 28.0
+  evidence:
+  - benchmark_id: mteb_eng_v2
+    model_id_as_evaluated: intfloat/multilingual-e5-base
+    score: 61.0
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), mean over tasks
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
+      The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 95% zero-shot on the benchmark's tasks.
+  - benchmark_id: mteb_v2_retrieval
+    model_id_as_evaluated: intfloat/multilingual-e5-base
+    score: 48.97
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), Retrieval task type
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Retrieval
+      times 100. The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 95% zero-shot on the benchmark's tasks.
+  - benchmark_id: mteb_v2_classification
+    model_id_as_evaluated: intfloat/multilingual-e5-base
+    score: 73.81
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), Classification task type
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Classification
+      times 100. The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 95% zero-shot on the benchmark's tasks.
+  - benchmark_id: mteb_multilingual_v2
+    model_id_as_evaluated: intfloat/multilingual-e5-base
+    score: 57.02
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(Multilingual, v2), mean over tasks
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
+      The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 99% zero-shot on the benchmark's tasks.
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
   benchmark_notes: ''

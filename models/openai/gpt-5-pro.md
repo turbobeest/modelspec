@@ -668,6 +668,35 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
+  evidence:
+  - benchmark_id: frontiermath_tiers_1_3_v2
+    model_id_as_evaluated: gpt-5-pro-2025-10-06_high
+    score: 55.79
+    unit: percent
+    source_url: https://epoch.ai/frontiermath
+    source_kind: independent_evaluator
+    evidence_date: '2026-06-12'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
+      read 2026-09-24. Run started 2026-06-12T20:32:51.000Z; effort high; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.95 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  - benchmark_id: hle
+    model_id_as_evaluated: gpt-5-pro-2025-10-06
+    score: 31.64
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2025-11-06'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2025-11-06T22:48:20.000Z;
+      effort default; ±1.82 (95% CI).
+    limitations: 'Potential contamination warning: This model was evaluated after the public
+      release of HLE, allowing model builder access to the prompts and solutions.'
   benchmark_source: lmarena.ai, provider-reports
   benchmark_as_of: 2026-04
   benchmark_notes: ''

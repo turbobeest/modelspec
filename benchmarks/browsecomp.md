@@ -98,6 +98,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice F"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: agentic_tool_use, directness: direct}
 ---
 
 ## What it measures

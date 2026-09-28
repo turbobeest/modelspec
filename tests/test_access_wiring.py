@@ -197,6 +197,25 @@ RANK = ("/v1/rank", {"use_case": "general"})
 POLICY = ("/v1/policy-check", {"policy": {"licence": {"prohibited": ["cc-by-nc-4.0"]}}})
 
 
+@pytest.mark.parametrize(
+    "raw, status, code",
+    [
+        ("{", 400, "invalid_request"),
+        (None, 413, "payload_too_large"),
+    ],
+    ids=["malformed-json", "oversized-body"],
+)
+def test_compare_transport_errors_name_the_compare_endpoint(entry, raw, status, code):
+    request = Request("/v1/compare", None)
+    request._body = raw or "x" * (entry._decide_service().MAX_BODY_BYTES + 1)
+
+    response = _call(entry, _env(), request)
+
+    assert response.status == status
+    assert response.json()["endpoint"] == "compare"
+    assert response.json()["error"]["code"] == code
+
+
 def _issue(entry, binding: WorkersKV, tier: str, secret: str) -> None:
     import access_config
     import access_keys

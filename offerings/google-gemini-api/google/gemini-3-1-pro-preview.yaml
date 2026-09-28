@@ -1,0 +1,145 @@
+- model: google/gemini-3-1-pro-preview
+  provider: google-gemini-api
+  region: global
+  tier: standard
+  facts:
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.price.input
+    value: 2.0
+    state: known
+    sources:
+    - source_id: gemini-pricing
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
+      cited_regions:
+      - gemini-3-1-pro-preview
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.price.output
+    value: 12.0
+    state: known
+    sources:
+    - source_id: gemini-pricing
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
+      cited_regions:
+      - gemini-3-1-pro-preview
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.price.cached_input
+    value: 0.2
+    state: known
+    sources:
+    - source_id: gemini-pricing
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
+      cited_regions:
+      - gemini-3-1-pro-preview
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.price.batch_input
+    value: 1.0
+    state: known
+    sources:
+    - source_id: gemini-pricing
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
+      cited_regions:
+      - gemini-3-1-pro-preview
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.price.batch_output
+    value: 6.0
+    state: known
+    sources:
+    - source_id: gemini-pricing
+      snapshot_ref: sha256:8b0d330a78c8b24504e23b0328999cbc72b6b924c012888796be2259f66ce940
+      cited_regions:
+      - gemini-3-1-pro-preview
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.data.retention
+    value: 55
+    state: known
+    sources:
+    - source_id: gemini-retention
+      snapshot_ref: sha256:0f1ce512d7ed48d2c20be054402e65cb83dd477bd0763ac1c4563ea10697def6
+      cited_regions:
+      - page
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: gemini-zdr
+      snapshot_ref: sha256:0aa4807bba00a35d3f500fa9deaae99d4049396f9b13feac2a06be1d473dcd6d
+      cited_regions:
+      - page
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.data.zero_retention
+    value: false
+    state: known
+    sources:
+    - source_id: gemini-zdr
+      snapshot_ref: sha256:0aa4807bba00a35d3f500fa9deaae99d4049396f9b13feac2a06be1d473dcd6d
+      cited_regions:
+      - page
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: google-attestations
+      snapshot_ref: sha256:688d09ddbbfb525eb46fb99d5c04ef668691ac48dd927eb338c45d72965a3947
+      cited_regions:
+      - page
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.attestation.baa
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: gemini-zdr
+      snapshot_ref: sha256:0aa4807bba00a35d3f500fa9deaae99d4049396f9b13feac2a06be1d473dcd6d
+      cited_regions:
+      - page
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - gemini-pricing
+    - model-143-google-gemini-3-1-pro-preview
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - gemini-pricing
+    - model-143-google-gemini-3-1-pro-preview

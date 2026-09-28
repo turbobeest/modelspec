@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Enrich ModelSpec YAML cards with Open LLM Leaderboard v2 benchmark scores.
 
-Populates the 6 Open LLM Leaderboard v2 benchmarks (mmlu_pro, gpqa_diamond,
-bbh, ifeval, math_500, musr) from API sources or curated public data.
+Populates the 6 Open LLM Leaderboard v2 benchmarks (mmlu_pro, gpqa_pooled,
+bbh, ifeval, math_lvl5, musr) from the leaderboard's own data.
 
 Only fills None fields -- never overwrites existing data.
 
@@ -29,8 +29,9 @@ from scripts.enrich_benchmarks import normalize_slug, SLUG_ALIASES  # noqa: E402
 
 MODELS_DIR = PROJECT_ROOT / "models"
 
-# The 6 benchmarks tracked by Open LLM Leaderboard v2
-OPEN_LLM_V2_BENCHMARKS = ["mmlu_pro", "gpqa_diamond", "bbh", "ifeval", "math_500", "musr"]
+# The 6 benchmarks tracked by Open LLM Leaderboard v2. Its "MATH Lvl 5" is not
+# MATH-500 and its "GPQA" is not GPQA Diamond (MODEL-116).
+OPEN_LLM_V2_BENCHMARKS = ["mmlu_pro", "gpqa_pooled", "bbh", "ifeval", "math_lvl5", "musr"]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -138,10 +139,10 @@ def _parse_dataset_response(data: Any) -> dict[str, dict[str, float]]:
         # Map potential field names to our schema
         field_mappings = {
             "mmlu_pro": ["mmlu_pro", "MMLU-PRO", "mmlu-pro", "IFEval_mmlu_pro"],
-            "gpqa_diamond": ["gpqa_diamond", "GPQA", "gpqa", "GPQA Diamond"],
+            "gpqa_pooled": ["gpqa_pooled", "GPQA", "gpqa"],
             "bbh": ["bbh", "BBH", "Big Bench Hard"],
             "ifeval": ["ifeval", "IFEval", "IF Eval"],
-            "math_500": ["math_500", "MATH", "math", "MATH Lvl 5", "math_hard"],
+            "math_lvl5": ["math_lvl5", "MATH Lvl 5", "math_hard"],
             "musr": ["musr", "MUSR", "MuSR"],
         }
 
@@ -176,7 +177,7 @@ def _parse_gradio_response(data: Any) -> dict[str, dict[str, float]]:
             name = item[0] if isinstance(item[0], str) else str(item[0])
             slug = slugify(name)
             scores: dict[str, float] = {}
-            benchmark_order = ["mmlu_pro", "gpqa_diamond", "bbh", "ifeval", "math_500", "musr"]
+            benchmark_order = ["mmlu_pro", "gpqa_pooled", "bbh", "ifeval", "math_lvl5", "musr"]
             for idx, bench in enumerate(benchmark_order):
                 val_idx = idx + 2  # skip name and average
                 if val_idx < len(item) and isinstance(item[val_idx], (int, float)):
@@ -187,79 +188,8 @@ def _parse_gradio_response(data: Any) -> dict[str, dict[str, float]]:
     return result
 
 
-# ═══════════════════════════════════════════════════════════════
-# Curated Open LLM Leaderboard v2 Data
-#
-# Source: https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard
-# All scores are normalized 0-100 on the 6 v2 benchmarks.
-# ═══════════════════════════════════════════════════════════════
-
-OPEN_LLM_V2: dict[str, dict[str, float]] = {
-    # ── Qwen ──────────────────────────────────────────────
-    "qwen-2.5-72b-instruct":        {"mmlu_pro": 72.1, "gpqa_diamond": 49.0, "bbh": 66.3, "ifeval": 86.2, "math_500": 83.1, "musr": 28.3},
-    "qwen-2.5-32b-instruct":        {"mmlu_pro": 65.8, "gpqa_diamond": 43.6, "bbh": 58.4, "ifeval": 83.5, "math_500": 79.8, "musr": 22.1},
-    "qwen-2.5-14b-instruct":        {"mmlu_pro": 59.2, "gpqa_diamond": 38.7, "bbh": 51.2, "ifeval": 80.1, "math_500": 72.4, "musr": 18.6},
-    "qwen-2.5-7b-instruct":         {"mmlu_pro": 51.4, "gpqa_diamond": 33.2, "bbh": 43.8, "ifeval": 75.3, "math_500": 62.1, "musr": 14.2},
-    "qwen-3-32b":                    {"mmlu_pro": 68.5, "gpqa_diamond": 52.1, "bbh": 62.8, "ifeval": 85.7, "math_500": 85.3, "musr": 30.1},
-    "qwen-3-14b":                    {"mmlu_pro": 60.3, "gpqa_diamond": 44.2, "bbh": 55.1, "ifeval": 82.3, "math_500": 78.5, "musr": 24.8},
-    "qwen-3-8b":                     {"mmlu_pro": 53.7, "gpqa_diamond": 38.5, "bbh": 48.3, "ifeval": 78.9, "math_500": 70.2, "musr": 19.4},
-    "qwen-3-30b-a3b":               {"mmlu_pro": 55.8, "gpqa_diamond": 40.1, "bbh": 50.5, "ifeval": 80.2, "math_500": 73.8, "musr": 21.3},
-
-    # ── Meta (Llama) ──────────────────────────────────────
-    "llama-3.1-8b-instruct":         {"mmlu_pro": 44.1, "gpqa_diamond": 30.4, "bbh": 39.2, "ifeval": 76.5, "math_500": 47.2, "musr": 12.8},
-    "llama-3.1-70b-instruct":        {"mmlu_pro": 58.3, "gpqa_diamond": 42.1, "bbh": 55.8, "ifeval": 83.1, "math_500": 65.4, "musr": 22.7},
-    "llama-3.3-70b-instruct":        {"mmlu_pro": 61.2, "gpqa_diamond": 44.8, "bbh": 58.1, "ifeval": 85.3, "math_500": 68.9, "musr": 24.5},
-
-    # ── Google (Gemma) ────────────────────────────────────
-    "gemma-2-27b-it":                {"mmlu_pro": 55.3, "gpqa_diamond": 38.2, "bbh": 52.4, "ifeval": 78.8, "math_500": 59.2, "musr": 20.1},
-    "gemma-2-9b-it":                 {"mmlu_pro": 45.2, "gpqa_diamond": 32.1, "bbh": 42.8, "ifeval": 73.5, "math_500": 48.1, "musr": 15.3},
-    "gemma-3-27b-it":                {"mmlu_pro": 60.1, "gpqa_diamond": 45.3, "bbh": 56.2, "ifeval": 82.1, "math_500": 72.8, "musr": 25.2},
-    "gemma-3-12b-it":                {"mmlu_pro": 52.8, "gpqa_diamond": 38.9, "bbh": 48.7, "ifeval": 78.2, "math_500": 63.5, "musr": 20.8},
-    "gemma-4-27b":                   {"mmlu_pro": 64.3, "gpqa_diamond": 50.2, "bbh": 60.1, "ifeval": 84.5, "math_500": 78.9, "musr": 28.7},
-    "gemma-4-31b":                   {"mmlu_pro": 66.1, "gpqa_diamond": 52.5, "bbh": 62.3, "ifeval": 85.8, "math_500": 81.2, "musr": 30.4},
-
-    # ── Microsoft (Phi) ──────────────────────────────────
-    "phi-4":                         {"mmlu_pro": 58.7, "gpqa_diamond": 42.8, "bbh": 54.3, "ifeval": 81.2, "math_500": 75.1, "musr": 23.5},
-    "phi-3.5-mini-instruct":         {"mmlu_pro": 42.3, "gpqa_diamond": 28.5, "bbh": 38.1, "ifeval": 72.4, "math_500": 52.8, "musr": 11.2},
-
-    # ── Mistral ───────────────────────────────────────────
-    "mistral-nemo-instruct":         {"mmlu_pro": 47.8, "gpqa_diamond": 33.5, "bbh": 44.2, "ifeval": 75.1, "math_500": 55.3, "musr": 16.1},
-    "mistral-large-instruct":        {"mmlu_pro": 62.5, "gpqa_diamond": 46.2, "bbh": 58.9, "ifeval": 84.2, "math_500": 72.1, "musr": 26.3},
-    "mixtral-8x22b-instruct":        {"mmlu_pro": 52.3, "gpqa_diamond": 36.1, "bbh": 48.5, "ifeval": 77.8, "math_500": 56.2, "musr": 18.5},
-    "mixtral-8x7b-instruct":         {"mmlu_pro": 40.5, "gpqa_diamond": 27.2, "bbh": 36.8, "ifeval": 69.5, "math_500": 40.1, "musr": 11.8},
-
-    # ── DeepSeek ──────────────────────────────────────────
-    "deepseek-v3":                   {"mmlu_pro": 68.2, "gpqa_diamond": 51.8, "bbh": 64.1, "ifeval": 86.5, "math_500": 84.2, "musr": 29.8},
-    "deepseek-r1":                   {"mmlu_pro": 70.5, "gpqa_diamond": 58.3, "bbh": 68.7, "ifeval": 88.2, "math_500": 92.1, "musr": 33.5},
-    "deepseek-r1-distill-qwen-32b":  {"mmlu_pro": 55.2, "gpqa_diamond": 40.8, "bbh": 50.1, "ifeval": 78.3, "math_500": 71.5, "musr": 20.8},
-    "deepseek-r1-distill-qwen-14b":  {"mmlu_pro": 48.3, "gpqa_diamond": 35.2, "bbh": 43.5, "ifeval": 74.1, "math_500": 62.8, "musr": 16.5},
-    "deepseek-r1-distill-qwen-7b":   {"mmlu_pro": 42.1, "gpqa_diamond": 30.5, "bbh": 38.2, "ifeval": 70.5, "math_500": 55.3, "musr": 13.2},
-    "deepseek-r1-distill-llama-8b":  {"mmlu_pro": 43.5, "gpqa_diamond": 31.2, "bbh": 39.8, "ifeval": 71.8, "math_500": 57.1, "musr": 14.1},
-    "deepseek-r1-distill-llama-70b": {"mmlu_pro": 60.8, "gpqa_diamond": 45.3, "bbh": 57.2, "ifeval": 83.5, "math_500": 78.2, "musr": 25.8},
-
-    # ── Cohere ────────────────────────────────────────────
-    "command-r-plus":                {"mmlu_pro": 52.1, "gpqa_diamond": 35.8, "bbh": 47.3, "ifeval": 76.5, "math_500": 54.2, "musr": 17.3},
-    "command-r":                     {"mmlu_pro": 42.5, "gpqa_diamond": 28.3, "bbh": 38.5, "ifeval": 70.2, "math_500": 42.1, "musr": 12.5},
-
-    # ── Allen AI (OLMo) ──────────────────────────────────
-    "olmo-2-13b-instruct":           {"mmlu_pro": 45.8, "gpqa_diamond": 31.5, "bbh": 41.2, "ifeval": 73.8, "math_500": 48.5, "musr": 14.8},
-
-    # ── TII (Falcon) ─────────────────────────────────────
-    "falcon-3-10b-instruct":         {"mmlu_pro": 40.2, "gpqa_diamond": 27.8, "bbh": 36.5, "ifeval": 69.1, "math_500": 41.2, "musr": 11.5},
-
-    # ── 01.AI (Yi) ───────────────────────────────────────
-    "yi-1.5-34b-chat":               {"mmlu_pro": 52.8, "gpqa_diamond": 36.5, "bbh": 48.2, "ifeval": 77.3, "math_500": 58.5, "musr": 18.2},
-
-    # ── IBM (Granite) ────────────────────────────────────
-    "granite-3.1-8b-instruct":       {"mmlu_pro": 43.5, "gpqa_diamond": 29.8, "bbh": 39.5, "ifeval": 72.1, "math_500": 46.8, "musr": 13.1},
-
-    # ── InternLM (OpenBMB/Shanghai AI) ───────────────────
-    "internlm-2.5-20b-chat":        {"mmlu_pro": 55.1, "gpqa_diamond": 39.2, "bbh": 50.8, "ifeval": 79.5, "math_500": 65.3, "musr": 21.5},
-}
-
-
 # Additional slug aliases specific to this script
-# Maps file-system slugs to OPEN_LLM_V2 keys
+# Maps file-system slugs to leaderboard keys
 OPEN_LLM_ALIASES: dict[str, str] = {
     # Qwen 2.5 file slugs use "2-5" not "2.5"
     "qwen2-5-72b": "qwen-2.5-72b-instruct",
@@ -318,7 +248,7 @@ def _normalize_for_open_llm(slug: str) -> str:
     """Normalize a model slug for matching against Open LLM data keys.
 
     Similar to normalize_slug from enrich_benchmarks but preserves dots
-    that are part of version numbers in the curated data keys.
+    that are part of version numbers in the leaderboard keys.
     """
     s = slug.lower().strip()
 
@@ -507,20 +437,13 @@ def main():
     print("\n[1/4] Attempting Open LLM Leaderboard API fetch...")
     api_data = try_fetch_open_llm_api()
 
-    # Merge: API data supplements curated, curated takes precedence
-    merged = dict(OPEN_LLM_V2)
+    # No curated fallback: the hand-typed table this script once carried did
+    # not match the leaderboard it named (MODEL-116).
+    merged = dict(api_data)
     if api_data:
-        for k, v in api_data.items():
-            if k not in merged:
-                merged[k] = v
-            else:
-                # Merge fields (don't overwrite)
-                for field, score in v.items():
-                    if field not in merged[k]:
-                        merged[k][field] = score
         print(f"  API data: {len(api_data)} models fetched")
     else:
-        print("  API data: unavailable, using curated data only")
+        print("  API data: unavailable, nothing to enrich")
 
     print(f"  Total leaderboard entries: {len(merged)}")
 

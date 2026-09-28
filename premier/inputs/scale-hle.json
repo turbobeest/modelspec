@@ -1,0 +1,114 @@
+{
+  "source_url": "https://labs.scale.com/leaderboard/humanitys_last_exam",
+  "read_date": "2026-09-24",
+  "metric": "accuracy",
+  "note": "Public Humanity's Last Exam table, the Scale SEAL board. ub_rank is the page's confidence-interval rank. Ordering for the top 10 uses accuracy. The page's September 17, 2026 note describes the HLE-Rolling fork; this table is the leaderboard that was on the page.",
+  "licence_note": "Named by the MODEL-136 brief as a leaderboard whose results we may use. Read from the public page on 2026-09-24.",
+  "rows": [
+    {
+      "model": "GPT 6 Astra",
+      "ub_rank": 1,
+      "accuracy": 54.8
+    },
+    {
+      "model": "Fable 5.1 (xhigh)",
+      "ub_rank": 2,
+      "accuracy": 46.5
+    },
+    {
+      "model": "gemini-3.1-pro-preview (thinking high)",
+      "ub_rank": 2,
+      "accuracy": 46.44
+    },
+    {
+      "model": "Gemini 3.8 Flash",
+      "ub_rank": 2,
+      "accuracy": 44.52
+    },
+    {
+      "model": "gpt-5.4-pro-2026-03-05",
+      "ub_rank": 2,
+      "accuracy": 44.32
+    },
+    {
+      "model": "Muse Spark",
+      "ub_rank": 4,
+      "accuracy": 40.56
+    },
+    {
+      "model": "gemini-3-pro-preview",
+      "ub_rank": 5,
+      "accuracy": 37.52
+    },
+    {
+      "model": "gpt-5.4-2026-03-05 (xhigh thinking)",
+      "ub_rank": 6,
+      "accuracy": 36.24
+    },
+    {
+      "model": "claude-opus-4-7",
+      "ub_rank": 6,
+      "accuracy": 36.2
+    },
+    {
+      "model": "claude-opus-4-6-thinking-max",
+      "ub_rank": 6,
+      "accuracy": 34.44
+    },
+    {
+      "model": "gpt-5-pro-2025-10-06",
+      "ub_rank": 9,
+      "accuracy": 31.64
+    },
+    {
+      "model": "gpt-5.2-2025-12-11",
+      "ub_rank": 10,
+      "accuracy": 27.8
+    },
+    {
+      "model": "gpt-5-2025-08-07",
+      "ub_rank": 10,
+      "accuracy": 25.32
+    },
+    {
+      "model": "claude-opus-4-5-20251101-thinking",
+      "ub_rank": 10,
+      "accuracy": 25.2
+    },
+    {
+      "model": "kimi-k2.5",
+      "ub_rank": 10,
+      "accuracy": 24.37
+    },
+    {
+      "model": "gpt-5.1-thinking",
+      "ub_rank": 14,
+      "accuracy": 23.68
+    },
+    {
+      "model": "gemini-2.5-pro-preview-06-05",
+      "ub_rank": 15,
+      "accuracy": 21.64
+    },
+    {
+      "model": "o3 (high) (April 2025)",
+      "ub_rank": 16,
+      "accuracy": 20.32
+    },
+    {
+      "model": "gpt-5-mini-2025-08-07",
+      "ub_rank": 16,
+      "accuracy": 19.44
+    },
+    {
+      "model": "o3 (medium) (April 2025)",
+      "ub_rank": 16,
+      "accuracy": 19.2
+    },
+    {
+      "model": "claude-opus-4-6 (Non-Thinking)",
+      "ub_rank": 16,
+      "accuracy": 19.0
+    }
+  ]
+}

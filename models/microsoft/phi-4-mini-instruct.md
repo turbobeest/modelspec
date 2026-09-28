@@ -680,8 +680,6 @@ benchmarks:
     arena_elo_coding: 1210.0
     arena_elo_math: 1220.0
     arena_elo_overall: 1200.0
-    artificial_analysis_quality_index: 68.0
-    artificial_analysis_speed_index: 88.0
     gpqa_diamond: 42.1
     humaneval: 70.2
     ifeval: 72.0
@@ -720,64 +718,50 @@ benchmarks:
     multipl_e_scala: 38.2
     multipl_e_kotlin: 50.5
     live_code_bench: 23.1
-    bbh: 56.9
-    musr: 38.7
   benchmark_source: lmarena.ai, provider-reports, preference-evals, llm-stats, open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Phi-4 Mini
-    score: 15.33
+  - benchmark_id: bbh
+    model_id_as_evaluated: microsoft/Phi-4-mini-instruct
+    score: 56.9
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-4-mini-instruct/results_2025-02-28T12-41-07.003145.json
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2025-02-28'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Phi-4 Mini
-    score: 0.0
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-d92e847cb221
+      snapshot_ref: sha256:140f6d822dcbf47b69a1d67c68ecf3dc98b3aaca281f5e75800207350cfd166f
+      cited_regions:
+      - rows
+    id: microsoft/phi-4-mini-instruct#bbh#5a9897d59652
+  - benchmark_id: musr
+    model_id_as_evaluated: microsoft/Phi-4-mini-instruct
+    score: 38.7
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/microsoft/Phi-4-mini-instruct/results_2025-02-28T12-41-07.003145.json
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2025-02-28'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Phi-4 Mini
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Phi-4 Mini
-    score: 33.13
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-d92e847cb221
+      snapshot_ref: sha256:140f6d822dcbf47b69a1d67c68ecf3dc98b3aaca281f5e75800207350cfd166f
+      cited_regions:
+      - rows
+    id: microsoft/phi-4-mini-instruct#musr#10d8caead0a7
 deployment:
   api_only: false
   local_inference: true
@@ -887,7 +871,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 150.0
+  api_tps_output: null
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

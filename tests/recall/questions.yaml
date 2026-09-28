@@ -1,0 +1,272 @@
+# Restated audit questions. Constraints are what a developer asked, not the
+# v1 rank payload. The payload is recorded so the original probe stays tied
+# to the question. Read 2026-09-24.
+read_date: "2026-09-24"
+questions:
+  - id: Q01
+    question: >
+      Choose the strongest model for a multi-day coding agent that edits a
+      large repository.
+    constraints:
+      class: generate
+      task: long-horizon repository editing by an agent
+      open_weights: false
+      price_cap_usd_per_million_input: null
+      hardware: null
+      context_tokens_at_least: null
+    audit_request:
+      use_case: coding
+      limit: 3
+
+  - id: Q02
+    question: >
+      Choose a reliable autonomous agent for shell tools and multi-step
+      engineering work.
+    constraints:
+      class: generate
+      task: terminal tool use across multiple steps
+      open_weights: false
+      price_cap_usd_per_million_input: null
+      hardware: null
+    audit_request:
+      use_case: agentic
+      limit: 3
+
+  - id: Q03
+    question: Which model should review a complex pull request for defects?
+    constraints:
+      class: generate
+      task: defect review of a pull request, not patch generation
+      open_weights: false
+      price_cap_usd_per_million_input: null
+    audit_request:
+      use_case: code_review
+      limit: 3
+
+  - id: Q04
+    question: Which model should power a high-quality general assistant?
+    constraints:
+      class: generate
+      task: general assistance, not one specialist domain
+      open_weights: false
+      price_cap_usd_per_million_input: null
+    audit_request:
+      use_case: general
+      limit: 3
+
+  - id: Q05
+    question: Which model should power natural, helpful chat?
+    constraints:
+      class: generate
+      task: conversational helpfulness
+      open_weights: false
+      price_cap_usd_per_million_input: null
+    audit_request:
+      use_case: chat
+      limit: 3
+
+  - id: Q06
+    question: Which model should solve difficult reasoning problems?
+    constraints:
+      class: generate
+      task: hard reasoning, no benchmark named by the asker
+      open_weights: false
+      price_cap_usd_per_million_input: null
+    audit_request:
+      use_case: reasoning
+      limit: 3
+
+  - id: Q07
+    question: Which model should solve competition mathematics?
+    constraints:
+      class: generate
+      task: contest mathematics, such as AIME, not research mathematics
+      open_weights: false
+      price_cap_usd_per_million_input: null
+    audit_request:
+      use_case: math_competition
+      limit: 3
+
+  - id: Q08
+    question: >
+      Choose the generator for retrieval-augmented generation over a
+      collection of documents that runs to 200,000 tokens.
+    constraints:
+      class: generate
+      task: write an answer grounded in retrieved documents
+      context_tokens_at_least: 200000
+      not_class: [embed, rerank]
+      open_weights: false
+    audit_request:
+      use_case: rag
+      limit: 3
+
+  - id: Q09
+    question: Choose a model to summarize a long technical document faithfully.
+    constraints:
+      class: generate
+      task: faithful summary of a long technical document
+      context_tokens_at_least: null
+      open_weights: false
+    audit_request:
+      use_case: summarization
+      limit: 3
+
+  - id: Q10
+    question: >
+      Choose a high-volume assistant whose input price is at most $0.20 per
+      million tokens.
+    constraints:
+      class: generate
+      task: high-volume general assistance
+      price_cap_usd_per_million_input: 0.20
+      price_includes_boundary: true
+      open_weights: false
+    audit_request:
+      use_case: general
+      limit: 3
+      constraints:
+        max_cost_per_million_input_tokens: 0.2
+        price_sensitivity: 0.5
+
+  - id: Q11
+    question: >
+      Choose a low-cost support chatbot whose input price is at most $0.50
+      per million tokens.
+    constraints:
+      class: generate
+      task: customer-support chat
+      price_cap_usd_per_million_input: 0.50
+      price_includes_boundary: true
+      open_weights: false
+    audit_request:
+      use_case: customer_support
+      limit: 3
+      constraints:
+        max_cost_per_million_input_tokens: 0.5
+        price_sensitivity: 0.5
+
+  - id: Q12
+    question: >
+      Choose the best open-weights coding model to self-host, assuming the
+      hardware is adequate.
+    constraints:
+      class: generate
+      task: coding
+      open_weights: true
+      hosting: self_hosted
+      hardware: adequate, no device named
+    audit_request:
+      use_case: coding
+      limit: 3
+      environment:
+        hosting: self_hosted
+
+  - id: Q13
+    question: >
+      Choose an open-weights reasoning model to self-host, assuming the
+      hardware is adequate.
+    constraints:
+      class: generate
+      task: reasoning
+      open_weights: true
+      hosting: self_hosted
+      hardware: adequate, no device named
+    audit_request:
+      use_case: reasoning
+      limit: 3
+      environment:
+        hosting: self_hosted
+
+  - id: Q14
+    question: Which model should interpret charts and technical screenshots?
+    constraints:
+      class: generate
+      modality_in: image
+      task: charts and technical screenshots
+      open_weights: false
+    audit_request:
+      use_case: vision
+      limit: 3
+
+  - id: Q15
+    question: Choose an embedding model for semantic search over English documents.
+    constraints:
+      class: embed
+      task: English document retrieval
+      open_weights: false
+      languages: [English]
+    audit_request:
+      use_case: embedding
+      limit: 3
+
+  - id: Q16
+    question: Choose open-weights embeddings for multilingual semantic search.
+    constraints:
+      class: embed
+      task: multilingual retrieval
+      open_weights: true
+      hosting: self_hosted
+    audit_request:
+      use_case: embedding
+      limit: 3
+      environment:
+        hosting: self_hosted
+
+  - id: Q17
+    question: >
+      Choose a local coding model that runs on one RTX 4090 with 24 GB of
+      VRAM.
+    constraints:
+      class: generate
+      task: coding
+      hosting: local
+      device: one NVIDIA RTX 4090
+      vram_gb: 24
+      quantization: unspecified
+      open_weights: true
+    audit_request:
+      use_case: coding
+      limit: 3
+      environment:
+        hosting: local
+        hardware: nvidia_rtx_4090
+
+  - id: Q18
+    question: Choose a local chat model for a base Apple M4 device.
+    constraints:
+      class: generate
+      task: chat
+      hosting: local
+      device: base Apple M4, product and RAM not named
+      open_weights: true
+    audit_request:
+      use_case: chat
+      limit: 3
+      environment:
+        hosting: local
+        hardware: apple_m4
+
+  - id: Q19
+    question: >
+      Choose a scientific research assistant that can search and use tools.
+    constraints:
+      class: generate
+      task: scientific research with search and tools
+      open_weights: false
+      price_cap_usd_per_million_input: null
+    audit_request:
+      use_case: research_assistant
+      limit: 3
+
+  - id: Q20
+    question: Choose a speech recognition model for transcription.
+    constraints:
+      class: speech_to_text
+      task: transcription
+      language: unspecified
+      streaming: unspecified
+      audio_length: unspecified
+    audit_request:
+      use_case: speech_to_text
+      limit: 3

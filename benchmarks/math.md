@@ -58,7 +58,7 @@ lineage:
   family: ""
   predecessor: ""
   successors: ["omni_math"]
-  variants: ["math_500"]
+  variants: ["math_500", "math_lvl5"]
 saturation:
   status: unknown
   top_score: null

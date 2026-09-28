@@ -675,7 +675,7 @@ benchmarks:
     arena_elo_hard_prompts: 1340.1
     arena_elo_style_control: 1334.2
     gsm8k: 96.8
-    math_500: 73.8
+    math: 73.8
     medqa: 82.9
   evidence:
   - benchmark_id: gsm8k
@@ -690,12 +690,25 @@ benchmarks:
     benchmark_version: GSM-8K (CoT)
     configuration: 'Meta Llama 3.1 model card, instruction-tuned table: GSM-8K (CoT), 8-shot, em_maj1@1, 96.8.'
     limitations: ''
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Llama-3.1-405B-Instruct
+    score: 50.92
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-01-27'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-01-27T00:00:00.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.59 points.
+    limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: lmarena.ai, provider-reports, llm-stats, domain-evals
   benchmark_as_of: 2026-04
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: math_500 holds Meta''s MATH
-    (CoT, 0-shot, final_em) 73.8 for Llama 3.1 405B Instruct, from the Llama 3.1 MODEL_CARD.md. Each value is confirmed
-    for this exact model but is not the benchmark its key names, so it stays in the flat block and is not promoted
-    to evidence.'
+  benchmark_notes: 'MODEL-154, read 2026-09-24: moved 73.8 from math_500 to math, the full MATH test. This resolves
+    the MODEL-116 overlap noted by MODEL-125. Lab-reported method: 0-shot CoT, final_em. Source: https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md.
+    This remains a legacy flat value; no independent verification is claimed.'
 deployment:
   api_only: false
   local_inference: true
@@ -805,7 +818,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 35.0
+  api_tps_output: null
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

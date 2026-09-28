@@ -42,6 +42,26 @@ app = typer.Typer(
 app.add_typer(_offline.app, name="offline")
 app.add_typer(_offline.snapshot_app, name="snapshot")
 
+# The decision contract (MODEL-135). Parses and validates a spec; the engine
+# behind it lands in MODEL-141/142/145.
+from . import decide_cmd as _decide_cmd  # noqa: E402
+
+app.command("decide")(_decide_cmd.decide)
+
+from . import vocab_cmd as _vocab_cmd  # noqa: E402
+
+app.command("vocab", cls=_offline.ContractCommand)(_vocab_cmd.vocab)
+
+# The decision snapshot (MODEL-138): a new subcommand beside `fetch` and `status`.
+from . import snapshot_build_cmd as _snapshot_build_cmd  # noqa: E402
+
+_offline.snapshot_app.command("build", cls=_offline.ContractCommand)(_snapshot_build_cmd.build)
+
+# Two-key verification (MODEL-140): re-reads queued values from their sources.
+from . import verify_cmd as _verify_cmd  # noqa: E402
+
+app.add_typer(_verify_cmd.app, name="verify")
+
 console = Console()
 
 # ───────────────────────────────────────────────────────────────

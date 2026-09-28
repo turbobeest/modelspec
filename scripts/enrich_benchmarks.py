@@ -891,61 +891,6 @@ def _parse_arena_response(data: Any) -> dict[str, dict[str, float]]:
     return result
 
 
-def try_fetch_artificial_analysis() -> dict[str, dict[str, float]]:
-    """Attempt to fetch data from Artificial Analysis API."""
-    try:
-        import httpx
-    except ImportError:
-        return {}
-
-    urls_to_try = [
-        "https://artificialanalysis.ai/api/v1/models",
-        "https://artificialanalysis.ai/api/models",
-    ]
-
-    for url in urls_to_try:
-        try:
-            with httpx.Client(timeout=10.0, follow_redirects=True) as client:
-                resp = client.get(url)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    parsed = _parse_aa_response(data)
-                    if parsed:
-                        print(f"  [LIVE] Fetched {len(parsed)} models from {url}")
-                        return parsed
-        except Exception:
-            continue
-
-    return {}
-
-
-def _parse_aa_response(data: Any) -> dict[str, dict[str, float]]:
-    """Parse Artificial Analysis API response."""
-    result = {}
-
-    models_list = data if isinstance(data, list) else data.get("data", data.get("models", []))
-    if not isinstance(models_list, list):
-        return result
-
-    for entry in models_list:
-        if not isinstance(entry, dict):
-            continue
-        name = entry.get("model", entry.get("name", entry.get("model_name", "")))
-        quality = entry.get("quality_index", entry.get("quality", None))
-        speed = entry.get("speed_index", entry.get("speed", None))
-        if name and (quality or speed):
-            slug = slugify(name)
-            scores: dict[str, float] = {}
-            if quality is not None:
-                scores["artificial_analysis_quality_index"] = float(quality)
-            if speed is not None:
-                scores["artificial_analysis_speed_index"] = float(speed)
-            if scores:
-                result[slug] = scores
-
-    return result
-
-
 # ═══════════════════════════════════════════════════════════════
 # Main
 # ═══════════════════════════════════════════════════════════════
@@ -958,7 +903,6 @@ def main():
     # Step 1: Try live data (best-effort, non-blocking)
     print("\n[1/4] Attempting live data fetch...")
     live_arena = try_fetch_live_arena_data()
-    live_aa = try_fetch_artificial_analysis()
 
     # Merge live data into curated (curated takes precedence for keys we already have)
     merged_arena = dict(ARENA_SCORES)
@@ -967,23 +911,11 @@ def main():
             merged_arena[k] = v
 
     merged_benchmarks = dict(BENCHMARK_SCORES)
-    for k, v in live_aa.items():
-        if k not in merged_benchmarks:
-            merged_benchmarks[k] = v
-        else:
-            # Merge AA fields into existing entry (don't overwrite)
-            for field, score in v.items():
-                if field not in merged_benchmarks[k]:
-                    merged_benchmarks[k][field] = score
 
     if live_arena:
         print(f"  Live Arena data: {len(live_arena)} models")
     else:
         print("  Live Arena data: unavailable, using curated data")
-    if live_aa:
-        print(f"  Live Artificial Analysis data: {len(live_aa)} models")
-    else:
-        print("  Live Artificial Analysis data: unavailable, using curated data")
 
     print(f"  Curated Arena entries: {len(merged_arena)}")
     print(f"  Curated benchmark entries: {len(merged_benchmarks)}")

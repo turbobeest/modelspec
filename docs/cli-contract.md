@@ -6,13 +6,70 @@ first among them. This is what they can rely on.
 ## The interface
 
 ```
-modelspec snapshot fetch [--origin URL] [--api-key KEY]
-                                          download the published export (the only networked command)
-modelspec snapshot status [--json]        what is cached, how old, which build
+modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
+                                          download the rank snapshot and, when available,
+                                          the decision snapshot and vocabulary
+                                          (the only networked command)
+modelspec snapshot status [--json]        what is cached, how old, which build or decision
+modelspec vocab [SECTION] [--json]        inspect the cached decision vocabulary
+modelspec decide SPEC.yaml --check        validate a spec without running a decision
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
 ```
+
+`modelspec decide [SPEC.yaml] [--template ID] [--check] [--explain …] [--json]`
+is the decision engine's command (MODEL-135). It speaks the **decision
+contract**, which is versioned on its own (`contract_version`) and documented in
+[`decision-contract.md`](decision-contract.md). With neither `--snapshot-file`
+nor `MODELSPEC_DECISION_SNAPSHOT`, it reads the decision snapshot cached by
+`modelspec snapshot fetch`. It makes no network request itself.
+
+`modelspec vocab` reads only the vocabulary selected by `decision/current`.
+With no section it prints the snapshot ID, section counts, and the next command
+to run. The sections are `facets`, `benchmarks`, `domains`, `providers`,
+`task-types`, `coverage`, and `templates`. Human output uses compact tables. In the JSON
+envelope, `result` contains the selected section or the complete vocabulary
+when no section is given. `--search TEXT` matches IDs and labels or names. `--domain DOMAIN`
+limits benchmarks to a domain. `--class CLASS` limits benchmarks to domains
+where that class has verified coverage. The vocabulary does not declare facet
+applicability by class, so `--class` does not remove facets. A missing cache
+exits 3 and tells the caller to run `modelspec snapshot fetch`.
+
+`modelspec decide SPEC.yaml --check` loads the cached decision snapshot, parses
+the spec with decide's registry, and runs decide's resolve stage. It stops before
+filtering and optimisation. Vocabulary coverage is advisory: accepted facets,
+benchmarks, domains, providers, or task types that have no published vocabulary
+row produce a warning and do not change the exit code. Resolve failures use the
+same `decision_failed` code as a real decision. Success exits 0 and reports the
+Must count, Prefer count, and snapshot pin. If a spec pins another snapshot, the
+command warns but still succeeds. `--json` applies to both success and failure.
+
+`--template ID` reads the template from that cached vocabulary and expands its
+`spec` fragment on the client. With an optional spec file, top-level file fields
+win and the template's `where` conditions come before the file's `where`
+conditions. `--check` validates the expanded spec without running a decision.
+`modelspec vocab templates` lists the cached rows. An unknown ID exits 1 and
+lists every valid ID. Templates add no decision-spec field and do not change
+either the decision contract version or the CLI JSON envelope version.
+
+`modelspec decide SPEC.yaml --compare-to SNAPSHOT_ID` reruns the same spec on
+the current cached decision snapshot and a retained generation, then reports
+the model-grained difference. `previous` selects the retained non-current
+generation; a path to a local snapshot `.gz` is also accepted. A missing ID
+exits 1 and lists the cached IDs. The command never downloads history because
+the origin does not publish old snapshots. Comparison ignores the spec's own
+`snapshot` pin and says so in human output.
+
+Human output starts with entered and left counts (and a changed top model when
+applicable), followed by one line per changed model. `--json` uses the common
+`schema_version`, `command`, `freshness`, `result` envelope. The result includes
+`changed`, old and new snapshot IDs and `as_of` dates, the old and new status,
+counts, and model rows for entries, departures and their Must reason, rank and
+`may_qualify` changes, and changed price, capability, or Must values with record
+IDs where the decision exposes them. `spec_snapshot_ignored` records whether
+the input spec contained a non-`latest` pin. No change is a successful result with
+`changed: false`; both changed and unchanged comparisons exit 0.
 
 Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
@@ -26,6 +83,20 @@ is an option on `snapshot fetch`; it defaults to `https://modelspec.dev`.
 `--api-key` is an option on `snapshot fetch` too; it has no default and the
 supported way to supply one is the `MODELSPEC_API_KEY` environment variable
 (see "A keyed origin" below).
+
+The rank export is the required result of `snapshot fetch`. The decision
+snapshot and vocabulary are optional. The command tries the requested origin
+first. If that origin returns 404 for a decision route or cannot answer that
+route, the command tries `https://modelspec.dev` without an API key. If neither
+origin supplies a valid matching pair, the command keeps the existing decision
+cache and still completes the rank fetch. Human output reports `decision
+unavailable`; `--json` reports the same result in
+`result.decision_snapshot.available` and `result.decision_snapshot.error`.
+The cache stores each matching pair under
+`decision/<snapshot_id>/{snapshot.json.gz,vocabulary.json}` and commits a fetch
+by atomically replacing the text file `decision/current`. A fetch therefore
+leaves readers on either the complete old generation or the complete new one;
+after the switch, cleanup keeps the current and previous generations.
 
 `class-fit` accepts a task description as its argument plus `--emits`,
 `--consumes` (comma-separated), `--decides`, `--json` and `--require-fresh`.
@@ -96,6 +167,20 @@ The stable envelope fields are `schema_version`, `command`, `freshness`, and
 --json` uses the same envelope: its `result` contains `present`, `path`, and
 `size_bytes` when a snapshot exists; for an absent snapshot, `freshness` is
 `null` and `result` contains `present: false` and `message`.
+
+`snapshot status --json` also adds `result.decision_snapshot`. This additive
+object always has `present` and `path`. When present, it also has `snapshot_id`,
+`as_of`, `age_days`, `valid`, `signature_verified`, `signature_status`, and
+`signature_key_id` when valid. A corrupt
+cached file has `present: true`, `valid: false`, and `error`; it does not change
+the rank snapshot's status or exit code. `age_days` is the age of the
+cached file, not the snapshot's `as_of` date. The CLI verifies Ed25519 offline
+against its pinned key set and reports `signature_verified: true`. Before the
+first key is provisioned, it reports
+`unsigned (ed25519 key not yet provisioned)` and `signature_verified: false`.
+The fetch always checks the decision snapshot's `content_hash` and
+that its `snapshot_id` derives from that hash before it replaces any cached
+file.
 
 `offline rank --json` keeps `result` as the ranked list promised by schema 1.0.
 It adds `ranking_status`, `ranked_count`, and `unranked_count` at the envelope
@@ -446,6 +531,33 @@ freezes that kind to exactly those eight cards.
 `schema_version` stays `"1.0"`; `rank` and `fit` are unchanged. The
 `policy-check` endpoint is MODEL-80.
 
+### Two sources' data removed, without a bump (MODEL-117)
+
+On 2026-09-24 every value from two sources whose terms do not permit this
+project's use was removed from the catalogue, with the benchmarks they own.
+`build.export_schema_version` stays **3.0**, `rankings.json` stays `"2.0"` and
+the CLI envelope stays `"1.0"`, because no contract field's range widened:
+
+* **Every removed value lived in a collection that was already variable.**
+  Per-card `benchmarks.scores` maps and `benchmarks.evidence` lists,
+  `benchmark_scores` and `verified_benchmarks` in `candidates.json`, the
+  profile `benchmark_weights` and `benchmark_ranges` maps in `profiles.json`,
+  `/api/benchmarks/<id>.json` files, `catalogue.json`'s `active_ids` and its
+  `counts` map (keyed by the statuses present; `historical` was already
+  absent), and the eligibility report's accepted results. A consumer that
+  handled an empty or shorter collection before handles this one.
+* **No field that was always present is now absent.** The card slot
+  `sources.<name>_url` for the removed source stays, as `""`, the value every
+  other card already had. Removing the slot itself would be a removal under the
+  promise above and would need a bump; that is Jamie's call.
+* **Nothing became nullable that was not.** `inference_performance.api_tps_output`
+  (now `null` on the 139 cards whose value came from the removed source) and a
+  benchmark page's `saturation.top_score` were already `null` on most cards and
+  pages.
+* **No enum gained a value.** The catalogue can now hold **zero** active
+  benchmarks. `active` is still a disposition, and an empty active set is a
+  state the eligibility gate always allowed: it fails closed.
+
 ### Deprecated: CLIs older than MODEL-53
 
 CLIs older than #56 (MODEL-53, merge `1d8dd53`) are unsupported. They raise
@@ -622,6 +734,8 @@ put in a URL**, never written into the cached snapshot, and never printed: it
 is held in a `Credential` whose `repr` and `str` emit a 12-character `key_id`
 (the SHA-256 prefix the origin logs) instead of the secret, and every message
 `snapshot fetch` writes is passed through a redaction backstop on the way out.
+The public decision fallback uses a separate client with no authorization
+header, so the keyed origin's credential cannot reach `modelspec.dev`.
 `test_the_key_appears_in_no_output_no_error_and_no_cached_file` drives every
 branch of the command with a known key and searches stdout, stderr, the
 origin's access log and the cached snapshot for it.

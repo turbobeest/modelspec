@@ -92,6 +92,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice G"
   reviewed: ""
   reviewed_by: ""
+domains:
+  - {id: maths, directness: direct}
+  - {id: multilingual, directness: direct}
 ---
 
 ## What it measures

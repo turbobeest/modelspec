@@ -65,11 +65,15 @@ USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 USDC_DECIMALS = 6
 USDC_EXTRA = {"name": "USDC", "version": "2"}
 
-#: PLACEHOLDER price range, $0.001–$0.01 at 6 decimals. The price itself is config.
-PRICE_ATOMIC_MIN = 1000
-PRICE_ATOMIC_MAX = 10000
-DEFAULT_PRICE_ATOMIC = 1000  # PLACEHOLDER $0.001 USDC
+#: The smallest card pack costs $5 for 1,250 credits: $0.004 per credit.
+#: Production derives this from ``billing.prices``; the constant is only the
+#: fallback for a policy that cannot be loaded while x402 is disabled.
+DEFAULT_PRICE_ATOMIC = 4000
 MAX_TIMEOUT_SECONDS = 60
+PRICE_COMPATIBILITY_NOTE = (
+    "Live price: keyed requests show the smallest offered pack; "
+    "keyless requests show this call's weighted price."
+)
 
 _SWITCH_OFF = frozenset({"", "0", "false", "no", "off"})
 _ADDR = re.compile(r"^0x[0-9a-fA-F]{40}$")
@@ -89,6 +93,17 @@ def _attr(env: Any, name: str, default: str = "") -> str:
 
 
 @dataclass(frozen=True)
+class PackOffer:
+    name: str
+    credits: int
+    usd: int
+
+    @property
+    def atomic(self) -> int:
+        return self.usd * (10 ** USDC_DECIMALS)
+
+
+@dataclass(frozen=True)
 class Config:
     enabled: bool
     mainnet: bool
@@ -98,23 +113,38 @@ class Config:
     price_atomic: int
     facilitator_url: str
     resource_origin: str
+    packs: tuple[PackOffer, ...] = ()
 
     @property
     def configured(self) -> bool:
-        return bool(self.pay_to) and _ADDR.match(self.pay_to) is not None and (
-            PRICE_ATOMIC_MIN <= self.price_atomic <= PRICE_ATOMIC_MAX)
+        return (bool(self.pay_to) and _ADDR.match(self.pay_to) is not None
+                and self.price_atomic > 0)
 
     @property
     def asset_name(self) -> str:
         return "USDC"
 
 
+def packs_from_policy(policy: Any) -> tuple[PackOffer, ...]:
+    """The card pack table, projected for x402 without copying its values."""
+    rows = (
+        PackOffer(row.name, row.credits, row.usd)
+        for row in policy.billing.prices.values()
+        if row.kind == "pack"
+    )
+    return tuple(sorted(rows, key=lambda row: (row.usd, row.credits, row.name)))
+
+
 def load_config(env: Any) -> Config:
-    price_raw = _attr(env, "X402_PRICE_ATOMIC", str(DEFAULT_PRICE_ATOMIC))
     try:
-        price = int(price_raw)
-    except ValueError:
-        price = -1
+        import access_config
+        packs = packs_from_policy(access_config.load_policy(env))
+    except (ImportError, access_config.PolicyError):
+        packs = ()
+    price = -1
+    if packs:
+        smallest = packs[0]
+        price = smallest.atomic // smallest.credits
     mainnet = flag(getattr(env, "X402_MAINNET", None))
     default_network = NETWORK_BASE if mainnet else NETWORK_BASE_SEPOLIA
     default_asset = USDC_BASE if mainnet else USDC_BASE_SEPOLIA
@@ -128,6 +158,7 @@ def load_config(env: Any) -> Config:
         facilitator_url=_attr(env, "X402_FACILITATOR_URL", DEFAULT_ORIGIN) or DEFAULT_ORIGIN,
         resource_origin=_attr(env, "EXPORT_ORIGIN", "https://api.modelspec.dev")
         or "https://api.modelspec.dev",
+        packs=packs,
     )
 
 
@@ -197,17 +228,23 @@ def _authorization(payload: dict[str, Any]) -> dict[str, Any]:
     return auth if isinstance(auth, dict) else {}
 
 
-def requirements_for(config: Config, resource_url: str, description: str) -> dict[str, Any]:
+def requirements_for(config: Config, resource_url: str, description: str, *,
+                     amount_atomic: int | None = None,
+                     credits_bought: int | None = None) -> dict[str, Any]:
+    amount = config.price_atomic if amount_atomic is None else int(amount_atomic)
     return {
         "scheme": SCHEME,
         "network": config.network,
-        "amount": str(config.price_atomic),
+        "amount": str(amount),
         "asset": config.asset,
         "payTo": config.pay_to,
         "maxTimeoutSeconds": MAX_TIMEOUT_SECONDS,
-        "extra": dict(USDC_EXTRA),
+        "extra": {
+            **USDC_EXTRA,
+            **({"credits": credits_bought} if credits_bought is not None else {}),
+        },
         # v1 clients still look for these:
-        "maxAmountRequired": str(config.price_atomic),
+        "maxAmountRequired": str(amount),
         "resource": resource_url,
         "description": description,
         "mimeType": "application/json",
@@ -216,7 +253,9 @@ def requirements_for(config: Config, resource_url: str, description: str) -> dic
 
 def payment_required_object(config: Config, resource_url: str, *,
                             message: str = "PAYMENT-SIGNATURE header is required",
-                            description: str = "ModelSpec paid result") -> dict[str, Any]:
+                            description: str = "ModelSpec paid result",
+                            offer_packs: bool = False,
+                            units: int = 1) -> dict[str, Any]:
     """x402 v2 PaymentRequired, for the PAYMENT-REQUIRED header."""
     return {
         "x402Version": X402_VERSION,
@@ -226,15 +265,41 @@ def payment_required_object(config: Config, resource_url: str, *,
             "description": description,
             "mimeType": "application/json",
         },
-        "accepts": [requirements_for(config, resource_url, description)],
+        "accepts": [
+            requirements_for(
+                config, resource_url, pack.name,
+                amount_atomic=pack.atomic, credits_bought=pack.credits)
+            for pack in config.packs
+        ] if offer_packs and config.packs else [requirements_for(
+            config, resource_url, description,
+            amount_atomic=config.price_atomic * max(1, int(units)),
+            credits_bought=max(1, int(units)),
+        )],
     }
 
 
 def payment_required_body(config: Config, envelope: dict[str, Any], resource_url: str, *,
                           message: str = "this resource requires payment",
-                          code: str = PAYMENT_REQUIRED) -> dict[str, Any]:
-    required = payment_required_object(config, resource_url, message=message)
+                          code: str = PAYMENT_REQUIRED,
+                          offer_packs: bool = False,
+                          units: int = 1) -> dict[str, Any]:
+    required = payment_required_object(
+        config, resource_url, message=message, offer_packs=offer_packs, units=units)
     accepts = required["accepts"]
+    quoted_credits = max(1, int(units))
+    amount = config.price_atomic * quoted_credits
+    if offer_packs and config.packs:
+        amount = config.packs[0].atomic
+        quoted_credits = config.packs[0].credits
+    packs = [{
+        "name": pack.name,
+        "credits": pack.credits,
+        "price": {
+            "amount": str(pack.atomic), "atomic": pack.atomic, "usd": pack.usd,
+            "asset": config.asset, "network": config.network, "currency": "USDC",
+        },
+        "payTo": config.pay_to,
+    } for pack in config.packs]
     return {
         **envelope,
         "error": {
@@ -242,24 +307,25 @@ def payment_required_body(config: Config, envelope: dict[str, Any], resource_url
             "message": message,
             "x402Version": X402_VERSION,
             "price": {
-                "amount": str(config.price_atomic),
-                "atomic": config.price_atomic,
-                "usd": config.price_atomic / (10 ** USDC_DECIMALS),
+                "amount": str(amount),
+                "atomic": amount,
+                "usd": amount / (10 ** USDC_DECIMALS),
                 "asset": config.asset,
                 "network": config.network,
                 "currency": "USDC",
-                "placeholder": True,
-                "placeholder_note": (
-                    "PLACEHOLDER price in the $0.001–$0.01 range; not a live rate."
-                ),
+                "credits": quoted_credits,
+                "placeholder": False,
+                "placeholder_note": PRICE_COMPATIBILITY_NOTE,
             },
+            **({"packs": packs} if offer_packs and packs else {}),
             "payTo": config.pay_to,
             "resource": resource_url,
             "accepts": accepts,
             "how_to_pay": (
                 "Retry with a PAYMENT-SIGNATURE header as in x402 v2 "
                 "(https://www.x402.org / specs/transports-v2/http.md). "
-                f"Pay {config.price_atomic} atomic USDC ({config.network}) to {config.pay_to}."
+                f"Pay one accepted amount in atomic USDC ({config.network}) to "
+                f"{config.pay_to}."
             ),
         },
         "result": [],
@@ -295,13 +361,16 @@ def _error(envelope: dict[str, Any], status: int, code: str, message: str,
 
 
 def is_billable_success(status: int, body: dict[str, Any]) -> bool:
-    """One unit is drawn down only for a delivered result: HTTP 200 with a non-empty result."""
+    """Credits move only for an HTTP 200 with a non-empty rank or decision answer."""
     if status != HTTP_OK:
         return False
     if body.get("error"):
         return False
-    result = body.get("result")
-    return isinstance(result, list) and len(result) > 0
+    for name in ("result", "results"):
+        result = body.get(name)
+        if isinstance(result, list):
+            return len(result) > 0
+    return False
 
 
 def _units_bought(payload: dict[str, Any], price: int) -> int:
@@ -402,9 +471,9 @@ async def charge(
 ) -> tuple[int, dict[str, Any]]:
     """Verify and settle, then produce. Returns (status, body). Headers via http_headers.
 
-    A keyed request that cannot reserve `units` credits is a free answer plus
-    an exhausted field when `produce_unfunded` is supplied; otherwise (and for
-    keyless callers) it is HTTP 402 while the flag is on.
+    While x402 is disabled, a keyed request that cannot reserve `units`
+    credits can use `produce_unfunded`. While x402 is enabled, every unfunded
+    keyed request receives the pack offer needed to buy credits.
     """
     log = trace or ChargeTrace()
     weight = max(1, int(units))
@@ -414,7 +483,7 @@ async def charge(
     clock = moment.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     async def _unfunded(available: int) -> tuple[int, dict[str, Any]]:
-        if produce_unfunded is not None and holder:
+        if not config.enabled and produce_unfunded is not None and holder:
             log.note("unfunded_free")
             status, body = await produce_unfunded()
             return status, attach_exhausted(
@@ -422,7 +491,8 @@ async def charge(
         log.note("unfunded")
         return HTTP_PAYMENT_REQUIRED, payment_required_body(
             config, envelope, resource_url,
-            message="no prepaid credit remains; PAYMENT-SIGNATURE is required")
+            message="no prepaid credit remains; PAYMENT-SIGNATURE is required",
+            offer_packs=bool(holder), units=weight)
 
     if not config.enabled:
         log.note("disabled")
@@ -456,7 +526,7 @@ async def charge(
     if payload is not None:
         status, body, oneshot = await _settle_and_credit(
             config, ledger, facilitator, payload, holder, resource_url, envelope, log,
-            pack_expiry_days=pack_expiry_days, now=moment)
+            pack_expiry_days=pack_expiry_days, now=moment, units=weight)
         if status is not None:
             return status, body
 
@@ -478,7 +548,8 @@ async def charge(
             log.note("oneshot")
         else:
             log.note("unfunded")
-            return HTTP_PAYMENT_REQUIRED, payment_required_body(config, envelope, resource_url)
+            return HTTP_PAYMENT_REQUIRED, payment_required_body(
+                config, envelope, resource_url, offer_packs=False, units=weight)
 
         log.note("produce")
         status, body = await produce()
@@ -542,6 +613,7 @@ async def _settle_and_credit(
     log: ChargeTrace,
     pack_expiry_days: int = 365,
     now: datetime | None = None,
+    units: int = 1,
 ) -> tuple[int | None, dict[str, Any], bool]:
     """Verify, settle, credit. Returns (status, body, oneshot). status set means stop."""
     problem = _check_payload(payload, config)
@@ -555,8 +627,20 @@ async def _settle_and_credit(
             envelope, HTTP_BAD_REQUEST, INVALID_PAYMENT,
             "payment payload has no nonce and signature")[1], False
 
-    units = _units_bought(payload, config.price_atomic)
-    if units < 1:
+    paid_atomic = int(str(_authorization(payload).get("value") or "0"))
+    pack = next((row for row in config.packs if row.atomic == paid_atomic), None)
+    bought_units = pack.credits if holder and pack is not None else _units_bought(
+        payload, config.price_atomic)
+    expected_oneshot = config.price_atomic * max(1, int(units))
+    if holder and config.packs and pack is None:
+        return HTTP_BAD_REQUEST, _error(
+            envelope, HTTP_BAD_REQUEST, INVALID_PAYMENT,
+            "a keyed x402 payment must match one offered pack price")[1], False
+    if holder is None and config.packs and paid_atomic != expected_oneshot:
+        return HTTP_BAD_REQUEST, _error(
+            envelope, HTTP_BAD_REQUEST, INVALID_PAYMENT,
+            "a keyless x402 payment must match this call's price")[1], False
+    if bought_units < 1:
         return HTTP_BAD_REQUEST, _error(
             envelope, HTTP_BAD_REQUEST, INVALID_PAYMENT,
             "payment does not cover one result")[1], False
@@ -567,12 +651,15 @@ async def _settle_and_credit(
             if holder is None:
                 return HTTP_PAYMENT_REQUIRED, payment_required_body(
                     config, envelope, resource_url,
-                    message="that payment has already been settled"), False
+                    message="that payment has already been settled",
+                    offer_packs=False, units=units), False
             return None, {}, False
     except credits.StoreNotConfigured:
         pass
 
-    requirements = requirements_for(config, resource_url, "ModelSpec paid result")
+    requirements = requirements_for(
+        config, resource_url, pack.name if pack else "ModelSpec paid result",
+        amount_atomic=paid_atomic, credits_bought=bought_units)
 
     log.note("verify")
     try:
@@ -585,7 +672,7 @@ async def _settle_and_credit(
         return HTTP_PAYMENT_REQUIRED, payment_required_body(
             config, envelope, resource_url,
             message=f"payment verification failed: {verified.invalid_reason or 'invalid'}",
-            code=PAYMENT_FAILED), False
+            code=PAYMENT_FAILED, offer_packs=bool(holder), units=units), False
 
     log.note("settle")
     try:
@@ -598,7 +685,7 @@ async def _settle_and_credit(
         return HTTP_PAYMENT_REQUIRED, payment_required_body(
             config, envelope, resource_url,
             message=f"payment settlement failed: {settled.error_reason or 'failed'}",
-            code=PAYMENT_FAILED), False
+            code=PAYMENT_FAILED, offer_packs=bool(holder), units=units), False
 
     log.settlement = {
         "success": True,
@@ -612,7 +699,7 @@ async def _settle_and_credit(
     expires_at = pack_expires_at(now or datetime.now(UTC), pack_expiry_days)
     try:
         result = await ledger.credit(
-            credit_holder, pid, units, settled.transaction,
+            credit_holder, pid, bought_units, settled.transaction,
             expires_at=expires_at, source="x402")
     except credits.StoreNotConfigured:
         if holder is None:
@@ -626,10 +713,11 @@ async def _settle_and_credit(
         log.note("replay")
         return HTTP_PAYMENT_REQUIRED, payment_required_body(
             config, envelope, resource_url,
-            message="that payment has already been settled"), False
+            message="that payment has already been settled",
+            offer_packs=bool(holder), units=units), False
 
     if holder is None:
-        burned = await ledger.reserve(credit_holder, units)
+        burned = await ledger.reserve(credit_holder, bought_units)
         if burned.ok and burned.reservation_id is not None:
             await ledger.commit(credit_holder, burned.reservation_id)
         log.note("oneshot")

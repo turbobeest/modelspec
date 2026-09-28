@@ -1,82 +1,22 @@
 page_url: "https://x.ai/news/grok-4-6"
 publisher: "xAI"
 read_on: "2026-09-24"
+phase: "phase2a"
 charts:
   - title: "Benchmark comparison"
     kind: html_table
-    footnotes: "Competitor figures are drawn from the developers' published system cards or benchmark leaderboards. Column headers are Grok 4.6 High, Grok 4.5 High, GPT-5.6 Sol Max, and Fable 5 Max. AA Intelligence Index and GDPVal-AA are not percents. A dash for GPT-5.6 Sol on APEX-SWE is omitted."
+    footnotes: "Competitor figures are drawn from the developers' published system cards or benchmark leaderboards. Column headers are Grok 4.6 High, Grok 4.5 High, GPT-5.6 Sol Max, and Fable 5 Max. A dash for GPT-5.6 Sol on APEX-SWE is omitted."
     competitor_numbers: official_reports
     readings:
       - reader: grok-build-4.7
         date: "2026-09-24"
       - reader: claude-opus
         date: "2026-09-24"
+      - reader: claude-sonnet
+        date: "2026-09-24"
     bars:
       - model_as_labelled: "Grok 4.6"
-        model_id: "xai/grok-4-6"
-        benchmark_id: artificial_analysis
-        score: 61
-        unit: "score"
-        printed: true
-        configuration: "Intelligence Index. High, High, Max, Max."
-        role: subject
-      - model_as_labelled: "Grok 4.5"
-        model_id: "xai/grok-4-5"
-        benchmark_id: artificial_analysis
-        score: 56
-        unit: "score"
-        printed: true
-        configuration: "Intelligence Index. High, High, Max, Max."
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: artificial_analysis
-        score: 61
-        unit: "score"
-        printed: true
-        configuration: "Intelligence Index. High, High, Max, Max."
-        role: competitor
-      - model_as_labelled: "Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: artificial_analysis
-        score: 62
-        unit: "score"
-        printed: true
-        configuration: "Intelligence Index. High, High, Max, Max."
-        role: competitor
-      - model_as_labelled: "Grok 4.6"
-        model_id: "xai/grok-4-6"
-        benchmark_id: gdpval_aa
-        score: 1753
-        unit: "elo"
-        printed: true
-        configuration: "GDPVal-AA v2 Elo."
-        role: subject
-      - model_as_labelled: "Grok 4.5"
-        model_id: "xai/grok-4-5"
-        benchmark_id: gdpval_aa
-        score: 1526
-        unit: "elo"
-        printed: true
-        configuration: "GDPVal-AA v2 Elo."
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: gdpval_aa
-        score: 1728
-        unit: "elo"
-        printed: true
-        configuration: "GDPVal-AA v2 Elo."
-        role: competitor
-      - model_as_labelled: "Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: gdpval_aa
-        score: 1741
-        unit: "elo"
-        printed: true
-        configuration: "GDPVal-AA v2 Elo."
-        role: competitor
-      - model_as_labelled: "Grok 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xai/grok-4-6"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench v3.2"
@@ -86,6 +26,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "Grok 4.5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "xai/grok-4-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench v3.2"
@@ -95,6 +36,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench v3.2"
@@ -104,6 +46,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-sonnet"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "CursorBench v3.2"
@@ -113,6 +56,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Grok 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-6"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -122,6 +66,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "Grok 4.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -131,6 +76,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -140,6 +86,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -149,6 +96,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Grok 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-6"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -158,6 +106,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "Grok 4.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -167,6 +116,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -176,6 +126,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode v1.1 (Extended)"
@@ -185,6 +136,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Grok 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-6"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -194,6 +146,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "Grok 4.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-5"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -203,6 +156,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -212,6 +166,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "APEX-Agents"
@@ -221,6 +176,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Grok 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-6"
         benchmark_id: terminal_bench_3_0
         score: 26
@@ -229,6 +185,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "Grok 4.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-5"
         benchmark_id: terminal_bench_3_0
         score: 15.7
@@ -237,6 +194,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_3_0
         score: 34.6
@@ -245,6 +203,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_3_0
         score: 34.1
@@ -253,6 +212,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Grok 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-6"
         benchmark_id: null
         benchmark_as_labelled: "APEX-SWE"
@@ -262,6 +222,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "Grok 4.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-5"
         benchmark_id: null
         benchmark_as_labelled: "APEX-SWE"
@@ -271,6 +232,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "APEX-SWE"
@@ -280,38 +242,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Grok 4.6"
-        model_id: "xai/grok-4-6"
-        benchmark_id: aa_briefcase
-        score: 1577
-        unit: "elo"
-        printed: true
-        configuration: "High, High, Max, Max."
-        role: subject
-      - model_as_labelled: "Grok 4.5"
-        model_id: "xai/grok-4-5"
-        benchmark_id: aa_briefcase
-        score: 1313
-        unit: "elo"
-        printed: true
-        configuration: "High, High, Max, Max."
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: aa_briefcase
-        score: 1502
-        unit: "elo"
-        printed: true
-        configuration: "High, High, Max, Max."
-        role: competitor
-      - model_as_labelled: "Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: aa_briefcase
-        score: 1574
-        unit: "elo"
-        printed: true
-        configuration: "High, High, Max, Max."
-        role: competitor
-      - model_as_labelled: "Grok 4.6"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-6"
         benchmark_id: null
         benchmark_as_labelled: "Harvey LAB (Vals)"
@@ -321,6 +252,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "Grok 4.5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "xai/grok-4-5"
         benchmark_id: null
         benchmark_as_labelled: "Harvey LAB (Vals)"
@@ -330,6 +262,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Harvey LAB (Vals)"
@@ -339,6 +272,7 @@ charts:
         configuration: "High, High, Max, Max."
         role: competitor
       - model_as_labelled: "Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Harvey LAB (Vals)"
@@ -347,45 +281,3 @@ charts:
         printed: true
         configuration: "High, High, Max, Max."
         role: competitor
-  - title: "AA Intelligence bar chart"
-    kind: html_table
-    footnotes: "The visible tab prints the same AA Intelligence Index values as the table. Other tabs are the same component and the same numbers as the table rows for GDPVal-AA, DeepSWE 1.1, CursorBench 3.2, and FrontierCode 1.1."
-    competitor_numbers: official_reports
-    readings:
-      - reader: grok-build-4.7
-        date: "2026-09-24"
-      - reader: claude-opus
-        date: "2026-09-24"
-    bars:
-      - model_as_labelled: "Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: artificial_analysis
-        score: 62
-        unit: "score"
-        printed: true
-        configuration: "Max. Chart label."
-        role: competitor
-      - model_as_labelled: "Grok 4.6"
-        model_id: "xai/grok-4-6"
-        benchmark_id: artificial_analysis
-        score: 61
-        unit: "score"
-        printed: true
-        configuration: "Chart label, no effort printed on this tab."
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: artificial_analysis
-        score: 61
-        unit: "score"
-        printed: true
-        configuration: "Max."
-        role: competitor
-      - model_as_labelled: "Grok 4.5"
-        model_id: "xai/grok-4-5"
-        benchmark_id: artificial_analysis
-        score: 56
-        unit: "score"
-        printed: true
-        configuration: "High."
-        role: subject

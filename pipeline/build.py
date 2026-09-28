@@ -4,7 +4,8 @@
 
 Pages, the benchmark catalogue and the JSON export are one tree under
 modelspec.dev. benchgraph.dev deploys `_redirects` only: `/` goes to the
-catalogue, and every other path goes to the same path on modelspec.dev.
+modelspec.dev homepage, and every other path goes to the same path on
+modelspec.dev.
 """
 
 from __future__ import annotations
@@ -24,10 +25,10 @@ from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_model
 
 ROBOTS = "User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
 
-#: Cloudflare Pages redirects. `/` is the catalogue; every other path keeps
-#: its path on modelspec.dev. Order matters: the first match wins.
+#: Cloudflare Pages redirects. `/` is the modelspec.dev homepage; every other
+#: path keeps its path on modelspec.dev. Order matters: the first match wins.
 BENCHGRAPH_REDIRECTS = (
-    "/   https://modelspec.dev/benchmarks/  301\n"
+    "/   https://modelspec.dev/             301\n"
     "/*  https://modelspec.dev/:splat       301\n"
 )
 
@@ -36,6 +37,17 @@ BENCHGRAPH_REDIRECTS = (
 API_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/api.md"
 RANK_API = "https://api.modelspec.dev/v1/rank"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
+MODEL_PAGE_MAX_BYTES = 512 * 1024
+
+
+def write_model_page(destination: Path, page: str) -> None:
+    """Write one model page only when it remains suitable for static delivery."""
+    size = len(page.encode("utf-8"))
+    if size > MODEL_PAGE_MAX_BYTES:
+        raise ValueError(
+            f"model page {destination} exceeds the {MODEL_PAGE_MAX_BYTES}-byte budget: {size}"
+        )
+    destination.write_text(page, encoding="utf-8")
 
 
 def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
@@ -48,6 +60,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"Null means not researched.\n\n"
         f"- Machine-readable index: {base}/api/index.json\n"
         f"- Benchmark catalogue: {base}/api/catalogue.json\n"
+        f"- Decide: {base}/decide/\n"
         f"- Rank API: {RANK_API}\n"
         f"- API docs: {API_DOCS}\n"
         f"- MCP: {MCP_ENDPOINT}\n"
@@ -141,7 +154,7 @@ def with_site_nav(html: str, nav: str, page: str) -> str:
 
 
 def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
-    """Write the graph explorer to /graph/ with the site nav and its vendored libraries.
+    """Write the graph explorer to /graph/ with its vendored libraries.
 
     A full-viewport canvas app, so it is copied rather than rendered through the
     document shell. Its libraries are vendored so the page does not depend on a
@@ -152,11 +165,13 @@ def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
         return False
     page = ms / "graph/index.html"
     _inject(explorer, page, "<!-- catalogue-freshness -->", freshness)
-    page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav("ModelSpec", r.MS_NAV),
-                                  "web3d/explorer.html"), encoding="utf-8")
     vendor = root / "web3d/vendor"
-    if vendor.is_dir():
-        shutil.copytree(vendor, ms / "graph/vendor", dirs_exist_ok=True)
+    for name in ("three.min.js", "3d-force-graph.min.js"):
+        source = vendor / name
+        if source.is_file():
+            target = ms / "graph/vendor" / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
     return True
 
 
@@ -271,11 +286,116 @@ def _fallback_home(site: str, headline: str, lede: str, links: list[tuple[str, s
                    build=build, site=site, nav_links=nav)
 
 
-def main(argv: list[str] | None = None) -> int:
+def write_decision_vocabulary(root: Path, snapshot_path: Path, *, key: bytes | None) -> Path:
+    """Write ``vocabulary.json`` beside the snapshot it describes (MODEL-153)."""
+    import json
+
+    from decision import snapshot as decision_snapshot
+    from decision.vocabulary import build_vocabulary
+    from pipeline.load import load_benchmarks, load_models
+
+    loaded = decision_snapshot.load_snapshot(snapshot_path, key=key, include_archive=True)
+    pages = {b.benchmark_id: b.front for b in load_benchmarks(root)}
+    cards = {m.model_id: m.front for m in load_models(root)}
+    target = snapshot_path.parent / "vocabulary.json"
+    target.write_text(
+        json.dumps(
+            build_vocabulary(
+                loaded,
+                pages=pages,
+                cards=cards,
+                enforce_frontier_coverage=True,
+            ),
+            indent=2,
+            ensure_ascii=False,
+            allow_nan=False,
+        ) + "\n",
+        encoding="utf-8",
+    )
+    return target
+
+
+def write_decision_snapshot_if_ready(
+    root: Path,
+    target: Path,
+    *,
+    premier: Path,
+    as_of: date,
+) -> bool:
+    """Publish only a complete, signed snapshot; warn when it is not ready.
+
+    The vocabulary (``vocabulary.json``) is published with it or not at all.
+    """
+    from decision import snapshot as decision_snapshot
+
+    target.unlink(missing_ok=True)
+    (target.parent / "vocabulary.json").unlink(missing_ok=True)
+    key = decision_snapshot.env_key()
+    if key is None:
+        print(
+            f"::warning::decision snapshot not published: {decision_snapshot.KEY_ENV} "
+            "is not configured",
+            file=sys.stderr,
+        )
+        return False
+
+    try:
+        built = decision_snapshot.build_from_repo(root, premier=premier, as_of=as_of)
+    except decision_snapshot.CompletenessError as exc:
+        gaps = " | ".join(str(gap) for gap in exc.gaps[:20])
+        remainder = len(exc.gaps) - 20
+        suffix = f" | {remainder} more gap(s) omitted" if remainder > 0 else ""
+        print(
+            "::warning::decision snapshot not published: completeness gate found "
+            f"{len(exc.gaps)} gaps; first {min(20, len(exc.gaps))}: {gaps}{suffix}",
+            file=sys.stderr,
+        )
+        return False
+    except decision_snapshot.SnapshotError as exc:
+        print(f"::warning::decision snapshot not published: {exc}", file=sys.stderr)
+        return False
+    except Exception as exc:  # noqa: BLE001 - the site still ships without this optional file
+        print(
+            f"::warning::decision snapshot not published: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
+        return False
+
+    try:
+        built.write(target, key=key)
+        write_decision_vocabulary(root, target, key=key)
+    except Exception as exc:  # noqa: BLE001 - the site still ships without this optional file
+        target.unlink(missing_ok=True)
+        (target.parent / "vocabulary.json").unlink(missing_ok=True)
+        print(
+            f"::warning::decision snapshot not published: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="dist", help="output directory (default: dist)")
     parser.add_argument("--root", default=str(REPO_ROOT), help="repository root")
-    args = parser.parse_args(argv)
+    # MODEL-138: off by default. Writes the decision snapshot beside the export,
+    # linked from no page, and fails the build if the completeness gate fails.
+    snapshot = parser.add_mutually_exclusive_group()
+    snapshot.add_argument("--decision-snapshot", action="store_true",
+                          help="also write api/decision/snapshot.json.gz (off by default)")
+    snapshot.add_argument(
+        "--decision-snapshot-if-ready",
+        action="store_true",
+        help="write a complete signed decision snapshot, or warn and continue",
+    )
+    parser.add_argument("--premier", default=None,
+                        help="premier list for the snapshot gate (default premier/slice-1.yaml)")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
 
     root = Path(args.root).resolve()
     out = Path(args.out).resolve()
@@ -301,6 +421,25 @@ def main(argv: list[str] | None = None) -> int:
     (bg / "_redirects").write_text(BENCHGRAPH_REDIRECTS, encoding="utf-8")
 
     counts = exporter.write(ms / "api", models, benchmarks, catalogue, build)
+
+    if args.decision_snapshot:
+        from decision import snapshot as decision_snapshot
+        premier = Path(args.premier) if args.premier else root / "premier" / "slice-1.yaml"
+        try:
+            written = decision_snapshot.build_from_repo(
+                root, premier=premier, as_of=today).write(ms / "api" / "decision" / "snapshot.json.gz")
+            write_decision_vocabulary(root, written, key=decision_snapshot.env_key())
+        except decision_snapshot.SnapshotError as exc:
+            print(f"error: decision snapshot: {exc}", file=sys.stderr)
+            return 2
+    elif args.decision_snapshot_if_ready:
+        premier = Path(args.premier) if args.premier else root / "premier" / "slice-1.yaml"
+        write_decision_snapshot_if_ready(
+            root,
+            ms / "api" / "decision" / "snapshot.json.gz",
+            premier=premier,
+            as_of=today,
+        )
 
     # The graph is derived through the same code path as the FalkorDB ingest, so
     # the published graph and the database cannot disagree about the cards.
@@ -357,6 +496,12 @@ def main(argv: list[str] | None = None) -> int:
 
     bench_by_id = {b.benchmark_id: b for b in benchmarks}
     coverage = exporter.models_by_benchmark(models, benchmarks)
+    strip_assets = ms / "assets" / "benchmark-strips"
+    strip_assets.mkdir(parents=True, exist_ok=True)
+    for benchmark_id, rows in coverage.items():
+        asset = r.benchmark_strip_asset(rows)
+        if asset:
+            (strip_assets / f"{benchmark_id}.svg").write_text(asset, encoding="utf-8")
 
     # modelspec.dev
     pages = {m.model_id for m in models}
@@ -364,10 +509,12 @@ def main(argv: list[str] | None = None) -> int:
     ms_paths = ["/", "/models/", "/providers/"]
     for model in models:
         (ms / "m" / model.model_id).mkdir(parents=True, exist_ok=True)
-        (ms / "m" / model.model_id / "index.html").write_text(
+        write_model_page(
+            ms / "m" / model.model_id / "index.html",
             r.model_page(model, build, bench_by_id, catalogue,
-                         relations.for_model(model.model_id), pages=pages),
-            encoding="utf-8")
+                         relations.for_model(model.model_id), pages=pages,
+                         evidence_coverage=coverage),
+        )
         ms_paths.append(f"/m/{model.model_id}/")
     wizard = root / "web3d/downselect.v2.html"
     if wizard.is_file():
@@ -434,6 +581,12 @@ def main(argv: list[str] | None = None) -> int:
         landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
                                          r.site_nav("ModelSpec", r.MS_NAV),
                                          "site/holding/index.html"), encoding="utf-8")
+        from pipeline.social_profiles import add_same_as
+        landing.write_text(
+            add_same_as(landing.read_text(encoding="utf-8"),
+                        root / "brand" / "social" / "profiles.json"),
+            encoding="utf-8",
+        )
     elif True:
         (ms / "index.html").write_text(_fallback_home(
             "ModelSpec", "ModelSpec",
@@ -442,6 +595,20 @@ def main(argv: list[str] | None = None) -> int:
             [("Every model", "/models/"), ("Providers", "/providers/"),
              ("Benchmark catalogue", "/benchmarks/"), ("API", "/api/index.json")],
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
+
+    # MODEL-186 replaces the old catalogue home. The deploy workflow adds the
+    # separately built decide app at /decide/ after holding derives from here.
+    from pipeline import landing as landing_page
+    landing_data = landing_page.build_data(str(root), today)
+    landing_page.write(ms, landing_data, variant="live")
+    (ms / "decide").mkdir(exist_ok=True)
+    (ms / "decide/index.html").write_text(
+        '<!doctype html><html><head><meta name="robots" content="noindex">'
+        '<link rel="canonical" href="https://modelspec.dev/decide/"></head>'
+        '<body><p>The deploy workflow installs the decision app here.</p></body></html>\n',
+        encoding="utf-8",
+    )
+    ms_paths.append("/decide/")
 
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
@@ -456,6 +623,12 @@ def main(argv: list[str] | None = None) -> int:
     agent_counts = agent_ready.ship(
         root=root, ms=ms, models=models, benchmarks=benchmarks,
         catalogue=catalogue, build=build, by_provider=by_provider)
+    from pipeline.social_profiles import add_same_as
+    home = ms / "index.html"
+    home.write_text(
+        add_same_as(home.read_text(encoding="utf-8"), root / "brand" / "social" / "profiles.json"),
+        encoding="utf-8",
+    )
 
     missing = missing_internal_hrefs(ms)
     if missing:

@@ -15,7 +15,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from decision.snapshot import load_public_keys  # noqa: E402
 from pipeline import agent_ready as ar  # noqa: E402
+from pipeline import brand  # noqa: E402
 from pipeline import build as builder  # noqa: E402
 from pipeline.export import Build  # noqa: E402
 from pipeline.load import Benchmark, Catalogue, Model  # noqa: E402
@@ -66,13 +68,13 @@ def test_robots_txt_has_content_signals_and_keeps_allow_and_sitemap() -> None:
     assert "User-agent: *" in text
 
 
-def test_png_to_ico_wraps_png_without_resampling() -> None:
-    png = _tiny_png(64, 64)
-    ico = ar.png_to_ico(png)
+def test_png_to_ico_wraps_pngs_without_resampling() -> None:
+    small, large = _tiny_png(16, 16), _tiny_png(256, 256)
+    ico = brand.png_to_ico(small, large)
     assert ico[:4] == b"\x00\x00\x01\x00"
-    assert png in ico
-    count = struct.unpack_from("<H", ico, 4)[0]
-    assert count == 1
+    assert small in ico and large in ico
+    assert struct.unpack_from("<H", ico, 4)[0] == 2
+    assert ico[6:8] == b"\x10\x10" and ico[22:24] == b"\x00\x00"
 
 
 def test_wants_markdown_ignores_star_and_html() -> None:
@@ -216,9 +218,9 @@ def test_built_robots_on_modelspec(dist: Path) -> None:
 
 def test_built_favicon_ico(dist: Path) -> None:
     ico = (dist / "modelspec" / "favicon.ico").read_bytes()
-    png = (dist / "modelspec" / "favicon-64.png").read_bytes()
-    assert ico[:4] == b"\x00\x00\x01\x00"
-    assert png in ico
+    assert ico[:6] == b"\x00\x00\x01\x00\x03\x00"
+    for size in (16, 32, 48):
+        assert (ROOT / "brand" / "2a" / "png" / f"modelspec-mark-{size}.png").read_bytes() in ico
     assert not (dist / "benchgraph" / "favicon.ico").exists()
 
 
@@ -267,6 +269,18 @@ def test_built_api_catalog_rfc9727(dist: Path) -> None:
     assert ar.RFC_9727_PROFILE in headers
     assert 'rel="api-catalog"' in headers
     assert (dist / "benchgraph" / ".well-known" / "api-catalog").exists() is False
+
+
+def test_built_site_publishes_the_cli_pinned_snapshot_key_set(dist: Path) -> None:
+    published = dist / "modelspec" / ".well-known" / "modelspec-snapshot-keys.json"
+
+    assert published.read_bytes() == (ROOT / "decision" / "snapshot_keys.json").read_bytes()
+    key_set = json.loads(published.read_text(encoding="utf-8"))
+    assert key_set["format"] == "modelspec.snapshot-keys"
+    assert key_set["version"] == 1
+    assert isinstance(key_set["keys"], list)
+    assert list(load_public_keys(published)) == [row["key_id"] for row in key_set["keys"]]
+    assert not (dist / "benchgraph" / ".well-known" / published.name).exists()
 
 
 def test_built_link_headers(dist: Path) -> None:

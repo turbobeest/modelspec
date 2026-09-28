@@ -672,8 +672,6 @@ benchmarks:
     arena_elo_coding: 1350.0
     arena_elo_math: 1330.0
     arena_elo_overall: 1340.0
-    artificial_analysis_quality_index: 85.0
-    artificial_analysis_speed_index: 73.0
     gpqa_diamond: 68.4
     humaneval: 88.7
     ifeval: 87.2
@@ -805,7 +803,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 78.0
+  api_tps_output: null
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

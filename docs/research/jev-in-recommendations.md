@@ -1,0 +1,344 @@
+# Jev in ModelSpec decisions
+
+**MODEL-112. Measured 2026-09-25–27. Research only. No production path reads these results.**
+
+## Decision
+
+Jev should not replace `parseRealTask`, enter `/v1/decide`, or become verification's
+second key. It led the 60-case blind routing comparison but reached only 61.7% joint
+exact accuracy, and it failed to confirm prose claims that the existing two-key
+process had verified.
+
+Jev also must not attribute numeric Evidence. On the independently labelled blind
+set it recognized 9 of 27 verified rows and rejected every negative, but all 61
+answers were in its `null` band. `gpt-5-mini` accepted only 8 of the 27 verified
+rows. Both arms are dropped for this role.
+
+Keep one narrower candidate for follow-up research:
+
+1. Explanation checking. Jev classified all 16 supported and unsupported sentences
+   correctly at a 174 ms median and $0.038 per 1,000 correct checks.
+
+Separately, do not add a cascade to creator attribution. The earlier MODEL-99 and MODEL-102
+corpus contains 627 verified rows and 383 quarantined rows. Jev made no
+misattributions. The `gpt-5-mini` arm made seven, and the Jev to `gpt-5-mini`
+cascade accepted six of them. The existing Jev-only path and disabled cascade remain
+unchanged.
+
+Every evaluated role obeys the boundary for this work. Jev judges evidence already
+in state. It never supplies a fact. Every Choice has `no_match`. Thresholds and
+arithmetic stay in code. A Jev answer cannot affect ranking, scoring, a reproducible
+Decision, a Determination, or any uncited published claim.
+
+## Where Jev could run
+
+The decide page currently parses task text in the browser with
+`parseRealTask` and sends an explicit Spec to the hosted adapter. The adapter calls
+`POST /v1/decide`; the Worker parses that Spec and runs the shared `decision/` engine
+against its verified Snapshot. `decision.resolve` rejects a free-text-only task in
+slice 1.
+
+Putting a TypeSafe key in the static page would expose it. Any later task-text service
+would therefore run in the Worker with a server-side secret. It should return a draft
+Spec for the caller to inspect and submit, not alter `/v1/decide` or its Decision. At
+the measured mean, the Jev routing call cost $0.0000679 per request. This candidate is
+dropped because 61.7% joint exact is unusable for task-to-Spec routing, even though
+Jev beat the local parser's 26.7%. Cost did not decide the result.
+
+Ingestion attribution and explanation checks belong in offline ingestion and report
+generation. They can select or refuse among supplied rows. The cited row remains the
+source of every displayed fact.
+
+## Jev contract used
+
+TypeSafe documents Jev as a model that evaluates state against typed Choice, Score,
+and Noul questions. Choice returns an option, probabilities, and confidence; Noul
+returns a probability from 0 to 1. Questions in one request run independently against
+the same state. The experiment used `jev-1.13.0`, not a moving alias. TypeSafe listed
+the price as $0.042 per million input tokens with free output, and a 64k request
+context. Source read 2026-09-25:
+[Introduction](https://docs.typesafe.ai/introduction),
+[models and price](https://docs.typesafe.ai/models), and
+[HTTP API](https://docs.typesafe.ai/api).
+
+The policy bands were fixed in code before the paid run:
+
+- `act`: Choice confidence at least 0.90.
+- `flag`: confidence from 0.60 through 0.8999.
+- `null`: confidence below 0.60 or any selected `no_match`.
+
+These are the existing attribution bands from `scripts/attribution.yaml`. The run did
+not tune them.
+
+## Method
+
+### Arms
+
+Every newly paid case sent byte-equivalent state and questions to two arms:
+
+- Jev `jev-1.13.0` through `POST /v1/systemone`.
+- `openai/gpt-5-mini`, the mid baseline from the cost-to-correct harness, through
+  OpenRouter. It received the same JSON state and questions plus only a compact reply
+  shape. Malformed and truncated replies counted as wrong. Prices came from
+  [OpenRouter's model endpoint](https://openrouter.ai/api/v1/models), read
+  2026-09-25.
+
+`parseRealTask` was a third local arm for task routing. The harness executed the real
+TypeScript function against the decide page vocabulary. It did not reimplement its
+regular expressions.
+
+The earlier creator-attribution comparison re-analysed the committed MODEL-99 and MODEL-102 rows.
+The three arms were Jev, `openai/gpt-5-mini`, and the Jev to `openai/gpt-5-mini`
+cascade. The comparison made no new attribution calls. Each arm received the same
+labelled ingestion state in the original runs.
+
+Cost-to-correct is total list-price cost divided by correct answers, multiplied by
+1,000. Latency is wall-clock time on one machine with eight concurrent requests. It
+is an experiment measurement, not an offering speed fact.
+
+### Label sets
+
+The decision-bearing blind sets were committed before either paid arm saw them:
+
+- `tests/fixtures/jev_task_routing_blind_round5.yaml`, commit `cd6517c8`: 60 new,
+  unique task descriptions labelled from the accepted domain and class registries.
+  None occurs in the tuned set or the earlier 24-case pilot. The set separates
+  explicit conditions from words such as “huge,” “long,” “local,” and “open.”
+- `tests/fixtures/jev_evidence_attribution_blind.yaml`, commit `1ce5b452`: 27 real
+  Evidence claims already verified by the two-key process, all 9 available real
+  mismatches, and 25 one-field hard negatives constructed from verified claims.
+  The mutations cover sibling model variants, benchmark version, effort, harness,
+  and unit. Every case loads the retained cited region, registered source URL, and
+  verification date.
+
+The Evidence tests keep only the factual cited text they exercise in
+`tests/fixtures/jev_source_excerpts.yaml`. Each of its 17 entries records the source
+URL, retrieval date, production snapshot hash, region ID, and an independent hash of
+the short committed text. Complete third-party page copies are not redistributed.
+The 61 Evidence-attribution and 21 second-key cases were rerun against these committed
+texts on 2026-09-27. The harness fingerprinted the complete ordered input as
+`sha256:01ac44743f2d0402c2d683988e0c1eb87802cdb8f52deeb481a5c22d4a3f65bd`.
+The result file records that fingerprint, the case counts, the raw-run hash, and the
+rerun spend. A test recomputes the input fingerprint from the committed cases.
+
+The earlier task-routing set is **tuned, not blind**. Its labels changed after paid
+inference: six Q01/Q09 cases were corrected after the first run, then Q08b and Q08c
+were corrected in this review because “very large” and “long” do not state a
+200,000-token minimum. Its result is reported separately and is not presented as
+held-out accuracy.
+
+The original committed inputs also include:
+
+- `tests/fixtures/jev_task_routing.yaml`: 60 task descriptions, three phrasings of
+  each recall question. Labels cover domain, class, and exact extraction of the four
+  text conditions the page currently handles: 200k context, open weights, commercial
+  use, and low latency. The paid arms chose from the full domain and class registries.
+- `tests/fixtures/jev_judgment_labels.yaml`: the MODEL-99 and MODEL-102 attribution
+  sources, 21 second-key cases, and 16 explanation-support cases.
+
+The earlier creator-attribution set uses the ingestion outcomes published for MODEL-99 and MODEL-102
+on 2026-09-20. The verified cohort has 627 real creator-attribution rows. The
+quarantined cohort has 383 `relisted_withheld` rows where every offered organisation
+is wrong and `cannot_establish` is the only correct answer. The committed files are
+`scripts/cost_to_correct_2026-09-20.jsonl.gz`,
+`scripts/cascade_real_2026-09-20.jsonl.gz`, and
+`scripts/cascade_guard_2026-09-20.jsonl.gz`. The original source was
+[`https://models.dev/api.json`](https://models.dev/api.json), read 2026-09-20.
+
+The second-key set uses 12 verified and 9 mismatched production claims whose latest
+two-key outcome came from a prose model reader and whose retained cited region was
+available. The registered sources, all read and verified on 2026-09-25, were the
+[Claude Fable 5.1 system card](https://www.anthropic.com/claude-fable-5-1-system-card),
+[Z.ai privacy policy](https://docs.z.ai/legal-agreement/privacy-policy.md),
+[Alibaba Model Studio privacy notice](https://www.alibabacloud.com/help/en/model-studio/privacy-notice),
+and [Amazon Bedrock data protection](https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html).
+The filed claim and cited region were the whole state. The collector's conclusion and
+the prior verifier's answer were not shown.
+
+The explanation set pairs a generated sentence with one evidence row and its cited
+region. Eight sentences stay within the row. Eight change a value, subject, effort,
+harness, date, or claim more than the row establishes.
+
+### Reproducibility
+
+Run without spending:
+
+```bash
+PYTHONPATH=$PWD python scripts/research/eval_jev_recommendations.py --plan
+python scripts/research/eval_jev_recommendations.py --analyse <run.jsonl>
+```
+
+The paid command requires both keys in environment variables, an output path, and a
+positive `--max-usd` no greater than $5. Before a worker starts a call, it atomically
+reserves the estimated input and the maximum 4,000 baseline output tokens. It
+reconciles the reservation with actual usage after the call. Keys are never written
+to a result row.
+
+## Results
+
+### 1. Task text to Spec: drop
+
+#### Blind holdout
+
+The independently labelled 60-case round-5 holdout is the decision-bearing routing
+result. The earlier 24-case pilot is superseded and is not used in this table.
+“Conditions” means the exact four-condition set, not per-condition accuracy.
+
+| arm | domain | class | conditions | all exact | p50 | p95 | total cost | $ / 1,000 exact |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Jev | **86.7%** | **75.0%** | **100%** | **61.7%** | 189 ms | 245 ms | $0.004084 | $0.110 |
+| `gpt-5-mini` | 71.7% | 60.0% | 81.7% | 51.7% | 6,651 ms | 10,875 ms | $0.092587 | $2.987 |
+| `parseRealTask` | 43.3% | 68.3% | 81.7% | 26.7% | <0.1 ms | 0.2 ms | $0 | $0 |
+
+Jev led every arm but remained far below a usable task-to-Spec threshold. Eighteen of
+its 20 `act` answers were jointly correct; the `flag` band was 11/22 and `null` was
+8/18. Drop Jev because 61.7% joint exact is unusable for task-to-Spec routing, even
+though it beat the local parser's 26.7%. Keep the deterministic parser while improving
+it against the holdout; do not add either paid arm to `/v1/decide`.
+
+#### Earlier tuned set
+
+Accuracy is exact against all 60 labels. "Conditions" means the whole four-condition
+set. These labels changed after paid inference, so this table is diagnostic only.
+
+| arm | domain | class | conditions | all exact | p50 | p95 | total cost | $ / 1,000 exact |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `parseRealTask` | **85.0%** | **88.3%** | 86.7% | **76.7%** | <0.1 ms | 0.2 ms | $0 | $0 |
+| Jev | 60.0% | 45.0% | **100%** | 28.3% | 169 ms | 240 ms | $0.004076 | $0.240 |
+| `gpt-5-mini` | 48.3% | 43.3% | 88.3% | 26.7% | 8,082 ms | 11,880 ms | $0.104715 | $6.545 |
+
+Jev's confidence did not rescue the candidate. Its `act` band contained 8 cases and
+4 were jointly correct. The `flag` band was 4/16 and the `null` band 9/36. The
+right decision is to keep the deterministic parser and improve its vocabulary rules
+with tests. Jev must not run inside `/v1/decide` or change the reproducible Decision.
+
+The corrected labels no longer treat "large", "long", "big", "lengthy", “very
+large,” or “long retrieval context” as an explicit 200,000-token minimum. Only Q08a,
+which says “200,000 tokens,” carries that condition. The comparison still rejects
+both paid replacements.
+
+### 2. Numeric Evidence attribution: drop both arms
+
+This is the requested exact-attribution task: whether one number belongs to the
+stated model, evaluated variant, benchmark version, effort, harness, and unit.
+
+| arm | all | verified | real mismatches | hard negatives | p50 | p95 | total cost | $ / 1,000 correct | decision |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Jev | **70.5%** | **9/27** | **9/9** | **25/25** | **238 ms** | **493 ms** | **$0.001874** | **$0.044** | drop |
+| `gpt-5-mini` | 68.9% | 8/27 | **9/9** | **25/25** | 5,297 ms | 8,273 ms | $0.101134 | $2.408 | drop |
+
+Jev rejected every real mismatch and constructed hard negative. More importantly,
+it recognized only nine verified positives. All its answers fell in `null`, so it
+had zero usable coverage. `gpt-5-mini` rejected every negative but accepted only
+eight verified positives.
+Neither model can perform Evidence attribution, verification, or admission to a
+Snapshot.
+
+### 3. Earlier creator attribution: keep Jev alone and reject the cascade
+
+This earlier, tuned experiment asks which organisation created a model. It does not
+answer numeric Evidence attribution and is retained only as a separate ingestion
+result.
+
+| arm | all | verified rows | quarantined rows | p50 | p95 | total cost | $ / 1,000 correct |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Jev | 93.9% | 565/627 | **383/383** | **183 ms** | **278 ms** | **$0.031919** | **$0.034** |
+| `gpt-5-mini` | **98.0%** | **614/627** | 376/383 | 5,129 ms | 9,706 ms | $1.431954 | $1.446 |
+| cascade | 97.9% | 612/627 | 377/383 | 234 ms | 9,788 ms | $0.670002 | $0.678 |
+
+Jev abstained on all 383 quarantined rows and made no misattributions. It missed 62
+verified rows. The standalone LLM named seven wrong organisations in the quarantined
+cohort. The cascade's reseller veto rejected one of those answers and accepted six.
+Accuracy and cost do not outweigh those six false attributions. Keep the current
+Jev-only ingestion path and keep the cascade disabled. This result does not authorize
+Jev to verify Evidence or to turn an attribution into a Fact.
+
+### 4. Verification's second key: drop
+
+| arm | all | verified rows | quarantined rows | p50 | p95 | total cost | $ / 1,000 correct |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Jev | 38.1% | **0/12** | 8/9 | **195 ms** | **349 ms** | **$0.000613** | **$0.077** |
+| `gpt-5-mini` | **42.9%** | **0/12** | **9/9** | 3,546 ms | 4,757 ms | $0.018629 | $2.070 |
+
+Jev did not confirm any of the 12 claims the existing two-key process verified. It
+selected `no_match` or stayed below the confidence threshold on every case, which is
+safe but does no verification work. It produced no `act` or `flag` answer. The
+baseline also confirmed none of the 12 verified claims. Keep the current
+different-family extractors in `decision/verify.py`.
+
+### 5. Explanation support: keep for a real-sentence holdout
+
+| arm | all | supported | unsupported | p50 | p95 | total cost | $ / 1,000 correct |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Jev | **100%** | **8/8** | **8/8** | **174 ms** | **203 ms** | **$0.000609** | **$0.038** |
+| `gpt-5-mini` | 93.8% | 8/8 | 7/8 | 3,828 ms | 5,123 ms | $0.013677 | $0.912 |
+
+All eight supported sentences landed in Jev's `act` band. All eight unsupported
+sentences selected `no_match` and therefore `null`. This is the cleanest fit for a
+model that selects rather than generates. A larger holdout must use sentences from
+the real Explanation path before any production change. Failure must suppress or
+regenerate the sentence; it must never rewrite the evidence or invent a replacement.
+
+## Spend
+
+Nine paid runs were made. Three were superseded after the harness exposed a missing
+registry description, an LLM reply shape that did not match the established harness,
+and an output ceiling below the established 4,000-token baseline. Their costs remain
+in the total. The round-5 routing run used the separately committed 60-case set and
+cost $0.086302 as billed, or $0.096670 at list price.
+The ninth run repeated all 61 Evidence-attribution and 21 second-key cases against
+the committed licensed cited regions. It added $0.122250 with no failed calls.
+
+| charge | amount |
+| --- | ---: |
+| OpenRouter provider-reported cost | $0.907158 |
+| Jev, actual input tokens at the posted price | $0.041399 |
+| **Actual total** | **$0.948556** |
+| Conservative list-price ledger | $1.034264 |
+| Spend cap | $5.00 |
+
+The provider-reported total plus Jev's token charge is the actual spend. The larger
+ledger reprices OpenRouter usage from token counts and its public list price. The
+MODEL-99 and MODEL-102 attribution calls predate this work, so their historical costs
+appear in the attribution comparison but not in MODEL-112 spend.
+
+## Limits
+
+- The tuned task set has 60 authored descriptions, not live traffic. The three
+  phrasings per recall question are related observations. The independent routing
+  holdout has 60 authored descriptions.
+- The exact Evidence-attribution blind set has only 27 positives because it uses
+  retained production Evidence whose two-key outcome was already verified. It is
+  not a representative sample of all benchmarks or sources.
+- The older 1,010-row attribution corpus measures creator attribution only. It must
+  not be read as numeric Evidence attribution.
+- The second-key set reuses ModelSpec's recorded two-key outcomes as labels. It is not
+  an independently adjudicated third-party set.
+- Latency includes network and queue time from one machine and one short window.
+- The baseline used the same state and questions, not a prompt tuned for text
+  generation. This is the existing cost-to-correct comparison method, not the best
+  possible `gpt-5-mini` system.
+- The result says nothing about generation quality and must not enter a capability
+  estimate or any scoring path.
+
+## Follow-on tickets
+
+### Research: explanation checker on real Decisions
+
+Scope: collect at least 200 sentences generated from real Decision rows, with a
+balanced set of supported sentences and single-error mutations. Include facts,
+Evidence, qualifiers, constraint costs, and near misses.
+
+Done when: an independent reviewer labels the set before inference; Jev has zero
+unsupported `act` results; supported coverage, latency, spend, and cost-to-correct are
+published; a failure only suppresses the sentence.
+
+### Decide: extend and test `parseRealTask`
+
+Scope: use the 60 tuned routing labels as regression tests and the frozen 60-case
+holdout for the classes and conditions the parser misses. Add separate cases for
+numeric price caps and device fit.
+
+Done when: the original 60 remain at least 76.7% joint exact; the untouched holdout is
+at least 90% for domain, class, and condition-set accuracy separately; parsing stays
+local, deterministic, and below 1 ms p95; `/v1/decide` remains unchanged.

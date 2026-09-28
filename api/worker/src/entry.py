@@ -8,7 +8,8 @@ What is left here is transport: route, read the body, fetch the published
 export, read the determination store, serialise, and report the deployed
 version.
 
-Two endpoints, and they differ in one way that matters. `POST /v1/rank` holds
+Four endpoints, and they differ in one way that matters. `POST /v1/rank`,
+`POST /v1/decide`, and `POST /v1/compare` hold
 no private data at all. `POST /v1/policy-check` (MODEL-80) answers from the
 public export *plus*, for an entitled caller, the policy determinations — which
 are the paid product, are never in this repository, and reach the Worker only
@@ -17,7 +18,7 @@ through Workers KV, staged by `api/worker/load_determinations.py`. See
 one place a request is granted the private store, and it grants it by the tier
 MODEL-69's access gate resolved from a presented key.
 
-Both POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
+All POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
 after the body is read and before any export is fetched. It ships with
 enforcement OFF (`ACCESS_ENFORCED`): an unkeyed request is answered exactly as
 before, a presented key is checked, metered and served per its tier, and a bad
@@ -38,16 +39,14 @@ instance still answering; this is the cheap version of that lesson for a Worker.
 
 from __future__ import annotations
 
+import hashlib
+import importlib
 import json
+import re
 import time
 from dataclasses import replace
 from datetime import UTC, datetime
 from urllib.parse import urlparse
-
-from js import fetch
-from workers import Response, WorkerEntrypoint
-
-import hashlib
 
 import access
 import access_config
@@ -57,11 +56,13 @@ import access_sandbox
 import billing
 import billing_page
 import credits
-from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
 import kv_value
 import policy_service
 import rank_service as service
 import x402
+from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
+from js import fetch
+from workers import Response, WorkerEntrypoint
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
 #: is the device vocabulary, added by MODEL-68 and absent from older exports —
@@ -72,6 +73,12 @@ HARDWARE_PATH = "/api/rank/hardware.json"
 #: The public half of the compliance answer (MODEL-80): licence, origin,
 #: commercial-use grant and per-platform availability for every card.
 POLICY_PATH = "/api/policy/catalogue.json"
+DECISION_SNAPSHOT_PATH = "/api/decision/snapshot.json.gz"
+#: Reserved URL shape for the separate retained-snapshot hosting work. Unlike
+#: ``DECISION_SNAPSHOT_PATH``, this is not a currently published static path;
+#: comparison requests report ``comparison_snapshot_unavailable`` on its 404.
+DECISION_HISTORY_TEMPLATE = "/api/decision/snapshots/{snapshot_id}.json.gz"
+SNAPSHOT_KEY_VAR = "MODELSPEC_SNAPSHOT_KEY"
 
 #: KV keys holding the private determinations, staged by
 #: `api/worker/load_determinations.py`. The manifest is read first and verified
@@ -100,16 +107,26 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 #: is named. `/v1/policy-check` (MODEL-80) is on this list for the same reason
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
 ACCEPTED_ENDPOINTS = (
-    "POST /v1/rank", "POST /v1/policy-check", "GET /v1/health",
+    "POST /v1/rank", "POST /v1/decide", "POST /v1/compare",
+    "POST /v1/policy-check", "GET /v1/health",
     "GET /v1/credits",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
 
-#: The subset that takes a body. Both refuse a wrong verb through the one
+#: The subset that takes a body. All refuse a wrong verb through the one
 #: `_method_not_allowed` below, and a path outside this tuple is a 404 before
 #: anything is read or fetched.
-POST_ENDPOINTS = ("/v1/rank", "/v1/policy-check")
+POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/compare", "/v1/policy-check")
+
+# The browser clients: the production site (what SITE_MODE=live serves on the
+# apex and www) and the private Pages preview branch deployed by
+# `.github/workflows/deploy-sites.yml`, which is what gets tested before a flip.
+CORS_ORIGINS = frozenset({
+    "https://modelspec.dev",
+    "https://www.modelspec.dev",
+    "https://internal.modelspec-7np.pages.dev",
+})
 
 #: How long a fetched export is reused inside one isolate. Short enough that a
 #: site deploy reaches callers quickly, long enough that a burst of requests
@@ -125,10 +142,18 @@ _cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None, "e
 #: is the same one so that a deploy and a load both reach callers in five
 #: minutes rather than by two different rules.
 _policy_cache: dict[str, object] = {"at": 0.0, "catalogue": None, "error": None}
+#: One `decide_service.SnapshotHolder` per export origin (MODEL-159): the
+#: verified snapshot, revalidated against the origin at most once a minute.
+_decision_holders: dict[str, object] = {}
 #: `state` is one of the `STORE_*` values below; `error` is set only when it is
 #: `broken`; `message` is the operator-facing sentence for whichever it is.
 _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
                                    "state": None, "message": None}
+
+
+def _decide_service():
+    """Import the decision stack only after the router selects a decision route."""
+    return importlib.import_module("decide_service")
 
 
 async def _get_json(url: str):
@@ -136,6 +161,50 @@ async def _get_json(url: str):
     if not response.ok:
         raise RuntimeError(f"{url} returned HTTP {response.status}")
     return json.loads(await response.text())
+
+
+class _Fetched:
+    def __init__(self, status: int, etag: str | None, body: bytes | None):
+        self.status, self.etag, self.body = status, etag, body
+
+
+def _snapshot_fetcher(url: str):
+    """A conditional GET of the snapshot, for `decide_service.SnapshotHolder`."""
+
+    async def fetch_snapshot(etag: str | None) -> _Fetched:
+        headers = {"If-None-Match": etag} if etag else {}
+        try:  # pragma: no cover - isolate only
+            from js import Object  # type: ignore[import-not-found]
+            from pyodide.ffi import to_js  # type: ignore[import-not-found]
+            # no-store: the site serves the snapshot with max-age=14400, and a
+            # cached copy would hide a new snapshot for hours. The conditional
+            # header still makes an unchanged snapshot a cheap 304.
+            options = to_js({"headers": headers, "cache": "no-store"},
+                            dict_converter=Object.fromEntries)
+        except ImportError:
+            options = {"headers": headers, "cache": "no-store"}
+        response = await fetch(url, options)
+        status = int(response.status)
+        # A missing header is JS null, which Pyodide does not turn into None.
+        raw_tag = response.headers.get("etag")
+        tag = None if kv_value.absent(raw_tag) else str(raw_tag)
+        if status != 200:
+            return _Fetched(status, tag, None)
+        from js import Uint8Array
+
+        view = Uint8Array.new(await response.arrayBuffer())
+        return _Fetched(status, tag, bytes(view.to_py()))
+
+    return fetch_snapshot
+
+
+def _decision_holder(origin: str):
+    holder = _decision_holders.get(origin)
+    if holder is None:
+        holder = _decide_service().SnapshotHolder(
+            _snapshot_fetcher(origin + DECISION_SNAPSHOT_PATH))
+        _decision_holders[origin] = holder
+    return holder
 
 
 async def _load_export(origin: str, *, force: bool = False):
@@ -355,6 +424,46 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
     )
 
 
+def _decision_response(status: int, body: dict,
+                       extra_headers: dict | None = None) -> Response:
+    decider = _decide_service()
+    return Response(
+        decider.serialise(body).decode("utf-8"),
+        status=status,
+        headers={
+            **(extra_headers or {}),
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "no-store",
+        },
+    )
+
+
+def _cors_headers(request) -> dict[str, str]:
+    origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
+    if origin not in CORS_ORIGINS:
+        return {}
+    return {
+        "access-control-allow-origin": origin,
+        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-headers":
+            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot",
+        "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale",
+        "access-control-max-age": "86400",
+        "vary": "Origin",
+    }
+
+
+def _site_free_visitor(request, api_key: str | None, enabled: bool) -> str | None:
+    """Return the anonymous meter key for an admitted browser request."""
+    if api_key is not None or not enabled:
+        return None
+    origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
+    if origin not in CORS_ORIGINS:
+        return None
+    connecting_ip = str(request.headers.get("CF-Connecting-IP") or "").strip()
+    return "visitor:" + hashlib.sha256(connecting_ip.encode("utf-8")).hexdigest()
+
+
 def _html_response(status: int, page: str, service_commit: str,
                    extra_headers: dict | None = None) -> Response:
     """A page for a person's browser (the claim page). Never cached: it holds a key."""
@@ -377,6 +486,22 @@ class Default(WorkerEntrypoint):
         origin = str(getattr(self.env, "EXPORT_ORIGIN", "") or "https://modelspec.dev")
         path = urlparse(str(request.url)).path.rstrip("/") or "/"
         method = str(request.method).upper()
+
+        decider = None
+        if path in ("/v1/decide", "/v1/compare"):
+            decider = _decide_service()
+
+        if decider is not None and method == "OPTIONS":
+            headers = _cors_headers(request)
+            if not headers:
+                return _json_response(service.HTTP_NOT_FOUND, {
+                    "contract_version": decider.contract.CONTRACT_VERSION,
+                    "endpoint": path.rsplit("/", 1)[-1],
+                    "snapshot": None,
+                    "error": {"code": "origin_not_allowed",
+                              "message": f"this origin may not call {path}"},
+                })
+            return Response("", status=204, headers=headers)
 
         if path == "/v1/health":
             if method not in ("GET", "HEAD"):
@@ -403,17 +528,34 @@ class Default(WorkerEntrypoint):
         if method != "POST":
             return self._method_not_allowed(service_commit, path, "POST", method)
 
-        max_body = (policy_service.MAX_BODY_BYTES if path == "/v1/policy-check"
-                    else service.MAX_BODY_BYTES)
+        max_body = (
+            policy_service.MAX_BODY_BYTES
+            if path == "/v1/policy-check"
+            else decider.MAX_BODY_BYTES
+            if decider is not None
+            else service.MAX_BODY_BYTES
+        )
         raw = await request.text()
         if len(raw.encode("utf-8")) > max_body:
-            return _json_response(service.HTTP_PAYLOAD_TOO_LARGE, {
+            response = {
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "payload_too_large",
                           "message": f"the body must be at most {max_body} bytes"},
                 "result": [],
-            })
+            }
+            if decider is not None:
+                response = decider.error_response(
+                    "payload_too_large",
+                    f"the body must be at most {max_body} bytes",
+                    status=service.HTTP_PAYLOAD_TOO_LARGE,
+                    snapshot_id=None,
+                    endpoint=path.rsplit("/", 1)[-1],
+                )[1]
+                return _decision_response(
+                    service.HTTP_PAYLOAD_TOO_LARGE, response, _cors_headers(request)
+                )
+            return _json_response(service.HTTP_PAYLOAD_TOO_LARGE, response)
 
         try:
             payload = json.loads(raw) if raw.strip() else None
@@ -423,6 +565,15 @@ class Default(WorkerEntrypoint):
                     policy_service.RequestError(
                         "invalid_request", f"the body is not valid JSON: {exc}"),
                     None, service_commit, origin)
+            elif decider is not None:
+                status, body = decider.error_response(
+                    "invalid_request",
+                    f"the body is not valid JSON: {exc}",
+                    status=decider.HTTP_BAD_REQUEST,
+                    snapshot_id=None,
+                    endpoint=path.rsplit("/", 1)[-1],
+                )
+                return _decision_response(status, body, _cors_headers(request))
             else:
                 status, body = service.error_response(
                     service.RequestError(
@@ -455,6 +606,39 @@ class Default(WorkerEntrypoint):
                     "the sandbox answers POST /v1/rank only; it holds no synthetic "
                     "policy data. Call /v1/policy-check with a live key.",
                     envelope=envelope)
+        elif decider is not None:
+            endpoint = path.rsplit("/", 1)[-1]
+            envelope = {
+                "contract_version": decider.contract.CONTRACT_VERSION,
+                "endpoint": endpoint,
+                "snapshot": getattr(_decision_holder(origin).snapshot, "snapshot_id", None),
+                "service_commit": service_commit,
+                "export_origin": origin,
+            }
+
+            sent = request.headers.get(decider.SNAPSHOT_HEADER)
+            expected = None if _absent(sent) else str(sent).strip()
+
+            async def _answer():
+                if path == "/v1/compare":
+                    return await self._compare(payload, origin, expected)
+                return await self._decide(payload, origin, expected)
+
+            async def _anonymous():
+                return await _answer()
+
+            async def _live(record, tier):
+                return await _answer()
+
+            async def _live_unfunded(record, tier):
+                return await _answer()
+
+            def sandbox():
+                return access.refusal(
+                    access.SANDBOX_NOT_AVAILABLE,
+                    "the sandbox has no synthetic signed decision snapshot; use a live request",
+                    envelope=envelope,
+                )
         else:
             envelope = service._envelope({}, service_commit, origin)
 
@@ -479,9 +663,16 @@ class Default(WorkerEntrypoint):
         # and settle run before either of them writes an answer. The sandbox
         # is not wrapped. X402_ENABLED default off is a no-op.
         x402_trace = x402.ChargeTrace()
-        anonymous = self._x402_wrap(_anonymous, request, path, api_key, envelope,
-                                    x402_trace, keyed=False)
+        free_visitor = _site_free_visitor(
+            request, api_key, x402.load_config(self.env).enabled)
+        anonymous = (
+            _anonymous
+            if free_visitor is not None
+            else self._x402_wrap(_anonymous, request, path, api_key, envelope,
+                                 payload, x402_trace, keyed=False)
+        )
         live = self._x402_wrap(_live, request, path, api_key, envelope,
+                               payload,
                                x402_trace, keyed=True,
                                produce_unfunded=_live_unfunded)
 
@@ -492,17 +683,40 @@ class Default(WorkerEntrypoint):
             load_policy=lambda: access_config.load_policy(self.env),
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
             limits_for=self._limits_for(api_key),
+            anonymous_id=free_visitor,
         )
-        return _json_response(
-            outcome.status, outcome.body,
-            {**(outcome.headers or {}),
-             **x402.http_headers(outcome.status, outcome.body,
-                                 settlement=x402_trace.settlement)})
+        headers = {
+            **(outcome.headers or {}),
+            **x402.http_headers(
+                outcome.status, outcome.body, settlement=x402_trace.settlement
+            ),
+        }
+        if path in ("/v1/decide", "/v1/compare"):
+            if outcome.status == decider.HTTP_SERVICE_UNAVAILABLE \
+                    and outcome.body.get("error") == "no_snapshot":
+                headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)
+            return _decision_response(
+                outcome.status, outcome.body,
+                {**headers, **_decision_holder(origin).headers(), **_cors_headers(request)},
+            )
+        return _json_response(outcome.status, outcome.body, headers)
 
-    def _credit_params(self, path: str) -> tuple[int, int, str]:
+    def _credit_params(self, path: str, payload=None) -> tuple[int, int, str]:
         try:
             policy = access_config.load_policy(self.env)
-            resource = "policy-check" if path.rstrip("/").endswith("policy-check") else "rank"
+            clean_path = path.rstrip("/")
+            if clean_path.endswith("policy-check"):
+                resource = "policy-check"
+            elif clean_path.endswith("decide"):
+                explain = (
+                    payload.get("explain", "summary")
+                    if isinstance(payload, dict) else "summary"
+                )
+                resource = f"decide.{explain}"
+            elif clean_path.endswith("compare"):
+                resource = "decide.full"
+            else:
+                resource = "rank"
             return (policy.credits.weight(resource), policy.credits.pack_expiry_days,
                     policy.url("get_a_key") or "https://modelspec.dev/pricing")
         except access_config.PolicyError:
@@ -535,10 +749,10 @@ class Default(WorkerEntrypoint):
 
         return limits_for
 
-    def _x402_wrap(self, produce, request, path, api_key, envelope, trace, *,
+    def _x402_wrap(self, produce, request, path, api_key, envelope, payload, trace, *,
                    keyed: bool, produce_unfunded=None):
         """MODEL-75/93 hook. `keyed` uses the presented API key as the credit holder."""
-        units, expiry_days, buy = self._credit_params(path)
+        units, expiry_days, buy = self._credit_params(path, payload)
 
         async def wrapped(*args, **kwargs):
             cfg = x402.load_config(self.env)
@@ -707,6 +921,109 @@ class Default(WorkerEntrypoint):
             return service.rank(payload, candidates, hardware, service_commit, origin)
         except service.RequestError as exc:
             return service.error_response(exc, candidates, service_commit, origin)
+
+    async def _decide(self, payload, origin: str, expected: str | None = None):
+        """``POST /v1/decide`` against the isolate's verified snapshot.
+
+        ``expected`` is the snapshot the caller's vocabulary names. When this
+        isolate holds another, it revalidates at once: the site may have just
+        deployed it. Still different, the caller gets ``snapshot_changed``.
+        """
+        decider = _decide_service()
+        key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
+        if key is None:
+            return decider.no_snapshot(
+                "no signed decision snapshot is published because the verification key "
+                "is not configured"
+            )
+        holder = _decision_holder(origin)
+        try:
+            snapshot = await holder.current(key)
+            if expected and expected != snapshot.snapshot_id:
+                snapshot = await holder.current(key, force=True)
+        except decider.SnapshotMissingError:
+            return decider.no_snapshot("the published decision snapshot does not exist")
+        except decider.SnapshotRefusalError as exc:
+            return decider.error_response(
+                "snapshot_refused",
+                str(exc),
+                status=decider.HTTP_SERVICE_UNAVAILABLE,
+                snapshot_id=None,
+            )
+        except Exception as exc:  # noqa: BLE001 - the fetched path is named to the caller
+            return decider.error_response(
+                "snapshot_unavailable",
+                f"could not read the published decision snapshot: {exc}",
+                status=decider.HTTP_BAD_GATEWAY,
+                snapshot_id=None,
+            )
+        return decider.decide(payload, snapshot, expected_snapshot=expected)
+
+    async def _compare(self, payload, origin: str, expected: str | None = None):
+        """``POST /v1/compare`` against the current and one named snapshot."""
+        decider = _decide_service()
+        key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
+        if key is None:
+            return decider.no_snapshot(
+                "no signed decision snapshot is published because the verification key "
+                "is not configured",
+                endpoint="compare",
+            )
+        if not isinstance(payload, dict) or not isinstance(payload.get("compare_to"), str):
+            return decider.error_response(
+                "invalid_request",
+                "the request body must contain a spec object and compare_to snapshot ID",
+                status=decider.HTTP_BAD_REQUEST,
+                snapshot_id=None,
+                endpoint="compare",
+            )
+        compare_to = payload["compare_to"]
+        if re.fullmatch(decider.contract.SNAPSHOT_PATTERN, compare_to) is None:
+            return decider.error_response(
+                "invalid_request",
+                "compare_to must be a snapshot ID",
+                status=decider.HTTP_BAD_REQUEST,
+                snapshot_id=None,
+                endpoint="compare",
+            )
+        try:
+            current = await _decision_holder(origin).current(key)
+            if expected and expected != current.snapshot_id:
+                current = await _decision_holder(origin).current(key, force=True)
+            fetched = await _snapshot_fetcher(
+                origin + DECISION_HISTORY_TEMPLATE.format(snapshot_id=compare_to)
+            )(None)
+            if fetched.status == 404:
+                return decider.error_response(
+                    "comparison_snapshot_unavailable",
+                    f"the origin does not publish retained decision snapshot {compare_to}",
+                    status=decider.HTTP_CONFLICT,
+                    snapshot_id=current.snapshot_id,
+                    endpoint="compare",
+                )
+            if fetched.status != 200 or fetched.body is None:
+                raise RuntimeError(f"comparison snapshot returned HTTP {fetched.status}")
+            previous = decider.load_snapshot(fetched.body, key=key)
+        except decider.SnapshotMissingError:
+            return decider.no_snapshot(
+                "the published decision snapshot does not exist", endpoint="compare"
+            )
+        except decider.SnapshotRefusalError as exc:
+            return decider.error_response(
+                "snapshot_refused", str(exc), status=decider.HTTP_SERVICE_UNAVAILABLE,
+                snapshot_id=None, endpoint="compare",
+            )
+        except Exception as exc:  # noqa: BLE001 - the failed origin read is returned
+            return decider.error_response(
+                "snapshot_unavailable",
+                f"could not read the published decision snapshots: {exc}",
+                status=decider.HTTP_BAD_GATEWAY,
+                snapshot_id=None,
+                endpoint="compare",
+            )
+        return decider.compare(
+            payload, previous, current, expected_snapshot=expected
+        )
 
     def _method_not_allowed(self, service_commit: str, path: str,
                             takes: str, method: str) -> Response:

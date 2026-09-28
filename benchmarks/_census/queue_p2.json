@@ -6,7 +6,6 @@
    "GPQA"
   ],
   "sources": [
-   "aggregator:artificialanalysis.ai",
    "aggregator:llm-stats.com",
    "helm",
    "inspect_evals",
@@ -15,7 +14,6 @@
   ],
   "source_count": 6,
   "urls": [
-   "https://artificialanalysis.ai/evaluations",
    "https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks/gpqa",
    "https://github.com/UKGovernmentBEIS/inspect_evals/tree/main/src/inspect_evals/gpqa",
    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/gpqa",
@@ -99,7 +97,6 @@
    "livecodebench"
   ],
   "sources": [
-   "aggregator:artificialanalysis.ai",
    "aggregator:evalplus.github.io",
    "aggregator:llm-stats.com",
    "aggregator:vals.ai",
@@ -107,7 +104,6 @@
   ],
   "source_count": 5,
   "urls": [
-   "https://artificialanalysis.ai/evaluations",
    "https://evalplus.github.io/leaderboard.html",
    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/livecodebench",
    "https://livecodebench.github.io/leaderboard.html",
@@ -992,12 +988,10 @@
   "name": "IFBench",
   "aliases": [],
   "sources": [
-   "aggregator:artificialanalysis.ai",
    "opencompass"
   ],
   "source_count": 2,
   "urls": [
-   "https://artificialanalysis.ai/evaluations",
    "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/IFBench"
   ],
   "harness": {
@@ -1530,29 +1524,6 @@
   "priority": 2,
   "downloads": 0,
   "score": 28.0
- },
- {
-  "slug": "aa_lcr",
-  "name": "aa_lcr",
-  "aliases": [
-   "AA-LCR"
-  ],
-  "sources": [
-   "aggregator:llm-stats.com",
-   "opencompass"
-  ],
-  "source_count": 2,
-  "urls": [
-   "https://github.com/open-compass/opencompass/tree/main/opencompass/configs/datasets/aa_lcr",
-   "https://llm-stats.com/benchmarks/aa-lcr"
-  ],
-  "harness": {
-   "opencompass": "aa_lcr"
-  },
-  "category_hint": "",
-  "priority": 2,
-  "downloads": 0,
-  "score": 25.0
  },
  {
   "slug": "aime2024",

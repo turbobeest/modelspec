@@ -676,6 +676,59 @@ benchmarks:
     mteb_sts: 75.0
     mteb_pair_classification: 78.0
     mteb_summarization: 25.0
+  evidence:
+  - benchmark_id: mteb_eng_v2
+    model_id_as_evaluated: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+    score: 56.42
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), mean over tasks
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
+      The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 100% zero-shot on the benchmark's tasks.
+  - benchmark_id: mteb_v2_retrieval
+    model_id_as_evaluated: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+    score: 35.93
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), Retrieval task type
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Retrieval
+      times 100. The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 100% zero-shot on the benchmark's tasks.
+  - benchmark_id: mteb_v2_classification
+    model_id_as_evaluated: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+    score: 69.19
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), Classification task type
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Classification
+      times 100. The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 100% zero-shot on the benchmark's tasks.
+  - benchmark_id: mteb_multilingual_v2
+    model_id_as_evaluated: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+    score: 48.73
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(Multilingual, v2), mean over tasks
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
+      The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 100% zero-shot on the benchmark's tasks.
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
   benchmark_notes: ''

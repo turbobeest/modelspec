@@ -694,6 +694,15 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p50_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [186.581591, 768.779526] minutes. METR states measurements above 16 hours are unreliable on this suite.
+    id: openai/gpt-5-4#metr_time_horizon_50#8b1d93d1b4c0
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-metr-time-horizon-1-1
+      snapshot_ref: sha256:2b9284272537c3bdb7af7691cd0ef2854374b4c7f72a10ececc99aca53c419f4
+      cited_regions:
+      - rows
   - benchmark_id: metr_time_horizon_80
     model_id_as_evaluated: gpt_5_4
     score: 53.877851
@@ -706,55 +715,1133 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [23.957027, 108.679232] minutes. METR states measurements above 16 hours are unreliable on this suite.
+    id: openai/gpt-5-4#metr_time_horizon_80#7c024d112d86
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-metr-time-horizon-1-1
+      snapshot_ref: sha256:2b9284272537c3bdb7af7691cd0ef2854374b4c7f72a10ececc99aca53c419f4
+      cited_regions:
+      - rows
   - benchmark_id: arena_elo_overall
-    model_id_as_evaluated: gpt-5.4
-    score: 1452.64
-    unit: elo
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1469.63
+    unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena overall, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
+    configuration: 'LMArena''s official leaderboard dataset, split latest, subset `text`
       (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1452.64 (95% CI 1448.87-1456.41), 63526 votes. The
-      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+      is the stated date. Row gpt-5.4-high: rating 1469.63 (95% CI 1465.79-1473.48), 60537
+      votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this
+      card''s style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the
+      default-effort row gpt-5.4 (1452.64); dataset re-read 2026-09-24.'
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
+    id: openai/gpt-5-4#arena_elo_overall#9009e51bb407
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:b2143e53db27d7506c982ed4a7fe246289fd9ba5d181149507f0ee86bae47c18
+      cited_regions:
+      - rows
+    interval:
+    - 1465.79
+    - 1473.48
+    n: 60537
   - benchmark_id: arena_elo_coding
-    model_id_as_evaluated: gpt-5.4
-    score: 1480.04
-    unit: elo
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1495.51
+    unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Text Arena coding category, raw (not style-controlled)
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text`
-      (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
-      the arena.ai page defaults to style control; leaderboard_publish_date 2026-09-13
-      is the stated date. Rating 1480.04 (95% CI 1474.16-1485.91), 17669 votes. The
-      live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
+    configuration: "LMArena's official leaderboard dataset, split latest, subset `text` (raw, non-style-controlled), category coding; leaderboard_publish_date 2026-09-13 is the stated date. Row gpt-5.4-high: rating 1495.51 (95% CI 1489.58-1501.45), 16395 votes. Highest-effort row for the model (MODEL-123 max-effort rule), matching this card's style-controlled rows. MODEL-127 audit correction: MODEL-109 had taken the default-effort row gpt-5.4 (1480.04); dataset re-read 2026-09-24."
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
+    id: openai/gpt-5-4#arena_elo_coding#6804fdc94455
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:acfd5444c3981590ac4a3e5589d1f54950660ce053f740f44a755d508540045b
+      cited_regions:
+      - rows
   - benchmark_id: arena_elo_style_control
-    model_id_as_evaluated: gpt-5.4
-    score: 1465.66
-    unit: elo
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1476.39
+    unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
     verified_at: '2026-09-24'
-    benchmark_version: Text Arena overall, style-controlled
-    configuration: LMArena's official leaderboard dataset, split latest, subset `text_style_control`,
-      category overall; leaderboard_publish_date 2026-09-13 is the stated date. Rating
-      1465.66 (95% CI 1461.85-1469.46), 63526 votes. The live arena.ai board read 2026-09-24
-      still shows this snapshot (same vote counts).
-    limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
-      above clip.
+    benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1476.39 [1472.51, 1480.26], 60537 votes,
+      rank 26.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_elo_style_control#debe0a60cc18
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_coding
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1520.08
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1520.08 [1514.09, 1526.06], 16395 votes,
+      rank 29.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_coding#809d13c65778
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_hard_prompts
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1497.91
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1497.91 [1493.29, 1502.53], 39229 votes,
+      rank 29.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_hard_prompts#bcdafb57843a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_math
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1494.13
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
+      2026-09-13; style control. Highest-effort row for the product (effort: high; MODEL-123
+      max-effort rule). Rating 1494.13 [1483.18, 1505.08], 3179 votes, rank 17.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_math#8fe3a746c37e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_creative_writing
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1444.19
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1444.19 [1437.02, 1451.36], 10081 votes,
+      rank 47.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_creative_writing#842e5e7add9f
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_instruction_following
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1472.44
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1472.44 [1466.85, 1478.02], 20257 votes,
+      rank 27.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_instruction_following#f43453cc7ecf
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_multi_turn
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1493.77
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1493.77 [1486.99, 1500.55], 11259 votes,
+      rank 17.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_multi_turn#24982f421bc0
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_expert
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1515.72
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1515.72 [1506.99, 1524.44], 5741 votes,
+      rank 15.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_expert#5e8329235781
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_longer_query
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1483.16
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1483.16 [1477.74, 1488.58], 25968 votes,
+      rank 32.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_longer_query#3cdb673cf09f
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_non_english
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1468.48
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1468.48 [1463.74, 1473.22], 33029 votes,
+      rank 25.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_non_english#80a3f148f08c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_medicine
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1475.97
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
+      revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1475.97 [1466.08, 1485.87], 4457 votes,
+      rank 58.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_medicine#c9468f68e8eb
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_legal
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1490.58
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
+      1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1490.58 [1481.17, 1499.99], 4885 votes,
+      rank 22.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_legal#78cb2f954616
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_business
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1483.87
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
+      latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1483.87 [1477.23, 1490.51], 12327 votes,
+      rank 21.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_business#55e9dbb6787a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_science
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1487.64
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1487.64 [1480.62, 1494.65], 9869 votes,
+      rank 38.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_science#41f8f1cf2d09
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_writing
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1465.32
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1465.32 [1459.19, 1471.44], 15014 votes,
+      rank 28.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_writing#8fe25152473b
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_vision
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1284.79
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: high; MODEL-123 max-effort rule). Rating 1284.79 [1278.53, 1291.04], 25357 votes,
+      rank 15.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_sc_vision#8bc06fd270a9
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
+      cited_regions:
+      - rows
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: gpt-5.4
+    score: 1392.0
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1392.00 [1380.47, 1403.52], 3196 votes, rank 83.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: openai/gpt-5-4#arena_webdev#380e2b10fed1
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: gpt-5.4-2026-03-05_xhigh
+    score: 93.3
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2026-03-06'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2026-03-06T02:57:02.864Z; effort xhigh; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.80 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: openai/gpt-5-4#gpqa_diamond#f50f22079a50
+    measured_by: independent_evaluator
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
+  - benchmark_id: frontiermath_tiers_1_3_v2
+    model_id_as_evaluated: gpt-5.4-2026-03-05_xhigh
+    score: 78.6
+    unit: percent
+    source_url: https://epoch.ai/frontiermath
+    source_kind: independent_evaluator
+    evidence_date: '2026-06-11'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
+      read 2026-09-24. Run started 2026-06-11T17:55:45.000Z; effort xhigh; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.43 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: openai/gpt-5-4#frontiermath_tiers_1_3_v2#0c2423a94755
+    measured_by: independent_evaluator
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
+  - benchmark_id: simpleqa_verified
+    model_id_as_evaluated: gpt-5.4-2026-03-05_xhigh
+    score: 45.1
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/simpleqa-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-08-27'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
+      prompt
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
+      read 2026-09-24. Run started 2026-08-27T19:28:16.000Z; effort xhigh; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.57 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: openai/gpt-5-4#simpleqa_verified#8fecd470b37a
+    measured_by: independent_evaluator
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
+  - benchmark_id: swe_bench_verified
+    model_id_as_evaluated: gpt-5.4-2026-03-05_high
+    score: 76.86
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/swe-bench-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-03-06'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-bench Verified (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (swe_bench_verified.csv),
+      read 2026-09-24. Run started 2026-03-06T11:07:43.396Z; effort high; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.92 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: openai/gpt-5-4#swe_bench_verified#92fc8342b3c4
+    measured_by: independent_evaluator
+    effort: high
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-swe-bench-verified-csv
+      snapshot_ref: sha256:1b11e51afaab550c3cd39ceb4c28da4cbdd79208bf381dea2407a758cb8276b3
+      cited_regions:
+      - rows
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: GPT-5.4
+    score: 6144.18
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-25'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Vending-Bench 2, mean final balance over 5 runs
+    configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
+      https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort unknown; the highest-effort
+      row for the model (MODEL-123 max-effort rule).
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: openai/gpt-5-4#vending_bench_2#a6fa5b14fb50
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      cited_regions:
+      - rows
+  - benchmark_id: deepswe_v1_1
+    model_id_as_evaluated: gpt-5-4 (xhigh)
+    score: 51.77
+    unit: percent
+    source_url: https://deepswe.datacurve.ai/
+    source_kind: benchmark_author
+    evidence_date: '2026-09-25'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: DeepSWE v1.1, pass@1, mini-swe-agent
+    configuration: Board row as copied in Epoch AI's benchmark data (deepswe_external.csv, https://epoch.ai/data/benchmark_data.zip),
+      read 2026-09-24. Effort xhigh; the highest-effort row for the model (MODEL-123 max-effort
+      rule). Harness mini-swe-agent.
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: openai/gpt-5-4#deepswe_v1_1#a69faea231d2
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: unregistered
+    sources:
+    - source_id: model-160-deepswe-v1-1
+      snapshot_ref: sha256:7fcc641eb55d3cfbc8429ea1ef26448ef44bb66772190ee69f8464958c0a79dc
+      cited_regions:
+      - rows
+  - benchmark_id: hle
+    model_id_as_evaluated: gpt-5.4-2026-03-05 (xhigh thinking)
+    score: 36.24
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2026-03-10T21:09:26.000Z;
+      effort xhigh; ±1.88 (95% CI).
+    limitations: 'Potential contamination warning: This model was evaluated after the public
+      release of HLE, allowing model builder access to the prompts and solutions.'
+    id: openai/gpt-5-4#hle#7ff3c64eaebc
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-scale-hle-json
+      snapshot_ref: sha256:c7e558ff927cc7aae1ec9d39ba22de7b5db667674ea408c772002222c11818bd
+      cited_regions:
+      - rows
+  - benchmark_id: swe_bench_pro
+    model_id_as_evaluated: gpt-5.4 (xHigh)*
+    score: 59.1
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/swe_bench_pro_public
+    source_kind: independent_evaluator
+    evidence_date: '2026-04-08'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SWE-Bench Pro, public dataset, Scale Labs leaderboard
+    configuration: 'Scale Labs leaderboard entry read 2026-09-24; entry created 2026-04-08T17:04:48.000Z;
+      effort xhigh; ±3.56 (95% CI). Harness: mini-swe-agent (the board marks mini-swe-agent
+      runs with an asterisk).'
+    limitations: ''
+    id: openai/gpt-5-4#swe_bench_pro#eadfdacd55d8
+    measured_by: independent_evaluator
+    effort: xhigh
+    harness: unregistered
+    sources:
+    - source_id: model-160-scale-swe-bench-pro-public
+      snapshot_ref: sha256:b0df5d5cbc6fd2c3925e740d0379f6570e00d58b98ca576c8141e6af67dc0666
+      cited_regions:
+      - rows
+  - benchmark_id: aime_2026
+    model_id_as_evaluated: GPT-5.4 (xhigh)
+    score: 99.17
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2026
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-26'
+    date_type: evaluated
+    verified_at: '2026-09-26'
+    benchmark_version: AIME 2026, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-26; the table states no run
+      date, so the reading is dated by the observation. Effort xhigh; highest-effort row
+      for the model. MathArena lists final-answer competitions as deprecated.
+    limitations: 'MathArena marks this row: model was released after competition release, so
+      contamination is possible.'
+    id: openai/gpt-5-4#aime_2026#cb5c8955d750
+    measured_by: independent_evaluator
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-161-matharena-aime-2026
+      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
+      cited_regions:
+      - rows
+    - source_id: model-161-matharena-aime-2026-quality
+      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+      cited_regions:
+      - rows
+    quality_flags:
+    - deprecated
+    - contamination_warning
+  - benchmark_id: tau3_banking
+    model_id_as_evaluated: GPT-5.4 (xhigh)
+    score: 39.43
+    unit: percent
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/gpt-5-4_sierra_2026-03-25/submission.json
+    source_kind: benchmark_author
+    evidence_date: '2026-05-06'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: τ-Knowledge τ-Banking (banking_knowledge), pass^1
+    configuration: τ-bench leaderboard submission gpt-5-4_sierra_2026-03-25, submitted by Sierra;
+      retrieval config alltools; reasoning effort xhigh; user simulator gpt-5.2; tau2-bench
+      1.0.1. pass^4 21.65.
+    limitations: 'Evaluated with reasoning_effort ''xhigh'' (the highest effort level this model
+      supports). Retrieval: AllTools (BM25 + dense OpenAI text-embedding-3-large + sandboxed
+      shell). User simulator: gpt-5.2 with reasoning_effort: low. 4 trials. Seed: 300. Banking_knowledge
+      domain only — other domains intention'
+    id: openai/gpt-5-4#tau3_banking#9abcb4f58352
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-160-tau-bench-gpt-5-4-sierra-2026-03-25
+      snapshot_ref: sha256:f8e1aaa03827b9372ec0fdc105b859c61c09b13125cb91be8714043ed6d0967d
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_english
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1477.88
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1477.88 [1472.84,
+      1482.91], 27508 votes, rank 37. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_english#34c6dcdbea1c
+  - benchmark_id: arena_sc_chinese
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1504.78
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1504.78 [1493.87,
+      1515.69], 3462 votes, rank 45. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_chinese#e140693446c5
+  - benchmark_id: arena_sc_japanese
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1481.79
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / japanese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1481.79 [1456.28,
+      1507.30], 643 votes, rank 14. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:378ee68fcc262e62231ba63141c81baffe954e5edb48ca7f0d21726b0417dadb
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_japanese#ecf13596cd00
+  - benchmark_id: arena_sc_korean
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1437.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / korean, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1437.30 [1417.20,
+      1457.41], 1076 votes, rank 27. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:d02642dc7233db6fed665cc6abdf94d487b7d4d64a2d6bb7c33ff0bea0f8755c
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_korean#7062f5b0090a
+  - benchmark_id: arena_sc_russian
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1489.95
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1489.95 [1481.73,
+      1498.17], 6509 votes, rank 20. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_russian#396dbaf15b9f
+  - benchmark_id: arena_sc_spanish
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1457.52
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / spanish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1457.52 [1442.96,
+      1472.08], 2020 votes, rank 48. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:53285f933382c2e23254c68a5e01a25705206262f3000e8f5954e40597697cc1
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_spanish#03bc7489c400
+  - benchmark_id: arena_sc_german
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1472.53
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / german, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1472.53 [1453.15,
+      1491.92], 1050 votes, rank 34. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:5bc7f8c29190254b708e3b1b9c9130570cb30292791a5ac70d6baf464245a845
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_german#62179d7a112a
+  - benchmark_id: arena_sc_french
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1501.75
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1501.75 [1487.05,
+      1516.45], 2286 votes, rank 22. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_french#b5f1a8f47368
+  - benchmark_id: arena_sc_polish
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1481.37
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / polish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1481.37 [1464.28,
+      1498.45], 1295 votes, rank 23. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c24dd604059a7b6a389b724e9819f1da9b856a619642c7b69e5124f146a92635
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_polish#935d50af9f44
+  - benchmark_id: arena_sc_vision_ocr
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1299.64
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / ocr, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1299.64 [1293.33,
+      1305.95], 18040 votes, rank 15. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1370bca68e20f410db1d74c3c5cc4deade992317d0334c3516f50b66938da114
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_vision_ocr#10531aeddc1a
+  - benchmark_id: arena_sc_vision_diagram
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1319.27
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / diagram, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1319.27 [1310.29,
+      1328.26], 6803 votes, rank 10. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:947bbb0cc1b11be394d53298f60b967420a1837ea2cccf9a2972bc6bd013c6bb
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_vision_diagram#aa15ee032f1a
+  - benchmark_id: arena_sc_vision_homework
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1331.84
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / homework, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1331.84 [1320.32,
+      1343.35], 3264 votes, rank 7. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1a362e13f2481ace58aff43129253330adaf3b8d01910b4be8bc67b8e87f68e7
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_vision_homework#a98504bbc7e3
+  - benchmark_id: arena_sc_document
+    model_id_as_evaluated: gpt-5.4
+    score: 1471.0
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: document / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1471.00 [1464.97,
+      1477.04], 33331 votes, rank 14. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-document
+      snapshot_ref: sha256:ca71d77b360678771f5300146465c8e6298970b38f4dac38a224686a0af59f4d
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_document#ad3720d6948a
+  - benchmark_id: arena_sc_industry_software_it_services
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1506.5
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
+      1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1506.50 [1501.21,
+      1511.79], 23772 votes, rank 34. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_industry_software_it_services#98c9912126e9
+  - benchmark_id: arena_sc_industry_entertainment_sports_media
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1442.56
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
+      split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1442.56 [1435.97,
+      1449.16], 12916 votes, rank 41. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_industry_entertainment_sports_media#37c825ab5ac3
+  - benchmark_id: arena_sc_industry_mathematical
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1499.48
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1499.48 [1488.32,
+      1510.64], 3236 votes, rank 19. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_industry_mathematical#3c2d596335b9
+  - benchmark_id: arena_sc_factuality
+    model_id_as_evaluated: gpt-5.4-high
+    score: 1485.01
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1485.01 [1482.01,
+      1488.00], 60435 votes, rank 9. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-factuality
+      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      cited_regions:
+      - rows
+    id: openai/gpt-5-4#arena_sc_factuality#76bcb29c51a0
 deployment:
   api_only: false
   local_inference: false
@@ -909,10 +1996,460 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - document
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1050000
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 128000
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: restricted
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: prohibited
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-openai-gpt-5-4
+  - model-143-openai-models-overview
+  - model-143-openai-changelog
+  - model-143-openai-reasoning
+  - model-143-openai-services-agreement
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-openai-gpt-5-4
+  - model-143-openai-models-overview
+  - model-143-openai-changelog
+  - model-143-openai-reasoning
+  - model-143-openai-services-agreement
+- facet: model.release_date
+  value: '2026-03-05'
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-openai-gpt-5-4
+    snapshot_ref: sha256:56c7e709958cf5eab6e96673a1c0f85e250345ff31d6165bbcb48609f38ac581
+    cited_regions:
+    - model-spec
+  - source_id: model-143-openai-models-overview
+    snapshot_ref: sha256:bdc3168feccafca027197f5ec142f4ec4ff7c61466085d47931e9093525e6de4
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-changelog
+    snapshot_ref: sha256:b2081a8984a0212a31945f67d1e9e8983ed396b736bb4767901472a5d86b9f06
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-reasoning
+    snapshot_ref: sha256:d10bae47e0233ce7428779d30bc1edf6f69784f267140c277cb58fe01ebe4a77
+    cited_regions:
+    - audit
+  - source_id: model-143-openai-services-agreement
+    snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-23'
+card_updated: '2026-09-26'
 authoring_guide:
   applies_to:
     model_id: openai/gpt-5-4

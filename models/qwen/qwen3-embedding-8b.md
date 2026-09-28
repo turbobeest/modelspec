@@ -667,6 +667,68 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
+  evidence:
+  - benchmark_id: mteb_eng_v2
+    model_id_as_evaluated: Qwen/Qwen3-Embedding-8B
+    score: 75.23
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), mean over tasks
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
+      The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 95% zero-shot on the benchmark's tasks.
+    id: qwen/qwen3-embedding-8b#mteb_eng_v2#6b1a5a54767c
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-eng-v2-json
+      snapshot_ref: sha256:3df976fb608b2a60aa58b6744e4d1135492fdd330ef18722af2dfeeef23a3c75
+      cited_regions:
+      - rows
+  - benchmark_id: mteb_v2_retrieval
+    model_id_as_evaluated: Qwen/Qwen3-Embedding-8B
+    score: 69.44
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), Retrieval task type
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Retrieval
+      times 100. The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 95% zero-shot on the benchmark's tasks.
+  - benchmark_id: mteb_v2_classification
+    model_id_as_evaluated: Qwen/Qwen3-Embedding-8B
+    score: 90.43
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), Classification task type
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Classification
+      times 100. The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 95% zero-shot on the benchmark's tasks.
+  - benchmark_id: mteb_multilingual_v2
+    model_id_as_evaluated: Qwen/Qwen3-Embedding-8B
+    score: 70.58
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(Multilingual, v2), mean over tasks
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
+      The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 99% zero-shot on the benchmark's tasks.
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
   benchmark_notes: ''
@@ -824,6 +886,204 @@ sources:
   last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: vectoriser
+  state: known
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.input_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: model.output_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: model.context_window
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: model.release_date
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-qwen-qwen3-embedding-8b
+    snapshot_ref: sha256:1fd6f3583d642a3319efb3eb8c22b6aa6320e6ab92263447bd84fd92615206d4
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-qwen-qwen3-embedding-8b
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

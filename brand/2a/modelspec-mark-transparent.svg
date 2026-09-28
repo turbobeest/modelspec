@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="400" height="400">
+  <!-- ModelSpec mark 2a, transparent: the master without its tile, for dark backgrounds.
+       Re-exported 2026-09-25 from modelspec-mark.svg (the delivered file still carried the tile).
+       Dots have no halo (stroke none), as in the delivered transparent file. -->
+  <line id="y-axis" x1="6.5" y1="3" x2="6.5" y2="37.5" stroke="#F2C94C" stroke-width="0.9" stroke-linecap="square"/>
+  <line id="x-axis" x1="3" y1="34" x2="37" y2="34" stroke="#3FB68B" stroke-width="2.2" stroke-linecap="square"/>
+  <path id="m" d="M11 29L16 11L21 23L26 11L31 29" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="miter"/>
+  <g id="dots" fill="#5AA9EC" stroke="none">
+    <circle cx="11" cy="29" r="1.9"/>
+    <circle cx="16" cy="11" r="1.9"/>
+    <circle cx="21" cy="23" r="1.9"/>
+    <circle cx="26" cy="11" r="1.9"/>
+    <circle cx="31" cy="29" r="1.9"/>
+  </g>
+</svg>

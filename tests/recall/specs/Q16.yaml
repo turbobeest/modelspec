@@ -1,0 +1,12 @@
+# gap: multilingual does not name which languages must be supported.
+# gap: the registry has no model-level self-hosting facet; open weights does not prove deployability.
+spec_version: 1
+snapshot: latest
+task_type: analysis
+capabilities: {retrieval: required, multilingual: required}
+where:
+  - model.class = vectoriser
+  - model.weights_openness = open_weights
+optimize: {max: mteb_multilingual_v2 @independent}
+explain: full
+limit: 3

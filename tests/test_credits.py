@@ -32,7 +32,7 @@ def _cfg(**kwargs: Any) -> x402.Config:
     base = dict(
         enabled=True, mainnet=False, network=x402.NETWORK_BASE_SEPOLIA,
         asset=x402._norm_addr(x402.USDC_BASE_SEPOLIA), pay_to=PAY_TO,
-        price_atomic=1000, facilitator_url="https://api.cdp.coinbase.com/platform",
+        price_atomic=4000, facilitator_url="https://api.cdp.coinbase.com/platform",
         resource_origin="https://api.modelspec.dev",
     )
     base.update(kwargs)

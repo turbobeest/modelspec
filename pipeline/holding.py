@@ -24,9 +24,10 @@ What the modelspec holding tree is, and why:
   fetch`), DPF, the rank Worker and the MCP server read is exactly what the
   real site would publish. The legal pages stay reachable because Stripe's
   account review and past purchasers rely on them.
-* **An allowlist.** Nothing else of the real build is kept but the fonts the
-  legal pages load and the favicons. A page added to the real site later is
-  dark in holding mode without anyone remembering to add it here.
+* **An allowlist.** Nothing else of the real build is kept but the landing
+  assets, the fonts the legal pages load, and the icon set (`pipeline.brand`).
+  A page added to the real site later is dark in holding mode unless this
+  module names it.
 * **A 404, not a redirect.** Every other path (model and benchmark pages, the
   wizard, the explorer, /pricing, llms.txt, the Markdown twins, .well-known)
   is absent, and Pages answers a missing path with `404.html`, which is the
@@ -34,10 +35,10 @@ What the modelspec holding tree is, and why:
   because Pages applies redirects before it looks for a file.
 * **No Pages Function.** No `_worker.js`, `functions/` or `_routes.json`, so no
   code runs in front of the files and nothing negotiates Markdown.
-* **noindex, still crawlable.** `X-Robots-Tag: noindex` on every response and a
-  robots meta tag on the page, with no `Link` header advertising llms.txt or a
-  sitemap. robots.txt allows everything, since a crawler barred from a page
-  never reads its noindex, and names no sitemap.
+* **One indexable path.** `X-Robots-Tag: noindex` applies by default. The more
+  specific `/` and `/index.html` rules detach it from the canonical landing
+  page. The dark 404 keeps its robots meta tag. No response advertises llms.txt
+  or a sitemap. robots.txt allows everything and names no sitemap.
 
 benchgraph.dev (MODEL-126) is not a holding tree. `pipeline.build` publishes
 one `_redirects` file there, and this module copies those bytes into
@@ -55,6 +56,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from pipeline import brand, landing
+
 MODE_ENV = "SITE_MODE"
 LIVE = "live"
 HOLDING = "holding"
@@ -63,9 +66,8 @@ SITES = {"modelspec": "ModelSpec"}
 
 #: What is copied from the real build, byte for byte. Directories whole.
 #: modelspec only. benchgraph.dev is one redirect file, copied unchanged.
-KEEP_DIRS = {"modelspec": ("api", "legal", "fonts")}
-KEEP_FILES = ("openapi.yaml", "favicon.ico", "favicon-64.png", "apple-touch-icon.png",
-              "icon-512.png", "icon.svg")
+KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR)}
+KEEP_FILES = ("openapi.yaml", *brand.FILES)
 #: What this module writes itself.
 WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")
 
@@ -79,6 +81,10 @@ HEADERS = (
     "  X-Robots-Tag: noindex\n"
     "  X-Content-Type-Options: nosniff\n"
     "  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload\n"
+    "/\n"
+    "  ! X-Robots-Tag\n"
+    "/index.html\n"
+    "  ! X-Robots-Tag\n"
     "/openapi.yaml\n"
     "  Content-Type: application/yaml\n"
     "/favicon.ico\n"
@@ -102,12 +108,8 @@ def resolve_mode(raw: str | None) -> str:
     return LIVE if raw == LIVE else HOLDING
 
 
-def page(site: str) -> str:
-    """The holding page: the name, one line, and the operator. No numbers.
-
-    The same bytes are `/` (200) and `404.html` (every other path, 404). No
-    canonical, since no URL showing this should be indexed.
-    """
+def dark_page(site: str) -> str:
+    """The noindex 404 page: the name, one line, and the operator. No numbers."""
     line = LINE.format(site=site)
     footer = ""
     if site == SITES["modelspec"]:
@@ -116,8 +118,8 @@ def page(site: str) -> str:
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
-        f'<meta name="robots" content="noindex"><title>{site}</title>'
-        '<link rel="icon" href="/favicon.ico">\n'
+        f'<meta name="robots" content="noindex"><title>{site}</title>\n'
+        + brand.head_links() + brand.social_meta(site) +
         f"<style>{_STYLE}</style></head>\n"
         f"<body><main><h1>{site}</h1><p>{line}</p>{footer}"
         f'<p class="l">© {OPERATOR}</p></main></body></html>\n'
@@ -163,9 +165,12 @@ def build(src: Path, out: Path) -> dict[str, list[str]]:
             if (real / rel).is_file():
                 shutil.copy2(real / rel, tree / rel)
                 kept[name].append(rel)
-        html = page(site)
-        (tree / "index.html").write_text(html, encoding="utf-8")
-        (tree / "404.html").write_text(html, encoding="utf-8")
+        live_landing = real / "index.html"
+        if not live_landing.is_file():
+            raise FileNotFoundError(f"{live_landing} is missing; it must stay published")
+        data = landing.extract_data(live_landing.read_text(encoding="utf-8"))
+        landing.write(tree, data, variant="holding")
+        (tree / "404.html").write_text(dark_page(site), encoding="utf-8")
         (tree / "_headers").write_text(HEADERS, encoding="utf-8")
         (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     shutil.copytree(src / "benchgraph", out / "benchgraph")
@@ -183,7 +188,8 @@ def violations(tree: Path, name: str) -> list[str]:
         if "/" in rel:
             if top not in KEEP_DIRS[name]:
                 bad.append(f"{rel}: outside the kept directories")
-            elif top == "api" and path.suffix != ".json":
+            elif (top == "api" and path.suffix != ".json"
+                  and rel != "api/decision/snapshot.json.gz"):
                 bad.append(f"{rel}: /api/ holds JSON only")
             elif top == "legal" and path.name != "index.html":
                 bad.append(f"{rel}: /legal/ holds its pages only")
@@ -191,13 +197,18 @@ def violations(tree: Path, name: str) -> list[str]:
                 bad.append(f"{rel}: /fonts/ holds faces and their licences only")
         elif rel not in KEEP_FILES and rel not in WRITTEN:
             bad.append(f"{rel}: not a holding file")
-    for rel in ("index.html", "404.html"):
-        if not (tree / rel).is_file() or 'content="noindex"' not in (tree / rel).read_text(
-                encoding="utf-8"):
-            bad.append(f"{rel}: missing, or not noindex")
+    index = (tree / "index.html").read_text(encoding="utf-8") if (tree / "index.html").is_file() else ""
+    if ('<link rel="canonical" href="https://modelspec.dev/">' not in index
+            or 'content="noindex"' in index):
+        bad.append("index.html: missing, non-canonical, or noindex")
+    not_found = (tree / "404.html").read_text(encoding="utf-8") if (tree / "404.html").is_file() else ""
+    if 'content="noindex"' not in not_found:
+        bad.append("404.html: missing, or not noindex")
     headers = (tree / "_headers").read_text(encoding="utf-8") if (tree / "_headers").is_file() else ""
-    if "X-Robots-Tag: noindex" not in headers or "Link:" in headers:
-        bad.append("_headers: must noindex everything and advertise nothing")
+    if ("X-Robots-Tag: noindex" not in headers or "Link:" in headers
+            or "/\n  ! X-Robots-Tag" not in headers
+            or "/index.html\n  ! X-Robots-Tag" not in headers):
+        bad.append("_headers: must noindex everything except the landing root")
     if "Sitemap" in ((tree / "robots.txt").read_text(encoding="utf-8")
                      if (tree / "robots.txt").is_file() else "Sitemap"):
         bad.append("robots.txt: missing, or names a sitemap")

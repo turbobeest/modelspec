@@ -666,19 +666,19 @@ availability:
 benchmarks:
   scores: {}
   evidence:
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Sonar
-    score: 47.07
+  - benchmark_id: mteb_v2_classification
+    model_id_as_evaluated: facebook/SONAR
+    score: 69.7
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-24'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: MTEB(eng, v2), Classification task type
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Classification
+      times 100. The JSON states no snapshot date, so the reading is dated by the observation.
+    limitations: The leaderboard reports this model as 100% zero-shot on the benchmark's tasks.
 deployment:
   api_only: false
   local_inference: false

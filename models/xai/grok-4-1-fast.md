@@ -675,45 +675,23 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Grok 4.1 Fast
-    score: 74.0
+  - benchmark_id: tau3_banking
+    model_id_as_evaluated: Grok 4.1 fast (high)
+    score: 13.14
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/grok-4-1-fast_sierra_2026-05-05/submission.json
+    source_kind: benchmark_author
+    evidence_date: '2026-05-05'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Grok 4.1 Fast
-    score: 2.86
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Grok 4.1 Fast
-    score: 85.25
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: τ-Knowledge τ-Banking (banking_knowledge), pass^1
+    configuration: τ-bench leaderboard submission grok-4-1-fast_sierra_2026-05-05, submitted
+      by Sierra; retrieval config alltools; reasoning effort high; user simulator gpt-5.2; tau2-bench
+      1.0.1. pass^4 5.15.
+    limitations: 'Evaluated using AllTools retrieval (BM25 + dense OpenAI text-embedding-3-large
+      + sandboxed shell). User simulator: gpt-5.2 with reasoning_effort: low. 4 trials. Seed:
+      300. Banking_knowledge domain only — other domains intentionally excluded from this comparison;
+      the AllTools setting standardizes ret'
 deployment:
   api_only: false
   local_inference: false

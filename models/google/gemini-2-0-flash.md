@@ -678,8 +678,6 @@ benchmarks:
     arena_elo_overall: 1310.0
     arena_elo_style_control: 1360.0
     arena_elo_vision: 1170.6
-    artificial_analysis_quality_index: 77.0
-    artificial_analysis_speed_index: 89.0
     docvqa: 88.1
     gpqa_diamond: 60.1
     humaneval: 85.5
@@ -700,45 +698,6 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Gemini 2.0 Flash
-    score: 31.33
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Gemini 2.0 Flash
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Gemini 2.0 Flash
-    score: 62.32
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
-    source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemini-2.0-flash-001
     score: 1359.88
@@ -752,6 +711,20 @@ benchmarks:
     configuration: LM Arena live board (text-overall-style_control). Text Arena overall,
       style-controlled. Style-control overall is not raw overall and is not a category
       Elo. evidence_date observation_fetch_date=2026-09-10.
+    limitations: ''
+  - benchmark_id: aime_2025
+    model_id_as_evaluated: gemini-2.0-flash-thinking
+    score: 53.33
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2025
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: AIME 2025, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-24; the table states no run date,
+      so the reading is dated by the observation. Effort thinking; highest-effort row for the
+      model. MathArena lists final-answer competitions as deprecated.
     limitations: ''
 deployment:
   api_only: false
@@ -862,7 +835,7 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 140.0
+  api_tps_output: null
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null

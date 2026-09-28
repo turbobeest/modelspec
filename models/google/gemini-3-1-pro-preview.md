@@ -693,6 +693,15 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p50_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [233.50073, 694.750898] minutes. METR states measurements above 16 hours are unreliable on this suite.
+    id: google/gemini-3-1-pro-preview#metr_time_horizon_50#d583a9b69328
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-metr-time-horizon-1-1
+      snapshot_ref: sha256:2b9284272537c3bdb7af7691cd0ef2854374b4c7f72a10ececc99aca53c419f4
+      cited_regions:
+      - rows
   - benchmark_id: metr_time_horizon_80
     model_id_as_evaluated: gemini_3_1_pro
     score: 89.801503
@@ -705,71 +714,1057 @@ benchmarks:
     benchmark_version: METR-Horizon-v1.1
     configuration: Time Horizon 1.1 YAML field p80_horizon_length.estimate, minutes, Inspect-era 1.1 protocol. Public chart shows hours. Not Time Horizon 1.0.
     limitations: YAML CI [52.025934, 158.618017] minutes. METR states measurements above 16 hours are unreliable on this suite.
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Gemini 3.1 Pro Preview
-    score: 82.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    id: google/gemini-3-1-pro-preview#metr_time_horizon_80#594540b96349
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-metr-time-horizon-1-1
+      snapshot_ref: sha256:2b9284272537c3bdb7af7691cd0ef2854374b4c7f72a10ececc99aca53c419f4
+      cited_regions:
+      - rows
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1486.81
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Gemini 3.1 Pro Preview
-    score: 17.71
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1486.81 [1483.65, 1489.97], 106951
+      votes, rank 15.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_elo_style_control#69f9c82b6613
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_coding
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1520.16
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: gdpval_aa
-    model_id_as_evaluated: Gemini 3.1 Pro Preview
-    score: 20.2
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1520.16 [1515.30, 1525.02], 29544
+      votes, rank 28.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_coding#00f967e78205
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_hard_prompts
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1507.49
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GDPval-AA v2 normalized Elo percent
-    configuration: Artificial Analysis live LLM leaderboard. Column gdpvalNormalized
-      = GDPval-AA v2 normalized Elo percent. evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1507.49 [1503.66, 1511.31], 69408
+      votes, rank 16.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_hard_prompts#752f7e66196e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_math
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1489.37
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
+      2026-09-13; style control. Highest-effort row for the product (effort: default; MODEL-123
+      max-effort rule). Rating 1489.37 [1480.74, 1497.99], 5569 votes, rank 22.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_math#23e59d893e7b
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_creative_writing
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1480.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1480.30 [1474.52, 1486.07], 18759
+      votes, rank 9.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_creative_writing#c070e61b0170
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_instruction_following
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1481.01
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1481.01 [1476.46, 1485.57], 36184
+      votes, rank 16.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_instruction_following#36eb9720fa05
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_multi_turn
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1494.74
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1494.74 [1489.13, 1500.36], 18519
+      votes, rank 15.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_multi_turn#915e201f7cce
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_expert
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1509.05
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1509.05 [1502.22, 1515.88], 10668
+      votes, rank 22.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_expert#33f2a5cf5f79
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_longer_query
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1499.93
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1499.93 [1495.47, 1504.40], 45996
+      votes, rank 13.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_longer_query#d1ce3b17a8e4
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_non_english
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1479.67
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1479.67 [1475.79, 1483.55], 59109
+      votes, rank 12.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_non_english#3876288c9c61
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_medicine
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1502.96
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
+      revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1502.96 [1495.24, 1510.69], 7936
+      votes, rank 13.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_medicine#79f1fff86a4e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_legal
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1497.14
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
+      1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1497.14 [1489.78, 1504.50], 8809
+      votes, rank 14.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_legal#c1918385c1eb
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_business
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1477.34
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
+      latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1477.34 [1471.99, 1482.70], 21018
+      votes, rank 25.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_business#f280e7cc093e
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_science
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1512.17
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1512.17 [1506.55, 1517.79], 17641
+      votes, rank 11.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_science#4b5a96c9bafc
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_writing
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1480.94
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1480.94 [1475.90, 1485.99], 26539
+      votes, rank 13.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_writing#477cf0bc437a
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_vision
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1278.69
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1278.69 [1273.20, 1284.19], 40691
+      votes, rank 26.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_sc_vision#e6f27a37cf53
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
+      cited_regions:
+      - rows
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1446.69
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: default;
+      MODEL-123 max-effort rule). Rating 1446.69 [1441.51, 1451.86], 22889 votes, rank 61.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: google/gemini-3-1-pro-preview#arena_webdev#a9e07f5b0738
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Gemini 3.1 Pro Preview
-    score: 94.14
+    model_id_as_evaluated: gemini-3.1-pro-preview_high
+    score: 94.44
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2026-08-06'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: scicode
-    model_id_as_evaluated: Gemini 3.1 Pro Preview
-    score: 58.68
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2026-08-06T22:30:37.000Z; effort high; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.63 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-1-pro-preview#gpqa_diamond#14d111b064d5
+    measured_by: independent_evaluator
+    effort: high
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      cited_regions:
+      - rows
+  - benchmark_id: frontiermath_tiers_1_3_v2
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 59.65
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://epoch.ai/frontiermath
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2026-06-11'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: SciCode
-    configuration: Artificial Analysis live LLM leaderboard. Column scicode = SciCode.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
+      read 2026-09-24. Run started 2026-06-11T23:35:57.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.91 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-1-pro-preview#frontiermath_tiers_1_3_v2#617cd026d2ab
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      cited_regions:
+      - rows
+  - benchmark_id: simpleqa_verified
+    model_id_as_evaluated: gemini-3.1-pro-preview_high
+    score: 73.5
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/simpleqa-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-08-10'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
+      prompt
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
+      read 2026-09-24. Run started 2026-08-10T21:35:39.000Z; effort high; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.40 points.
+    limitations: Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-1-pro-preview#simpleqa_verified#4e42310b5190
+    measured_by: independent_evaluator
+    effort: high
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      cited_regions:
+      - rows
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: Gemini 3.1 Pro
+    score: 911.21
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-25'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Vending-Bench 2, mean final balance over 5 runs
+    configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
+      https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort default; the highest-effort
+      row for the model (MODEL-123 max-effort rule).
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-1-pro-preview#vending_bench_2#a7251b1290ff
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      cited_regions:
+      - rows
+  - benchmark_id: deepswe_v1_1
+    model_id_as_evaluated: gemini-3-1-pro-preview (high)
+    score: 11.73
+    unit: percent
+    source_url: https://deepswe.datacurve.ai/
+    source_kind: benchmark_author
+    evidence_date: '2026-09-25'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: DeepSWE v1.1, pass@1, mini-swe-agent
+    configuration: Board row as copied in Epoch AI's benchmark data (deepswe_external.csv, https://epoch.ai/data/benchmark_data.zip),
+      read 2026-09-24. Effort high; the highest-effort row for the model (MODEL-123 max-effort
+      rule). Harness mini-swe-agent.
+    limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
+      copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    id: google/gemini-3-1-pro-preview#deepswe_v1_1#6318467ceaa6
+    measured_by: benchmark_author
+    effort: high
+    harness: unregistered
+    sources:
+    - source_id: model-160-deepswe-v1-1
+      snapshot_ref: sha256:7fcc641eb55d3cfbc8429ea1ef26448ef44bb66772190ee69f8464958c0a79dc
+      cited_regions:
+      - rows
+  - benchmark_id: hle
+    model_id_as_evaluated: gemini-3.1-pro-preview (thinking high)
+    score: 46.44
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
+    configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2026-04-10T15:51:06.000Z;
+      effort high; ±1.96 (95% CI).
+    limitations: 'Potential contamination warning: This model was evaluated after the public
+      release of HLE, allowing model builder access to the prompts and solutions.'
+    id: google/gemini-3-1-pro-preview#hle#a2ee666a88ee
+    measured_by: independent_evaluator
+    effort: high
+    harness: null
+    sources:
+    - source_id: model-143-evidence-scale-hle-json
+      snapshot_ref: sha256:c7e558ff927cc7aae1ec9d39ba22de7b5db667674ea408c772002222c11818bd
+      cited_regions:
+      - rows
+  - benchmark_id: aime_2026
+    model_id_as_evaluated: Gemini 3.1 Pro Preview
+    score: 98.33
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/aime--aime_2026
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-26'
+    date_type: evaluated
+    verified_at: '2026-09-26'
+    benchmark_version: AIME 2026, MathArena final-answer table
+    configuration: MathArena competition table read 2026-09-26; the table states no run
+      date, so the reading is dated by the observation. Effort default; highest-effort
+      row for the model. MathArena lists final-answer competitions as deprecated.
+    limitations: 'MathArena marks this row: model was released after competition release, so
+      contamination is possible.'
+    id: google/gemini-3-1-pro-preview#aime_2026#19ddd5a32076
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-161-matharena-aime-2026
+      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
+      cited_regions:
+      - rows
+    - source_id: model-161-matharena-aime-2026-quality
+      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+      cited_regions:
+      - rows
+    quality_flags:
+    - deprecated
+    - contamination_warning
+  - benchmark_id: tau3_banking
+    model_id_as_evaluated: Gemini 3.1 Pro Preview (high)
+    score: 26.03
+    unit: percent
+    source_url: https://sierra-tau-bench-public.s3.us-west-2.amazonaws.com/submissions/gemini-3-1-pro-preview_sierra_2026-05-05/submission.json
+    source_kind: benchmark_author
+    evidence_date: '2026-05-05'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: τ-Knowledge τ-Banking (banking_knowledge), pass^1
+    configuration: τ-bench leaderboard submission gemini-3-1-pro-preview_sierra_2026-05-05,
+      submitted by Sierra; retrieval config alltools; reasoning effort high; user simulator
+      gpt-5.2; tau2-bench 1.0.1. pass^4 9.28.
+    limitations: 'Evaluated using AllTools retrieval (BM25 + dense OpenAI text-embedding-3-large
+      + sandboxed shell). User simulator: gpt-5.2 with reasoning_effort: low. 4 trials. Seed:
+      300. Banking_knowledge domain only — other domains intentionally excluded from this comparison;
+      the AllTools setting standardizes ret'
+    id: google/gemini-3-1-pro-preview#tau3_banking#366500218804
+    measured_by: benchmark_author
+    effort: high
+    harness: null
+    sources:
+    - source_id: model-160-tau-bench-gemini-3-1-pro-preview-sierra-2026-05-05
+      snapshot_ref: sha256:de09c9441b6a53a6372abc80ea59f28599d2864c93dc00746266372bffa838b8
+      cited_regions:
+      - rows
+  - benchmark_id: swe_bench_pro
+    model_id_as_evaluated: gemini-3.1-pro (thinking)*
+    score: 46.1
+    unit: percent
+    source_url: https://labs.scale.com/leaderboard/swe_bench_pro_public
+    source_kind: independent_evaluator
+    evidence_date: '2026-04-08'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: SWE-Bench Pro, public dataset, Scale Labs leaderboard
+    configuration: 'Scale Labs leaderboard entry read 2026-09-25; entry created 2026-04-08; effort
+      thinking (the board names no level); ±3.6 (95% CI). Harness: mini-swe-agent (the board marks
+      mini-swe-agent runs with an asterisk).'
+    limitations: Public split only. The same page's private-split row is a different number.
+    effort: null
+    harness: unregistered
+    measured_by: independent_evaluator
+    sources:
+    - source_id: model-160-scale-swe-bench-pro-public
+      snapshot_ref: sha256:b0df5d5cbc6fd2c3925e740d0379f6570e00d58b98ca576c8141e6af67dc0666
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#swe_bench_pro#833823bb56b2
+  - benchmark_id: arena_sc_english
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1489.13
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1489.13 [1484.97,
+      1493.29], 47835 votes, rank 18. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_english#4f95c7d8cb34
+  - benchmark_id: arena_sc_chinese
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1530.02
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1530.02 [1521.66,
+      1538.38], 6460 votes, rank 17. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_chinese#32f5b75a82b4
+  - benchmark_id: arena_sc_japanese
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1494.05
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / japanese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1494.05 [1475.07,
+      1513.02], 1249 votes, rank 9. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:378ee68fcc262e62231ba63141c81baffe954e5edb48ca7f0d21726b0417dadb
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_japanese#7f524ea46ef0
+  - benchmark_id: arena_sc_korean
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1458.5
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / korean, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1458.50 [1443.04,
+      1473.95], 1955 votes, rank 13. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:d02642dc7233db6fed665cc6abdf94d487b7d4d64a2d6bb7c33ff0bea0f8755c
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_korean#b5dcd8d85fa9
+  - benchmark_id: arena_sc_russian
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1500.29
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1500.29 [1493.75,
+      1506.83], 11524 votes, rank 10. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_russian#8cf9bee874b2
+  - benchmark_id: arena_sc_spanish
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1480.32
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / spanish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1480.32 [1468.87,
+      1491.77], 3518 votes, rank 13. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:53285f933382c2e23254c68a5e01a25705206262f3000e8f5954e40597697cc1
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_spanish#93fd8c3b4eb7
+  - benchmark_id: arena_sc_german
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1493.58
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / german, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1493.58 [1478.20,
+      1508.96], 1842 votes, rank 12. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:5bc7f8c29190254b708e3b1b9c9130570cb30292791a5ac70d6baf464245a845
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_german#6ffc130b4d67
+  - benchmark_id: arena_sc_french
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1501.84
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1501.84 [1489.68,
+      1513.99], 3610 votes, rank 21. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_french#ff340599f5c3
+  - benchmark_id: arena_sc_polish
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1495.98
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / polish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1495.98 [1482.78,
+      1509.19], 2171 votes, rank 14. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c24dd604059a7b6a389b724e9819f1da9b856a619642c7b69e5124f146a92635
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_polish#268b3bc29b0d
+  - benchmark_id: arena_sc_vision_ocr
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1292.97
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / ocr, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1292.97 [1287.59,
+      1298.36], 28319 votes, rank 23. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1370bca68e20f410db1d74c3c5cc4deade992317d0334c3516f50b66938da114
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_vision_ocr#9603240cd2bf
+  - benchmark_id: arena_sc_vision_diagram
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1308.97
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / diagram, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1308.97 [1301.58,
+      1316.37], 10741 votes, rank 22. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:947bbb0cc1b11be394d53298f60b967420a1837ea2cccf9a2972bc6bd013c6bb
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_vision_diagram#613f61dbf4de
+  - benchmark_id: arena_sc_vision_homework
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1311.09
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / homework, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1311.09 [1302.01,
+      1320.18], 5453 votes, rank 19. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1a362e13f2481ace58aff43129253330adaf3b8d01910b4be8bc67b8e87f68e7
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_vision_homework#15c3767af17c
+  - benchmark_id: arena_sc_document
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1443.92
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: document / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1443.92 [1438.69,
+      1449.14], 49457 votes, rank 31. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-document
+      snapshot_ref: sha256:ca71d77b360678771f5300146465c8e6298970b38f4dac38a224686a0af59f4d
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_document#53dc2b2ed0ac
+  - benchmark_id: arena_sc_industry_software_it_services
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1511.95
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
+      1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1511.95 [1507.63,
+      1516.27], 42213 votes, rank 24. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_industry_software_it_services#035fb2f3866b
+  - benchmark_id: arena_sc_industry_entertainment_sports_media
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1467.54
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
+      split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.54 [1462.22,
+      1472.86], 23874 votes, rank 11. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_industry_entertainment_sports_media#01049d0fdf28
+  - benchmark_id: arena_sc_industry_mathematical
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1485.24
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1485.24 [1476.46,
+      1494.02], 5762 votes, rank 34. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_industry_mathematical#67e51718388d
+  - benchmark_id: arena_sc_factuality
+    model_id_as_evaluated: gemini-3.1-pro-preview
+    score: 1471.8
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1471.80 [1469.35,
+      1474.25], 106410 votes, rank 22. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-factuality
+      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      cited_regions:
+      - rows
+    id: google/gemini-3-1-pro-preview#arena_sc_factuality#c286a73d84b2
 deployment:
   api_only: false
   local_inference: false
@@ -924,10 +1919,528 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - video
+  - audio
+  - document
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 1048576
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: 65536
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: restricted
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: prohibited
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-google-gemini-3-1-pro-preview
+  - model-143-google-deprecations
+  - model-143-google-streaming
+  - model-143-google-terms
+  - model-143-google-company
+  - model-143-google-sec
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-google-gemini-3-1-pro-preview
+  - model-143-google-deprecations
+  - model-143-google-streaming
+  - model-143-google-terms
+  - model-143-google-company
+  - model-143-google-sec
+- facet: model.release_date
+  value: '2026-02-19'
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-26'
 ---
 
 

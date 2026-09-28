@@ -666,29 +666,111 @@ availability:
     notes: ''
   other_platforms: []
 benchmarks:
-  scores:
-    bbh: 36.8
-    gpqa_diamond: 27.2
-    ifeval: 69.5
-    math_500: 40.1
-    mmlu_pro: 40.5
-    musr: 11.8
+  scores: {}
   benchmark_source: open-llm-leaderboard-v2
   benchmark_as_of: 2026-04
   evidence:
-  - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Mixtral 8x7B
-    score: 29.19
+  - benchmark_id: bbh
+    model_id_as_evaluated: mistralai/Mixtral-8x7B-v0.1
+    score: 50.9
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2024-08-22'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-5c0a6e0ea9dd
+      snapshot_ref: sha256:f91bcb0befead55025963cb054a7997ee6ce10622ebe3c6fb1c2fdc5134a64fb
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x7b#bbh#3643ae8c9313
+  - benchmark_id: ifeval
+    model_id_as_evaluated: mistralai/Mixtral-8x7B-v0.1
+    score: 24.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-5c0a6e0ea9dd
+      snapshot_ref: sha256:f91bcb0befead55025963cb054a7997ee6ce10622ebe3c6fb1c2fdc5134a64fb
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x7b#ifeval#afe5a3be0249
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: mistralai/Mixtral-8x7B-v0.1
+    score: 38.5
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-5c0a6e0ea9dd
+      snapshot_ref: sha256:f91bcb0befead55025963cb054a7997ee6ce10622ebe3c6fb1c2fdc5134a64fb
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x7b#mmlu_pro#8f0052c6e26d
+  - benchmark_id: musr
+    model_id_as_evaluated: mistralai/Mixtral-8x7B-v0.1
+    score: 43.2
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/results/resolve/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json
+    source_kind: independent_evaluator
+    evidence_date: '2024-08-22'
+    date_type: evaluated
+    verified_at: '2026-09-25'
+    benchmark_version: Open LLM Leaderboard v2
+    configuration: Published per-model result; leaderboard metric converted from fraction to percent.
+    limitations: Static leaderboard result. The source file identifies the evaluated repository and run
+      date.
+    measured_by: independent_evaluator
+    sources:
+    - source_id: oll-v2-5c0a6e0ea9dd
+      snapshot_ref: sha256:f91bcb0befead55025963cb054a7997ee6ce10622ebe3c6fb1c2fdc5134a64fb
+      cited_regions:
+      - rows
+    id: mistral/open-mixtral-8x7b#musr#417205e313d2
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: open-mixtral-8x7b
+    score: 29.83
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
+    source_kind: independent_evaluator
+    evidence_date: '2025-01-27'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-01-27T00:00:00.000Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.91 points.
+    limitations: Epoch AI data, CC BY 4.0.
+  benchmark_notes: 'MODEL-116, 2026-09-24: removed math_500 40.1 and gpqa_diamond 27.2. They came from a hand-typed
+    table in scripts/enrich_open_llm.py labelled Open LLM Leaderboard v2, and do not match that leaderboard (its row
+    for mistralai/Mixtral-8x7B-v0.1 has MATH Lvl 5 Raw 9.4 and GPQA Raw 32.0). MODEL-154, read 2026-09-24: Rechecked
+    ifeval, bbh, musr and mmlu_pro against this model''s own OLL v2 run (mistralai/Mixtral-8x7B-v0.1, torch.bfloat16,
+    model revision ffe1a706bacbd5abddc5ff99432ee38f7e0662fb). IFEval is the mean of strict prompt and instruction
+    accuracy; BBH and MuSR are unweighted subtask means; MMLU-Pro is raw accuracy. Values are percentages rounded
+    to one decimal, not normalized leaderboard scores. Source: https://huggingface.co/datasets/open-llm-leaderboard/results/blob/aa81ecc38fdc5708254b833923368970efdf5ef5/mistralai/Mixtral-8x7B-v0.1/results_2025-02-13T18-27-04.338360.json.'
 deployment:
   api_only: false
   local_inference: false

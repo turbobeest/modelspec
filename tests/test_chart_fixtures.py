@@ -22,8 +22,10 @@ from scripts.chart_check import (
     load_manifest,
     load_models,
     mismatch_errors,
+    pairing_dispute_errors,
     parse_score,
     reconcile_readings,
+    render_markdown,
     tolerance_for,
 )
 
@@ -147,9 +149,9 @@ def test_official_reports_against_an_independent_row_is_not_held():
         [
             _row(
                 94.14,
-                source="https://artificialanalysis.ai/leaderboards/models",
+                source="https://example.com/leaderboard",
                 source_kind="independent_evaluator",
-                configuration="Artificial Analysis leaderboard",
+                configuration="Independent leaderboard",
             ),
             _row(
                 91.0,
@@ -165,8 +167,8 @@ def test_official_reports_against_an_independent_row_is_not_held():
         {
             "score": 94.14,
             "unit": "percent",
-            "source_url": "https://artificialanalysis.ai/leaderboards/models",
-            "configuration": "Artificial Analysis leaderboard",
+            "source_url": "https://example.com/leaderboard",
+            "configuration": "Independent leaderboard",
             "source_kind": "independent_evaluator",
         },
         {
@@ -197,7 +199,7 @@ def test_official_reports_matches_a_provider_self_report():
         [
             _row(
                 57.9,
-                source="https://artificialanalysis.ai/leaderboards/models",
+                source="https://example.com/leaderboard",
                 source_kind="independent_evaluator",
             ),
             _row(
@@ -232,7 +234,7 @@ def test_official_reports_mismatches_a_different_self_report():
         [
             _row(
                 96.0,
-                source="https://artificialanalysis.ai/leaderboards/models",
+                source="https://example.com/leaderboard",
                 source_kind="independent_evaluator",
             ),
             _row(
@@ -369,8 +371,8 @@ def test_evaluated_bar_without_same_source_is_a_gap():
                 role="evaluated",
                 model_id="anthropic/claude-fable-5-1",
                 model_as_labelled="Claude Fable 5.1",
-                score=52.0,
-                score_text="52.0",
+                score=40.0,
+                score_text="40.0",
             )
         ],
         competitor_numbers="vendor_run",
@@ -378,13 +380,13 @@ def test_evaluated_bar_without_same_source_is_a_gap():
     model = _model(
         "anthropic/claude-fable-5-1",
         [
-            _row(55.8, source="https://www.anthropic.com/claude-fable-5-1-system-card"),
-            _row(57.88, source="https://www.tbench.ai/leaderboard"),
+            _row(44.2, source="https://www.anthropic.com/claude-fable-5-1-system-card"),
+            _row(48.0, source="https://www.tbench.ai/leaderboard"),
         ],
     )
     bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
     assert bar["status"] == "competitor_gap"
-    assert round(bar["gap"], 2) == -3.8
+    assert round(bar["gap"], 2) == -4.2
     assert {row["source_url"] for row in bar["held_rows"]} == {
         "https://www.anthropic.com/claude-fable-5-1-system-card",
         "https://www.tbench.ai/leaderboard",
@@ -426,23 +428,23 @@ def test_sibling_configurations_that_miss_the_row_are_mismatches():
 
 def test_different_unit_is_not_a_gap():
     page = _page(
-        [_bar(role="evaluated", score=1565, score_text="1565", unit="elo")],
+        [_bar(role="evaluated", score=1200, score_text="1200", unit="elo")],
         competitor_numbers="vendor_run",
     )
     model = _model(
         "openai/gpt-6-astra",
-        [_row(53, unit="normalized Elo percent")],
+        [_row(40, unit="normalized Elo percent")],
     )
     bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
     assert bar["status"] == "unit_differs"
-    assert bar["chart_score"] == 1565
-    assert bar["held"]["score"] == 53
+    assert bar["chart_score"] == 1200
+    assert bar["held"]["score"] == 40
     assert bar["held"]["unit"] == "normalized Elo percent"
 
 
 def test_other_metric_is_not_compared():
-    page = _page([_bar(score=41.6, score_text="41.6", metric="tasks_completed")])
-    model = _model("openai/gpt-6-astra", [_row(68.5)])
+    page = _page([_bar(score=12.5, score_text="12.5", metric="tasks_completed")])
+    model = _model("openai/gpt-6-astra", [_row(40.0)])
     bar = classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]
     assert bar["status"] == "other_metric"
 
@@ -512,10 +514,10 @@ charts:
         encoding="utf-8",
     )
     fixture = load_fixture(fixture_path)
-    manifest = {"aa-1.png": "abc123"}
+    manifest = {"chart.png": "abc123"}
     readings = [
         {
-            "source": "aa-1.png",
+            "source": "chart.png",
             "reader": "reader-b",
             "read_on": "2026-09-25",
             "charts": [
@@ -570,7 +572,7 @@ charts:
             [fixture],
             [
                 {
-                    "source": "aa-1.png",
+                    "source": "chart.png",
                     "reader": "reader-b",
                     "read_on": "2026-09-25",
                     "charts": [
@@ -748,6 +750,81 @@ def _one_reading(model: str, benchmark: str, **extra) -> dict:
 
 def _classes(fixture: dict, reading: dict) -> list[str]:
     return [row["class"] for row in reconcile_readings([fixture], [reading], {})["pairs"]]
+
+
+def test_ifbench_prompt_and_ruler_context_stay_on_the_benchmark():
+    assert _classes(
+        _one_bar_fixture("8B Dense", "ifbench", score=77.17, score_text="77.17", configuration="Prompt."),
+        _one_reading("Granite 4.2 8B Dense", "IFBench (prompt)", score=77.17),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("8B Dense", "ifbench", configuration="Loose."),
+            _one_reading("8B Dense", "IFBench (prompt)"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("8B Dense", "ruler", score=71.41, score_text="71.41", configuration="128K context."),
+        _one_reading("Granite 4.2 8B Dense", "RULER 128K", score=71.41),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("8B Dense", "ruler", configuration="128K context."),
+            _one_reading("8B Dense", "RULER 64K"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_an_unstated_mode_does_not_become_the_mode():
+    fixture = _one_bar_fixture("8B Dense", "GPQA", score=54.8, score_text="54.80")
+    fixture["charts"][0]["bars"].append(
+        {
+            "model_as_labelled": "8B Dense",
+            "benchmark_as_labelled": "GPQA",
+            "score": 60,
+            "score_text": "60",
+            "printed": True,
+            "configuration": "thinking",
+        }
+    )
+    reading = _one_reading(
+        "8B Dense",
+        "GPQA",
+        score=60,
+        metric_or_setting="thinking",
+    )
+    reading["charts"][0]["items"].append(
+        {
+            "model_as_labelled": "8B Dense",
+            "benchmark_as_labelled": "GPQA",
+            "score": 54.8,
+            "metric_or_setting": "section: Reasoning; thinking mode not stated",
+            "printed": True,
+        }
+    )
+    assert sorted(_classes(fixture, reading)) == ["agree", "agree"]
+
+
+def test_prose_uncertainty_is_not_a_tolerance():
+    fixture = _one_bar_fixture("Inkling", "MCP Atlas", score=76, score_text="76", printed=False)
+    note = _one_reading(
+        "Inkling",
+        "MCP Atlas",
+        score=76.4,
+        score_text="76.4",
+        printed=False,
+        uncertainty="none; exact embedded value",
+    )
+    assert _classes(fixture, note) == ["disagree"]
+    bound = _one_reading(
+        "Inkling",
+        "MCP Atlas",
+        score=76.4,
+        score_text="76.4",
+        printed=False,
+        uncertainty="±0.5; overlaps the next vertex",
+    )
+    assert _classes(fixture, bound) == ["agree"]
 
 
 def test_label_normalisation_pairs_the_same_bar():
@@ -934,20 +1011,20 @@ def test_section_header_and_main_set_pair():
 
 def test_version_labels_stay_part_of_the_benchmark():
     assert _classes(
-        _one_bar_fixture("Opus 5", "gdpval_aa", configuration="GDPval-AA v2, Elo."),
-        _one_reading("Opus 5", "GDPval-AA v2"),
+        _one_bar_fixture("Opus 5", "demo_bench", configuration="Demo Bench v2, Elo."),
+        _one_reading("Opus 5", "Demo Bench v2"),
     ) == ["agree"]
     assert _classes(
-        _one_bar_fixture("Opus 5", "GDPval-AA v2"),
-        _one_reading("Opus 5", "GDPval-AA v2.1"),
+        _one_bar_fixture("Opus 5", "Demo Bench v2"),
+        _one_reading("Opus 5", "Demo Bench v2.1"),
     ) == ["only_a", "only_b"]
     assert _classes(
-        _one_bar_fixture("Opus 5", "AA-Briefcase"),
-        _one_reading("Opus 5", "AA-Briefcase v1.1"),
+        _one_bar_fixture("Opus 5", "Demo Bench"),
+        _one_reading("Opus 5", "Demo Bench v1.1"),
     ) == ["only_a", "only_b"]
     assert _classes(
-        _one_bar_fixture("Opus 5", "aa_briefcase", configuration="AA Briefcase v1.1 Elo."),
-        _one_reading("Opus 5", "AA-Briefcase v1.1"),
+        _one_bar_fixture("Opus 5", "demo_bench", configuration="Demo Bench v1.1 Elo."),
+        _one_reading("Opus 5", "Demo Bench v1.1"),
     ) == ["agree"]
 
 
@@ -1100,6 +1177,69 @@ def test_phase2a_system_card_pdfs_use_the_manifest_digest():
         assert fixtures[slug]["document_sha256"] == manifest[name]
 
 
+def _resolved(score: float, readings: list[tuple[str, object]], score_text: str | None = None) -> dict:
+    text = score_text if score_text is not None else str(score)
+    return _bar(
+        score=score,
+        score_text=text,
+        resolution={
+            "rule": "two_of_three",
+            "readings": [{"reader": reader, "value": value} for reader, value in readings],
+        },
+    )
+
+
+def _with_readers(page: dict) -> dict:
+    page["charts"][0]["readings"] = [
+        {"reader": "grok-build-4.7", "date": "2026-09-24"},
+        {"reader": "claude-opus", "date": "2026-09-24"},
+        {"reader": "claude-sonnet", "date": "2026-09-24"},
+    ]
+    return page
+
+
+def test_resolved_bar_needs_two_readings_within_printed_precision():
+    # 85.64 is inside the printed step of 85.6. 85.7 is the next printed tenth.
+    close = _resolved(85.6, [("grok-build-4.7", 85.6), ("claude-opus", 85.64), ("claude-sonnet", 10.0)], "85.6")
+    close["confirmed_by"] = ["grok-build-4.7", "claude-opus"]
+    page = _with_readers(_page([close]))
+    page["read_on"] = "2026-09-24"
+    assert fixture_errors([page], []) == []
+    apart = _resolved(85.6, [("grok-build-4.7", 85.6), ("claude-opus", 83.4), ("claude-sonnet", 80.0)], "85.6")
+    page = _page([apart])
+    page["read_on"] = "2026-09-24"
+    errors = fixture_errors([page], [])
+    assert errors and all("agree" in line for line in errors)
+    report = classify_fixtures([page], [_model("openai/gpt-6-astra", [_row(85.6)])])
+    assert report["charts_detail"][0]["bars"][0]["status"] == "disputed"
+
+
+def test_third_reading_that_agrees_with_neither_stays_disputed():
+    bar = _resolved(96.0, [("a", 96.0), ("b", 91.0), ("c", 80.0)], "96.0")
+    page = _page([bar])
+    page["read_on"] = "2026-09-24"
+    model = _model("openai/gpt-6-astra", [_row(96.0)])
+    assert classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]["status"] == "disputed"
+
+
+def test_resolved_score_must_be_the_agreed_value():
+    # Two readers agree on 85.6. The score 83.4 matches the card and still fails.
+    wrong = _resolved(83.4, [("grok-build-4.7", 85.6), ("claude-opus", 83.4), ("claude-sonnet", 85.6)], "83.4")
+    page = _page([wrong])
+    page["read_on"] = "2026-09-24"
+    model = _model("openai/gpt-6-astra", [_row(83.4)])
+    errors = fixture_errors([page], [])
+    assert len(errors) == 1 and "agreed" in errors[0]
+    assert classify_fixtures([page], [model])["charts_detail"][0]["bars"][0]["status"] == "matched"
+    settled = _resolved(85.6, [("grok-build-4.7", 85.6), ("claude-opus", 83.4), ("claude-sonnet", 85.6)], "85.6")
+    settled["confirmed_by"] = ["grok-build-4.7", "claude-sonnet"]
+    page = _with_readers(_page([settled]))
+    page["read_on"] = "2026-09-24"
+    assert fixture_errors([page], []) == []
+    bar = classify_fixtures([page], [_model("openai/gpt-6-astra", [_row(85.6)])])["charts_detail"][0]["bars"][0]
+    assert bar["status"] == "matched"
+
+
 def test_disputed_bar_is_not_a_match():
     page = _page(
         [_bar(disputed=[{"reader": "a", "value": 96.0}, {"reader": "b", "value": 91.0}])],
@@ -1150,10 +1290,10 @@ def test_effort_phrases_normalise_and_a_table_cell_stays_off_a_tooltip_effort():
         _one_reading("GPT-6 Astra", "Terminal-Bench 4.0", score=57.9, metric_or_setting="reasoning effort: Max"),
     ) == ["agree"]
     assert _classes(
-        _one_bar_fixture("GPT-6 Sol", "AutomationBench", score=33.2, score_text="33.2", configuration="xhigh effort"),
+        _one_bar_fixture("GPT-6 Sol", "demo_bench", score=33.2, score_text="33.2", configuration="xhigh effort"),
         _one_reading(
             "GPT-6 Sol",
-            "AutomationBench",
+            "demo_bench",
             score=33.2,
             metric_or_setting="effort: xhigh (in row label); cost per task: $0.27",
         ),
@@ -1226,13 +1366,13 @@ def test_harness_phrases_normalise_and_different_harnesses_stay_apart():
 
 def test_version_labels_have_to_agree():
     assert _classes(
-        _one_bar_fixture("Opus 5", "Artificial Analysis Intelligence Index v4.1.1", score=63.1, score_text="63.1"),
-        _one_reading("Opus 5", "Artificial Analysis Intelligence Index v4.1.1", score=63.1),
+        _one_bar_fixture("Opus 5", "Demo Bench v4.1.1", score=63.1, score_text="63.1"),
+        _one_reading("Opus 5", "Demo Bench v4.1.1", score=63.1),
     ) == ["agree"]
     assert sorted(
         _classes(
-            _one_bar_fixture("Opus 5", "Artificial Analysis Intelligence Index v4.1.1"),
-            _one_reading("Opus 5", "Artificial Analysis Intelligence Index v4.2"),
+            _one_bar_fixture("Opus 5", "Demo Bench v4.1.1"),
+            _one_reading("Opus 5", "Demo Bench v4.2"),
         )
     ) == ["only_a", "only_b"]
     assert _classes(
@@ -1298,7 +1438,741 @@ def test_openai_fixture_settings_name_the_harness_and_the_version():
         assert gone not in astra
         assert gone not in sol
     assert 'benchmark_as_labelled: "FrontierCode 1.1 Extended"' in astra
-    assert 'benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"' in astra
     assert 'configuration: "Codex-like developer message"' in astra
     assert 'configuration: "responses API harness"' in astra
     assert 'configuration: "no 6-hour cap"' in astra
+
+
+def test_hyphenated_model_version_pairs_and_the_next_version_stays_apart():
+    assert _classes(
+        _one_bar_fixture("Claude Opus 4.8", "SWE-bench Pro"),
+        _one_reading("Claude-opus-4-8", "SWE-bench Pro"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Claude Opus 4.8", "SWE-bench Pro"),
+            _one_reading("Claude-opus-4-7", "SWE-bench Pro"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_printed_benchmark_names_pair_with_the_catalogue_id():
+    assert _classes(
+        _one_bar_fixture(
+            "Kimi K3 (max)",
+            "hle",
+            score=43.5,
+            score_text="43.5",
+            configuration="Model card. HLE-Full Full set, without tools.",
+        ),
+        _one_reading(
+            "Kimi K3 (max)",
+            "HLE-Full",
+            score=43.5,
+            metric_or_setting="first value = without tools",
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture(
+                "Kimi K3 (max)",
+                "hle",
+                configuration="HLE text-only, without tools.",
+            ),
+            _one_reading("Kimi K3 (max)", "HLE-Full", metric_or_setting="without tools"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture(
+            "Kimi K3",
+            "charxiv_reasoning",
+            configuration="CharXiv (RQ) Without tools.",
+        ),
+        _one_reading("Kimi K3", "CharXiv (RQ)", metric_or_setting="without tools"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "demo_bench", configuration="Demo Bench v2 (Elo)"),
+        _one_reading("Kimi K3", "Demo Bench v2 (Elo)"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "demo_bench", configuration="Demo Bench (Elo)"),
+        _one_reading("Kimi K3", "Demo Bench (Elo)"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "deepsearchqa", configuration="DeepSearchQA (F1)"),
+        _one_reading("Kimi K3", "DeepSearchQA (F1)"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Kimi K3", "deepsearchqa", configuration="DeepSearchQA (F1)"),
+            _one_reading("Kimi K3", "DeepSearchQA (EM)"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_pass_at_5_and_python_tools_pair_and_pass_at_1_stays_apart():
+    assert _classes(
+        _one_bar_fixture(
+            "Kimi K3",
+            "zerobench",
+            configuration="ZeroBench (pass@5) Pass@5, without tools.",
+        ),
+        _one_reading("Kimi K3", "ZeroBench (pass@5)", metric_or_setting="without tools"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Kimi K3", "zerobench", configuration="ZeroBench (pass@5), without tools."),
+            _one_reading("Kimi K3", "ZeroBench", metric_or_setting="pass@1, without tools"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "MMMU-Pro", configuration="With Python tools."),
+        _one_reading(
+            "Kimi K3",
+            "MMMU-Pro",
+            metric_or_setting="second value = with tool augmentation (Python)",
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Kimi K3", "MMMU-Pro", configuration="With Python tools."),
+            _one_reading("Kimi K3", "MMMU-Pro", metric_or_setting="without tools"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_tau3_banking_spellings_pair_and_plain_banking_stays_apart():
+    assert _classes(
+        _one_bar_fixture("Kimi K3", "τ³-Banking"),
+        _one_reading("Kimi K3", r"τ3\tau^{3}-Banking"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Kimi K3", "τ³-Banking"),
+            _one_reading("Kimi K3", "Banking"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_three_part_version_stays_intact_and_pairs_from_the_caption():
+    fixture = _one_bar_fixture(
+        "GLM-5.3 Flash",
+        "demo_bench",
+        configuration="Card chart. Demo Bench (v1.0.6)",
+    )
+    reading = _one_reading("GLM-5.3-Flash", "Demo Bench")
+    reading["charts"][0]["footnotes"] = "Subtitle: Demo Bench v1.0.6"
+    assert _classes(fixture, reading) == ["agree"]
+    assert sorted(
+        _classes(
+            fixture,
+            _one_reading("GLM-5.3-Flash", "Demo Bench v1.6"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "Terminal-Bench 2.0"),
+        _one_reading("Opus 5", "Terminal-Bench 2"),
+    ) == ["agree"]
+
+
+def test_logo_tooltip_name_pairs_and_a_different_tooltip_name_stays_apart():
+    assert _classes(
+        _one_bar_fixture("DeepSeek V4 Flash", "SWE-Bench Pro", score=55.6, score_text="55.6"),
+        _one_reading(
+            "(unlabelled: DeepSeek whale logo)",
+            "SWE-Bench Pro",
+            score=55.6,
+            metric_or_setting="the blog's hover tooltip names it 'DeepSeek V4 Flash'",
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("DeepSeek V4 Flash", "SWE-Bench Pro"),
+            _one_reading(
+                "(unlabelled: DeepSeek whale logo)",
+                "SWE-Bench Pro",
+                metric_or_setting="names it 'DeepSeek V4 Pro'",
+            ),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_a_cell_with_a_parenthetical_second_number_uses_the_first():
+    assert _classes(
+        _one_bar_fixture("Step 3.7 Flash", "GDPval-Stirrup", score=1415.8, score_text="1415.8"),
+        _one_reading("Step 3.7 Flash", "GDPval-Stirrup", score="1415.8 (ii 45.8%)"),
+    ) == ["agree"]
+
+
+def test_cache_stem_pairs_with_the_filename_extension():
+    digest = "c" * 64
+    other = "d" * 64
+    fixture = _one_bar_fixture("Opus 5", "SWE-bench Pro", score=79.2, score_text="79.2")
+    fixture["document_sha256"] = digest
+    fixture["charts"][0]["kind"] = "html_table"
+    reading = _one_reading("Opus 5", "SWE-bench Pro", score=79.2)
+    reading["source"] = "gemma-4-technical-report.pdf"
+    paired = reconcile_readings([fixture], [reading], {"gemma-4-technical-report": digest})
+    assert [row["class"] for row in paired["pairs"]] == ["agree"]
+    image = _one_bar_fixture("Gemini 3.5 Flash", "SWE-bench Pro", score=70.3, score_text="70.3")
+    image["charts"][0]["kind"] = "image"
+    image["charts"][0]["image_sha256"] = digest
+    image_reading = _one_reading("Gemini 3.5 Flash", "SWE-bench Pro", score=70.3)
+    image_reading["source"] = "gemini-35-flash-benchmarks.gif"
+    image_report = reconcile_readings(
+        [image],
+        [image_reading],
+        {"gemini-35-flash-benchmarks": digest},
+    )
+    assert [row["class"] for row in image_report["pairs"]] == ["agree"]
+    ambiguous = reconcile_readings(
+        [fixture],
+        [reading],
+        {"gemma-4-technical-report": digest, "gemma-4-technical-report.pdf": other},
+    )
+    assert ambiguous["by_class"]["unpaired_source"] == 1
+
+
+def test_not_fetched_reading_is_an_unpaired_source():
+    fixture = _one_bar_fixture("LongCat", "SWE-bench Pro")
+    fixture["page_url"] = "https://longcat.chat/blog/longcat-2.0"
+    reading = _one_reading("LongCat", "SWE-bench Pro")
+    reading["source"] = fixture["page_url"]
+    reading["status"] = "not_fetched"
+    reading["charts"] = []
+    report = reconcile_readings([fixture], [reading], {})
+    assert report["pairs"][0]["class"] == "unpaired_source"
+    assert report["pairs"][0]["reason"] == "source was not fetched"
+
+
+def test_slice_and_version_wording_stays_on_the_benchmark():
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "tau2", configuration="Airline. Thinking."),
+        _one_reading("Gemma 4 31B", "Tau2 – airline", metric_or_setting="thinking mode"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemma 4 31B", "tau2", configuration="Airline. Thinking."),
+            _one_reading("Gemma 4 31B", "Tau2 – retail", metric_or_setting="thinking mode"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 E2B", "CoVoST", configuration="ja→en. CorpusBLEU."),
+        _one_reading("Gemma 4 E2B", "CoVoST ja → en"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 E2B", "FLEURS", configuration="FLEURS ASR, en, word error rate."),
+        _one_reading("Gemma 4 E2B", "FLEURS ASR en"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "live_code_bench", configuration="v6. Thinking."),
+        _one_reading("Gemma 4 31B", "LiveCodeBench v6", metric_or_setting="thinking mode"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemma 4 31B", "live_code_bench", configuration="v6. Thinking."),
+            _one_reading("Gemma 4 31B", "LiveCodeBench v5"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "bbeh", configuration="Micro average."),
+        _one_reading("Gemma 4 31B", "Big Bench Extra Hard"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "hle_tools", configuration="With search. Thinking."),
+        _one_reading("Gemma 4 31B", "HLE with search"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Claude Fable 5", "arena_elo", configuration="Arena Text, 19 June 2026."),
+        _one_reading("Claude Fable 5", "Arena Text"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "deepmind_mrcr_v2", configuration="8-needle. Thinking."),
+        _one_reading("Gemma 4 31B", "MRCR v2"),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 31B", "medxpertqa", configuration="Multimodal. Thinking."),
+        _one_reading("Gemma 4 31B", "MedXPertQA MM"),
+    ) == ["agree"]
+
+
+def test_dotted_version_does_not_absorb_a_parameter_count():
+    assert _classes(
+        _one_bar_fixture("Qwen3.5-9B", "demo_bench", score=61.7, score_text="61.7"),
+        _one_reading("Qwen 3.5 9B", "Demo Bench", score=61.7),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Qwen3.5-9B", "demo_bench"),
+            _one_reading("Qwen3.5-4B", "Demo Bench"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("8B Dense", "bfcl", score=52.39, score_text="52.39", configuration="v4"),
+        _one_reading("Granite-4.2 8B Dense", "BFCL (v4)", score=52.39),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("8B Dense", "bfcl", configuration="v4"),
+            _one_reading("Granite-4.2 30B Dense", "BFCL (v4)"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("30B Dense", "AIME25", score=89.2, score_text="89.2"),
+        _one_reading("Granite 4.2 30B", "AIME25", score=89.2),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("3B Dense", "τ³-bench (AVG)", score=45.78, score_text="45.78"),
+        _one_reading("Granite 4.2 3B Dense", "τ³-bench", score=45.78),
+    ) == ["agree"]
+    both_spellings = _one_reading("Granite 4.2 8B", "AIME25", score=86.67)
+    both_spellings["charts"][0]["items"].append(
+        {
+            "model_as_labelled": "Granite 4.2 8B Dense",
+            "benchmark_as_labelled": "GPQA",
+            "score": 54.8,
+            "metric_or_setting": "",
+            "printed": True,
+        }
+    )
+    fixture = _one_bar_fixture("8B Dense", "AIME25", score=86.67, score_text="86.67")
+    fixture["charts"][0]["bars"].append(
+        {
+            "model_as_labelled": "8B Dense",
+            "benchmark_as_labelled": "GPQA",
+            "score": 54.8,
+            "score_text": "54.80",
+            "printed": True,
+            "configuration": "",
+        }
+    )
+    assert sorted(_classes(fixture, both_spellings)) == ["agree", "agree"]
+
+
+def test_size_quant_and_closed_marks_pair_and_two_quants_stay_apart():
+    assert _classes(
+        _one_bar_fixture("Devstral Small 2", "SWE-bench Verified", score=68.2, score_text="68.2"),
+        _one_reading("Devstral Small 2 (24B Dense)", "SWE-bench Verified", score=68.2),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemma 4 26B A4B", "IFBench", score=77.2, score_text="77.2"),
+        _one_reading("Gemma-4-26B-A4B-it", "IFBench (Inst. Follow.)", score=77.2),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Nemotron 3 Ultra BF16", "PinchBench", score=81.2, score_text="81.2"),
+        _one_reading("Nemotron 3 Ultra 550B-A55B BF16", "PinchBench", score=81.2),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Nemotron 3 Ultra BF16", "PinchBench"),
+            _one_reading("Nemotron 3 Ultra NVFP4", "PinchBench"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Claude Haiku 4.5", "CLIcK", score=53.5, score_text="53.5"),
+        _one_reading("Claude Haiku 4.5 (closed)", "CLIcK", score=53.5),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("DeepSeek V4 Pro", "Terminal-Bench 2.1", score=64.0, score_text="64.0"),
+        _one_reading("DeepSeek-V4-Pro-0813", "Terminal-Bench 2.1", score=64.0),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemma 4 26B A4B", "swe_bench_verified", score=57.4, score_text="57.4"),
+            _one_reading("Gemma-4-26B-A4B-it", "SWE-Bench (Coding)", score=57.4, metric_or_setting="variant not stated"),
+        )
+    ) == ["only_a", "only_b"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemma 4 26B A4B", "terminal_bench_v2_1", score=37.2, score_text="37.2"),
+            _one_reading(
+                "Gemma-4-26B-A4B-it",
+                "Terminal-Bench (Terminal)",
+                score=37.2,
+                metric_or_setting="version not stated",
+            ),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_score_scale_inside_parentheses_is_not_a_section():
+    assert _classes(
+        _one_bar_fixture("GLM-5.1", "IOI 2025", score=76.1, score_text="76.1"),
+        _one_reading("GLM-5.1 754B-A40B", "IOI 2025 (Score / 600)", score=76.1),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Opus 5", "SWE-bench Pro"),
+        _one_reading("Opus 5", "Agentic coding / SWE-bench Pro"),
+    ) == ["agree"]
+
+
+def test_niah_cells_pair_on_depth_and_the_quant_stays_out_of_the_model():
+    fixture = {
+        "page_url": "https://example.com/post",
+        "charts": [
+            {
+                "title": "NIAH",
+                "bars": [
+                    {
+                        "model_as_labelled": "A.X K2",
+                        "benchmark_as_labelled": "niah",
+                        "score": 100,
+                        "score_text": "100",
+                        "printed": True,
+                        "configuration": "NVFP4 experts-only W4A4. YaRN factor 2. Depth 0%. Context 1000 tokens.",
+                    },
+                    {
+                        "model_as_labelled": "A.X K2",
+                        "benchmark_as_labelled": "niah",
+                        "score": 90,
+                        "score_text": "90",
+                        "printed": True,
+                        "configuration": "NVFP4 experts-only W4A4. YaRN factor 2. Depth 10%. Context 1000 tokens.",
+                    },
+                ],
+            }
+        ],
+        "_path": "example.yaml",
+        "_slug": "example",
+    }
+    reading = {
+        "source": "https://example.com/post",
+        "reader": "reader-b",
+        "read_on": "2026-09-24",
+        "charts": [
+            {
+                "title": "NIAH",
+                "items": [
+                    {
+                        "model_as_labelled": "A.X K2 NVFP4 (experts-only W4A4)",
+                        "benchmark_as_labelled": "Needle-In-A-Haystack",
+                        "score": 90,
+                        "metric_or_setting": "context length 1000 tokens; needle depth 10.0%; YARN factor=2; NVFP4 experts-only W4A4 quantised checkpoint",
+                        "printed": True,
+                    },
+                    {
+                        "model_as_labelled": "A.X K2 NVFP4 (experts-only W4A4)",
+                        "benchmark_as_labelled": "Needle-In-A-Haystack",
+                        "score": 100,
+                        "metric_or_setting": "context length 1000 tokens; needle depth 0.0%; YARN factor=2; NVFP4 experts-only W4A4 quantised checkpoint",
+                        "printed": True,
+                    },
+                ],
+            }
+        ],
+    }
+    assert sorted(_classes(fixture, reading)) == ["agree", "agree"]
+
+
+def test_index_version_is_not_the_component_list_and_claude_order_pairs():
+    metric = (
+        "Demo Index v4.1.1 (9 evaluations: Demo Bench v2, Terminal-Bench v2.1, "
+        "Humanity's Last Exam); effort/setting in label: max with fallback"
+    )
+    assert _classes(
+        _one_bar_fixture(
+            "Claude Fable 5.1",
+            "Demo Index v4.1.1",
+            score=66,
+            score_text="66",
+            configuration="max with fallback",
+        ),
+        _one_reading(
+            "Claude Fable 5.1 (max with fallback)",
+            "Demo Index",
+            score=66,
+            metric_or_setting=metric,
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Claude Haiku 4.5", "Demo Index v4.1.1"),
+            _one_reading("Claude 4.6 Haiku", "Demo Index v4.1.1"),
+        )
+    ) == ["only_a", "only_b"]
+    assert _classes(
+        _one_bar_fixture("Claude Haiku 4.5", "Demo Index v4.1.1", score=30, score_text="30"),
+        _one_reading("Claude 4.5 Haiku", "Demo Index v4.1.1", score=30),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Command A+", "Demo Index v4.1.1"),
+            _one_reading("Command A+", "Demo Index v4.1"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_aime_26_pairs_with_the_four_digit_year():
+    assert _classes(
+        _one_bar_fixture("Claude Opus 4.7", "aime_2026", score=64, score_text="64"),
+        _one_reading("Claude Opus 4.7", "AIME 26", score=64),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Claude Opus 4.7", "aime_2025"),
+            _one_reading("Claude Opus 4.7", "AIME 26"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_swebench_and_strongreject_spellings_pair():
+    assert _classes(
+        _one_bar_fixture("Inkling", "swe_bench_verified", score=77.6, score_text="77.6"),
+        _one_reading("Inkling", "SWEBench Verified", score=77.6),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Inkling", "strong_reject", score=98.6, score_text="98.6"),
+        _one_reading("Inkling", "StrongREJECT", score=98.6),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Inkling", "swe_bench_pro", configuration="public, xhigh", score=54.3, score_text="54.3"),
+        _one_reading("Inkling", "SWEBench Pro (Public)", score=54.3, metric_or_setting="xhigh"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Inkling", "swe_bench_pro", configuration="xhigh"),
+            _one_reading("Inkling", "SWEBench Pro (Public)", metric_or_setting="xhigh"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_hmmt_february_2026_is_hmmt_2026_and_november_stays_apart():
+    assert _classes(
+        _one_bar_fixture("DeepSeek V4 Flash", "hmmt2026", score=93.9, score_text="93.9"),
+        _one_reading("DeepSeek V4 Flash", "HMMT Feb 2026", score=93.9),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("DeepSeek V4 Flash", "HMMT 2026", score=93.9, score_text="93.9"),
+        _one_reading("DeepSeek V4 Flash", "HMMT February 2026", score=93.9),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("DeepSeek V4 Flash", "HMMT Nov. 2025"),
+            _one_reading("DeepSeek V4 Flash", "HMMT Feb 2026"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_forecastbench_glued_to_the_next_word_pairs_and_search_stays_apart():
+    assert _classes(
+        _one_bar_fixture("Inkling", "ForecastBenchBrier Index · no search", score=61.1, score_text="61.1"),
+        _one_reading("Inkling", "ForecastBench Brier Index, no search", score=61.1),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Inkling", "ForecastBenchBrier Index · no search"),
+            _one_reading("Inkling", "ForecastBench Brier Index, with search"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_global_mmlu_lite_pairs_from_either_field():
+    assert _classes(
+        _one_bar_fixture("Inkling", "global_mmlu", configuration="Lite.", score=88.7, score_text="88.7"),
+        _one_reading("Inkling", "Global-MMLU-Lite", score=88.7, metric_or_setting="section: Chat"),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Inkling", "global_mmlu"),
+            _one_reading("Inkling", "Global-MMLU-Lite"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_qwen_version_glued_to_the_parameter_count_pairs():
+    assert _classes(
+        _one_bar_fixture("Qwen3.5397B-A17B", "aime_2026", score=87.9, score_text="87.9"),
+        _one_reading("Qwen3.5 397B-A17B", "AIME 2026", score=87.9),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Qwen3.5397B-A17B", "aime_2026"),
+            _one_reading("Qwen3.6 397B-A17B", "AIME 2026"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_nemotron_abbreviation_pairs_and_the_quant_stays_apart():
+    assert _classes(
+        _one_bar_fixture(
+            "Nemotron 3 Ultra",
+            "browsecomp",
+            configuration="BF16. vLLM 0.17.1.",
+            score=70.9,
+            score_text="70.9",
+        ),
+        _one_reading(
+            "N-3-Ultra BF16",
+            "BrowseComp",
+            score=70.9,
+            metric_or_setting="BF16, vLLM 0.17.1",
+        ),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("N-3-Ultra BF16", "PinchBench"),
+            _one_reading("N-3-Ultra NVFP4", "PinchBench"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_nano_banana_is_a_nickname_and_search_stays_a_setting():
+    assert _classes(
+        _one_bar_fixture("Gemini 2.5 Flash Image", "Bench", score=1, score_text="1"),
+        _one_reading("Gemini 2.5 Flash Image (Nano Banana)", "Bench", score=1),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemini 3.1 Flash Image", "Bench", score=1, score_text="1"),
+        _one_reading("Gemini 3.1 Flash Image (Nano Banana 2)", "Bench", score=1),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("Gemini 3 Pro Image", "Bench"),
+            _one_reading("Gemini 3 Pro Image (Search On)", "Bench"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_gemini_short_name_pairs_flash_and_flash_lite():
+    assert _classes(
+        _one_bar_fixture("Gemini 3.6 Flash", "Bench", score=1, score_text="1"),
+        _one_reading("3.6 Flash", "Bench", score=1),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("Gemini 3.5 Flash-Lite", "Bench", score=1, score_text="1"),
+        _one_reading("3.5 Flash-Lite", "Bench", score=1),
+    ) == ["agree"]
+
+
+def test_multi_if_and_diffusion_gemma_spellings_pair():
+    assert _classes(
+        _one_bar_fixture("MiniCPM", "Multi-IF", score=80, score_text="80"),
+        _one_reading("MiniCPM", "MultiIF", score=80),
+    ) == ["agree"]
+    assert _classes(
+        _one_bar_fixture("DiffusionGemma 26B A4B", "Bench", score=1, score_text="1"),
+        _one_reading("Diffusion Gemma 26B A4B", "Bench", score=1),
+    ) == ["agree"]
+
+
+def test_taubench_average_is_the_headline_and_retail_stays_apart():
+    assert _classes(
+        _one_bar_fixture("GLM-5.1", "TauBench V3", score=69.7, score_text="69.7"),
+        _one_reading("GLM-5.1", "TauBench V3 — Average", score=69.7),
+    ) == ["agree"]
+    assert sorted(
+        _classes(
+            _one_bar_fixture("GLM-5.1", "TauBench V3"),
+            _one_reading("GLM-5.1", "TauBench V3 Retail"),
+        )
+    ) == ["only_a", "only_b"]
+
+
+def test_a_column_note_does_not_make_a_second_model():
+    assert _classes(
+        _one_bar_fixture("Qwen3.6-27B FP16", "Bench", score=1, score_text="1"),
+        _one_reading("Qwen3.6-27B FP16 (column 'FP16')", "Bench", score=1),
+    ) == ["agree"]
+
+
+def test_confirmed_by_must_name_readers_of_this_chart():
+    bar = _bar(confirmed_by=["test"])
+    page = _page([bar])
+    page["read_on"] = "2026-09-24"
+    assert fixture_errors([page], []) == []
+    stranger = _bar(confirmed_by=["someone-else"])
+    page = _page([stranger])
+    page["read_on"] = "2026-09-24"
+    errors = fixture_errors([page], [])
+    assert errors and any("did not read" in line for line in errors)
+    missing = _bar()
+    page = _page([missing])
+    page["read_on"] = "2026-09-24"
+    errors = fixture_errors([page], [])
+    assert errors and any("confirmed_by must name" in line for line in errors)
+    settled = _resolved(85.6, [("grok-build-4.7", 85.6), ("claude-opus", 83.4), ("claude-sonnet", 85.6)], "85.6")
+    settled["confirmed_by"] = ["grok-build-4.7", "claude-opus"]
+    page = _with_readers(_page([settled]))
+    page["read_on"] = "2026-09-24"
+    errors = fixture_errors([page], [])
+    assert errors and any("readers who agree" in line for line in errors)
+
+
+def test_one_confirming_reader_does_not_fail_and_is_tallied():
+    single = _bar(confirmed_by=["test"])
+    double = _bar(score=90.0, score_text="90.0", confirmed_by=["test", "claude-opus"])
+    page = _page(
+        [single, double],
+        readings=[
+            {"reader": "test", "date": "2026-09-24"},
+            {"reader": "claude-opus", "date": "2026-09-24"},
+        ],
+    )
+    page["phase"] = "phase1"
+    page["read_on"] = "2026-09-24"
+    model = _model("openai/gpt-6-astra", [_row(96.0), _row(90.0)])
+    assert fixture_errors([page], []) == []
+    report = classify_fixtures([page], [model])
+    matched = report["confirmation"]["by_class"]["matched"]
+    assert matched == {"double": 1, "single": 1}
+    assert report["confirmation"]["by_phase"]["phase1"]["double"] == 1
+    text = render_markdown(report)
+    assert "Matched bars confirmed by two or more readers: 1 of 2." in text
+
+
+def test_paired_disagreement_is_disputed_or_resolved():
+    fixture = _one_bar_fixture(
+        "Qwen3.5-4B",
+        "multiif",
+        score=87.80,
+        score_text="87.80",
+        confirmed_by=["grok-build-4.7"],
+    )
+    reading = _one_reading("Qwen3.5-4B", "multiif", score=67.43, score_text="67.43")
+    same = _one_reading("Qwen3.5-4B", "multiif", score=87.80, score_text="87.80")
+    assert pairing_dispute_errors([fixture], [same], {}) == []
+    errors = pairing_dispute_errors([fixture], [reading], {})
+    assert len(errors) == 1 and "not disputed" in errors[0]
+
+    bar = fixture["charts"][0]["bars"][0]
+    bar.pop("confirmed_by")
+    bar["disputed"] = [
+        {"reader": "grok-build-4.7", "value": 87.80},
+        {"reader": "claude-opus", "value": 67.43},
+    ]
+    assert pairing_dispute_errors([fixture], [reading], {}) == []
+
+    bar.pop("disputed")
+    bar["resolution"] = {
+        "rule": "two_of_three",
+        "readings": [
+            {"reader": "grok-build-4.7", "value": 87.80},
+            {"reader": "claude-opus", "value": 67.43},
+            {"reader": "claude-sonnet", "value": 67.43},
+        ],
+    }
+    assert pairing_dispute_errors([fixture], [reading], {}) == []
+
+
+def test_disputed_bar_names_no_confirming_reader():
+    readings = [
+        {"reader": "test", "date": "2026-09-24"},
+        {"reader": "claude-opus", "date": "2026-09-24"},
+    ]
+    open_bar = _bar(
+        disputed=[{"reader": "test", "value": 96.0}, {"reader": "claude-opus", "value": 91.0}],
+    )
+    page = _page([open_bar], readings=readings)
+    page["read_on"] = "2026-09-24"
+    assert fixture_errors([page], []) == []
+    report = classify_fixtures([page], [])
+    assert report["charts_detail"][0]["bars"][0]["status"] == "disputed"
+    assert report["confirmation"]["by_class"] == {}
+    claimed = _bar(
+        confirmed_by=["test"],
+        disputed=[{"reader": "test", "value": 96.0}, {"reader": "claude-opus", "value": 91.0}],
+    )
+    page = _page([claimed], readings=readings)
+    page["read_on"] = "2026-09-24"
+    errors = fixture_errors([page], [])
+    assert errors and any("must not claim a confirmation" in line for line in errors)

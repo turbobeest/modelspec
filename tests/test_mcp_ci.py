@@ -65,7 +65,7 @@ def test_no_mcp_response_body_can_make_the_smoke_test_raise(tmp_path: Path) -> N
     assert "HTTP 522" in line
 
 
-def test_tools_list_check_requires_the_four_tools() -> None:
+def test_tools_list_check_requires_all_six_tools() -> None:
     checker = _checker()
     payload = {
         "jsonrpc": "2.0",
@@ -76,6 +76,8 @@ def test_tools_list_check_requires_the_four_tools() -> None:
                 {"name": "model_info", "inputSchema": {"type": "object"}},
                 {"name": "list_use_cases", "inputSchema": {"type": "object"}},
                 {"name": "policy_check", "inputSchema": {"type": "object"}},
+                {"name": "decide", "inputSchema": {"type": "object"}},
+                {"name": "vocab", "inputSchema": {"type": "object"}},
             ]
         },
     }

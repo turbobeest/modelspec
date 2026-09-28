@@ -8,7 +8,7 @@ Two jobs, in this order. First, answer the one question every AI builder has, "w
 
 ## What we found when we looked for the running instance (2026-09-07)
 
-- The repository (`turbobeest/modelspec`, MIT) holds the model cards as YAML-plus-Markdown files, the Pydantic schema, the ranking engine, the FastAPI app, the Typer CLI, the 3D graph UI, and scrapers for HuggingFace, models.dev and Artificial Analysis. There is no scheduler, and the last commit is 2026-07-21.
+- The repository (`turbobeest/modelspec`, MIT) holds the model cards as YAML-plus-Markdown files, the Pydantic schema, the ranking engine, the FastAPI app, the Typer CLI, the 3D graph UI, and scrapers for HuggingFace and models.dev. There is no scheduler, and the last commit is 2026-07-21.
 - On the tailnet, the two reachable Raspberry Pi 5 boards (`beestgraph`, `homelab`; 16 GB RAM, 1.8 TB disk each, Debian 13) run FalkorDB containers, but neither holds a ModelSpec graph or a ModelSpec checkout: `beestgraph` carries the operator's personal knowledge graph and its cron jobs, `homelab` a `network_intel` graph. The device named `rankmatrix` (ModelSpec's earlier name, per the licence's "ModelRank Contributors") is offline, and `dev-pi` refuses SSH under the current tailnet policy and answers nothing on the API ports. So the "ModelSpec on a Pi" instance either lives on `rankmatrix`, currently off, or on `dev-pi` behind a port we cannot see. Either way, nothing on the tailnet is serving ModelSpec today.
 
 ## Architecture recommendation: Cloudflare only for everything users touch

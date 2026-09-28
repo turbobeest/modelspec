@@ -121,25 +121,6 @@
   ]
  },
  {
-  "id": "arc_agi_2",
-  "priority": 1,
-  "page_kind_hint": "benchmark",
-  "family_hint": "",
-  "models_reporting": 1,
-  "top_scores": [
-   {
-    "model": "Muse Spark",
-    "score": 42.5
-   }
-  ],
-  "score_sources": [
-   "meta-blog, officechai, artificial-analysis"
-  ],
-  "score_dates": [
-   "2026-04"
-  ]
- },
- {
   "id": "arc_challenge",
   "priority": 1,
   "page_kind_hint": "benchmark",
@@ -351,68 +332,6 @@
   ]
  },
  {
-  "id": "artificial_analysis_quality_index",
-  "priority": 1,
-  "page_kind_hint": "subset",
-  "family_hint": "artificial_analysis",
-  "models_reporting": 130,
-  "top_scores": [
-   {
-    "model": "GPT-5.1 Codex mini",
-    "score": 88.0
-   },
-   {
-    "model": "GPT-5.1 Codex Max",
-    "score": 88.0
-   },
-   {
-    "model": "GPT-5.1 Codex",
-    "score": 88.0
-   }
-  ],
-  "score_sources": [
-   "lmarena.ai, provider-reports",
-   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
-   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
-   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
-  ],
-  "score_dates": [
-   "2026-04",
-   "2025-03"
-  ]
- },
- {
-  "id": "artificial_analysis_speed_index",
-  "priority": 1,
-  "page_kind_hint": "subset",
-  "family_hint": "artificial_analysis",
-  "models_reporting": 129,
-  "top_scores": [
-   {
-    "model": "GPT-4.1 nano",
-    "score": 94.0
-   },
-   {
-    "model": "Gemini 2.0 Flash Lite",
-    "score": 93.0
-   },
-   {
-    "model": "Skywork Reward V2 Llama 3.1 8B",
-    "score": 92.0
-   }
-  ],
-  "score_sources": [
-   "lmarena.ai, provider-reports",
-   "lmarena.ai, provider-reports, open-llm-leaderboard-v2",
-   "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
-   "lmarena.ai, provider-reports, safety-evals, preference-evals, open-llm-leaderboa"
-  ],
-  "score_dates": [
-   "2026-04",
-   "2025-03"
-  ]
- },
- {
   "id": "bbh",
   "priority": 1,
   "page_kind_hint": "benchmark",
@@ -583,7 +502,6 @@
    }
   ],
   "score_sources": [
-   "meta-blog, officechai, artificial-analysis",
    "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
    "anthropic-system-card"
   ],
@@ -610,25 +528,6 @@
   "score_sources": [
    "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
    "anthropic-system-card"
-  ],
-  "score_dates": [
-   "2026-04"
-  ]
- },
- {
-  "id": "deepsearchqa",
-  "priority": 1,
-  "page_kind_hint": "benchmark",
-  "family_hint": "",
-  "models_reporting": 1,
-  "top_scores": [
-   {
-    "model": "Muse Spark",
-    "score": 74.8
-   }
-  ],
-  "score_sources": [
-   "meta-blog, officechai, artificial-analysis"
   ],
   "score_dates": [
    "2026-04"
@@ -814,25 +713,6 @@
   ]
  },
  {
-  "id": "frontierscience_research",
-  "priority": 1,
-  "page_kind_hint": "benchmark",
-  "family_hint": "",
-  "models_reporting": 1,
-  "top_scores": [
-   {
-    "model": "Muse Spark",
-    "score": 38.3
-   }
-  ],
-  "score_sources": [
-   "meta-blog, officechai, artificial-analysis"
-  ],
-  "score_dates": [
-   "2026-04"
-  ]
- },
- {
   "id": "gpqa_diamond",
   "priority": 1,
   "page_kind_hint": "benchmark",
@@ -944,25 +824,6 @@
   ]
  },
  {
-  "id": "healthbench_hard",
-  "priority": 1,
-  "page_kind_hint": "benchmark",
-  "family_hint": "",
-  "models_reporting": 1,
-  "top_scores": [
-   {
-    "model": "Muse Spark",
-    "score": 42.8
-   }
-  ],
-  "score_sources": [
-   "meta-blog, officechai, artificial-analysis"
-  ],
-  "score_dates": [
-   "2026-04"
-  ]
- },
- {
   "id": "hellaswag",
   "priority": 1,
   "page_kind_hint": "benchmark",
@@ -1045,7 +906,6 @@
   ],
   "score_sources": [
    "anthropic-system-card-mythos, domain-evals",
-   "meta-blog, officechai, artificial-analysis",
    "lmarena.ai, provider-reports, multimodal-evals, safety-evals, preference-evals, ",
    "anthropic-system-card"
   ],
@@ -1143,25 +1003,6 @@
    "2026-04",
    "2025-03",
    "2024-07"
-  ]
- },
- {
-  "id": "ipho_2025_theory",
-  "priority": 1,
-  "page_kind_hint": "benchmark",
-  "family_hint": "",
-  "models_reporting": 1,
-  "top_scores": [
-   {
-    "model": "Muse Spark",
-    "score": 82.6
-   }
-  ],
-  "score_sources": [
-   "meta-blog, officechai, artificial-analysis"
-  ],
-  "score_dates": [
-   "2026-04"
   ]
  },
  {
@@ -1388,25 +1229,6 @@
    "lmarena.ai, provider-reports, domain-evals",
    "domain-evals",
    "lmarena.ai, provider-reports, llm-stats, domain-evals"
-  ],
-  "score_dates": [
-   "2026-04"
-  ]
- },
- {
-  "id": "medxpertqa_multimodal",
-  "priority": 1,
-  "page_kind_hint": "benchmark",
-  "family_hint": "",
-  "models_reporting": 1,
-  "top_scores": [
-   {
-    "model": "Muse Spark",
-    "score": 78.4
-   }
-  ],
-  "score_sources": [
-   "meta-blog, officechai, artificial-analysis"
   ],
   "score_dates": [
    "2026-04"
@@ -4814,40 +4636,10 @@
   ]
  },
  {
-  "id": "zerobench",
-  "priority": 1,
-  "page_kind_hint": "benchmark",
-  "family_hint": "",
-  "models_reporting": 1,
-  "top_scores": [
-   {
-    "model": "Muse Spark",
-    "score": 33.0
-   }
-  ],
-  "score_sources": [
-   "meta-blog, officechai, artificial-analysis"
-  ],
-  "score_dates": [
-   "2026-04"
-  ]
- },
- {
   "id": "arena_elo",
   "priority": 1,
   "page_kind_hint": "family",
   "family_hint": "arena_elo",
-  "models_reporting": 0,
-  "top_scores": [],
-  "score_sources": [],
-  "score_dates": [],
-  "note": "family page: subsets exist in the cards, the family itself has no score key"
- },
- {
-  "id": "artificial_analysis",
-  "priority": 1,
-  "page_kind_hint": "family",
-  "family_hint": "artificial_analysis",
   "models_reporting": 0,
   "top_scores": [],
   "score_sources": [],

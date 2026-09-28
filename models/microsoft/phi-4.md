@@ -682,8 +682,6 @@ benchmarks:
     arena_elo_math: 1260.0
     arena_elo_overall: 1240.0
     arena_elo_style_control: 1255.4
-    artificial_analysis_quality_index: 68.0
-    artificial_analysis_speed_index: 88.0
     bbh: 54.3
     gpqa_diamond: 52.5
     gsm8k: 93.5
@@ -730,45 +728,273 @@ benchmarks:
   benchmark_as_of: 2026-04
   benchmark_notes: ''
   evidence:
-  - benchmark_id: aa_lcr
-    model_id_as_evaluated: Phi-4
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+  - benchmark_id: arena_elo_style_control
+    model_id_as_evaluated: phi-4
+    score: 1256.13
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: AA-LCR v1.1
-    configuration: Artificial Analysis live LLM leaderboard. Column lcr = AA-LCR v1.1.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
-  - benchmark_id: critpt
-    model_id_as_evaluated: Phi-4
-    score: 0.0
-    unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1256.13 [1251.52, 1260.74], 24126
+      votes, rank 306.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: microsoft/phi-4#arena_elo_style_control#281daaaca827
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      cited_regions:
+      - rows
+  - benchmark_id: arena_sc_coding
+    model_id_as_evaluated: phi-4
+    score: 1306.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
-    date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: CritPt
-    configuration: Artificial Analysis live LLM leaderboard. Column critpt = CritPt.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1306.30 [1296.38, 1316.23], 3305
+      votes, rank 292.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_hard_prompts
+    model_id_as_evaluated: phi-4
+    score: 1277.71
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1277.71 [1269.92, 1285.50], 5747
+      votes, rank 295.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_math
+    model_id_as_evaluated: phi-4
+    score: 1264.71
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
+      2026-09-13; style control. Highest-effort row for the product (effort: default; MODEL-123
+      max-effort rule). Rating 1264.71 [1254.21, 1275.20], 2764 votes, rank 269.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_creative_writing
+    model_id_as_evaluated: phi-4
+    score: 1209.93
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1209.93 [1200.19, 1219.67], 4062
+      votes, rank 306.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_instruction_following
+    model_id_as_evaluated: phi-4
+    score: 1245.39
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1245.39 [1238.74, 1252.04], 9162
+      votes, rank 300.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_multi_turn
+    model_id_as_evaluated: phi-4
+    score: 1241.97
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1241.97 [1231.72, 1252.23], 3517
+      votes, rank 300.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_expert
+    model_id_as_evaluated: phi-4
+    score: 1267.83
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1267.83 [1250.54, 1285.12], 1124
+      votes, rank 275.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_longer_query
+    model_id_as_evaluated: phi-4
+    score: 1266.76
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1266.76 [1255.90, 1277.61], 2896
+      votes, rank 300.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_non_english
+    model_id_as_evaluated: phi-4
+    score: 1232.88
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1232.88 [1226.43, 1239.34], 10025
+      votes, rank 305.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_medicine
+    model_id_as_evaluated: phi-4
+    score: 1272.5
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
+      revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1272.50 [1253.08, 1291.92], 1037
+      votes, rank 288.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_legal
+    model_id_as_evaluated: phi-4
+    score: 1298.76
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
+      1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1298.76 [1282.10, 1315.41], 1341
+      votes, rank 283.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_business
+    model_id_as_evaluated: phi-4
+    score: 1256.01
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
+      latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1256.01 [1243.93, 1268.10], 2438
+      votes, rank 297.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_science
+    model_id_as_evaluated: phi-4
+    score: 1264.54
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1264.54 [1254.83, 1274.26], 4245
+      votes, rank 307.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: arena_sc_writing
+    model_id_as_evaluated: phi-4
+    score: 1229.01
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
+      split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1229.01 [1221.22, 1236.80], 6470
+      votes, rank 306.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
   - benchmark_id: gpqa_diamond
-    model_id_as_evaluated: Phi-4
-    score: 57.47
+    model_id_as_evaluated: phi-4
+    score: 56.06
     unit: percent
-    source_url: https://artificialanalysis.ai/leaderboards/models
+    source_url: https://epoch.ai/benchmarks/gpqa-diamond
     source_kind: independent_evaluator
-    evidence_date: '2026-09-10'
+    evidence_date: '2025-01-31'
     date_type: evaluated
-    verified_at: '2026-09-10'
-    benchmark_version: GPQA Diamond
-    configuration: Artificial Analysis live LLM leaderboard. Column gpqa = GPQA Diamond.
-      evidence_date observation_fetch_date=2026-09-10.
-    limitations: ''
+    verified_at: '2026-09-24'
+    benchmark_version: GPQA Diamond (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
+      read 2026-09-24. Run started 2025-01-31T23:03:31.781Z; effort default; highest-effort
+      run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.59 points.
+    limitations: Epoch AI data, CC BY 4.0.
 deployment:
   api_only: false
   local_inference: true
@@ -878,7 +1104,6 @@ inference_performance:
   api_latency_p50_ms: null
   api_latency_p99_ms: null
   api_ttft_ms: null
-  api_tps_output: 150.0
   api_tps_input: null
   context_speed_degradation: ''
   generation_time_sec: null
@@ -923,6 +1148,214 @@ sources:
   last_scraped_huggingface: '2026-09-18'
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.fits_hardware
+  value:
+  - nvidia_rtx_4090
+  state: known
+  sources:
+  - source_id: model-163-local-microsoft-phi-4-memory
+    snapshot_ref: sha256:9728c0372325064b05e65f6b2ad680a9918671fdde986a865ecd85b4b25bdfea
+    cited_regions:
+    - row
+  checked_sources: []
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.input_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.output_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.context_window
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.weights_openness
+  value: open_weights
+  state: known
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.release_date
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-microsoft-phi-4
+    snapshot_ref: sha256:4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-microsoft-phi-4
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

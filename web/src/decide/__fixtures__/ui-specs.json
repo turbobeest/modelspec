@@ -1,0 +1,5909 @@
+[
+  {
+    "name": "default task",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "start from constraints",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "template budget-agent",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "bug_fix",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 60000,
+        "output": 6000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 128000",
+        "offering.cost_per_task <= 0.25"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.5555555555555556,
+          "-offering.cost_per_task": 0.4444444444444445
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "template private",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 2000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "template maths",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "template embed",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Model class",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.class = text-generator"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Input modalities",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.input_modalities in {text}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Output modalities",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.output_modalities in {text}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Context window",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 128000"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Maximum output tokens",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.max_output_tokens >= 130000"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Open weights",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Commercial use",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.commercial_use in {permitted, permitted_with_conditions}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Training on outputs",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.output_training = restricted"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Fine-tuning rights",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.fine_tuning = prohibited"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Lab jurisdiction",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "origin.lab_jurisdiction in {US}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Base model lineage",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "origin.base_lineage in {CN}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Release date",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.release_date >= 2025-08-01"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Tool calling",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.tool_calling = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Structured output",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.structured_output = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Effort controls",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.effort_controls = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Batch interface",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.batch = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Streaming",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.streaming = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Provider",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.provider = google-vertex-ai"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Inference region",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.region in {global}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Account tier",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.tier = standard"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Input price",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.input <= 0.65"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Output price",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.output <= 25"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Cached input price",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.cached_input <= 0.21"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Batch input price",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_input <= 1.4"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Batch output price",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_output <= 6.8"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Cost per task",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.032"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Data retention",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.retention <= 28"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Trains on customer data",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.trains_on_customer_data = false"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Zero retention available",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.zero_retention = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add SOC 2 report",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.soc2 = type_2"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add HIPAA BAA",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.baa = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Arena WebDev (Code Arena) floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "arena_webdev >= 1500 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Arena Elo — Style Control floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "arena_elo_style_control >= 1500 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add FrontierMath Tiers 1-3 (v2) floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "frontiermath_tiers_1_3_v2 >= 57 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add GPQA Diamond floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "gpqa_diamond >= 88 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Arena Vision (style control) floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "arena_sc_vision >= 1300 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Terminal-Bench 4.0 floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "terminal_bench_v4_0 >= 23 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add Humanity's Last Exam floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "hle >= 40 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add SWE-bench Verified floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "swe_bench_verified >= 78 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add MTEB(eng, v2), mean over tasks floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "mteb_eng_v2 >= 76 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add MTEB(Multilingual, v2), mean over tasks floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "mteb_multilingual_v2 >= 73 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "add MTEB(eng, v2) Retrieval floor",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "mteb_v2_retrieval >= 68 @independent"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question task$ ≤ $0.0073",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.0073"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question task$ ≤ $0.032",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.032"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question task$ ≤ $0.14",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.14"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question open Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question commercial Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.commercial_use in {permitted, permitted_with_conditions}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question ret0 Yes, zero retention",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.zero_retention = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question offering.data.trains_on_customer_data Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.trains_on_customer_data = false"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question offering.attestation.baa Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.baa = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "question feature.tool_calling Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.tool_calling = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.class =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.class = decider"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.class !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.class != decider"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.class in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.class in {decider}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.class not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.class not in {decider}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.input_modalities in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.input_modalities in {audio}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.input_modalities not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.input_modalities not in {audio}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.output_modalities in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.output_modalities in {embedding}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.output_modalities not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.output_modalities not in {embedding}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.context_window =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window = 8192"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.context_window !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window != 8192"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.context_window <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window <= 8192"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.context_window >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 8192"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.max_output_tokens =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.max_output_tokens = 65536"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.max_output_tokens !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.max_output_tokens != 65536"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.max_output_tokens <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.max_output_tokens <= 65536"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.max_output_tokens >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.max_output_tokens >= 65536"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.weights_openness =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = closed_weights"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.weights_openness !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness != closed_weights"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.weights_openness in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness in {closed_weights}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.weights_openness not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness not in {closed_weights}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.commercial_use =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.commercial_use = permitted"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.commercial_use !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.commercial_use != permitted"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.commercial_use in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.commercial_use in {permitted}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.commercial_use not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.commercial_use not in {permitted}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.output_training =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.output_training = permitted"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.output_training !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.output_training != permitted"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.output_training in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.output_training in {permitted}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.output_training not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.output_training not in {permitted}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.fine_tuning =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.fine_tuning = permitted"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.fine_tuning !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.fine_tuning != permitted"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.fine_tuning in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.fine_tuning in {permitted}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit licence.fine_tuning not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.fine_tuning not in {permitted}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit origin.lab_jurisdiction in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "origin.lab_jurisdiction in {US}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit origin.lab_jurisdiction not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "origin.lab_jurisdiction not in {US}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit origin.base_lineage in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "origin.base_lineage in {CN}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit origin.base_lineage not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "origin.base_lineage not in {CN}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.release_date =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.release_date = 2025-08-01"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.release_date !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.release_date != 2025-08-01"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.release_date <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.release_date <= 2025-08-01"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.release_date >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.release_date >= 2025-08-01"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.lifecycle =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.lifecycle !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.lifecycle != active"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.lifecycle in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.lifecycle in {active}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit model.lifecycle not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.lifecycle not in {active}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.tool_calling =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.tool_calling = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.tool_calling !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.tool_calling != true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.structured_output =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.structured_output = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.structured_output !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.structured_output != true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.effort_controls =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.effort_controls = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.effort_controls !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.effort_controls != true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.batch =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.batch = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.batch !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.batch != true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.streaming =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.streaming = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit feature.streaming !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.streaming != true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.provider =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.provider = alibaba-model-studio"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.provider !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.provider != alibaba-model-studio"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.provider in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.provider in {alibaba-model-studio}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.provider not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.provider not in {alibaba-model-studio}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.region in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.region in {global}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.region not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.region not in {global}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.tier =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.tier = standard"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.tier !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.tier != standard"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.tier in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.tier in {standard}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.tier not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.tier not in {standard}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.input =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.input = 0.042"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.input !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.input != 0.042"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.input <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.input <= 0.042"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.input >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.input >= 0.042"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.output =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.output = 0"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.output !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.output != 0"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.output <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.output <= 0"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.output >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.output >= 0"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.cached_input =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.cached_input = 0.044"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.cached_input !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.cached_input != 0.044"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.cached_input <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.cached_input <= 0.044"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.cached_input >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.cached_input >= 0.044"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.batch_input =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_input = 0.375"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.batch_input !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_input != 0.375"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.batch_input <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_input <= 0.375"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.batch_input >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_input >= 0.375"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.batch_output =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_output = 1.875"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.batch_output !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_output != 1.875"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.batch_output <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_output <= 1.875"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.price.batch_output >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.price.batch_output >= 1.875"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.cost_per_task =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task = 0.00168"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.cost_per_task !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task != 0.00168"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.cost_per_task <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.00168"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.cost_per_task >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task >= 0.00168"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.data.retention =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.retention = 0"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.data.retention !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.retention != 0"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.data.retention <=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.retention <= 0"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.data.retention >=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.retention >= 0"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.data.trains_on_customer_data =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.trains_on_customer_data = false"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.data.trains_on_customer_data !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.trains_on_customer_data != false"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.data.zero_retention =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.zero_retention = false"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.data.zero_retention !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.zero_retention != false"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.attestation.soc2 =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.soc2 = type_2"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.attestation.soc2 !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.soc2 != type_2"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.attestation.soc2 in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.soc2 in {type_2}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.attestation.soc2 not in",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.soc2 not in {type_2}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.attestation.baa =",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.baa = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "edit offering.attestation.baa !=",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.baa != true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "type llm",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "type embed",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "type rerank",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = orderer",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "type decision",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = decider",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.6666666666666667,
+          "-offering.cost_per_task": 0.33333333333333337
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task task$ ≤ $0.0073",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "offering.cost_per_task <= 0.0073"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task task$ ≤ $0.032",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "offering.cost_per_task <= 0.032"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task task$ ≤ $0.14",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "offering.cost_per_task <= 0.14"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task open Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "model.weights_openness = open_weights"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task commercial Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "licence.commercial_use in {permitted, permitted_with_conditions}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task ret0 Yes, zero retention",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "offering.data.zero_retention = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task offering.data.trains_on_customer_data Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "offering.data.trains_on_customer_data = false"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task offering.attestation.baa Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "offering.attestation.baa = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe default task feature.tool_calling Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "refactor",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "feature.tool_calling = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.7777777777777778,
+          "-offering.cost_per_task": 0.22222222222222227
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template budget-agent open Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "bug_fix",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 60000,
+        "output": 6000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 128000",
+        "offering.cost_per_task <= 0.25",
+        "model.weights_openness = open_weights"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.5555555555555556,
+          "-offering.cost_per_task": 0.4444444444444445
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template budget-agent commercial Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "bug_fix",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 60000,
+        "output": 6000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 128000",
+        "offering.cost_per_task <= 0.25",
+        "licence.commercial_use in {permitted, permitted_with_conditions}"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.5555555555555556,
+          "-offering.cost_per_task": 0.4444444444444445
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template budget-agent ret0 Yes, zero retention",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "bug_fix",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 60000,
+        "output": 6000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 128000",
+        "offering.cost_per_task <= 0.25",
+        "offering.data.zero_retention = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.5555555555555556,
+          "-offering.cost_per_task": 0.4444444444444445
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template budget-agent offering.data.trains_on_customer_data Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "bug_fix",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 60000,
+        "output": 6000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 128000",
+        "offering.cost_per_task <= 0.25",
+        "offering.data.trains_on_customer_data = false"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.5555555555555556,
+          "-offering.cost_per_task": 0.4444444444444445
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template budget-agent offering.attestation.baa Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "bug_fix",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 60000,
+        "output": 6000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 128000",
+        "offering.cost_per_task <= 0.25",
+        "offering.attestation.baa = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.5555555555555556,
+          "-offering.cost_per_task": 0.4444444444444445
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template budget-agent feature.tool_calling Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "bug_fix",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 60000,
+        "output": 6000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 128000",
+        "offering.cost_per_task <= 0.25",
+        "feature.tool_calling = true"
+      ],
+      "optimize": {
+        "weights": {
+          "software_engineering": 0.5555555555555556,
+          "-offering.cost_per_task": 0.4444444444444445
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template private task$ ≤ $0.0037",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 2000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}",
+        "offering.cost_per_task <= 0.0037"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template private task$ ≤ $0.016",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 2000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}",
+        "offering.cost_per_task <= 0.016"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template private task$ ≤ $0.069",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 2000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}",
+        "offering.cost_per_task <= 0.069"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template private ret0 Yes, zero retention",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 2000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}",
+        "offering.data.zero_retention = true"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template private offering.data.trains_on_customer_data Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 2000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}",
+        "offering.data.trains_on_customer_data = false"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template private offering.attestation.baa Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 2000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}",
+        "offering.attestation.baa = true"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template private feature.tool_calling Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 2000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights",
+        "licence.commercial_use in {permitted, permitted_with_conditions}",
+        "feature.tool_calling = true"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.7,
+          "-offering.cost_per_task": 0.3
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths task$ ≤ $0.0046",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.0046"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths task$ ≤ $0.02",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.02"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths task$ ≤ $0.088",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 0.088"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths open Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths commercial Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "licence.commercial_use in {permitted, permitted_with_conditions}"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths ret0 Yes, zero retention",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.zero_retention = true"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths offering.data.trains_on_customer_data Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.data.trains_on_customer_data = false"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths offering.attestation.baa Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "offering.attestation.baa = true"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template maths feature.tool_calling Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "maths": "required"
+      },
+      "task_tokens": {
+        "input": 20000,
+        "output": 8000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "feature.tool_calling = true"
+      ],
+      "optimize": {
+        "weights": {
+          "maths": 0.8,
+          "-offering.cost_per_task": 0.2
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed task$ ≤ $1.3",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 1.3"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed task$ ≤ $5.8",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 5.8"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed task$ ≤ $25",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "offering.cost_per_task <= 25"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed open Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "model.weights_openness = open_weights"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed commercial Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "licence.commercial_use in {permitted, permitted_with_conditions}"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed ret0 Yes, zero retention",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "offering.data.zero_retention = true"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed offering.data.trains_on_customer_data Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "offering.data.trains_on_customer_data = false"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed offering.attestation.baa Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "offering.attestation.baa = true"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  },
+  {
+    "name": "probe template embed feature.tool_calling Yes",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "docs",
+      "capabilities": {
+        "retrieval": "required"
+      },
+      "task_tokens": {
+        "input": 8000000,
+        "output": 0
+      },
+      "where": [
+        "model.class = vectoriser",
+        "model.lifecycle = active",
+        "feature.tool_calling = true"
+      ],
+      "optimize": {
+        "weights": {
+          "retrieval": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "none",
+      "limit": 500
+    }
+  }
+]

@@ -1,0 +1,145 @@
+- model: openai/gpt-6-astra
+  provider: openai
+  region: global
+  tier: standard
+  facts:
+  - id: openai/openai/gpt-6-astra/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.price.input
+    value: 10.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-astra-pricing
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.price.output
+    value: 50.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-astra-pricing
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.price.cached_input
+    value: 1.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-astra-pricing
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.price.batch_input
+    value: 5.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-astra-pricing
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.price.batch_output
+    value: 25.0
+    state: known
+    sources:
+    - source_id: openai-gpt-6-astra-pricing
+      snapshot_ref: sha256:906aa1ba54e088029d0f35261f56521b4b51ee1b048b95b64df30d758432e9b0
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.data.retention
+    value: 30
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: requires_contract
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.attestation.baa
+    value: true
+    state: known
+    sources:
+    - source_id: openai-data
+      snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
+      cited_regions:
+      - page
+  - id: openai/openai/gpt-6-astra/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - openai-data
+    - model-143-openai-gpt-6-astra
+  - id: openai/openai/gpt-6-astra/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - openai-data
+    - model-143-openai-gpt-6-astra

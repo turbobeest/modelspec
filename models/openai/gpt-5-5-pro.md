@@ -667,7 +667,21 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: frontiermath_tiers_1_3_v2
+    model_id_as_evaluated: gpt-5.5-pro_xhigh
+    score: 87.72
+    unit: percent
+    source_url: https://epoch.ai/frontiermath
+    source_kind: independent_evaluator
+    evidence_date: '2026-06-12'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
+    configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
+      read 2026-09-24. Run started 2026-06-12T21:33:12.000Z; effort xhigh; highest-effort run
+      for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 1.95 points.
+    limitations: Epoch AI data, CC BY 4.0.
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

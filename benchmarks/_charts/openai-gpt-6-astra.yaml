@@ -1,6 +1,7 @@
 page_url: "https://openai.com/index/gpt-6-astra/"
 publisher: "OpenAI"
 read_on: "2026-09-24"
+phase: "phase1"
 charts:
   - title: "Computer use"
     kind: html_table
@@ -13,6 +14,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: osworld
         benchmark_as_labelled: "OSWorld 2.0 (v2026.08.08, offline set, partial score)"
@@ -22,6 +24,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: osworld
         benchmark_as_labelled: "OSWorld 2.0 (v2026.08.08, offline set, partial score)"
@@ -31,6 +34,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: osworld
         benchmark_as_labelled: "OSWorld 2.0 (v2026.08.08, offline set, partial score)"
@@ -40,6 +44,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: screenspot_pro
         benchmark_as_labelled: "ScreenSpot-Pro (no tools)"
@@ -49,6 +54,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: screenspot_pro
         benchmark_as_labelled: "ScreenSpot-Pro (no tools)"
@@ -58,6 +64,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: screenspot_pro
         benchmark_as_labelled: "ScreenSpot-Pro (no tools)"
@@ -67,6 +74,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -76,6 +84,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -85,6 +94,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -94,6 +104,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Agents' Last Exam"
@@ -113,46 +124,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
-        benchmark_id: automationbench
-        score: 41.4
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: automationbench
-        score: 18.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Claude Fable 5.1"
-        model_id: "anthropic/claude-fable-5-1"
-        benchmark_id: automationbench
-        score: 31.4
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: automationbench
-        score: 17.4
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: automationbench
-        score: 26.9
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: browsecomp
         score: 91.5
@@ -161,6 +133,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: browsecomp
         score: 90.4
@@ -169,6 +142,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: browsecomp
         score: 87.4
@@ -177,6 +151,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: browsecomp
         score: 90.8
@@ -185,60 +160,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 61.2
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 60.9
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Claude Fable 5.1"
-        model_id: "anthropic/claude-fable-5-1"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 65.7
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 62.1
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 63.1
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemini 3.8 Flash"
-        model_id: "google/gemini-3-8-flash"
-        benchmark_id: artificial_analysis
-        benchmark_as_labelled: "Artificial Analysis Intelligence Index v4.1.1"
-        score: 58.7
-        unit: "score"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -248,6 +170,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -257,6 +180,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -266,6 +190,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -275,6 +200,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "BenchCAD"
@@ -284,6 +210,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "OpenScore String Quartets (1 - OMR-NED)"
@@ -293,6 +220,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "OpenScore String Quartets (1 - OMR-NED)"
@@ -312,6 +240,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: terminal_bench_v4_0
         score: 57.9
@@ -320,6 +249,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_v4_0
         score: 37.3
@@ -328,6 +258,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: terminal_bench_v4_0
         score: 55.8
@@ -336,6 +267,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_v4_0
         score: 44.5
@@ -344,6 +276,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_v4_0
         score: 52.6
@@ -352,6 +285,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.8 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-8-flash"
         benchmark_id: terminal_bench_v4_0
         score: 19.1
@@ -360,6 +294,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -369,6 +304,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -378,6 +314,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -387,6 +324,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -396,6 +334,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -405,6 +344,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "Gemini 3.8 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-8-flash"
         benchmark_id: null
         benchmark_as_labelled: "DeepSWE v1.1"
@@ -414,6 +354,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Extended"
@@ -423,6 +364,7 @@ charts:
         configuration: "Codex-like developer message"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Extended"
@@ -432,6 +374,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Extended"
@@ -441,6 +384,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Extended"
@@ -450,6 +394,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Extended"
@@ -459,6 +404,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.8 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-8-flash"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Extended"
@@ -468,6 +414,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Main"
@@ -477,6 +424,7 @@ charts:
         configuration: "Codex-like developer message"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Main"
@@ -486,6 +434,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Main"
@@ -495,6 +444,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Main"
@@ -504,6 +454,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Main"
@@ -513,55 +464,11 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.8 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-8-flash"
         benchmark_id: null
         benchmark_as_labelled: "FrontierCode 1.1 Main"
         score: 43.6
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "GPT-6 Astra"
-        model_id: "openai/gpt-6-astra"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 67.0
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "GPT-5.6 Sol"
-        model_id: "openai/gpt-5-6-sol"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 65.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: subject
-      - model_as_labelled: "Claude Fable 5"
-        model_id: "anthropic/claude-fable-5"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 67.2
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Claude Opus 5"
-        model_id: "anthropic/claude-opus-5"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 68.1
-        unit: "percent"
-        printed: true
-        configuration: ""
-        role: competitor
-      - model_as_labelled: "Gemini 3.8 Flash"
-        model_id: "google/gemini-3-8-flash"
-        benchmark_id: null
-        benchmark_as_labelled: "Artificial Analysis Coding Agent Index v1.4"
-        score: 61.2
         unit: "percent"
         printed: true
         configuration: ""
@@ -577,6 +484,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: terminal_bench_science
         benchmark_as_labelled: "Terminal-Bench Science 0.1"
@@ -586,6 +494,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: terminal_bench_science
         benchmark_as_labelled: "Terminal-Bench Science 0.1"
@@ -595,6 +504,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: terminal_bench_science
         benchmark_as_labelled: "Terminal-Bench Science 0.1"
@@ -604,6 +514,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: terminal_bench_science
         benchmark_as_labelled: "Terminal-Bench Science 0.1"
@@ -613,6 +524,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: terminal_bench_science
         benchmark_as_labelled: "Terminal-Bench Science 0.1"
@@ -622,6 +534,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: gpqa_diamond
         score: 96.0
@@ -630,6 +543,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: gpqa_diamond
         score: 94.6
@@ -638,6 +552,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: gpqa_diamond
         score: 93.7
@@ -646,6 +561,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: gpqa_diamond
         score: 92.6
@@ -654,6 +570,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: gpqa_diamond
         score: 93.7
@@ -662,6 +579,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.8 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-8-flash"
         benchmark_id: gpqa_diamond
         score: 95.3
@@ -670,6 +588,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: hle_tools
         score: 57.2
@@ -678,6 +597,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: hle_tools
         score: 65.0
@@ -686,6 +606,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: hle_tools
         score: 63.8
@@ -694,6 +615,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: hle_tools
         score: 63.6
@@ -702,6 +624,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -711,6 +634,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -720,6 +644,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -729,6 +654,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -738,6 +664,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "FrontierMath Tier 4 (v2)"
@@ -757,6 +684,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: healthbench
         benchmark_as_labelled: "HealthBench Professional (length-adjusted)"
@@ -766,6 +694,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: healthbench
         benchmark_as_labelled: "HealthBench Professional (length-adjusted)"
@@ -775,6 +704,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: healthbench
         benchmark_as_labelled: "HealthBench Professional (length-adjusted)"
@@ -784,6 +714,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: healthbench
         benchmark_as_labelled: "HealthBench Professional (length-adjusted)"
@@ -793,6 +724,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: healthbench
         benchmark_as_labelled: "HealthBench Professional (length-adjusted)"
@@ -802,6 +734,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Gemini 3.8 Flash"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "google/gemini-3-8-flash"
         benchmark_id: healthbench
         benchmark_as_labelled: "HealthBench Professional (length-adjusted)"
@@ -811,6 +744,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -820,6 +754,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "GeneBench Pro"
@@ -829,6 +764,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "MedChemBench (Internal)"
@@ -838,6 +774,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "MedChemBench (Internal)"
@@ -847,6 +784,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "LifeSciBench"
@@ -856,6 +794,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "LifeSciBench"
@@ -875,6 +814,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -884,6 +824,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -893,6 +834,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench"
@@ -902,6 +844,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -911,6 +854,7 @@ charts:
         configuration: "no 6-hour cap"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -920,6 +864,7 @@ charts:
         configuration: "no 6-hour cap"
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -929,6 +874,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -938,6 +884,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym"
@@ -947,6 +894,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench June-August 2026"
@@ -956,6 +904,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitBench June-August 2026"
@@ -965,6 +914,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "SRE-Bench"
@@ -974,6 +924,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SRE-Bench"
@@ -983,6 +934,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "SRE-Bench"
@@ -992,6 +944,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -1001,6 +954,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "SEC-Bench Pro"
@@ -1020,6 +974,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "Computer-use safety"
@@ -1029,6 +984,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Computer-use safety"
@@ -1038,6 +994,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "Computer-use safety"
@@ -1047,6 +1004,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "Computer-use safety"
@@ -1056,6 +1014,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "Computer-use safety"
@@ -1065,6 +1024,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "Computer-use safety with AutoReview"
@@ -1074,6 +1034,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Computer-use safety with AutoReview"
@@ -1083,6 +1044,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "Circumvention"
@@ -1092,6 +1054,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Circumvention"
@@ -1101,6 +1064,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym honeypot"
@@ -1110,6 +1074,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ExploitGym honeypot"
@@ -1119,6 +1084,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "Impossible ExploitGym"
@@ -1128,6 +1094,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "Hallucination"
@@ -1137,6 +1104,7 @@ charts:
         configuration: "Lower is better. Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "Hallucination"
@@ -1156,6 +1124,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: openai_mrcr
         benchmark_as_labelled: "OpenAI MRCR v2 8-needle 256K-512K"
@@ -1165,6 +1134,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: openai_mrcr
         benchmark_as_labelled: "OpenAI MRCR v2 8-needle 256K-512K"
@@ -1174,6 +1144,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: openai_mrcr
         benchmark_as_labelled: "OpenAI MRCR v2 8-needle 512K-1M"
@@ -1183,6 +1154,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: openai_mrcr
         benchmark_as_labelled: "OpenAI MRCR v2 8-needle 512K-1M"
@@ -1202,6 +1174,7 @@ charts:
         date: "2026-09-24"
     bars:
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: arc_agi_2
         score: 95.0
@@ -1210,6 +1183,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: arc_agi_2
         score: 92.5
@@ -1218,6 +1192,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: arc_agi_2
         score: 90.0
@@ -1226,6 +1201,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: arc_agi_2
         score: 89.2
@@ -1234,6 +1210,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: arc_agi_2
         score: 90.4
@@ -1242,6 +1219,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1251,6 +1229,7 @@ charts:
         configuration: "responses API harness"
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1260,6 +1239,7 @@ charts:
         configuration: ""
         role: subject
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-3"
@@ -1269,6 +1249,7 @@ charts:
         configuration: ""
         role: competitor
       - model_as_labelled: "GPT-6 Astra"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-6-astra"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-1"
@@ -1278,6 +1259,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "GPT-5.6 Sol"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "openai/gpt-5-6-sol"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-1"
@@ -1287,6 +1269,7 @@ charts:
         configuration: "Maximum at any effort."
         role: subject
       - model_as_labelled: "Claude Fable 5.1"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5-1"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-1"
@@ -1296,6 +1279,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "Claude Fable 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-fable-5"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-1"
@@ -1305,6 +1289,7 @@ charts:
         configuration: "Maximum at any effort."
         role: competitor
       - model_as_labelled: "Claude Opus 5"
+        confirmed_by: ["grok-build-4.7", "claude-opus"]
         model_id: "anthropic/claude-opus-5"
         benchmark_id: null
         benchmark_as_labelled: "ARC-AGI-1"

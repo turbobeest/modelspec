@@ -1,0 +1,164 @@
+{
+ "about": "The one LMArena snapshot the MODEL-123 evidence rows were read from. Leaderboard data (c) LMArena, CC BY 4.0. Source: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset, split latest, pinned revision below. Each board carries the publish date Arena states for it; leader is the top rating on that board, over every row including models with no ModelSpec card.",
+ "attribution": "LMArena, Arena leaderboard dataset (lmarena-ai/leaderboard-dataset), CC BY 4.0",
+ "boards": {
+  "arena_elo_style_control": {
+   "category": "overall",
+   "leader": 1505.68,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 402,
+   "subset": "text_style_control"
+  },
+  "arena_image_edit": {
+   "category": "overall",
+   "leader": 1525.98,
+   "leader_model": "gpt-image-2.5-sunburst",
+   "published": "2026-09-22",
+   "rows": 56,
+   "subset": "image_edit"
+  },
+  "arena_sc_business": {
+   "category": "industry_business_and_management_and_financial_operations",
+   "leader": 1517.03,
+   "leader_model": "muse-spark-1.2 (xHigh)",
+   "published": "2026-09-13",
+   "rows": 395,
+   "subset": "text_style_control"
+  },
+  "arena_sc_coding": {
+   "category": "coding",
+   "leader": 1552.39,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 397,
+   "subset": "text_style_control"
+  },
+  "arena_sc_creative_writing": {
+   "category": "creative_writing",
+   "leader": 1504.13,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 400,
+   "subset": "text_style_control"
+  },
+  "arena_sc_expert": {
+   "category": "expert",
+   "leader": 1548.48,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 352,
+   "subset": "text_style_control"
+  },
+  "arena_sc_hard_prompts": {
+   "category": "hard_prompts",
+   "leader": 1533.13,
+   "leader_model": "claude-opus-4-6-high",
+   "published": "2026-09-13",
+   "rows": 402,
+   "subset": "text_style_control"
+  },
+  "arena_sc_instruction_following": {
+   "category": "instruction_following",
+   "leader": 1513.49,
+   "leader_model": "claude-opus-4-6-high",
+   "published": "2026-09-13",
+   "rows": 402,
+   "subset": "text_style_control"
+  },
+  "arena_sc_legal": {
+   "category": "industry_legal_and_government",
+   "leader": 1541.39,
+   "leader_model": "muse-spark-1.2 (xHigh)",
+   "published": "2026-09-13",
+   "rows": 375,
+   "subset": "text_style_control"
+  },
+  "arena_sc_longer_query": {
+   "category": "longer_query",
+   "leader": 1524.11,
+   "leader_model": "claude-opus-4-6-high",
+   "published": "2026-09-13",
+   "rows": 380,
+   "subset": "text_style_control"
+  },
+  "arena_sc_math": {
+   "category": "math",
+   "leader": 1526.28,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 384,
+   "subset": "text_style_control"
+  },
+  "arena_sc_medicine": {
+   "category": "industry_medicine_and_healthcare",
+   "leader": 1530.34,
+   "leader_model": "muse-spark-1.2 (xHigh)",
+   "published": "2026-09-13",
+   "rows": 371,
+   "subset": "text_style_control"
+  },
+  "arena_sc_multi_turn": {
+   "category": "multi_turn",
+   "leader": 1520.14,
+   "leader_model": "muse-spark-1.2 (xHigh)",
+   "published": "2026-09-13",
+   "rows": 400,
+   "subset": "text_style_control"
+  },
+  "arena_sc_non_english": {
+   "category": "non_english",
+   "leader": 1495.98,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 402,
+   "subset": "text_style_control"
+  },
+  "arena_sc_science": {
+   "category": "industry_life_and_physical_and_social_science",
+   "leader": 1528.15,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 400,
+   "subset": "text_style_control"
+  },
+  "arena_sc_vision": {
+   "category": "overall",
+   "leader": 1309.5,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 152,
+   "subset": "vision_style_control"
+  },
+  "arena_sc_writing": {
+   "category": "industry_writing_and_literature_and_language",
+   "leader": 1511.45,
+   "leader_model": "claude-fable-5",
+   "published": "2026-09-13",
+   "rows": 401,
+   "subset": "text_style_control"
+  },
+  "arena_text_to_image": {
+   "category": "overall",
+   "leader": 1423.16,
+   "leader_model": "gpt-image-2.5-sunburst",
+   "published": "2026-09-22",
+   "rows": 79,
+   "subset": "text_to_image"
+  },
+  "arena_webdev": {
+   "category": "overall",
+   "leader": 1818.41,
+   "leader_model": "claude-opus-5.5-max",
+   "published": "2026-09-23",
+   "rows": 131,
+   "subset": "webdev"
+  }
+ },
+ "dataset": "lmarena-ai/leaderboard-dataset",
+ "license": "CC BY 4.0",
+ "read_on": "2026-09-24",
+ "revision": "1880dbebff5ba3e2dd3865ecf6fc43539c2099db",
+ "split": "latest",
+ "url": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+}

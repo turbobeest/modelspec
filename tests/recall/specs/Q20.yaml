@@ -1,0 +1,10 @@
+# gap: no transcription domain is registered, and language, streaming, and audio length are unspecified.
+# evidence.outcome is the only generic evidence objective; absent matching evidence must not imply a winner.
+spec_version: 1
+snapshot: latest
+task_type: data_transform
+where:
+  - model.class = transcriber
+optimize: {max: evidence.outcome @independent}
+explain: full
+limit: 3

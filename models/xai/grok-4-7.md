@@ -669,21 +669,76 @@ availability:
 benchmarks:
   scores: {}
   evidence:
+  - benchmark_id: arena_webdev
+    model_id_as_evaluated: grok-4.7-xhigh
+    score: 1632.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-23'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
+      2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: xhigh;
+      MODEL-123 max-effort rule). Rating 1632.30 [1616.23, 1648.37], 1650 votes, rank 12.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+    id: xai/grok-4-7#arena_webdev#7a095991070c
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-arena-webdev-json
+      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      cited_regions:
+      - rows
   - benchmark_id: terminal_bench_v4_0
-    model_id_as_evaluated: Grok 4.7 (xhigh)
+    model_id_as_evaluated: Grok 4.7
     score: 37.58
     unit: percent
-    source_url: https://www.tbench.ai/leaderboard
+    source_url: https://www.tbench.ai/leaderboard/terminal-bench/4.0
     source_kind: benchmark_author
     evidence_date: '2026-09-21'
     date_type: published
     verified_at: '2026-09-24'
     benchmark_version: Terminal-Bench 4.0
-    configuration: Official Terminal-Bench 4.0 leaderboard (tbench.ai; /leaderboard
-      now serves from the site root), row 'Grok 4.7', reasoning effort xhigh, agent
-      Grok Build, 330 trials. The row's own date (Sep 21, 2026) is used. Read 2026-09-24.
-      xAI's launch post (Sep 21, 2026) quotes the same run as 37.6%.
-    limitations: ''
+    configuration: 'tbench.ai leaderboard row read 2026-09-24: agent Grok Build (xAI), reasoning
+      effort xhigh, 330 trials, accuracy 37.58 ± 3.54 (95% CI). The board''s row date is the
+      evidence date. Highest-effort row for the model, best agent on a tie.'
+    limitations: The agent harness differs between rows; compare rows with the same agent.
+    id: xai/grok-4-7#terminal_bench_v4_0#70be49bf8c2a
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: unregistered
+    sources:
+    - source_id: model-143-evidence-terminal-bench-4-0-json
+      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      cited_regions:
+      - rows
+  - benchmark_id: cursorbench_4
+    model_id_as_evaluated: Grok 4.7 (xhigh)
+    score: 46.3
+    unit: percent
+    source_url: https://cursor.com/cursorbench
+    source_kind: benchmark_author
+    evidence_date: '2026-09-25'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: CursorBench 4.0
+    configuration: Cursor's CursorBench 4.0 board read 2026-09-24 (tasks updated 2026-09-10
+      per its changelog); the board states no row date, so the reading is dated by the observation.
+      Highest-effort row (xhigh); $6.01 a task.
+    limitations: Runs only in Cursor's production agent harness.
+    id: xai/grok-4-7#cursorbench_4#5d63f6081a07
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-160-cursorbench
+      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -841,6 +896,462 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: model.input_modalities
+  value:
+  - text
+  - image
+  - document
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: model.output_modalities
+  value:
+  - text
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: model.context_window
+  value: 500000
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-xai-grok-4-7
+  - model-143-xai-function-calling
+  - model-143-xai-structured-outputs
+  - model-143-xai-enterprise-terms
+  - model-143-xai-enterprise-faq
+- facet: model.weights_openness
+  value: closed_weights
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: licence.commercial_use
+  value: permitted_with_conditions
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+- facet: licence.user_cap
+  value: unbounded
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+- facet: licence.output_training
+  value: restricted
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+- facet: licence.fine_tuning
+  value: prohibited
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+- facet: origin.lab_jurisdiction
+  value:
+  - US
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-xai-grok-4-7
+  - model-143-xai-function-calling
+  - model-143-xai-structured-outputs
+  - model-143-xai-enterprise-terms
+  - model-143-xai-enterprise-faq
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+  checked_sources:
+  - model-143-xai-grok-4-7
+  - model-143-xai-function-calling
+  - model-143-xai-structured-outputs
+  - model-143-xai-enterprise-terms
+  - model-143-xai-enterprise-faq
+- facet: model.release_date
+  value: '2026-09-21'
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: feature.effort_controls
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: feature.batch
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+    cited_regions:
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

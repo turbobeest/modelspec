@@ -81,6 +81,9 @@ def page(tiers: dict[str, Any], *, live: bool, build: Build,
              if row.get("kind") == "pack"]
     rank_w = credits["weights"]["rank"]
     policy_w = credits["weights"]["policy-check"]
+    decide_none_w = credits["weights"]["decide.none"]
+    decide_summary_w = credits["weights"]["decide.summary"]
+    decide_full_w = credits["weights"]["decide.full"]
     expiry = credits["pack_expiry_days"]
     burst = credits["burst_limit"]
     get_a_key = tiers["urls"]["get_a_key"]
@@ -149,8 +152,9 @@ burst, no determinations.</p>
 <h2>Packs</h2>
 <p>One-off purchases. They add to a separate pack balance and expire {expiry}
 days after purchase. Cancellation of a plan zeros the monthly allowance at
-once; pack credits are unaffected. x402 top-ups land in this same pack
-balance, with the same expiry rule.</p>
+once; pack credits are unaffected. x402 buys these same packs at these same
+prices in USDC. Both payment rails add credits to the same pack balance with
+the same expiry rule.</p>
 <div class="scroll"><table><thead><tr><th>Pack</th><th>Credits</th><th>Price</th>
 <th>Expiry</th>{buy_head}</tr></thead><tbody>{pack_rows}</tbody></table></div>
 
@@ -158,6 +162,12 @@ balance, with the same expiry rule.</p>
 <ul>
 <li>A successful ranking costs <strong>{rank_w} credit</strong>.</li>
 <li>A successful compliance check costs <strong>{policy_w} credits</strong>.</li>
+<li>A successful decision with <span class="mono">explain: none</span> costs
+<strong>{decide_none_w} credit</strong>. A decision with
+<span class="mono">explain: summary</span> costs
+<strong>{decide_summary_w} credit</strong>.
+A decision with <span class="mono">explain: full</span> costs
+<strong>{decide_full_w} credits</strong>.</li>
 <li>Only a successful result costs credits. 4xx, 5xx, and a well-formed
 request that matches no model cost nothing.</li>
 <li>Draw order: monthly allowance first, then pack credits, oldest expiry

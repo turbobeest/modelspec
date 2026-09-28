@@ -670,8 +670,8 @@ benchmarks:
   scores:
     ifeval: 46.0
     bbh: 54.6
-    math_500: 19.9
-    gpqa_diamond: 32.0
+    math_lvl5: 19.9
+    gpqa_pooled: 32.0
     musr: 43.8
     mmlu_pro: 40.9
     mmmu: 54.1
@@ -779,12 +779,53 @@ benchmarks:
     configuration: Open LLM Leaderboard v2 contents row Qwen/Qwen2-VL-7B-Instruct, column "MUSR Raw" x100 (raw accuracy,
       not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
     limitations: ''
+  - benchmark_id: arena_sc_vision
+    model_id_as_evaluated: qwen2-vl-7b-instruct
+    score: 1031.24
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    verified_at: '2026-09-24'
+    benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
+    configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
+      leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
+      (effort: default; MODEL-123 max-effort rule). Rating 1031.24 [1020.69, 1041.80], 5766
+      votes, rank 134.'
+    limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
+      attribution on the benchmark page.
+  - benchmark_id: math_lvl5
+    model_id_as_evaluated: Qwen/Qwen2-VL-7B-Instruct
+    score: 19.86
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-21'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 MATH Lvl 5
+    configuration: Open LLM Leaderboard v2 contents row Qwen/Qwen2-VL-7B-Instruct, column "MATH Lvl 5 Raw" x100 (raw
+      accuracy, not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
+  - benchmark_id: gpqa_pooled
+    model_id_as_evaluated: Qwen/Qwen2-VL-7B-Instruct
+    score: 31.96
+    unit: percent
+    source_url: https://huggingface.co/datasets/open-llm-leaderboard/contents
+    source_kind: independent_evaluator
+    evidence_date: '2024-10-21'
+    date_type: evaluated
+    verified_at: '2026-09-24'
+    benchmark_version: Open LLM Leaderboard v2 GPQA
+    configuration: Open LLM Leaderboard v2 contents row Qwen/Qwen2-VL-7B-Instruct, column "GPQA Raw" x100 (raw accuracy,
+      not the normalised score). Run date from the earliest results_*.json for this repo in open-llm-leaderboard/results.
+    limitations: ''
   benchmark_source: open-llm-leaderboard-v2, multimodal-evals
   benchmark_as_of: 2025-03
-  benchmark_notes: 'MODEL-116 overlap, found in the MODEL-125 clone check on 2026-09-23: gpqa_diamond holds the Open
-    LLM Leaderboard v2 "GPQA Raw" value for Qwen/Qwen2-VL-7B-Instruct; math_500 holds the Open LLM Leaderboard v2
-    "MATH Lvl 5 Raw" value for Qwen/Qwen2-VL-7B-Instruct. Each value is confirmed for this exact model but is not
-    the benchmark its key names, so it stays in the flat block and is not promoted to evidence.'
+  benchmark_notes: 'MODEL-116, 2026-09-24: the Open LLM Leaderboard v2 "MATH Lvl 5 Raw" and "GPQA Raw" values for
+    Qwen/Qwen2-VL-7B-Instruct moved from math_500 and gpqa_diamond to math_lvl5 and gpqa_pooled, and are promoted
+    to evidence.'
 deployment:
   api_only: false
   local_inference: true
