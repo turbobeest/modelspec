@@ -47,8 +47,9 @@ import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
 import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
 import {
-  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
-  legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys, toBoardDecisionSpec,
+  boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
+  legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys, sanitizeBoardState,
+  toBoardDecisionSpec,
 } from "./facet-board/model";
 import type { BoardSelections, Estate } from "./facet-board/model";
 
@@ -165,6 +166,7 @@ export function DesignedApp({
       ? { ...spec, bench: availableBenchmarks[0] }
       : spec;
   }, [hostedDecision, spec, vocabulary]);
+  const boardRanked = shownSpec.boardWeights === undefined || boardHasPreference(shownSpec);
   const mapped = useMemo(() => {
     if (!hostedDecision) return { decision: null, error: null };
     try {
@@ -441,7 +443,9 @@ export function DesignedApp({
       if (initialAnswered.current) return;
       initialAnswered.current = true;
       const legacyBoard = initialBoard ? null : legacySpecToBoard(initial.spec, vocabulary, estate);
-      const restoredBoard = initialBoard ?? legacyBoard;
+      const restoredBoard = initialBoard
+        ? sanitizeBoardState(initialBoard, vocabulary)
+        : legacyBoard;
       if (!restoredBoard) {
         setInitialRestored(true);
         return;
@@ -457,14 +461,18 @@ export function DesignedApp({
       setBoardSelections(restoredBoard.selections);
       setBoardMustOrder(restoredBoard.mustOrder);
       setEstate(restoredBoard.estate);
-      setLegacyNotes(legacyBoard?.notes ?? []);
+      setLegacyNotes(restoredBoard.notes);
       setSpec(restored);
       setInitialRestored(true);
       void runDecision(restored);
       return;
     }
     const base = realBaseSpec(vocabulary);
-    const initialBase = boardToSpec({ ...base, conds: [] }, vocabulary, {});
+    const emptyBoard = sanitizeBoardState(
+      { selections: {}, mustOrder: [], estate },
+      vocabulary,
+    );
+    const initialBase = boardToSpec({ ...base, conds: [] }, vocabulary, emptyBoard.selections);
     setBoardBaseSpec({ ...base, conds: [] });
     setSpec((current) => (current === baseSpec ? initialBase : current));
     if (!initialAnswered.current) {
@@ -591,7 +599,9 @@ export function DesignedApp({
     const legacyBoard = !encodedBoard && vocabulary
       ? legacySpecToBoard(restored.spec, vocabulary, estate)
       : null;
-    const restoredBoard = encodedBoard ?? legacyBoard;
+    const restoredBoard = encodedBoard && vocabulary
+      ? sanitizeBoardState(encodedBoard, vocabulary)
+      : legacyBoard;
     const restoredBase = legacyBoard ? legacyBoardBaseSpec(restored.spec) : restored.spec;
     const nextSpec = vocabulary && restoredBoard
       ? boardToSpec(restoredBase, vocabulary, restoredBoard.selections, restoredBoard.mustOrder)
@@ -600,7 +610,7 @@ export function DesignedApp({
     setBoardSelections(restoredBoard?.selections ?? {});
     setBoardMustOrder(restoredBoard?.mustOrder ?? []);
     if (restoredBoard) setEstate(restoredBoard.estate);
-    setLegacyNotes(legacyBoard?.notes ?? []);
+    setLegacyNotes(restoredBoard?.notes ?? []);
     changeSpec(nextSpec);
     setAxis(restored.x);
     setSelected(null);
@@ -743,6 +753,7 @@ export function DesignedApp({
             fit={decision?.explanation.feasible.length}
             may={decision?.explanation.may.length}
             notes={legacyNotes}
+            onNotes={setLegacyNotes}
             refinementFallbackKeys={refinementFallbackKeys}
             answer={decision ? <>
               <Field
@@ -756,7 +767,7 @@ export function DesignedApp({
               />
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                <small className="board-tied-note">Tied-group summary coming soon</small>
+                <small className="board-tied-note">Tied groups are summarized in the ranked list.</small>
                 {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 }))}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
               </section>
               {estate.providers.length > 0 && estateDecision
@@ -822,6 +833,7 @@ export function DesignedApp({
                 onSelect={setSelected}
                 onRelax={relax}
                 compact={layout === "table"}
+                boardRanked={boardRanked}
               />
               <DecisionTable
                 decision={decision}
@@ -857,6 +869,7 @@ export function DesignedApp({
                     ),
                   });
                 }}
+                boardRanked={boardRanked}
               />
             </div>
             </>

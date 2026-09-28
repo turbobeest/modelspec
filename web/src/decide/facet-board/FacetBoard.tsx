@@ -5,7 +5,7 @@ import type { Vocabulary, VocabFacet, VocabRefinement } from "../vocabulary";
 import {
   allocateBoardWeights, boardToSpec, defaultFacetOp, defaultFacetValue, facetGroup, GROUP_ORDER,
   groupFacets, nextMustOrder, readEstate, refinementSelectionId, supportsPreference,
-  templateToBoard, writeEstate,
+  sanitizeBoardState, templateToBoard, writeEstate,
 } from "./model";
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
 
@@ -133,7 +133,7 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0, notes = [], refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; refinementFallbackKeys?: ReadonlySet<string> }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string> }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -161,19 +161,23 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   const update = (id: string, next: FacetSelection) => {
     const all = allocateBoardWeights(vocabulary, { ...selected, [id]: next }).selections;
     const nextOrder = nextMustOrder(orderedMusts, selected, id, next);
+    const sanitized = sanitizeBoardState({ selections: all, mustOrder: nextOrder, estate }, vocabulary, notes);
     if (next.mode !== "off") setExpandedGroups((current) => ({ ...current, [grouped.groups.find((group) => group.facets.some((facet) => facet.id === id))?.name ?? "Other"]: true }));
-    if (onMustOrder) onMustOrder(nextOrder); else setLocalMustOrder(nextOrder);
-    setSelected(all); onSpec(boardToSpec(spec, vocabulary, all, nextOrder));
+    if (onMustOrder) onMustOrder(sanitized.mustOrder); else setLocalMustOrder(sanitized.mustOrder);
+    setSelected(sanitized.selections); onNotes?.(sanitized.notes);
+    onSpec(boardToSpec(spec, vocabulary, sanitized.selections, sanitized.mustOrder));
   };
   const applyTemplate = (template: NonNullable<Vocabulary["templates"]>[number]) => {
     const converted = templateToBoard(template, vocabulary);
-    const all = converted.selections;
+    const sanitized = sanitizeBoardState({ selections: converted.selections, mustOrder: converted.mustOrder, estate }, vocabulary);
+    const all = sanitized.selections;
     const activeGroups = grouped.groups.filter((group) => group.facets.some((facet) => ["must", "prefer", "both"].includes(all[facet.id]?.mode)));
     setExpandedGroups((current) => Object.fromEntries(grouped.groups.map((group) => [group.name, group.name === "What it's good at" || activeGroups.some((active) => active.name === group.name) || current[group.name] === true])));
     const taskTokens = converted.taskTokens ?? vocabulary.default_task_tokens;
     const templateSpec = { ...spec, tokIn: taskTokens.input, tokOut: taskTokens.output };
-    if (onMustOrder) onMustOrder(converted.mustOrder); else setLocalMustOrder(converted.mustOrder);
-    setSelected(all); setTemplatesOpen(false); onSpec(boardToSpec(templateSpec, vocabulary, all, converted.mustOrder));
+    if (onMustOrder) onMustOrder(sanitized.mustOrder); else setLocalMustOrder(sanitized.mustOrder);
+    setSelected(all); onNotes?.(sanitized.notes); setTemplatesOpen(false);
+    onSpec(boardToSpec(templateSpec, vocabulary, all, sanitized.mustOrder));
   };
   return <div className="facet-board">
     <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div>{vocabulary.templates?.length ? <button aria-expanded={templatesOpen} onClick={() => setTemplatesOpen(!templatesOpen)}>ⓘ Templates</button> : null}</div>
@@ -184,7 +188,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
     <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
     <div className="board-workspace">
-      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{activeSelectionCount} set</small></span><button onClick={() => { setSelected({}); if (onMustOrder) onMustOrder([]); else setLocalMustOrder([]); setExpandedGroups({ "What it's good at": true }); onSpec(boardToSpec(spec, vocabulary, {}, [])); }}>Reset all</button></header>
+      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{activeSelectionCount} set</small></span><button onClick={() => { const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary); setSelected(empty.selections); if (onMustOrder) onMustOrder([]); else setLocalMustOrder([]); onNotes?.([]); setExpandedGroups({ "What it's good at": true }); onSpec(boardToSpec(spec, vocabulary, empty.selections, [])); }}>Reset all</button></header>
         <div className="facet-columns" aria-hidden="true"><span>Facet</span><span>Known</span><span>State</span></div>
         {grouped.groups.map((group) => {
           const active = group.facets.filter((facet) => selected[facet.id]?.mode && selected[facet.id]?.mode !== "off");

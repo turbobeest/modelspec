@@ -13,7 +13,6 @@ import {
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Evidence, Row, Spec } from "../adapter";
 import { setWeight } from "../state/spec";
-import { boardHasPreference } from "../facet-board/model";
 export function Why({
   decision,
   spec,
@@ -22,6 +21,7 @@ export function Why({
   onRelax,
   details = "ready",
   onProvenance,
+  boardRanked,
 }: {
   decision: AdapterDecision;
   spec: Spec;
@@ -31,13 +31,13 @@ export function Why({
   /** Whether the `full` explanation behind a summary is still coming, or failed. */
   details?: "loading" | "ready" | "unavailable";
   onProvenance: (e: Evidence) => void;
+  boardRanked: boolean;
 }) {
   const vocab = useVocab(),
     { label } = vocab;
   const [whyNot, setWhyNot] = useState(""),
     e = decision.explanation,
     compare = e.rows.find((r) => r.m.id === whyNot);
-  const boardRanked = spec.boardWeights === undefined || boardHasPreference(spec);
   if (!row)
     return (
       <section className="panel why-panel" aria-label="Why this model">
@@ -258,7 +258,7 @@ export function Why({
             The outline is the weight you set; the fill is the share it earns.
             Conditions filter. They never add points.
           </p>
-          {e.tip && e.shortlist.top && (
+          {boardRanked && e.tip && e.shortlist.top && (
             <div className="tipping">
               <div className="eyebrow">Tipping point</div>
               <p>
@@ -489,8 +489,8 @@ export function Why({
           {compare && (
             <p>
               {compare.m.name}: {status(compare)}
-              {compare.rank ? " · #" + compare.rank : ""}. {reason(compare)}{" "}
-              {compare.rank &&
+              {boardRanked && compare.rank ? " · #" + compare.rank : ""}. {reason(compare)}{" "}
+              {boardRanked && compare.rank &&
                 `${vocab.benchName(spec.bench)}: ${fmtB(spec.bench, compare.cap)}; ${money(compare.cost)} per task; ${compare.tps ?? "unknown"} tok/s.`}
             </p>
           )}

@@ -15,6 +15,10 @@ export interface FacetSelection {
   reason?: string;
 }
 export type BoardSelections = Record<string, FacetSelection>;
+declare const sanitizedBoardSelections: unique symbol;
+export type SanitizedBoardSelections = BoardSelections & {
+  readonly [sanitizedBoardSelections]: true;
+};
 export const refinementSelectionId = (id: string): string => `refinement.${id}`;
 export interface BoardTemplateState {
   selections: BoardSelections;
@@ -23,7 +27,11 @@ export interface BoardTemplateState {
 }
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
 export interface BoardUrlState { selections: BoardSelections; mustOrder: string[]; estate: Estate }
-export interface LegacyBoardState extends BoardUrlState { notes: string[] }
+export interface SanitizedBoardState extends Omit<BoardUrlState, "selections"> {
+  selections: SanitizedBoardSelections;
+  notes: string[];
+}
+export interface LegacyBoardState extends SanitizedBoardState {}
 
 const UNRANKED_OBJECTIVE = { "-offering.cost_per_task": 1 };
 
@@ -241,7 +249,7 @@ export function templateToBoard(
 export function boardToSpec(
   base: Spec,
   vocabulary: Vocabulary,
-  selections: BoardSelections,
+  selections: SanitizedBoardSelections,
   mustOrder: readonly string[] = Object.keys(selections),
 ): Spec {
   const grouped = groupFacets(vocabulary);
@@ -265,6 +273,7 @@ export function boardToSpec(
     id.startsWith("capability.") && selections[id].mode !== "off",
   )?.slice("capability.".length);
   const domain = selectedDomain ? vocabulary.domains.find((item) => item.id === selectedDomain) : undefined;
+  const currentDomain = vocabulary.domains.find((item) => item.id === base.domain);
   return {
     ...base,
     task: "",
@@ -274,7 +283,49 @@ export function boardToSpec(
       domain: domain.id,
       basis: "estimate" as const,
       bench: domain.default_benchmark ?? domain.benchmarks[0] ?? base.bench,
-    } : { domain: base.domain, basis: base.basis }),
+    } : { domain: currentDomain?.id, basis: base.basis }),
+  };
+}
+
+/** Admit board state into the app only when every active control is editable now. */
+export function sanitizeBoardState(
+  state: BoardUrlState,
+  vocabulary: Vocabulary,
+  priorNotes: readonly string[] = [],
+): SanitizedBoardState {
+  const editableFacets = new Set(
+    vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
+  );
+  const editableDomains = new Set(
+    vocabulary.domains.filter((domain) => domain.estimate_models > 0)
+      .map((domain) => `capability.${domain.id}`),
+  );
+  const editableRefinements = new Set(
+    (vocabulary.refinements ?? [])
+      .filter((row) => row.evidence_state === "live" || row.evidence_state === "thin")
+      .map((row) => refinementSelectionId(row.id)),
+  );
+  const editable = new Set([...editableFacets, ...editableDomains, ...editableRefinements]);
+  const labels = new Map<string, string>([
+    ...vocabulary.facets.map((facet) => [facet.id, facet.label] as const),
+    ...vocabulary.domains.map((domain) => [`capability.${domain.id}`, domain.name] as const),
+    ...(vocabulary.refinements ?? []).map((row) => [refinementSelectionId(row.id), row.name] as const),
+  ]);
+  const selections: BoardSelections = {};
+  const notes = [...priorNotes];
+  for (const [id, choice] of Object.entries(state.selections)) {
+    if (choice.mode === "off") continue;
+    if (editable.has(id)) selections[id] = choice;
+    else notes.push(`${labels.get(id) ?? id} is not editable in this snapshot, so it is not applied.`);
+  }
+  const activeMusts = new Set(Object.entries(selections).flatMap(([id, choice]) =>
+    choice.mode === "must" || choice.mode === "both" ? [id] : [],
+  ));
+  return {
+    selections: selections as SanitizedBoardSelections,
+    mustOrder: [...new Set(state.mustOrder.filter((id) => activeMusts.has(id)))],
+    estate: state.estate,
+    notes: [...new Set(notes)],
   };
 }
 
@@ -523,7 +574,11 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
     notes.push("The old task description remains in this link for provenance. The board does not interpret free text.");
   if (spec.bar !== undefined)
     notes.push("Your old link also set a shortlist threshold; the board can't express that, so it's not applied.");
-  return { selections, mustOrder: [...new Set(mustOrder)], estate, notes };
+  return sanitizeBoardState(
+    { selections, mustOrder: [...new Set(mustOrder)], estate },
+    vocabulary,
+    notes,
+  );
 }
 
 /** Keep only legacy values that the board either displays or needs to reconstruct visible controls. */

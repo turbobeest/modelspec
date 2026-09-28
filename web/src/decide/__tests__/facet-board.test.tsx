@@ -4,7 +4,7 @@ import { FacetBoard } from "../facet-board/FacetBoard";
 import {
   allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
   formatBoardCondition, legacyBoardBaseSpec, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
-  templateToBoard, toBoardDecisionSpec,
+  sanitizeBoardState, templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
 import type { BoardSelections } from "../facet-board/model";
 import { realBaseSpec } from "../vocabulary";
@@ -15,9 +15,20 @@ import { decodeSpec } from "../state/spec";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import { vocabularySchema } from "../vocabulary";
+import type { Vocabulary } from "../vocabulary";
 import type { Spec } from "../engine/types";
 
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
+const emptyEstate = { providers: [], plans: [], hardware: [] };
+const boardSpec = (
+  base: Spec,
+  vocabulary: Vocabulary,
+  selections: BoardSelections,
+  mustOrder: readonly string[] = Object.keys(selections),
+) => {
+  const sanitized = sanitizeBoardState({ selections, mustOrder: [...mustOrder], estate: emptyEstate }, vocabulary);
+  return boardToSpec(base, vocabulary, sanitized.selections, sanitized.mustOrder);
+};
 
 describe("legacy composer permalinks", () => {
   it("maps old conditions and weights onto editable board facets", () => {
@@ -51,7 +62,7 @@ describe("legacy composer permalinks", () => {
     expect(restored.selections["offering.region"]).toMatchObject({ mode: "must", value: ["EU"] });
     expect(restored.selections["offering.data.zero_retention"]).toMatchObject({ mode: "must", value: true });
 
-    const requestSpec = boardToSpec(
+    const requestSpec = boardSpec(
       legacyBoardBaseSpec(decoded.spec),
       realVocabulary,
       restored.selections,
@@ -80,7 +91,7 @@ describe("legacy composer permalinks", () => {
       w: { cap: 0.6, cost: 0.4, speed: 0 },
     } satisfies Spec;
     const restored = legacySpecToBoard(legacy, vocabulary, { providers: [], plans: [], hardware: [] });
-    const request = boardToSpec(legacyBoardBaseSpec(legacy), vocabulary, restored.selections, restored.mustOrder);
+    const request = boardSpec(legacyBoardBaseSpec(legacy), vocabulary, restored.selections, restored.mustOrder);
 
     expect(restored.selections).not.toHaveProperty(unavailableFacet.id);
     expect(restored.selections).not.toHaveProperty(`capability.${unavailableDomain.id}`);
@@ -124,7 +135,7 @@ it("counts estimate drivers without presenting the drill-down as the estimate ba
 
 describe("facet state mapping", () => {
   const base = realBaseSpec(smallVocabulary);
-  const contract = (selections: BoardSelections) => toBoardDecisionSpec(boardToSpec(base, smallVocabulary, selections), "full");
+  const contract = (selections: BoardSelections) => toBoardDecisionSpec(boardSpec(base, smallVocabulary, selections), "full");
   const weights = (selections: BoardSelections) => {
     const objective = contract(selections).optimize;
     if (!("weights" in objective)) throw new Error("board objective must use weights");
@@ -152,15 +163,15 @@ describe("facet state mapping", () => {
   });
   it("starts with no hidden conditions and adds only visible board gates", () => {
     const emptyBase = { ...base, conds: [] };
-    expect(toDecisionSpec(boardToSpec(emptyBase, smallVocabulary, {}), "full").where).toEqual([]);
-    expect(toDecisionSpec(boardToSpec(emptyBase, smallVocabulary, {
+    expect(toDecisionSpec(boardSpec(emptyBase, smallVocabulary, {}), "full").where).toEqual([]);
+    expect(toDecisionSpec(boardSpec(emptyBase, smallVocabulary, {
       "offering.cost_per_task": { mode: "must", op: "<=", value: 0.25 },
     }), "full").where).toEqual(["offering.cost_per_task <= 0.25"]);
   });
   it("waits for an enum value before adding a Must condition", () => {
     const emptyBase = { ...realBaseSpec(realVocabulary), conds: [] };
     const where = (selections: BoardSelections) => toDecisionSpec(
-      boardToSpec(emptyBase, realVocabulary, selections), "full",
+      boardSpec(emptyBase, realVocabulary, selections), "full",
     ).where;
     expect(where({
       "model.weights_openness": { mode: "must" },
@@ -213,7 +224,7 @@ describe("refinements", () => {
       "capability.software_engineering": { mode: "prefer", weight: 0.6 },
       "refinement.python": { mode: "prefer", weight: 0.3 },
     };
-    const carved = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections);
+    const carved = boardSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections);
     expect(toBoardDecisionSpec(carved, "summary").optimize).toEqual({
       weights: { software_engineering: 0.3, "software_engineering/python": 0.3 },
     });
@@ -223,7 +234,7 @@ describe("refinements", () => {
   });
 
   it("adds a refinement preference when its parent is Must-only", () => {
-    const spec = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
+    const spec = boardSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
       "capability.software_engineering": { mode: "must", value: 0.5 },
       "refinement.python": { mode: "prefer", weight: 0.25 },
     });
@@ -278,7 +289,7 @@ describe("refinements", () => {
     expect(allocateBoardWeights(refinementVocabulary, allocation.selections).weights)
       .toEqual(allocation.weights);
     const request = toBoardDecisionSpec(
-      boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections),
+      boardSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections),
       "summary",
     );
     expect("weights" in request.optimize && request.optimize.weights)
@@ -287,7 +298,7 @@ describe("refinements", () => {
   });
 
   it("omits a fully carved parent from the request and keeps positive refinements", () => {
-    const spec = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
+    const spec = boardSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
       "capability.software_engineering": { mode: "prefer", weight: 0.3 },
       "refinement.python": { mode: "prefer", weight: 0.3 },
     });
@@ -452,7 +463,7 @@ it("restores default task tokens when a template has no token override", () => {
 });
 
 describe("canonical template mapping", () => {
-  it.each(realVocabulary.templates ?? [])("round-trips $id through board serialization", (template) => {
+  it.each(realVocabulary.templates?.filter((template) => template.available) ?? [])("round-trips $id through board serialization", (template) => {
     const converted = templateToBoard(template, realVocabulary);
     for (const row of template.where) {
       const parsed = parseBoardCondition(row.condition);
@@ -463,7 +474,7 @@ describe("canonical template mapping", () => {
       ? { ...base, tokIn: converted.taskTokens.input, tokOut: converted.taskTokens.output }
       : base;
     const serialized = toBoardDecisionSpec(
-      boardToSpec(withTokens, realVocabulary, converted.selections, converted.mustOrder),
+      boardSpec(withTokens, realVocabulary, converted.selections, converted.mustOrder),
       "full",
     );
     expect(serialized.where).toEqual(template.spec.where);
@@ -496,7 +507,7 @@ describe("canonical template mapping", () => {
       nextSelections["offering.cost_per_task"],
     );
     expect(order).toEqual(["model.context_window", "offering.cost_per_task"]);
-    expect(toDecisionSpec(boardToSpec(
+    expect(toDecisionSpec(boardSpec(
       { ...realBaseSpec(smallVocabulary), conds: [] }, smallVocabulary, nextSelections, order,
     ), "full").where).toEqual([
       "model.context_window >= 200000",
@@ -544,7 +555,7 @@ describe("canonical template mapping", () => {
       nextSelections["model.context_window"],
     );
     expect(order).toEqual(["model.context_window", "offering.cost_per_task"]);
-    expect(toDecisionSpec(boardToSpec(
+    expect(toDecisionSpec(boardSpec(
       { ...realBaseSpec(smallVocabulary), conds: [] }, smallVocabulary, nextSelections, order,
     ), "full").where).toEqual([
       "model.context_window >= 250000",

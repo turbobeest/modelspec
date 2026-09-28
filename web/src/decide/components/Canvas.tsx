@@ -22,6 +22,7 @@ export function Canvas({
   onSelect,
   onRelax,
   compact,
+  boardRanked,
 }: {
   decision: AdapterDecision;
   spec: Spec;
@@ -33,6 +34,7 @@ export function Canvas({
   onSelect: (id: string) => void;
   onRelax: (index: number) => void;
   compact: boolean;
+  boardRanked: boolean;
 }) {
   const vocab = useVocab();
   const plot = useRef<HTMLDivElement>(null),
@@ -508,7 +510,7 @@ export function Canvas({
                 {status(hover)}
                 {reason(hover)
                   ? ": " + reason(hover)
-                  : " · #" + hover.rank + " on your weights"}
+                  : boardRanked ? " · #" + hover.rank + " on your weights" : ""}
               </span>
             </div>
           )}

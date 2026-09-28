@@ -14,8 +14,8 @@ import {
   sentSpecs,
   smallVocabulary,
 } from "./vocab-fixtures";
-import { VOCABULARY_URL, vocabularySchema } from "../vocabulary";
-import { decodeBoardState } from "../facet-board/model";
+import { VOCABULARY_URL, realBaseSpec, vocabularySchema } from "../vocabulary";
+import { decodeBoardState, encodeBoardSpec } from "../facet-board/model";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 
 const fixture = decisionSchema.parse(fixtureJson);
@@ -23,6 +23,46 @@ const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
+
+it("sanitizes every unavailable selection in an old namespaced board permalink", async () => {
+  const unavailableFacet = refinementVocabulary.facets.find((facet) => facet.id === "model.context_window")!;
+  const vocabulary = {
+    ...refinementVocabulary,
+    facets: refinementVocabulary.facets.map((facet) =>
+      facet.id === unavailableFacet.id ? { ...facet, known: 0 } : facet,
+    ),
+    refinements: refinementVocabulary.refinements?.filter((row) => row.id !== "python"),
+  };
+  const base = { ...realBaseSpec(vocabulary), domain: "retired_domain", conds: [] };
+  const permalink = encodeBoardSpec(base, "task$", {
+    selections: {
+      [unavailableFacet.id]: { mode: "must", op: ">=", value: 200000 },
+      "capability.retired_domain": { mode: "prefer", weight: 0.7 },
+      "refinement.python": { mode: "prefer", weight: 0.3, weightKey: "software_engineering.python" },
+    },
+    mustOrder: [unavailableFacet.id],
+    estate: { providers: [], plans: [], hardware: [] },
+  });
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabulary),
+    decide: (init) => json(decisionFor(init)),
+  });
+  vi.stubGlobal("fetch", fetch);
+  history.replaceState(null, "", `/decide/${permalink}`);
+
+  render(<App />);
+
+  const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
+  expect(note).toHaveTextContent(unavailableFacet.label);
+  expect(note).toHaveTextContent("capability.retired_domain");
+  expect(note).toHaveTextContent("refinement.python");
+  await waitFor(() => expect(sentSpecs(fetch).length).toBeGreaterThan(0));
+  const request = sentSpecs(fetch).at(-1)!;
+  expect(request.where).not.toContain("model.context_window >= 200000");
+  expect(request.optimize.weights).not.toHaveProperty("retired_domain");
+  expect(request.optimize.weights).not.toHaveProperty("software_engineering.python");
+  expect(request.capabilities?.retired_domain).toBeUndefined();
+});
 
 it("opens a composer-era permalink as a populated board with migration notes", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
@@ -291,6 +331,39 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   );
 });
 
+it("keeps ticket IDs and future promises out of every applied template surface", async () => {
+  const allTemplatesVocabulary = {
+    ...realVocabulary,
+    templates: realVocabulary.templates?.map((template) => ({
+      ...template,
+      available: true,
+      unavailable_reason: null,
+    })),
+  };
+  const fetch = routeFetch({
+    vocabulary: () => json(allTemplatesVocabulary),
+    decide: (init) => json(decisionFor(init)),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByText("Coding agent on a budget");
+
+  for (const template of allTemplatesVocabulary.templates ?? []) {
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(template.name) }));
+    const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
+    const point = canvas.querySelector<HTMLButtonElement>(".point");
+    if (point) {
+      fireEvent.pointerEnter(point);
+      expect(within(canvas).getByRole("tooltip")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
+      fireEvent.click(point);
+    }
+    expect(screen.getByRole("region", { name: "Why this model" })).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
+    expect(screen.getByLabelText("Facet board answer").closest(".board-answer")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
+    expect(document.querySelector(".facet-board")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
+    fireEvent.click(screen.getByRole("button", { name: "ⓘ Templates" }));
+  }
+});
+
 it("does not render the Next-questions panel in the facet-board preview", async () => {
   const fetch = routeFetch({ decide: (init) => {
     const decision = decisionFor(init);
@@ -330,9 +403,21 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
   expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
   expect(screen.getByLabelText("Why this model")).toHaveTextContent("Select a model to inspect");
-  expect(screen.getByRole("region", { name: "Trade-off canvas" })).toHaveTextContent(
+  const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
+  expect(canvas).toHaveTextContent(
     "Software engineering capability (estimated from",
   );
+  const point = canvas.querySelector<HTMLButtonElement>(".point");
+  if (!point) throw new Error("unranked canvas did not render a model point");
+  fireEvent.pointerEnter(point);
+  expect(within(canvas).getByRole("tooltip")).not.toHaveTextContent(/#\d/);
+  fireEvent.pointerLeave(point);
+  fireEvent.focus(point);
+  expect(within(canvas).getByRole("tooltip")).not.toHaveTextContent(/#\d/);
+  fireEvent.click(point);
+  const why = screen.getByRole("region", { name: "Why this model" });
+  expect(why).not.toHaveTextContent(/#\d/);
+  expect(within(why).queryByText("Tipping point")).not.toBeInTheDocument();
   const modelNames = within(answer).getAllByRole("listitem").map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
