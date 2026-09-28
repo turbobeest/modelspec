@@ -30,6 +30,21 @@ EXPECTED_FINANCE_EVIDENCE = (
     ("models/openai/gpt-5-4.md", 63.0137),
     ("models/openai/gpt-5-6-sol.md", 91.7808),
 )
+EXPECTED_CODING_LANGUAGES = frozenset(
+    {
+        "C",
+        "C++",
+        "Go",
+        "Java",
+        "JavaScript",
+        "TypeScript",
+        "PHP",
+        "Ruby",
+        "Rust",
+        "Python",
+    }
+)
+SWE_BENCH_MULTILINGUAL_LANGUAGES = EXPECTED_CODING_LANGUAGES - {"Python"}
 
 
 def _load(path: Path) -> dict:
@@ -96,7 +111,7 @@ def test_research_reports_every_premier_model_and_candidate_source() -> None:
     assert candidates["finance-benchmark-v2"]["lineup_matches"] == 8
 
 
-def test_coverage_uses_exact_lineup_identities_and_language_rows_have_subcategories() -> None:
+def test_coverage_records_every_language_for_every_lineup_model() -> None:
     report = _load(REPORT)
     candidate_ids = {row["id"] for row in report["candidate_sources"]}
     registered_ids = {
@@ -104,7 +119,21 @@ def test_coverage_uses_exact_lineup_identities_and_language_rows_have_subcategor
         for row in report["candidate_sources"]
     }
     for model in report["coverage"]:
-        for domain in ("coding_languages", "finance", "legal"):
+        languages = model["coding_languages"]
+        assert set(languages) == EXPECTED_CODING_LANGUAGES
+        for language, item in languages.items():
+            expected_sources = (
+                ["swe-bench-multilingual"]
+                if model["model_id"] == "anthropic/claude-opus-4-6"
+                and language in SWE_BENCH_MULTILINGUAL_LANGUAGES
+                else []
+            )
+            assert item == {
+                "state": "not_disclosed",
+                "sources": expected_sources,
+            }
+
+        for domain in ("finance", "legal"):
             item = model[domain]
             assert item["state"] in {"known", "not_disclosed"}
             assert set(item["sources"]) <= candidate_ids

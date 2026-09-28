@@ -66,133 +66,156 @@ candidate_sources:
   reuse: permitted
   lineup_matches: 0
   note: CC BY-SA 4.0 data and machine-readable results, but only GPT-5 and GPT-5.2 among related current families; neither is a premier-set identity.
+coding_language_coverage:
+  no_exact_lineup_match: &no_exact_lineup_match
+    C: {state: not_disclosed, sources: []}
+    C++: {state: not_disclosed, sources: []}
+    Go: {state: not_disclosed, sources: []}
+    Java: {state: not_disclosed, sources: []}
+    JavaScript: {state: not_disclosed, sources: []}
+    TypeScript: {state: not_disclosed, sources: []}
+    PHP: {state: not_disclosed, sources: []}
+    Ruby: {state: not_disclosed, sources: []}
+    Rust: {state: not_disclosed, sources: []}
+    Python: {state: not_disclosed, sources: []}
+  non_reusable_swe_bench_multilingual: &non_reusable_swe_bench_multilingual
+    C: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    C++: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    Go: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    Java: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    JavaScript: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    TypeScript: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    PHP: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    Ruby: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    Rust: {state: not_disclosed, sources: [swe-bench-multilingual]}
+    Python: {state: not_disclosed, sources: []}
 coverage:
 - model_id: anthropic/claude-opus-4-6
-  coding_languages: {state: not_disclosed, sources: [swe-bench-multilingual]}
+  coding_languages: *non_reusable_swe_bench_multilingual
   finance: {state: known, sources: [finance-benchmark-v2]}
   legal: {state: not_disclosed, sources: []}
 - model_id: anthropic/claude-opus-5-5
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: google/gemini-3-1-pro-preview
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: google/gemini-3-5-flash
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: known, sources: [finance-benchmark-v2]}
   legal: {state: not_disclosed, sources: []}
 - model_id: google/gemini-3-7-flash
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: google/gemini-3-8-flash
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: meta/muse-spark
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: meta/muse-spark-1-1
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: meta/muse-spark-1-3
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: openai/gpt-5-4
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: known, sources: [finance-benchmark-v2]}
   legal: {state: not_disclosed, sources: []}
 - model_id: openai/gpt-5-6-sol
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: known, sources: [finance-benchmark-v2]}
   legal: {state: not_disclosed, sources: []}
 - model_id: openai/gpt-6-astra
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: openai/gpt-6-sol
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: qwen/qwen3-8-max-0902
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: xai/grok-4-7
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: deepseek/deepseek-v4-pro
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: known, sources: [finance-benchmark-v2]}
   legal: {state: not_disclosed, sources: []}
 - model_id: moonshot/kimi-k2-6
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: moonshot/kimi-k3
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: known, sources: [finance-benchmark-v2]}
   legal: {state: not_disclosed, sources: []}
 - model_id: qwen/qwen3-8-flash-next
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: zhipu/glm-5-2
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: zhipu/glm-5-3
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: jcorners/ingot-8b-r3
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: kingsoft/qzhou-embedding
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: microsoft/harrier-oss-v1-27b
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: tencent/kalm-embedding-gemma3-12b-2511
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: querit/querit
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: querit/querit-4b
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: anthropic/claude-fable-5
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: known, sources: [finance-benchmark-v2]}
   legal: {state: not_disclosed, sources: []}
 - model_id: anthropic/claude-fable-5-1
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: anthropic/claude-opus-4-7
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: known, sources: [finance-benchmark-v2]}
   legal: {state: not_disclosed, sources: []}
 - model_id: anthropic/claude-opus-5
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 - model_id: typesafe/jev-1-13
-  coding_languages: {state: not_disclosed, sources: []}
+  coding_languages: *no_exact_lineup_match
   finance: {state: not_disclosed, sources: []}
   legal: {state: not_disclosed, sources: []}
 collected_evidence:

@@ -10,14 +10,49 @@ I collected the eight finance rows. The deterministic second key verified all ei
 
 ## Per-language coding coverage before collection
 
-The language columns below apply to every premier model named in the indicated row.
+The YAML ledger defines two complete language maps and assigns one to every named premier model. Each map contains C, C++, Go, Java, JavaScript, TypeScript, PHP, Ruby, Rust, and Python. The test suite checks all ten keys and their exact values for each of the 32 models.
 
-| Premier model coverage | C | C++ | Go | Java | JavaScript | TypeScript | PHP | Ruby | Rust | Python |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `anthropic/claude-opus-4-6` | prohibited | prohibited | prohibited | prohibited | prohibited | prohibited | prohibited | prohibited | prohibited | none |
-| All other 31 premier models | none | none | none | none | none | none | none | none | none | none |
+| Coverage map | C, C++, Go, Java, JavaScript, TypeScript, PHP, Ruby, Rust | Python |
+| --- | --- | --- |
+| `non_reusable_swe_bench_multilingual` | `not_disclosed`; source is `swe-bench-multilingual` | `not_disclosed`; no source |
+| `no_exact_lineup_match` | `not_disclosed`; no source | `not_disclosed`; no source |
 
-"Prohibited" means the official SWE-bench Multilingual result exists and its per-instance records could be grouped by repository language, but ModelSpec cannot reuse it. The official result repository has no licence, while the official leaderboard site uses CC BY-NC 4.0. ModelSpec has paid decision paths, so non-commercial terms do not permit catalogue ingestion.
+| Premier model | Coverage map |
+| --- | --- |
+| `anthropic/claude-opus-4-6` | `non_reusable_swe_bench_multilingual` |
+| `anthropic/claude-opus-5-5` | `no_exact_lineup_match` |
+| `google/gemini-3-1-pro-preview` | `no_exact_lineup_match` |
+| `google/gemini-3-5-flash` | `no_exact_lineup_match` |
+| `google/gemini-3-7-flash` | `no_exact_lineup_match` |
+| `google/gemini-3-8-flash` | `no_exact_lineup_match` |
+| `meta/muse-spark` | `no_exact_lineup_match` |
+| `meta/muse-spark-1-1` | `no_exact_lineup_match` |
+| `meta/muse-spark-1-3` | `no_exact_lineup_match` |
+| `openai/gpt-5-4` | `no_exact_lineup_match` |
+| `openai/gpt-5-6-sol` | `no_exact_lineup_match` |
+| `openai/gpt-6-astra` | `no_exact_lineup_match` |
+| `openai/gpt-6-sol` | `no_exact_lineup_match` |
+| `qwen/qwen3-8-max-0902` | `no_exact_lineup_match` |
+| `xai/grok-4-7` | `no_exact_lineup_match` |
+| `deepseek/deepseek-v4-pro` | `no_exact_lineup_match` |
+| `moonshot/kimi-k2-6` | `no_exact_lineup_match` |
+| `moonshot/kimi-k3` | `no_exact_lineup_match` |
+| `qwen/qwen3-8-flash-next` | `no_exact_lineup_match` |
+| `zhipu/glm-5-2` | `no_exact_lineup_match` |
+| `zhipu/glm-5-3` | `no_exact_lineup_match` |
+| `jcorners/ingot-8b-r3` | `no_exact_lineup_match` |
+| `kingsoft/qzhou-embedding` | `no_exact_lineup_match` |
+| `microsoft/harrier-oss-v1-27b` | `no_exact_lineup_match` |
+| `tencent/kalm-embedding-gemma3-12b-2511` | `no_exact_lineup_match` |
+| `querit/querit` | `no_exact_lineup_match` |
+| `querit/querit-4b` | `no_exact_lineup_match` |
+| `anthropic/claude-fable-5` | `no_exact_lineup_match` |
+| `anthropic/claude-fable-5-1` | `no_exact_lineup_match` |
+| `anthropic/claude-opus-4-7` | `no_exact_lineup_match` |
+| `anthropic/claude-opus-5` | `no_exact_lineup_match` |
+| `typesafe/jev-1-13` | `no_exact_lineup_match` |
+
+`non_reusable_swe_bench_multilingual` means the official result exists and its per-instance records could be grouped by repository language, but ModelSpec cannot reuse it. The official result repository has no licence, while the official leaderboard site uses CC BY-NC 4.0. ModelSpec has paid decision paths, so non-commercial terms do not permit catalogue ingestion.
 
 The other candidate sources had no exact lineup match:
 
