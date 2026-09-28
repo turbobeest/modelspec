@@ -1,4 +1,4 @@
-"""The decide page's 1.4 fixtures are the engine's own answers (MODEL-163).
+"""The decide page fixtures are the engine's own answers (MODEL-163).
 
 `web/src/decide/__fixtures__/compact-full.json` and `compact-summary.json` are
 what the Worker's `decide_service` returns for the page's default spec on a

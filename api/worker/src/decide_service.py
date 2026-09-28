@@ -310,7 +310,7 @@ def snapshot_changed(requested: str, snapshot) -> tuple[int, dict[str, Any]]:
 
 def decide(payload: Any, snapshot, *,
            expected_snapshot: str | None = None) -> tuple[int, dict[str, Any]]:
-    """Validate one contract-v1 spec and return the shared engine's Decision.
+    """Validate one decision spec and return the shared engine's Decision.
 
     ``expected_snapshot`` is the ``X-ModelSpec-Snapshot`` request header. It is
     checked before the spec, because a spec built from an older vocabulary may

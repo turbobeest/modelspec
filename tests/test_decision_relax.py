@@ -122,5 +122,5 @@ def test_an_answered_decision_suggests_nothing():
     assert decision.relax == [] and decision.relax_to == []
 
 
-def test_relax_to_remains_in_contract_1_6():
+def test_relax_to_remains_in_the_current_contract():
     assert CONTRACT_VERSION == "2.1"

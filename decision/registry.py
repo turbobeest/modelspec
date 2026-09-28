@@ -217,6 +217,7 @@ class Refinement:
     kind: RefinementKind
     name: str
     definition: str
+    eligible_classes: tuple[str, ...]
 
     @property
     def weight_key(self) -> str:
@@ -717,14 +718,25 @@ def _load_domains(err: _Errors, root: Path) -> dict[str, Domain]:
     return out
 
 
-def _load_refinements(err: _Errors, root: Path, domains: Mapping[str, Domain]) -> dict[tuple[str, str], Refinement]:
+def _load_refinements(
+    err: _Errors,
+    root: Path,
+    domains: Mapping[str, Domain],
+    model_classes: frozenset[str],
+) -> dict[tuple[str, str], Refinement]:
     entries = _read(root, "refinements", "refinements")
     out: dict[tuple[str, str], Refinement] = {}
     for entry in entries:
         id_ = entry.get("id")
         parent = entry.get("parent_domain")
         where = f"refinements.yaml {parent!r}/{id_!r}"
-        _keys(err, where, entry, {"id", "parent_domain", "kind", "name", "definition"}, set())
+        _keys(
+            err,
+            where,
+            entry,
+            {"id", "parent_domain", "kind", "name", "definition", "eligible_classes"},
+            set(),
+        )
         if not isinstance(id_, str) or not SNAKE_ID.fullmatch(id_):
             err.add(where, "id must be snake_case")
         if parent != "any" and parent not in domains:
@@ -733,6 +745,21 @@ def _load_refinements(err: _Errors, root: Path, domains: Mapping[str, Domain]) -
             err.add(where, f"kind {entry.get('kind')!r} must be one of {', '.join(REFINEMENT_KINDS)}")
         if not isinstance(entry.get("name"), str) or not entry.get("name", "").strip():
             err.add(where, "name must be a non-empty string")
+        eligible_classes = entry.get("eligible_classes")
+        if (
+            not isinstance(eligible_classes, list)
+            or not eligible_classes
+            or not all(isinstance(class_id, str) for class_id in eligible_classes)
+            or len(set(eligible_classes)) != len(eligible_classes)
+        ):
+            err.add(where, "eligible_classes must be a non-empty list without duplicates")
+            eligible_classes = []
+        for class_id in eligible_classes:
+            if class_id not in model_classes:
+                err.add(
+                    where,
+                    f"eligible_classes names unregistered model class {class_id!r}",
+                )
         _described(err, where, entry, MIN_DEFINITION_WORDS)
         key = (str(parent), str(id_))
         if key in out:
@@ -746,6 +773,7 @@ def _load_refinements(err: _Errors, root: Path, domains: Mapping[str, Domain]) -
             kind=entry.get("kind"),
             name=str(entry.get("name", "")),
             definition=" ".join(str(entry.get("definition", "")).split()),
+            eligible_classes=tuple(eligible_classes),
         )
     return out
 
@@ -772,7 +800,8 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
     providers = _load_providers(err, root)
     harnesses = _load_harnesses(err, root)
     domains = _load_domains(err, root)
-    refinements = _load_refinements(err, root, domains)
+    model_classes = lists["model_classes"]()
+    refinements = _load_refinements(err, root, domains, model_classes)
     err.raise_if_any()
     return Registry(units=units, source_kinds=kinds, facets=facets, providers=providers,
                     harnesses=harnesses, domains=domains, refinements=refinements,

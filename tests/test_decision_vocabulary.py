@@ -53,6 +53,13 @@ PAGES = {
         "name": "SWE-bench ProMax",
         "refinements": [{"id": "refactor", "directness": "direct"}],
     },
+    "mteb_v2_retrieval": {
+        "id": "mteb_v2_retrieval",
+        "name": "MTEB v2 Retrieval",
+        "refinements": [
+            {"id": "retrieval_vs_reranking_task_type", "directness": "direct"}
+        ],
+    },
 }
 
 
@@ -63,6 +70,13 @@ def generator(mid, openness="closed_weights"):
         fact("model", mid, "model.context_window", 200000),
         fact("model", mid, "model.weights_openness", openness),
         fact("model", mid, "origin.lab_jurisdiction", ["US"]),
+    ])
+
+
+def model_in_class(mid, class_id):
+    return model(mid, facts=[
+        fact("model", mid, "model.class", class_id),
+        fact("model", mid, "model.lifecycle", "active"),
     ])
 
 
@@ -315,6 +329,33 @@ def test_refinement_evidence_states_and_counts_use_distinct_lineup_models():
     assert rows["terminal_agent"]["evidence_state"] == "thin"
     assert rows["refactor"]["evidence_state"] == "not_measured"
     assert rows["code_review"]["evidence_state"] == "no_benchmark"
+
+
+def test_refinement_counts_use_the_eligible_lineup_classes_for_each_domain():
+    inputs = SnapshotInputs(
+        models=[
+            generator("lab/generator"),
+            model_in_class("lab/vectoriser", "vectoriser"),
+            model_in_class("lab/orderer", "orderer"),
+        ],
+        offerings=[],
+        evidence=[
+            evidence("lab/generator", "swe_bench_verified", 70.0),
+            evidence("lab/vectoriser", "mteb_v2_retrieval", 65.0),
+        ],
+        sources=SOURCES,
+        benchmark_domains=DOMAINS | {
+            "mteb_v2_retrieval": [("retrieval", "direct")],
+        },
+    )
+    built = build_snapshot(inputs, gate=False, as_of=AS_OF)
+    snapshot = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+
+    rows = by_id(build_vocabulary(snapshot, pages=PAGES)["refinements"])
+
+    assert (rows["python"]["measured_models"], rows["python"]["of_models"]) == (1, 1)
+    retrieval = rows["retrieval_vs_reranking_task_type"]
+    assert (retrieval["measured_models"], retrieval["of_models"]) == (1, 2)
 
 
 def test_refinement_vocabulary_rows_match_the_pinned_shape_exactly(vocabulary):

@@ -2033,7 +2033,12 @@ def _decision_schemas() -> dict[str, Any]:
     }
     schemas["DecisionRequestRefused"] = refused(
         "decide",
-        shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
+        shared_refusals | {
+            "invalid_spec",
+            "refinement_not_rankable_yet",
+            "snapshot_changed",
+            "snapshot_not_loaded",
+        },
     )
     schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
     schemas["ComparisonRequestRefused"] = refused(

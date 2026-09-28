@@ -225,6 +225,12 @@ def test_the_refinement_registry_contains_the_129_surveyed_refinements(registry)
     assert registry.refinement("software_engineering", "python").weight_key == (
         "software_engineering/python"
     )
+    assert registry.refinement("software_engineering", "python").eligible_classes == (
+        "text-generator",
+    )
+    assert registry.refinement(
+        "retrieval", "retrieval_vs_reranking_task_type"
+    ).eligible_classes == ("orderer", "vectoriser")
 
 
 # ── unknown IDs fail loudly ────────────────────────────────────────────────
@@ -262,6 +268,7 @@ def test_unknown_refinement_fails_loudly(registry):
         (lambda row: row.update(kind="audience"), "kind"),
         (lambda row: row.update(definition=""), "definition"),
         (lambda row: row.update(id="Not Snake Case"), "snake_case"),
+        (lambda row: row.update(eligible_classes=["not-a-class"]), "eligible_classes"),
     ],
 )
 def test_refinement_registry_rejects_invalid_entries(tmp_path, mutate, message):

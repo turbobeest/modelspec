@@ -7,751 +7,880 @@ read: '2026-09-27'
 refinements:
 - id: python
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: Python
   definition: 'Measures work in the named programming or natural language for software engineering: Python.'
 - id: javascript_typescript
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: JavaScript/TypeScript
   definition: 'Measures work in the named programming or natural language for software engineering: JavaScript/TypeScript.'
 - id: java
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: Java
   definition: 'Measures work in the named programming or natural language for software engineering: Java.'
 - id: rust
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: Rust
   definition: 'Measures work in the named programming or natural language for software engineering: Rust.'
 - id: go
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: Go
   definition: 'Measures work in the named programming or natural language for software engineering: Go.'
 - id: c_cpp
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: C/C++
   definition: 'Measures work in the named programming or natural language for software engineering: C/C++.'
 - id: other_csharp_php_ruby_kotlin_swift_scala_r_julia_lua_perl
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: other (C#, PHP, Ruby, Kotlin, Swift, Scala, R, Julia, Lua, Perl)
   definition: 'Measures work in the named programming or natural language for software engineering: other
     (C#, PHP, Ruby, Kotlin, Swift, Scala, R, Julia, Lua, Perl).'
 - id: sql_text_to_sql
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: SQL (text-to-SQL)
   definition: 'Measures work in the named programming or natural language for software engineering: SQL
     (text-to-SQL).'
 - id: cuda_gpu_kernels
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: language
   name: CUDA / GPU kernels
   definition: 'Measures work in the named programming or natural language for software engineering: CUDA
     / GPU kernels.'
 - id: bug_fix
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: bug fix / issue resolution
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     bug fix / issue resolution.'
 - id: new_feature_build_from_a_brief
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: new feature / build from a brief
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     new feature / build from a brief.'
 - id: refactor
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: refactor
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     refactor.'
 - id: code_quality_mergeability_review_grade
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: code quality / mergeability (review-grade)
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     code quality / mergeability (review-grade).'
 - id: code_review
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: code review (reviewing others' changes)
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     code review (reviewing others'' changes).'
 - id: test_writing
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: test writing
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     test writing.'
 - id: code_localisation_repo_exploration
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: code localisation / repo exploration
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     code localisation / repo exploration.'
 - id: performance_optimisation
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: performance optimisation
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     performance optimisation.'
 - id: security_fix_repair_a_vulnerability
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: security fix (repair a vulnerability)
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     security fix (repair a vulnerability).'
 - id: secure_code_generation
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: secure code generation
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     secure code generation.'
 - id: documentation
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: documentation
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     documentation.'
 - id: migration_code_translation
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: task
   name: migration / code translation
   definition: 'Measures the named task rather than the parent domain as a whole for software engineering:
     migration / code translation.'
 - id: agentic_repo_level
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: mode
   name: agentic repo-level
   definition: 'Measures work performed in the named operating mode or environment for software engineering:
     agentic repo-level.'
 - id: function_level_completion
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: mode
   name: function-level completion
   definition: 'Measures work performed in the named operating mode or environment for software engineering:
     function-level completion.'
 - id: competitive_programming
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: mode
   name: competitive programming
   definition: 'Measures work performed in the named operating mode or environment for software engineering:
     competitive programming.'
 - id: in_ide_product_harness
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: mode
   name: in-IDE product harness
   definition: 'Measures work performed in the named operating mode or environment for software engineering:
     in-IDE product harness.'
 - id: terminal_agent
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: mode
   name: terminal agent
   definition: 'Measures work performed in the named operating mode or environment for software engineering:
     terminal agent.'
 - id: long_horizon_autonomy
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: mode
   name: long-horizon autonomy
   definition: 'Measures work performed in the named operating mode or environment for software engineering:
     long-horizon autonomy.'
 - id: web_front_end
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: material
   name: web front-end
   definition: 'Measures work on the named input, subject matter, or artifact for software engineering:
     web front-end.'
 - id: scientific_research_code
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: material
   name: scientific / research code
   definition: 'Measures work on the named input, subject matter, or artifact for software engineering:
     scientific / research code.'
 - id: data_science_ml_engineering
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: material
   name: data science / ML engineering
   definition: 'Measures work on the named input, subject matter, or artifact for software engineering:
     data science / ML engineering.'
 - id: offensive_security_ctf
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: material
   name: offensive security / CTF
   definition: 'Measures work on the named input, subject matter, or artifact for software engineering:
     offensive security / CTF.'
 - id: coding_prompts
   parent_domain: software_engineering
+  eligible_classes: [text-generator]
   kind: mode
   name: coding prompts
   definition: 'Measures work performed in the named operating mode or environment for software engineering:
     coding prompts.'
 - id: shell_terminal
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: mode
   name: shell / terminal
   definition: 'Measures work performed in the named operating mode or environment for agentic tool use:
     shell / terminal.'
 - id: computer_use_gui
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: mode
   name: computer use / GUI
   definition: 'Measures work performed in the named operating mode or environment for agentic tool use:
     computer use / GUI.'
 - id: browser_web_research
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: mode
   name: browser / web research
   definition: 'Measures work performed in the named operating mode or environment for agentic tool use:
     browser / web research.'
 - id: api_function_calling
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: mode
   name: API / function calling
   definition: 'Measures work performed in the named operating mode or environment for agentic tool use:
     API / function calling.'
 - id: customer_support_under_policy
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: task
   name: customer support under policy
   definition: 'Measures the named task rather than the parent domain as a whole for agentic tool use:
     customer support under policy.'
 - id: long_horizon_business_operation
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: task
   name: long-horizon business operation
   definition: 'Measures the named task rather than the parent domain as a whole for agentic tool use:
     long-horizon business operation.'
 - id: long_horizon_autonomy_duration
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: task
   name: long-horizon autonomy (duration)
   definition: 'Measures the named task rather than the parent domain as a whole for agentic tool use:
     long-horizon autonomy (duration).'
 - id: professional_deliverables_docs_sheets_slides
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: task
   name: professional deliverables (docs, sheets, slides)
   definition: 'Measures the named task rather than the parent domain as a whole for agentic tool use:
     professional deliverables (docs, sheets, slides).'
 - id: research_science_agent
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: task
   name: research / science agent
   definition: 'Measures the named task rather than the parent domain as a whole for agentic tool use:
     research / science agent.'
 - id: tool_augmented_reasoning_with_vs_without_tools
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: mode
   name: Tool-augmented reasoning (with vs without tools)
   definition: 'Measures work performed in the named operating mode or environment for agentic tool use:
     Tool-augmented reasoning (with vs without tools).'
 - id: prompt_injection_robustness
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: mode
   name: prompt-injection robustness
   definition: 'Measures work performed in the named operating mode or environment for agentic tool use:
     prompt-injection robustness.'
 - id: agent_sessions_coding_agents
   parent_domain: agentic_tool_use
+  eligible_classes: [text-generator]
   kind: mode
   name: agent sessions (coding agents)
   definition: 'Measures work performed in the named operating mode or environment for agentic tool use:
     agent sessions (coding agents).'
 - id: competition_maths
   parent_domain: maths
+  eligible_classes: [text-generator]
   kind: task
   name: Competition maths
   definition: 'Measures the named task rather than the parent domain as a whole for maths: Competition
     maths.'
 - id: research_level_maths
   parent_domain: maths
+  eligible_classes: [text-generator]
   kind: task
   name: Research-level maths
   definition: 'Measures the named task rather than the parent domain as a whole for maths: Research-level
     maths.'
 - id: proof_writing_formal_proof
   parent_domain: maths
+  eligible_classes: [text-generator]
   kind: task
   name: Proof writing / formal proof
   definition: 'Measures the named task rather than the parent domain as a whole for maths: Proof writing
     / formal proof.'
 - id: school_word_problems
   parent_domain: maths
+  eligible_classes: [text-generator]
   kind: task
   name: School / word problems
   definition: 'Measures the named task rather than the parent domain as a whole for maths: School / word
     problems.'
 - id: visual_maths
   parent_domain: maths
+  eligible_classes: [text-generator]
   kind: material
   name: Visual maths
   definition: 'Measures work on the named input, subject matter, or artifact for maths: Visual maths.'
 - id: multilingual_maths
   parent_domain: maths
+  eligible_classes: [text-generator]
   kind: language
   name: Multilingual maths
   definition: 'Measures work in the named programming or natural language for maths: Multilingual maths.'
 - id: maths_prompts
   parent_domain: maths
+  eligible_classes: [text-generator]
   kind: mode
   name: maths prompts
   definition: 'Measures work performed in the named operating mode or environment for maths: maths prompts.'
 - id: science_discipline_physics_chemistry_biology
   parent_domain: engineering_stem
+  eligible_classes: [text-generator]
   kind: material
   name: Science discipline (physics / chemistry / biology)
   definition: 'Measures work on the named input, subject matter, or artifact for engineering stem: Science
     discipline (physics / chemistry / biology).'
 - id: frontier_research_questions
   parent_domain: engineering_stem
+  eligible_classes: [text-generator]
   kind: task
   name: Frontier research questions
   definition: 'Measures the named task rather than the parent domain as a whole for engineering stem:
     Frontier research questions.'
 - id: scientific_figures_lab_protocols
   parent_domain: engineering_stem
+  eligible_classes: [text-generator]
   kind: material
   name: Scientific figures / lab protocols
   definition: 'Measures work on the named input, subject matter, or artifact for engineering stem: Scientific
     figures / lab protocols.'
 - id: engineering_disciplines
   parent_domain: engineering_stem
+  eligible_classes: [text-generator]
   kind: task
   name: Engineering disciplines
   definition: 'Measures the named task rather than the parent domain as a whole for engineering stem:
     Engineering disciplines.'
 - id: scientific_computing_agent
   parent_domain: engineering_stem
+  eligible_classes: [text-generator]
   kind: mode
   name: Scientific computing agent
   definition: 'Measures work performed in the named operating mode or environment for engineering stem:
     Scientific computing agent.'
 - id: science_prompts
   parent_domain: engineering_stem
+  eligible_classes: [text-generator]
   kind: mode
   name: science prompts
   definition: 'Measures work performed in the named operating mode or environment for engineering stem:
     science prompts.'
 - id: abstraction_novel_puzzles
   parent_domain: reasoning
+  eligible_classes: [text-generator]
   kind: task
   name: Abstraction / novel puzzles
   definition: 'Measures the named task rather than the parent domain as a whole for reasoning: Abstraction
     / novel puzzles.'
 - id: multi_step_knowledge_light_reasoning
   parent_domain: reasoning
+  eligible_classes: [text-generator]
   kind: task
   name: Multi-step knowledge-light reasoning
   definition: 'Measures the named task rather than the parent domain as a whole for reasoning: Multi-step
     knowledge-light reasoning.'
 - id: hard_expert_prompts_preference
   parent_domain: reasoning
+  eligible_classes: [text-generator]
   kind: task
   name: Hard / expert prompts (preference)
   definition: 'Measures the named task rather than the parent domain as a whole for reasoning: Hard /
     expert prompts (preference).'
 - id: legal_reasoning_type_issue_spotting_rule_recall_application_interpretation
   parent_domain: legal
+  eligible_classes: [text-generator]
   kind: task
   name: Legal reasoning type (issue spotting, rule recall/application, interpretation)
   definition: 'Measures the named task rather than the parent domain as a whole for legal: Legal reasoning
     type (issue spotting, rule recall/application, interpretation).'
 - id: case_law_litigation
   parent_domain: legal
+  eligible_classes: [text-generator]
   kind: task
   name: Case law / litigation
   definition: 'Measures the named task rather than the parent domain as a whole for legal: Case law /
     litigation.'
 - id: contracts_terms
   parent_domain: legal
+  eligible_classes: [text-generator]
   kind: task
   name: Contracts / terms
   definition: 'Measures the named task rather than the parent domain as a whole for legal: Contracts /
     terms.'
 - id: regulatory_compliance
   parent_domain: legal
+  eligible_classes: [text-generator]
   kind: task
   name: Regulatory compliance
   definition: 'Measures the named task rather than the parent domain as a whole for legal: Regulatory
     compliance.'
 - id: jurisdiction_us_eu_cn_kr_br_uae_ch
   parent_domain: legal
+  eligible_classes: [text-generator]
   kind: task
   name: Jurisdiction (US, EU, CN, KR, BR, UAE, CH)
   definition: 'Measures the named task rather than the parent domain as a whole for legal: Jurisdiction
     (US, EU, CN, KR, BR, UAE, CH).'
 - id: bar_exam_knowledge
   parent_domain: legal
+  eligible_classes: [text-generator]
   kind: task
   name: Bar-exam knowledge
   definition: 'Measures the named task rather than the parent domain as a whole for legal: Bar-exam knowledge.'
 - id: legal_and_government_prompts
   parent_domain: legal
+  eligible_classes: [text-generator]
   kind: mode
   name: legal and government prompts
   definition: 'Measures work performed in the named operating mode or environment for legal: legal and
     government prompts.'
 - id: clinician_facing_tasks
   parent_domain: medical
+  eligible_classes: [text-generator]
   kind: task
   name: Clinician-facing tasks
   definition: 'Measures the named task rather than the parent domain as a whole for medical: Clinician-facing
     tasks.'
 - id: consumer_health_conversations
   parent_domain: medical
+  eligible_classes: [text-generator]
   kind: task
   name: Consumer health conversations
   definition: 'Measures the named task rather than the parent domain as a whole for medical: Consumer
     health conversations.'
 - id: licensing_exam_knowledge
   parent_domain: medical
+  eligible_classes: [text-generator]
   kind: task
   name: Licensing-exam knowledge
   definition: 'Measures the named task rather than the parent domain as a whole for medical: Licensing-exam
     knowledge.'
 - id: clinical_documentation_notes_summaries_coding
   parent_domain: medical
+  eligible_classes: [text-generator]
   kind: task
   name: Clinical documentation (notes, summaries, coding)
   definition: 'Measures the named task rather than the parent domain as a whole for medical: Clinical
     documentation (notes, summaries, coding).'
 - id: specialty_radiology_palliative_paediatrics
   parent_domain: medical
+  eligible_classes: [text-generator]
   kind: material
   name: Specialty (radiology, palliative, paediatrics, ...)
   definition: 'Measures work on the named input, subject matter, or artifact for medical: Specialty (radiology,
     palliative, paediatrics, ...).'
 - id: medical_imaging_multimodal
   parent_domain: medical
+  eligible_classes: [text-generator]
   kind: material
   name: Medical imaging / multimodal
   definition: 'Measures work on the named input, subject matter, or artifact for medical: Medical imaging
     / multimodal.'
 - id: medicine_prompts
   parent_domain: medical
+  eligible_classes: [text-generator]
   kind: mode
   name: medicine prompts
   definition: 'Measures work performed in the named operating mode or environment for medical: medicine
     prompts.'
 - id: business_finance_prompts_preference
   parent_domain: finance
+  eligible_classes: [text-generator]
   kind: task
   name: Business / finance prompts (preference)
   definition: 'Measures the named task rather than the parent domain as a whole for finance: Business
     / finance prompts (preference).'
 - id: banking_operations_agentic
   parent_domain: finance
+  eligible_classes: [text-generator]
   kind: task
   name: Banking operations (agentic)
   definition: 'Measures the named task rather than the parent domain as a whole for finance: Banking operations
     (agentic).'
 - id: business_judgement_simulation
   parent_domain: finance
+  eligible_classes: [text-generator]
   kind: task
   name: Business judgement (simulation)
   definition: 'Measures the named task rather than the parent domain as a whole for finance: Business
     judgement (simulation).'
 - id: filings_financial_statements_qa
   parent_domain: finance
+  eligible_classes: [text-generator]
   kind: task
   name: Filings / financial statements QA
   definition: 'Measures the named task rather than the parent domain as a whole for finance: Filings /
     financial statements QA.'
 - id: accounting
   parent_domain: finance
+  eligible_classes: [text-generator]
   kind: task
   name: Accounting
   definition: 'Measures the named task rather than the parent domain as a whole for finance: Accounting.'
 - id: equity_research_valuation
   parent_domain: finance
+  eligible_classes: [text-generator]
   kind: task
   name: Equity research / valuation
   definition: 'Measures the named task rather than the parent domain as a whole for finance: Equity research
     / valuation.'
 - id: economics_quantitative
   parent_domain: finance
+  eligible_classes: [text-generator]
   kind: task
   name: Economics / quantitative
   definition: 'Measures the named task rather than the parent domain as a whole for finance: Economics
     / quantitative.'
 - id: financial_text_classification
   parent_domain: finance
+  eligible_classes: [text-generator]
   kind: task
   name: Financial text classification
   definition: 'Measures the named task rather than the parent domain as a whole for finance: Financial
     text classification.'
 - id: marketing_knowledge
   parent_domain: marketing_seo
+  eligible_classes: [text-generator]
   kind: task
   name: Marketing knowledge
   definition: 'Measures the named task rather than the parent domain as a whole for marketing seo: Marketing
     knowledge.'
 - id: marketing_advertising_writing
   parent_domain: marketing_seo
+  eligible_classes: [text-generator]
   kind: task
   name: Marketing / advertising writing
   definition: 'Measures the named task rather than the parent domain as a whole for marketing seo: Marketing
     / advertising writing.'
 - id: seo_commercial_effect
   parent_domain: marketing_seo
+  eligible_classes: [text-generator]
   kind: task
   name: SEO / commercial effect
   definition: 'Measures the named task rather than the parent domain as a whole for marketing seo: SEO
     / commercial effect.'
 - id: creative_writing
   parent_domain: writing
+  eligible_classes: [text-generator]
   kind: task
   name: Creative writing
   definition: 'Measures the named task rather than the parent domain as a whole for writing: Creative
     writing.'
 - id: writing_literature_and_language_occupational
   parent_domain: writing
+  eligible_classes: [text-generator]
   kind: task
   name: Writing, literature and language (occupational)
   definition: 'Measures the named task rather than the parent domain as a whole for writing: Writing,
     literature and language (occupational).'
 - id: professional_writing_by_domain_academic_business_legal_education_marketing
   parent_domain: writing
+  eligible_classes: [text-generator]
   kind: task
   name: Professional writing by domain (academic, business, legal, education, marketing)
   definition: 'Measures the named task rather than the parent domain as a whole for writing: Professional
     writing by domain (academic, business, legal, education, marketing).'
 - id: summarisation
   parent_domain: writing
+  eligible_classes: [text-generator]
   kind: task
   name: Summarisation
   definition: 'Measures the named task rather than the parent domain as a whole for writing: Summarisation.'
 - id: instruction_constraint_adherence
   parent_domain: writing
+  eligible_classes: [text-generator]
   kind: task
   name: Instruction / constraint adherence
   definition: 'Measures the named task rather than the parent domain as a whole for writing: Instruction
     / constraint adherence.'
 - id: emotional_intelligence_empathy
   parent_domain: writing
+  eligible_classes: [text-generator]
   kind: task
   name: Emotional intelligence / empathy
   definition: 'Measures the named task rather than the parent domain as a whole for writing: Emotional
     intelligence / empathy.'
 - id: role_play_character
   parent_domain: writing
+  eligible_classes: [text-generator]
   kind: task
   name: Role-play / character
   definition: 'Measures the named task rather than the parent domain as a whole for writing: Role-play
     / character.'
 - id: entertainment_sports_and_media_prompts
   parent_domain: writing
+  eligible_classes: [text-generator]
   kind: task
   name: Entertainment, sports and media prompts
   definition: 'Measures the named task rather than the parent domain as a whole for writing: Entertainment,
     sports and media prompts.'
 - id: charts_diagrams_figures
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: material
   name: Charts, diagrams, figures
   definition: 'Measures work on the named input, subject matter, or artifact for vision documents: Charts,
     diagrams, figures.'
 - id: ocr_scanned_documents
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: material
   name: OCR / scanned documents
   definition: 'Measures work on the named input, subject matter, or artifact for vision documents: OCR
     / scanned documents.'
 - id: screenshots_gui_grounding
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: material
   name: Screenshots / GUI grounding
   definition: 'Measures work on the named input, subject matter, or artifact for vision documents: Screenshots
     / GUI grounding.'
 - id: photos_real_world_scenes
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: material
   name: Photos / real-world scenes
   definition: 'Measures work on the named input, subject matter, or artifact for vision documents: Photos
     / real-world scenes.'
 - id: expert_multimodal_exam_style
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: material
   name: Expert multimodal (exam-style)
   definition: 'Measures work on the named input, subject matter, or artifact for vision documents: Expert
     multimodal (exam-style).'
 - id: visual_maths_homework
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: material
   name: Visual maths / homework
   definition: 'Measures work on the named input, subject matter, or artifact for vision documents: Visual
     maths / homework.'
 - id: humour_creative_from_images
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: material
   name: Humour / creative from images
   definition: 'Measures work on the named input, subject matter, or artifact for vision documents: Humour
     / creative from images.'
 - id: video_understanding
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: material
   name: Video understanding
   definition: 'Measures work on the named input, subject matter, or artifact for vision documents: Video
     understanding.'
 - id: vision_prompts
   parent_domain: vision_documents
+  eligible_classes: [text-generator]
   kind: mode
   name: vision prompts
   definition: 'Measures work performed in the named operating mode or environment for vision documents:
     vision prompts.'
 - id: chinese
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Chinese
   definition: 'Measures work in the named programming or natural language for multilingual: Chinese.'
 - id: japanese
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Japanese
   definition: 'Measures work in the named programming or natural language for multilingual: Japanese.'
 - id: korean
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Korean
   definition: 'Measures work in the named programming or natural language for multilingual: Korean.'
 - id: spanish
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Spanish
   definition: 'Measures work in the named programming or natural language for multilingual: Spanish.'
 - id: german
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: German
   definition: 'Measures work in the named programming or natural language for multilingual: German.'
 - id: french
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: French
   definition: 'Measures work in the named programming or natural language for multilingual: French.'
 - id: russian
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Russian
   definition: 'Measures work in the named programming or natural language for multilingual: Russian.'
 - id: polish
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Polish
   definition: 'Measures work in the named programming or natural language for multilingual: Polish.'
 - id: arabic
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Arabic
   definition: 'Measures work in the named programming or natural language for multilingual: Arabic.'
 - id: low_resource_indic_african_languages
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Low-resource / Indic / African languages
   definition: 'Measures work in the named programming or natural language for multilingual: Low-resource
     / Indic / African languages.'
 - id: translation
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: task
   name: Translation
   definition: 'Measures the named task rather than the parent domain as a whole for multilingual: Translation.'
 - id: multilingual_retrieval_embeddings
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: task
   name: Multilingual retrieval (embeddings)
   definition: 'Measures the named task rather than the parent domain as a whole for multilingual: Multilingual
     retrieval (embeddings).'
 - id: non_english_prompts_preference_any_language
   parent_domain: multilingual
+  eligible_classes: [text-generator]
   kind: language
   name: Non-English prompts (preference, any language)
   definition: 'Measures work in the named programming or natural language for multilingual: Non-English
     prompts (preference, any language).'
 - id: retrieval_vs_reranking_task_type
   parent_domain: retrieval
+  eligible_classes: [orderer, vectoriser]
   kind: task
   name: Retrieval vs reranking (task type)
   definition: 'Measures the named task rather than the parent domain as a whole for retrieval: Retrieval
     vs reranking (task type).'
 - id: other_embedding_tasks_classification_clustering_sts
   parent_domain: retrieval
+  eligible_classes: [orderer, vectoriser]
   kind: task
   name: Other embedding tasks (classification, clustering, STS)
   definition: 'Measures the named task rather than the parent domain as a whole for retrieval: Other embedding
     tasks (classification, clustering, STS).'
 - id: english_vs_multilingual
   parent_domain: retrieval
+  eligible_classes: [orderer, vectoriser]
   kind: language
   name: English vs multilingual
   definition: 'Measures work in the named programming or natural language for retrieval: English vs multilingual.'
 - id: domain_retrieval_biomedical
   parent_domain: retrieval
+  eligible_classes: [orderer, vectoriser]
   kind: material
   name: Domain retrieval (biomedical)
   definition: 'Measures work on the named input, subject matter, or artifact for retrieval: Domain retrieval
     (biomedical).'
 - id: natural_language_of_the_task
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: language
   name: Natural language of the task
   definition: 'Measures work in the named programming or natural language for all capability domains:
     Natural language of the task.'
 - id: input_length_long_context
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: material
   name: Input length / long context
   definition: 'Measures work on the named input, subject matter, or artifact for all capability domains:
     Input length / long context.'
 - id: multi_turn_conversation
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: mode
   name: Multi-turn conversation
   definition: 'Measures work performed in the named operating mode or environment for all capability domains:
     Multi-turn conversation.'
 - id: difficulty_tier
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: mode
   name: Difficulty tier
   definition: 'Measures work performed in the named operating mode or environment for all capability domains:
     Difficulty tier.'
 - id: factuality_hallucination
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: task
   name: Factuality / hallucination
   definition: 'Measures the named task rather than the parent domain as a whole for all capability domains:
     Factuality / hallucination.'
 - id: image
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: material
   name: image
   definition: 'Measures work on the named input, subject matter, or artifact for all capability domains:
     image.'
 - id: audio_speech
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: material
   name: audio / speech
   definition: 'Measures work on the named input, subject matter, or artifact for all capability domains:
     audio / speech.'
 - id: instruction_following
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: task
   name: Instruction following
   definition: 'Measures the named task rather than the parent domain as a whole for all capability domains:
     Instruction following.'
 - id: with_tools_vs_without
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: mode
   name: With tools vs without
   definition: 'Measures work performed in the named operating mode or environment for all capability domains:
     With tools vs without.'
 - id: industry_occupation
   parent_domain: any
+  eligible_classes: [text-generator]
   kind: material
   name: Industry / occupation
   definition: 'Measures work on the named input, subject matter, or artifact for all capability domains:

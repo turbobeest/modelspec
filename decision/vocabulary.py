@@ -272,10 +272,13 @@ def _benchmark_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappin
 
 def _refinement_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mapping[str, Any]],
                      registry: Any) -> list[dict[str, Any]]:
-    lineup_models = {snapshot.model_of(candidate) for candidate in lineup}
     candidates_by_model: dict[str, list[str]] = {}
     for candidate in lineup:
         candidates_by_model.setdefault(snapshot.model_of(candidate), []).append(candidate)
+    class_by_model = {
+        model_id: snapshot.fact(model_id, "model.class").value
+        for model_id in candidates_by_model
+    }
 
     tags_by_refinement: dict[str, list[dict[str, str]]] = {}
     for benchmark_id, page in pages.items():
@@ -294,6 +297,11 @@ def _refinement_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappi
 
     rows = []
     for refinement in registry.refinements():
+        eligible_models = {
+            model_id
+            for model_id, class_id in class_by_model.items()
+            if class_id in refinement.eligible_classes
+        }
         benchmark_tags = sorted(
             tags_by_refinement.get(refinement.id, []),
             key=lambda tag: (tag["id"], tag["directness"]),
@@ -301,7 +309,8 @@ def _refinement_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappi
         measured: set[str] = set()
         direct: set[str] = set()
         for tag in benchmark_tags:
-            for model_id, candidates in candidates_by_model.items():
+            for model_id in eligible_models:
+                candidates = candidates_by_model[model_id]
                 if any(
                     evidence.verified
                     for candidate in candidates
@@ -326,7 +335,7 @@ def _refinement_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappi
             "definition": refinement.definition,
             "evidence_state": evidence_state,
             "measured_models": len(measured),
-            "of_models": len(lineup_models),
+            "of_models": len(eligible_models),
             "benchmarks": benchmark_tags,
             "weight_key": refinement.weight_key,
         })

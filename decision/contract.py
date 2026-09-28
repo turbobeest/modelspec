@@ -1,4 +1,4 @@
-"""The decision contract, v1 (MODEL-135).
+"""The decision contract (MODEL-135).
 
 A **spec** asks for a decision: conditions on facets, one objective, how much
 explanation to return. A **decision** answers one spec against one snapshot.

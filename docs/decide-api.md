@@ -1,6 +1,6 @@
 # The decide API (MODEL-151)
 
-`POST https://api.modelspec.dev/v1/decide` returns a Decision for one contract-v1
+`POST https://api.modelspec.dev/v1/decide` returns a Decision for one decision-contract
 Spec. It runs `decision.engine.decide` against the signed decision Snapshot
 published at `/api/decision/snapshot.json.gz`.
 
@@ -35,7 +35,7 @@ are the Worker's declared Python dependencies.
 
 The JSON body is a Spec from [`decision-contract.md`](decision-contract.md).
 `spec_version` is the integer `1`; the current compatible contract release is
-`1.1`.
+`1.11`.
 
 ```http
 POST /v1/decide
@@ -107,7 +107,7 @@ shown indented here for reading.
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "1.4",
+  "contract_version": "1.11",
   "decision_id": "dec_0123456789abcdef01234567",
   "snapshot": "snap_0123456789abcdef",
   "spec_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -204,7 +204,7 @@ confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 
 ```json
 {
-  "contract_version": "1.4",
+  "contract_version": "1.11",
   "endpoint": "decide",
   "snapshot": "snap_new0123456789ab",
   "error": {
@@ -242,7 +242,7 @@ The Worker echoes the exact requesting origin from that list and handles its
 |---|---|---|---|
 | 200 | none | A Decision, including `no_feasible`. | Read `status`, `results`, `may_qualify`, and `relax`. |
 | 400 | `invalid_request` | The body is not valid JSON. | Send one JSON object as the request body. |
-| 400 | `invalid_spec` | The body is not a contract-v1 Spec. | Apply every item in `error.issues`; unknown fields are not ignored. |
+| 400 | `invalid_spec` | The body is not a valid decision Spec. | Apply every item in `error.issues`; unknown fields are not ignored. |
 | 400 | `refinement_not_rankable_yet` | `optimize.weights` names a published refinement before refinement estimates exist. | Remove the refinement weight and rank on its parent domain until MODEL-190 ships. |
 | 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from the internal preview origin or make a server-side request. |
 | 409 | `snapshot_changed` | `X-ModelSpec-Snapshot` names another Snapshot than the one answering. | Reload `/api/decision/vocabulary.json`, rebuild the Spec from it, and retry once with its `snapshot`. |

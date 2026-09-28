@@ -345,6 +345,7 @@ def test_refinement_weights_are_rejected_until_the_refinement_estimator_lands(
     status, body = service.decide(payload, snapshot)
 
     assert status == 400
+    assert body["contract_version"] == "1.11"
     assert body["error"]["code"] == "refinement_not_rankable_yet"
     assert "software_engineering/python" in body["error"]["message"]
     assert "MODEL-190" in body["error"]["message"]

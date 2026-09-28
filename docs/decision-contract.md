@@ -750,6 +750,11 @@ it instead of carrying its own list of facets or benchmarks. Built by
   `id`, `name`, `unit`, `higher_is_better`, `models` (lineup models with a
   verified row), `independent_models` (those with a row that `@independent`
   admits), the `range` of those values, and its `domains` with `directness`.
+- `refinements`: every registered refinement, with its parent domain, kind,
+  definition, benchmark tags, weight key, evidence state, and coverage as
+  `measured_models` of `of_models`. The denominator includes only the lineup
+  classes eligible for that refinement. Generative refinements count text
+  generators; retrieval refinements count vectorisers and orderers.
 - `domains`: every registered domain with a listed benchmark. Each row emits
   `id`, `name`, `proxy_only`, `default_basis`, `estimate_models`,
   `estimate_benchmarks`, `direct_models`, `default_benchmark` and `benchmarks`.
@@ -780,7 +785,7 @@ it instead of carrying its own list of facets or benchmarks. Built by
   describes the decision's first Must whose funnel reaches zero, or its
   `no_feasible` relaxation when no Must does. Rows stay present so clients can
   explain why a template is unavailable. Adding this field is compatible, so
-  `vocabulary_version` remains `1` and `contract_version` remains `1.7`.
+  `vocabulary_version` remains `1`.
 - `coverage`: what the lineup holds, so a client can say what an empty answer
   was measured against without writing it per question: `as_of` (the snapshot
   date), `models` (lineup size) and `verified` (lineup models with at least one
@@ -823,6 +828,9 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.2 — MODEL-189:** The hosted decide API can return the closed error code
+  `refinement_not_rankable_yet` when a spec uses a published refinement weight
+  before MODEL-190 adds refinement estimates.
 - **2.1 — MODEL-170:** A decision adds the model-level `answer` block. Its
   `kind` is `separated` or `tied`; `members` overlap the point-estimate
   leader's weighted score interval, without following overlap chains. The
