@@ -158,6 +158,21 @@ def test_skills_index_digest_matches_skill_bytes() -> None:
     assert "evidence_basis" in text
     assert "Null" in text
     assert ar.MCP_ENDPOINT in text
+    assert text.index("**decide**") < text.index("**rank (legacy v1)**")
+
+
+def test_agent_landing_leads_with_decisions_and_marks_v1_rank_legacy() -> None:
+    text = ar.modelspec_landing_markdown(
+        [_model("acme/one", display_name="One", model_type="llm")],
+        [],
+        Build(
+            commit="abcdef1234567890",
+            built_at="2026-09-28T00:00:00+00:00",
+            as_of=date(2026, 9, 28),
+        ),
+    )
+
+    assert text.index("modelspec decide --template <id>") < text.index("Legacy v1 rank")
 
 
 def test_auth_md_billing_copy_follows_the_flag() -> None:

@@ -72,6 +72,7 @@ def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
     assert "python -m build" in commands
     assert "python -m venv" in commands
     assert "modelspec --help" in commands
+    assert 'decide" -lt "$rank"' in commands
     assert "modelspec decide --help" in commands
     assert 'cd "$(mktemp -d)"' in commands
     assert "modelspec vocab" in commands
@@ -85,7 +86,9 @@ def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
 
 
 def test_public_install_instructions_use_the_pypi_distribution_name() -> None:
-    assert "pipx install modelspec-dev" in (REPO_ROOT / "README.md").read_text()
+    readme = (REPO_ROOT / "README.md").read_text()
+    assert "pipx install modelspec-dev" in readme
+    assert readme.index("modelspec decide --template") < readme.index("Legacy (v1)")
     assert (
         "pip install modelspec +"
         not in (REPO_ROOT / "docs" / "system-architecture-v3.md").read_text()

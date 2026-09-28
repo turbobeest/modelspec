@@ -29,28 +29,62 @@ from . import offline as _offline  # noqa: E402
 # App setup
 # ───────────────────────────────────────────────────────────────
 
+_DECISION_PANEL = "Decision commands"
+_LEGACY_PANEL = "Legacy (v1)"
+_MAINTAINER_PANEL = "Maintainer-only"
+
+
+class RootGroup(_offline.ContractGroup):
+    """Keep the public help page in the order an agent should use it."""
+
+    _HELP_ORDER = {
+        name: index
+        for index, name in enumerate(
+            (
+                "snapshot", "vocab", "decide", "verify",
+                "rank", "search", "compare", "hardware",
+                "info", "stats", "gaps", "offline",
+                "research", "contribute", "validate",
+            )
+        )
+    }
+
+    def list_commands(self, ctx: Any) -> list[str]:
+        commands = super().list_commands(ctx)
+        return sorted(
+            commands,
+            key=lambda name: self._HELP_ORDER.get(name, len(self._HELP_ORDER)),
+        )
+
+
 app = typer.Typer(
-    cls=_offline.ContractGroup,
+    cls=RootGroup,
     name="modelspec",
-    help="ModelSpec — explore, search, compare, and rank AI models.",
+    help=(
+        "[bold]Start here:[/] modelspec snapshot fetch, then modelspec vocab, then "
+        "modelspec decide --template <id>.\n\n"
+        "ModelSpec decides which model or offering fits a spec."
+    ),
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
 
 # The offline path: answers from a local snapshot of the published export, with
 # no database and no network. This is what dpf calls.
-app.add_typer(_offline.app, name="offline")
-app.add_typer(_offline.snapshot_app, name="snapshot")
+app.add_typer(_offline.app, name="offline", rich_help_panel=_LEGACY_PANEL)
+app.add_typer(_offline.snapshot_app, name="snapshot", rich_help_panel=_DECISION_PANEL)
 
 # The decision contract (MODEL-135). Parses and validates a spec; the engine
 # behind it lands in MODEL-141/142/145.
 from . import decide_cmd as _decide_cmd  # noqa: E402
 
-app.command("decide")(_decide_cmd.decide)
+app.command("decide", rich_help_panel=_DECISION_PANEL)(_decide_cmd.decide)
 
 from . import vocab_cmd as _vocab_cmd  # noqa: E402
 
-app.command("vocab", cls=_offline.ContractCommand)(_vocab_cmd.vocab)
+app.command("vocab", cls=_offline.ContractCommand, rich_help_panel=_DECISION_PANEL)(
+    _vocab_cmd.vocab
+)
 
 # The decision snapshot (MODEL-138): a new subcommand beside `fetch` and `status`.
 from . import snapshot_build_cmd as _snapshot_build_cmd  # noqa: E402
@@ -60,7 +94,7 @@ _offline.snapshot_app.command("build", cls=_offline.ContractCommand)(_snapshot_b
 # Two-key verification (MODEL-140): re-reads queued values from their sources.
 from . import verify_cmd as _verify_cmd  # noqa: E402
 
-app.add_typer(_verify_cmd.app, name="verify")
+app.add_typer(_verify_cmd.app, name="verify", rich_help_panel=_DECISION_PANEL)
 
 console = Console()
 
@@ -344,7 +378,7 @@ def _compute_gap_info(card: Any) -> dict[str, Any]:
 # 1. modelspec info <model_id>
 # ───────────────────────────────────────────────────────────────
 
-@app.command()
+@app.command(rich_help_panel=_LEGACY_PANEL)
 def info(
     model_id: str = typer.Argument(..., help="Model ID, e.g. qwen/qwen3-30b-a3b"),
     format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: json"),
@@ -553,7 +587,7 @@ def info(
 # 2. modelspec search
 # ───────────────────────────────────────────────────────────────
 
-@app.command()
+@app.command(rich_help_panel=_LEGACY_PANEL)
 def search(
     type: Optional[str] = typer.Option(None, "--type", "-t", help="Model type, e.g. llm-chat"),
     hardware: Optional[str] = typer.Option(None, "--hardware", "-hw", help="Hardware ID filter (FITS_ON)"),
@@ -674,7 +708,7 @@ def search(
 # 3. modelspec compare <model_ids>
 # ───────────────────────────────────────────────────────────────
 
-@app.command()
+@app.command(rich_help_panel=_LEGACY_PANEL)
 def compare(
     model_ids: list[str] = typer.Argument(..., help="2-4 model IDs to compare"),
     format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: json"),
@@ -906,7 +940,7 @@ _USE_CASE_WEIGHTS: dict[str, dict[str, float]] = {
 }
 
 
-@app.command()
+@app.command(rich_help_panel=_LEGACY_PANEL)
 def rank(
     use_case: str = typer.Option(..., "--use-case", "-u", help="Use case: coding, reasoning, chat, embedding, agentic, general"),
     hardware: Optional[str] = typer.Option(None, "--hardware", "-hw", help="Restrict to models fitting this hardware"),
@@ -915,6 +949,26 @@ def rank(
     format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: json"),
 ) -> None:
     """Rank models by use case, scored on relevant benchmarks."""
+    template = {
+        "coding": "modelspec decide --template budget-coding",
+        "embedding": "modelspec decide --template retrieval-embeddings",
+    }.get(use_case.lower())
+    domain = {
+        "reasoning": "reasoning",
+        "chat": "chat_preference",
+        "agentic": "agentic_tool_use",
+        "general": "task-specific",
+    }.get(use_case.lower(), use_case.lower())
+    replacement = (
+        f"use `{template}` instead."
+        if template
+        else f"use `modelspec decide SPEC.yaml` with a `{domain}` objective instead."
+    )
+    typer.echo(
+        "deprecated: modelspec rank uses the retired fixed-benchmark ranking; "
+        + replacement,
+        err=True,
+    )
     graph = _get_graph()
 
     weights = _USE_CASE_WEIGHTS.get(use_case.lower())
@@ -1039,7 +1093,7 @@ def rank(
 # 5. modelspec stats
 # ───────────────────────────────────────────────────────────────
 
-@app.command()
+@app.command(rich_help_panel=_LEGACY_PANEL)
 def stats(
     format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: json"),
 ) -> None:
@@ -1122,7 +1176,7 @@ def stats(
 # 6. modelspec hardware <hardware_id>
 # ───────────────────────────────────────────────────────────────
 
-@app.command()
+@app.command(rich_help_panel=_LEGACY_PANEL)
 def hardware(
     hardware_id: str = typer.Argument(..., help="Hardware ID, e.g. macbook_air_m4_24gb"),
     format: Optional[str] = typer.Option(None, "--format", "-f", help="Output format: json"),
@@ -1209,7 +1263,7 @@ def hardware(
 # 7. modelspec gaps — find data gaps
 # ───────────────────────────────────────────────────────────────
 
-@app.command()
+@app.command(rich_help_panel=_LEGACY_PANEL)
 def gaps(
     type: Optional[str] = typer.Option(None, "--type", "-t", help="Filter by model_type (e.g. llm-chat, vlm)"),
     provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter by provider slug"),
@@ -1408,7 +1462,7 @@ def _apply_hf_updates(card: Any, hf_data: dict[str, Any]) -> dict[str, tuple[Any
     return changes
 
 
-@app.command()
+@app.command(rich_help_panel=_MAINTAINER_PANEL)
 def research(
     model_id: str = typer.Argument(..., help="Model ID, e.g. meta/llama-3.1-8b-instruct"),
     source: str = typer.Option("all", "--source", "-s", help="Data source: huggingface, all"),
@@ -1503,7 +1557,7 @@ def _run_cmd(cmd: list[str], check: bool = True, capture: bool = True) -> subpro
     )
 
 
-@app.command()
+@app.command(rich_help_panel=_MAINTAINER_PANEL)
 def contribute(
     message: Optional[str] = typer.Option(None, "--message", "-m", help="Commit/PR message describing your changes"),
 ) -> None:
@@ -1641,7 +1695,7 @@ def contribute(
 # 10. modelspec validate — validate all cards
 # ───────────────────────────────────────────────────────────────
 
-@app.command()
+@app.command(rich_help_panel=_MAINTAINER_PANEL)
 def validate(
     fix: bool = typer.Option(False, "--fix", help="Attempt to fix common issues"),
 ) -> None:

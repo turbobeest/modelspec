@@ -162,7 +162,10 @@ jobs:
           export PATH="$venv/bin:$PATH"
           cd "$(mktemp -d)"
           export MODELSPEC_CACHE="$PWD/cache"
-          modelspec --help
+          modelspec --help | tee modelspec-help.txt
+          decide="$(grep -n -m1 'decide' modelspec-help.txt | cut -d: -f1)"
+          rank="$(grep -n -m1 'rank' modelspec-help.txt | cut -d: -f1)"
+          test "$decide" -lt "$rank"
           modelspec decide --help
           modelspec verify --help >/dev/null
           if modelspec verify accuracy --profile pr --config /nonexistent \

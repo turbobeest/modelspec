@@ -19,6 +19,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+import typer
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from typer.testing import CliRunner
@@ -27,7 +28,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from api.ranking.engine import USE_CASE_PROFILES  # noqa: E402
-from cli.modelspec import offline, snapshot  # noqa: E402
+from cli.modelspec import cli as root_cli  # noqa: E402
+from cli.modelspec import decide_cmd, offline, snapshot, vocab_cmd  # noqa: E402
 from decision import snapshot as decision_snapshot  # noqa: E402
 from decision.snapshot import Snapshot as DecisionSnapshot  # noqa: E402
 from decision.snapshot import content_hash as decision_content_hash  # noqa: E402
@@ -552,6 +554,49 @@ def test_fetch_reports_optional_decision_files_as_unavailable(
 def test_the_envelope_is_versioned() -> None:
     assert offline.SCHEMA_VERSION
     assert offline.SCHEMA_VERSION[0].isdigit()
+
+
+def test_root_help_grouping_keeps_every_contract_stdout_byte_identical(
+    cache: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Compare the pre-grouping command seams with the grouped root CLI."""
+    _write(cache)
+    decision, vocabulary = _decision_artifacts()
+    _install_decision_pair(cache, decision, vocabulary)
+    spec = cache.parent / "contract-spec.yaml"
+    spec.write_text(
+        "spec_version: 1\n"
+        "optimize:\n  max: model.context_window\n"
+        "explain: none\n",
+        encoding="utf-8",
+    )
+    fetched = replace(
+        snapshot.load(cache),
+        decision_fetch={"available": False, "error": "not requested in this test"},
+    )
+    monkeypatch.setattr(snapshot, "fetch", lambda *args, **kwargs: fetched)
+    env = {"MODELSPEC_CACHE": str(cache)}
+    runner = CliRunner()
+
+    direct_decision = typer.Typer(cls=offline.ContractGroup)
+    direct_decision.command("vocab", cls=offline.ContractCommand)(vocab_cmd.vocab)
+    direct_decision.command("decide")(decide_cmd.decide)
+
+    cases = (
+        (offline.app, ["snapshot", "fetch", "--json"], ["snapshot", "fetch", "--json"]),
+        (offline.app, ["snapshot", "status", "--json"], ["snapshot", "status", "--json"]),
+        (direct_decision, ["vocab", "--json"], ["vocab", "--json"]),
+        (direct_decision, ["decide", str(spec), "--json"], ["decide", str(spec), "--json"]),
+        (offline.app, ["rank", "coding", "--json"], ["offline", "rank", "coding", "--json"]),
+        (offline.app, ["fit", "--json"], ["offline", "fit", "--json"]),
+        (offline.app, ["class-fit", "write code", "--json"],
+         ["offline", "class-fit", "write code", "--json"]),
+    )
+    for direct_app, direct_args, root_args in cases:
+        before = runner.invoke(direct_app, direct_args, env=env)
+        after = runner.invoke(root_cli.app, root_args, env=env)
+        assert after.exit_code == before.exit_code, root_args
+        assert after.stdout_bytes == before.stdout_bytes, root_args
 
 
 def test_snapshot_without_export_schema_version_is_read_as_the_1x_tree(cache: Path) -> None:
