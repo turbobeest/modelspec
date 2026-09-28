@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import date
+from html import unescape
 from pathlib import Path
 
 from pipeline import pricing, worker_flags
@@ -29,6 +30,10 @@ def _payload(page: str) -> dict:
     return json.loads(match.group(1))
 
 
+def _rendered_text(page: str) -> str:
+    return unescape(re.sub(r"<[^>]+>", " ", page))
+
+
 def test_pricing_page_is_built_with_assets_and_indexing_metadata(tmp_path: Path) -> None:
     result = pricing.write(tmp_path, REPO_ROOT, _build())
     page = tmp_path / "pricing" / "index.html"
@@ -39,7 +44,7 @@ def test_pricing_page_is_built_with_assets_and_indexing_metadata(tmp_path: Path)
     html = page.read_text()
     assert '<link rel="canonical" href="https://modelspec.dev/pricing/">' in html
     assert '<meta name="description"' in html
-    assert pricing.TITLE in html
+    assert pricing.FREE_TIER_TITLE in html
 
 
 def test_all_prices_credits_weights_and_x402_rate_come_from_tiers_json() -> None:
@@ -84,6 +89,30 @@ def test_checkout_forms_keep_the_worker_contract() -> None:
         posted[price_id.group(1)] = button.group(1)
     assert posted == {pid: "Subscribe" if row["kind"] == "plan" else "Buy"
                       for pid, row in expected.items()}
+
+
+def test_billing_on_keeps_the_purchase_copy_and_columns() -> None:
+    html = _page(billing_live=True)
+    assert "Buy credits for your agents" in html
+    assert "Pay by card. You get one API key and one balance" in html
+    assert html.count('role="columnheader">Purchase</th>') == 2
+    assert "Checkout is hosted by Stripe; card details never reach ModelSpec." in html
+    assert "Cancel any time." in html
+    assert "What will your agents spend?" in html
+    assert "Cheapest way to pay" in html
+
+
+def test_billing_off_presents_a_price_list_without_purchase_language() -> None:
+    html = _page(billing_live=False, access_enforced=False, x402_live=False)
+    assert "Plans and packs" in html
+    assert "What credits cost for paid access." in html
+    assert "Purchase" not in html
+    assert "What would your agents spend at these prices?" in html
+    assert "Cheapest published option" in html
+    assert ("The hosted API and MCP server answer on a free tier today; these are the "
+            "credit prices for paid access.") in html
+    assert "Hosted API and MCP answers use prepaid credits" not in html
+    assert re.search(r"\b(checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
 
 
 def test_price_changes_need_no_page_code_change() -> None:
@@ -174,11 +203,16 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert worker_flags.enabled(variables, "BILLING_ENABLED") is False
     assert worker_flags.enabled(variables, "X402_ENABLED") is False
     assert worker_flags.enabled(variables, "X402_MAINNET") is False
+    assert worker_flags.enabled(variables, "ACCESS_ENFORCED") is False
     pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text()
     assert "<form" not in html
     assert "x402" not in html.lower()
     assert "Or let your agents pay as they go" not in html
+    assert "Plans and packs" in html
+    assert "Purchase" not in html
+    assert "answer on a free tier today" in html
+    assert re.search(r"\b(checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
     assert _payload(html)["payPerCall"] is False
     assert "perCall" not in _payload(html)
     assert "coming soon" not in html.lower()
