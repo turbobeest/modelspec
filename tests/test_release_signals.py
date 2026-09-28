@@ -297,8 +297,15 @@ def test_visible_primary_source_with_another_lab_returns_uncertain_without_draft
     assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
 
 
-def test_disconnected_lab_and_model_mentions_are_flagged_for_identity_review(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"<html><body>Evil Labs compares its model with Acme Orbit 2.</body></html>",
+        b"<html><body>Evil Labs launches Acme Orbit 2.</body></html>",
+    ],
+)
+def test_ambiguous_lab_and_model_relationship_is_flagged_for_identity_review(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, body: bytes,
 ) -> None:
     _write_card(tmp_path, "acme", "orbit-1", display="Orbit 1", version="orbit-1")
     pending = tmp_path / "pending.json"
@@ -315,7 +322,7 @@ def test_disconnected_lab_and_model_mentions_are_flagged_for_identity_review(
         ),
         primary_url: FetchResult(
             url=primary_url,
-            body=b"<html><body><p>Acme.</p><p>Orbit 2.</p></body></html>",
+            body=body,
             content_type="text/html",
         ),
         hf_search: FetchResult(url=hf_search, body=b"[]", content_type="application/json"),
@@ -690,7 +697,7 @@ def test_existing_signal_gathers_sources_and_refreshes_only_its_model(
             content_type="application/json",
         ),
         primary_url: FetchResult(
-            url=primary_url, body=b"<html><body>Acme Orbit 1</body></html>",
+            url=primary_url, body=b"<html><body>Acme releases Orbit 1.</body></html>",
             content_type="text/html",
         ),
         hf_search: FetchResult(

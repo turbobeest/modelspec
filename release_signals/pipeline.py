@@ -322,7 +322,6 @@ def _primary_identity(
             )
         relationships = (
             f"{normalised_name}-by-{normalised_provider}",
-            f"{normalised_provider}-{normalised_name}",
             f"{normalised_provider}-announces-{normalised_name}",
             f"{normalised_provider}-introduces-{normalised_name}",
             f"{normalised_provider}-launches-{normalised_name}",
