@@ -124,13 +124,23 @@ class RowObservation:
     new_value: float
     source: str
     observed_date: str
+    evidence_date: str
 
     @property
     def changed(self) -> bool:
         return self.old_value != self.new_value
 
     def score_change(self) -> ScoreChange:
-        return ScoreChange(**self.__dict__)
+        return ScoreChange(
+            card=self.card,
+            model_id=self.model_id,
+            model=self.model,
+            benchmark=self.benchmark,
+            old_value=self.old_value,
+            new_value=self.new_value,
+            source=self.source,
+            observed_date=self.observed_date,
+        )
 
 
 @dataclass(frozen=True)
@@ -203,6 +213,14 @@ def _value(board: BoardReading, row: Mapping[str, Any], unit: str | None) -> flo
     if board.fraction and unit == "percent":
         number *= 100
     return float(number)
+
+
+def _evidence_date(board: BoardReading, row: Mapping[str, Any]) -> str:
+    """Use the row's measurement date, or the live board's observation date."""
+    for key in ("date", "leaderboard_publish_date", "started_at", "Started at", "release_date"):
+        if value := row.get(key):
+            return str(value).split("T", 1)[0]
+    return board.observed_at
 
 
 def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any] | None:
@@ -284,6 +302,7 @@ def _plan_observations(
             new_value=new,
             source=board.source_url,
             observed_date=board.observed_at,
+            evidence_date=_evidence_date(board, match),
         ))
     return observations, failures
 
@@ -303,7 +322,7 @@ def plan_rows(
 def _rewrite_card(path: Path, updates: list[tuple[tuple[object, ...], dict[str, Any]]]) -> None:
     wanted = dict(updates)
     text = path.read_text(encoding="utf-8")
-    fields = ("score", "observed_at", "verified_at", "id", "sources")
+    fields = ("score", "evidence_date", "observed_at", "verified_at", "id", "sources")
 
     def update(match: re.Match[str]) -> str:
         block = match.group(0).rstrip("\n")
@@ -419,6 +438,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                            and float(row["score"]) == observation.old_value)
                 new = dict(old)
                 new["score"] = observation.new_value
+                new["evidence_date"] = observation.evidence_date
                 new["observed_at"] = observed_at
                 new["verified_at"] = observed_at
                 new["sources"] = [SourceRef(

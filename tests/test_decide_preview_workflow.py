@@ -40,6 +40,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/graph/index.html': b'<link rel="canonical" href="https://modelspec.dev/graph/">graph',
         'dist/modelspec/graph/vendor/three.min.js': b'three',
         'dist/modelspec/graph/vendor/3d-force-graph.min.js': b'force graph',
+        'dist/modelspec/pricing-assets/pricing.css': b'pricing styles',
+        'dist/modelspec/pricing-assets/pricing.js': b'pricing script',
         'dist/modelspec/landing-assets/landing.css': b'landing styles',
         'dist/modelspec/landing-assets/landing.js': b'landing script',
         'dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2': b'instrument font',
@@ -80,6 +82,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert 'x-robots-tag' not in headers.lower()
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
     assert live['modelspec/legal/terms/index.html'] == b'terms'
+    assert live['modelspec/pricing/index.html'] == b'v1 pricing'
+    assert live['modelspec/pricing-assets/pricing.js'] == b'pricing script'
     assert live['modelspec/openapi.yaml'] == b'openapi'
     assert live['modelspec/.well-known/api-catalog'] == b'catalog'
     assert live['modelspec/assets/decide-abc.js'] == b'decide bundle'
@@ -89,11 +93,11 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert 'modelspec/landing/index.html' not in live
     for name in brand.FILES:
         assert live[f'modelspec/{name}'] == f'2a {name}'.encode(), name
-    for removed in ('downselect', 'models', 'm', 'pricing'):
+    for removed in ('downselect', 'models', 'm'):
         assert not (tmp_path / 'dist' / 'modelspec' / removed).exists()
 
 
-def test_live_workflow_keeps_api_legal_and_the_standalone_graph_only():
+def test_live_workflow_keeps_api_legal_graph_and_pricing():
     text = WORKFLOW.read_text(encoding='utf-8')
     assert 'cp -a dist-v1/modelspec/api dist/modelspec/api' in text
     assert 'cp -a dist-v1/modelspec/legal dist/modelspec/legal' in text
@@ -103,9 +107,12 @@ def test_live_workflow_keeps_api_legal_and_the_standalone_graph_only():
     assert 'test -s dist/modelspec/graph/index.html' in text
     assert 'test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d \' \')" = 2' in text
     assert 'test ! -e dist/modelspec/graph/vendor/README.md' in text
-    for old_path in ('downselect', 'models', 'providers', 'benchmarks', 'pricing'):
+    assert 'cp -a dist-v1/modelspec/pricing dist/modelspec/pricing' in text
+    assert 'cp -a dist-v1/modelspec/pricing-assets dist/modelspec/pricing-assets' in text
+    for old_path in ('downselect', 'models', 'providers', 'benchmarks'):
         assert f'test -s dist/modelspec/{old_path}' not in text
         assert f'test ! -e dist/modelspec/{old_path}' in text
+    assert 'test -s dist/modelspec/pricing/index.html' in text
 
 
 def test_live_build_checks_canonical_and_indexability():
@@ -113,6 +120,8 @@ def test_live_build_checks_canonical_and_indexability():
                   if step.get('name') == 'Check the pages we promise actually exist')
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/\"'" in checks
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/decide/\"'" in checks
+    assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/graph/\"'" in checks
+    assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/pricing/\"'" in checks
     assert "! grep -Eiq '<meta[^>]+noindex'" in checks
     assert "! grep -Fiq 'X-Robots-Tag'" in checks
 

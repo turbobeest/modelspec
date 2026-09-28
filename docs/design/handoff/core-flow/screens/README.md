@@ -42,11 +42,10 @@ serve the original handoff directory, which contains `support.js`:
 python3 -m http.server 4174 --bind 127.0.0.1 --directory "$HANDOFF_DIR"
 ```
 
-Then run `node scripts/capture-decide.mjs` from `web/`. The script captures the
-app on port 5173 and the prototype on port 4174. It pauses the browser clock
-for the 420 ms parse-loading capture and resumes it afterwards. The screenshot
-browser enables the prototype's loading/error props through a local response
-rewrite, without changing the committed reference files.
+This matrix is historical. The capture script used to produce it has been
+removed. Current browser coverage runs through `web/scripts/landing-browser.mjs`
+from `tests/test_landing.py`; it exercises the assembled `/decide/` page but
+does not regenerate this comparison matrix.
 
 `manifest.json` records each capture. The implementation notes record the
 intentional accessibility and contract differences. No reference screenshot

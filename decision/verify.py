@@ -924,6 +924,7 @@ class StructuredDataExtractor:
         "retrieval": "fraction",
         "reranking": "fraction",
         "accuracy": "percent",
+        "pass at 1": "percent",
         "resolve rate": "percent",
     }
 
@@ -982,7 +983,7 @@ class StructuredDataExtractor:
             ) if normal.get(key)), None)
             if date_ is not None:
                 date_ = str(date_).split("T", 1)[0]
-            harness = "unregistered" if normal.get("agent") else None
+            harness = "unregistered" if normal.get("agent") or normal.get("harness") else None
             reading_value: JsonValue = str(value) if value is not None else None
             if composite:
                 lower = normal.get("rating lower")

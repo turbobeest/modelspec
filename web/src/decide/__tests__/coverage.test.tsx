@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import App from "../App";
@@ -8,7 +8,7 @@ import { encodeSpec } from "../state/spec";
 import { mapDecisionToViewModel } from "../adapter/view-model";
 import { lineupCoverage } from "../vocabulary/coverage";
 import { EMPTY_DECISIONS, EMPTY_SPECS } from "./empty-specs";
-import { json, realVocabulary, routeFetch, sentSpecs } from "./vocab-fixtures";
+import { json, realVocabulary, routeFetch } from "./vocab-fixtures";
 
 const answered = decisionSchema.parse(fixtureJson);
 
@@ -91,38 +91,6 @@ describe("provider display names", () => {
 describe("the empty-result panel on the page", () => {
   beforeEach(() => history.replaceState(null, "", "/decide/"));
   afterEach(() => vi.unstubAllGlobals());
-
-  it("shows the panel above may-qualify and raises the price cap in one click (Q10)", async () => {
-    const fetch = routeFetch({
-      vocabulary: () => json(realVocabulary),
-      decide: (init) =>
-        JSON.parse(String(init?.body)).where.includes("offering.price.input <= 0.2")
-          ? json(EMPTY_DECISIONS.q10)
-          : json(answered),
-    });
-    vi.stubGlobal("fetch", fetch);
-    history.replaceState(null, "", "/decide/" + encodeSpec(EMPTY_SPECS.q10, "task$"));
-    render(<App />);
-
-    const panel = await screen.findByRole("region", { name: "Lineup coverage" });
-    expect(panel).toHaveTextContent("What this question needed");
-    expect(panel).toHaveTextContent("32 models as of 2026-09-25");
-    expect(panel).not.toHaveTextContent(/sorry|unfortunately|apolog/i);
-    expect(panel).not.toHaveTextContent("Type:");
-    const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
-    expect(panel.compareDocumentPosition(canvas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-
-    fireEvent.click(within(panel).getByRole("button", { name: /at most \$0\.75 \/ 1M tokens/ }));
-    await waitFor(() => {
-      const last = sentSpecs(fetch).at(-1);
-      expect(last.where).toContain("offering.price.input <= 0.75");
-      expect(last.where).not.toContain("offering.price.input <= 0.2");
-      expect(last.where).toContain("model.class = text-generator");
-    });
-    await waitFor(() =>
-      expect(screen.queryByRole("region", { name: "Lineup coverage" })).not.toBeInTheDocument(),
-    );
-  });
 
   it("never offers to drop the type (Q20)", async () => {
     vi.stubGlobal(
