@@ -25,7 +25,13 @@ from pipeline.load import load_models
 
 SOFTWARE_ENGINEERING = "software_engineering"
 MONTHLY_TASKS = 10_000
-PACKAGE_PUBLISHED = False
+PACKAGE_PUBLISHED = True  # modelspec-dev 0.1.0 on PyPI, 2026-09-27
+# First run, in order: `vocab` and `decide` need the cached snapshot.
+FIRST_RUN = (
+    "pipx install modelspec-dev",
+    "modelspec snapshot fetch",
+    "modelspec decide --template budget-coding",
+)
 ASSET_DIR = "landing-assets"
 DATA_ID = "landing-data"
 
@@ -288,7 +294,9 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
              else '<span class="board-status">Board opening soon</span>')
     board_compact = ('<a class="button primary" href="/">Open the board</a>'
                      if variant == "live" else '<span class="board-status">Board opening soon</span>')
-    install = ('<code class="install">pipx install modelspec-dev</code>' if package_published else
+    install = ('<pre class="install" aria-label="First run">'
+               + "\n".join(f'<code>{line}</code>' for line in FIRST_RUN) + '</pre>'
+               if package_published else
                '<p class="release-note">CLI, API and MCP. Install instructions arrive with the public release.</p>')
     guide_href = "#agents"
     canonical = ('<link rel="canonical" href="https://modelspec.dev/">\n'

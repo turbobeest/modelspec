@@ -125,10 +125,16 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert 'content="noindex"' not in holding
     assert "Board opening soon" in holding
     assert 'href="/">Open the board</a>' not in holding
-    assert "pipx install modelspec-dev" not in live
-    assert "pipx install modelspec-dev" not in holding
     release = "CLI, API and MCP. Install instructions arrive with the public release."
-    assert release in live and release in holding
+    for page in (live, holding):
+        # First run in order: vocab and decide need the snapshot first.
+        steps = [page.index(f"<code>{line}</code>") for line in landing.FIRST_RUN]
+        assert steps == sorted(steps)
+        assert landing.FIRST_RUN[1] == "modelspec snapshot fetch"
+        assert release not in page
+    unpublished = landing.render(data, variant="holding", package_published=False)
+    assert "pipx install" not in unpublished
+    assert release in unpublished
     assert "Every number is one click from its source." in live
     assert "Every number has a source." not in live
     assert "Every number has a source." in holding
