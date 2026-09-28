@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -127,9 +128,16 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     holding = directory / "holding.html"
     live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
     holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+    assembled = directory / "assembled"
+    (assembled / "decide").mkdir(parents=True)
+    shutil.copyfile(
+        ROOT / "web" / "dist" / "decide.html",
+        assembled / "decide" / "index.html",
+    )
+    shutil.copytree(ROOT / "web" / "dist" / "assets", assembled / "assets")
     try:
         completed = subprocess.run(
-            ["node", str(browser_script), str(live), str(holding)],
+            ["node", str(browser_script), str(live), str(holding), str(assembled)],
             cwd=ROOT,
             check=True,
             capture_output=True,
@@ -153,7 +161,10 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
 
 @pytest.mark.parametrize(
     "check",
-    ["altered_data", "challenge", "motion", "responsive", "holding", "forwarding"],
+    [
+        "altered_data", "challenge", "motion", "responsive", "holding",
+        "forwarding", "assembled_decide", "forwarded_state_ranks",
+    ],
 )
 def test_landing_behaviour_in_browser(
     landing_browser_results: dict[str, bool], check: str,

@@ -94,6 +94,9 @@ def test_the_manifest_names_the_192_and_512_icons(tmp_path):
     brand.write_icons(tmp_path)
     manifest = json.loads((tmp_path / "site.webmanifest").read_text(encoding="utf-8"))
     assert manifest["name"] == "ModelSpec"
+    assert manifest["id"] == "/"
+    assert manifest["start_url"] == "/decide/"
+    assert manifest["scope"] == "/"
     assert manifest["theme_color"] == "#0B1426"
     icons = {icon["src"]: icon for icon in manifest["icons"]}
     assert icons["/icon-192.png"]["sizes"] == "192x192"
