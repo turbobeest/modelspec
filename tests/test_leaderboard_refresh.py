@@ -76,6 +76,39 @@ def test_arena_coverage_includes_the_webdev_dataset_config() -> None:
     assert refresh.ARENA_REVISION in refresh.readers.ARENA_URL
 
 
+def test_arena_coverage_includes_refinement_slices() -> None:
+    expected = {
+        "arena_sc_english": ("text_style_control", "english"),
+        "arena_sc_chinese": ("text_style_control", "chinese"),
+        "arena_sc_japanese": ("text_style_control", "japanese"),
+        "arena_sc_korean": ("text_style_control", "korean"),
+        "arena_sc_russian": ("text_style_control", "russian"),
+        "arena_sc_spanish": ("text_style_control", "spanish"),
+        "arena_sc_german": ("text_style_control", "german"),
+        "arena_sc_french": ("text_style_control", "french"),
+        "arena_sc_polish": ("text_style_control", "polish"),
+        "arena_sc_vision_ocr": ("vision_style_control", "ocr"),
+        "arena_sc_vision_diagram": ("vision_style_control", "diagram"),
+        "arena_sc_vision_homework": ("vision_style_control", "homework"),
+        "arena_sc_document": ("document", "overall"),
+        "arena_sc_industry_software_it_services": (
+            "text_style_control",
+            "industry_software_and_it_services",
+        ),
+        "arena_sc_industry_entertainment_sports_media": (
+            "text_style_control",
+            "industry_entertainment_and_sports_and_media",
+        ),
+        "arena_sc_industry_mathematical": (
+            "text_style_control",
+            "industry_mathematical",
+        ),
+        "arena_sc_factuality": ("text_factuality", "overall"),
+    }
+
+    assert expected.items() <= refresh.ARENA_BOARDS.items()
+
+
 def test_score_only_check_refuses_a_card_creating_diff(tmp_path: Path) -> None:
     before = tmp_path / "before"
     after = tmp_path / "after"

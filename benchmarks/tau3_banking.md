@@ -95,6 +95,7 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: agentic_tool_use, directness: direct}
+  - {id: finance, directness: proxy}
 ---
 
 ## What it measures

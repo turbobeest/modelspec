@@ -711,6 +711,15 @@ benchmarks:
     configuration: Launch-page Academic table, Astra column only. Competitor
       columns were not taken.
     limitations: ''
+    id: openai/gpt-6-astra#terminal_bench_science#93e5f8d4a64b
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-191-openai-gpt-6-astra
+      snapshot_ref: sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7
+      cited_regions:
+      - evidence
   - benchmark_id: browsecomp
     model_id_as_evaluated: GPT-6 Astra
     score: 91.5
@@ -724,6 +733,15 @@ benchmarks:
     configuration: Launch-page Professional table, Astra column only. Competitor
       columns were not taken.
     limitations: ''
+    id: openai/gpt-6-astra#browsecomp#94cdf470d3b1
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-191-openai-gpt-6-astra
+      snapshot_ref: sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7
+      cited_regions:
+      - evidence
   - benchmark_id: hle_tools
     model_id_as_evaluated: GPT-6 Astra
     score: 57.2
@@ -737,6 +755,15 @@ benchmarks:
     configuration: Launch-page Academic table. Attached to hle_tools, not hle.
       Competitor columns were not taken.
     limitations: ''
+    id: openai/gpt-6-astra#hle_tools#805138af131f
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-191-openai-gpt-6-astra
+      snapshot_ref: sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7
+      cited_regions:
+      - evidence
   - benchmark_id: arc_agi_2
     model_id_as_evaluated: GPT-6 Astra
     score: 95.0
@@ -750,6 +777,15 @@ benchmarks:
     configuration: Launch-page Abstract reasoning table, Astra column only. ARC-AGI-3
       99.9% is not attached; we have no arc_agi_3 page.
     limitations: ''
+    id: openai/gpt-6-astra#arc_agi_2#5f8ae5a4b380
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-191-openai-gpt-6-astra
+      snapshot_ref: sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7
+      cited_regions:
+      - evidence
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: gpt-6-astra-max
     score: 1443.72
@@ -1393,6 +1429,192 @@ benchmarks:
       snapshot_ref: sha256:c7e558ff927cc7aae1ec9d39ba22de7b5db667674ea408c772002222c11818bd
       cited_regions:
       - rows
+  - benchmark_id: arena_sc_english
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1496.29
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1496.29 [1478.70,
+      1513.89], 1139 votes, rank 10. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      cited_regions:
+      - rows
+    id: openai/gpt-6-astra#arena_sc_english#420d74b2af6f
+  - benchmark_id: arena_sc_russian
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1446.5
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1446.50 [1412.90,
+      1480.11], 329 votes, rank 74. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      cited_regions:
+      - rows
+    id: openai/gpt-6-astra#arena_sc_russian#ac1014010c56
+  - benchmark_id: arena_sc_vision_ocr
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1299.13
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / ocr, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1299.13 [1278.50,
+      1319.75], 894 votes, rank 16. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1370bca68e20f410db1d74c3c5cc4deade992317d0334c3516f50b66938da114
+      cited_regions:
+      - rows
+    id: openai/gpt-6-astra#arena_sc_vision_ocr#c5826833ae79
+  - benchmark_id: arena_sc_vision_diagram
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1318.0
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / diagram, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1318.00 [1284.13,
+      1351.86], 324 votes, rank 12. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:947bbb0cc1b11be394d53298f60b967420a1837ea2cccf9a2972bc6bd013c6bb
+      cited_regions:
+      - rows
+    id: openai/gpt-6-astra#arena_sc_vision_diagram#0f4a3ff625cb
+  - benchmark_id: arena_sc_document
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1467.52
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: document / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.52 [1453.26,
+      1481.79], 1621 votes, rank 16. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-document
+      snapshot_ref: sha256:ca71d77b360678771f5300146465c8e6298970b38f4dac38a224686a0af59f4d
+      cited_regions:
+      - rows
+    id: openai/gpt-6-astra#arena_sc_document#92aad4004cce
+  - benchmark_id: arena_sc_industry_software_it_services
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1518.11
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
+      1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1518.11 [1499.46,
+      1536.75], 1004 votes, rank 15. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      cited_regions:
+      - rows
+    id: openai/gpt-6-astra#arena_sc_industry_software_it_services#a1509fd86656
+  - benchmark_id: arena_sc_industry_entertainment_sports_media
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1469.47
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
+      split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1469.47 [1446.04,
+      1492.89], 686 votes, rank 9. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      cited_regions:
+      - rows
+    id: openai/gpt-6-astra#arena_sc_industry_entertainment_sports_media#6f827c75b462
+  - benchmark_id: arena_sc_factuality
+    model_id_as_evaluated: gpt-6-astra-max
+    score: 1465.76
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1465.76 [1455.66,
+      1475.86], 2585 votes, rank 33. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-factuality
+      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      cited_regions:
+      - rows
+    id: openai/gpt-6-astra#arena_sc_factuality#baad24620635
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
