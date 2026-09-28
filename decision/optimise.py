@@ -81,6 +81,7 @@ class DimensionContribution:
     estimate: CapabilityEstimateValue | None = None
     preference_status: Literal["satisfied", "not_satisfied", "unknown"] | None = None
     preferred_value: bool | int | float | date | str | None = None
+    interval: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -91,6 +92,7 @@ class OptimisedResult:
     soft_penalty: float
     penalties: tuple[tuple[str, float], ...]
     warnings: tuple[str, ...] = ()
+    score_interval: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -131,6 +133,30 @@ def _number(value: object) -> float | None:
     if isinstance(value, bool) or not isinstance(value, int | float):
         return None
     return float(value) if isfinite(value) else None
+
+
+def _normalise(value: float, normalisation: Normalisation) -> float:
+    low, high = normalisation.minimum, normalisation.maximum
+    assert low is not None and high is not None
+    if high == low:
+        return 0.0
+    scaled = (value - low) / (high - low)
+    return 1 - scaled if normalisation.direction == "min" else scaled
+
+
+def _raw_interval(
+    value: float,
+    evidence: tuple[EvidenceValue, ...],
+    estimate: CapabilityEstimateValue | None,
+) -> tuple[float, float]:
+    if estimate is not None:
+        return estimate.low, estimate.high
+    if (
+        len(evidence) == 1
+        and evidence[0].interval is not None
+    ):
+        return evidence[0].interval
+    return value, value
 
 
 def _dimensions(
@@ -287,10 +313,11 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                     raw_value = None
                     status = "unknown"
                     sources = ()
+                pref_value = 0.0 if status == "unknown" else raw_value
                 contributions[cid].append(DimensionContribution(
                     signed,
                     raw_value,
-                    0.0 if status == "unknown" else raw_value,
+                    pref_value,
                     weight,
                     norm,
                     sources,
@@ -298,6 +325,7 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                     None,
                     status,
                     preference.prefer,
+                    (pref_value, pref_value),
                 ))
             continue
         readings = {
@@ -309,13 +337,24 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
         norm = Normalisation(low, high, "min" if signed.startswith("-") else "max")
         for cid, value in raw.items():
             normalised = None
+            interval = None
             if value is not None:
-                normalised = 0.0 if high == low else (value - low) / (high - low)
-                if norm.direction == "min" and high != low:
-                    normalised = 1 - normalised
+                normalised = _normalise(value, norm)
+                raw_low, raw_high = _raw_interval(
+                    value,
+                    readings[cid][2],
+                    readings[cid][3],
+                )
+                transformed = sorted((
+                    _normalise(raw_low, norm),
+                    _normalise(raw_high, norm),
+                ))
+                # Do not clamp. Values beyond the feasible point-estimate range
+                # carry uncertainty needed by the leader-overlap test.
+                interval = transformed[0], transformed[1]
             contributions[cid].append(DimensionContribution(
                 signed, value, normalised, weight, norm, readings[cid][1], readings[cid][2],
-                readings[cid][3]))
+                readings[cid][3], interval=interval))
     complete, missing = [], []
     for cid in cids:
         parts = tuple(sorted((penalties or {}).get(cid, {}).items()))
@@ -331,8 +370,14 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
             (("missing_objective_value",) if unknown else ())
             + (("unknown_preference_value",) if preference_unknown else ())
         )
+        score_interval = None
+        if scalar and not unknown:
+            score_interval = (
+                sum(c.interval[0] * c.weight for c in values) - penalty,
+                sum(c.interval[1] * c.weight for c in values) - penalty,
+            )
         row = OptimisedResult(cid, tuple(values), score if scalar else None, penalty, parts,
-                              warnings)
+                              warnings, score_interval)
         (missing if unknown else complete).append(row)
     missing_ids = tuple(row.candidate_id for row in missing)
     unknown = {row.candidate_id: tuple(c.dimension.removeprefix("-")

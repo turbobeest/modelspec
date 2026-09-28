@@ -192,6 +192,8 @@ def _raw_value(decision: Decision, rank: int) -> tuple[str, float | None, str | 
 
 
 def _top_is_tied(decision: Decision) -> bool:
+    if decision.answer is not None:
+        return decision.answer.kind == "tied"
     if len(decision.results) < 2:
         return False
     first_result, second_result = decision.results[:2]

@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.0"
+    assert c.CONTRACT_VERSION == "2.1"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -631,6 +631,40 @@ DECISION = {
 }
 
 
+def test_answer_variants_make_a_tied_leader_unrepresentable() -> None:
+    tie_breakers = {
+        "cheapest": "openai/gpt-6-sol",
+        "open_weights": None,
+        "most_independently_measured": "anthropic/claude-opus-5-5",
+        "fastest": None,
+    }
+    tied = c.TiedAnswer(
+        kind="tied",
+        members=["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
+        basis="leader-overlap score or requested-capability intervals; capability interval level 80%",
+        tie_breakers=tie_breakers,
+        deterministic_order=["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
+    )
+    separated = c.SeparatedAnswer(
+        kind="separated",
+        members=["anthropic/claude-opus-5-5"],
+        leader="anthropic/claude-opus-5-5",
+        basis="leader-overlap score or requested-capability intervals; capability interval level 80%",
+        tie_breakers={key: None for key in tie_breakers},
+        deterministic_order=["anthropic/claude-opus-5-5"],
+    )
+
+    assert c.Decision.model_validate(DECISION | {"answer": tied}).answer == tied
+    assert c.Decision.model_validate(DECISION | {"answer": separated}).answer == separated
+    with pytest.raises(ValueError):
+        c.Decision.model_validate(
+            DECISION
+            | {
+                "answer": tied.model_dump() | {"leader": "anthropic/claude-opus-5-5"}
+            }
+        )
+
+
 def test_decision_round_trips() -> None:
     decision = c.Decision.model_validate(DECISION)
     dumped = decision.model_dump(mode="json", by_alias=True)
@@ -680,6 +714,22 @@ def _samples() -> list:
     spec = _spec()
     decision = c.Decision.model_validate(DECISION)
     result = decision.results[0]
+    tie_breakers = c.TieBreakers()
+    separated_answer = c.SeparatedAnswer(
+        kind="separated",
+        members=[result.offering.model],
+        leader=result.offering.model,
+        basis="leader-overlap score or requested-capability intervals; capability interval level 80%",
+        tie_breakers=tie_breakers,
+        deterministic_order=[result.offering.model],
+    )
+    tied_answer = c.TiedAnswer(
+        kind="tied",
+        members=[result.offering.model, "openai/gpt-6-sol"],
+        basis="leader-overlap score or requested-capability intervals; capability interval level 80%",
+        tie_breakers=tie_breakers,
+        deterministic_order=[result.offering.model, "openai/gpt-6-sol"],
+    )
     return [
         spec,
         spec.optimize,
@@ -701,6 +751,9 @@ def _samples() -> list:
         c.LocalModel(model="qwen/qwen3-8-27b", hardware=c.Hardware(class_="dgx", count=1)),
         c.Budget(max_cost_per_task_usd=2.0),
         decision,
+        tie_breakers,
+        separated_answer,
+        tied_answer,
         result,
         result.offering,
         result.evidence[0],

@@ -102,6 +102,37 @@ const resultSchema = z
   })
   .strict();
 
+const tieBreakersSchema = z
+  .object({
+    cheapest: modelId.nullable(),
+    open_weights: modelId.nullable(),
+    most_independently_measured: modelId.nullable(),
+    fastest: modelId.nullable(),
+  })
+  .strict();
+
+const answerSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("separated"),
+      members: z.array(modelId).length(1),
+      leader: modelId,
+      basis: z.string(),
+      tie_breakers: tieBreakersSchema,
+      deterministic_order: z.array(modelId).length(1),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("tied"),
+      members: z.array(modelId).min(2),
+      basis: z.string(),
+      tie_breakers: tieBreakersSchema,
+      deterministic_order: z.array(modelId).min(2),
+    })
+    .strict(),
+]);
+
 export const decisionSchema = z
   .object({
     near_misses: z
@@ -216,6 +247,7 @@ export const decisionSchema = z
       "1.11",
       "1.12",
       "2.0",
+      "2.1",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -223,6 +255,9 @@ export const decisionSchema = z
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     explain: z.enum(["none", "summary", "full"]),
     status: z.enum(["answered", "partial", "no_feasible"]),
+    // Older saved decisions predate 2.1. New responses always send the block,
+    // while the adapter keeps those local fixtures readable.
+    answer: answerSchema.nullable().optional(),
     results: z.array(resultSchema),
     may_qualify: z.array(
       z

@@ -53,8 +53,10 @@ it.each([
   void not_plotted;
   void available_axes;
   void population;
-  const legacyContract = {
+  const currentContract = {
     ...contract,
+    contract_version: "1.12",
+    answer: null,
     constraint_costs: contract.constraint_costs.map((cost) => ({
       condition: cost.condition,
       admits: cost.admits,
@@ -69,7 +71,7 @@ it.each([
       })),
     },
   };
-  expect(validate(legacyContract), JSON.stringify(validate.errors, null, 2)).toBe(
+  expect(validate(currentContract), JSON.stringify(validate.errors, null, 2)).toBe(
     true,
   );
 });

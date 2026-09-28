@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable, Mapping
 from dataclasses import replace
+from math import inf, isfinite, sqrt
 
 from decision.computed import with_computed
 from decision.contract import (
@@ -17,13 +18,16 @@ from decision.contract import (
     MayQualify,
     OfferingRef,
     Result,
+    SeparatedAnswer,
     Spec,
     SpecError,
+    TieBreakers,
+    TiedAnswer,
     Truncated,
     spec_hash,
 )
 from decision.filter import FilterResult, apply
-from decision.optimise import EvidenceSelector, optimise
+from decision.optimise import EvidenceSelector, OptimisedResult, optimise
 from decision.relax import fewest, smallest_changes
 from decision.resolve import Resolved, resolve
 from decision.snapshot import ExplanationIndex
@@ -155,6 +159,246 @@ def _overlaps_raw_evidence(row, others, snapshot) -> bool:
     return False
 
 
+_ANSWER_BASIS = (
+    "leader-overlap score or requested-capability intervals; capability interval level 80%"
+)
+_INDEPENDENT_MEASURERS = frozenset({
+    "benchmark_author",
+    "independent",
+    "independent_evaluator",
+    "modelspec",
+    "outcome_protocol",
+})
+
+
+def _known_number(snapshot, cid: str, facet: str) -> float | None:
+    value = snapshot.fact(cid, facet)
+    if (
+        value.state != "known"
+        or isinstance(value.value, bool)
+        or not isinstance(value.value, int | float)
+        or not isfinite(value.value)
+    ):
+        return None
+    return float(value.value)
+
+
+def _candidate_cost(snapshot, cid: str) -> float | None:
+    return _known_number(snapshot, cid, "offering.cost_per_task")
+
+
+def _representative_rows(
+    rows: tuple[OptimisedResult, ...], snapshot
+) -> list[OptimisedResult]:
+    """One best offering per model, ordered by point score, cost, then model ID."""
+    by_model: dict[str, list[OptimisedResult]] = {}
+    for row in rows:
+        if row.score is not None:
+            by_model.setdefault(snapshot.model_of(row.candidate_id), []).append(row)
+
+    representatives = []
+    for model_id, choices in by_model.items():
+        representatives.append(min(
+            choices,
+            key=lambda row: (
+                -row.score,
+                _candidate_cost(snapshot, row.candidate_id)
+                if _candidate_cost(snapshot, row.candidate_id) is not None
+                else inf,
+                row.candidate_id,
+            ),
+        ))
+    return sorted(
+        representatives,
+        key=lambda row: (
+            -row.score,
+            _candidate_cost(snapshot, row.candidate_id)
+            if _candidate_cost(snapshot, row.candidate_id) is not None
+            else inf,
+            snapshot.model_of(row.candidate_id),
+        ),
+    )
+
+
+def _unique_extreme(values: Mapping[str, float | None], *, highest: bool) -> str | None:
+    known = {model_id: value for model_id, value in values.items() if value is not None}
+    if not known:
+        return None
+    extreme = (max if highest else min)(known.values())
+    winners = sorted(model_id for model_id, value in known.items() if value == extreme)
+    return winners[0] if len(winners) == 1 else None
+
+
+def _independent_measurements(snapshot, model_id: str) -> int:
+    records = set()
+    for benchmark_id in snapshot.benchmark_ids():
+        for row in snapshot.evidence(
+            model_id, benchmark_id, measured_by=set(_INDEPENDENT_MEASURERS)
+        ):
+            if row.verified and not row.quality_flags:
+                records.add(row.record_id or (
+                    row.benchmark_id,
+                    row.version,
+                    row.subcategory,
+                    row.value,
+                    row.effort,
+                    row.harness,
+                ))
+    return len(records)
+
+
+def _tie_breakers(rows: list[OptimisedResult], snapshot) -> TieBreakers:
+    by_model = {snapshot.model_of(row.candidate_id): row for row in rows}
+    costs = {
+        model_id: _candidate_cost(snapshot, row.candidate_id)
+        for model_id, row in by_model.items()
+    }
+    speeds = {
+        model_id: _known_number(snapshot, row.candidate_id, "offering.speed.throughput")
+        for model_id, row in by_model.items()
+    }
+    open_models = sorted(
+        model_id
+        for model_id in by_model
+        if snapshot.fact(model_id, "model.weights_openness").value == "open_weights"
+    )
+    measurements = {
+        model_id: float(_independent_measurements(snapshot, model_id))
+        for model_id in by_model
+    }
+    return TieBreakers(
+        cheapest=_unique_extreme(costs, highest=False),
+        open_weights=open_models[0] if len(open_models) == 1 else None,
+        most_independently_measured=_unique_extreme(measurements, highest=True),
+        fastest=_unique_extreme(speeds, highest=True),
+    )
+
+
+def _selected_evidence_is_comparable(
+    leader: OptimisedResult, other: OptimisedResult
+) -> bool:
+    compared = {item.dimension: item for item in other.contributions}
+    for contribution in leader.contributions:
+        counterpart = compared.get(contribution.dimension)
+        if counterpart is None:
+            return False
+        if contribution.estimate is not None or counterpart.estimate is not None:
+            if contribution.estimate is None or counterpart.estimate is None:
+                return False
+            continue
+        if len(contribution.evidence) != 1 or len(counterpart.evidence) != 1:
+            continue
+        evidence = contribution.evidence[0]
+        other_evidence = counterpart.evidence[0]
+        if evidence.interval is None and other_evidence.interval is None:
+            continue
+        identity = (
+            evidence.benchmark_id,
+            evidence.version,
+            evidence.unit,
+            evidence.subcategory,
+            evidence.effort,
+            evidence.harness,
+        )
+        other_identity = (
+            other_evidence.benchmark_id,
+            other_evidence.version,
+            other_evidence.unit,
+            other_evidence.subcategory,
+            other_evidence.effort,
+            other_evidence.harness,
+        )
+        if identity != other_identity:
+            return False
+    return True
+
+
+def _capability_overlaps(
+    leader: OptimisedResult,
+    other: OptimisedResult,
+    snapshot,
+    domains: frozenset[str],
+) -> bool:
+    for domain in domains:
+        first = snapshot.capability_estimate(leader.candidate_id, domain)
+        second = snapshot.capability_estimate(other.candidate_id, domain)
+        if first is not None and second is not None and max(first.low, second.low) <= min(
+            first.high, second.high
+        ):
+            return True
+    return False
+
+
+def _answer(rows: list[OptimisedResult], snapshot, shown_domains: frozenset[str]):
+    if not rows or rows[0].score_interval is None:
+        return None
+    leader = rows[0]
+    leader_low, leader_high = leader.score_interval
+    capability_is_in_objective = any(
+        contribution.estimate is not None for contribution in leader.contributions
+    )
+    members = [
+        row
+        for row in rows
+        if row.score_interval is not None
+        and (
+            (
+                _selected_evidence_is_comparable(leader, row)
+                and max(leader_low, row.score_interval[0])
+                <= min(leader_high, row.score_interval[1])
+            )
+            or (
+                not capability_is_in_objective
+                and _capability_overlaps(leader, row, snapshot, shown_domains)
+            )
+        )
+    ]
+    model_ids = [snapshot.model_of(row.candidate_id) for row in members]
+    if len(members) == 1:
+        return SeparatedAnswer(
+            kind="separated",
+            members=model_ids,
+            leader=model_ids[0],
+            basis=_ANSWER_BASIS,
+            tie_breakers=TieBreakers(),
+            deterministic_order=model_ids,
+        )
+    return TiedAnswer(
+        kind="tied",
+        members=model_ids,
+        basis=_ANSWER_BASIS,
+        tie_breakers=_tie_breakers(members, snapshot),
+        deterministic_order=model_ids,
+    )
+
+
+def _score_distribution(row: OptimisedResult):
+    """The weighted score posterior, with exact facets contributing zero variance."""
+    if row.score is None or row.score_interval is None:
+        return None
+    variance = 0.0
+    has_capability = False
+    for contribution in row.contributions:
+        estimate = contribution.estimate
+        normalisation = contribution.normalisation
+        if estimate is None:
+            continue
+        has_capability = True
+        low, high = normalisation.minimum, normalisation.maximum
+        if low is not None and high is not None and high != low:
+            variance += (contribution.weight * estimate.sd / (high - low)) ** 2
+    if not has_capability:
+        return None
+    from decision.capability import CapabilityEstimate
+
+    return CapabilityEstimate(
+        row.score,
+        row.score_interval[0],
+        row.score_interval[1],
+        sqrt(variance),
+    )
+
+
 def decide(
     spec: Spec,
     snapshot: ExplanationIndex,
@@ -217,20 +461,18 @@ def decide(
     )
     probabilities = {}
     model_estimates = {}
-    if probability_domain is not None:
-        from decision.capability import CapabilityEstimate, deterministic_probabilities
+    representative_rows = _representative_rows(ordered.results, snapshot)
+    answer = _answer(representative_rows, snapshot, frozenset(shown_domains))
+    if spec.optimize.lexicographic is None and spec.optimize.pareto is None:
+        from decision.capability import deterministic_probabilities
 
-        for row in ordered.results:
-            model_id = snapshot.model_of(row.candidate_id)
-            stored = snapshot.capability_estimate(row.candidate_id, probability_domain)
-            if stored is not None:
-                model_estimates.setdefault(
-                    model_id,
-                    CapabilityEstimate(stored.value, stored.low, stored.high, stored.sd),
-                )
+        for row in representative_rows:
+            distribution = _score_distribution(row)
+            if distribution is not None:
+                model_estimates[snapshot.model_of(row.candidate_id)] = distribution
         probabilities = deterministic_probabilities(
             model_estimates,
-            seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain}",
+            seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain or 'weighted'}",
         )
 
     returned_rows = ordered.results[: spec.limit]
@@ -275,6 +517,13 @@ def decide(
             and "not_separable" not in warnings
         ):
             warnings.append("not_separable")
+        if (
+            answer is not None
+            and answer.kind == "tied"
+            and model_id in answer.members
+            and "not_separable" not in warnings
+        ):
+            warnings.append("not_separable")
         p_best, top3 = probabilities.get(model_id, (None, None))
         results.append(Result(
             rank=i + 1,
@@ -303,6 +552,7 @@ def decide(
         status="partial"
         if ordered.status == "answered" and filtered.may_qualify
         else ordered.status,
+        answer=answer,
         results=results,
         relax=relax,
         relax_to=relax_to,

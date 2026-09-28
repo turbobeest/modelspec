@@ -27,7 +27,7 @@ from decision.snapshot import (
     load_premier,
     load_snapshot_bytes,
 )
-from tests.snapshot_records import SOURCES, evidence, model, offering
+from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 AS_OF = date(2026, 9, 25)
 
@@ -707,6 +707,174 @@ def test_overlapping_intervals_are_reported_as_not_separable() -> None:
         if "not_separable" in result.warnings
     ]
     assert len(groups) >= 2
+
+
+def test_weight_one_answer_matches_the_single_capability_objective() -> None:
+    index = snapshot()
+
+    def answer_for(optimize):
+        decision = decide(
+            parse_spec(
+                {
+                    "spec_version": 1,
+                    "optimize": optimize,
+                    "explain": "none",
+                    "limit": 10,
+                },
+                facets=default_registry().facet,
+            ),
+            index,
+            facets=default_registry().facet,
+        )
+        not_separable = {
+            result.offering.model
+            for result in decision.results
+            if "not_separable" in result.warnings
+        }
+        return decision.answer, not_separable
+
+    single = answer_for({"max": "software_engineering"})
+    weighted = answer_for({"weights": {"software_engineering": 1.0}})
+
+    assert weighted == single
+
+
+def test_weighted_capability_objective_reports_p_best() -> None:
+    index = snapshot()
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {
+                "weights": {
+                    "software_engineering": 0.75,
+                    "model.context_window": 0.25,
+                }
+            },
+            "explain": "none",
+            "limit": 10,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert all(result.p_best is not None for result in decision.results)
+    by_model = {result.offering.model: result.p_best for result in decision.results}
+    assert sum(value for value in by_model.values() if value is not None) == pytest.approx(1)
+
+
+def test_tied_answer_compares_models_to_the_leader_without_following_chains() -> None:
+    def sold(mid: str, provider: str, price: float, speed: float):
+        oid = f"{provider}/{mid}/global/standard"
+        return offering(mid, provider, facts=[
+            fact("offering", oid, "offering.price.input", price, source="src-pricing"),
+            fact("offering", oid, "offering.price.output", price, source="src-pricing"),
+            fact("offering", oid, "offering.speed.throughput", speed),
+        ])
+
+    def catalogued(mid: str, openness: str):
+        return model(mid, facts=[
+            fact("model", mid, "model.weights_openness", openness),
+            fact("model", mid, "model.context_window", 128_000),
+            fact("model", mid, "model.input_modalities", ["text"]),
+            fact("model", mid, "licence.user_cap", "unbounded"),
+        ])
+
+    rows = [
+        evidence("lab/alpha", "quality", 100, interval=[95, 105]),
+        evidence("lab/alpha", "aux-one", 70),
+        evidence("lab/alpha", "aux-two", 80),
+        evidence("lab/beta", "quality", 90, interval=[94, 96]),
+        evidence("lab/gamma", "quality", 80, interval=[85, 94]),
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[
+                catalogued("lab/alpha", "closed_weights"),
+                catalogued("lab/beta", "open_weights"),
+                catalogued("lab/gamma", "closed_weights"),
+            ],
+            offerings=[
+                sold("lab/alpha", "provider-a", 3, 100),
+                sold("lab/alpha", "provider-b", 5, 120),
+                sold("lab/beta", "provider-a", 1, 50),
+                sold("lab/gamma", "provider-a", 0.5, 200),
+            ],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={
+                "quality": [("software_engineering", "direct")],
+                "aux-one": [("software_engineering", "direct")],
+                "aux-two": [("software_engineering", "direct")],
+            },
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "quality @independent"},
+            "explain": "none",
+            "limit": 10,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert decision.answer is not None
+    assert decision.answer.kind == "tied"
+    assert decision.answer.members == ["lab/alpha", "lab/beta"]
+    assert decision.answer.deterministic_order == ["lab/alpha", "lab/beta"]
+    assert decision.answer.tie_breakers.model_dump() == {
+        "cheapest": "lab/beta",
+        "open_weights": "lab/beta",
+        "most_independently_measured": "lab/alpha",
+        "fastest": "lab/alpha",
+    }
+    assert "80%" in decision.answer.basis
+
+
+def test_one_models_offerings_never_tie_with_each_other_in_the_answer() -> None:
+    rows = [
+        evidence("lab/alpha", "quality", 90, interval=[89, 91]),
+        evidence("lab/beta", "quality", 50, interval=[49, 51]),
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/alpha"), model("lab/beta")],
+            offerings=[
+                offering("lab/alpha", "provider-a"),
+                offering("lab/alpha", "provider-b"),
+                offering("lab/beta", "provider-a"),
+            ],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={"quality": [("software_engineering", "direct")]},
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "quality @independent"},
+            "explain": "none",
+            "limit": 10,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert decision.answer is not None
+    assert decision.answer.kind == "separated"
+    assert decision.answer.members == ["lab/alpha"]
+    assert decision.answer.leader == "lab/alpha"
+    assert decision.answer.deterministic_order == ["lab/alpha"]
 
 
 def test_overlapping_raw_evidence_intervals_are_reported_as_not_separable() -> None:
