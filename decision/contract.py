@@ -1455,6 +1455,14 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
             )
             issues.append(Issue(condition, facet_id, reason, path))
             return
+        if not getattr(info, "addressable", True):
+            issues.append(Issue(
+                condition,
+                facet_id,
+                f"{facet_id} is record-only and cannot be used in a spec until MODEL-179",
+                path,
+            ))
+            return
         value_type = info.value_type
         kind = value_type if isinstance(value_type, str) else value_type.kind
         if qualifiers is not None and getattr(info, "subject", None) != "evidence":

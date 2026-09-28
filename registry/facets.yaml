@@ -861,6 +861,7 @@ facets:
   - id: offering.subscription.price
     label: Subscription price
     subject: offering
+    addressable: false
     value_type: {kind: number}
     unit: usd_per_billing_period
     definition: >-
@@ -872,6 +873,7 @@ facets:
   - id: offering.subscription.billing_period
     label: Billing period
     subject: offering
+    addressable: false
     value_type: {kind: enum, values: [monthly, annual]}
     value_labels:
       annual: Annual
@@ -885,6 +887,7 @@ facets:
   - id: offering.subscription.models_covered
     label: Models covered
     subject: offering
+    addressable: false
     value_type: {kind: set, values_from: model_ids}
     definition: >-
       Canonical ModelSpec model IDs the provider explicitly documents as
@@ -895,6 +898,7 @@ facets:
   - id: offering.subscription.usage_allowance
     label: Published usage allowance
     subject: offering
+    addressable: false
     value_type: {kind: string}
     definition: >-
       The provider's published allowance as a concise literal quantity or
@@ -905,6 +909,7 @@ facets:
   - id: offering.subscription.programmatic_or_agent_use
     label: Programmatic or agent use
     subject: offering
+    addressable: false
     value_type: {kind: string}
     definition: >-
       The product or terms language that permits or restricts using the plan

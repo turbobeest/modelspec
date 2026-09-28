@@ -374,6 +374,37 @@ def test_weights_reject_evidence_qualifiers_on_a_value_preference(facet) -> None
     assert issue.path == "optimize.weights"
 
 
+@pytest.mark.parametrize(
+    ("raw", "path"),
+    [
+        (
+            {
+                "spec_version": 1,
+                "where": ["offering.subscription.price <= 20"],
+                "optimize": {"max": "software_engineering"},
+            },
+            "where[0]",
+        ),
+        (
+            {
+                "spec_version": 1,
+                "optimize": {"min": "offering.subscription.price"},
+            },
+            "optimize.min",
+        ),
+    ],
+)
+def test_record_only_subscription_facets_are_rejected(raw, path) -> None:
+    with pytest.raises(c.SpecError) as info:
+        c.parse_spec(raw, facets=registry_facet)
+
+    [issue] = info.value.issues
+    assert issue.field == "offering.subscription.price"
+    assert issue.path == path
+    assert "record-only" in issue.reason
+    assert "MODEL-179" in issue.reason
+
+
 # ── the spec ──────────────────────────────────────────────────────────────
 
 

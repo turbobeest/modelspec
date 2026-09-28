@@ -536,6 +536,11 @@ def test_subscription_page_extracts_supported_plan_facts(field, value, names, pa
     "page",
     [
         "Plus plans do not include Codex.",
+        "Plus plans don't include Codex.",
+        "Plus plans include no Codex.",
+        "Plus plans no longer include Codex.",
+        "Plus plans never include Codex.",
+        "Plus plans will not include Codex.",
         "Codex is not included with Plus plans.",
     ],
 )

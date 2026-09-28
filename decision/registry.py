@@ -126,6 +126,9 @@ class Facet:
     parameter: Parameter | None = None
     required_qualifiers: tuple[str, ...] = ()
     computed_by: str | None = None
+    #: False when the snapshot records the fact but the decision contract does
+    #: not yet admit it in conditions or objectives.
+    addressable: bool = True
     #: A short name for people, such as "Input price". Optional.
     label: str | None = None
     #: Plain labels for enum or set values, as ``(value, label)`` pairs, so a
@@ -489,7 +492,10 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
     entries = _read(root, "facets", "facets")
     _unique(err, "facets.yaml", entries, FACET_ID, "dotted snake_case, such as model.context_window")
     required = {"id", "subject", "value_type", "definition", "tier", "risk", "permitted_source_kinds"}
-    optional = {"unit", "parameter", "required_qualifiers", "computed_by", "label", "value_labels"}
+    optional = {
+        "unit", "parameter", "required_qualifiers", "computed_by", "addressable",
+        "label", "value_labels",
+    }
     out: dict[str, Facet] = {}
     for e in entries:
         where = f"facets.yaml {e.get('id')!r}"
@@ -524,6 +530,10 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
         if not isinstance(rq, list) or not all(isinstance(q, str) for q in rq):
             err.add(where, "required_qualifiers must be a list of names")
             rq = []
+        addressable = e.get("addressable", True)
+        if not isinstance(addressable, bool):
+            err.add(where, "addressable must be true or false")
+            addressable = True
         if vt is None or not isinstance(e.get("id"), str):
             continue
         out.setdefault(e["id"], Facet(
@@ -531,7 +541,8 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             definition=" ".join(str(e.get("definition", "")).split()),
             tier=e.get("tier"), risk=e.get("risk"), permitted_source_kinds=tuple(psk),
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
-            computed_by=e.get("computed_by"), label=label, value_labels=value_labels,
+            computed_by=e.get("computed_by"), addressable=addressable,
+            label=label, value_labels=value_labels,
             preference_values=(
                 tuple(sorted(lists[vt.values_from]()))
                 if (

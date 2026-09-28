@@ -982,7 +982,10 @@ class SubscriptionPageExtractor:
                 and any(alias in normalise_name(line) for alias in aliases)
             ]
             restriction = next((line for line in codex_lines if re.search(
-                r"(?i)(?:\b(?:do|does|did) not include\b.{0,80}\bcodex\b|"
+                r"(?i)(?:\b(?:do|does|did|will) not include\b.{0,80}\bcodex\b|"
+                r"\b(?:don't|doesn't|didn't|won't) include\b.{0,80}\bcodex\b|"
+                r"\b(?:never|no longer) include\b.{0,80}\bcodex\b|"
+                r"\binclude no\b.{0,80}\bcodex\b|"
                 r"\bcodex\b.{0,80}\bnot included\b|"
                 r"\bexclude(?:s|d)?\b.{0,80}\bcodex\b|"
                 r"\bwithout\b.{0,80}\bcodex\b|"

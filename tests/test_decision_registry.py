@@ -101,6 +101,16 @@ def test_every_best_effort_facet_in_section_8_is_registered(registry):
     assert BEST_EFFORT <= ids, sorted(BEST_EFFORT - ids)
 
 
+def test_subscription_facets_are_record_only_until_holder_costs_exist(registry):
+    subscriptions = [
+        facet for facet in registry.facets()
+        if facet.id.startswith("offering.subscription.")
+    ]
+
+    assert len(subscriptions) == 5
+    assert all(not facet.addressable for facet in subscriptions)
+
+
 def test_parameterized_facet_ids_resolve_through_the_real_registry(registry):
     benchmark = registry.facet("swe_bench_pro")
     assert benchmark.id == "swe_bench_pro"
