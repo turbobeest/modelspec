@@ -234,3 +234,12 @@ def test_old_root_hash_state_moves_to_decide(key: str) -> None:
 @pytest.mark.parametrize("search", ["", "?utm_source=launch", "?utm_medium=email&utm_campaign=go"])
 def test_plain_and_campaign_root_urls_stay_on_the_landing(search: str) -> None:
     assert not landing.has_decide_state(search, "")
+
+
+def test_the_landing_head_carries_the_current_headline(data: landing.LandingData) -> None:
+    for variant in ("live", "holding"):
+        page = landing.render(data, variant=variant)
+        assert f"<title>{landing.TITLE}</title>" in page
+        assert f'<meta name="description" content="{landing.DESCRIPTION}">' in page
+        assert f'<meta property="og:title" content="{landing.TITLE}">' in page
+        assert "usually a tie" not in page

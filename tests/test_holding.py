@@ -137,7 +137,7 @@ def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
 def test_the_holding_page_links_the_2a_icons_and_social_card(trees):
     page = (trees["holding"] / "modelspec" / "index.html").read_text(encoding="utf-8")
     assert brand.head_links() in page
-    assert brand.social_meta("ModelSpec") in page
+    assert brand.social_meta(landing.TITLE) in page
 
 
 def test_headers_index_only_the_root_and_robots_names_no_sitemap(trees):
