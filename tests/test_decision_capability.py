@@ -472,6 +472,149 @@ def test_an_empty_excluded_set_is_byte_identical_to_omission() -> None:
     )
 
 
+def archive_snapshot_bytes() -> bytes:
+    rows = [
+        row
+        for row in synthetic_observations()
+        if row.benchmark_id in {"novel_repo_work", "novel_patch_work"}
+    ]
+    retired = [f"lab/retired-{index}" for index in range(10)]
+    retired_rows = [
+        evidence(
+            model_id,
+            name,
+            30 + 6 * index + (5 if name == "novel_repo_work" else -5) * (index % 3),
+            eid=f"{model_id}#{name}",
+            day=(AS_OF - timedelta(days=200)).isoformat(),
+        )
+        for index, model_id in enumerate(retired)
+        for name in ("novel_repo_work", "novel_patch_work")
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model(f"lab/model-{index}") for index in range(10)]
+            + [model(model_id, lifecycle="retired") for model_id in retired],
+            evidence=[
+                *[
+                    evidence(
+                        row.model_id,
+                        row.benchmark_id,
+                        row.value,
+                        eid=row.record_id,
+                        measured_by=row.measured_by,
+                        day=row.date.isoformat(),
+                    )
+                    for row in rows
+                ],
+                *retired_rows,
+            ],
+            sources=SOURCES,
+            benchmark_domains={
+                name: [("software_engineering", "direct")]
+                for name in ("novel_repo_work", "novel_patch_work")
+            },
+            benchmark_metadata={
+                name: {
+                    "random_baseline": SPECS[name].random_baseline,
+                    "sample_size": SPECS[name].sample_size,
+                    "direction": SPECS[name].direction,
+                }
+                for name in ("novel_repo_work", "novel_patch_work")
+            },
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    return built.to_bytes(key=None)
+
+
+def test_exclusion_refit_does_not_depend_on_archive_visibility() -> None:
+    from decision.capability import excluding_benchmarks
+
+    data = archive_snapshot_bytes()
+    without = load_snapshot_bytes(data, key=None)
+    with_archive = load_snapshot_bytes(data, key=None, include_archive=True)
+    assert without.snapshot_id == with_archive.snapshot_id
+
+    first = excluding_benchmarks(without, ["novel_patch_work"])
+    second = excluding_benchmarks(with_archive, ["novel_patch_work"])
+
+    for index in range(10):
+        one = first.capability_estimate(f"lab/model-{index}", "software_engineering")
+        two = second.capability_estimate(f"lab/model-{index}", "software_engineering")
+        assert one is not None and one == two
+
+
+def singleton_snapshot() -> object:
+    rows = [
+        row for row in synthetic_observations() if row.benchmark_id == "novel_repo_work"
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model(f"lab/model-{index}") for index in range(10)],
+            evidence=[
+                *[
+                    evidence(
+                        row.model_id,
+                        row.benchmark_id,
+                        row.value,
+                        eid=row.record_id,
+                        measured_by=row.measured_by,
+                        day=row.date.isoformat(),
+                    )
+                    for row in rows
+                ],
+                evidence(
+                    "lab/model-9",
+                    "singleton_bench",
+                    80,
+                    eid="lab/model-9#singleton_bench",
+                    day=(AS_OF - timedelta(days=10)).isoformat(),
+                ),
+            ],
+            sources=SOURCES,
+            benchmark_domains={
+                "novel_repo_work": [("software_engineering", "direct")],
+                "singleton_bench": [("software_engineering", "direct")],
+            },
+            benchmark_metadata={
+                name: {"random_baseline": 25, "sample_size": 500, "direction": "higher_is_better"}
+                for name in ("novel_repo_work", "singleton_bench")
+            },
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+
+
+def test_removed_drivers_name_only_evidence_that_was_a_baseline_driver() -> None:
+    index = singleton_snapshot()
+    baseline = {
+        row.benchmark_id
+        for row in index.capability_drivers("lab/model-9", "software_engineering")
+    }
+    assert baseline == {"novel_repo_work"}
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "exclude_benchmarks": ["singleton_bench"],
+            "capabilities": {"software_engineering": "required"},
+            "optimize": {"max": "software_engineering"},
+            "explain": "summary",
+            "limit": 10,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert decision.benchmark_exclusions is not None
+    assert all(
+        change.removed_drivers == [] for change in decision.benchmark_exclusions.estimate_changes
+    )
+
+
 def test_snapshot_stores_estimates_and_domain_objectives_read_them() -> None:
     index = snapshot()
     stored = index.capability_estimate("lab/model-9", "software_engineering")
@@ -501,6 +644,28 @@ def test_snapshot_stores_estimates_and_domain_objectives_read_them() -> None:
     assert decision.results[0].top3_stability is not None
     assert decision.results[0].contributions[0].evidence
     assert all(item.loading is not None for item in decision.results[0].contributions[0].evidence)
+
+
+def test_html_with_estimates_says_they_carry_uncertainty_intervals() -> None:
+    from decision.explain import render_html
+
+    index = snapshot()
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "capabilities": {"software_engineering": "required"},
+            "optimize": {"max": "software_engineering"},
+            "explain": "full",
+            "limit": 3,
+        },
+        facets=default_registry().facet,
+    )
+    decision = decide(spec, index, facets=default_registry().facet)
+    assert any(result.estimates for result in decision.results)
+
+    html = render_html(decision, index)
+    assert "include uncertainty intervals" in html
+    assert "are not available" not in html
 
 
 def test_overlapping_intervals_are_reported_as_not_separable() -> None:

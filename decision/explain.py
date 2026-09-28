@@ -328,12 +328,16 @@ def excluded_benchmark_impacts(snapshot, decision, result_rows, shown_domains):
             seen.add(identity)
             before = snapshot.baseline_capability_estimate(cid, domain)
             after = snapshot.capability_estimate(cid, domain)
+            baseline_drivers = {
+                driver.record_id
+                for driver in snapshot.baseline_capability_drivers(cid, domain)
+            }
             removed = {
                 evidence.record_id: evidence
                 for evidence in snapshot.removed_evidence_for_domain(
                     cid, domain
                 )
-                if evidence.record_id is not None
+                if evidence.record_id in baseline_drivers
             }
             if before is None and after is None and not removed:
                 continue
@@ -887,6 +891,9 @@ def render_html(decision, snapshot):
             )
         return "".join(out)
 
+    has_estimates = any(result.estimates for result in decision.results) or bool(
+        decision.benchmark_exclusions and decision.benchmark_exclusions.estimate_changes
+    )
     out = [
         '<!doctype html><html lang="en"><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -899,7 +906,11 @@ def render_html(decision, snapshot):
         "svg text{fill:var(--fg);font:14px system-ui}svg rect{fill:var(--accent)}",
         "</style><body><h1>ModelSpec decision</h1>",
         f"<p>{esc(decision.decision_id)} · {esc(decision.snapshot)} · {esc(decision.status)}</p>",
-        "<p>Capability estimates use verified evidence and include uncertainty intervals.</p>",
+        (
+            "<p>Capability estimates use verified evidence and include uncertainty intervals.</p>"
+            if has_estimates
+            else "<p>Evidence is unblended. Capability estimates and probabilities are not available.</p>"
+        ),
     ]
     if decision.benchmark_exclusions is not None:
         exclusions = decision.benchmark_exclusions

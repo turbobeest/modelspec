@@ -772,6 +772,9 @@ class BenchmarkExclusionView:
     def baseline_capability_estimate(self, cid: str, domain_id: str) -> Any:
         return self._base.capability_estimate(cid, domain_id)
 
+    def baseline_capability_drivers(self, cid: str, domain_id: str) -> Sequence[Any]:
+        return self._base.capability_drivers(cid, domain_id)
+
     def removed_evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[Any]:
         return tuple(
             row
@@ -796,42 +799,26 @@ def excluding_benchmarks(snapshot: Any, benchmark_ids: Iterable[str]) -> Benchma
     if fit is None:
         tags = snapshot.benchmark_domain_tags()
         observations = []
-        seen = set()
-        for cid in snapshot.candidates():
-            model_id = snapshot.model_of(cid)
-            for benchmark_id in snapshot.benchmark_ids():
-                if benchmark_id in excluded:
-                    continue
-                domains = tuple(
-                    (domain_id, cast(Directness, directness))
-                    for domain_id, directness in tags.get(benchmark_id, ())
-                )
-                if not domains:
-                    continue
-                for row in snapshot.evidence(cid, benchmark_id):
-                    if row.date is None:
-                        continue
-                    identity = (
-                        model_id,
-                        row.record_id,
-                        row.benchmark_id,
-                        row.version,
-                        row.value,
-                    )
-                    if identity in seen:
-                        continue
-                    seen.add(identity)
-                    observations.append(CapabilityObservation(
-                        model_id=model_id,
-                        benchmark_id=row.benchmark_id,
-                        value=float(row.value),
-                        unit=row.unit,
-                        measured_by=str(row.measured_by or ""),
-                        date=row.date,
-                        record_id=str(row.record_id or ""),
-                        version=row.version,
-                        domains=domains,
-                    ))
+        for model_id, row in snapshot.corpus_evidence():
+            if row.benchmark_id in excluded or row.date is None:
+                continue
+            domains = tuple(
+                (domain_id, cast(Directness, directness))
+                for domain_id, directness in tags.get(row.benchmark_id, ())
+            )
+            if not domains:
+                continue
+            observations.append(CapabilityObservation(
+                model_id=model_id,
+                benchmark_id=row.benchmark_id,
+                value=float(row.value),
+                unit=row.unit,
+                measured_by=str(row.measured_by or ""),
+                date=row.date,
+                record_id=str(row.record_id or ""),
+                version=row.version,
+                domains=domains,
+            ))
         specs = {}
         for item in snapshot.capability_items.values():
             benchmark_id = str(item["benchmark"])
