@@ -114,6 +114,42 @@ def test_price_change_and_new_model_name_exactly_those_models():
     }
 
 
+def test_price_change_is_reported_when_cost_is_not_an_objective():
+    old_index = _engine_snapshot(
+        {"a": 1.0}, date(2026, 9, 26), contexts={"a": 128000}
+    )
+    new_index = _engine_snapshot(
+        {"a": 1.2}, date(2026, 9, 27), contexts={"a": 128000}
+    )
+    spec = parse_spec({
+        "spec_version": 1,
+        "where": ["model.class = text-generator"],
+        "optimize": {"max": "model.context_window"},
+        "explain": "full",
+    }, facets=facet)
+
+    result = compare(
+        decide(spec, old_index, facets=facet),
+        decide(spec, new_index, facets=facet),
+    )
+
+    row, = result["models"]
+    value, = row["values"]
+    assert result["changed"] is True
+    assert row["model"] == "lab/a"
+    assert value["kind"] == "cost_per_task"
+    assert value["old"]["value"] == 0.044
+    assert value["new"]["value"] == 0.0528
+    assert set(value["old"]["records"]) == {
+        "p1/lab/a/global/standard#offering.price.input",
+        "p1/lab/a/global/standard#offering.price.output",
+    }
+    assert set(value["new"]["records"]) == {
+        "p1/lab/a/global/standard#offering.price.input",
+        "p1/lab/a/global/standard#offering.price.output",
+    }
+
+
 def test_price_change_survives_a_selected_offering_switch():
     def decision(snapshot: str, provider: str, price: float) -> Decision:
         model_id = "lab/a"

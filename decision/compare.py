@@ -66,9 +66,18 @@ def _values(decision: Decision) -> dict[str, dict[tuple[Any, ...], dict[str, Any
                 "records": records,
             }
         for fact in facts.get((model, offering), []):
-            if fact.facet == "offering.cost_per_task" or fact.facet.startswith("offering.price."):
-                continue
             records = [fact.record_id] if fact.record_id else list(fact.records)
+            if fact.facet == "offering.cost_per_task":
+                values[model][("cost_per_task", offering)] = {
+                    "kind": "cost_per_task",
+                    "offering": row.offering.model_dump(mode="json"),
+                    "value": fact.value,
+                    "unit": fact.unit,
+                    "records": records,
+                }
+                continue
+            if fact.facet.startswith("offering.price."):
+                continue
             values[model][("facet", offering, fact.facet)] = {
                 "kind": "facet",
                 "facet": fact.facet,
