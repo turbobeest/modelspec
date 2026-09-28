@@ -331,6 +331,25 @@ def test_every_condition_and_objective_the_page_can_build_is_a_valid_spec(snapsh
     assert built > 100
 
 
+def test_every_facet_reports_whether_and_how_it_can_be_preferred(vocabulary) -> None:
+    by_id = {row["id"]: row for row in vocabulary["facets"]}
+
+    assert by_id["model.context_window"]["preference"] == {
+        "kind": "continuous",
+        "directions": ["max", "min"],
+        "threshold": "where",
+    }
+    assert by_id["model.weights_openness"]["preference"] == {
+        "kind": "value",
+        "term": {"prefer": "enum value", "weight": "positive number"},
+    }
+    assert by_id["offering.data.zero_retention"]["preference"] == {
+        "kind": "value",
+        "term": {"prefer": "boolean value", "weight": "positive number"},
+    }
+    assert by_id["model.input_modalities"]["preference"] is None
+
+
 def test_the_site_build_writes_the_vocabulary_beside_the_snapshot(tmp_path, monkeypatch):
     from decision import snapshot as snap
     from pipeline import build as site_build

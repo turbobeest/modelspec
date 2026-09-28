@@ -41,7 +41,7 @@ export function Field({
         label: boardOnly && spec && !boardHasPreference(spec)
           ? "Qualifying models"
           : spec?.boardWeights && Object.keys(spec.boardWeights).length
-          ? `Ranking on ${Object.entries(spec.boardWeights).map(([id, weight]) => `${objectiveLabel(id, vocabulary)} ${weight.toFixed(2)}`).join(" · ")}`
+          ? `Ranking on ${Object.entries(spec.boardWeights).map(([id, term]) => `${objectiveLabel(id, vocabulary)} ${typeof term === "number" ? term.toFixed(2) : term.weight.toFixed(2)}`).join(" · ")}`
           : "Ranked on evidence",
         n: e.feasible.length,
         may: e.may.length,

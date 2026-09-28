@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.10**
+Contract version: **1.11**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -50,7 +50,10 @@ where:
     value: false
     unknown: fail
 optimize:
-  weights: { software_engineering: 0.6, -offering.price.output: 0.3, offering.speed.throughput: 0.1 }
+  weights:
+    software_engineering: 0.5
+    -offering.price.output: 0.2
+    model.weights_openness: { prefer: open_weights, weight: 0.3 }
 unknowns: default
 explain: summary
 limit: 20
@@ -277,6 +280,37 @@ In `weights` and `pareto`, a leading `-` on a facet means lower is better.
 Weights are positive; a facet may appear once. `pareto` needs at least two
 dimensions.
 
+Number facets use a positive number as their weight and retain feasible-set
+continuous normalisation. Boolean and enum facets use a value preference:
+
+```yaml
+optimize:
+  weights:
+    model.weights_openness: { prefer: open_weights, weight: 0.3 }
+    offering.data.zero_retention: { prefer: true, weight: 0.2 }
+```
+
+A value preference contributes 1 when the fact equals `prefer`, and 0 when it
+does not. An unknown fact also contributes 0, remains in `results`, and adds
+`unknown_preference_value` to the result's `warnings`. Its contribution sets
+`preference_status` to `unknown`; known facts use `satisfied` or
+`not_satisfied`. The contribution's `preferred_value` repeats the requested
+value. A value preference cannot use a leading minus sign. A plain numeric
+weight on a boolean or enum facet is refused because it does not name the
+preferred value.
+
+A scale facet can be Must and Prefer at once by naming it in both places. Put
+the threshold in `where` and its continuous weight in `optimize.weights`:
+
+```yaml
+where: [offering.cost_per_task <= 0.25]
+optimize:
+  weights: {-offering.cost_per_task: 0.4, software_engineering: 0.6}
+```
+
+The `where` condition remains a gate and never adds points. The weight ranks
+only the candidates that pass the gate.
+
 An evidence objective can carry the same qualifiers as an evidence condition:
 
 ```yaml
@@ -304,8 +338,9 @@ A `lexicographic` objective has at least two steps. Each step is one of `max` or
 `{ absolute: 0.25 }`). The last step has nothing after it, so it takes no
 `within`.
 
-An objective must name an ordered facet. A `bool`, `enum` or `string` facet
-cannot be maximised, windowed or compared with `<`.
+The `max`, `min`, `lexicographic` and `pareto` forms must name ordered facets.
+A `bool`, `enum` or `string` facet cannot be maximised, windowed or compared
+with `<`; boolean and enum facets are usable only as value terms in `weights`.
 
 ## The canonical spec hash
 
@@ -329,7 +364,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.10",
+  "contract_version": "1.11",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -393,7 +428,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.10"`. |
+| `contract_version` | `"1.11"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -441,7 +476,7 @@ never listed as a candidate or in `may_qualify`.
 | `p_best` | The probability this result is best among the feasible models for a single-domain objective. Null for other objective forms. |
 | `top3_stability` | The share of deterministic posterior resamples in which the result stays in the top three. Null for other objective forms. |
 | `soft_penalty` | The total penalty from violated soft conditions. |
-| `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. |
+| `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. A boolean or enum term also carries `preferred_value` and `preference_status`. |
 | `warnings` | Codes about this result. |
 
 **An evidence item** carries `benchmark`, `version`, `sub_category`, `value`,
@@ -709,6 +744,13 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.11 — MODEL-172:** `optimize.weights` accepts value preferences for
+  boolean and enum facets. A match contributes 1, a mismatch or unknown
+  contributes 0, and an unknown adds `unknown_preference_value`. Contributions
+  add the optional `preferred_value` and `preference_status` fields. The facet
+  vocabulary reports whether a facet uses continuous, value-match, or no
+  preference scoring. Scale thresholds use the existing `where` plus weight
+  form, so Must remains a gate and never adds points.
 - **1.10 — MODEL-182:** A decision adds `signature_verified`. The CLI verifies
   the snapshot against its pinned Ed25519 key set. The Worker can continue to
   verify the HMAC signature with its private key.

@@ -12,6 +12,7 @@ from decision.engine import decide
 from decision.registry import facet as facets
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot
 from tests.test_decision_snapshot import SOURCES, evidence, fact, model
+from tests.snapshot_records import loaded_index
 
 _TEST_PRIVATE = Ed25519PrivateKey.generate()
 _TEST_SIGNER = decision_snapshot.Ed25519Signer(
@@ -112,6 +113,54 @@ def test_full_decision_keeps_unblended_evidence_and_fact_provenance(index):
     assert part.raw_value == 3
     assert part.records == ["lab/a#model.context_window"]
     assert index.record(part.records[0])["verification"]["outcome"] == "verified"
+
+
+def test_value_preference_explains_matches_unknowns_and_keeps_musts_as_gates():
+    from decision.snapshot import FactValue
+
+    snapshot = loaded_index({
+        "lab/closed": {
+            "model.context_window": 100,
+            "model.weights_openness": "closed_weights",
+        },
+        "lab/open": {
+            "model.context_window": 100,
+            "model.weights_openness": "open_weights",
+        },
+        "lab/too-small": {
+            "model.context_window": 10,
+            "model.weights_openness": "open_weights",
+        },
+        "lab/unknown": {
+            "model.context_window": 100,
+            "model.weights_openness": FactValue("unknown", None),
+        },
+    })
+    request = parse_spec({
+        "spec_version": 1,
+        "where": ["model.context_window >= 50"],
+        "optimize": {"weights": {
+            "model.context_window": 0.1,
+            "model.weights_openness": {"prefer": "open_weights", "weight": 0.9},
+        }},
+        "explain": "summary",
+    }, facets=facets)
+
+    answer = decide(request, snapshot, facets=facets)
+
+    assert [row.offering.model for row in answer.results] == [
+        "lab/open", "lab/closed", "lab/unknown",
+    ]
+    assert "lab/too-small" not in [row.offering.model for row in answer.results]
+    preferred = answer.results[0].contributions[1]
+    assert preferred.preferred_value == "open_weights"
+    assert preferred.preference_status == "satisfied"
+    assert preferred.value == 1
+    unknown = answer.results[2]
+    assert unknown.warnings == ["unknown_preference_value"]
+    assert unknown.contributions[1].preference_status == "unknown"
+    assert unknown.contributions[1].value == 0
+    assert answer.may_qualify == []
 
 
 def test_costs_and_near_misses_measure_one_relaxed_condition(index):

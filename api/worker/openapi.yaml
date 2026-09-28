@@ -3018,6 +3018,27 @@ components:
           - type: 'null'
           default: null
           title: Formula
+        preferred_value:
+          anyOf:
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          - type: 'null'
+          default: null
+          title: Preferred Value
+        preference_status:
+          anyOf:
+          - enum:
+            - satisfied
+            - not_satisfied
+            - unknown
+            type: string
+          - type: 'null'
+          default: null
+          title: Preference Status
       required:
       - dimension
       title: Contribution
@@ -3053,8 +3074,8 @@ components:
           title: Sources
           type: array
         contract_version:
-          const: '1.10'
-          default: '1.10'
+          const: '1.11'
+          default: '1.11'
           title: Contract Version
           type: string
         decision_id:
@@ -3925,7 +3946,9 @@ components:
           anyOf:
           - patternProperties:
               ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$:
-                type: number
+                anyOf:
+                - type: number
+                - $ref: '#/components/schemas/DecisionPreference'
             type: object
           - type: 'null'
           default: null
@@ -4028,6 +4051,28 @@ components:
       required:
       - model
       title: OfferingRef
+      type: object
+    DecisionPreference:
+      additionalProperties: false
+      description: A weighted preference for one value of a boolean or enum facet.
+      properties:
+        prefer:
+          anyOf:
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          title: Prefer
+        weight:
+          exclusiveMinimum: 0
+          title: Weight
+          type: number
+      required:
+      - prefer
+      - weight
+      title: Preference
       type: object
     DecisionProfileOffering:
       additionalProperties: false
@@ -4502,7 +4547,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:
@@ -4554,7 +4599,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:
@@ -4579,7 +4624,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:
@@ -4633,7 +4678,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:
@@ -4973,7 +5018,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:

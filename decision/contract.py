@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.10"
+CONTRACT_VERSION = "1.11"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -110,6 +110,7 @@ Status = Literal["answered", "partial", "no_feasible"]
 DateType = Literal["observed", "published"]
 Directness = Literal["direct", "proxy"]
 CapabilityLevel = Literal["required", "preferred"]
+PreferenceStatus = Literal["satisfied", "not_satisfied", "unknown"]
 # The outcome protocol's task types (DPF integration spec §9.3).
 TaskType = Literal["new_feature", "bug_fix", "refactor", "test_writing", "docs", "migration",
                    "performance", "security_fix", "review", "analysis", "data_transform",
@@ -811,13 +812,20 @@ def _objective_term(text: str) -> tuple[str, EvidenceQualifiers | None]:
         raise ValueError(exc.reason) from None
 
 
+class Preference(_Strict):
+    """A weighted preference for one value of a boolean or enum facet."""
+
+    prefer: Scalar
+    weight: float = Field(gt=0)
+
+
 class Objective(_Strict):
     """Exactly one of ``max``, ``min``, ``lexicographic``, ``weights``, ``pareto``."""
 
     max: FacetId | None = None
     min: FacetId | None = None
     lexicographic: list[LexStep] | None = None
-    weights: dict[SignedFacetId, float] | None = None
+    weights: dict[SignedFacetId, float | Preference] | None = None
     pareto: list[SignedFacetId] | None = None
     qualifiers: dict[FacetId, EvidenceQualifiers] = Field(default_factory=dict)
 
@@ -883,12 +891,15 @@ class Objective(_Strict):
 
     @field_validator("weights")
     @classmethod
-    def _weights(cls, weights: dict[str, float] | None) -> dict[str, float] | None:
+    def _weights(
+        cls, weights: dict[str, float | Preference] | None,
+    ) -> dict[str, float | Preference] | None:
         if weights is None:
             return None
         if not weights:
             raise ValueError("weights is empty")
-        for facet, weight in weights.items():
+        for facet, term in weights.items():
+            weight = term.weight if isinstance(term, Preference) else term
             if not weight > 0:
                 raise ValueError(f"weight for {facet} must be positive; put - on the facet "
                                  "to minimise it")
@@ -1075,6 +1086,9 @@ class Contribution(_Strict):
     evidence: list[EvidenceItem] = Field(default_factory=list)
     #: How a computed raw value was reached, with the numbers. Added in 1.3.
     formula: str | None = None
+    #: The requested value and its match state for a boolean or enum Prefer. Added in 1.11.
+    preferred_value: Scalar | None = None
+    preference_status: PreferenceStatus | None = None
 
 
 class Result(_Strict):
@@ -1255,7 +1269,7 @@ class Decision(_Strict):
     number_origins: list[NumberOrigin] = Field(default_factory=list)
     #: Every source the number origins cite, once each. Added in 1.4.
     sources: list[CitedSource] = Field(default_factory=list)
-    contract_version: Literal["1.10"] = CONTRACT_VERSION
+    contract_version: Literal["1.11"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1293,7 +1307,7 @@ class Decision(_Strict):
 
 
 CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
-    Spec, TaskTokens, Objective, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
+    Spec, TaskTokens, Objective, Preference, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
     Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate, Contribution,
@@ -1308,7 +1322,7 @@ def closed_values() -> list[str]:
     """Every value of every closed vocabulary in the contract, for the doc agreement test."""
     values: list[str] = []
     for alias in (Op, UnknownPolicy, MeasuredByQualifier, MeasuredBy, Explain, Status, DateType,
-                  Directness, CapabilityLevel, TaskType):
+                  Directness, CapabilityLevel, PreferenceStatus, TaskType):
         values.extend(str(v) for v in typing.get_args(alias))
     values.extend(QUALIFIER_KEYWORDS)
     return sorted(set(values))
@@ -1467,16 +1481,53 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
             None,
             objective.qualifiers.get(step.facet),
         )
-    for form in ("weights", "pareto"):
-        for signed in getattr(objective, form) or []:
+    if objective.weights is not None:
+        for signed, term in objective.weights.items():
             facet_id = _base(signed)
-            use(
-                facet_id,
-                True,
-                f"optimize.{form}",
-                None,
-                objective.qualifiers.get(facet_id),
-            )
+            try:
+                info = facets(facet_id)
+            except KeyError:
+                use(facet_id, True, "optimize.weights", None,
+                    objective.qualifiers.get(facet_id))
+                continue
+            kind = info.value_type if isinstance(info.value_type, str) else info.value_type.kind
+            if isinstance(term, Preference):
+                if signed.startswith("-"):
+                    issues.append(Issue(None, facet_id,
+                                        "a value preference cannot use a minus prefix",
+                                        "optimize.weights"))
+                elif kind not in {"bool", "boolean", "enum"}:
+                    issues.append(Issue(
+                        None, facet_id,
+                        f"{facet_id} is a continuous {kind} facet; use a numeric weight",
+                        "optimize.weights",
+                    ))
+                elif kind in {"bool", "boolean"} and not isinstance(term.prefer, bool):
+                    issues.append(Issue(None, facet_id, "a boolean preference needs true or false",
+                                        "optimize.weights"))
+                elif kind == "enum":
+                    allowed = getattr(info, "preference_values", None)
+                    if not isinstance(term.prefer, str) or (
+                        allowed is not None and term.prefer not in allowed
+                    ):
+                        issues.append(Issue(
+                            None, facet_id,
+                            f"preferred value {term.prefer!r} is not a registered value",
+                            "optimize.weights",
+                        ))
+            elif kind in UNORDERED_VALUE_TYPES:
+                issues.append(Issue(
+                    None, facet_id,
+                    f"{facet_id} needs a preferred value as well as a weight",
+                    "optimize.weights",
+                ))
+            else:
+                use(facet_id, True, "optimize.weights", None,
+                    objective.qualifiers.get(facet_id))
+    for signed in objective.pareto or []:
+        facet_id = _base(signed)
+        use(facet_id, True, "optimize.pareto", None,
+            objective.qualifiers.get(facet_id))
     return issues
 
 

@@ -66,6 +66,12 @@ def snapshot_bytes() -> bytes:
             facts=[
                 fact("model", "lab/" + name, "model.context_window", context),
                 fact("model", "lab/" + name, "model.max_output_tokens", output),
+                fact(
+                    "model",
+                    "lab/" + name,
+                    "model.weights_openness",
+                    "open_weights" if name == "a" else "closed_weights",
+                ),
             ],
         )
         for name, context, output in [("a", 128_000, 8_000), ("b", 64_000, 16_000)]
@@ -126,6 +132,37 @@ def test_worker_decision_is_byte_identical_to_modelspect_decide(
     assert body["explain"] == level
 
 
+def test_worker_and_cli_agree_on_a_value_preference(
+    tmp_path: Path, service, snapshot_bytes: bytes, snapshot,
+) -> None:
+    payload = {
+        "spec_version": 1,
+        "where": ["model.max_output_tokens >= 8000"],
+        "optimize": {"weights": {
+            "model.max_output_tokens": 0.2,
+            "model.weights_openness": {"prefer": "open_weights", "weight": 0.8},
+        }},
+        "explain": "summary",
+        "limit": 2,
+    }
+    snapshot_path = tmp_path / "snapshot.json.gz"
+    snapshot_path.write_bytes(snapshot_bytes)
+    spec_path = tmp_path / "prefer.yaml"
+    spec_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    cli = CliRunner().invoke(
+        cli_mod.app,
+        ["decide", str(spec_path), "--snapshot-file", str(snapshot_path), "--json"],
+        env={"MODELSPEC_SNAPSHOT_KEY": KEY.decode()},
+    )
+    status, body = service.decide(payload, snapshot)
+
+    assert cli.exit_code == 0, cli.output
+    assert status == 200
+    assert [row["offering"]["model"] for row in body["results"]] == ["lab/a", "lab/b"]
+    assert service.serialise(body) == cli.stdout.encode("utf-8")
+
+
 def test_every_recall_contract_spec_has_worker_cli_parity(
     tmp_path: Path, service, snapshot_bytes: bytes, snapshot
 ) -> None:
@@ -180,6 +217,27 @@ def test_invalid_specs_name_every_contract_issue(service, snapshot) -> None:
     assert body["error"]["code"] == "invalid_spec"
     assert body["snapshot"] == snapshot.snapshot_id
     assert body["error"]["issues"][0]["path"] == "unknown"
+
+
+def test_unknown_preference_facet_is_a_clean_bad_request(service, snapshot) -> None:
+    payload = _payload() | {
+        "optimize": {
+            "weights": {"model.not_a_facet": {"prefer": True, "weight": 1.0}}
+        }
+    }
+
+    status, body = service.decide(payload, snapshot)
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_spec"
+    assert body["error"]["issues"] == [
+        {
+            "path": "optimize.weights",
+            "field": "model.not_a_facet",
+            "condition": None,
+            "reason": "unknown facet 'model.not_a_facet': not in registry/facets.yaml",
+        }
+    ]
 
 
 def test_a_requested_snapshot_must_be_the_loaded_snapshot(service, snapshot) -> None:

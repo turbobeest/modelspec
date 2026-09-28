@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "1.10"
+    assert c.CONTRACT_VERSION == "1.11"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -297,6 +297,44 @@ def test_optimising_an_unordered_facet_is_rejected() -> None:
     [issue] = info.value.issues
     assert issue.field == "licence.commercial_use"
     assert issue.path == "optimize.max"
+
+
+def test_weights_accept_a_registered_value_preference() -> None:
+    raw = {
+        "spec_version": 1,
+        "optimize": {
+            "weights": {
+                "software_engineering": 0.6,
+                "model.weights_openness": {"prefer": "open_weights", "weight": 0.4},
+            }
+        },
+    }
+
+    spec = c.parse_spec(raw, facets=registry_facet)
+
+    preference = spec.optimize.weights["model.weights_openness"]
+    assert preference.prefer == "open_weights"
+    assert preference.weight == 0.4
+
+
+@pytest.mark.parametrize(
+    ("weights", "reason"),
+    [
+        ({"model.weights_openness": 1}, "preferred value"),
+        ({"model.context_window": {"prefer": 128000, "weight": 1}}, "continuous"),
+        ({"model.weights_openness": {"prefer": "ajar", "weight": 1}}, "registered value"),
+        ({"-model.weights_openness": {"prefer": "open_weights", "weight": 1}}, "minus"),
+    ],
+)
+def test_weights_reject_preference_forms_the_facet_does_not_support(weights, reason) -> None:
+    with pytest.raises(c.SpecError) as info:
+        c.parse_spec(
+            {"spec_version": 1, "optimize": {"weights": weights}},
+            facets=registry_facet,
+        )
+
+    assert reason in info.value.issues[0].reason
+    assert info.value.issues[0].path == "optimize.weights"
 
 
 # ── the spec ──────────────────────────────────────────────────────────────
@@ -586,6 +624,7 @@ def _samples() -> list:
         spec.optimize,
         c.Objective(max="software_engineering"),
         c.Objective(pareto=["software_engineering", "-offering.price.output"]),
+        c.Preference(prefer="open_weights", weight=0.4),
         c.Objective(lexicographic=[c.LexStep(max="offering.speed.throughput", within=c.Tolerance(relative=0.05)),
                                    c.LexStep(min="offering.price.output")]),
         c.LexStep(min="offering.price.output", within=c.Tolerance(relative=0.1)),

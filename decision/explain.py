@@ -291,6 +291,8 @@ def contributions(snapshot, cid, parts, evidence):
                 "constant dimensions contribute zero dimensionless",
                 evidence=items,
                 formula=formula,
+                preferred_value=part.preferred_value,
+                preference_status=part.preference_status,
             )
         )
     return out

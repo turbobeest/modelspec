@@ -30,6 +30,20 @@ const facetSchema = z.object({
   unit_definition: z.string().nullable().optional(),
   operators: z.array(z.string()),
   objective: z.boolean(),
+  preference: z.union([
+    z.object({
+      kind: z.literal("continuous"),
+      directions: z.tuple([z.literal("max"), z.literal("min")]),
+      threshold: z.literal("where"),
+    }),
+    z.object({
+      kind: z.literal("value"),
+      term: z.object({
+        prefer: z.enum(["boolean value", "enum value"]),
+        weight: z.literal("positive number"),
+      }),
+    }),
+  ]).nullable(),
   risk: z.string(),
   computed_by: z.string().nullable(),
   known: z.number().int().nonnegative(),
