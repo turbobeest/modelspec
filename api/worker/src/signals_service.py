@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import hmac
 import json
+import re
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
+from urllib.parse import urlsplit
 
-from release_signals.contract import ReleaseSignal, SignalError
+from release_signals.contract import SIGNAL_ID, ReleaseSignal, SignalError
 
 SCHEMA_VERSION = "1"
 PENDING_PREFIX = "release-signals/v1/pending/"
@@ -17,6 +19,10 @@ RECHECK_PREFIX = "release-signals/v1/recheck/"
 MAX_AGE = timedelta(hours=24)
 MAX_FUTURE_SKEW = timedelta(minutes=5)
 MAX_BODY_BYTES = 4096
+ACKNOWLEDGEMENT_FIELDS = frozenset({
+    "signal_id", "result", "pr_url", "recheck_due", "recheck_day",
+})
+RFC3339_FULL_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 @dataclass(frozen=True)
@@ -44,6 +50,58 @@ def _authorised(authorization: str | None, read_key: str | None) -> bool:
     return separator == " " and scheme.casefold() == "bearer" and hmac.compare_digest(
         value.strip(), read_key
     )
+
+
+def _valid_uri(value: object) -> bool:
+    if (
+        not isinstance(value, str)
+        or not value
+        or any(character.isspace() for character in value)
+    ):
+        return False
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return False
+    return bool(parsed.scheme and (parsed.netloc or parsed.path))
+
+
+def _acknowledgement_error(payload: object) -> str | None:
+    if not isinstance(payload, dict):
+        return "the body must be a JSON object"
+    unknown = set(payload) - ACKNOWLEDGEMENT_FIELDS
+    missing = {"signal_id", "result"} - set(payload)
+    if unknown or missing:
+        detail = []
+        if missing:
+            detail.append(f"missing {sorted(missing)}")
+        if unknown:
+            detail.append(f"unknown {sorted(unknown)}")
+        return "; ".join(detail)
+    signal_id = payload["signal_id"]
+    if not isinstance(signal_id, str) or SIGNAL_ID.fullmatch(signal_id) is None:
+        return "signal_id contains unsupported characters"
+    if payload["result"] is not None and not isinstance(payload["result"], str):
+        return "result must be a string or null"
+    pr_url = payload.get("pr_url")
+    if pr_url is not None and not _valid_uri(pr_url):
+        return "pr_url must be a URI or null"
+    recheck_due = payload.get("recheck_due")
+    if recheck_due is not None:
+        if not isinstance(recheck_due, str) or RFC3339_FULL_DATE.fullmatch(recheck_due) is None:
+            return "recheck_due must be an RFC 3339 full-date"
+        try:
+            date.fromisoformat(recheck_due)
+        except ValueError:
+            return "recheck_due must be an RFC 3339 full-date"
+    recheck_day = payload.get("recheck_day")
+    if recheck_day is not None and (
+        isinstance(recheck_day, bool)
+        or not isinstance(recheck_day, int)
+        or recheck_day not in (1, 7, 30)
+    ):
+        return "recheck_day must be 1, 7, or 30"
+    return None
 
 
 async def intake(
@@ -155,10 +213,13 @@ async def acknowledge(
 ) -> Outcome:
     if not _authorised(authorization, read_key):
         return _error(401, "unauthorised", "a valid signals read key is required")
-    if not isinstance(payload, dict):
-        return _error(400, "invalid_request", "the body must be a JSON object")
-    signal_id = str(payload.get("signal_id") or "")
-    recheck_due = str(payload.get("recheck_due") or "")
+    invalid = _acknowledgement_error(payload)
+    if invalid is not None:
+        return _error(400, "invalid_request", invalid)
+    if kv is None:
+        return _error(503, "store_unavailable", "the release-signal store is not bound")
+    signal_id = payload["signal_id"]
+    recheck_due = payload.get("recheck_due") or ""
     recheck_day = payload.get("recheck_day")
     pending_key = PENDING_PREFIX + signal_id
     source = await kv.get(pending_key)

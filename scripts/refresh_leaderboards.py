@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Refresh existing premier-set evidence from registered live boards (MODEL-124).
+"""Refresh evidence from registered live boards (MODEL-124 and MODEL-113).
 
-The refresh is deliberately narrower than a collector: it cannot add a card or
-an evidence row, and it never changes identity or licence facts.  Board readers
-produce one retained projection per board observation. Existing rows are
-matched against that projection. Changed and confirmed values both advance
-their observation metadata and pass through the normal two-key verification
+The weekly premier-set refresh updates existing evidence rows. A release-signal
+run may also add evidence to an explicitly selected existing card when one
+registered board row matches exactly and the board has an unambiguous metadata
+template. The refresh never adds a card or changes identity or licence facts.
+Board readers produce one retained projection per board observation. New,
+changed and confirmed evidence passes through the normal two-key verification
 queue.
 """
 

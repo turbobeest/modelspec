@@ -895,6 +895,71 @@ def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"signal_id": "grok-20260926-123456789"},
+        {
+            "signal_id": "grok-20260926-123456789",
+            "result": "existing",
+            "recheck_day": 99,
+        },
+        {
+            "signal_id": "grok-20260926-123456789",
+            "result": "existing",
+            "unexpected": True,
+        },
+        {"signal_id": "contains spaces", "result": "existing"},
+        {"signal_id": "grok-20260926-123456789", "result": 1},
+        {
+            "signal_id": "grok-20260926-123456789",
+            "result": "existing",
+            "pr_url": "/pull/1",
+        },
+        {
+            "signal_id": "grok-20260926-123456789",
+            "result": "existing",
+            "recheck_due": "2026-02-30",
+        },
+        {
+            "signal_id": "grok-20260926-123456789",
+            "result": "existing",
+            "recheck_day": [],
+        },
+    ],
+)
+def test_worker_acknowledgement_rejects_payloads_outside_the_contract_before_kv_access(
+    payload: dict[str, object],
+) -> None:
+    spec = importlib.util.spec_from_file_location(
+        "modelspec_ack_validation_signals_service",
+        ROOT / "api" / "worker" / "src" / "signals_service.py",
+    )
+    service = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = service
+    spec.loader.exec_module(service)
+
+    class InaccessibleKV:
+        async def get(self, key: str) -> None:
+            raise AssertionError(f"read KV before validating acknowledgement: {key}")
+
+    async def scenario() -> None:
+        outcome = await service.acknowledge(
+            authorization="Bearer read-secret",
+            read_key="read-secret",
+            kv=InaccessibleKV(),
+            payload=payload,
+            today=date(2026, 9, 26),
+        )
+
+        assert outcome.status == 400
+        assert outcome.body["error"]["code"] == "invalid_request"
+
+    import asyncio
+
+    asyncio.run(scenario())
+
+
 def test_worker_pending_follows_every_kv_page_after_an_empty_page() -> None:
     spec = importlib.util.spec_from_file_location(
         "modelspec_paginated_signals_service",

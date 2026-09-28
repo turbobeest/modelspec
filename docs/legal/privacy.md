@@ -121,8 +121,9 @@ that signal, the processing date, result and pull-request or issue URL. It also
 schedules copies for re-checks after 1, 7 and 30 days. A pending or scheduled
 record is deleted when acknowledged; the audit record remains so the automation's
 actions can be reconstructed. The queue stores no prompt, completion, private X
-message, API key, IP address or user-agent. `SIGNALS_ENABLED` and both secrets
-must be configured before this path accepts anything
+message, API key, IP address or user-agent. `SIGNALS_ENABLED` and the HMAC write
+secret must be configured before intake accepts anything. The separate read key
+protects retrieval and acknowledgement by the repository workflow
 (`api/worker/src/signals_service.py`).
 
 ### The credit ledger
