@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from urllib.parse import urlparse
 
+import pytest
 import yaml
 
 from decision.excluded import excluded_sources
@@ -13,10 +15,47 @@ from decision.verify import Claim, StructuredDataExtractor, compare
 
 ROOT = Path(__file__).parents[1]
 REPORT = ROOT / "docs" / "research" / "refinements" / "model-192-coverage.yaml"
+VERIFICATION_LOG = ROOT / "verification" / "log.jsonl"
+FINANCE_BENCHMARK_ID = "finance_benchmark_v2"
+FINANCE_SOURCE_ID = "model-192-finance-benchmark-v2"
+FINANCE_SOURCE_URL = "https://finbenchmark.ai/"
+
+EXPECTED_FINANCE_EVIDENCE = (
+    ("models/anthropic/claude-fable-5.md", 90.411),
+    ("models/anthropic/claude-opus-4-6.md", 86.3014),
+    ("models/anthropic/claude-opus-4-7.md", 93.1507),
+    ("models/deepseek/deepseek-v4-pro.md", 89.0411),
+    ("models/google/gemini-3-5-flash.md", 83.5616),
+    ("models/moonshot/kimi-k3.md", 89.0411),
+    ("models/openai/gpt-5-4.md", 63.0137),
+    ("models/openai/gpt-5-6-sol.md", 91.7808),
+)
 
 
 def _load(path: Path) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def _load_front_matter(path: Path) -> dict:
+    _, front_matter, _ = path.read_text(encoding="utf-8").split("---", 2)
+    return yaml.safe_load(front_matter)
+
+
+def _finance_rows(path: Path) -> list[dict]:
+    card = _load_front_matter(path)
+    return [
+        row
+        for row in card.get("benchmarks", {}).get("evidence", [])
+        if row["benchmark_id"] == FINANCE_BENCHMARK_ID
+    ]
+
+
+def _latest_verifications() -> dict[str, dict]:
+    latest = {}
+    for line in VERIFICATION_LOG.read_text(encoding="utf-8").splitlines():
+        entry = json.loads(line)
+        latest[entry["target"]["id"]] = entry
+    return latest
 
 
 def test_research_reports_every_premier_model_and_candidate_source() -> None:
@@ -81,11 +120,59 @@ def test_coverage_uses_exact_lineup_identities_and_language_rows_have_subcategor
     assert {row["source_id"] for row in finance} == {"model-192-finance-benchmark-v2"}
 
 
-def test_report_lists_every_model_card_change() -> None:
+@pytest.mark.parametrize(("card_path", "expected_score"), EXPECTED_FINANCE_EVIDENCE)
+def test_collected_finance_evidence_is_filed_and_verified(
+    card_path: str,
+    expected_score: float,
+) -> None:
+    rows = _finance_rows(ROOT / card_path)
+    assert len(rows) == 1
+    row = rows[0]
+
+    assert row["benchmark_id"] == FINANCE_BENCHMARK_ID
+    assert row["score"] == expected_score
+    assert row["unit"] == "percent"
+    assert row["source_url"] == FINANCE_SOURCE_URL
+    assert row["source_kind"] == "independent_evaluator"
+    assert row["measured_by"] == "independent_evaluator"
+    assert row["sources"] == [{
+        "source_id": FINANCE_SOURCE_ID,
+        "snapshot_ref": "sha256:2c21d1afdee097795e72774a05616b06f330fa08c01f44a7a3e02e3875a5197a",
+        "cited_regions": ["rows"],
+    }]
+
+    verification = _latest_verifications()[row["id"]]
+    assert verification["outcome"] == "verified"
+    assert verification["diff"] is None
+    assert verification["collector"]["agent"] != verification["verifier"]["agent"]
+    assert verification["collector"]["method"] != verification["verifier"]["method"]
+
+
+def test_report_and_cards_contain_exactly_the_expected_finance_evidence() -> None:
     report = _load(REPORT)
-    assert isinstance(report["card_changes"], list)
-    changed_cards = {row["card"] for row in report["collected_evidence"]}
-    assert changed_cards == {row["card"] for row in report["card_changes"]}
+    expected = dict(EXPECTED_FINANCE_EVIDENCE)
+    collected = {
+        row["card"]: row["score"]
+        for row in report["collected_evidence"]
+        if row["domain"] == "finance"
+    }
+    card_changes = {
+        row["card"]: row["score"]
+        for row in report["card_changes"]
+        if row["domain"] == "finance"
+    }
+    actual = {}
+    for path in (ROOT / "models").glob("*/*.md"):
+        if f"benchmark_id: {FINANCE_BENCHMARK_ID}" not in path.read_text(encoding="utf-8"):
+            continue
+        rows = _finance_rows(path)
+        if rows:
+            assert len(rows) == 1
+            actual[str(path.relative_to(ROOT))] = rows[0]["score"]
+
+    assert collected == expected
+    assert card_changes == expected
+    assert actual == expected
 
 
 def test_finance_projection_replays_unit_and_harness() -> None:
