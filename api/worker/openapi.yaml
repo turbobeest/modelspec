@@ -4550,7 +4550,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.7'
+          - '1.9'
         endpoint:
           type: string
           enum:
@@ -4575,7 +4575,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.7'
+          - '1.9'
         endpoint:
           type: string
           enum:
@@ -4969,7 +4969,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.7'
+          - '1.9'
         endpoint:
           type: string
           enum:
