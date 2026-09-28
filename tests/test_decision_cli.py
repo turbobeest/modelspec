@@ -112,18 +112,24 @@ def _run(tmp_path: Path, text: str, *args: str):
     return CliRunner().invoke(cli_mod.app, ["decide", str(spec), *args])
 
 
-def test_a_valid_spec_requires_a_local_snapshot(tmp_path) -> None:
+def test_a_valid_spec_requires_a_local_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MODELSPEC_CACHE", str(tmp_path / "empty-cache"))
     result = _run(tmp_path, VALID)
     assert result.exit_code == 1
     assert "modelspec snapshot fetch" in result.output
 
 
-def test_json_reports_the_spec_hash_and_the_error_code(tmp_path) -> None:
+def test_json_reports_the_spec_hash_and_the_error_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MODELSPEC_CACHE", str(tmp_path / "empty-cache"))
     result = _run(tmp_path, VALID, "--json")
     assert result.exit_code == 1
     payload = json.loads(result.stderr)
     assert payload["command"] == "decide"
-    assert payload["contract_version"] == "1.8"
+    assert payload["contract_version"] == "1.9"
     assert payload["spec_hash"].startswith("sha256:")
     assert payload["error"]["code"] == "snapshot_required"
 
@@ -149,7 +155,8 @@ def test_json_lists_every_issue(tmp_path) -> None:
     assert all(i["condition"] and i["reason"] for i in error["issues"])
 
 
-def test_explain_overrides_the_spec(tmp_path) -> None:
+def test_explain_overrides_the_spec(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MODELSPEC_CACHE", str(tmp_path / "empty-cache"))
     ok = _run(tmp_path, VALID, "--explain", "full", "--json")
     assert json.loads(ok.stderr)["explain"] == "full"
     bad = _run(tmp_path, VALID, "--explain", "verbose")

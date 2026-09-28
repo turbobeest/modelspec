@@ -189,6 +189,7 @@ export const decisionSchema = z
       "1.6",
       "1.7",
       "1.8",
+      "1.9",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -275,6 +276,14 @@ export const decisionSchema = z
           .default([]),
       })
       .strict(),
+    truncated: z
+      .object({
+        offerings: z.number().int().nonnegative(),
+        models: z.number().int().nonnegative(),
+      })
+      .strict()
+      .optional()
+      .default({ offerings: 0, models: 0 }),
     constraint_costs: z.array(
       z
         .object({

@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "1.8"
+    assert c.CONTRACT_VERSION == "1.9"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -611,6 +611,7 @@ def _samples() -> list:
         decision.eliminated,
         decision.eliminated.funnel[0],
         decision.eliminated.models[0],
+        decision.truncated,
         c.OfferingElimination(
             offering=result.offering, condition="context >= 90", value=80
         ),

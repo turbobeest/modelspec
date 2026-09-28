@@ -143,6 +143,28 @@ def test_a_model_with_offerings_ranks_only_through_them():
     assert all(m.offering.provider is not None for m in decision.may_qualify)
 
 
+def test_limit_reports_qualifying_rows_as_truncated_not_eliminated():
+    _, index = build(rows=[
+        evidence("lab/m", TERMINAL, 60.0),
+        evidence("lab/other", TERMINAL, 55.0),
+    ])
+    request = parse_spec({
+        "spec_version": 1,
+        "where": ["model.class = text-generator"],
+        "optimize": {"max": f"{TERMINAL} @independent"},
+        "explain": "full",
+        "limit": 1,
+    }, facets=facets)
+
+    decision = decide(request, index, facets=facets)
+
+    assert len(decision.results) == 1
+    assert decision.truncated.model_dump() == {"offerings": 3, "models": 1}
+    assert decision.eliminated.models == []
+    assert decision.eliminated.model_groups == []
+    assert "outside requested result limit" not in decision.model_dump_json()
+
+
 def test_a_model_with_no_offering_ranks_as_itself():
     built = build_snapshot(SnapshotInputs(
         models=[generator("lab/m"), generator("lab/open")],

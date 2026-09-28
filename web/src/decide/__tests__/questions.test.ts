@@ -27,6 +27,7 @@ const decision = (count: number): Decision => ({
   })),
   may_qualify: [],
   eliminated: { funnel: [], models: [], model_groups: [] },
+  truncated: { offerings: 0, models: 0 },
   constraint_costs: [],
   tipping_points: [],
   relax: [],

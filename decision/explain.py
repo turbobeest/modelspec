@@ -485,14 +485,6 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                     model=ref.model, offering=ref, condition="dominated by " + ", ".join(dominators)
                 )
             )
-        for row in ordered.results[len(decision.results) :]:
-            ref = offering_ref(snapshot, row.candidate_id)
-            decision.eliminated.models.append(
-                ModelElimination(
-                    model=ref.model, offering=ref, condition="outside requested result limit"
-                )
-            )
-
         grouped = {}
         for row in decision.eliminated.models:
             group = grouped.setdefault(row.model, {"model": None, "offerings": {}})

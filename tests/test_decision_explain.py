@@ -319,6 +319,25 @@ def test_top_twenty_does_not_depend_on_result_limit(index):
     assert [row.offering.model for row in decision.top] == ["lab/b", "lab/c", "lab/a"]
 
 
+def test_pareto_decision_reports_dominated_candidates_as_eliminated(index):
+    decision = decide(
+        spec(
+            where=[],
+            optimize={"pareto": ["model.context_window", "model.max_output_tokens"]},
+        ),
+        index,
+        facets=facets,
+    )
+
+    assert [row.offering.model for row in decision.results] == ["lab/a"]
+    assert [
+        (row.model, row.condition) for row in decision.eliminated.models
+    ] == [
+        ("lab/b", "dominated by lab/a"),
+        ("lab/c", "dominated by lab/a"),
+    ]
+
+
 def test_empty_feasible_set_and_domain_objectives_remain_honest(index):
     empty = decide(spec(where=["model.max_output_tokens > 1000"]), index, facets=facets)
     assert empty.status == "no_feasible"
