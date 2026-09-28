@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import inspect
+import re
 from datetime import date
 from pathlib import Path
 
 import pytest
 
+from decision.computed import COST_PER_TASK, with_computed
+from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
+from decision.engine import decide
+from decision.registry import default
+from decision.snapshot import build_from_repo, load_snapshot_bytes
+from decision.templates import load_templates
 from pipeline import landing
+from pipeline.load import load_models
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,17 +52,65 @@ def test_landing_copy_uses_the_computed_figures(data: landing.LandingData) -> No
     assert f"${data.cheapest_monthly:,.0f}" in page
 
 
-def test_renderer_contains_no_model_name_or_model_price(data: landing.LandingData) -> None:
-    source = inspect.getsource(landing.render)
+def test_landing_sources_contain_no_catalogue_name_or_price_literal(
+    data: landing.LandingData,
+) -> None:
+    sources = [
+        inspect.getsource(landing.render),
+        (ROOT / "pipeline/landing_assets/landing.js").read_text(encoding="utf-8"),
+        (ROOT / "pipeline/landing_assets/landing.css").read_text(encoding="utf-8"),
+    ]
     for model in data.models:
-        assert model.name not in source
-        assert f"${model.cost:.3f}" not in source
+        assert all(model.name not in source for source in sources)
+        assert all(f"${model.cost:.3f}" not in source for source in sources)
+    assert not re.search(r"\$\s*\d", "\n".join(sources[1:]))
 
 
 def test_every_published_template_route_is_an_engine_result(data: landing.LandingData) -> None:
-    assert data.routes
-    assert len({route.id for route in data.routes}) == len(data.routes)
-    assert all(route.model for route in data.routes)
+    registry = default()
+    snapshot = build_from_repo(ROOT, premier=None, as_of=date.today(), gate=False)
+    loaded = load_snapshot_bytes(snapshot.to_bytes(), key=None)
+    cards = {model.model_id: model for model in load_models(ROOT)}
+    expected: list[tuple[str, str, str, float]] = []
+    unpriced_results: list[str] = []
+    for template in load_templates(registry=registry):
+        spec = parse_spec(template["spec"] | {"explain": "none", "limit": 1},
+                          facets=registry.facet)
+        answer = decide(spec, loaded, facets=registry.facet)
+        if not answer.results:
+            continue
+        result = answer.results[0]
+        candidate = landing._offering_id(result)
+        task_view = with_computed(loaded, spec.task_tokens or DEFAULT_TASK_TOKENS)
+        computed = task_view.computed(candidate, COST_PER_TASK) if candidate else None
+        if computed is None:
+            unpriced_results.append(template["id"])
+            continue
+        expected.append((template["id"], template["name"],
+                         cards[result.offering.model].display_name, computed.value))
+
+    assert [(route.id, route.name, route.model, route.cost) for route in data.routes] == expected
+    assert "retrieval-embeddings" in unpriced_results
+    assert "retrieval-embeddings" not in {route.id for route in data.routes}
+    assert all(route.cost is not None for route in data.routes)
+
+
+def test_plot_domains_and_ticks_are_derived_from_the_models() -> None:
+    models = [
+        landing.PlotModel("low", "Low", 0.001, -1.0, -1.5, -0.5, False),
+        landing.PlotModel("high", "High", 5.0, 2.0, 1.5, 2.5, True),
+    ]
+    axes = landing._plot_axes(models)
+    assert axes.cost_min < 0.001 < axes.cost_max
+    assert axes.cost_min < 5.0 < axes.cost_max
+    assert axes.capability_min < -1.5
+    assert axes.capability_max > 2.5
+    assert all(axes.cost_min <= tick <= axes.cost_max for tick in axes.cost_ticks)
+    assert all(axes.capability_min <= tick <= axes.capability_max
+               for tick in axes.capability_ticks)
+    for tick in axes.cost_ticks:
+        exponent = 10 ** int(f"{tick:e}".split("e")[1])
+        assert round(tick / exponent, 10) in {1, 2, 5}
 
 
 def test_live_and_holding_variants_differ_only_where_the_contract_requires(
@@ -73,6 +129,13 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert "pipx install modelspec-dev" not in holding
     release = "CLI, API and MCP. Install instructions arrive with the public release."
     assert release in live and release in holding
+    assert "Every number is one click from its source." in live
+    assert "Every number has a source." not in live
+    assert "Every number has a source." in holding
+    assert "When the board opens, each one is a click away." in holding
+    assert "Every number is one click from its source." not in holding
+    footer = "top result per template with a published price"
+    assert footer in live and footer in holding
 
 
 def test_page_has_the_interaction_and_accessibility_contract(data: landing.LandingData) -> None:

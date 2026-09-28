@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import math
 import os
 import tempfile
 from dataclasses import asdict, dataclass
@@ -45,7 +46,17 @@ class TemplateRoute:
     id: str
     name: str
     model: str
-    cost: float | None
+    cost: float
+
+
+@dataclass(frozen=True)
+class PlotAxes:
+    cost_min: float
+    cost_max: float
+    cost_ticks: tuple[float, ...]
+    capability_min: float
+    capability_max: float
+    capability_ticks: tuple[float, ...]
 
 
 @dataclass(frozen=True)
@@ -60,6 +71,7 @@ class LandingData:
     cheapest_monthly: float
     monthly_gap: float
     routes: tuple[TemplateRoute, ...]
+    axes: PlotAxes
 
     @property
     def leader(self) -> PlotModel:
@@ -83,9 +95,58 @@ def _offering_id(result: Any) -> str | None:
 
 def _from_dict(raw: dict[str, Any]) -> LandingData:
     return LandingData(
-        **{key: value for key, value in raw.items() if key not in {"models", "routes"}},
+        **{key: value for key, value in raw.items() if key not in {"models", "routes", "axes"}},
         models=tuple(PlotModel(**row) for row in raw["models"]),
         routes=tuple(TemplateRoute(**row) for row in raw["routes"]),
+        axes=PlotAxes(**(raw["axes"] | {
+            "cost_ticks": tuple(raw["axes"]["cost_ticks"]),
+            "capability_ticks": tuple(raw["axes"]["capability_ticks"]),
+        })),
+    )
+
+
+def _nice_values(low: float, high: float) -> tuple[float, ...]:
+    """Return 1-2-5 ticks inside a positive range."""
+    values: list[float] = []
+    for exponent in range(math.floor(math.log10(low)) - 1,
+                          math.ceil(math.log10(high)) + 2):
+        magnitude = 10 ** exponent
+        values.extend(factor * magnitude for factor in (1, 2, 5))
+    return tuple(value for value in values if low <= value <= high)
+
+
+def _linear_ticks(low: float, high: float, target: int = 5) -> tuple[float, ...]:
+    span = high - low
+    rough_step = span / target
+    magnitude = 10 ** math.floor(math.log10(rough_step))
+    step = next(factor * magnitude for factor in (1, 2, 5, 10)
+                if factor * magnitude >= rough_step)
+    first = math.ceil(low / step) * step
+    count = math.floor((high - first) / step) + 1
+    return tuple(round(first + index * step, 12) for index in range(count))
+
+
+def _plot_axes(models: list[PlotModel]) -> PlotAxes:
+    costs = [model.cost for model in models]
+    log_low, log_high = math.log(min(costs)), math.log(max(costs))
+    log_span = log_high - log_low
+    log_padding = log_span * 0.08 if log_span else math.log(1.5)
+    cost_min = math.exp(log_low - log_padding)
+    cost_max = math.exp(log_high + log_padding)
+
+    capability_low = min(model.low for model in models)
+    capability_high = max(model.high for model in models)
+    capability_span = capability_high - capability_low
+    capability_padding = capability_span * 0.08 if capability_span else 0.5
+    capability_min = capability_low - capability_padding
+    capability_max = capability_high + capability_padding
+    return PlotAxes(
+        cost_min=cost_min,
+        cost_max=cost_max,
+        cost_ticks=_nice_values(cost_min, cost_max),
+        capability_min=capability_min,
+        capability_max=capability_max,
+        capability_ticks=_linear_ticks(capability_min, capability_max),
     )
 
 
@@ -157,11 +218,13 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
         candidate = _offering_id(result)
         task_view = with_computed(loaded, spec.task_tokens or DEFAULT_TASK_TOKENS)
         computed = task_view.computed(candidate, COST_PER_TASK) if candidate else None
+        if computed is None:
+            continue
         routes.append(TemplateRoute(
             id=template["id"],
             name=template["name"],
             model=cards[result.offering.model].display_name,
-            cost=computed.value if computed else None,
+            cost=computed.value,
         ))
 
     leader_monthly = leader.cost * MONTHLY_TASKS
@@ -181,6 +244,7 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
         cheapest_monthly=cheapest_monthly,
         monthly_gap=leader_monthly - cheapest_monthly,
         routes=tuple(routes),
+        axes=_plot_axes(rows),
     )
 
 
@@ -234,7 +298,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
         '<div class="route"><span class="ticket">T-{0:04d}</span><span class="template">{1}</span>'
         '<span>{2}</span><span class="route-cost">{3}</span></div>'.format(
             4812 + index, html.escape(route.id), html.escape(route.model),
-            _money(route.cost, 3) if route.cost is not None else "price unknown")
+            _money(route.cost, 3))
         for index, route in enumerate(data.routes)
     )
     options = "".join(
@@ -243,6 +307,13 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
     )
     payload = json.dumps(asdict(data), separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
     date_label = date.fromisoformat(data.as_of).strftime("%-d %B %Y")
+    trust_source = (
+        '<h3>Every number is one click from its source.</h3><p>Which benchmark, which date, '
+        "who ran it. Independent results sit beside the lab's own claims, and each is labelled.</p>"
+        if variant == "live" else
+        '<h3>Every number has a source.</h3><p>Which benchmark, which date, who ran it. '
+        'When the board opens, each one is a click away.</p>'
+    )
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ModelSpec — the #1 model is usually a tie</title>
@@ -266,9 +337,9 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <section class="agents" id="agents"><div><h2>Your agents pick a model thousands of times a day.</h2>
 <p><span class="desktop-only">Most pick the same expensive one every time, because someone hard-coded it last quarter. Give them the board as a command. One offline call per task picks the model that fits that task, explains why, and gives the same answer every time for the same facts.</span><span class="mobile-only">Give them the board as a command. One offline call per task, explained, and the same answer every time for the same facts.</span></p>
 <div class="install-row">{install}<a href="{guide_href}">Read the agent guide</a></div><p class="note">Also as an API, and as an MCP server your agent platform can call.</p></div>
-<div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>top result per template, live</span></div></div></div></section>
+<div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>top result per template with a published price</span></div></div></div></section>
 <section class="challenge" id="pick-a-model"><h2>Think you know the best coding model?</h2><form id="pick-form"><label for="model-pick"><span class="desktop-only">Put your pick on the board. See exactly where it lands, and why.</span><span class="mobile-only">Put your pick on the board and see where it lands.</span></label><div><select id="model-pick">{options}</select><button type="submit">Check my pick</button></div><output id="pick-result" aria-live="polite">Choose a model to compare with the top estimate.</output></form></section>
-<section class="trust"><div><h3>Every number is one click from its source.</h3><p>Which benchmark, which date, who ran it. Independent results sit beside the lab's own claims, and each is labelled.</p></div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p></div></section></main>
+<section class="trust"><div>{trust_source}</div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p></div></section></main>
 <footer><span>© Sparks and Sawdust LLC</span><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>
 <div class="sticky">{board_compact}<a class="button secondary" href="#agents">Agents</a></div>
 <script id="{DATA_ID}" type="application/json">{payload}</script><script src="/{ASSET_DIR}/landing.js" defer></script></body></html>\n'''

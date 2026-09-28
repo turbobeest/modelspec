@@ -16,6 +16,10 @@
   const cheapest = data.models.find((model) => model.id === data.cheapest_id);
   const tiedOthers = data.models.filter((model) => model.tied).length - 1;
   const money = (value) => `$${value.toFixed(3)}`;
+  const priceTick = (value) => {
+    const decimals = Math.max(0, -Math.floor(Math.log10(value)) + 1);
+    return `$${value.toFixed(decimals)}`;
+  };
   const captions = [
     `${data.models.length} language models, by coding ability and cost per task.`,
     `The top estimate: ${leader.name}, at ${money(leader.cost)} a task. The one you would probably pick.`,
@@ -25,9 +29,14 @@
   let stage = matchMedia("(prefers-reduced-motion: reduce)").matches ? 3 : 0;
   const x = (cost) =>
     56 +
-    ((Math.log(cost) - Math.log(0.03)) / (Math.log(0.8) - Math.log(0.03))) *
+    ((Math.log(cost) - Math.log(data.axes.cost_min)) /
+      (Math.log(data.axes.cost_max) - Math.log(data.axes.cost_min))) *
       580;
-  const y = (value) => 500 - ((value + 2.6) / 5.4) * 460;
+  const y = (value) =>
+    500 -
+    ((value - data.axes.capability_min) /
+      (data.axes.capability_max - data.axes.capability_min)) *
+      460;
   function draw() {
     svg.replaceChildren(
       el("rect", { width: 680, height: 560, fill: "#0E1A30", rx: 6 }),
@@ -48,7 +57,7 @@
         "stroke-width": 3,
       }),
     );
-    for (const cost of [0.05, 0.1, 0.25, 0.5]) {
+    for (const cost of data.axes.cost_ticks) {
       const px = x(cost);
       svg.append(
         el("line", { x1: px, y1: 20, x2: px, y2: 500, stroke: "#1d2c48" }),
@@ -62,7 +71,25 @@
             "text-anchor": "middle",
             "font-family": "JetBrains Mono, monospace",
           },
-          `$${cost.toFixed(2)}`,
+          priceTick(cost),
+        ),
+      );
+    }
+    for (const capability of data.axes.capability_ticks) {
+      const py = y(capability);
+      svg.append(
+        el("line", { x1: 56, y1: py, x2: 660, y2: py, stroke: "#1d2c48" }),
+        el(
+          "text",
+          {
+            x: 48,
+            y: py + 4,
+            fill: "#8795ad",
+            "font-size": 12,
+            "text-anchor": "end",
+            "font-family": "JetBrains Mono, monospace",
+          },
+          capability.toFixed(1),
         ),
       );
     }
