@@ -42,6 +42,13 @@ no determinations) plus a `credits.exhausted` field naming where to buy. When
 cap; the burst limit is configuration (`credits.burst_limit`, 60/min as
 shipped).
 
+Keyless browser requests from the production site and internal preview are a
+separate case. With x402 on, they receive the free-tier answer and use the
+`free` row's daily and burst limits, keyed by a SHA-256 digest of
+`CF-Connecting-IP`. Other keyless callers receive the per-call 402. `Origin`
+can be spoofed, but a spoofed value grants only this rate-limited free tier. It
+does not grant credits or paid determinations.
+
 Cancellation, failed payment, or expiry **zeros the monthly allowance at
 once**. Pack credits are unaffected. That is MODEL-73's immediate-downgrade
 semantics, applied to the monthly bucket only.

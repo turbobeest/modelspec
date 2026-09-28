@@ -6,15 +6,17 @@ The repository keeps production `X402_ENABLED`, `X402_MAINNET`,
 `ACCESS_ENFORCED`, and `BILLING_ENABLED` off, with an empty production
 `X402_PAY_TO`.
 
-## Mainnet blocker
+## Mainnet blocker resolved by MODEL-185
 
-`api/worker/src/entry.py` applies `_x402_wrap(..., keyed=False)` to the
-anonymous producer. When `X402_ENABLED` is on, every keyless request to
-`/v1/decide` receives HTTP 402. The live decide page makes that request without
-an API key.
+MODEL-185 separates the live page from anonymous agent traffic. With x402 on,
+keyless requests from the production site origins and the internal Pages
+preview receive the IP-keyed, rate-limited free tier. Other keyless requests
+receive the per-call 402. Keyed callers without credits still receive the pack
+offer. A spoofed allowed `Origin` gains only the rate-limited free tier.
 
-Production must not enable x402 until Jamie decides the policy for keyless page
-traffic. Completing the staging smoke test does not clear this blocker.
+This resolves the page-traffic blocker. It does not turn on production x402 or
+approve the mainnet receiver and payment check. The checked-in production flags
+remain off, and Jamie must approve the separate production change.
 
 Sources checked 2026-09-26:
 
@@ -117,14 +119,15 @@ Run these steps in order from the repository root.
 
 ## Stage 2: Base mainnet
 
-Blocked pending Jamie's decision about keyless `/v1/decide` page traffic. Do
-not change the production x402 variables, receiver, route, KV bindings, or
-credit ledger as part of the Sepolia test.
+MODEL-185 resolved the keyless `/v1/decide` page-traffic blocker. Production
+x402 remains off pending Jamie's approval of the mainnet receiver and payment
+check. Do not change the production x402 variables, receiver, route, KV
+bindings, or credit ledger as part of the Sepolia test.
 
-When Jamie clears the blocker, use Base network `eip155:8453` and Base native
-USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, set the approved mainnet
-receiver, and make one $5 payment from a wallet funded only for that check.
-Treat that as a separate production change and review.
+When Jamie approves the production change, use Base network `eip155:8453` and
+Base native USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, set the approved
+mainnet receiver, and make one $5 payment from a wallet funded only for that
+check. Treat that as a separate production change and review.
 
 ## Switch staging x402 off
 

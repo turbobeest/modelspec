@@ -447,6 +447,17 @@ def _cors_headers(request) -> dict[str, str]:
     }
 
 
+def _site_free_visitor(request, api_key: str | None, enabled: bool) -> str | None:
+    """Return the anonymous meter key for an admitted browser request."""
+    if api_key is not None or not enabled:
+        return None
+    origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
+    if origin not in CORS_ORIGINS:
+        return None
+    connecting_ip = str(request.headers.get("CF-Connecting-IP") or "").strip()
+    return "visitor:" + hashlib.sha256(connecting_ip.encode("utf-8")).hexdigest()
+
+
 def _html_response(status: int, page: str, service_commit: str,
                    extra_headers: dict | None = None) -> Response:
     """A page for a person's browser (the claim page). Never cached: it holds a key."""
@@ -638,9 +649,14 @@ class Default(WorkerEntrypoint):
         # and settle run before either of them writes an answer. The sandbox
         # is not wrapped. X402_ENABLED default off is a no-op.
         x402_trace = x402.ChargeTrace()
-        anonymous = self._x402_wrap(_anonymous, request, path, api_key, envelope,
-                                    payload,
-                                    x402_trace, keyed=False)
+        free_visitor = _site_free_visitor(
+            request, api_key, x402.load_config(self.env).enabled)
+        anonymous = (
+            _anonymous
+            if free_visitor is not None
+            else self._x402_wrap(_anonymous, request, path, api_key, envelope,
+                                 payload, x402_trace, keyed=False)
+        )
         live = self._x402_wrap(_live, request, path, api_key, envelope,
                                payload,
                                x402_trace, keyed=True,
@@ -653,6 +669,7 @@ class Default(WorkerEntrypoint):
             load_policy=lambda: access_config.load_policy(self.env),
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
             limits_for=self._limits_for(api_key),
+            anonymous_id=free_visitor,
         )
         headers = {
             **(outcome.headers or {}),

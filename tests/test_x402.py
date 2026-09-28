@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -918,6 +919,133 @@ class _Req:
         return self._body or ""
 
 
+def _entry_env(**overrides):
+    class KVBinding:
+        def __init__(self):
+            self.store = __import__("access_kv").MemoryKV()
+
+        async def get(self, name):
+            return await self.store.get(name)
+
+        async def put(self, name, value, options=None, *, expiration_ttl=None):
+            ttl = expiration_ttl
+            if options is not None:
+                ttl = options.get("expirationTtl")
+            await self.store.put(name, value, expiration_ttl=ttl)
+
+        async def delete(self, name):
+            await self.store.delete(name)
+
+    values = {
+        "BUILD_COMMIT": "c0ffee",
+        "EXPORT_ORIGIN": "https://modelspec.test",
+        "ACCESS_ENFORCED": "false",
+        "BILLING_ENABLED": "false",
+        "TIER_POLICY": (REPO_ROOT / "api" / "worker" / "tiers.json").read_text(
+            encoding="utf-8"),
+        "X402_ENABLED": "true",
+        "X402_PAY_TO": PAY_TO,
+        "X402_NETWORK": x402.NETWORK_BASE_SEPOLIA,
+        "X402_ASSET": x402.USDC_BASE_SEPOLIA,
+        "ACCESS": KVBinding(),
+        "CREDITS": credits.MemoryLedger(),
+        "X402_FACILITATOR": StubFacilitator(),
+    }
+    values.update(overrides)
+    return type("E", (), values)()
+
+
+def _decision_holder():
+    snapshot = type("Snapshot", (), {"snapshot_id": "snapshot-test"})()
+    return type("Holder", (), {"snapshot": snapshot, "headers": lambda _self: {}})()
+
+
+def _decision_request(origin=None, *, ip="203.0.113.8", key=None):
+    headers = {"CF-Connecting-IP": ip}
+    if origin is not None:
+        headers["Origin"] = origin
+    if key is not None:
+        headers["Authorization"] = f"Bearer {key}"
+    return _Req("/v1/decide", {"task": "choose a model"}, headers=headers)
+
+
+def _decision_worker(entry, env=None):
+    worker = entry.Default()
+    worker.env = env or _entry_env()
+    entry._decision_holder = lambda _origin: _decision_holder()
+
+    async def decide(_payload, _origin, _expected):
+        return 200, {
+            "contract_version": "1.0",
+            "endpoint": "decide",
+            "snapshot": "snapshot-test",
+            "results": [{"model_id": "example/ok"}],
+        }
+
+    worker._decide = decide
+    return worker
+
+
+@pytest.mark.parametrize("origin", [
+    "https://modelspec.dev",
+    "https://www.modelspec.dev",
+    "https://internal.modelspec-7np.pages.dev",
+])
+def test_entry_site_origins_receive_the_free_tier_when_x402_is_on(entry, origin):
+    response = asyncio.run(_decision_worker(entry).fetch(_decision_request(origin)))
+
+    assert response.status == 200
+    assert response.json()["results"] == [{"model_id": "example/ok"}]
+    assert x402.PAYMENT_REQUIRED_HEADER not in response.headers
+    assert response.headers["x-modelspec-tier"] == "free"
+
+
+def test_entry_site_origin_is_limited_per_visitor_when_x402_is_on(entry):
+    worker = _decision_worker(entry)
+    responses = [
+        asyncio.run(worker.fetch(_decision_request("https://modelspec.dev")))
+        for _ in range(6)
+    ]
+
+    assert [response.status for response in responses] == [200] * 5 + [429]
+    assert responses[-1].json()["error"]["code"] == "rate_limited"
+    assert x402.PAYMENT_REQUIRED_HEADER not in responses[-1].headers
+    another_visitor = asyncio.run(worker.fetch(_decision_request(
+        "https://modelspec.dev", ip="198.51.100.21",
+    )))
+    assert another_visitor.status == 200
+
+
+@pytest.mark.parametrize("origin", [None, "https://agent.example"])
+def test_entry_non_site_anonymous_callers_receive_per_call_402(entry, origin):
+    response = asyncio.run(_decision_worker(entry).fetch(_decision_request(origin)))
+
+    assert response.status == 402
+    assert response.json()["error"]["code"] == "payment_required"
+    assert "price" in response.json()["error"]
+    assert "packs" not in response.json()["error"]
+
+
+def test_entry_zero_balance_key_receives_pack_offer_even_from_site(entry):
+    key = "live_zero_balance"
+    env = _entry_env()
+    policy = __import__("access_config").load_policy(env)
+    asyncio.run(__import__("access_keys").issue(
+        env.ACCESS, tier="free", owner="test", now=datetime.now(UTC),
+        policy=policy, secret=key,
+    ))
+
+    response = asyncio.run(_decision_worker(entry, env).fetch(_decision_request(
+        "https://modelspec.dev", key=key,
+    )))
+
+    assert response.status == 402
+    assert response.json()["error"]["code"] == "payment_required"
+    assert [pack["credits"] for pack in response.json()["error"]["packs"]] == [
+        1250, 7500, 20000, 50000,
+    ]
+
+
 def test_entry_unfunded_with_flag_on_is_402_and_does_not_fetch(entry):
     env = type("E", (), {})()
     env.BUILD_COMMIT = "c0ffee"
@@ -968,7 +1096,10 @@ def test_entry_with_all_flags_off_preserves_the_producer_bytes(entry):
         return 200, expected
 
     worker._rank = rank
-    response = asyncio.run(worker.fetch(_Req("/v1/rank", {"use_case": "coding"})))
+    response = asyncio.run(worker.fetch(_Req(
+        "/v1/rank", {"use_case": "coding"},
+        headers={"Origin": "https://modelspec.dev", "CF-Connecting-IP": "203.0.113.8"},
+    )))
     assert response.status == 200
     assert response.body == json.dumps(expected, indent=2, default=str)
 
