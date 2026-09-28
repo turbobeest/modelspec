@@ -112,3 +112,25 @@ def test_graph_rank_warns_on_stderr_with_valid_decision_guidance_and_keeps_stdou
     else:
         assert guidance_kind == "selector"
         assert guidance_target is None
+
+
+@pytest.mark.parametrize("use_case", ["xyz", "task-specific", "Codingx"])
+def test_graph_rank_unknown_use_case_gets_selector_not_invented_domain(
+    monkeypatch, use_case: str
+) -> None:
+    class Graph:
+        def query(self, *args, **kwargs):
+            raise AssertionError("unknown use case must not query the graph")
+
+    monkeypatch.setattr(cli, "_get_graph", lambda: Graph())
+
+    result = CliRunner().invoke(cli.app, ["rank", "--use-case", use_case])
+
+    assert result.exit_code == 1
+    assert result.stderr == (
+        "deprecated: modelspec rank uses the retired fixed-benchmark ranking; "
+        "run `modelspec vocab domains`, choose the domain that matches your task, "
+        "then use it in a `modelspec decide SPEC.yaml` objective.\n"
+    )
+    assert use_case not in result.stderr
+    assert "Unknown use case" in result.stdout

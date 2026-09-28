@@ -957,10 +957,10 @@ def rank(
         "reasoning": "reasoning",
         "chat": "chat_preference",
         "agentic": "agentic_tool_use",
-    }.get(use_case.lower(), use_case.lower())
+    }.get(use_case.lower())
     if template:
         replacement = f"use `{template}` instead."
-    elif use_case.lower() == "general":
+    elif domain is None:
         replacement = (
             "run `modelspec vocab domains`, choose the domain that matches your task, "
             "then use it in a `modelspec decide SPEC.yaml` objective."
