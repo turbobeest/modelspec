@@ -659,6 +659,9 @@ footer a {
     width: 100%;
     text-align: center;
   }
+  .install {
+    overflow-x: auto;
+  }
   .agents .note {
     display: none;
   }

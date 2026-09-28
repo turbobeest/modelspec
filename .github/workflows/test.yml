@@ -57,6 +57,13 @@ jobs:
             --shard-index ${{ matrix.index }} > shard-files.txt
           python -m pytest --collect-only -q -m "not perf" \
             $(< shard-files.txt) > shard-${{ matrix.index }}-collection.txt
+      - name: Install the landing browser on its pytest shard
+        run: |
+          if grep -qx 'tests/test_landing.py' shard-files.txt; then
+            cd web
+            npm ci
+            npx playwright install --with-deps chromium
+          fi
       - name: Run test shard
         # -n auto uses the four cores on ubuntu-latest. --dist loadfile also
         # keeps each module together for shared module and process state.

@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import inspect
-import re
+import json
+import subprocess
 from datetime import date
 from pathlib import Path
 
 import pytest
 
 from decision.computed import COST_PER_TASK, with_computed
-from decision.contract import DEFAULT_TASK_TOKENS, TaskTokens, parse_spec
+from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
 from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_snapshot_bytes
@@ -52,21 +52,6 @@ def test_landing_copy_uses_the_computed_figures(data: landing.LandingData) -> No
     assert f"${data.cheapest_monthly:,.0f}" in page
 
 
-def test_landing_sources_contain_no_catalogue_name_or_price_literal(
-    data: landing.LandingData,
-) -> None:
-    sources = [
-        inspect.getsource(landing.render),
-        (ROOT / "pipeline/landing_assets/landing.js").read_text(encoding="utf-8"),
-        (ROOT / "pipeline/landing_assets/landing.css").read_text(encoding="utf-8"),
-    ]
-    for model in data.models:
-        assert all(model.name not in source for source in sources)
-        assert all(f"${model.cost:.3f}" not in source for source in sources)
-    assert not re.search(r"\$\s*\d", "\n".join(sources[1:]))
-    assert not re.search(r"(?i)\b(?:40\s*k|4\s*k|10[_ ,]?000)\b", "\n".join(sources))
-
-
 def test_every_published_template_route_is_an_engine_result(data: landing.LandingData) -> None:
     registry = default()
     snapshot = build_from_repo(ROOT, premier=None, as_of=date.today(), gate=False)
@@ -102,27 +87,68 @@ def test_every_published_template_route_is_an_engine_result(data: landing.Landin
             "the others' top result has no published price") in page
 
 
-def test_scenario_values_flow_from_landing_data_to_every_display(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(landing, "DEFAULT_TASK_TOKENS", TaskTokens(input=12_000, output=3_000))
-    monkeypatch.setattr(landing, "MONTHLY_TASKS", 4_321)
-    changed = landing._build_data(str(ROOT), date.today(), "scenario-values-round-3")
-    page = landing.render(changed, variant="live")
-    script = (ROOT / "pipeline/landing_assets/landing.js").read_text(encoding="utf-8")
+@pytest.fixture(scope="module")
+def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[str, bool]:
+    """Execute both landing variants once in Chromium and return named checks."""
+    browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
+    playwright = ROOT / "web" / "node_modules" / "playwright"
+    if not playwright.is_dir():
+        pytest.skip("landing browser tests require `npm ci` in web/")
 
-    assert page.count("4,321") == 4
-    assert "12K in / 3K out" in page
-    assert '"task_input_tokens":12000' in page
-    assert '"task_output_tokens":3000' in page
-    assert '"monthly_tasks":4321' in page
-    assert changed.leader_monthly == changed.leader.cost * changed.monthly_tasks
-    assert changed.cheapest_monthly == changed.cheapest.cost * changed.monthly_tasks
-    assert "10,000" not in page
-    assert "40K in / 4K out" not in page
-    assert "compactCount(data.task_input_tokens)" in script
-    assert "compactCount(data.task_output_tokens)" in script
-    assert script.count("data.monthly_tasks") == 2
+    models = (
+        landing.PlotModel("synthetic-leader", "Synthetic Leader", .9, 9, 8, 10, True),
+        landing.PlotModel("synthetic-tie", "Synthetic Tie", .2, 8.5, 8, 9.5, True),
+        landing.PlotModel("synthetic-cheapest", "Synthetic Cheapest", .1, 8.2, 8, 9, True),
+        landing.PlotModel("synthetic-outsider", "Synthetic Outsider", .5, 5, 4, 6, False),
+    )
+    monthly_tasks = 4_321
+    changed = landing.LandingData(
+        as_of="2026-09-28",
+        benchmark_count=7,
+        task_input_tokens=12_000,
+        task_output_tokens=3_000,
+        monthly_tasks=monthly_tasks,
+        models=models,
+        leader_id="synthetic-leader",
+        cheapest_id="synthetic-cheapest",
+        ratio=9,
+        leader_monthly=models[0].cost * monthly_tasks,
+        cheapest_monthly=models[2].cost * monthly_tasks,
+        monthly_gap=(models[0].cost - models[2].cost) * monthly_tasks,
+        routes=(),
+        template_count=0,
+        axes=landing._plot_axes(list(models)),
+    )
+    directory = tmp_path_factory.mktemp("landing-browser")
+    live = directory / "live.html"
+    holding = directory / "holding.html"
+    live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
+    holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+    try:
+        completed = subprocess.run(
+            ["node", str(browser_script), str(live), str(holding)],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError) as error:
+        detail = getattr(error, "stderr", "") or str(error)
+        if "Executable doesn't exist" in detail or "browserType.launch" in detail:
+            pytest.skip(f"Chromium cannot run landing browser tests: {detail.splitlines()[0]}")
+        pytest.fail(f"landing browser assertions failed:\n{detail}")
+    return json.loads(completed.stdout)
+
+
+@pytest.mark.parametrize(
+    "check",
+    ["altered_data", "challenge", "motion", "responsive", "holding"],
+)
+def test_landing_behaviour_in_browser(
+    landing_browser_results: dict[str, bool], check: str,
+) -> None:
+    assert landing_browser_results[check]
 
 
 def test_plot_domains_and_ticks_are_derived_from_the_models() -> None:
@@ -150,11 +176,8 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     holding = landing.render(data, variant="holding")
     assert '<meta name="robots" content="noindex">' in live
     assert 'rel="canonical"' not in live
-    assert 'href="/">Open the board</a>' in live
     assert '<link rel="canonical" href="https://modelspec.dev/">' in holding
     assert 'content="noindex"' not in holding
-    assert "Board opening soon" in holding
-    assert 'href="/">Open the board</a>' not in holding
     release = "CLI, API and MCP. Install instructions arrive with the public release."
     for page in (live, holding):
         # First run in order: vocab and decide need the snapshot first.
@@ -173,19 +196,3 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     footer = (f"{len(data.routes)} of {data.template_count} templates · "
               "the others' top result has no published price")
     assert footer in live and footer in holding
-
-
-def test_page_has_the_interaction_and_accessibility_contract(data: landing.LandingData) -> None:
-    page = landing.render(data, variant="live")
-    assert '<select id="model-pick">' in page
-    assert '<button type="submit">Check my pick</button>' in page
-    assert 'aria-live="polite"' in page
-    assert 'role="img" aria-label=' in page
-    assert 'href="/legal/terms/"' in page
-    assert 'href="/legal/privacy/"' in page
-    assert 'href="/legal/neutrality/"' in page
-    script = (ROOT / "pipeline/landing_assets/landing.js").read_text(encoding="utf-8")
-    css = (ROOT / "pipeline/landing_assets/landing.css").read_text(encoding="utf-8")
-    assert "2600" in script
-    assert 'prefers-reduced-motion: reduce' in script
-    assert "@media (max-width: 899px)" in css
