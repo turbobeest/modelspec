@@ -80,7 +80,6 @@ def verify(
         typer.echo(f"  no claim filed for re-queued {v.ref_str(t)}")
 
 
-@app.command("accuracy")
 def accuracy(
     profile: str = typer.Option("pr", "--profile", help="pr or nightly."),
     output_dir: Path = typer.Option(Path("accuracy-report"), "--output-dir"),
@@ -117,3 +116,10 @@ def accuracy(
     typer.echo(f"JSON: {payload}")
     if report.status == "fail":
         raise typer.Exit(1)
+
+
+# The accuracy harness runs repository tests and reads repository-only recall
+# material. Keep it available in a source checkout, but do not advertise a
+# command that an installed wheel cannot execute.
+if (v.REPO_ROOT / "scripts" / "accuracy.py").is_file():
+    app.command("accuracy")(accuracy)

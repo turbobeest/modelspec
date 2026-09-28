@@ -73,10 +73,13 @@ def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
     assert "python -m venv" in commands
     assert "modelspec --help" in commands
     assert "modelspec decide --help" in commands
-    assert "cd \"$(mktemp -d)\"" in commands
+    assert 'cd "$(mktemp -d)"' in commands
     assert "modelspec vocab" in commands
     assert "modelspec snapshot fetch" in commands
     assert "modelspec decide --template budget-coding" in commands
+    assert "modelspec verify --help" in commands
+    assert "modelspec verify accuracy --profile pr --config /nonexistent" in commands
+    assert "No such command 'accuracy'" in commands
 
 
 def test_public_install_instructions_use_the_pypi_distribution_name() -> None:
