@@ -166,8 +166,12 @@ def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
     page = ms / "graph/index.html"
     _inject(explorer, page, "<!-- catalogue-freshness -->", freshness)
     vendor = root / "web3d/vendor"
-    if vendor.is_dir():
-        shutil.copytree(vendor, ms / "graph/vendor", dirs_exist_ok=True)
+    for name in ("three.min.js", "3d-force-graph.min.js"):
+        source = vendor / name
+        if source.is_file():
+            target = ms / "graph/vendor" / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
     return True
 
 

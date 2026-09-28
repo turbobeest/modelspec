@@ -101,6 +101,8 @@ def test_live_workflow_keeps_api_legal_and_the_standalone_graph_only():
     assert 'diff -r dist dist-internal' in text
     assert 'cp -a dist-v1/modelspec/graph dist/modelspec/graph' in text
     assert 'test -s dist/modelspec/graph/index.html' in text
+    assert 'test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d \' \')" = 2' in text
+    assert 'test ! -e dist/modelspec/graph/vendor/README.md' in text
     for old_path in ('downselect', 'models', 'providers', 'benchmarks', 'pricing'):
         assert f'test -s dist/modelspec/{old_path}' not in text
         assert f'test ! -e dist/modelspec/{old_path}' in text

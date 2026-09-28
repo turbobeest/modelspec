@@ -216,9 +216,9 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert "Every number is one click from its source." not in holding
     assert 'href="/decide/">Open the board</a>' in live
     assert 'href="/decide/">Open the board</a>' not in holding
-    for page in (live, holding):
-        assert page.count('href="/graph/">Explore the graph</a>') == 1
-        assert page.index('href="/graph/">Explore the graph</a>') > page.index("<footer>")
+    assert live.count('href="/graph/">Explore the graph</a>') == 1
+    assert live.index('href="/graph/">Explore the graph</a>') > live.index("<footer>")
+    assert 'href="/graph/">Explore the graph</a>' not in holding
     footer = (f"{len(data.routes)} of {data.template_count} templates · "
               "the others' top result has no published price")
     assert footer in live and footer in holding

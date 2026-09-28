@@ -222,6 +222,8 @@ jobs:
           test -s dist/modelspec/graph/index.html
           test -s dist/modelspec/graph/vendor/three.min.js
           test -s dist/modelspec/graph/vendor/3d-force-graph.min.js
+          test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d ' ')" = 2
+          test ! -e dist/modelspec/graph/vendor/README.md
           test -s dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/decide/"' dist/modelspec/decide/index.html

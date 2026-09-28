@@ -62,7 +62,6 @@ max-height:calc(100vh - var(--chrome-h,120px) - 36px);overflow:auto;padding:15px
 #detail th{text-align:left;color:var(--dim);font-weight:400;padding:3px 10px 3px 0;
 vertical-align:top;white-space:nowrap}
 #detail td{padding:3px 0;color:var(--body);word-break:break-word}
-#detail .go{display:inline-block;margin-top:12px;font-size:12px}
 #close{position:absolute;top:9px;right:12px;border:0;background:transparent;padding:2px 5px;
 cursor:pointer;color:var(--dim);font-size:17px;line-height:1}
 #close:hover{color:var(--ink)}
@@ -123,7 +122,6 @@ font-size:13px;gap:20px;backdrop-filter:blur(8px)}
   <span class="lab" id="dKind"></span>
   <h3 id="dName"></h3>
   <table id="dProps"></table>
-  <a class="go" id="dGo" href="#">Open page &rarr;</a>
 </div>
 
 <div id="status">Loading the graph…</div>
@@ -619,16 +617,6 @@ font-size:13px;gap:20px;backdrop-filter:blur(8px)}
     });
   }
 
-  function pageFor(node) {
-    if (node.label === "Model") {
-      if (node.has_page === false) { return node.huggingface_url || null; }
-      return "/m/" + node.id + "/";
-    }
-    if (node.label === "Provider") { return "/p/" + node.id + "/"; }
-    if (node.label === "Benchmark") { return "/b/" + node.id + "/"; }
-    return null;
-  }
-
   var SKIP = { key: 1, id: 1, label: 1, has_page: 1, huggingface_url: 1, huggingface_id: 1,
                __r: 1, __deg: 1, __hub: 1, __slot: 1, x: 1, y: 1, z: 1, vx: 1, vy: 1, vz: 1,
                index: 1, __threeObj: 1, fx: 1, fy: 1, fz: 1 };
@@ -674,9 +662,6 @@ font-size:13px;gap:20px;backdrop-filter:blur(8px)}
       var value = COUNTS[k] ? humanCount(node[k]) : node[k];
       return "<tr><th>" + k.replace(/_/g, " ") + "</th><td>" + esc(value) + "</td></tr>";
     }).join("");
-    var href = pageFor(node);
-    el("dGo").style.display = href ? "inline-block" : "none";
-    if (href) { el("dGo").href = href; }
     el("detail").style.display = "block";
     select(node);
   }
@@ -768,8 +753,12 @@ font-size:13px;gap:20px;backdrop-filter:blur(8px)}
   function init(views) {
     var select = el("view");
     select.innerHTML = views.map(function (v) {
+      var title = v.title;
+      if (!v.legible && v.bytes) {
+        title = "Load " + (v.bytes / 1000000).toFixed(1) + " MB " + v.title.toLowerCase() + " view";
+      }
       return '<option value="' + v.key + '"' + (v.empty ? " data-empty=1" : "") + ">" +
-             v.title + "</option>";
+             title + "</option>";
     }).join("");
 
     graph = ForceGraph3D()(el("scene"))
