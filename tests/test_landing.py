@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -93,6 +94,8 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
     playwright = ROOT / "web" / "node_modules" / "playwright"
     if not playwright.is_dir():
+        if os.environ.get("CI"):
+            pytest.fail("landing browser tests need Playwright in web/node_modules in CI")
         pytest.skip("landing browser tests require `npm ci` in web/")
 
     models = (
@@ -135,7 +138,14 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
         )
     except (FileNotFoundError, subprocess.CalledProcessError) as error:
         detail = getattr(error, "stderr", "") or str(error)
-        if "Executable doesn't exist" in detail or "browserType.launch" in detail:
+        cannot_launch = (isinstance(error, FileNotFoundError)
+                         or "Executable doesn't exist" in detail
+                         or "browserType.launch" in detail)
+        # CI installs Chromium for this shard, so a launch failure there is a
+        # failure, never a skip: the browser checks must not vanish silently.
+        if cannot_launch and os.environ.get("CI"):
+            pytest.fail(f"landing browser tests could not run in CI:\n{detail}")
+        if cannot_launch:
             pytest.skip(f"Chromium cannot run landing browser tests: {detail.splitlines()[0]}")
         pytest.fail(f"landing browser assertions failed:\n{detail}")
     return json.loads(completed.stdout)
