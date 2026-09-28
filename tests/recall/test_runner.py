@@ -209,7 +209,7 @@ def test_the_runner_judges_one_row_per_model() -> None:
 
 
 def test_rule_based_must_flag_ignores_models_that_fail_another_condition() -> None:
-    from decision.snapshot import load_snapshot_bytes
+    from decision.snapshot import load_built_snapshot
     from scripts.recall_run import _rule_flag_models
 
     def generator(mid: str, openness: str) -> dict:
@@ -231,7 +231,7 @@ def test_rule_based_must_flag_ignores_models_that_fail_another_condition() -> No
         ),
         as_of=date(2026, 9, 26),
     )
-    index = load_snapshot_bytes(snapshot.to_bytes(key=None), key=None)
+    index = load_built_snapshot(snapshot, source="recall rule test build")
     registry = default_registry()
     spec = parse_spec(
         {
