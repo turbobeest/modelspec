@@ -182,6 +182,9 @@ export function Canvas({
       xTicks.push(v);
   }
   const missing = decision.canvas_rows.filter((r) => ax.get(r) === null || r.cap === null);
+  const classExcluded = decision.canvas_class_excluded;
+  const decisionModelsExcluded = classExcluded.filter((row) => row.m.type === "decision");
+  const allMissing = [...classExcluded, ...missing];
   const hasTypeFilter = spec.conds.some((condition) => condition.f === "type");
   return (
     <section className="panel canvas-panel" aria-label="Trade-off canvas">
@@ -191,6 +194,11 @@ export function Canvas({
           Every point is a model, via its best qualifying offering
           {!hasTypeFilter ? "; defaults to text generators" : ""}
         </small>
+        {!hasTypeFilter && decisionModelsExcluded.length > 0 && (
+          <small className="canvas-class-caption">
+            Showing text generators; {decisionModelsExcluded.length} decision {decisionModelsExcluded.length === 1 ? "model" : "models"} not plotted. Set Model type to include {decisionModelsExcluded.length === 1 ? "it" : "them"}.
+          </small>
+        )}
       </div>
       <div className="axis-selects">
         <label>
@@ -596,16 +604,16 @@ export function Canvas({
           Interval
         </span>
       </div>
-      {missing.length > 0 && (
+      {allMissing.length > 0 && (
         <small className="not-plotted">
-          {missing.length > 5 && !showMissing
-            ? <>{missing.length} not plotted · <button className="text-button" onClick={() => setShowMissing(true)}>show</button></>
-            : <>Not plotted:{" "}{missing
+          {allMissing.length > 5 && !showMissing
+            ? <>{allMissing.length} not plotted · <button className="text-button" onClick={() => setShowMissing(true)}>show</button></>
+            : <>Not plotted:{" "}{allMissing
             .map(
               (r) =>
-                `${r.m.name} (${r.cap === null ? "no " + vocab.basisName(spec) : "no " + ax.label.toLowerCase()})`,
+                `${r.m.name} (${classExcluded.includes(r) ? "different model type" : r.cap === null ? "no " + vocab.basisName(spec) : "no " + ax.label.toLowerCase()})`,
             )
-            .join(", ")}{missing.length > 5 && <> · <button className="text-button" onClick={() => setShowMissing(false)}>hide</button></>}</>}
+            .join(", ")}{allMissing.length > 5 && <> · <button className="text-button" onClick={() => setShowMissing(false)}>hide</button></>}</>}
         </small>
       )}
     </section>

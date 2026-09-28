@@ -845,7 +845,6 @@ export function DesignedApp({
                 decision={decision}
                 spec={shownSpec}
                 row={row}
-                onSpec={changeSpec}
                 onRelax={relax}
                 details={requestState.kind === "success" ? requestState.details : "ready"}
                 onProvenance={(ev) => {

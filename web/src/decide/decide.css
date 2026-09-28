@@ -388,7 +388,7 @@ body {
   font-size: 14px;
 }
 .global-header {
-  height: 56px;
+  min-height: 56px;
   position: sticky;
   top: 0;
   z-index: 40;
@@ -562,7 +562,8 @@ body {
 }
 
 /* MODEL-168 preview board. It inherits the decision page's light/dark tokens. */
-.facet-board { display: grid; gap: 14px; }
+.facet-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.facet-board > *, .board-intro > *, .estate-strip > *, .board-workspace > * { min-width: 0; }
 .board-intro, .estate-strip, .board-templates, .facet-list, .board-answer-head {
   background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink);
   padding: 14px 16px;
@@ -674,9 +675,17 @@ body {
   .mobile-answer-bar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; padding: 9px 12px; color: var(--accentText); background: var(--surface); border: 1px solid var(--accent); font-weight: 650; text-decoration: none; }
 }
 @media (max-width: 620px) {
+  .global-header { position: static; padding: 8px 12px; flex-wrap: wrap; gap: 6px 8px; }
+  .global-header .brand { margin-right: auto; }
+  .global-header .spacer { display: none; }
+  .global-header .segments { order: 3; flex: 1 1 100%; }
+  .global-header .segments button { flex: 1; }
+  .global-header > button:not(.brand) { flex: 1; }
+  .work { padding: 12px 10px 48px; }
   .board-intro { display: grid; align-items: start; gap: 10px; }
   .board-intro h1 { font-size: 27px; }
-  .board-templates > div { grid-template-columns: 1fr; }
+  .board-templates > div { grid-template-columns: minmax(0, 1fr); }
+  .board-templates button, .board-templates article { min-width: 0; }
   .estate-strip { grid-template-columns: 1fr; }
   .facet-columns { display: none; }
   .facet-row { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 8px; }

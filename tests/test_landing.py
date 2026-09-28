@@ -163,7 +163,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     "check",
     [
         "altered_data", "challenge", "motion", "responsive", "holding",
-        "forwarding", "assembled_decide", "forwarded_state_ranks",
+        "forwarding", "assembled_decide", "assembled_decide_mobile", "forwarded_state_ranks",
     ],
 )
 def test_landing_behaviour_in_browser(

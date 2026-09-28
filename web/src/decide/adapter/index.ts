@@ -149,6 +149,7 @@ export interface AdapterDecision extends Decision {
   questions: ReturnType<typeof suggestions>;
   frontier: Row[];
   canvas_rows: Row[];
+  canvas_class_excluded: Row[];
   winning_strip: { row: Row | undefined; start: number; count: number }[];
   benchmarks: Record<string, BenchDef>;
   not_plotted: Record<Axis, string[]>;
@@ -444,6 +445,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         .slice(0, 3),
       frontier,
       canvas_rows: e.feasible,
+      canvas_class_excluded: [],
       winning_strip,
       benchmarks: BENCH,
       not_plotted: axisRecord((key) =>

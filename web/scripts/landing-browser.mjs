@@ -171,6 +171,31 @@ try {
   assert.deepEqual(decideFailures, []);
   results.assembled_decide = true;
 
+  await decidePage.setViewportSize({ width: 390, height: 844 });
+  async function assertDecideFitsViewport(theme) {
+    await decidePage.getByRole("button", { name: theme === "dark" ? "Dark mode" : "Light mode" }).click();
+    const overflow = await decidePage.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      offenders: [...document.querySelectorAll("body *")]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { tag: element.tagName, className: element.className?.baseVal ?? element.className, left: rect.left, right: rect.right, width: rect.width };
+        })
+        .filter(({ left, right }) => left < 0 || Math.abs(right - document.documentElement.scrollWidth) < 1)
+        .sort((left, right) => right.right - left.right)
+        .slice(0, 30),
+    }));
+    assert.equal(
+      overflow.scrollWidth <= 390,
+      true,
+      `${theme} decide overflow: ${JSON.stringify(overflow)}`,
+    );
+  }
+  await assertDecideFitsViewport("dark");
+  await assertDecideFitsViewport("light");
+  results.assembled_decide_mobile = true;
+
   const state = btoa(encodeURIComponent(JSON.stringify({
     tokIn: 40000,
     tokOut: 4000,

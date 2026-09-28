@@ -198,7 +198,9 @@ describe("the hosted Decision view-model mapper", () => {
     expect(view.explanation.feasible[0].capR?.ci).toBeCloseTo(0.4);
     expect(view.canvas_rows).toHaveLength(view.explanation.feasible.length - 1);
     expect(view.frontier.some((row) => row.m.type === "decision")).toBe(false);
-    expect(view.not_plotted["task$"]).toEqual([]);
+    expect(view.canvas_class_excluded).toHaveLength(1);
+    expect(view.canvas_class_excluded[0].m.type).toBe("decision");
+    expect(view.not_plotted["task$"]).toEqual(["lab/delta"]);
   });
 
   it("keeps an explicit benchmark drill-down on that benchmark", () => {

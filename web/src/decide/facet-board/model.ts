@@ -313,10 +313,17 @@ export function sanitizeBoardState(
   ]);
   const selections: BoardSelections = {};
   const notes = [...priorNotes];
+  const fallbackLabel = (id: string): string => {
+    const [namespace, ...parts] = id.split(".");
+    const readable = parts.join(" ").replaceAll("_", " ").trim();
+    if (namespace === "capability") return readable ? `${readable} capability` : "old capability setting";
+    if (namespace === "refinement") return readable ? `${readable} refinement` : "old refinement setting";
+    return "old decision setting";
+  };
   for (const [id, choice] of Object.entries(state.selections)) {
     if (choice.mode === "off") continue;
     if (editable.has(id)) selections[id] = choice;
-    else notes.push(`${labels.get(id) ?? id} is not editable in this snapshot, so it is not applied.`);
+    else notes.push(`${labels.get(id) ?? fallbackLabel(id)} is not editable in this snapshot, so it is not applied.`);
   }
   const activeMusts = new Set(Object.entries(selections).flatMap(([id, choice]) =>
     choice.mode === "must" || choice.mode === "both" ? [id] : [],

@@ -12,12 +12,10 @@ import {
 } from "../adapter";
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Evidence, Row, Spec } from "../adapter";
-import { setWeight } from "../state/spec";
 export function Why({
   decision,
   spec,
   row,
-  onSpec,
   onRelax,
   details = "ready",
   onProvenance,
@@ -26,7 +24,6 @@ export function Why({
   decision: AdapterDecision;
   spec: Spec;
   row: Row | null;
-  onSpec: (s: Spec) => void;
   onRelax: (i: number) => void;
   /** Whether the `full` explanation behind a summary is still coming, or failed. */
   details?: "loading" | "ready" | "unavailable";
@@ -258,44 +255,6 @@ export function Why({
             The outline is the weight you set; the fill is the share it earns.
             Conditions filter. They never add points.
           </p>
-          {boardRanked && e.tip && e.shortlist.top && (
-            <div className="tipping">
-              <div className="eyebrow">Tipping point</div>
-              <p>
-                {e.shortlist.top.m.name} stays #1 while the $ per task weight is
-                between {(e.tip.lo?.at ?? 0).toFixed(2)} and{" "}
-                {(e.tip.hi?.at ?? 1).toFixed(2)}.
-                {e.tip.hi &&
-                  ` Above ${e.tip.hi.at.toFixed(2)}, ${e.tip.hi.who.m.name} takes #1.`}
-                {e.tip.lo &&
-                  ` Below ${e.tip.lo.at.toFixed(2)}, ${e.tip.lo.who.m.name} does.`}
-              </p>
-              <div className="tip-track">
-                <span
-                  style={{
-                    left: (e.tip.lo?.at ?? 0) * 100 + "%",
-                    width:
-                      ((e.tip.hi?.at ?? 1) - (e.tip.lo?.at ?? 0)) * 100 + "%",
-                  }}
-                />
-              </div>
-              <input
-                aria-label="Tipping point cost weight"
-                type="range"
-                min="0"
-                max="1"
-                step=".01"
-                value={spec.w.cost}
-                onChange={(ev) =>
-                  onSpec({
-                    ...spec,
-                    w: setWeight(spec.w, "cost", Number(ev.target.value)),
-                  })
-                }
-              />
-              <small>$ per task weight · now {spec.w.cost.toFixed(2)}</small>
-            </div>
-          )}
         </div>
         <div>
           <div className="eyebrow">Evidence, with provenance</div>

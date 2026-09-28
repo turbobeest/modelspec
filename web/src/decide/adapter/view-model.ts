@@ -846,6 +846,7 @@ export function mapDecisionToViewModel(
   const canvasRows = feasible.filter((row) =>
     row.m.type === selectedType || (!hasPublishedClasses && row.m.type === null && row.cap !== null),
   );
+  const canvasClassExcluded = feasible.filter((row) => !canvasRows.includes(row));
   const frontier = pareto(canvasRows, options.axis, bench.hi);
   const firstStep = decision.eliminated.funnel[0];
   const legacyRefs = new Map<string, OfferingRef>();
@@ -950,9 +951,9 @@ export function mapDecisionToViewModel(
     tip: undefined,
   };
   const notPlotted = axisRecord((axis) =>
-    canvasRows
+    [...canvasClassExcluded, ...canvasRows
       .filter((row) => axisValue(row, axis) === null || row.cap === null)
-      .map((row) => row.m.lab + "/" + row.m.id),
+    ].map((row) => row.m.lab + "/" + row.m.id),
   );
   return {
     ...decision,
@@ -964,6 +965,7 @@ export function mapDecisionToViewModel(
     ),
     frontier,
     canvas_rows: canvasRows,
+    canvas_class_excluded: canvasClassExcluded,
     winning_strip: winningStrip(canvasRows, options.axis, bench.hi),
     benchmarks,
     not_plotted: notPlotted,

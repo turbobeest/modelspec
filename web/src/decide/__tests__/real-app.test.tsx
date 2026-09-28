@@ -54,8 +54,10 @@ it("sanitizes every unavailable selection in an old namespaced board permalink",
 
   const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
   expect(note).toHaveTextContent(unavailableFacet.label);
-  expect(note).toHaveTextContent("capability.retired_domain");
-  expect(note).toHaveTextContent("refinement.python");
+  expect(note).toHaveTextContent("retired domain capability");
+  expect(note).toHaveTextContent("python refinement");
+  expect(note).not.toHaveTextContent("capability.retired_domain");
+  expect(note).not.toHaveTextContent("refinement.python");
   await waitFor(() => expect(sentSpecs(fetch).length).toBeGreaterThan(0));
   const request = sentSpecs(fetch).at(-1)!;
   expect(request.where).not.toContain("model.context_window >= 200000");
@@ -418,6 +420,11 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   const why = screen.getByRole("region", { name: "Why this model" });
   expect(why).not.toHaveTextContent(/#\d/);
   expect(within(why).queryByText("Tipping point")).not.toBeInTheDocument();
+  const whyNot = within(why).getByLabelText("Why not");
+  const comparison = within(whyNot).getAllByRole("option").find((option) => option.getAttribute("value"));
+  if (!comparison) throw new Error("Why not has no model option");
+  fireEvent.change(whyNot, { target: { value: comparison.getAttribute("value") } });
+  expect(why).not.toHaveTextContent(/#\d/);
   const modelNames = within(answer).getAllByRole("listitem").map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
@@ -505,6 +512,35 @@ it("plots and tabulates domain estimates while the board is unranked", async () 
   expect(modelRow).toHaveTextContent(first.value.toFixed(2));
   expect(modelRow).toHaveTextContent("±");
   expect(modelRow?.children[3]).not.toHaveTextContent("not available in this snapshot");
+});
+
+it("explains models excluded from the default text-generator canvas", async () => {
+  const vocabulary = {
+    ...realVocabulary,
+    models: Object.fromEntries(Object.entries(realVocabulary.models).map(([id, model]) => [
+      id,
+      { ...model, class: "text-generator" },
+    ])),
+  };
+  const firstModel = liveSwePrefer.top[0].offering.model;
+  const decision = {
+    ...liveSwePrefer,
+    top: liveSwePrefer.top.map((candidate) => candidate.offering.model === firstModel ? {
+      ...candidate,
+      facts: candidate.facts.map((fact) => fact.facet === "model.class"
+        ? { ...fact, value: "decider" }
+        : fact),
+    } : candidate),
+  };
+  vi.stubGlobal("fetch", routeFetch({
+    vocabulary: () => json(vocabulary),
+    decide: () => json(decision),
+  }));
+  render(<DesignedApp />);
+
+  const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
+  expect(canvas).toHaveTextContent("Showing text generators; 1 decision model not plotted");
+  expect(canvas).toHaveTextContent(/\d+ not plotted/);
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {
