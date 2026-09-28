@@ -353,4 +353,5 @@ it("turns the deterministic task parse into conditions and never sends free text
   expect(spec.where).toContain("model.context_window >= 200000");
   expect(spec.where).toContain("codebench_pro >= 50 @independent");
   expect(spec.explain).toBe("full");
+  expect(spec.limit).toBe(500);
 });

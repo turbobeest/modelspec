@@ -41,7 +41,7 @@ describe("facet state mapping", () => {
         "model.class in {text-generator}", "offering.cost_per_task <= 0.25",
       ],
       optimize: { weights: { software_engineering: 0.6, "-offering.cost_per_task": 0.4 } },
-      unknowns: "default", explain: "full", limit: 20,
+      unknowns: "default", explain: "full", limit: 500,
     });
   });
   it("starts with no hidden conditions and adds only visible board gates", () => {
