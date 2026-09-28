@@ -309,9 +309,11 @@ export function DesignedApp({
         vocabulary,
         (current) => ask(current, "summary"),
         reloadVocabulary,
-        installReloadedVocabulary,
+        board ? installReloadedVocabulary : undefined,
       );
       if (controller.signal.aborted) return;
+      if (!board && answer.vocabulary && answer.vocabulary !== vocabulary)
+        setVocabState({ kind: "ready", vocabulary: answer.vocabulary });
       used = answer.vocabulary;
       reloaded = used !== vocabulary;
       nextSpec = answer.result.nextSpec;

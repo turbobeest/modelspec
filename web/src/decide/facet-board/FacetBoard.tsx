@@ -62,13 +62,16 @@ function RefinementRow({ row, choice, parent, allocation, fallback, onChange }: 
     : row.evidence_state === "no_benchmark" ? "No public benchmark measures this yet"
     : row.evidence_state === "thin" ? proxyOnly ? "proxy evidence only" : "Order may rest on 1–2 models"
     : null;
+  const mustReasonId = `refinement-${row.id}-must-reason`;
+  const preferReasonId = reason ? `refinement-${row.id}-prefer-reason` : undefined;
   return <div className={`refinement-row ${disabled ? "refinement-unavailable" : ""}`} data-refinement={row.id}>
     <div className="refinement-heading"><span><strong>{row.name}</strong><button className="facet-info" aria-label={`About ${row.name}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span><span className={`refinement-badge evidence-${row.evidence_state}`}>{EVIDENCE_LABELS[row.evidence_state]}</span><small>measured on {row.measured_models} of {row.of_models}</small></div>
     {infoOpen && <div className="refinement-definition"><p>{row.definition}</p>{row.benchmarks.length > 0 && <ul>{row.benchmarks.map((benchmark) => <li key={`${benchmark.id}-${benchmark.directness}`}><code>{benchmark.id}</code> · {benchmark.directness}</li>)}</ul>}</div>}
-    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label title="Must for refinements is coming"><input type="radio" name={`state-refinement-${row.id}`} disabled />Must</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
-    {reason && <small className="refinement-reason">{reason}</small>}
+    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled aria-describedby={mustReasonId} />Must</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} aria-describedby={disabled ? preferReasonId : undefined} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
+    <small id={mustReasonId} className="refinement-reason">Must for refinements is coming</small>
+    {reason && <small id={preferReasonId} className="refinement-reason">{reason}</small>}
     {fallback && choice.mode === "prefer" && <small className="refinement-fallback">Ranking by {row.name} is coming — shown by general {row.parent_domain.replaceAll("_", " ")} for now</small>}
-    {choice.mode === "prefer" && !disabled && <label className="refinement-weight">{row.name} weight <input aria-label={`Weight for ${row.name}`} type="range" min="0" max={max} step="0.05" value={weight} onChange={(event) => onChange({ ...choice, mode: "prefer", weight: Number(event.target.value) })} />{weight.toFixed(2)}</label>}
+    {choice.mode === "prefer" && !disabled && <label className="refinement-weight">{row.name} weight <input aria-label={`Weight for ${row.name}`} type="range" min="0.05" max={max} step="0.05" value={weight} onChange={(event) => onChange({ ...choice, mode: "prefer", weight: Number(event.target.value) })} />{weight.toFixed(2)}</label>}
   </div>;
 }
 

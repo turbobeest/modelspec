@@ -888,6 +888,36 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
   expect(vocabularyLoads).toBe(2);
 });
 
+it("keeps the production vocabulary unchanged when a retried summary fails", async () => {
+  const fresh = {
+    ...smallVocabulary,
+    snapshot: "snap_retry_fails",
+    domains: smallVocabulary.domains.map((domain, index) => index === 0
+      ? { ...domain, name: "Fresh vocabulary marker" }
+      : domain),
+  };
+  let vocabularyLoads = 0;
+  let decisionRequests = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabularyLoads++ === 0 ? smallVocabulary : fresh),
+    decide: () => {
+      decisionRequests += 1;
+      return decisionRequests === 1
+        ? json({ error: { code: "snapshot_changed", message: "reload the vocabulary and retry" } }, 409)
+        : json({ error: { code: "retry_failed", message: "retry failed" } }, 500);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByText("Coding agent on a budget");
+  fireEvent.click(screen.getByText("start from constraints"));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("retry failed");
+  expect(screen.queryByText("Fresh vocabulary marker")).not.toBeInTheDocument();
+  expect(vocabularyLoads).toBe(2);
+  expect(decisionRequests).toBe(2);
+});
+
 it("folds a rejected refinement with the vocabulary installed after a snapshot change", async () => {
   const fresh = {
     ...refinementVocabulary,

@@ -10,6 +10,7 @@ import type { BoardSelections } from "../facet-board/model";
 import { realBaseSpec } from "../vocabulary";
 import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
+import { decisionSpecSchema } from "../adapter/contract";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import { vocabularySchema } from "../vocabulary";
 
@@ -175,6 +176,23 @@ describe("refinements", () => {
     expect(Object.values(allocation.weights).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(0.3);
     expect(allocateBoardWeights(refinementVocabulary, allocation.selections).weights)
       .toEqual(allocation.weights);
+    const request = toBoardDecisionSpec(
+      boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections),
+      "summary",
+    );
+    expect("weights" in request.optimize && request.optimize.weights)
+      .not.toHaveProperty("software_engineering");
+    expect(decisionSpecSchema.safeParse(request).success).toBe(true);
+  });
+
+  it("omits a fully carved parent from the request and keeps positive refinements", () => {
+    const spec = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
+      "capability.software_engineering": { mode: "prefer", weight: 0.3 },
+      "refinement.python": { mode: "prefer", weight: 0.3 },
+    });
+    const request = toBoardDecisionSpec(spec, "summary");
+    expect(request.optimize).toEqual({ weights: { "software_engineering/python": 0.3 } });
+    expect(decisionSpecSchema.safeParse(request).success).toBe(true);
   });
 
   it("uses the same allocation for slider limits, the equation and normalized state", () => {
@@ -215,6 +233,8 @@ describe("refinements", () => {
     expect(within(language).getAllByText(/Python|Go|Java|Rust|TypeScript/).map((node) => node.textContent)).toEqual(["Python", "Go", "Java", "Rust", "TypeScript"]);
     const rust = screen.getByText("Rust").closest<HTMLElement>(".refinement-row")!;
     expect(within(rust).getByLabelText("Prefer")).toBeDisabled();
+    expect(within(rust).getByLabelText("Prefer")).toHaveAccessibleDescription("Benchmarks exist; no scores for these models yet");
+    expect(within(rust).getByLabelText("Must")).toHaveAccessibleDescription("Must for refinements is coming");
     expect(within(rust).getByText("Benchmarks exist; no scores for these models yet")).toBeInTheDocument();
     const terminal = screen.getByText("Terminal agent").closest<HTMLElement>(".refinement-row")!;
     expect(within(terminal).getByLabelText("Prefer")).toBeEnabled();

@@ -392,13 +392,16 @@ export function foldRefinementWeights(spec: Spec, vocabulary: Vocabulary): Spec 
 
 export function toBoardDecisionSpec(spec: Spec, explain: "none" | "summary" | "full"): DecisionSpec {
   const contract = toDecisionSpec(spec, explain);
+  const positiveWeights = Object.fromEntries(
+    Object.entries(spec.boardWeights ?? {}).filter(([, weight]) => weight > 0),
+  );
   return spec.boardWeights !== undefined
-    ? { ...contract, optimize: { weights: boardHasPreference(spec) ? spec.boardWeights : UNRANKED_OBJECTIVE } }
+    ? { ...contract, optimize: { weights: Object.keys(positiveWeights).length > 0 ? positiveWeights : UNRANKED_OBJECTIVE } }
     : contract;
 }
 
 export function boardHasPreference(spec: Spec): boolean {
-  return spec.boardWeights !== undefined && Object.keys(spec.boardWeights).length > 0;
+  return spec.boardWeights !== undefined && Object.values(spec.boardWeights).some((weight) => weight > 0);
 }
 
 export function encodeBoardSpec(spec: Spec, axis: Axis, board: BoardUrlState): string {
