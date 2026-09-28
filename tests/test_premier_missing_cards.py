@@ -84,7 +84,7 @@ def test_model_161_qwen_is_eliminated_from_q17() -> None:
     from decision.contract import parse_spec
     from decision.engine import decide
     from decision.registry import default as default_registry
-    from decision.snapshot import build_from_repo, load_snapshot_bytes
+    from decision.snapshot import build_from_repo, load_built_snapshot
 
     registry = default_registry()
     built = build_from_repo(
@@ -94,7 +94,7 @@ def test_model_161_qwen_is_eliminated_from_q17() -> None:
         registry=registry,
         gate=False,
     )
-    snapshot = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    snapshot = load_built_snapshot(built, source="premier card test build")
     spec = parse_spec(
         (ROOT / "tests" / "recall" / "specs" / "Q17.yaml").read_text(encoding="utf-8"),
         facets=registry.facet,

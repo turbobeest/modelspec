@@ -61,6 +61,13 @@ its key ID. The CLI pins every accepted public key in
 `decision/snapshot_keys.json`. The site publishes the same key set at
 `/.well-known/modelspec-snapshot-keys.json`.
 
+The writer derives the public key from the configured Ed25519 secret and looks
+up its key ID in the pinned set. A non-empty set with no matching key fails the
+write. When the set is empty, the writer warns and omits Ed25519 during initial
+provisioning; an HMAC signature is still written when its key is configured.
+Build-only in-memory consumers disable publisher-signature verification and
+still receive the content-hash and snapshot-ID checks.
+
 `lineup` and `archive` are columnar: `candidates` (id, kind, model, lifecycle,
 sorted by id), `facets` (per facet, sparse columns `row`, `state`, `value`,
 `sources`) and `evidence` (per candidate, rows of benchmark, version,

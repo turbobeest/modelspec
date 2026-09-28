@@ -29,7 +29,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import offline, snapshot  # noqa: E402
-from tests.test_cli_snapshot import _decision_artifacts, _modelspec_cli, _write  # noqa: E402
+from decision import snapshot as decision_snapshot  # noqa: E402
+from tests.test_cli_snapshot import (  # noqa: E402
+    _TEST_PUBLIC_KEYS,
+    _decision_artifacts,
+    _modelspec_cli,
+    _modelspec_test_cli,
+    _write,
+)
 
 #: A key with a shape the origin would recognise (MODEL-69 mints `live_…`) and
 #: a body distinctive enough that a substring search for it cannot false-match.
@@ -166,12 +173,21 @@ def cache(tmp_path: Path) -> Path:
     return directory
 
 
+@pytest.fixture(autouse=True)
+def _pin_test_snapshot_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: dict(_TEST_PUBLIC_KEYS),
+    )
+
+
 def _run(args: list[str], cache: Path, key: str | None = None) -> subprocess.CompletedProcess:
     env = {"PATH": "/usr/bin:/bin", "MODELSPEC_CACHE": str(cache),
            "HOME": str(cache.parent), "PYTHONPATH": str(REPO_ROOT)}
     if key is not None:
         env[snapshot.API_KEY_ENV] = key
-    return subprocess.run([*_modelspec_cli(), *args], capture_output=True, text=True,
+    return subprocess.run([*_modelspec_test_cli(), *args], capture_output=True, text=True,
                           timeout=120, env=env)
 
 
@@ -280,9 +296,9 @@ def test_keyed_origin_falls_back_for_public_decision_files_without_sending_key(
             "available": True,
             "origin": public.url,
             "snapshot_id": _decision_artifacts()[1]["snapshot"],
-            "signature_verified": False,
-            "signature_status": "unsigned (ed25519 key not yet provisioned)",
-            "signature_key_id": None,
+            "signature_verified": True,
+            "signature_status": "verified (ed25519 key test-fixture)",
+            "signature_key_id": "test-fixture",
         }
         assert all("Authorization" not in headers for _, headers in public.seen)
         assert snapshot.decision_snapshot_path(cache).exists()
@@ -309,9 +325,9 @@ def test_keyed_origin_falls_back_when_decision_route_refuses_key(
             "available": True,
             "origin": public.url,
             "snapshot_id": _decision_artifacts()[1]["snapshot"],
-            "signature_verified": False,
-            "signature_status": "unsigned (ed25519 key not yet provisioned)",
-            "signature_key_id": None,
+            "signature_verified": True,
+            "signature_status": "verified (ed25519 key test-fixture)",
+            "signature_key_id": "test-fixture",
         }
         assert all("Authorization" not in headers for _, headers in public.seen)
         assert snapshot.decision_snapshot_path(cache).exists()

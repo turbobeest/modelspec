@@ -15,7 +15,7 @@ from decision.computed import COST_PER_TASK, with_computed
 from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
 from decision.engine import decide
 from decision.registry import default
-from decision.snapshot import build_from_repo, load_snapshot_bytes
+from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_templates
 from pipeline import landing
 from pipeline.load import load_models
@@ -57,7 +57,7 @@ def test_landing_copy_uses_the_computed_figures(data: landing.LandingData) -> No
 def test_every_published_template_route_is_an_engine_result(data: landing.LandingData) -> None:
     registry = default()
     snapshot = build_from_repo(ROOT, premier=None, as_of=date.today(), gate=False)
-    loaded = load_snapshot_bytes(snapshot.to_bytes(), key=None)
+    loaded = load_built_snapshot(snapshot, source="landing test build")
     cards = {model.model_id: model for model in load_models(ROOT)}
     expected: list[tuple[str, str, str, float]] = []
     unpriced_results: list[str] = []

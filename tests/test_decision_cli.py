@@ -45,6 +45,20 @@ optimize:
 """
 
 
+def _test_ed25519_key(key_id: str):
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    return decision_snapshot.Ed25519Signer(key_id, private_raw), {key_id: public_raw}
+
+
 @pytest.fixture
 def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
     snapshot = build_snapshot(SnapshotInputs(
@@ -102,10 +116,14 @@ def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
     cache = tmp_path / "cache"
     generation = cache / "decision" / snapshot.snapshot_id
     generation.mkdir(parents=True)
-    (generation / "snapshot.json.gz").write_bytes(snapshot.to_bytes(key=None))
+    signer, public_keys = _test_ed25519_key("test-cli-fixture")
+    (generation / "snapshot.json.gz").write_bytes(
+        snapshot.to_bytes(key=None, ed25519_signer=signer)
+    )
     (generation / "vocabulary.json").write_text(json.dumps(vocabulary))
     (cache / "decision" / "current").write_text(snapshot.snapshot_id + "\n")
     monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
+    monkeypatch.setattr(decision_snapshot, "load_public_keys", lambda: public_keys)
     return vocabulary
 
 
@@ -486,13 +504,16 @@ def _install_template_snapshot(tmp_path: Path, monkeypatch) -> Path:
     cache = tmp_path / "cache"
     generation = cache / "decision" / built.snapshot_id
     generation.mkdir(parents=True)
-    (generation / "snapshot.json.gz").write_bytes(built.to_bytes(key=None))
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    signer, public_keys = _test_ed25519_key("test-template-fixture")
+    snapshot_bytes = built.to_bytes(key=None, ed25519_signer=signer)
+    (generation / "snapshot.json.gz").write_bytes(snapshot_bytes)
+    index = load_snapshot_bytes(snapshot_bytes, key=None, public_keys=public_keys)
     (generation / "vocabulary.json").write_text(
         json.dumps(build_vocabulary(index), ensure_ascii=False), encoding="utf-8"
     )
     (cache / "decision" / "current").write_text(built.snapshot_id + "\n", encoding="utf-8")
     monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
+    monkeypatch.setattr(decision_snapshot, "load_public_keys", lambda: public_keys)
     return cache
 
 

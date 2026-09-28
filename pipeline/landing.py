@@ -19,7 +19,7 @@ from decision.computed import COST_PER_TASK, with_computed
 from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
 from decision.engine import decide
 from decision.registry import default
-from decision.snapshot import build_from_repo, load_snapshot_bytes
+from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_templates
 from pipeline import brand
 from pipeline.load import load_models
@@ -191,7 +191,9 @@ def _input_digest(root: Path, as_of: date) -> str:
 def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
     root = Path(root_value)
     snapshot = build_from_repo(root, premier=None, as_of=as_of, gate=False)
-    loaded = load_snapshot_bytes(snapshot.to_bytes(), key=None)
+    # This snapshot never leaves the build process. Check its content hash, but
+    # do not sign it or require a publisher signature meant for public clients.
+    loaded = load_built_snapshot(snapshot, source="landing-page build")
     priced = with_computed(loaded, DEFAULT_TASK_TOKENS)
     cards = {model.model_id: model for model in load_models(root)}
 

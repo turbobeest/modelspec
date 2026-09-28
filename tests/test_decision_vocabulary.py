@@ -19,7 +19,7 @@ from decision.contract import CONTRACT_VERSION, DEFAULT_TASK_TOKENS, parse_spec
 from decision.engine import decide
 from decision.registry import default as registry
 from decision.registry import facet as registry_facet
-from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 from decision.templates import load_templates
 from decision.vocabulary import (
     VOCABULARY_VERSION,
@@ -78,7 +78,7 @@ def snapshot():
         benchmark_domains=DOMAINS,
     )
     built = build_snapshot(inputs, gate=False, as_of=AS_OF)
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    return load_built_snapshot(built, include_archive=True, source="vocabulary test build")
 
 
 CARDS = {
@@ -236,7 +236,7 @@ def test_proxy_evidence_counts_toward_a_domain_but_not_as_direct():
         evidence=[evidence("lab/x", "terminal_bench_v4_0", 40.0)],
         sources=SOURCES, benchmark_domains=DOMAINS,
     ), gate=False, as_of=AS_OF)
-    coverage = build_vocabulary(load_snapshot_bytes(built.to_bytes(key=None), key=None))["coverage"]
+    coverage = build_vocabulary(load_built_snapshot(built, source="coverage test build"))["coverage"]
     engineering = by_id(coverage["domains"])["software_engineering"]
     assert (engineering["verified"], engineering["direct"]) == (1, 0)
 
@@ -402,7 +402,7 @@ def test_a_verified_registry_benchmark_preselects_the_drilldown():
         benchmark_domains=DOMAINS,
     )
     built = build_snapshot(inputs, gate=False, as_of=AS_OF)
-    snap = load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    snap = load_built_snapshot(built, include_archive=True, source="archive test build")
     domain = by_id(build_vocabulary(snap, pages=PAGES, cards=CARDS)["domains"])["software_engineering"]
     assert domain["default_benchmark"] == "swe_bench_pro"
     assert domain["benchmarks"][0] == "swe_bench_pro"
@@ -437,7 +437,7 @@ def test_domain_estimate_passes_frontier_coverage_that_swe_bench_pro_fails():
         gate=False,
         as_of=AS_OF,
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="range test build")
 
     estimate = frontier_coverage(index, "software_engineering")
     sparse_benchmark = frontier_coverage(

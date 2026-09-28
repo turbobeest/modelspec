@@ -18,7 +18,7 @@ from typer.testing import CliRunner
 
 from decision import verify
 from decision.model import Verification, VerificationActor, independent_families, model_family
-from decision.snapshot import UNKNOWN, SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.snapshot import UNKNOWN, SnapshotInputs, build_snapshot, load_built_snapshot
 from tests.snapshot_records import SOURCES, evidence, model, verification
 from tests.test_decision_verify import (
     TODAY,
@@ -98,7 +98,7 @@ def _index(*log, inline="verified"):
         benchmark_domains={"terminal_bench_v4_0": [("agentic_tool_use", "direct")]},
         verifications=list(log),
     ), gate=False, as_of=date(2026, 9, 25))
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    return load_built_snapshot(built, source="independence test build")
 
 
 def test_a_same_family_verification_does_not_admit_evidence():
@@ -136,7 +136,7 @@ def test_a_same_family_fact_verification_does_not_admit_a_fact():
                          "collector": CLAUDE, "verifier": SONNET}
     built = build_snapshot(SnapshotInputs(models=[model("lab/alpha", facts=[f])],
                                           sources=SOURCES), gate=False)
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="independence test build")
     assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
 
 
