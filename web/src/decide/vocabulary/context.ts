@@ -64,8 +64,9 @@ export function realVocab(v: Vocabulary): DecideVocab {
       if (spec.basis !== "estimate" || !spec.domain)
         return benchmarks.find((b) => b.id === spec.bench)?.name ?? spec.bench;
       const domain = v.domains.find((row) => row.id === spec.domain);
+      const count = domain?.estimate_benchmarks?.length ?? domain?.benchmarks.length;
       return domain
-        ? `${domain.name} capability (estimated from ${domain.benchmarks.length} benchmarks)`
+        ? `${domain.name} capability (estimated from ${count} benchmarks)`
         : `${spec.domain} capability estimate`;
     },
     facetOptions: facetOptions(v),

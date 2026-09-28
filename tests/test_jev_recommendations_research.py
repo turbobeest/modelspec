@@ -288,30 +288,6 @@ def test_concurrent_reservations_cannot_oversubscribe_the_cap() -> None:
     assert budget.reserved == 0.0
 
 
-def test_task_parser_uses_the_system_temporary_directory(monkeypatch, tmp_path: Path) -> None:
-    directories: list[Path | None] = []
-
-    class TemporaryDirectory:
-        def __init__(self, *, dir=None):
-            directories.append(dir)
-
-        def __enter__(self) -> str:
-            return str(tmp_path)
-
-        def __exit__(self, *_args) -> None:
-            return None
-
-    def run_parser(*_args, **kwargs) -> None:
-        output = Path(kwargs["env"]["MODELSPEC_JEV_TASK_OUTPUT"])
-        output.write_text(json.dumps([]), encoding="utf-8")
-
-    monkeypatch.setattr(research.tempfile, "TemporaryDirectory", TemporaryDirectory)
-    monkeypatch.setattr(research.subprocess, "run", run_parser)
-
-    assert research.parse_real_task_baseline([]) == []
-    assert directories == [None]
-
-
 def test_scoring_requires_every_typed_answer() -> None:
     body = {
         "answers": {

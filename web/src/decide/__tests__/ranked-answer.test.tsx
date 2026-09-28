@@ -33,3 +33,19 @@ describe("ranked answer refinement fallbacks", () => {
     expect(screen.getAllByText(label).length).toBeGreaterThan(0);
   });
 });
+
+describe("unranked board answer", () => {
+  it("sorts qualifying and may-qualify models alphabetically without implying a winner", () => {
+    const spec = { ...realBaseSpec(vocabulary), boardWeights: {} };
+    const decision = mapDecisionToViewModel(fixture, spec, {
+      axis: "task$", dismissed: [], models: vocabulary.models, providers: vocabulary.providers,
+    });
+
+    render(<RankedAnswer decision={decision} spec={spec} vocabulary={vocabulary} />);
+
+    expect(screen.getByText(`${decision.explanation.feasible.length} qualify — set a Prefer to rank them`)).toBeInTheDocument();
+    const names = screen.getAllByRole("listitem").map((item) => item.querySelector("strong")?.textContent).filter(Boolean);
+    expect(names).toEqual(names.slice().sort((left, right) => left!.localeCompare(right!)));
+    expect(document.body).not.toHaveTextContent("#1");
+  });
+});
