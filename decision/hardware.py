@@ -7,9 +7,9 @@ hardware layer so the v1 view and the decision snapshot cannot disagree.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Mapping, Sequence
 
 from pipeline.hardware import QUANT_BYTES, WORKING_ALLOWANCE, fitting_quants, weights_gb
 
@@ -40,6 +40,7 @@ class DeviceFit:
 @dataclass(frozen=True)
 class HardwareFit:
     fits_hardware: tuple[str, ...] | None
+    indeterminate_hardware: tuple[str, ...]
     devices: Mapping[str, DeviceFit]
     formula: str
     inputs: Mapping[str, float | int | None | str]
@@ -99,6 +100,9 @@ def compute_fit(
     all_unknown = bool(rows) and all(row.fits is None for row in rows.values())
     return HardwareFit(
         fits_hardware=None if all_unknown else tuple(sorted(known_fits)),
+        indeterminate_hardware=tuple(sorted(
+            device_id for device_id, row in rows.items() if row.fits is None
+        )),
         devices=MappingProxyType(rows),
         formula=FORMULA,
         inputs=MappingProxyType({

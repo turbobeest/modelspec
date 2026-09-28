@@ -969,9 +969,23 @@ facts:
   - nvidia_tesla_p40
   - qualcomm_snapdragon_x_elite
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 31273088876
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:ce01bdb70cce3de41e785da5dd14a2c61f8a93860f1c23902d2895abba0e1f34
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-google-gemma-4-31b-it-hardware-fit
-    snapshot_ref: sha256:4626e3b61e33e2b5cb983da1e42d5afb8cfead46cd6c306aedf3e49cd5487275
+  - source_id: model-174-google-gemma-4-31b-it-hardware-input
+    snapshot_ref: sha256:ce01bdb70cce3de41e785da5dd14a2c61f8a93860f1c23902d2895abba0e1f34
     cited_regions:
     - rows
 - facet: model.class
@@ -1177,10 +1191,38 @@ facts:
   value: 31273088876
   state: known
   sources:
-  - source_id: model-174-google-gemma-4-31b-it-hardware-fit
-    snapshot_ref: sha256:4626e3b61e33e2b5cb983da1e42d5afb8cfead46cd6c306aedf3e49cd5487275
+  - source_id: model-174-google-gemma-4-31b-it-hardware-input
+    snapshot_ref: sha256:ce01bdb70cce3de41e785da5dd14a2c61f8a93860f1c23902d2895abba0e1f34
     cited_regions:
     - rows
+- id: google/gemma-4-31b-it#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: google/gemma-4-31b-it
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-google-gemma-4-31b-it-hardware-input
+    snapshot_ref: sha256:ce01bdb70cce3de41e785da5dd14a2c61f8a93860f1c23902d2895abba0e1f34
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 31273088876
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:ce01bdb70cce3de41e785da5dd14a2c61f8a93860f1c23902d2895abba0e1f34
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

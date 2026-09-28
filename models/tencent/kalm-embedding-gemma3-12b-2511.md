@@ -1149,8 +1149,8 @@ facts:
   value: 11766034176
   state: known
   sources:
-  - source_id: model-174-tencent-kalm-embedding-gemma3-12b-2511-hardware-fit
-    snapshot_ref: sha256:e14e6fe08141a220a32edd643e1a1a8c76ca620c7252a31754573755342443ed
+  - source_id: model-174-tencent-kalm-embedding-gemma3-12b-2511-hardware-input
+    snapshot_ref: sha256:ed32bede2ea846dcdea6fbd09db16057ad9eea7446b935079b8d51721e3d888e
     cited_regions:
     - rows
 - id: tencent/kalm-embedding-gemma3-12b-2511#model.fits_hardware
@@ -1221,11 +1221,53 @@ facts:
   - nvidia_tesla_p40
   - qualcomm_snapdragon_x_elite
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 11766034176
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:ed32bede2ea846dcdea6fbd09db16057ad9eea7446b935079b8d51721e3d888e
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-tencent-kalm-embedding-gemma3-12b-2511-hardware-fit
-    snapshot_ref: sha256:e14e6fe08141a220a32edd643e1a1a8c76ca620c7252a31754573755342443ed
+  - source_id: model-174-tencent-kalm-embedding-gemma3-12b-2511-hardware-input
+    snapshot_ref: sha256:ed32bede2ea846dcdea6fbd09db16057ad9eea7446b935079b8d51721e3d888e
     cited_regions:
     - rows
+- id: tencent/kalm-embedding-gemma3-12b-2511#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: tencent/kalm-embedding-gemma3-12b-2511
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-tencent-kalm-embedding-gemma3-12b-2511-hardware-input
+    snapshot_ref: sha256:ed32bede2ea846dcdea6fbd09db16057ad9eea7446b935079b8d51721e3d888e
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 11766034176
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:ed32bede2ea846dcdea6fbd09db16057ad9eea7446b935079b8d51721e3d888e
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'

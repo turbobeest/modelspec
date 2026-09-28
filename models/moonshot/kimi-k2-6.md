@@ -2183,9 +2183,23 @@ facts:
   facet: model.fits_hardware
   value: []
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 1026879376368
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:4907614de6010e874bcd100c0f32d4c120c080941a4dca5294bbfeb976a37654
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-moonshot-kimi-k2-6-hardware-fit
-    snapshot_ref: sha256:6b9582cd3aa95ac659adc5afb4ec6b3541f9c3ca6868c8a2d4ea881fb83ef4c7
+  - source_id: model-174-moonshot-kimi-k2-6-hardware-input
+    snapshot_ref: sha256:4907614de6010e874bcd100c0f32d4c120c080941a4dca5294bbfeb976a37654
     cited_regions:
     - rows
 - id: moonshot/kimi-k2-6#model.parameters_total
@@ -2196,10 +2210,38 @@ facts:
   value: 1026879376368
   state: known
   sources:
-  - source_id: model-174-moonshot-kimi-k2-6-hardware-fit
-    snapshot_ref: sha256:6b9582cd3aa95ac659adc5afb4ec6b3541f9c3ca6868c8a2d4ea881fb83ef4c7
+  - source_id: model-174-moonshot-kimi-k2-6-hardware-input
+    snapshot_ref: sha256:4907614de6010e874bcd100c0f32d4c120c080941a4dca5294bbfeb976a37654
     cited_regions:
     - rows
+- id: moonshot/kimi-k2-6#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: moonshot/kimi-k2-6
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-moonshot-kimi-k2-6-hardware-input
+    snapshot_ref: sha256:4907614de6010e874bcd100c0f32d4c120c080941a4dca5294bbfeb976a37654
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 1026879376368
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:4907614de6010e874bcd100c0f32d4c120c080941a4dca5294bbfeb976a37654
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

@@ -1157,8 +1157,8 @@ facts:
   value: 4919641986
   state: known
   sources:
-  - source_id: model-174-querit-querit-hardware-fit
-    snapshot_ref: sha256:0116c22a337b8aa3010337b072c3d29ea4c35a03723aba8a4cec3a8c23d599fa
+  - source_id: model-174-querit-querit-hardware-input
+    snapshot_ref: sha256:4c08cf44d3df73f6ecde5442f2b3df593fb34ccca4cfb0897fe49eedfe2a3b46
     cited_regions:
     - rows
 - id: querit/querit#model.fits_hardware
@@ -1230,11 +1230,53 @@ facts:
   - nvidia_tesla_p40
   - qualcomm_snapdragon_x_elite
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 4919641986
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:4c08cf44d3df73f6ecde5442f2b3df593fb34ccca4cfb0897fe49eedfe2a3b46
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-querit-querit-hardware-fit
-    snapshot_ref: sha256:0116c22a337b8aa3010337b072c3d29ea4c35a03723aba8a4cec3a8c23d599fa
+  - source_id: model-174-querit-querit-hardware-input
+    snapshot_ref: sha256:4c08cf44d3df73f6ecde5442f2b3df593fb34ccca4cfb0897fe49eedfe2a3b46
     cited_regions:
     - rows
+- id: querit/querit#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: querit/querit
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-querit-querit-hardware-input
+    snapshot_ref: sha256:4c08cf44d3df73f6ecde5442f2b3df593fb34ccca4cfb0897fe49eedfe2a3b46
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 4919641986
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:4c08cf44d3df73f6ecde5442f2b3df593fb34ccca4cfb0897fe49eedfe2a3b46
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'

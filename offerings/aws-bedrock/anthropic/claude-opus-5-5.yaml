@@ -151,7 +151,7 @@
     value: false
     state: known
     sources:
-    - source_id: model-174-aws-bedrock-anthropic-claude-opus-5-5-global-cross-region-standard
-      snapshot_ref: sha256:7ad395e610af1bbf50c997122666ee86fc98c03471d346d8cfd0ace8eaa0a0a1
+    - source_id: model-174-aws-bedrock-anthropic-claude-opus-5-5-global-cross-region-standard-primary
+      snapshot_ref: sha256:f479a2cbe5f9541c71412217c4cb3f54574d46c79e86283f13f3d798f77c4e56
       cited_regions:
       - rows

@@ -175,10 +175,9 @@
       kind: offering
       id: deepseek/deepseek/deepseek-flash/global/standard
     facet: offering.private_deployment
-    value: true
-    state: known
-    sources:
-    - source_id: model-174-deepseek-deepseek-deepseek-flash-global-standard
-      snapshot_ref: sha256:459b49896dd45f302ed8465cbb79785bd89fbb45f3637a8fefddbdade554e198
-      cited_regions:
-      - rows
+    value: null
+    state: unknown
+    checked_sources:
+    - deepseek-v4-pricing
+    - model-163-deepseek-deepseek-flash
+    - model-163-deepseek-flash-pricing

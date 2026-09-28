@@ -2078,9 +2078,23 @@ facts:
   value:
   - apple_m3_ultra
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 753329940480
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:ac0063709e3c1557cb20ab655246af5b46c3e8166f4bd803f46331fd82651a27
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-zhipu-glm-5-3-hardware-fit
-    snapshot_ref: sha256:49dcd10bd44127186a58b8c88418e7d8f35d0c67af08e0e7a2149a0d1903628c
+  - source_id: model-174-zhipu-glm-5-3-hardware-input
+    snapshot_ref: sha256:ac0063709e3c1557cb20ab655246af5b46c3e8166f4bd803f46331fd82651a27
     cited_regions:
     - rows
 - id: zhipu/glm-5-3#model.parameters_total
@@ -2091,10 +2105,38 @@ facts:
   value: 753329940480
   state: known
   sources:
-  - source_id: model-174-zhipu-glm-5-3-hardware-fit
-    snapshot_ref: sha256:49dcd10bd44127186a58b8c88418e7d8f35d0c67af08e0e7a2149a0d1903628c
+  - source_id: model-174-zhipu-glm-5-3-hardware-input
+    snapshot_ref: sha256:ac0063709e3c1557cb20ab655246af5b46c3e8166f4bd803f46331fd82651a27
     cited_regions:
     - rows
+- id: zhipu/glm-5-3#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: zhipu/glm-5-3
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-zhipu-glm-5-3-hardware-input
+    snapshot_ref: sha256:ac0063709e3c1557cb20ab655246af5b46c3e8166f4bd803f46331fd82651a27
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 753329940480
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:ac0063709e3c1557cb20ab655246af5b46c3e8166f4bd803f46331fd82651a27
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'

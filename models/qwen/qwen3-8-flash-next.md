@@ -1243,9 +1243,23 @@ facts:
   - nvidia_jetson_t5000
   - nvidia_rubin_gpu
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 179999981459
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-fit
-    snapshot_ref: sha256:8f5699fcc29470eba84c525b268289e7c32be8bd693d69c8b5ce8c052bcccc69
+  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-input
+    snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
     cited_regions:
     - rows
 - id: qwen/qwen3-8-flash-next#model.parameters_total
@@ -1256,10 +1270,38 @@ facts:
   value: 179999981459
   state: known
   sources:
-  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-fit
-    snapshot_ref: sha256:8f5699fcc29470eba84c525b268289e7c32be8bd693d69c8b5ce8c052bcccc69
+  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-input
+    snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
     cited_regions:
     - rows
+- id: qwen/qwen3-8-flash-next#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: qwen/qwen3-8-flash-next
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-input
+    snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 179999981459
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'

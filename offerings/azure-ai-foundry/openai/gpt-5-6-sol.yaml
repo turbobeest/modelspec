@@ -151,7 +151,7 @@
     value: true
     state: known
     sources:
-    - source_id: model-174-azure-ai-foundry-openai-gpt-5-6-sol-global-short-context-standard
-      snapshot_ref: sha256:7ec760817ce6e6959190a2d753793e1af0ab6836d69f689467065a630e51359b
+    - source_id: model-174-azure-ai-foundry-openai-gpt-5-6-sol-global-short-context-standard-primary
+      snapshot_ref: sha256:752fa501635c3d8b6ea64b06d5e1bc5fa0e127fd07d25e2791a4d7c91a749418
       cited_regions:
       - rows

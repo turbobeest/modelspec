@@ -2223,9 +2223,23 @@ facts:
   facet: model.fits_hardware
   value: []
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 1598839674782
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-deepseek-deepseek-v4-pro-hardware-fit
-    snapshot_ref: sha256:fa23527e92324eb976367df2f679994670771ae40957c1ce5e87bdceb60af7f0
+  - source_id: model-174-deepseek-deepseek-v4-pro-hardware-input
+    snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
     cited_regions:
     - rows
 - id: deepseek/deepseek-v4-pro#model.parameters_total
@@ -2236,10 +2250,38 @@ facts:
   value: 1598839674782
   state: known
   sources:
-  - source_id: model-174-deepseek-deepseek-v4-pro-hardware-fit
-    snapshot_ref: sha256:fa23527e92324eb976367df2f679994670771ae40957c1ce5e87bdceb60af7f0
+  - source_id: model-174-deepseek-deepseek-v4-pro-hardware-input
+    snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
     cited_regions:
     - rows
+- id: deepseek/deepseek-v4-pro#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: deepseek/deepseek-v4-pro
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-deepseek-deepseek-v4-pro-hardware-input
+    snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 1598839674782
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

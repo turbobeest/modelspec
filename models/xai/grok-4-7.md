@@ -1359,11 +1359,41 @@ facts:
   facet: model.fits_hardware
   value: []
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: closed_weights
+      parameters_total: null
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'false'
+      model_snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-xai-grok-4-7-hardware-fit
-    snapshot_ref: sha256:eb51329c8b7eb4c8709818a40ded79565f1cb1643a2744f4bfd75dda5006945e
+  - source_id: model-143-xai-grok-4-7
+    snapshot_ref: sha256:a408ffaab9e62cf57b227cb8577f37a7af1ba847f8f07a9f9096988cb86842e7
     cited_regions:
-    - rows
+    - model-spec
+  - source_id: model-143-xai-function-calling
+    snapshot_ref: sha256:58d9a4ed8dcfc802119ab1d5119b80fcc861210374f66c2dd359e3dca165ddd3
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-structured-outputs
+    snapshot_ref: sha256:c4dd8e9e92be6592d6cfb32514769a5956f038f800df0f21f050cd71b29a7324
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-terms
+    snapshot_ref: sha256:be2453bca042b00ef1d6e53517a752af6a17ee48ae589808296ceca482b68745
+    cited_regions:
+    - audit
+  - source_id: model-143-xai-enterprise-faq
+    snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

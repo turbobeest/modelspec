@@ -151,7 +151,7 @@
     value: true
     state: known
     sources:
-    - source_id: model-174-google-vertex-ai-anthropic-claude-opus-5-5-global-standard
-      snapshot_ref: sha256:0877abc6fae2aa9eeca8c428d743de8e79ccc52142ae8f1c1d85f95f48004120
+    - source_id: model-174-google-vertex-ai-anthropic-claude-opus-5-5-global-standard-primary
+      snapshot_ref: sha256:c763c05495006228edfab5784a9d73e0b62d4435817bdf08c3489c4784cfc26d
       cited_regions:
       - rows

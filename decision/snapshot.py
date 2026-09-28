@@ -1372,7 +1372,17 @@ class LoadedSnapshot:
             for row in self._rows(known):
                 if _holds(by_row[row].value, op, arg):
                     passing |= 1 << row
-        return Bitset3(passing, known & ~passing, self._all & ~known)
+        failing = known & ~passing
+        unknown = self._all & ~known
+        if facet_id == "model.fits_hardware" and op in {
+            "contains", "contains_all", "contains_any",
+        }:
+            indeterminate = self.ids_where(
+                "model.hardware_fit_indeterminate", op, arg
+            ).passing
+            unknown |= indeterminate
+            failing &= ~indeterminate
+        return Bitset3(passing, failing, unknown)
 
     def evidence_where(
         self,

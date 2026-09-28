@@ -16,9 +16,54 @@ from decision.resolve import resolve
 from decision.snapshot import build_snapshot, collect_repo, load_premier, load_snapshot_bytes
 from decision.vocabulary import build_vocabulary
 from pipeline.hardware import WORKING_ALLOWANCE, load_devices
+from scripts.model_174_verify_derived import (
+    parameter_count_from_primary,
+    recompute_hardware,
+    verify_private_source,
+)
 from tests.snapshot_records import FactValue, loaded_index
 
 ROOT = Path(__file__).parents[1]
+
+
+def test_independent_verifier_reads_primary_parameter_content() -> None:
+    body = b'{"safetensors":{"parameters":{"BF16":120,"F32":3}}}'
+
+    assert parameter_count_from_primary(body) == 123
+
+
+def test_independent_verifier_recomputes_each_hardware_leg() -> None:
+    fits, indeterminate = recompute_hardware(
+        "open_weights",
+        1_000_000_000,
+        (
+            DeviceInput("small", 0.5),
+            DeviceInput("large", 32.0),
+            DeviceInput("refused", 44.0, False, "not one memory pool"),
+        ),
+    )
+
+    assert fits == ("large",)
+    assert indeterminate == ("refused",)
+
+
+def test_private_verifier_checks_retained_provider_content() -> None:
+    verify_private_source(
+        b"Provisioned Throughput is dedicated capacity in your deployment.",
+        expected=True,
+        proof="provisioned throughput",
+    )
+    verify_private_source(
+        b"Supported models: Nova Pro, Titan Text.",
+        expected=False,
+        proof="claude-opus-5-5",
+    )
+    with pytest.raises(ValueError, match="still names"):
+        verify_private_source(
+            b"Supported models: Claude Opus 5.5.",
+            expected=False,
+            proof="claude-opus-5-5",
+        )
 
 
 @pytest.fixture(scope="module")
@@ -97,6 +142,10 @@ def test_fit_computation_covers_every_registered_device() -> None:
     )
 
     assert set(result.devices) == {device.id for device in devices}
+    assert result.indeterminate_hardware == (
+        "cerebras_wse3",
+        "nvidia_vera_rubin_superchip",
+    )
     for device in devices:
         fit = result.devices[device.id]
         if device.single_device_fit:
@@ -177,6 +226,24 @@ def test_a_device_must_filters_the_decision_snapshot(repo_snapshot) -> None:
     }
 
 
+@pytest.mark.parametrize("device", ["cerebras_wse3", "nvidia_vera_rubin_superchip"])
+def test_a_refused_device_must_preserves_per_device_unknown(repo_snapshot, device) -> None:
+    result = filter_apply(hardware_spec(device), repo_snapshot)
+
+    assert "google/gemma-4-e2b-it" in {
+        row.candidate for row in result.may_qualify
+    }
+    assert "kingsoft/qzhou-embedding" in {
+        row.candidate for row in result.may_qualify
+    }
+    assert "google/gemma-4-e2b-it" not in {
+        row.candidate for row in result.eliminated
+    }
+    assert "kingsoft/qzhou-embedding" not in {
+        row.candidate for row in result.eliminated
+    }
+
+
 def test_an_unknown_hardware_fit_may_qualify() -> None:
     snapshot = loaded_index({
         "lab/known": {"model.fits_hardware": ["nvidia_rtx_5090"]},
@@ -204,6 +271,9 @@ def test_private_deployment_is_also_a_three_valued_must(repo_snapshot) -> None:
     }
     assert "aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard" in {
         row.candidate for row in result.eliminated
+    }
+    assert "deepseek/deepseek/deepseek-v4-pro/global/standard" in {
+        row.candidate for row in result.may_qualify
     }
 
 

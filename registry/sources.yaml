@@ -3884,3 +3884,265 @@ sources:
     locator:
       kind: page
       value: ''
+# MODEL-174: hardware fit and private deployment, read 2026-09-28.
+- id: model-174-deepseek-deepseek-flash-hardware-input
+  url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4.1-Flash
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-deepseek-deepseek-v3-1-hardware-input
+  url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V3.1
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-deepseek-deepseek-v4-pro-hardware-input
+  url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4-Pro
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-google-gemma-4-26b-a4b-it-hardware-input
+  url: https://huggingface.co/api/models/google/gemma-4-26b-a4b-it
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-google-gemma-4-31b-it-hardware-input
+  url: https://huggingface.co/api/models/google/gemma-4-31B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-google-gemma-4-e2b-it-hardware-input
+  url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-google-gemma-4-e4b-it-hardware-input
+  url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-microsoft-phi-4-hardware-input
+  url: https://huggingface.co/api/models/microsoft/phi-4
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-moonshot-kimi-k2-6-hardware-input
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K2.6
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-moonshot-kimi-k3-hardware-input
+  url: https://huggingface.co/api/models/moonshotai/Kimi-K3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-qwen-qwen3-8-flash-next-hardware-input
+  url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-zhipu-glm-5-2-hardware-input
+  url: https://huggingface.co/api/models/zai-org/GLM-5.2
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-zhipu-glm-5-3-hardware-input
+  url: https://huggingface.co/api/models/zai-org/GLM-5.3
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-kingsoft-qzhou-embedding-hardware-input
+  url: https://huggingface.co/api/models/Kingsoft-LLM/QZhou-Embedding
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-microsoft-harrier-oss-v1-27b-hardware-input
+  url: https://huggingface.co/api/models/microsoft/harrier-oss-v1-27b
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-qwen-qwen3-embedding-8b-hardware-input
+  url: https://huggingface.co/api/models/Qwen/Qwen3-Embedding-8B
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-tencent-kalm-embedding-gemma3-12b-2511-hardware-input
+  url: https://huggingface.co/api/models/tencent/KaLM-Embedding-Gemma3-12B-2511
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-querit-querit-hardware-input
+  url: https://huggingface.co/api/models/Querit/Querit
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-querit-querit-4b-hardware-input
+  url: https://huggingface.co/api/models/Querit/Querit-4B
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-aws-bedrock-anthropic-claude-opus-4-6-global-cross-region-standard-primary
+  url: https://docs.aws.amazon.com/bedrock/latest/userguide/prov-thru-supported.html
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-aws-bedrock-anthropic-claude-opus-5-5-global-cross-region-standard-primary
+  url: https://docs.aws.amazon.com/bedrock/latest/userguide/prov-thru-supported.html
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-azure-ai-foundry-openai-gpt-5-4-global-short-context-standard-primary
+  url: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/provisioned-throughput-sizing
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-azure-ai-foundry-openai-gpt-5-6-sol-global-short-context-standard-primary
+  url: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/provisioned-throughput-sizing
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-azure-ai-foundry-openai-gpt-6-astra-global-short-context-standard-primary
+  url: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/provisioned-throughput-sizing
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-azure-ai-foundry-openai-gpt-6-sol-global-short-context-standard-primary
+  url: https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/provisioned-throughput-sizing
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-google-vertex-ai-anthropic-claude-opus-5-5-global-standard-primary
+  url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/partner-models/claude/opus-5-5
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-google-vertex-ai-google-gemini-3-8-flash-global-standard-primary
+  url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-8-flash
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-openai-openai-gpt-5-4-global-standard-primary
+  url: https://openai.com/api-scale-tier/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-174-openai-openai-gpt-5-6-sol-global-standard-primary
+  url: https://openai.com/api-reserved-tier/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''

@@ -1191,8 +1191,8 @@ facts:
   value: 27009346304
   state: known
   sources:
-  - source_id: model-174-microsoft-harrier-oss-v1-27b-hardware-fit
-    snapshot_ref: sha256:14cc44999ff9e66e1e7c392f2b4e26a51bcec682d23618d2dbcbb04f33b04379
+  - source_id: model-174-microsoft-harrier-oss-v1-27b-hardware-input
+    snapshot_ref: sha256:e43dc98cd934f6cc91a8166b23a73a97dc261fc6d49cd5a7758359b7d9e5c8be
     cited_regions:
     - rows
 - id: microsoft/harrier-oss-v1-27b#model.fits_hardware
@@ -1252,11 +1252,53 @@ facts:
   - nvidia_tesla_p40
   - qualcomm_snapdragon_x_elite
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 27009346304
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:e43dc98cd934f6cc91a8166b23a73a97dc261fc6d49cd5a7758359b7d9e5c8be
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-microsoft-harrier-oss-v1-27b-hardware-fit
-    snapshot_ref: sha256:14cc44999ff9e66e1e7c392f2b4e26a51bcec682d23618d2dbcbb04f33b04379
+  - source_id: model-174-microsoft-harrier-oss-v1-27b-hardware-input
+    snapshot_ref: sha256:e43dc98cd934f6cc91a8166b23a73a97dc261fc6d49cd5a7758359b7d9e5c8be
     cited_regions:
     - rows
+- id: microsoft/harrier-oss-v1-27b#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: microsoft/harrier-oss-v1-27b
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-microsoft-harrier-oss-v1-27b-hardware-input
+    snapshot_ref: sha256:e43dc98cd934f6cc91a8166b23a73a97dc261fc6d49cd5a7758359b7d9e5c8be
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 27009346304
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:e43dc98cd934f6cc91a8166b23a73a97dc261fc6d49cd5a7758359b7d9e5c8be
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: Claude Opus 5.5
 card_created: '2026-09-24'

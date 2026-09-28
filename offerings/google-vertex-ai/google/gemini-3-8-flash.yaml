@@ -151,7 +151,7 @@
     value: true
     state: known
     sources:
-    - source_id: model-174-google-vertex-ai-google-gemini-3-8-flash-global-standard
-      snapshot_ref: sha256:c6b7611a7074226a61071984cadbe237cc5097d60d47cdfbbc29f720fed710a4
+    - source_id: model-174-google-vertex-ai-google-gemini-3-8-flash-global-standard-primary
+      snapshot_ref: sha256:c02f76bf69549534f4aa168b9f5e14427a357a9514c9a2056d7e2672a5aafe65
       cited_regions:
       - rows

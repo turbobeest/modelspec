@@ -8,6 +8,7 @@ the fitting quantisations.  Read 2026-09-28.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import urllib.request
@@ -47,6 +48,8 @@ HF_METADATA_URLS = {
     "microsoft/phi-4": "https://huggingface.co/api/models/microsoft/phi-4",
     "qwen/qwen3-embedding-8b":
         "https://huggingface.co/api/models/Qwen/Qwen3-Embedding-8B",
+    "querit/querit": "https://huggingface.co/api/models/Querit/Querit",
+    "querit/querit-4b": "https://huggingface.co/api/models/Querit/Querit-4B",
 }
 
 KNOWN_PRIVATE: dict[str, tuple[bool, str, str]] = {
@@ -59,11 +62,6 @@ KNOWN_PRIVATE: dict[str, tuple[bool, str, str]] = {
         False,
         "not in the provider's exhaustive provisioned-throughput model table",
         "https://docs.aws.amazon.com/bedrock/latest/userguide/prov-thru-supported.html",
-    ),
-    "deepseek": (
-        True,
-        "self-host from the provider's open weights",
-        "https://api-docs.deepseek.com/zh-cn/news/news260424/",
     ),
 }
 KNOWN_PRIVATE_BY_MODEL: dict[tuple[str, str], tuple[bool, str, str]] = {
@@ -86,19 +84,15 @@ KNOWN_PRIVATE_BY_MODEL: dict[tuple[str, str], tuple[bool, str, str]] = {
 }
 
 
-def fetch_json(url: str) -> dict[str, Any]:
+def fetch_bytes(url: str) -> bytes:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=180) as response:  # noqa: S310
-        return json.load(response)
+        return response.read()
 
 
-def projection(url: str, rows: list[dict[str, Any]], provenance: dict[str, Any]) -> bytes:
-    return (json.dumps(
-        {"source_url": url, "read_date": READ_DATE, "provenance": provenance, "rows": rows},
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ) + "\n").encode()
+def fetch_json(url: str) -> tuple[dict[str, Any], bytes]:
+    body = fetch_bytes(url)
+    return json.loads(body), body
 
 
 def source(source_id: str, url: str) -> dict[str, Any]:
@@ -159,13 +153,16 @@ def replace_or_append_model_fact(path: Path, fact: dict[str, Any]) -> bool:
     return True
 
 
-def append_offering_fact(path: Path, fact: dict[str, Any]) -> bool:
+def replace_or_append_offering_fact(path: Path, fact: dict[str, Any]) -> bool:
     text = path.read_text(encoding="utf-8").rstrip("\n")
-    if "facet: offering.private_deployment" in text:
-        return False
     dumped = yaml.safe_dump([fact], sort_keys=False, allow_unicode=True, width=100).rstrip()
-    path.write_text(text + "\n" + "\n".join(f"  {line}" for line in dumped.splitlines()) + "\n",
-                    encoding="utf-8")
+    block = "\n".join(f"  {line}" for line in dumped.splitlines())
+    marker = f"  - id: {fact['id']}"
+    start = text.find(marker)
+    updated = text + "\n" + block if start < 0 else text[:start].rstrip("\n") + "\n" + block
+    if updated == text:
+        return False
+    path.write_text(updated + "\n", encoding="utf-8")
     return True
 
 
@@ -184,9 +181,8 @@ def fact_claim(subject: str, fact: dict[str, Any], names: tuple[str, ...], *,
     )
 
 
-def devices() -> tuple[list[DeviceInput], dict[str, dict[str, Any]]]:
+def devices() -> list[DeviceInput]:
     inputs: list[DeviceInput] = []
-    provenance: dict[str, dict[str, Any]] = {}
     for path in sorted((ROOT / "hardware").glob("*.yaml")):
         if path.name == "_schema.yaml":
             continue
@@ -200,21 +196,27 @@ def devices() -> tuple[list[DeviceInput], dict[str, dict[str, Any]]]:
             single_device_fit=row.get("single_device_fit", True),
             refusal_reason=row.get("single_device_fit_reason"),
         ))
-        provenance[row["id"]] = {
-            "memory_capacity_gb": capacity,
-            "sources": row["sources"],
-            "read_date": str(row["verified_at"]),
-            "single_device_fit": row.get("single_device_fit", True),
-            "refusal_reason": row.get("single_device_fit_reason"),
-        }
-    return inputs, provenance
+    return inputs
+
+
+def hardware_registry_hash() -> str:
+    digest = hashlib.sha256()
+    for path in sorted((ROOT / "hardware").glob("*.yaml")):
+        if path.name == "_schema.yaml":
+            continue
+        digest.update(path.name.encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return "sha256:" + digest.hexdigest()
 
 
 def collect_hardware(store: CopyStore, registrations: list[dict[str, Any]],
                      claims: list[Claim]) -> None:
     lineup = yaml.safe_load((ROOT / "premier/slice-1.yaml").read_text())["models"]
     registered = load_sources(ROOT / "registry/sources.yaml")
-    device_inputs, device_sources = devices()
+    device_inputs = devices()
+    device_manifest = hardware_registry_hash()
 
     for lineup_row in lineup:
         model_id = lineup_row["model_id"]
@@ -222,25 +224,38 @@ def collect_hardware(store: CopyStore, registrations: list[dict[str, Any]],
         data = front(path)
         facts = data.get("facts") or []
         openness = next(row for row in facts if row["facet"] == "model.weights_openness")
-        parameter_fact = next((row for row in facts if row["facet"] == "model.parameters_total"), None)
+        parameter_fact = next(
+            (row for row in facts if row["facet"] == "model.parameters_total"), None
+        )
         parameter_needs_filing = parameter_fact is None or (
             parameter_fact["sources"][0]["source_id"].startswith("model-174-")
         )
         parameters = parameter_fact and int(parameter_fact["value"])
         metadata_url = HF_METADATA_URLS.get(model_id)
 
-        if lineup_row["open_weights"] and parameters is None:
+        primary_body: bytes | None = None
+        if lineup_row["open_weights"]:
             if metadata_url is None:
                 metadata_id = "model-143-hf-metadata-" + model_id.replace("/", "-")
                 metadata_url = str(registered[metadata_id].url)
-            safetensors = fetch_json(metadata_url)["safetensors"]
+            metadata, primary_body = fetch_json(metadata_url)
+            safetensors = metadata["safetensors"]
             # Some sharded repositories expose an index-entry count in ``total``;
             # the per-dtype parameter map remains the actual tensor census.
-            parameters = sum(int(value) for value in safetensors["parameters"].values())
+            source_parameters = sum(
+                int(value) for value in safetensors["parameters"].values()
+            )
+            if parameters is not None and parameters != source_parameters:
+                raise RuntimeError(
+                    f"{model_id}: retained fact {parameters} != primary source "
+                    f"{source_parameters}"
+                )
+            parameters = source_parameters
             architecture_total = int(data["architecture"]["total_parameters"])
             if parameters != architecture_total:
                 raise RuntimeError(
-                    f"{model_id}: Hugging Face {parameters} != card architecture {architecture_total}"
+                    f"{model_id}: Hugging Face {parameters} != "
+                    f"card architecture {architecture_total}"
                 )
 
         result = compute_fit(
@@ -250,40 +265,30 @@ def collect_hardware(store: CopyStore, registrations: list[dict[str, Any]],
         )
         base_ref = parameter_fact["sources"][0] if parameter_fact else openness["sources"][0]
         base_url = metadata_url or str(registered[base_ref["source_id"]].url)
-        source_id = "model-174-" + model_id.replace("/", "-") + "-hardware-fit"
-        source_is_new = source_id not in registered
+        source_id = "model-174-" + model_id.replace("/", "-") + "-hardware-input"
+        source_is_new = primary_body is not None and source_id not in registered
         fit_values = list(result.fits_hardware) if result.fits_hardware is not None else None
-        device_rows = {
-            device_id: {
-                **device_sources[device_id],
-                "fits": fit.fits,
-                "best_quantisation": fit.best_quant,
-                "fitting_quantisations": list(fit.quantisations),
-                "weights_gb_at_best_quantisation": fit.weights_gb,
-                "usable_memory_gb": fit.usable_memory_gb,
-                "reason": fit.reason,
-            }
-            for device_id, fit in result.devices.items()
-        }
-        row: dict[str, Any] = {
-            "model": data["display_name"],
-            "fits_hardware": "none" if fit_values == [] else ", ".join(fit_values or []),
-        }
-        if parameters is not None:
-            row["parameters_total"] = f"{parameters} parameters"
-        body = projection(base_url, [row], {
+        if primary_body is not None:
+            snapshot_ref = store.put(primary_body)
+            registrations.append(source(source_id, base_url))
+            source_ref = [{
+                "source_id": source_id,
+                "snapshot_ref": snapshot_ref,
+                "cited_regions": ["rows"],
+            }]
+        else:
+            source_ref = openness["sources"]
+            snapshot_ref = source_ref[0]["snapshot_ref"]
+        derivation = {
+            "method": "decision.hardware.compute_fit@1",
             "formula": result.formula,
-            "inputs": dict(result.inputs),
-            "model_source": base_url,
-            "devices": device_rows,
-        })
-        snapshot_ref = store.put(body)
-        registrations.append(source(source_id, base_url))
-        source_ref = [{
-            "source_id": source_id,
-            "snapshot_ref": snapshot_ref,
-            "cited_regions": ["rows"],
-        }]
+            "inputs": {
+                **dict(result.inputs),
+                "model_snapshot_ref": snapshot_ref,
+                "hardware_registry_sha256": device_manifest,
+                "hardware_device_count": len(device_inputs),
+            },
+        }
 
         if parameter_needs_filing and parameters is not None:
             parameter_fact = {
@@ -307,9 +312,10 @@ def collect_hardware(store: CopyStore, registrations: list[dict[str, Any]],
             "facet": "model.fits_hardware",
             "value": fit_values,
             "state": "known" if fit_values is not None else "unknown",
+            "derivation": derivation,
         }
         if fit_values is None:
-            fit_fact["checked_sources"] = [source_id]
+            fit_fact["checked_sources"] = [ref["source_id"] for ref in source_ref]
         else:
             fit_fact["sources"] = source_ref
         changed = replace_or_append_model_fact(path, fit_fact)
@@ -318,6 +324,25 @@ def collect_hardware(store: CopyStore, registrations: list[dict[str, Any]],
                 model_id, fit_fact, (data["display_name"], model_id.rsplit("/", 1)[-1]),
                 label="fits_hardware",
             ))
+
+        if fit_values is not None and result.indeterminate_hardware:
+            indeterminate_fact = {
+                "id": f"{model_id}#model.hardware_fit_indeterminate",
+                "subject": {"kind": "model", "id": model_id},
+                "facet": "model.hardware_fit_indeterminate",
+                "value": list(result.indeterminate_hardware),
+                "state": "known",
+                "sources": source_ref,
+                "derivation": derivation,
+            }
+            changed = replace_or_append_model_fact(path, indeterminate_fact)
+            if changed or source_is_new:
+                claims.append(fact_claim(
+                    model_id,
+                    indeterminate_fact,
+                    (data["display_name"], model_id.rsplit("/", 1)[-1]),
+                    label="hardware_fit_indeterminate",
+                ))
 
 
 def offering_paths() -> list[Path]:
@@ -350,12 +375,14 @@ def collect_private_deployment(store: CopyStore, registrations: list[dict[str, A
                     for key in ("sources",)
                     for ref in old_fact.get(key, [])
                     if ref["source_id"] in source_registry
+                    and not ref["source_id"].startswith("model-174-")
                 }
                 checked.update(
                     source_id
                     for old_fact in offering.get("facts", [])
                     for source_id in old_fact.get("checked_sources", [])
                     if source_id in source_registry
+                    and not source_id.startswith("model-174-")
                 )
                 if not checked:
                     raise RuntimeError(f"{offering_id}: no registered primary source to check")
@@ -364,12 +391,10 @@ def collect_private_deployment(store: CopyStore, registrations: list[dict[str, A
                 value, option, url = known
                 source_id = "model-174-" + re.sub(r"[^a-z0-9]+", "-", offering_id).strip("-")
                 source_is_new = source_id not in source_registry
-                body = projection(url, [{
-                    "model": offering_id,
-                    "private_deployment": value,
-                    "option": option,
-                }], {"provider_statement": option})
+                body = fetch_bytes(url)
                 snapshot_ref = store.put(body)
+                source_id = source_id + "-primary"
+                source_is_new = source_id not in source_registry
                 registrations.append(source(source_id, url))
                 fact.update({
                     "value": value,
@@ -380,7 +405,7 @@ def collect_private_deployment(store: CopyStore, registrations: list[dict[str, A
                         "cited_regions": ["rows"],
                     }],
                 })
-            changed = append_offering_fact(path, fact)
+            changed = replace_or_append_offering_fact(path, fact)
             if known is not None and (changed or source_is_new):
                 claims.append(fact_claim(
                     offering_id,

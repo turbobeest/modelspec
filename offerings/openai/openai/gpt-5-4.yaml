@@ -151,7 +151,7 @@
     value: true
     state: known
     sources:
-    - source_id: model-174-openai-openai-gpt-5-4-global-standard
-      snapshot_ref: sha256:ce89b56310362b6efb3863712f715f386c8a1943126cfb890de4ceff846c7289
+    - source_id: model-174-openai-openai-gpt-5-4-global-standard-primary
+      snapshot_ref: sha256:be7ce5835065d483da7340a088b3bb282315e97bc6ef704422f9f137dd80a26d
       cited_regions:
       - rows

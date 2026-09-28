@@ -1381,8 +1381,22 @@ facts:
   facet: model.fits_hardware
   value: null
   state: unknown
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: null
+      parameters_total: null
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:d7ade03d817e1963aae669abdbf567a8d16e9fbdd6fdfe8cac142f3c20c94854
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   checked_sources:
-  - model-174-google-gemini-2-5-flash-hardware-fit
+  - model-163-google-gemini-2-5-flash
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

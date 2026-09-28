@@ -1142,11 +1142,29 @@ facts:
   facet: model.fits_hardware
   value: []
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: closed_weights
+      parameters_total: null
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'false'
+      model_snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-174-jcorners-ingot-8b-r3-hardware-fit
-    snapshot_ref: sha256:48ed2e5ff6a59290d6b97067f38fdc112f09d3e84cbae7ab9b5d09a981ba4ac2
+  - source_id: model-143-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:f1c44b77bb951ce443758b247295b119a287545dca9e74e20fb155246682f72f
     cited_regions:
-    - rows
+    - model-spec
+  - source_id: model-143-hf-metadata-jcorners-ingot-8b-r3
+    snapshot_ref: sha256:4b930b3178b8e921b02d884b90f9a0f7e0d0ec56a55da7a891ab9cce85fde611
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
