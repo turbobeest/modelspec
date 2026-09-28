@@ -369,6 +369,149 @@ def test_soc2_type_2_phrase_matches_registered_enum() -> None:
     assert verify.compare(claim, [verify.Reading("Provider API", "SOC 2 Type 2")]) == []
 
 
+def test_canonical_model_ids_match_published_model_names() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="xai/subscription/supergrok#models"),
+        subject="xai/subscription/supergrok",
+        names=("SuperGrok",),
+        field="offering.subscription.models_covered",
+        value=["xai/grok-4-6"],
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="model-173-xai-consumer-pricing",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    assert verify.compare(claim, [verify.Reading("SuperGrok", "Grok 4.6 model")]) == []
+
+
+@pytest.mark.parametrize("plan", ["SuperGrok", "SuperGrok Plus"])
+def test_subscription_page_models_include_inherited_plan_features(plan) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"xai/subscription/{plan}#models"),
+        subject=f"xai/subscription/{plan}",
+        names=(plan,),
+        field="offering.subscription.models_covered",
+        value=["xai/grok-4-6"],
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="model-173-xai-consumer-pricing",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+    page = """Free
+$0/month
+SuperGrok
+$30/month
+Grok 4.6 model
+SuperGrok Plus
+$100/month
+Everything in SuperGrok, plus:
+Create 1080p videos
+"""
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "page"),
+    [
+        (
+            "offering.subscription.billing_period",
+            "monthly",
+            ("SuperGrok",),
+            "SuperGrok\n$30/month\nGrok 4.6 model\n",
+        ),
+        (
+            "offering.subscription.billing_period",
+            "monthly",
+            ("Claude Max 5x", "Max 5x"),
+            """Features | Free | Pro | Max 5x | Max 20x
+Billing cycle | n/a | Monthly and annual | Monthly | Monthly
+""",
+        ),
+        (
+            "offering.subscription.usage_allowance",
+            "4x higher than standard limits",
+            ("Google AI Pro", "AI Pro"),
+            """Plan | Limit
+Without an AI plan | Standard limits
+AI Plus | 2x higher than standard limits
+AI Pro | 4x higher than standard limits
+AI Ultra | 5x or 20x higher than AI Pro limits depending on your subscription
+""",
+        ),
+        (
+            "offering.subscription.usage_allowance",
+            "5x more usage than Pro",
+            ("Claude Max 5x", "Max 5x"),
+            "Choose 5x or 20x more usage than Pro\n",
+        ),
+        (
+            "offering.subscription.price",
+            100,
+            ("ChatGPT Pro 5x", "Pro $100"),
+            "Pro $200 unlocks 20x usage, while Pro $100 unlocks 5x higher usage than Plus.\n",
+        ),
+        (
+            "offering.subscription.programmatic_or_agent_use",
+            "Codex",
+            ("ChatGPT Plus", "Plus plans"),
+            "Plus plans include GPT-6 Astra in ChatGPT Work and Codex.\n",
+        ),
+        (
+            "offering.subscription.programmatic_or_agent_use",
+            "Expanded Google AI Studio, Google Antigravity, and Jules limits",
+            ("Google AI Pro", "AI Pro"),
+            """Features | Google AI Plus /mo | Google AI Pro /mo | Google AI Ultra 5x /mo
+Google Antigravity
+Agent requests | Limited | Expanded | Higher
+Google AI Studio 6
+Access to our most capable models | Limited | Expanded | Higher
+Jules 7
+Task limits | Limited | Expanded | Higher
+""",
+        ),
+        (
+            "offering.subscription.programmatic_or_agent_use",
+            "Grok Bot access",
+            ("SuperGrok Plus",),
+            """SuperGrok
+$30/month
+Grok Bot access
+SuperGrok Plus
+$100/month
+Everything in SuperGrok, plus:
+Create 1080p videos
+""",
+        ),
+    ],
+)
+def test_subscription_page_extracts_supported_plan_facts(field, value, names, page) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"plan#{field}"),
+        subject="provider/subscription/plan",
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
 def test_zero_retention_phrase_means_zero_retention_days() -> None:
     claim = verify.Claim(
         target=verify.TargetRef(kind="fact", id="offering#retention"),

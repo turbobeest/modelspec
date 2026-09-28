@@ -202,6 +202,43 @@ def test_subscription_data_does_not_change_an_existing_decision(tmp_path):
     assert after.eliminated == before.eliminated
 
 
+def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
+    collected = snap.collect_repo(REPO_ROOT)
+    path = tmp_path / "production.json.gz"
+    build_snapshot(collected, registry=REGISTRY, as_of=date(2026, 9, 28)).write(path)
+    index = load(path)
+
+    subscriptions = {row["id"]: row for row in index.subscription_offerings()}
+    assert len(subscriptions) == 11
+    facts = [fact for subscription in subscriptions.values()
+             for fact in subscription["facts"].values()]
+    assert len(facts) == 55
+    assert sum(fact.state == "known" for fact in facts) == 39
+    assert subscriptions["anthropic/subscription/pro"]["facts"][
+        "offering.subscription.price"
+    ] == FactValue("known", 20, ("model-173-anthropic-consumer-pricing",))
+    assert subscriptions["openai/subscription/pro-5x"]["facts"][
+        "offering.subscription.usage_allowance"
+    ] == FactValue("known", "5x higher usage than Plus", ("model-173-openai-pro",))
+    assert subscriptions["xai/subscription/supergrok"]["facts"][
+        "offering.subscription.models_covered"
+    ] == FactValue("known", ["xai/grok-4-6"], ("model-173-xai-consumer-pricing",))
+    known_facets = {
+        facet_id
+        for subscription in subscriptions.values()
+        for facet_id, fact in subscription["facts"].items()
+        if fact.state == "known"
+    }
+    assert known_facets == {
+        "offering.subscription.price",
+        "offering.subscription.billing_period",
+        "offering.subscription.models_covered",
+        "offering.subscription.usage_allowance",
+        "offering.subscription.programmatic_or_agent_use",
+    }
+    assert not set(subscriptions).intersection(index.candidates())
+
+
 def test_input_order_does_not_change_the_snapshot(tmp_path):
     a = build(tmp_path, "a.json.gz")
     base = inputs()

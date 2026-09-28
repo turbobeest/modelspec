@@ -8,23 +8,21 @@
   - id: anthropic/subscription/pro#offering.subscription.price
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.price
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: 20
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [page]
   - id: anthropic/subscription/pro#offering.subscription.billing_period
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.billing_period
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: monthly
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
-      cited_regions: [billing]
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
+      cited_regions: [page]
   - id: anthropic/subscription/pro#offering.subscription.models_covered
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.models_covered
@@ -33,27 +31,25 @@
     checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [models-and-usage]
   - id: anthropic/subscription/pro#offering.subscription.usage_allowance
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.usage_allowance
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: More usage
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [page]
   - id: anthropic/subscription/pro#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.programmatic_or_agent_use
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-claude-code]
+    state: known
+    value: Access to both Claude on the web, desktop, and mobile apps and Claude Code in your terminal
     sources:
     - source_id: model-173-anthropic-claude-code
-      snapshot_ref: sha256:a522cbdd9ed515e88d0963d2f9fffc168a967a390b311bd8280f85cd5fb44867
+      snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
       cited_regions: [page]
 - kind: subscription
   provider: anthropic
@@ -63,23 +59,21 @@
   - id: anthropic/subscription/max-5x#offering.subscription.price
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.price
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: 100
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [page]
   - id: anthropic/subscription/max-5x#offering.subscription.billing_period
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.billing_period
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: monthly
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
-      cited_regions: [billing]
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
+      cited_regions: [page]
   - id: anthropic/subscription/max-5x#offering.subscription.models_covered
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.models_covered
@@ -88,27 +82,25 @@
     checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [models-and-usage]
   - id: anthropic/subscription/max-5x#offering.subscription.usage_allowance
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.usage_allowance
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: 5x more usage than Pro
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [page]
   - id: anthropic/subscription/max-5x#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.programmatic_or_agent_use
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-claude-code]
+    state: known
+    value: Access to both Claude on the web, desktop, and mobile apps and Claude Code in your terminal
     sources:
     - source_id: model-173-anthropic-claude-code
-      snapshot_ref: sha256:a522cbdd9ed515e88d0963d2f9fffc168a967a390b311bd8280f85cd5fb44867
+      snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
       cited_regions: [page]
 - kind: subscription
   provider: anthropic
@@ -123,18 +115,17 @@
     checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [page]
   - id: anthropic/subscription/max-20x#offering.subscription.billing_period
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.billing_period
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: monthly
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
-      cited_regions: [billing]
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
+      cited_regions: [page]
   - id: anthropic/subscription/max-20x#offering.subscription.models_covered
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.models_covered
@@ -143,25 +134,23 @@
     checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [models-and-usage]
   - id: anthropic/subscription/max-20x#offering.subscription.usage_allowance
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.usage_allowance
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: 20x more usage than Pro
     sources:
     - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
       cited_regions: [page]
   - id: anthropic/subscription/max-20x#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.programmatic_or_agent_use
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-claude-code]
+    state: known
+    value: Access to both Claude on the web, desktop, and mobile apps and Claude Code in your terminal
     sources:
     - source_id: model-173-anthropic-claude-code
-      snapshot_ref: sha256:a522cbdd9ed515e88d0963d2f9fffc168a967a390b311bd8280f85cd5fb44867
+      snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
       cited_regions: [page]

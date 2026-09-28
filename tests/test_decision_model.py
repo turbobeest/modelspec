@@ -617,13 +617,21 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
         "xai/subscription/supergrok",
         "xai/subscription/supergrok-plus",
     ]
+    facts = [fact for subscription in loaded for fact in subscription.facts]
+    assert len(facts) == 55
+    assert all(fact.sources for fact in facts if fact.state == "known")
     assert all(
-        fact.state == "not_disclosed"
-        and fact.value is None
-        and fact.checked_sources
-        for subscription in loaded
-        for fact in subscription.facts
+        fact.value is None and fact.checked_sources
+        for fact in facts
+        if fact.state != "known"
     )
+    assert {fact.facet for fact in facts if fact.state == "known"} == {
+        "offering.subscription.price",
+        "offering.subscription.billing_period",
+        "offering.subscription.models_covered",
+        "offering.subscription.usage_allowance",
+        "offering.subscription.programmatic_or_agent_use",
+    }
     xai_programmatic = [
         fact
         for subscription in loaded
@@ -632,7 +640,7 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
         if fact.facet == "offering.subscription.programmatic_or_agent_use"
     ]
     assert all(
-        "model-173-xai-consumer-terms" in fact.checked_sources
+        "model-173-xai-consumer-terms" in {source.source_id for source in fact.sources}
         for fact in xai_programmatic
     )
 
