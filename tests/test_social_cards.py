@@ -67,6 +67,31 @@ def _assert_clean_layout(report: dict[str, object]) -> None:
         assert element["scrollHeight"] <= element["clientHeight"], element
 
 
+def _boxes_intersect(first: dict[str, float], second: dict[str, float]) -> bool:
+    return (
+        min(first["right"], second["right"]) > max(first["left"], second["left"])
+        and min(first["bottom"], second["bottom"]) > max(first["top"], second["top"])
+    )
+
+
+def _assert_landing_plot_geometry(report: dict[str, object]) -> None:
+    details = report["details"]
+    plot = details["plot"]
+    axis = details["yAxis"]
+    axis_label = details["yAxisLabel"]
+    point = details["cheapestPoint"]
+    callout = details["cheapestCallout"]
+    assert all(item is not None for item in (plot, axis, axis_label, point, callout))
+    assert not _boxes_intersect(axis, axis_label), (axis, axis_label)
+    assert callout["left"] >= plot["left"], (callout, plot)
+    assert callout["top"] >= plot["top"], (callout, plot)
+    assert callout["right"] <= plot["right"], (callout, plot)
+    assert callout["bottom"] <= plot["bottom"], (callout, plot)
+    horizontal_gap = max(callout["left"] - point["right"], point["left"] - callout["right"], 0)
+    vertical_gap = max(callout["top"] - point["bottom"], point["top"] - callout["bottom"], 0)
+    assert (horizontal_gap ** 2 + vertical_gap ** 2) ** .5 <= 24, (point, callout)
+
+
 def test_landing_card_html_uses_exactly_the_page_figures(card_data: landing.LandingData) -> None:
     page = landing.render(card_data, variant="live")
     card = social_cards.landing_card(card_data)
@@ -154,19 +179,40 @@ def test_chromium_layout_keeps_every_card_block_separate_and_in_frame(
         leader_id="stress-0",
         cheapest_id="stress-1",
     )
-    cases = (
-        social_cards.card_for_page("/", card_data),
-        social_cards.card_for_page("/decide/"),
-        social_cards.card_for_page("/", stress_data),
+    edge_axes = landing.PlotAxes(
+        cost_min=.1,
+        cost_max=.9,
+        cost_ticks=(),
+        capability_min=5,
+        capability_max=9,
+        capability_ticks=(),
     )
-    for index, card in enumerate(cases):
+    edge_cases = (
+        ("left-edge", replace(card_data, cheapest_id="cheap", axes=edge_axes)),
+        ("top-edge", replace(card_data, cheapest_id="leader", axes=edge_axes)),
+        ("right-edge", replace(card_data, cheapest_id="tie", models=(
+            replace(card_data.models[0], cost=.9),
+            replace(card_data.models[1], cost=.9),
+            *card_data.models[2:],
+        ), axes=edge_axes)),
+    )
+    cases = [
+        ("landing", social_cards.card_for_page("/", card_data), True),
+        ("decide", social_cards.card_for_page("/decide/"), False),
+        ("stress", social_cards.card_for_page("/", stress_data), True),
+        *((name, social_cards.card_for_page("/", data), True)
+          for name, data in edge_cases),
+    ]
+    for name, card, is_landing in cases:
         try:
-            report = social_cards.render_card(card, tmp_path / f"layout-{index}.png")
+            report = social_cards.render_card(card, tmp_path / f"layout-{name}.png")
         except Exception as error:
             if os.environ.get("CI"):
                 raise
             pytest.skip(f"Chromium is unavailable: {error}")
         _assert_clean_layout(report)
+        if is_landing:
+            _assert_landing_plot_geometry(report)
 
 
 def test_registry_drives_page_metadata_and_deploy_filenames(

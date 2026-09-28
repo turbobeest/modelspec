@@ -67,22 +67,39 @@ def _point(model: PlotModel, data: LandingData) -> tuple[float, float]:
 
 def _landing_plot(data: LandingData) -> str:
     circles = []
+    cheapest_point = _point(data.cheapest, data)
     for model in data.models:
         x, y = _point(model, data)
         colour = "#3FB68B" if model.id == data.cheapest_id else ("#5AA9EC" if model.tied else "#738097")
         radius = 8 if model.id == data.cheapest_id else 5
         circles.append(
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius}" fill="{colour}"'
+            f'{" data-cheapest-point" if model.id == data.cheapest_id else ""}'
             f' opacity="{1 if model.tied else .45}"/>'
         )
+    point_x, point_y = cheapest_point
+    css_point_x = point_x * 420 / 430
+    callout_width = 190
+    callout_height = 80
+    gap = 16
+    if css_point_x + gap + callout_width <= 412:
+        callout_left = css_point_x + gap
+        leader_end_x = point_x + gap * 430 / 420
+    else:
+        callout_left = max(8, css_point_x - gap - callout_width)
+        leader_end_x = point_x - gap * 430 / 420
+    callout_top = min(max(point_y - callout_height / 2, 8), 182)
     return (
         '<div class="plot" aria-label="A compact view of the landing tie plot">'
         '<svg viewBox="0 0 430 270" aria-hidden="true">'
-        '<line class="y-axis" x1="24" y1="18" x2="24" y2="240"/>'
+        '<line class="y-axis" data-y-axis x1="24" y1="18" x2="24" y2="240"/>'
         '<line class="x-axis" x1="24" y1="240" x2="414" y2="240"/>'
         + "".join(circles)
-        + f'</svg><em>{html.escape(data.cheapest.name)}</em>'
-        '<span>capability estimate</span><b>cost per task →</b></div>'
+        + f'<line class="callout-leader" x1="{point_x:.1f}" y1="{point_y:.1f}" '
+        f'x2="{leader_end_x:.1f}" y2="{point_y:.1f}"/></svg>'
+        f'<em data-cheapest-callout style="left:{callout_left:.1f}px;top:{callout_top:.1f}px">'
+        f'{html.escape(data.cheapest.name)}</em>'
+        '<span data-y-axis-label>capability estimate</span><b>cost per task →</b></div>'
     )
 
 
@@ -177,8 +194,8 @@ body:after{{content:"";position:absolute;left:0;right:0;bottom:38px;height:5px;b
 .brand{{display:flex;align-items:center;gap:17px;font:650 27px Instrument;letter-spacing:-.5px;position:relative;z-index:2;width:max-content}}.brand svg{{width:52px;height:52px}}.brand span{{font-weight:400}}
 h1{{font-size:64px;line-height:78px;letter-spacing:-2.7px;margin:68px 0 22px;width:620px;max-height:240px;overflow:hidden;overflow-wrap:anywhere;position:relative;z-index:1}}.tie-line{{font:22px/1.45 JetBrains,monospace;color:#C7D1E0;width:590px;max-height:104px;overflow:hidden;overflow-wrap:anywhere;margin:0;position:relative;z-index:1}}
 .plot{{position:absolute;right:56px;bottom:67px;width:420px;height:270px;color:#8491A5;font:13px JetBrains}}
-.plot svg{{position:absolute;inset:0}}.plot .y-axis{{stroke:#F2C94C;stroke-width:2}}.plot .x-axis{{stroke:#3FB68B;stroke-width:4}}.plot span{{position:absolute;left:-52px;top:112px;transform:rotate(-90deg)}}.plot b{{position:absolute;right:8px;bottom:2px;font-weight:400}}
-.plot em{{position:absolute;left:34px;top:7px;width:350px;font:600 16px/1.2 Instrument;font-style:normal;overflow-wrap:anywhere}}
+.plot svg{{position:absolute;inset:0}}.plot .y-axis{{stroke:#F2C94C;stroke-width:2}}.plot .x-axis{{stroke:#3FB68B;stroke-width:4}}.plot .callout-leader{{stroke:#3FB68B;stroke-width:1.5}}.plot span{{position:absolute;right:406px;top:73px;width:34px;height:126px;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}}.plot b{{position:absolute;right:8px;bottom:2px;font-weight:400}}
+.plot em{{position:absolute;width:190px;height:80px;display:flex;align-items:center;padding:0 6px;background:#0B1426;color:#C7D1E0;font:600 14px/1.15 Instrument;font-style:normal;overflow:hidden;overflow-wrap:anywhere}}
 .facets{{position:absolute;right:78px;top:182px;width:335px;margin:0;padding:0;list-style:none;font:24px JetBrains}}
 .facets li{{display:flex;align-items:center;gap:18px;border-bottom:1px solid #2A3B5C;padding:20px 5px}}.facets i{{width:22px;height:22px;border:2px solid #5AA9EC;border-radius:3px}}.facets li:nth-child(2) i{{background:#F2C94C;border-color:#F2C94C}}.facets li:nth-child(3) i{{background:#3FB68B;border-color:#3FB68B}}
 </style></head><body><div class="brand" data-content-block>{mark}<b>Model<span>Spec</span></b></div><h1 data-content-block>{card.headline}</h1>{card.content.replace('class="tie-line"', 'class="tie-line" data-content-block').replace('class="plot"', 'class="plot" data-content-block').replace('class="facets"', 'class="facets" data-content-block')}</body></html>'''

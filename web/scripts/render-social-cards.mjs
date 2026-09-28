@@ -15,6 +15,19 @@ try {
     await page.goto(pathToFileURL(job.source).href, { waitUntil: "load" });
     await page.evaluate(() => document.fonts.ready);
     reports.push(await page.evaluate(() => {
+      const box = (selector) => {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+        const bounds = element.getBoundingClientRect();
+        return {
+          left: bounds.left,
+          top: bounds.top,
+          right: bounds.right,
+          bottom: bounds.bottom,
+          width: bounds.width,
+          height: bounds.height,
+        };
+      };
       const frame = { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
       const blocks = [...document.querySelectorAll("[data-content-block]")].map((element) => {
         const box = element.getBoundingClientRect();
@@ -41,7 +54,14 @@ try {
           scrollHeight: element.scrollHeight,
           clientHeight: element.clientHeight,
         }));
-      return { frame, blocks, text };
+      const details = {
+        plot: box(".plot"),
+        yAxis: box("[data-y-axis]"),
+        yAxisLabel: box("[data-y-axis-label]"),
+        cheapestPoint: box("[data-cheapest-point]"),
+        cheapestCallout: box("[data-cheapest-callout]"),
+      };
+      return { frame, blocks, text, details };
     }));
     await page.screenshot({ path: job.output, type: "png" });
   }
