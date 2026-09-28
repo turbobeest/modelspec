@@ -1,8 +1,7 @@
 # Holding mode
 
-Since 2026-09-24 modelspec.dev shows a holding page, and Checkout is closed.
-Jamie's decision: the rankings are stale while the redesign is under way, and
-the product is not to be seen until he says go. The data stays up.
+`SITE_MODE` has been `live` since 2026-09-25. Checkout remains closed. This
+document records the fail-closed holding tree and how the workflow derives it.
 
 ## The switch
 
@@ -20,6 +19,10 @@ Every run builds the real site with `pipeline.build`, as before, and then
 `python -m pipeline.holding build` writes `dist-holding`. The build job's
 summary names the mode and which tree production got.
 
+The real tree serves the MODEL-186 landing at `/` and the decision board at
+`/decide/`. The `internal` preview is a byte-identical copy. `/landing/`
+permanently redirects to `/`.
+
 ## benchgraph.dev
 
 benchgraph.dev is redirect-only in both modes (MODEL-126). During holding its
@@ -31,22 +34,26 @@ internal preview (`/b/<id>/`), not the benchgraph one.
 
 modelspec.dev:
 
-- `/` and every other HTML path: the holding page (the name, "… is in
-  preparation. Check back soon.", Terms and Privacy on modelspec.dev, and
-  © Sparks and Sawdust LLC). Paths that no longer exist, such as model pages,
-  benchmark pages, the wizard, the explorer and `/pricing`, get the same page as
-  a 404.
+- `/`: the MODEL-186 landing page. It uses the decision snapshot's capability
+  estimates and published offering prices. The board controls say "Board
+  opening soon" while the board stays dark. The page has a canonical URL and is
+  indexable.
+- Every other HTML path: the existing dark holding message. Paths that no
+  longer exist, such as model pages, benchmark pages, the wizard, the explorer,
+  and `/pricing`, receive that message with a 404 status.
 - `/api/**` on modelspec.dev, byte for byte what the real build publishes. The
   CLI (`modelspec snapshot fetch`), DPF, the rank Worker and the MCP server
   read only these paths. `benchgraph.dev/api/*` redirects to the same files.
   Tests: `tests/test_holding.py`.
 - `/legal/**` and `/openapi.yaml` on modelspec.dev, byte for byte. Stripe's
   account review and past purchasers rely on the legal pages.
-- `X-Robots-Tag: noindex` on every response, and no `Link` header. robots.txt
-  allows crawling (a crawler must fetch a page to see its noindex) and names
-  no sitemap. The holding page has a matching robots meta tag and no canonical,
-  because no URL that shows it should be indexed. There is no sitemap, llms.txt,
-  Markdown twin, `.well-known` file or Pages Function.
+- `X-Robots-Tag: noindex` on every response except `/` and `/index.html`, and no
+  `Link` header. Cloudflare Pages' more-specific header rules detach that header
+  from the two landing paths using [the documented `! Header-Name`
+  syntax](https://developers.cloudflare.com/pages/configuration/headers/#detach-a-header).
+  robots.txt allows crawling and names no sitemap.
+  The 404 page has a matching robots meta tag and no canonical. There is no
+  sitemap, llms.txt, Markdown twin, `.well-known` file, or Pages Function.
 
 `api.modelspec.dev` (rank, policy-check, credits, MCP) is unchanged. Nothing on
 the holding page links to it.
@@ -67,8 +74,8 @@ The real modelspec site from `main` is always on the preview branch:
 
 - https://internal.modelspec-7np.pages.dev
 
-It is the full site, links included. Benchmark pages are `/b/<id>/` there.
-Its canonical URLs still name `modelspec.dev`.
+It is byte-identical to the live production tree. `/` is the landing and
+`/decide/` is the board. Their canonical URLs name `modelspec.dev`.
 
 https://internal.benchgraph.pages.dev serves the same redirect file as
 production. It does not host the benchmark pages.
@@ -76,13 +83,13 @@ production. It does not host the benchmark pages.
 To check production is dark:
 
 ```bash
-curl -sI https://modelspec.dev/ | grep -i x-robots-tag     # noindex
+curl -sI https://modelspec.dev/ | grep -i x-robots-tag     # no output
 curl -s  https://modelspec.dev/robots.txt                  # Allow: /, no Sitemap
 curl -so /dev/null -w '%{http_code}\n' https://modelspec.dev/models/   # 404
 curl -s  https://modelspec.dev/api/build.json              # the export, as ever
 ```
 
-## Relaunch
+## Switch to live
 
 Only when Jamie says go.
 

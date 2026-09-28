@@ -59,6 +59,11 @@ export function Field({
           <small>
             {e.feasible.length} qualify · {e.may.length} may qualify ·{" "}
             {e.excluded.length} excluded
+            {decision.truncated.models > 0
+              ? ` · ${decision.truncated.models} more ${decision.truncated.models === 1 ? "model" : "models"} not shown`
+              : decision.truncated.offerings > 0
+                ? ` · ${decision.truncated.offerings} more ${decision.truncated.offerings === 1 ? "offering" : "offerings"} not shown`
+                : null}
           </small>
         </div>
         <ol className="funnel">

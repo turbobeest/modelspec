@@ -57,7 +57,7 @@ def test_pytest_aggregator_preserves_the_required_check_contract() -> None:
     required = jobs["required-pytest"]
     assert [job.get("name") for job in jobs.values()].count("Run pytest") == 1
     assert required["name"] == "Run pytest"
-    assert required["needs"] == ["pytest-shards", "pytest-perf-and-collection"]
+    assert required["needs"] == ["pytest-shards", "pytest-perf-and-collection", "package-smoke"]
     assert required["if"] == "always()"
     assert "pip install" not in yaml.safe_dump(required)
     gate = required["steps"][0]
@@ -66,8 +66,10 @@ def test_pytest_aggregator_preserves_the_required_check_contract() -> None:
     assert gate["env"]["SHARD_RESULT"] == "${{ needs.pytest-shards.result }}"
     assert gate["env"]["PERF_RESULT"] == \
         "${{ needs.pytest-perf-and-collection.result }}"
+    assert gate["env"]["PACKAGE_RESULT"] == "${{ needs.package-smoke.result }}"
     assert 'test "$SHARD_RESULT" = success' in gate["run"]
     assert 'test "$PERF_RESULT" = success' in gate["run"]
+    assert 'test "$PACKAGE_RESULT" = success' in gate["run"]
 
 
 def test_pytest_matrix_matches_the_file_splitter() -> None:
@@ -391,6 +393,21 @@ def test_site_build_only_publishes_a_complete_signed_decision_snapshot() -> None
     assert "--decision-snapshot-if-ready" in workflow
     assert 'if [ "$GITHUB_EVENT_NAME" != "pull_request" ]' in workflow
     assert "::error::MODELSPEC_SNAPSHOT_KEY is not configured" not in workflow
+
+
+def test_site_build_reads_the_ed25519_private_key_from_the_repo_secret() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8"))
+    build = workflow["jobs"]["build"]
+    step = next(row for row in build["steps"] if row.get("name") == "Build")
+
+    assert step["env"]["MODELSPEC_SNAPSHOT_ED25519_KEY"] == (
+        "${{ github.event_name != 'pull_request' && "
+        "secrets.MODELSPEC_SNAPSHOT_ED25519_KEY || '' }}"
+    )
+    install = next(row for row in build["steps"] if row.get("name") == "Install dependencies")
+    assert "cryptography" in install["run"]
 
 
 def test_rank_smoke_failure_rolls_back_before_the_job_fails() -> None:

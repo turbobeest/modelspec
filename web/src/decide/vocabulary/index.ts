@@ -56,6 +56,21 @@ const benchmarkSchema = z.object({
     z.object({ id: z.string(), directness: z.enum(["direct", "proxy"]) }),
   ),
 });
+const refinementSchema = z.object({
+  id: z.string(),
+  parent_domain: z.string(),
+  kind: z.enum(["language", "task", "mode", "material"]),
+  name: z.string(),
+  definition: z.string(),
+  evidence_state: z.enum(["live", "thin", "not_measured", "no_benchmark"]),
+  measured_models: z.number().int().nonnegative(),
+  of_models: z.number().int().nonnegative(),
+  benchmarks: z.array(z.object({
+    id: z.string(),
+    directness: z.enum(["direct", "proxy"]),
+  })),
+  weight_key: z.string(),
+});
 const templateSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -105,6 +120,8 @@ export const vocabularySchema = z.object({
       benchmarks: z.array(z.string()),
     }),
   ),
+  /** Optional until the refinement registry is published (MODEL-189). */
+  refinements: z.array(refinementSchema).optional(),
   /** Card names by model ID. A vocabulary published before MODEL-153 has none. */
   models: z
     .record(
@@ -149,6 +166,7 @@ export const vocabularySchema = z.object({
 export type Vocabulary = z.infer<typeof vocabularySchema>;
 export type VocabFacet = Vocabulary["facets"][number];
 export type VocabBenchmark = Vocabulary["benchmarks"][number];
+export type VocabRefinement = NonNullable<Vocabulary["refinements"]>[number];
 export type Coverage = NonNullable<Vocabulary["coverage"]>;
 
 /** Why the vocabulary could not be used. `missing` means no snapshot is published yet. */

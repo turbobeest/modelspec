@@ -222,6 +222,30 @@ def value_hash(value: JsonValue) -> str:
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
+def evidence_verification_value(evidence: object) -> JsonValue:
+    """The evidence reading bound to a verification.
+
+    Evidence without structured uncertainty or quality metadata keeps the v1
+    score-only identity. Once any decision-affecting metadata is present, the
+    verification binds all of it, including the absence of the other fields.
+    """
+    get = evidence.get if isinstance(evidence, dict) else lambda key, default=None: getattr(
+        evidence, key, default
+    )
+    score = get("score")
+    interval = get("interval")
+    n = get("n")
+    quality_flags = sorted(get("quality_flags") or [])
+    if interval is None and n is None and not quality_flags:
+        return score
+    return {
+        "score": score,
+        "interval": list(interval) if interval is not None else None,
+        "n": n,
+        "quality_flags": quality_flags,
+    }
+
+
 def _check_target(verification: Verification | None, kind: str, id: str, value: JsonValue) -> None:
     if verification is not None and (
         verification.target.kind != kind
@@ -355,7 +379,9 @@ class Evidence(BenchmarkEvidence):
         if self.verification is not None:
             if self.id is None or self.subject is None or not self.sources:
                 raise ValueError("verification requires an ID, subject and source snapshots")
-            _check_target(self.verification, "evidence", self.id, self.score)
+            _check_target(
+                self.verification, "evidence", self.id, evidence_verification_value(self)
+            )
         return self
 
     @property

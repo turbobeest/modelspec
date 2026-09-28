@@ -50,6 +50,7 @@ SOURCES = {
     Path("decision/__init__.py"): Path("decision/__init__.py"),
     Path("decision/capability.py"): Path("decision/capability.py"),
     Path("decision/computed.py"): Path("decision/computed.py"),
+    Path("decision/compare.py"): Path("decision/compare.py"),
     Path("decision/contract.py"): Path("decision/contract.py"),
     Path("decision/engine.py"): Path("decision/engine.py"),
     Path("decision/excluded.py"): Path("decision/excluded.py"),

@@ -67,6 +67,32 @@ the Decision. See [Snapshot refresh](#snapshot-refresh).
 
 The body limit is 64 KiB.
 
+### Comparing snapshots
+
+`POST /v1/compare` runs one Spec against the current signed Snapshot and a
+retained signed Snapshot. The body wraps the Spec because `compare_to` selects
+the second Snapshot:
+
+```json
+{
+  "compare_to": "snap_0123456789abcdef",
+  "spec": {
+    "spec_version": 1,
+    "where": ["model.context_window >= 150"],
+    "optimize": {"min": "offering.cost_per_task"}
+  }
+}
+```
+
+The response groups changes by model and includes entries, departures, changed
+Must values, capability estimates, and prices with their record IDs. The
+Worker reads the retained Snapshot from
+`/api/decision/snapshots/<snapshot-id>.json.gz` and verifies its signature with
+the same key as the current Snapshot. The static origin does not publish that
+history yet. Until it does, the endpoint returns
+`409 comparison_snapshot_unavailable`; local cached comparisons remain
+available through `modelspec decide --compare-to`.
+
 ## Response
 
 A successful body is the decision contract's Decision object without a Worker
@@ -220,6 +246,8 @@ The Worker echoes the exact requesting origin from that list and handles its
 | 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from the internal preview origin or make a server-side request. |
 | 409 | `snapshot_changed` | `X-ModelSpec-Snapshot` names another Snapshot than the one answering. | Reload `/api/decision/vocabulary.json`, rebuild the Spec from it, and retry once with its `snapshot`. |
 | 409 | `snapshot_not_loaded` | The Spec pinned a different Snapshot. | Send `latest`, use the response's loaded Snapshot ID, or retry after the requested Snapshot is deployed. |
+| 409 | `comparison_snapshot_changed` | The retained Snapshot does not match `compare_to`. | Send the retained Snapshot's exact ID. |
+| 409 | `comparison_snapshot_unavailable` | The origin does not publish the named retained Snapshot. | Use a locally cached Snapshot, or retry after the origin publishes Snapshot history. |
 | 413 | `payload_too_large` | The JSON body exceeds 64 KiB. | Reduce the Spec below the documented body limit. |
 | 502 | `snapshot_unavailable` | The static Snapshot could not be fetched. | Retry after the static origin is healthy. |
 | 503 | `no_snapshot` | Pages has not published a complete signed Snapshot. | Retry after the `Retry-After` interval. `/v1/rank` remains available. |

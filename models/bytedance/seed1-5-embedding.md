@@ -685,6 +685,15 @@ benchmarks:
       2026-09-24. Score is meanTask times 100. The JSON has no per-row run date, so
       this date is the day the board was read.
     limitations: Mean over the benchmark's tasks. Not a single-task score.
+    id: bytedance/seed1-5-embedding#mteb_eng_v2#4057685854b3
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-eng-v2-json
+      snapshot_ref: sha256:3df976fb608b2a60aa58b6744e4d1135492fdd330ef18722af2dfeeef23a3c75
+      cited_regions:
+      - rows
   - benchmark_id: mteb_v2_retrieval
     model_id_as_evaluated: ByteDance-Seed/Seed1.5-Embedding
     score: 67.45
@@ -855,6 +864,205 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: '2026-09-24'
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: vectoriser
+  state: known
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.input_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: model.output_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: model.context_window
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: model.max_output_tokens
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: model.weights_openness
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: model.release_date
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.tool_calling
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: feature.structured_output
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: feature.batch
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
+- facet: feature.streaming
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-bytedance-seed1-5-embedding
+    snapshot_ref: sha256:317d9045ddff7ef46b07a047e80404c1f12eb1ccf9737f5b2aa6674cb38ef69f
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-bytedance-seed1-5-embedding
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'

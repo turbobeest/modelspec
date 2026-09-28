@@ -33,10 +33,13 @@ network.
 
 from __future__ import annotations
 
+import copy
 import importlib.util
+import json
 import os
 import re
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -200,6 +203,7 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
     assert spec["info"]["x-max-request-bytes"] == {
         "/v1/rank": service.MAX_BODY_BYTES,
         "/v1/decide": decide.MAX_BODY_BYTES,
+        "/v1/compare": decide.MAX_BODY_BYTES,
         "/v1/policy-check": policy.MAX_BODY_BYTES,
     }
 
@@ -244,6 +248,116 @@ def test_the_spec_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]
 
     problems = generator._validate(body, spec["components"]["schemas"]["RankResponse"], spec)
     assert problems == [], problems
+
+
+def test_comparison_result_schema_rejects_missing_and_malformed_fields(
+        spec: dict[str, Any]) -> None:
+    schema = spec["components"]["schemas"]["ComparisonResponse"]
+    for response in generator._comparison_responses():
+        assert generator._validate(response, schema, spec) == []
+
+    valid = {
+        "contract_version": generator.decide_service.contract.CONTRACT_VERSION,
+        "endpoint": "compare",
+        "snapshot": "snap_new",
+        "compare_to": "snap_old",
+        "result": {
+            "changed": False,
+            "snapshot": {
+                "old": {"id": "snap_old", "as_of": "2026-09-26"},
+                "new": {"id": "snap_new", "as_of": "2026-09-27"},
+            },
+            "status": {"old": "answered", "new": "answered"},
+            "counts": {
+                "entered": 0,
+                "left": 0,
+                "rank_changed": 0,
+                "may_qualify_changed": 0,
+                "models_changed": 0,
+            },
+            "models": [],
+            "spec_snapshot_ignored": False,
+        },
+    }
+    assert generator._validate(valid, schema, spec) == []
+
+    missing = copy.deepcopy(valid)
+    del missing["result"]["counts"]
+    malformed = copy.deepcopy(valid)
+    malformed["result"]["models"] = "not an array"
+    nonsense = copy.deepcopy(valid)
+    nonsense["result"] = {"nonsense": 1}
+
+    assert generator._validate(missing, schema, spec)
+    assert generator._validate(malformed, schema, spec)
+    assert generator._validate(nonsense, schema, spec)
+
+
+def test_comparison_schema_accepts_every_facet_value_and_sparse_offering(
+        spec: dict[str, Any]) -> None:
+    """The schema describes contract values, not only the generator's examples."""
+    contract = generator.decide_service.contract
+    old_values = [False, 1, 1.5, date(2026, 9, 26), "old", ["old"], None]
+    new_values = [True, 2, 2.5, date(2026, 9, 27), "new", ["new"], "known"]
+
+    def decision(snapshot: str, value: Any):
+        offering = contract.OfferingRef(model="lab/value")
+        return contract.Decision(
+            decision_id="dec_" + snapshot.removeprefix("snap_")[:24],
+            snapshot=snapshot,
+            spec_hash="sha256:" + "1" * 64,
+            explain="full",
+            status="answered",
+            results=[contract.Result(rank=1, offering=offering)],
+            top=[contract.CandidateValues(offering=offering, facts=[
+                contract.ShownFact(facet="model.test", value=value),
+            ])],
+        )
+
+    old_snapshot = "snap_" + "a" * 64
+    new_snapshot = "snap_" + "b" * 64
+    schema = spec["components"]["schemas"]["ComparisonResponse"]
+    for old_value, new_value in zip(old_values, new_values, strict=True):
+        result = generator.decide_service.compare_decisions(
+            decision(old_snapshot, old_value),
+            decision(new_snapshot, new_value),
+        )
+        result["spec_snapshot_ignored"] = False
+        response = {
+            "contract_version": contract.CONTRACT_VERSION,
+            "endpoint": "compare",
+            "snapshot": new_snapshot,
+            "compare_to": old_snapshot,
+            "result": result,
+        }
+        serialized = json.loads(json.dumps(response, default=str))
+
+        assert serialized["result"]["models"][0]["values"][0]["offering"] == {
+            "model": "lab/value", "provider": None, "region": None, "tier": None,
+        }
+        assert generator._validate(serialized, schema, spec) == []
+
+
+def test_decision_and_comparison_refusals_keep_endpoint_contracts_separate(
+        spec: dict[str, Any]) -> None:
+    schemas = spec["components"]["schemas"]
+    assert schemas["DecisionRequestRefused"]["properties"]["endpoint"]["enum"] == [
+        "decide"
+    ]
+    assert schemas["DecisionSnapshotUnavailable"]["properties"]["endpoint"]["enum"] == [
+        "decide"
+    ]
+    assert schemas["ComparisonRequestRefused"]["properties"]["endpoint"]["enum"] == [
+        "compare"
+    ]
+    assert schemas["ComparisonSnapshotUnavailable"]["properties"]["endpoint"]["enum"] == [
+        "compare"
+    ]
+
+    responses = spec["paths"]["/v1/compare"]["post"]["responses"]
+    assert responses["400"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ComparisonRequestRefused"
+    }
 
 
 def test_the_policy_example_is_a_request_the_endpoint_answers(spec: dict[str, Any]) -> None:
@@ -313,8 +427,14 @@ def _codes_of(*modules: str) -> set[str]:
     for name in modules:
         tree = ast.parse((ENTRY.parent / f"{name}.py").read_text(encoding="utf-8"))
         for node in ast.walk(tree):
+            call_name = (
+                node.func.id if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                else node.func.attr
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                else ""
+            )
             if (isinstance(node, ast.Call)
-                    and getattr(node.func, "id", "") in {"RequestError", "error_response"}
+                    and call_name in {"RequestError", "error_response"}
                     and node.args and isinstance(node.args[0], ast.Constant)):
                 codes.add(node.args[0].value)
             if isinstance(node, ast.Dict):
@@ -348,6 +468,10 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
     }
     missing = sorted(decide_codes - set(decide_fixes))
     assert missing == [], f"docs/decide-api.md has no fix for: {missing}"
+
+
+def test_comparison_snapshot_unavailable_is_advertised(spec: dict[str, Any]) -> None:
+    assert "comparison_snapshot_unavailable" in spec["info"]["x-error-codes"]
 
 
 def test_every_refusal_status_is_documented(reference: str, policy_reference: str) -> None:

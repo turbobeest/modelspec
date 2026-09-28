@@ -3,12 +3,38 @@
 from datetime import date
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from decision import snapshot as decision_snapshot
 from decision.contract import parse_spec
 from decision.engine import decide
 from decision.registry import facet as facets
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot
 from tests.test_decision_snapshot import SOURCES, evidence, fact, model
+
+_TEST_PRIVATE = Ed25519PrivateKey.generate()
+_TEST_SIGNER = decision_snapshot.Ed25519Signer(
+    "test-explanation",
+    _TEST_PRIVATE.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    ),
+)
+_TEST_PUBLIC = _TEST_PRIVATE.public_key().public_bytes(
+    serialization.Encoding.Raw,
+    serialization.PublicFormat.Raw,
+)
+
+
+@pytest.fixture(autouse=True)
+def _pin_test_snapshot_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-explanation": _TEST_PUBLIC},
+    )
 
 
 @pytest.fixture
@@ -50,7 +76,11 @@ def index(tmp_path):
         ),
         as_of=date(2026, 9, 24),
     )
-    return load_snapshot(built.write(tmp_path / "snapshot.gz", key=None), key=None)
+    return load_snapshot(
+        built.write(tmp_path / "snapshot.gz", key=None, ed25519_signer=_TEST_SIGNER),
+        key=None,
+        public_keys={"test-explanation": _TEST_PUBLIC},
+    )
 
 
 def spec(level="full", **updates):
@@ -303,7 +333,11 @@ def test_fact_units_come_from_the_real_facet_registry(tmp_path):
         SnapshotInputs(models=[model("lab/a")], sources=SOURCES),
         as_of=date(2026, 9, 24),
     )
-    snapshot = load_snapshot(built.write(tmp_path / "units.gz", key=None), key=None)
+    snapshot = load_snapshot(
+        built.write(tmp_path / "units.gz", key=None, ed25519_signer=None),
+        key=None,
+        public_keys={},
+    )
     request = parse_spec(
         {"spec_version": 1, "optimize": {"max": "model.context_window"}, "explain": "full"},
         facets=facet,
@@ -317,6 +351,25 @@ def test_top_twenty_does_not_depend_on_result_limit(index):
     assert len(decision.results) == 1
     assert len(decision.top) == 3
     assert [row.offering.model for row in decision.top] == ["lab/b", "lab/c", "lab/a"]
+
+
+def test_pareto_decision_reports_dominated_candidates_as_eliminated(index):
+    decision = decide(
+        spec(
+            where=[],
+            optimize={"pareto": ["model.context_window", "model.max_output_tokens"]},
+        ),
+        index,
+        facets=facets,
+    )
+
+    assert [row.offering.model for row in decision.results] == ["lab/a"]
+    assert [
+        (row.model, row.condition) for row in decision.eliminated.models
+    ] == [
+        ("lab/b", "dominated by lab/a"),
+        ("lab/c", "dominated by lab/a"),
+    ]
 
 
 def test_empty_feasible_set_and_domain_objectives_remain_honest(index):
@@ -359,7 +412,11 @@ def test_numeric_list_values_are_measurements_not_counts(tmp_path):
 
     raw = fact("model", "lab/a", "sizes", [4, 8])
     built = build_snapshot(SnapshotInputs(models=[model("lab/a", facts=[raw])], sources=SOURCES))
-    index = load_snapshot(built.write(tmp_path / "list.gz", key=None), key=None)
+    index = load_snapshot(
+        built.write(tmp_path / "list.gz", key=None, ed25519_signer=None),
+        key=None,
+        public_keys={},
+    )
     decision = Decision(
         decision_id="dec_12345678",
         snapshot=index.snapshot_id,
@@ -394,7 +451,11 @@ def test_full_explains_multiple_measurements_failing_an_evidence_window(tmp_path
             benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
         )
     )
-    index = load_snapshot(built.write(tmp_path / "multi.gz", key=None), key=None)
+    index = load_snapshot(
+        built.write(tmp_path / "multi.gz", key=None, ed25519_signer=None),
+        key=None,
+        public_keys={},
+    )
     decision = decide(
         spec(where=[{"facet": "swe_bench_pro", "between": [60, 90]}]),
         index,

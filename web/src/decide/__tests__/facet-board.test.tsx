@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
-  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, groupFacets,
+  allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
   formatBoardCondition, nextMustOrder, parseBoardCondition, showsFacetBoard, supportsPreference,
   templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
@@ -10,6 +10,11 @@ import type { BoardSelections } from "../facet-board/model";
 import { realBaseSpec } from "../vocabulary";
 import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
+import { decisionSpecSchema } from "../adapter/contract";
+import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
+import { vocabularySchema } from "../vocabulary";
+
+const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 
 describe("facet board launch gate", () => {
   it.each(["internal.modelspec-7np.pages.dev", "localhost", "127.0.0.1"])("allows %s", (host) => expect(showsFacetBoard(host)).toBe(true));
@@ -51,6 +56,22 @@ describe("facet state mapping", () => {
       "offering.cost_per_task": { mode: "must", op: "<=", value: 0.25 },
     }), "full").where).toEqual(["offering.cost_per_task <= 0.25"]);
   });
+  it("waits for an enum value before adding a Must condition", () => {
+    const emptyBase = { ...realBaseSpec(realVocabulary), conds: [] };
+    const where = (selections: BoardSelections) => toDecisionSpec(
+      boardToSpec(emptyBase, realVocabulary, selections), "full",
+    ).where;
+    expect(where({
+      "model.weights_openness": { mode: "must" },
+      "offering.data.zero_retention": { mode: "must" },
+    })).toEqual([]);
+    expect(where({
+      "model.weights_openness": { mode: "must", op: "=", value: "open_weights" },
+    })).toEqual(["model.weights_openness = open_weights"]);
+    expect(where({
+      "offering.data.zero_retention": { mode: "must", op: "=", value: false },
+    })).toEqual(["offering.data.zero_retention = false"]);
+  });
   it("uses a membership-neutral objective when no Prefer is set", () => {
     expect(weights({})).toEqual({ "-offering.cost_per_task": 1 });
     expect(weights({
@@ -85,9 +106,200 @@ describe("facet state mapping", () => {
   });
 });
 
+describe("refinements", () => {
+  it("carves refinement weights from the parent and folds them back exactly", () => {
+    const selections: BoardSelections = {
+      "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+      "refinement.python": { mode: "prefer", weight: 0.3 },
+    };
+    const carved = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections);
+    expect(toBoardDecisionSpec(carved, "summary").optimize).toEqual({
+      weights: { software_engineering: 0.3, "software_engineering/python": 0.3 },
+    });
+    expect(toBoardDecisionSpec(foldRefinementWeights(carved, refinementVocabulary), "summary").optimize).toEqual({
+      weights: { software_engineering: 0.6 },
+    });
+  });
+
+  it("adds a refinement preference when its parent is Must-only", () => {
+    const spec = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
+      "capability.software_engineering": { mode: "must", value: 0.5 },
+      "refinement.python": { mode: "prefer", weight: 0.25 },
+    });
+    expect(toBoardDecisionSpec(spec, "summary").optimize).toEqual({
+      weights: { "software_engineering/python": 0.25 },
+    });
+  });
+
+  it.each(["prefer", "must"] as const)("keeps a saved refinement dormant while its %s parent is off", (parentMode) => {
+    const active: BoardSelections = {
+      "capability.software_engineering": { mode: parentMode, weight: 0.6 },
+      "refinement.python": { mode: "prefer", weight: 0.25 },
+    };
+    expect(allocateBoardWeights(refinementVocabulary, active).weights)
+      .toHaveProperty("software_engineering/python", 0.25);
+
+    const dormant = {
+      ...active,
+      "capability.software_engineering": { ...active["capability.software_engineering"], mode: "off" as const },
+    };
+    const dormantAllocation = allocateBoardWeights(refinementVocabulary, dormant);
+    expect(dormantAllocation.weights).not.toHaveProperty("software_engineering/python");
+    expect(dormantAllocation.refinements).not.toHaveProperty("refinement.python");
+    expect(dormantAllocation.selections["refinement.python"]).toEqual({ mode: "prefer", weight: 0.25 });
+
+    const restored = {
+      ...dormantAllocation.selections,
+      "capability.software_engineering": active["capability.software_engineering"],
+    };
+    expect(allocateBoardWeights(refinementVocabulary, restored).weights)
+      .toHaveProperty("software_engineering/python", 0.25);
+  });
+
+  it.each([
+    { refinements: [["python", 0.4], ["bug_fix", 0.4]] },
+    { refinements: [["python", 0.3], ["bug_fix", 0.3], ["new_feature", 0.3]] },
+  ] as const)("scales $refinements proportionally when the parent is lowered", ({ refinements }) => {
+    const selections: BoardSelections = {
+      "capability.software_engineering": { mode: "prefer", weight: 0.3 },
+      ...Object.fromEntries(refinements.map(([id, weight]) => [
+        `refinement.${id}`, { mode: "prefer", weight },
+      ])),
+    };
+    const allocation = allocateBoardWeights(refinementVocabulary, selections);
+    const expected = 0.3 / refinements.length;
+    for (const [id] of refinements) {
+      expect(allocation.selections[`refinement.${id}`].weight).toBeCloseTo(expected);
+      expect(allocation.refinements[`refinement.${id}`].max).toBeCloseTo(expected);
+    }
+    expect(allocation.general.software_engineering).toBeCloseTo(0);
+    expect(Object.values(allocation.weights).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(0.3);
+    expect(allocateBoardWeights(refinementVocabulary, allocation.selections).weights)
+      .toEqual(allocation.weights);
+    const request = toBoardDecisionSpec(
+      boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections),
+      "summary",
+    );
+    expect("weights" in request.optimize && request.optimize.weights)
+      .not.toHaveProperty("software_engineering");
+    expect(decisionSpecSchema.safeParse(request).success).toBe(true);
+  });
+
+  it("omits a fully carved parent from the request and keeps positive refinements", () => {
+    const spec = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
+      "capability.software_engineering": { mode: "prefer", weight: 0.3 },
+      "refinement.python": { mode: "prefer", weight: 0.3 },
+    });
+    const request = toBoardDecisionSpec(spec, "summary");
+    expect(request.optimize).toEqual({ weights: { "software_engineering/python": 0.3 } });
+    expect(decisionSpecSchema.safeParse(request).success).toBe(true);
+  });
+
+  it("uses the same allocation for slider limits, the equation and normalized state", () => {
+    const onSelections = vi.fn();
+    const selections: BoardSelections = {
+      "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+      "refinement.python": { mode: "prefer", weight: 0.3 },
+      "refinement.bug_fix": { mode: "prefer", weight: 0.3 },
+    };
+    render(<FacetBoard
+      vocabulary={refinementVocabulary}
+      spec={realBaseSpec(refinementVocabulary)}
+      selections={selections}
+      onSelections={onSelections}
+      onSpec={vi.fn()}
+      estate={{ providers: [], plans: [], hardware: [] }}
+      onEstate={vi.fn()}
+    />);
+    const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    expect(software).toHaveTextContent("general 0.0 · Bug fix 0.3 · Python 0.3");
+    fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+    expect(within(software).getByLabelText("Weight for Python")).toHaveAttribute("max", "0.3");
+    fireEvent.change(within(software).getByLabelText("Weight for Software engineering"), {
+      target: { value: "0.3" },
+    });
+    const normalized = onSelections.mock.calls.at(-1)![0] as BoardSelections;
+    expect(normalized["refinement.python"].weight).toBe(0.15);
+    expect(normalized["refinement.bug_fix"].weight).toBe(0.15);
+  });
+
+  it("shows Refine only for an active domain and orders evidence within each kind", () => {
+    const base = realBaseSpec(refinementVocabulary);
+    const view = render(<FacetBoard vocabulary={refinementVocabulary} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Refine" })).not.toBeInTheDocument();
+    view.rerender(<FacetBoard vocabulary={refinementVocabulary} spec={base} selections={{ "capability.software_engineering": { mode: "prefer", weight: 0.6 } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Refine" }));
+    const language = screen.getByRole("heading", { name: "Language" }).closest("section")!;
+    expect(within(language).getAllByText(/Python|Go|Java|Rust|TypeScript/).map((node) => node.textContent)).toEqual(["Python", "Go", "Java", "Rust", "TypeScript"]);
+    const rust = screen.getByText("Rust").closest<HTMLElement>(".refinement-row")!;
+    expect(within(rust).getByLabelText("Prefer")).toBeDisabled();
+    expect(within(rust).getByLabelText("Prefer")).toHaveAccessibleDescription("Benchmarks exist; no scores for these models yet");
+    expect(within(rust).getByLabelText("Must")).toHaveAccessibleDescription("Must for refinements is coming");
+    expect(within(rust).getByText("Benchmarks exist; no scores for these models yet")).toBeInTheDocument();
+    const terminal = screen.getByText("Terminal agent").closest<HTMLElement>(".refinement-row")!;
+    expect(within(terminal).getByLabelText("Prefer")).toBeEnabled();
+    expect(within(terminal).getByText("proxy evidence only")).toBeInTheDocument();
+  });
+
+  it("excludes a saved refinement from counts while its parent is off", () => {
+    render(<FacetBoard
+      vocabulary={refinementVocabulary}
+      spec={realBaseSpec(refinementVocabulary)}
+      onSpec={vi.fn()}
+      estate={{ providers: [], plans: [], hardware: [] }}
+      onEstate={vi.fn()}
+    />);
+
+    const facets = screen.getByRole("region", { name: "Facets" });
+    const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    fireEvent.click(within(software).getByLabelText("Prefer"));
+    fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+    const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
+    fireEvent.click(within(python).getByLabelText("Prefer"));
+
+    expect(within(facets).getByText("2 set")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /What it's good at2 set/ })).toBeInTheDocument();
+
+    const softwareState = within(software).getByRole("radiogroup", { name: "State for Software engineering" });
+    fireEvent.click(within(softwareState).getByLabelText("Doesn't matter"));
+
+    expect(within(facets).getByText("0 set")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /What it's good atall Doesn't matter/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /What it's good at1 set/ })).not.toBeInTheDocument();
+  });
+
+  it("restores refinement selection and weight from the board URL", () => {
+    const restored = decodeBoardState(encodeBoardSpec(realBaseSpec(refinementVocabulary), "task$", {
+      selections: { "refinement.python": { mode: "prefer", weight: 0.3 } },
+      mustOrder: [], estate: { providers: [], plans: [], hardware: [] },
+    }));
+    expect(restored?.selections["refinement.python"]).toEqual({ mode: "prefer", weight: 0.3 });
+  });
+
+  it("renders no Refine control when the optional field is absent", () => {
+    render(<FacetBoard vocabulary={realVocabulary} spec={realBaseSpec(realVocabulary)} selections={{ "capability.software_engineering": { mode: "prefer" } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Refine" })).not.toBeInTheDocument();
+  });
+});
+
 it("separates not-yet-tracked facets", () => {
   const vocabulary = { ...smallVocabulary, facets: smallVocabulary.facets.map((facet, index) => index === 0 ? { ...facet, known: 0 } : facet) };
   expect(groupFacets(vocabulary).untracked.map((facet) => facet.id)).toContain(vocabulary.facets[0].id);
+});
+
+it("starts enum Must controls unselected and shows vocabulary counts", () => {
+  const onSpec = vi.fn();
+  render(<FacetBoard vocabulary={realVocabulary} spec={{ ...realBaseSpec(realVocabulary), conds: [] }} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: /Where it runsall Doesn't matter/ }));
+  const weights = screen.getByText("Open weights").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(weights).getByLabelText("Must"));
+  expect(within(weights).getByText("Choose value(s)")).toBeInTheDocument();
+  expect(onSpec.mock.calls.at(-1)![0].conds).toEqual([]);
+  const openWeights = within(weights).getByLabelText(/Open weights \(\d+\)/);
+  fireEvent.click(openWeights);
+  expect(onSpec.mock.calls.at(-1)![0].conds).toEqual([
+    expect.objectContaining({ facet: "model.weights_openness", op: "=", value: "open_weights" }),
+  ]);
 });
 
 it("hides absent templates and expands groups with active canonical template facets", () => {

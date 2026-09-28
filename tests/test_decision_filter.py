@@ -922,8 +922,8 @@ def test_filtering_a_30_candidate_index_is_sub_millisecond(tmp_path) -> None:
         thirty_models(include_offerings=False), registry=facets, as_of=date(2026, 9, 24),
     )
     path = tmp_path / "thirty.json.gz"
-    built.write(path, key=None)
-    index = load_snapshot(path, key=None)
+    built.write(path, key=None, ed25519_signer=None)
+    index = load_snapshot(path, key=None, public_keys={})
     assert len(index.candidates()) == 30
     spec = c.parse_spec({
         "spec_version": 1,

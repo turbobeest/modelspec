@@ -1167,10 +1167,27 @@ facts:
   - model-143-kingsoft-qzhou-embedding
   - model-143-apache-2-license
   - model-143-hf-metadata-kingsoft-qzhou-embedding
+- id: kingsoft/qzhou-embedding#model.languages
+  subject:
+    kind: model
+    id: kingsoft/qzhou-embedding
+  facet: model.languages
+  value:
+  - en
+  state: known
+  sources:
+  - source_id: model-161-kingsoft-qzhou-embedding-model-card
+    snapshot_ref: sha256:c3d71934854295ac0b52991601f76ef1c2cbee954d24316042a0bb990f7578c8
+    cited_regions:
+    - rows
+  - source_id: model-161-kingsoft-qzhou-embedding-mteb
+    snapshot_ref: sha256:ba6667506577f808510d8691c3f01058f9832ad65fc35d5360a20ee9ed1e5990
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
-card_updated: '2026-09-24'
+card_updated: '2026-09-26'
 ---
 
 # QZhou-Embedding

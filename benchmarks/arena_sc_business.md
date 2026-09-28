@@ -91,6 +91,7 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: chat_preference, directness: direct}
+  - {id: finance, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

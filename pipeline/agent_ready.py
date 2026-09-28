@@ -396,6 +396,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- commit: {build.commit}\n"
         f"- eligibility_as_of: {build.as_of.isoformat()}\n"
         f"- html: {MS_BASE}/\n"
+        f"- decide: {MS_BASE}/decide/\n"
         f"- json: {MS_BASE}/api/index.json\n"
         f"- rank: {RANK_API}\n"
         f"- policy-check: {POLICY_API}\n"
@@ -881,6 +882,10 @@ def ship(*, root: Path, ms: Path, models: list[Model],
     well.mkdir(parents=True, exist_ok=True)
     (well / "api-catalog").write_text(_json(api_catalog()), encoding="utf-8")
     (well / "mcp.json").write_text(_json(mcp_card()), encoding="utf-8")
+    shutil.copy2(
+        root / "decision" / "snapshot_keys.json",
+        well / "modelspec-snapshot-keys.json",
+    )
 
     skill_text = skill_markdown()
     skill_bytes = skill_text.encode("utf-8")

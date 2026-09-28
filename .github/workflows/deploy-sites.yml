@@ -57,7 +57,7 @@ jobs:
         # httpx: the decision snapshot build imports `decision.sources`
         # (MODEL-137), which fetches with it. Without it the snapshot step warns
         # and publishes nothing (seen on 8e4660a9).
-        run: pip install pydantic pyyaml "httpx==0.28.1"
+        run: pip install pydantic pyyaml "httpx==0.28.1" "cryptography>=43,<46"
 
       - uses: actions/setup-node@v4
         with:
@@ -82,6 +82,7 @@ jobs:
         id: build
         env:
           MODELSPEC_SNAPSHOT_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY || '' }}
+          MODELSPEC_SNAPSHOT_ED25519_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_ED25519_KEY || '' }}
         run: |
           snapshot_args=()
           if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
@@ -131,9 +132,14 @@ jobs:
           cp -a dist-v1/modelspec/.well-known dist/modelspec/.well-known
           cp -a dist-v1/modelspec/openapi.yaml dist/modelspec/openapi.yaml
           cp -a dist-v1/benchgraph/_redirects dist/benchgraph/_redirects
-          cp web/dist/decide.html dist/modelspec/index.html
+          cp dist-v1/modelspec/index.html dist/modelspec/index.html
+          mkdir -p dist/modelspec/decide
+          cp web/dist/decide.html dist/modelspec/decide/index.html
           cp web/dist/decide.html dist/modelspec/404.html
           cp -a web/dist/assets dist/modelspec/assets
+          cp -a dist-v1/modelspec/landing-assets dist/modelspec/landing-assets
+          cp -a dist-v1/modelspec/fonts dist/modelspec/fonts
+          cp -a dist-v1/modelspec/graph dist/modelspec/graph
           find dist/modelspec/assets -type f -name 'main-*' -delete
           # The 2a icon set and social card, as pipeline.brand wrote them into the real build.
           for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest; do
@@ -143,6 +149,7 @@ jobs:
           from pathlib import Path
 
           root = Path("dist/modelspec")
+          (root / "_redirects").write_text("/landing/  /  301\n", encoding="utf-8")
           (root / "robots.txt").write_text(
               "User-agent: *\nAllow: /\n\nSitemap: https://modelspec.dev/sitemap.xml\n",
               encoding="utf-8",
@@ -152,7 +159,7 @@ jobs:
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
               + "".join(
                   f"  <url><loc>https://modelspec.dev{path}</loc></url>\n"
-                  for path in ("/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
+                  for path in ("/", "/decide/", "/graph/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
               )
               + "</urlset>\n",
               encoding="utf-8",
@@ -173,6 +180,20 @@ jobs:
           cp -a dist dist-internal
           diff -r dist dist-internal
           rm -rf dist-v1
+
+      - name: Check the graph in Chromium
+        env:
+          CI: true
+          MODELSPEC_GRAPH_BASE_URL: http://127.0.0.1:8000
+        run: |
+          cd web
+          npx playwright install --with-deps chromium
+          cd ..
+          python -m http.server 8000 --bind 127.0.0.1 --directory dist/modelspec >/tmp/modelspec-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          cd web
+          npx playwright test --config=playwright.graph.config.ts
 
       - name: Guard the Cloudflare Pages limits
         run: |
@@ -197,9 +218,21 @@ jobs:
         run: |
           set -e
           test -s dist/modelspec/index.html
+          test -s dist/modelspec/decide/index.html
+          test -s dist/modelspec/graph/index.html
+          test -s dist/modelspec/graph/vendor/three.min.js
+          test -s dist/modelspec/graph/vendor/3d-force-graph.min.js
+          test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d ' ')" = 2
+          test ! -e dist/modelspec/graph/vendor/README.md
+          test -s dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
+          grep -Fq '<link rel="canonical" href="https://modelspec.dev/decide/"' dist/modelspec/decide/index.html
+          grep -Fq '<link rel="canonical" href="https://modelspec.dev/graph/"' dist/modelspec/graph/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html
+          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/decide/index.html
           ! grep -Fiq 'X-Robots-Tag' dist/modelspec/_headers
+          grep -Fq '/landing/  /  301' dist/modelspec/_redirects
+          test ! -e dist/modelspec/landing
           test -s dist/modelspec/sitemap.xml
           test -s dist/modelspec/404.html
           test -s dist/modelspec/api/index.json
@@ -221,7 +254,6 @@ jobs:
           test -s dist/modelspec/og-card.png
           test -s dist/modelspec/site.webmanifest
           test ! -e dist/modelspec/downselect
-          test ! -e dist/modelspec/graph
           test ! -e dist/modelspec/models
           test ! -e dist/modelspec/providers
           test ! -e dist/modelspec/benchmarks
@@ -252,6 +284,9 @@ jobs:
           test -s dist-holding/modelspec/index.html
           test -s dist-holding/modelspec/404.html
           grep -q 'X-Robots-Tag: noindex' dist-holding/modelspec/_headers
+          grep -Fq '<link rel="canonical" href="https://modelspec.dev/">' dist-holding/modelspec/index.html
+          ! grep -Eiq '<meta[^>]+noindex' dist-holding/modelspec/index.html
+          grep -Eiq '<meta[^>]+noindex' dist-holding/modelspec/404.html
           test ! -e dist-holding/modelspec/sitemap.xml
           test ! -e dist-holding/modelspec/_worker.js
           test ! -e dist-holding/modelspec/llms.txt

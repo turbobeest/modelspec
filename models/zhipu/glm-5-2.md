@@ -1244,13 +1244,13 @@ benchmarks:
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-26'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-26'
     benchmark_version: AIME 2026, MathArena final-answer table
-    configuration: MathArena competition table read 2026-09-24; the table states no run date,
-      so the reading is dated by the observation. Effort default; highest-effort row for the
-      model. MathArena lists final-answer competitions as deprecated.
+    configuration: MathArena competition table read 2026-09-26; the table states no run
+      date, so the reading is dated by the observation. Effort default; highest-effort
+      row for the model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
     id: zhipu/glm-5-2#aime_2026#be95f0de2f89
@@ -1258,10 +1258,17 @@ benchmarks:
     effort: null
     harness: null
     sources:
-    - source_id: model-160-matharena-aime-2026
-      snapshot_ref: sha256:f7e2ee1441375d33b08d553c6ddda60da7f3b453145ab0eeb26d5ca4a49484e9
+    - source_id: model-161-matharena-aime-2026
+      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
       cited_regions:
       - rows
+    - source_id: model-161-matharena-aime-2026-quality
+      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+      cited_regions:
+      - rows
+    quality_flags:
+    - deprecated
+    - contamination_warning
   - benchmark_id: tau3_banking
     model_id_as_evaluated: GLM-5.2 (xhigh)
     score: 37.11
@@ -1286,6 +1293,307 @@ benchmarks:
       snapshot_ref: sha256:767cf5acce455604026d1c2298c1ca6cf55a3bea419d16f060e201867fd0d0f5
       cited_regions:
       - rows
+  - benchmark_id: arena_sc_english
+    model_id_as_evaluated: glm-5.2-max
+    score: 1478.78
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1478.78 [1472.94,
+      1484.63], 15630 votes, rank 35. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_english#24cc263a3631
+  - benchmark_id: arena_sc_chinese
+    model_id_as_evaluated: glm-5.2-max
+    score: 1516.63
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1516.63 [1503.78,
+      1529.49], 2282 votes, rank 31. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_chinese#eb4b89903b4e
+  - benchmark_id: arena_sc_japanese
+    model_id_as_evaluated: glm-5.2-max
+    score: 1452.48
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / japanese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1452.48 [1425.80,
+      1479.15], 580 votes, rank 28. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:378ee68fcc262e62231ba63141c81baffe954e5edb48ca7f0d21726b0417dadb
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_japanese#56cb91a7468b
+  - benchmark_id: arena_sc_korean
+    model_id_as_evaluated: glm-5.2-max
+    score: 1440.47
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / korean, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1440.47 [1417.88,
+      1463.07], 740 votes, rank 25. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:d02642dc7233db6fed665cc6abdf94d487b7d4d64a2d6bb7c33ff0bea0f8755c
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_korean#7cbea5f97298
+  - benchmark_id: arena_sc_russian
+    model_id_as_evaluated: glm-5.2-max
+    score: 1464.61
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1464.61 [1454.73,
+      1474.48], 3910 votes, rank 47. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_russian#feaa94f3fc33
+  - benchmark_id: arena_sc_spanish
+    model_id_as_evaluated: glm-5.2-max
+    score: 1476.27
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / spanish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1476.27 [1457.43,
+      1495.11], 1080 votes, rank 16. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:53285f933382c2e23254c68a5e01a25705206262f3000e8f5954e40597697cc1
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_spanish#c8ff59521e07
+  - benchmark_id: arena_sc_german
+    model_id_as_evaluated: glm-5.2-max
+    score: 1473.66
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / german, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1473.66 [1450.50,
+      1496.82], 686 votes, rank 31. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:5bc7f8c29190254b708e3b1b9c9130570cb30292791a5ac70d6baf464245a845
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_german#a6647dc9cedf
+  - benchmark_id: arena_sc_french
+    model_id_as_evaluated: glm-5.2-max
+    score: 1491.48
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1491.48 [1473.55,
+      1509.40], 1310 votes, rank 29. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_french#01055ffa3e21
+  - benchmark_id: arena_sc_polish
+    model_id_as_evaluated: glm-5.2-max
+    score: 1452.03
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / polish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1452.03 [1428.03,
+      1476.02], 616 votes, rank 59. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c24dd604059a7b6a389b724e9819f1da9b856a619642c7b69e5124f146a92635
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_polish#83f95d0b941a
+  - benchmark_id: arena_sc_industry_software_it_services
+    model_id_as_evaluated: glm-5.2-max
+    score: 1501.85
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
+      1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1501.85 [1495.80,
+      1507.91], 14686 votes, rank 45. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_industry_software_it_services#c55b8c1c0dc3
+  - benchmark_id: arena_sc_industry_entertainment_sports_media
+    model_id_as_evaluated: glm-5.2-max
+    score: 1441.94
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
+      split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1441.94 [1434.59,
+      1449.29], 8941 votes, rank 43. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_industry_entertainment_sports_media#9b352461aead
+  - benchmark_id: arena_sc_industry_mathematical
+    model_id_as_evaluated: glm-5.2-max
+    score: 1488.31
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1488.31 [1474.64,
+      1501.99], 1983 votes, rank 30. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_industry_mathematical#b62a265892c1
+  - benchmark_id: arena_sc_factuality
+    model_id_as_evaluated: glm-5.2-max
+    score: 1461.05
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1461.05 [1457.43,
+      1464.67], 36648 votes, rank 39. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-factuality
+      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      cited_regions:
+      - rows
+    id: zhipu/glm-5-2#arena_sc_factuality#3098fedb40e6
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -1822,10 +2130,38 @@ facts:
     snapshot_ref: sha256:3bb6cb24fec34e806be0fbc2201399aaae38550431612d96d359284e08d1d8c5
     cited_regions:
     - audit
+- id: zhipu/glm-5-2#model.parameters_total
+  subject:
+    kind: model
+    id: zhipu/glm-5-2
+  facet: model.parameters_total
+  value: 753329940480
+  state: known
+  sources:
+  - source_id: model-161-glm-5-2-rtx-4090-fit
+    snapshot_ref: sha256:b15ce5b57ac3641116c3a60959d62f3539ab5be9b1cee6a0d224283bbaac235f
+    cited_regions:
+    - rows
+- id: zhipu/glm-5-2#model.fits_hardware
+  subject:
+    kind: model
+    id: zhipu/glm-5-2
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-161-glm-5-2-rtx-4090-fit
+    snapshot_ref: sha256:b15ce5b57ac3641116c3a60959d62f3539ab5be9b1cee6a0d224283bbaac235f
+    cited_regions:
+    - rows
+  - source_id: model-161-nvidia-rtx-4090-memory
+    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-26'
 ---
 
 # GLM-5.2

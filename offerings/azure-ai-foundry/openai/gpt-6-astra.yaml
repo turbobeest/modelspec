@@ -123,3 +123,23 @@
       snapshot_ref: sha256:9c43d741bc499532516a40237841de894a06ea20db064744a9ef0fa46983f95f
       cited_regions:
       - page
+  - id: azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - azure-pricing
+    - model-143-openai-gpt-6-astra
+  - id: azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - azure-pricing
+    - model-143-openai-gpt-6-astra

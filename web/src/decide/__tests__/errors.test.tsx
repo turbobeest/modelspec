@@ -13,7 +13,7 @@ import { json, routeFetch } from "./vocab-fixtures";
 const fixture = decisionSchema.parse(fixtureJson);
 const TASK = "Refactor a large Rust codebase, precision matters";
 
-beforeEach(() => history.replaceState(null, "", "/"));
+beforeEach(() => history.replaceState(null, "", "/decide/"));
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();

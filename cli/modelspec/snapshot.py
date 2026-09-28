@@ -157,6 +157,42 @@ def decision_vocabulary_path(directory: Path | None = None) -> Path:
             (_decision_root(directory) / ".absent" / DECISION_VOCABULARY_FILENAME))
 
 
+def cached_decision_generations(directory: Path | None = None) -> list[Path]:
+    """Return valid retained generations, newest first."""
+    root = _decision_root(directory)
+    try:
+        candidates = [path for path in root.iterdir()
+                      if path.is_dir() and not path.name.startswith(".tmp-")]
+    except OSError:
+        return []
+    valid = []
+    for path in candidates:
+        try:
+            _validate_decision_generation(path)
+        except (OSError, UnicodeError, ValueError, KeyError, json.JSONDecodeError):
+            continue
+        valid.append(path)
+    return sorted(valid, key=lambda path: path.stat().st_mtime, reverse=True)
+
+
+def resolve_decision_generation(reference: str, directory: Path | None = None) -> Path:
+    """Resolve a retained snapshot ID or ``previous`` to its snapshot file."""
+    generations = cached_decision_generations(directory)
+    current, _error = _current_decision_generation(directory)
+    if reference == "previous":
+        choices = [path for path in generations if current is None or path != current]
+        if choices:
+            return choices[0] / DECISION_SNAPSHOT_FILENAME
+    else:
+        match = next((path for path in generations if path.name == reference), None)
+        if match is not None:
+            return match / DECISION_SNAPSHOT_FILENAME
+    cached = ", ".join(sorted(path.name for path in generations)) or "none"
+    raise ValueError(
+        f"decision snapshot {reference!r} is not cached; cached snapshot ids: {cached}"
+    )
+
+
 @dataclass(frozen=True)
 class Snapshot:
     path: Path
@@ -555,8 +591,8 @@ def _fetch_decision_files(origin: str, directory: Path,
             source = DEFAULT_ORIGIN
             decision_data, vocabulary_raw = download(source, send_credential=False)
 
-        # A public client cannot verify the HMAC without the publishing secret.
-        # It still verifies the content hash and snapshot ID.
+        # Public clients verify Ed25519 with the key set pinned in the package.
+        # The loader permits hash-only validation only while that set is empty.
         decision = load_snapshot_bytes(
             decision_data, key=None, include_archive=True,
             source=source + DECISION_SNAPSHOT_ROUTE,
@@ -608,7 +644,14 @@ def _fetch_decision_files(origin: str, directory: Path,
         shutil.rmtree(temporary, ignore_errors=True)
 
     _prune_decision_generations(root, decision.snapshot_id)
-    return {"available": True, "origin": source, "snapshot_id": decision.snapshot_id}
+    return {
+        "available": True,
+        "origin": source,
+        "snapshot_id": decision.snapshot_id,
+        "signature_verified": decision.signature_verified,
+        "signature_status": decision.signature_status,
+        "signature_key_id": decision.signature_key_id,
+    }
 
 
 def _prune_decision_generations(root: Path, current_id: str) -> None:
@@ -667,6 +710,8 @@ def status(directory: Path | None = None) -> dict[str, Any]:
                 "as_of": decision.as_of.isoformat() if decision.as_of else None,
                 "age_days": round(age_of(decision_path), 2),
                 "signature_verified": decision.signature_verified,
+                "signature_status": decision.signature_status,
+                "signature_key_id": decision.signature_key_id,
             }
         except (OSError, ValueError) as exc:
             decision_status = {

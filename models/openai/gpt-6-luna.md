@@ -826,6 +826,199 @@ sources:
   last_scraped_huggingface: ''
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
+facts:
+- facet: model.class
+  value: text-generator
+  state: known
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.input_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: model.output_modalities
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: model.context_window
+  value: 1050000
+  state: known
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.max_output_tokens
+  value: 128000
+  state: known
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: model.weights_openness
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: licence.commercial_use
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: licence.user_cap
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: licence.output_training
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: licence.fine_tuning
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: origin.lab_jurisdiction
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: origin.base_lineage
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: origin.weights_hosting
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: model.release_date
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: model.lifecycle
+  value: active
+  state: known
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.tool_calling
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.structured_output
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.effort_controls
+  value: null
+  state: not_disclosed
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources:
+  - model-163-openai-gpt-6-luna
+- facet: feature.batch
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources: []
+- facet: feature.streaming
+  value: true
+  state: known
+  sources:
+  - source_id: model-163-openai-gpt-6-luna
+    snapshot_ref: sha256:ee2393bb11831cf24442c5f475630f2c0e9ec622df5bb6bff2841af366f8454e
+    cited_regions:
+    - model-spec
+  checked_sources: []
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'

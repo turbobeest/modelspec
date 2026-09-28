@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.7**
+Contract version: **1.10**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -329,9 +329,10 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.7",
+  "contract_version": "1.10",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
+  "signature_verified": true,
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
   "explain": "summary",
   "status": "answered",
@@ -375,6 +376,7 @@ same canonical representation it had in 1.0.
     "models": [],
     "model_groups": []
   },
+  "truncated": {"offerings": 0, "models": 0},
   "constraint_costs": [
     {"condition": "origin.lab_jurisdiction in {US}", "admits": 12, "gain": {"software_engineering": 0.06}}
   ],
@@ -391,15 +393,17 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.7"`. |
+| `contract_version` | `"1.10"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
+| `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
 | `spec_hash` | The canonical spec hash. |
 | `explain` | The explanation level used. |
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
 | `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
-| `eliminated` | The `funnel`: for each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. |
+| `eliminated` | Candidates that failed a condition or were Pareto-dominated. The `funnel` reports each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. A qualifying candidate omitted by `limit` is never an elimination. |
+| `truncated` | Qualifying candidates omitted only because of `limit`. `offerings` counts omitted offering rows. `models` counts models with no row in `results`; a model with one returned offering and another omitted offering is not counted as an omitted model. Both counts are always present and are zero when the complete qualifying result set was returned. |
 | `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. |
 | `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. |
 | `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. |
@@ -441,7 +445,8 @@ never listed as a candidate or in `may_qualify`.
 | `warnings` | Codes about this result. |
 
 **An evidence item** carries `benchmark`, `version`, `sub_category`, `value`,
-`unit`, `n` (a count, for outcome rates), `measured_by`, `effort`, `harness`,
+`unit`, `n` (a sample or vote count), `interval` (the source-published
+measurement interval, or null), `quality_flags`, `measured_by`, `effort`, `harness`,
 `harness_unregistered`, `date`, `date_type`, `source` (the URL it was read
 from), `source_snapshot` (the content hash of the retained copy), and
 `directness`. Evidence used in a capability estimate also carries its
@@ -460,6 +465,8 @@ directness `loading`, its `estimate_weight`, and its age-based
   `false`.
 
 Only verified evidence reaches a decision; quarantined values never do.
+Evidence with a `deprecated` or `contamination_warning` quality flag remains
+visible in provenance but does not count as the direct answer to an objective.
 When every fitted benchmark for an estimate is tagged `proxy`, the result's
 `warnings` includes `proxy_evidence_only`. Its contribution formula also names
 the estimate as proxy-only.
@@ -492,6 +499,7 @@ field) and the `reason`.
 
 ```
 modelspec decide SPEC.yaml [--explain none|summary|full] [--check] [--json]
+modelspec decide SPEC.yaml --compare-to SNAPSHOT_ID [--json]
 ```
 
 `--explain` overrides the spec's `explain`. By default the command reads the
@@ -517,6 +525,21 @@ capability domain with no coverage. Human output is `ok` plus one line with the
 Must count, Prefer count, and snapshot pin. JSON success includes `ok`,
 `summary`, `warnings`, and the cached `snapshot`. A snapshot pin that differs
 from the cached vocabulary produces a warning, not a failure.
+
+`--compare-to` is additive CLI behavior. It accepts a cached decision snapshot
+ID, `previous`, or a path to a snapshot `.gz`; it runs the real decision engine
+against both snapshots and groups the difference by model. The comparison
+ignores a `snapshot` pin in the spec. Internally it requests full explanation
+data so departures can name the failed Must and changed values can retain their
+record IDs, but it does not change ordinary decision output or the decision
+contract. JSON comparison output uses the CLI envelope documented in
+`cli-contract.md`; unchanged comparisons still exit 0.
+
+The hosted equivalent is `POST /v1/compare` with a body containing `spec` and
+`compare_to`. It runs the same comparison function after verifying both signed
+Snapshots. The current static origin does not publish retained Snapshot files,
+so the endpoint reports `comparison_snapshot_unavailable` until that separate
+hosting work ships. See [`decide-api.md`](decide-api.md#comparing-snapshots).
 
 ### Explanation provenance (MODEL-145)
 
@@ -686,6 +709,20 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.10 — MODEL-182:** A decision adds `signature_verified`. The CLI verifies
+  the snapshot against its pinned Ed25519 key set. The Worker can continue to
+  verify the HMAC signature with its private key.
+- **1.9 — MODEL-169:** A decision adds `truncated`, with counts of qualifying
+  offerings and models omitted by `limit`. Qualifying candidates are no longer
+  listed in `eliminated` because of the result limit. Pareto-dominated
+  candidates remain in `eliminated`. The field addition is compatible and the
+  elimination change narrows the existing lists, so neither change widens an
+  existing field's range.
+- **1.8 — MODEL-161:** Evidence items add the optional source-published
+  `interval` and the always-present `quality_flags` list. Deprecated or
+  contamination-warned observations remain visible but are not direct answers.
+  Overlapping selected measurement intervals add `not_separable`. The additions
+  are compatible.
 - **1.7 — MODEL-129:** The estimate stage fills `estimates`, `p_best`, and
   `top3_stability`. Estimate evidence adds the optional `loading`,
   `estimate_weight`, and `recency_weight` fields. The additions are compatible.

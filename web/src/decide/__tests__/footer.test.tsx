@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 import App from "../App";
 
-beforeEach(() => history.replaceState(null, "", "/?demo=1"));
+beforeEach(() => history.replaceState(null, "", "/decide/?demo=1"));
 
 it("links the neutrality, terms and privacy pages on every view", () => {
   render(<App />);

@@ -181,6 +181,7 @@ export async function retryOnSnapshotChange<V extends { snapshot: string }, T>(
   current: V | null,
   ask: (vocabulary: V | null) => Promise<T>,
   reload: (stale: string) => Promise<V>,
+  onReload: (fresh: V) => void = () => undefined,
 ): Promise<{ result: T; vocabulary: V | null }> {
   try {
     return { result: await ask(current), vocabulary: current };
@@ -189,6 +190,7 @@ export async function retryOnSnapshotChange<V extends { snapshot: string }, T>(
       throw error;
     const fresh = await reload(current.snapshot);
     if (fresh.snapshot === current.snapshot) throw error;
+    onReload(fresh);
     return { result: await ask(fresh), vocabulary: fresh };
   }
 }

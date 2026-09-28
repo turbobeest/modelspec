@@ -35,10 +35,12 @@ describe("the hosted Decision view-model mapper", () => {
       dismissed: [],
     });
 
-    expect(view.explanation.feasible).toHaveLength(41);
-    expect(view.explanation.feasible.map((row) => row.rank)).toEqual(
-      liveSwePrefer.results.map((result) => result.rank),
+    expect(view.explanation.feasible).toHaveLength(25);
+    expect(view.explanation.feasible.map((row) => `${row.m.lab}/${row.m.id}`)).toEqual(
+      [...new Set(liveSwePrefer.results.map((result) => result.offering.model))],
     );
+    expect(view.explanation.feasible.find((row) => row.m.id === "gemini-3-7-flash")?.offs)
+      .toHaveLength(2);
     expect(view.explanation.feasible.every((row) => row.capR?.who === "capability model"))
       .toBe(true);
     expect(view.explanation.may).toHaveLength(7);
@@ -217,11 +219,11 @@ describe("the hosted Decision view-model mapper", () => {
     expect(view.nearMisses).toEqual([]);
   });
 
-  it("reads model-grained funnel, eliminations and near misses from contract 1.6", () => {
+  it("reads model-grained funnel, eliminations and near misses from contract 1.10", () => {
     const firstOffering = fixture.results[0].offering;
     const hosted = decisionSchema.parse({
       ...fixture,
-      contract_version: "1.6",
+      contract_version: "1.10",
       results: fixture.results.filter((result) => result.offering.model !== firstOffering.model),
       near_misses: [
         {
@@ -351,4 +353,5 @@ it("turns the deterministic task parse into conditions and never sends free text
   expect(spec.where).toContain("model.context_window >= 200000");
   expect(spec.where).toContain("codebench_pro >= 50 @independent");
   expect(spec.explain).toBe("full");
+  expect(spec.limit).toBe(500);
 });

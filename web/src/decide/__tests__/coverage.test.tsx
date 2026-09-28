@@ -89,7 +89,7 @@ describe("provider display names", () => {
 });
 
 describe("the empty-result panel on the page", () => {
-  beforeEach(() => history.replaceState(null, "", "/"));
+  beforeEach(() => history.replaceState(null, "", "/decide/"));
   afterEach(() => vi.unstubAllGlobals());
 
   it("shows the panel above may-qualify and raises the price cap in one click (Q10)", async () => {
@@ -101,7 +101,7 @@ describe("the empty-result panel on the page", () => {
           : json(answered),
     });
     vi.stubGlobal("fetch", fetch);
-    history.replaceState(null, "", "/" + encodeSpec(EMPTY_SPECS.q10, "task$"));
+    history.replaceState(null, "", "/decide/" + encodeSpec(EMPTY_SPECS.q10, "task$"));
     render(<App />);
 
     const panel = await screen.findByRole("region", { name: "Lineup coverage" });
@@ -129,7 +129,7 @@ describe("the empty-result panel on the page", () => {
       "fetch",
       routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(EMPTY_DECISIONS.q20) }),
     );
-    history.replaceState(null, "", "/" + encodeSpec(EMPTY_SPECS.q20, "task$"));
+    history.replaceState(null, "", "/decide/" + encodeSpec(EMPTY_SPECS.q20, "task$"));
     render(<App />);
     const panel = await screen.findByRole("region", { name: "Lineup coverage" });
     expect(panel).toHaveTextContent("the lineup has no speech recognition models yet");

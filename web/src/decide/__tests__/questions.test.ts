@@ -1,11 +1,12 @@
 import { expect, it, vi } from "vitest";
-import { evaluateQuestionOptions } from "../adapter/questions";
+import { evaluateQuestionOptions, probeSpec } from "../adapter/questions";
 import type { Decision, DecisionSpec } from "../adapter/contract";
 import type { HostedDecisionEngine } from "../adapter/hosted";
 import type { Question } from "../engine/reference";
 
 const decision = (count: number): Decision => ({
   contract_version: "1.2",
+  signature_verified: false,
   out_of_lineup: 0,
   decision_id: `dec_${String(count).padStart(8, "0")}`,
   snapshot: "snap_question_test",
@@ -27,6 +28,7 @@ const decision = (count: number): Decision => ({
   })),
   may_qualify: [],
   eliminated: { funnel: [], models: [], model_groups: [] },
+  truncated: { offerings: 0, models: 0 },
   constraint_costs: [],
   tipping_points: [],
   relax: [],
@@ -37,6 +39,23 @@ const decision = (count: number): Decision => ({
   chart: null,
   number_origins: [],
   sources: [],
+});
+
+it("deduplicates an active condition only for board probes", () => {
+  const condition = "model.weights_openness = open_weights";
+  const spec: DecisionSpec = {
+    spec_version: 1,
+    where: [condition],
+    optimize: { min: "offering.price.input" },
+    explain: "summary",
+  };
+  const option: Question["opts"][number] = {
+    label: "Open weights",
+    c: { f: "open", v: true },
+  };
+
+  expect(probeSpec(spec, option).where).toEqual([condition, condition]);
+  expect(probeSpec(spec, option, true).where).toEqual([condition]);
 });
 
 it("debounces next-question evaluation and caps fan-out at six requests", async () => {

@@ -48,24 +48,44 @@ Gzipped canonical JSON (sorted keys, no whitespace, gzip `mtime=0`):
 {"format": "modelspec.decision-snapshot", "format_version": 1,
  "snapshot_id": "snap_<16 hex>", "content_hash": "sha256:<hex>",
  "signature": {"alg": "hmac-sha256", "value": "<hex>"} | null,
+ "signatures": [{"alg": "ed25519", "key_id": "<id>", "value": "<base64>"}],
  "content": {"as_of", "facet_subjects", "lineup", "archive",
              "benchmark_domains", "sources", "excluded"}}
 ```
 
 `content_hash` is SHA-256 over the canonical `content`; the ID is its first 16
-hex digits. The signature is HMAC-SHA256 over the `content_hash` string with
-`MODELSPEC_SNAPSHOT_KEY`; unset, the snapshot is unsigned.
+hex digits. The private Worker signature is HMAC-SHA256 over the `content_hash`
+string with `MODELSPEC_SNAPSHOT_KEY`. The public signature is Ed25519 over the
+same string with `MODELSPEC_SNAPSHOT_ED25519_KEY`. Each Ed25519 signature names
+its key ID. The CLI pins every accepted public key in
+`decision/snapshot_keys.json`. The site publishes the same key set at
+`/.well-known/modelspec-snapshot-keys.json`.
+
+The writer derives the public key from the configured Ed25519 secret and looks
+up its key ID in the pinned set. A non-empty set with no matching key fails the
+write. When the set is empty, the writer warns and omits Ed25519 during initial
+provisioning; an HMAC signature is still written when its key is configured.
+Build-only in-memory consumers disable publisher-signature verification and
+still receive the content-hash and snapshot-ID checks.
 
 `lineup` and `archive` are columnar: `candidates` (id, kind, model, lifecycle,
 sorted by id), `facets` (per facet, sparse columns `row`, `state`, `value`,
 `sources`) and `evidence` (per candidate, rows of benchmark, version,
-sub-category, value, unit, measured_by, effort, harness, date, source IDs).
+sub-category, value, unit, measured_by, effort, harness, date, source IDs,
+record ID, date type, source snapshot, `interval`, `n`, and `quality_flags`).
+The builder admits an evidence row only when its winning verification matches
+the canonical evidence value. That value is the scalar score when no structured
+metadata exists; otherwise it is the composite of `score`, `interval`, `n`,
+and sorted `quality_flags`. A verification for the score alone cannot admit a
+row carrying decision-affecting metadata.
 
 ## Load
 
-`load_snapshot(path, key=…, include_archive=False)` checks the hash, then the
-signature when a key is available (default: the environment). With a key, an
-unsigned or wrongly signed file is refused. It returns a `SnapshotIndex`:
+`load_snapshot(path, key=…, include_archive=False)` checks the hash, then a
+publisher signature. The Worker verifies HMAC when its private key is
+available. Public clients verify Ed25519 against the pinned key set. Once that
+set contains a key, a missing, unknown, or invalid Ed25519 signature is refused.
+It returns a `SnapshotIndex`:
 
 - `candidates()`: models and offerings in the lineup, sorted; the archive only
   when asked. A model with offerings is still a candidate here, because its
@@ -83,7 +103,8 @@ unsigned or wrongly signed file is refused. It returns a `SnapshotIndex`:
   model's evidence (MODEL-158): capability belongs to the model. Its own
   measurements of a benchmark, if it has any, replace its model's for that
   benchmark. This is resolved at load; the file stores evidence under its
-  subject only, so the bytes do not change.
+  subject only, so the bytes do not change. Loaded evidence exposes `interval`,
+  `n`, and `quality_flags` from the final three row positions.
 
 The bitsets are built at load time from the columns, so the file cannot hold a
 bitset that disagrees with its values. Evidence objects are built per candidate
@@ -129,8 +150,9 @@ Before replacing the cache, the CLI applies the same `content_hash` and
 `snapshot_id` checks as `load_snapshot`. It also requires the vocabulary's
 `snapshot` field to name the downloaded snapshot. A failed check leaves the
 old cache in place and names the failed check. The public CLI does not have
-`MODELSPEC_SNAPSHOT_KEY`, so it records the HMAC signature as unverified and
-does not reject an otherwise valid snapshot for that reason.
+`MODELSPEC_SNAPSHOT_KEY`. It verifies Ed25519 offline instead. Before the first
+public key is provisioned, it accepts the hash-checked snapshot and reports
+`unsigned (ed25519 key not yet provisioned)`.
 
 With neither `--snapshot-file` nor `MODELSPEC_DECISION_SNAPSHOT`,
 `modelspec decide` reads this cached decision snapshot. If it is absent, the

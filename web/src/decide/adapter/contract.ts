@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const facetId = z.string().regex(/^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$/);
+const objectiveId = z.string().regex(/^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(\/[a-z][a-z0-9_-]*)?$/);
 const modelId = z.string().regex(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/);
 const nullableString = z.string().nullable();
 const scalar = z.union([z.string(), z.number().finite(), z.boolean()]);
@@ -24,6 +25,15 @@ export const evidenceItemSchema = z
     value: z.number().finite(),
     unit: nullableString,
     n: z.number().int().positive().nullable(),
+    interval: z
+      .tuple([z.number().finite(), z.number().finite()])
+      .nullable()
+      .optional()
+      .default(null),
+    quality_flags: z
+      .array(z.enum(["deprecated", "contamination_warning"]))
+      .optional()
+      .default([]),
     measured_by: z.enum([
       "independent",
       "provider_self_report",
@@ -170,9 +180,21 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
-    contract_version: z.enum(["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"]),
+    contract_version: z.enum([
+      "1.1",
+      "1.2",
+      "1.3",
+      "1.4",
+      "1.5",
+      "1.6",
+      "1.7",
+      "1.8",
+      "1.9",
+      "1.10",
+    ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
+    signature_verified: z.boolean().optional().default(false),
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     explain: z.enum(["none", "summary", "full"]),
     status: z.enum(["answered", "partial", "no_feasible"]),
@@ -256,6 +278,14 @@ export const decisionSchema = z
           .default([]),
       })
       .strict(),
+    truncated: z
+      .object({
+        offerings: z.number().int().nonnegative(),
+        models: z.number().int().nonnegative(),
+      })
+      .strict()
+      .optional()
+      .default({ offerings: 0, models: 0 }),
     constraint_costs: z.array(
       z
         .object({
@@ -302,7 +332,7 @@ export const decisionSchema = z
 const objectiveSchema = z.union([
   z.object({ max: facetId }).strict(),
   z.object({ min: facetId }).strict(),
-  z.object({ weights: z.record(facetId, z.number().positive()) }).strict(),
+  z.object({ weights: z.record(objectiveId, z.number().positive()) }).strict(),
   z.object({ pareto: z.array(facetId).min(2) }).strict(),
   z
     .object({

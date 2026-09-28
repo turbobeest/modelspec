@@ -17,6 +17,7 @@ from decision.contract import (
     OfferingRef,
     Result,
     Spec,
+    Truncated,
     spec_hash,
 )
 from decision.filter import FilterResult, apply
@@ -95,6 +96,49 @@ def validate(
     return resolve(spec, facets=facets, profiles=profiles)
 
 
+def _overlaps_raw_evidence(row, others, snapshot) -> bool:
+    """Whether a selected measurement overlaps another model's interval."""
+    model_id = snapshot.model_of(row.candidate_id)
+    for contribution in row.contributions:
+        if len(contribution.evidence) != 1:
+            continue
+        evidence = contribution.evidence[0]
+        interval = evidence.interval
+        if interval is None:
+            continue
+        for other in others:
+            if snapshot.model_of(other.candidate_id) == model_id:
+                continue
+            for compared in other.contributions:
+                if compared.dimension != contribution.dimension or len(compared.evidence) != 1:
+                    continue
+                other_evidence = compared.evidence[0]
+                measurement_identity = (
+                    evidence.benchmark_id,
+                    evidence.version,
+                    evidence.unit,
+                    evidence.subcategory,
+                    evidence.effort,
+                    evidence.harness,
+                )
+                other_identity = (
+                    other_evidence.benchmark_id,
+                    other_evidence.version,
+                    other_evidence.unit,
+                    other_evidence.subcategory,
+                    other_evidence.effort,
+                    other_evidence.harness,
+                )
+                if measurement_identity != other_identity:
+                    continue
+                other_interval = other_evidence.interval
+                if other_interval is not None and max(interval[0], other_interval[0]) <= min(
+                    interval[1], other_interval[1]
+                ):
+                    return True
+    return False
+
+
 def decide(
     spec: Spec,
     snapshot: ExplanationIndex,
@@ -103,8 +147,13 @@ def decide(
     profiles: Mapping[str, InventoryProfile] | None = None,
     evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
     _filter_trace: Callable[[FilterResult], None] | None = None,
+    comparison: bool = False,
 ) -> Decision:
-    """Return a reproducible decision. Explanation work is skipped at ``none``."""
+    """Return a reproducible decision. Explanation work is skipped at ``none``.
+
+    ``comparison`` retains named facts for every returned candidate in the
+    intermediate Decision. Ordinary full decisions still cap ``top`` at 20.
+    """
     resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
     # Computed facets (offering.cost_per_task) depend on the spec, so the
     # remaining stages use the same per-decision view validation prepared for.
@@ -164,8 +213,20 @@ def decide(
             seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain}",
         )
 
+    returned_rows = ordered.results[: spec.limit]
+    omitted_rows = ordered.results[spec.limit :]
+    returned_models = {
+        snapshot.model_of(row.candidate_id) for row in returned_rows
+    }
+    omitted_models = {
+        snapshot.model_of(row.candidate_id) for row in omitted_rows
+    } - returned_models
+    truncated = Truncated(
+        offerings=sum(snapshot.kind(row.candidate_id) == "offering" for row in omitted_rows),
+        models=len(omitted_models),
+    )
     results = []
-    for i, row in enumerate(ordered.results[: spec.limit]):
+    for i, row in enumerate(returned_rows):
         model_id = snapshot.model_of(row.candidate_id)
         stored_estimates = [
             (domain, snapshot.capability_estimate(row.candidate_id, domain))
@@ -186,6 +247,12 @@ def decide(
             other_id != model_id
             and max(current.low, other.low) <= min(current.high, other.high)
             for other_id, other in model_estimates.items()
+        ):
+            warnings.append("not_separable")
+        if (
+            len(names) == 1
+            and _overlaps_raw_evidence(row, ordered.results, snapshot)
+            and "not_separable" not in warnings
         ):
             warnings.append("not_separable")
         p_best, top3 = probabilities.get(model_id, (None, None))
@@ -211,6 +278,7 @@ def decide(
         + hashlib.sha256((digest + snapshot.snapshot_id).encode()).hexdigest()[:24],
         spec_hash=digest,
         snapshot=snapshot.snapshot_id,
+        signature_verified=getattr(snapshot, "signature_verified", False),
         explain=spec.explain,
         status="partial"
         if ordered.status == "answered" and filtered.may_qualify
@@ -229,10 +297,14 @@ def decide(
                 + list(objective_unknown.items())
             )
         ],
+        truncated=truncated,
         out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
     )
     if spec.explain != "none":
         from decision.explain import explain
 
-        explain(decision, resolved, snapshot, filtered, ordered, selectors, domains)
+        explain(
+            decision, resolved, snapshot, filtered, ordered, selectors, domains,
+            comparison=comparison,
+        )
     return decision

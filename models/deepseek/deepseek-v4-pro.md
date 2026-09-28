@@ -697,6 +697,15 @@ benchmarks:
       not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page
       and was not attached to live_code_bench.
     limitations: ''
+    id: deepseek/deepseek-v4-pro#mmlu_pro#ae826abe812d
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-deepseek-v4-pro-paper
+      snapshot_ref: sha256:1b80985eddbf33a5f1002d045354b2cace7160186c7d3c05e6e7edb3c0778115
+      cited_regions:
+      - evidence
   - benchmark_id: swe_bench_verified
     model_id_as_evaluated: DeepSeek-V4-Pro (max)
     score: 80.6
@@ -1214,9 +1223,9 @@ benchmarks:
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-26'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-26'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
     configuration: Board row as copied in Epoch AI's benchmark data (frontiercode_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort none; the highest-effort
@@ -1266,9 +1275,9 @@ benchmarks:
     date_type: evaluated
     verified_at: '2026-09-24'
     benchmark_version: AIME 2026, MathArena final-answer table
-    configuration: MathArena competition table read 2026-09-24; the table states no run date,
-      so the reading is dated by the observation. Effort max; highest-effort row for the model.
-      MathArena lists final-answer competitions as deprecated.
+    configuration: MathArena competition table read 2026-09-26; the table states no run
+      date, so the reading is dated by the observation. Effort max; highest-effort row
+      for the model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
     id: deepseek/deepseek-v4-pro#aime_2026#762af5769a5d
@@ -1276,10 +1285,318 @@ benchmarks:
     effort: max
     harness: null
     sources:
-    - source_id: model-160-matharena-aime-2026
-      snapshot_ref: sha256:f7e2ee1441375d33b08d553c6ddda60da7f3b453145ab0eeb26d5ca4a49484e9
+    - source_id: model-161-matharena-aime-2026
+      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
       cited_regions:
       - rows
+    - source_id: model-161-matharena-aime-2026-quality
+      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+      cited_regions:
+      - rows
+    quality_flags:
+    - deprecated
+    - contamination_warning
+  - benchmark_id: arena_sc_english
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1466.79
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1466.79 [1461.57,
+      1472.01], 23890 votes, rank 57. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_english#dbcc2cd8efd9
+  - benchmark_id: arena_sc_chinese
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1493.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1493.30 [1481.45,
+      1505.14], 2859 votes, rank 67. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_chinese#0d83a1bcfc4b
+  - benchmark_id: arena_sc_japanese
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1462.21
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / japanese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1462.21 [1437.94,
+      1486.48], 691 votes, rank 22. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:378ee68fcc262e62231ba63141c81baffe954e5edb48ca7f0d21726b0417dadb
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_japanese#79705f0e7843
+  - benchmark_id: arena_sc_korean
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1418.01
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / korean, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1418.01 [1398.63,
+      1437.38], 1069 votes, rank 49. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:d02642dc7233db6fed665cc6abdf94d487b7d4d64a2d6bb7c33ff0bea0f8755c
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_korean#718f818d82a0
+  - benchmark_id: arena_sc_russian
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1457.01
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1457.01 [1448.43,
+      1465.60], 5695 votes, rank 56. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_russian#b9bb34d6dd9f
+  - benchmark_id: arena_sc_spanish
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1454.23
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / spanish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1454.23 [1438.59,
+      1469.88], 1690 votes, rank 53. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:53285f933382c2e23254c68a5e01a25705206262f3000e8f5954e40597697cc1
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_spanish#43fbb5a4191f
+  - benchmark_id: arena_sc_german
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1467.7
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / german, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.70 [1447.73,
+      1487.68], 955 votes, rank 42. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:5bc7f8c29190254b708e3b1b9c9130570cb30292791a5ac70d6baf464245a845
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_german#a71904394306
+  - benchmark_id: arena_sc_french
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1484.3
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1484.30 [1469.29,
+      1499.31], 2118 votes, rank 45. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_french#cdf321bfff92
+  - benchmark_id: arena_sc_polish
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1467.43
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / polish, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.43 [1449.05,
+      1485.82], 1084 votes, rank 41. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c24dd604059a7b6a389b724e9819f1da9b856a619642c7b69e5124f146a92635
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_polish#30a19ee53063
+  - benchmark_id: arena_sc_industry_software_it_services
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1491.76
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
+      1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1491.76 [1486.38,
+      1497.14], 22255 votes, rank 59. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_industry_software_it_services#bcc3ebdb7b45
+  - benchmark_id: arena_sc_industry_entertainment_sports_media
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1433.68
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
+      split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1433.68 [1426.88,
+      1440.47], 11822 votes, rank 56. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_industry_entertainment_sports_media#283ad52c7508
+  - benchmark_id: arena_sc_industry_mathematical
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1460.32
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1460.32 [1448.83,
+      1471.81], 2997 votes, rank 59. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_industry_mathematical#b926d6825a42
+  - benchmark_id: arena_sc_factuality
+    model_id_as_evaluated: deepseek-v4-pro
+    score: 1454.79
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1454.79 [1451.60,
+      1457.97], 54066 votes, rank 50. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-factuality
+      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      cited_regions:
+      - rows
+    id: deepseek/deepseek-v4-pro#arena_sc_factuality#ef8c5406fdb9
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -1899,10 +2216,38 @@ facts:
     snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
     cited_regions:
     - audit
+- id: deepseek/deepseek-v4-pro#model.parameters_total
+  subject:
+    kind: model
+    id: deepseek/deepseek-v4-pro
+  facet: model.parameters_total
+  value: 1598839674782
+  state: known
+  sources:
+  - source_id: model-161-deepseek-v4-pro-rtx-4090-fit
+    snapshot_ref: sha256:ede7381cf57ed2b3699b9df7a8a74800a9051d2ac313c90c35b4b0b47a62a96d
+    cited_regions:
+    - rows
+- id: deepseek/deepseek-v4-pro#model.fits_hardware
+  subject:
+    kind: model
+    id: deepseek/deepseek-v4-pro
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-161-deepseek-v4-pro-rtx-4090-fit
+    snapshot_ref: sha256:ede7381cf57ed2b3699b9df7a8a74800a9051d2ac313c90c35b4b0b47a62a96d
+    cited_regions:
+    - rows
+  - source_id: model-161-nvidia-rtx-4090-memory
+    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-26'
 ---
 
 # DeepSeek V4 Pro

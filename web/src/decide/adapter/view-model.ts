@@ -752,7 +752,9 @@ export function mapDecisionToViewModel(
 ): AdapterDecision {
   const sources = sourceRecords(decision);
   const names: Names = { models: options.models ?? {}, providers: options.providers ?? {} };
-  const modelGrained = ["1.6", "1.7"].includes(decision.contract_version);
+  const modelGrained = ["1.6", "1.7", "1.8", "1.9", "1.10"].includes(
+    decision.contract_version,
+  );
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
     row: rankedRow(decision, result, spec, sources, names),
     hasOffering: result.offering.provider !== null,
@@ -813,11 +815,11 @@ export function mapDecisionToViewModel(
   });
   const rawRows: CandidateRow[] = [...rawFeasible, ...rawMay, ...rawExcluded];
   const claimed = new Set<string>();
-  const boardRanksOfferings = spec.boardWeights !== undefined &&
-    Object.keys(spec.boardWeights).length > 0;
-  const feasible = boardRanksOfferings
-    ? rawFeasible.map((candidate) => candidate.row)
-    : consolidateRows(rawFeasible, rawRows, claimed);
+  const feasible = consolidateRows(
+    rawFeasible,
+    spec.boardWeights === undefined ? rawRows : rawFeasible,
+    claimed,
+  );
   feasible.forEach((row) => claimed.add(rowModel(row)));
   const may = consolidateRows(rawMay, rawRows, claimed);
   const excluded = consolidateRows(rawExcluded, rawRows, claimed);

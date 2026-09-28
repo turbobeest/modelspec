@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from pathlib import Path
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+from decision import snapshot as decision_snapshot
 from decision.contract import parse_spec
 from decision.registry import default as default_registry
 from decision.snapshot import SnapshotInputs, build_snapshot
 from scripts.accuracy import load_recall_baseline
 from scripts.recall_run import run
-from tests.snapshot_records import SOURCES, evidence, model, offering
+from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 HERE = Path(__file__).resolve().parent
 IDS = [f"Q{number:02d}" for number in range(1, 21)]
@@ -26,7 +31,7 @@ def test_all_twenty_contract_specs_parse() -> None:
         assert spec.explain == "full"
 
 
-def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
+def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path, monkeypatch) -> None:
     snapshot = build_snapshot(
         SnapshotInputs(
             models=[model("lab/alpha")],
@@ -39,7 +44,26 @@ def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
         as_of=date(2026, 9, 24),
     )
     snapshot_file = tmp_path / "fixture-snapshot.json.gz"
-    snapshot.write(snapshot_file)
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    snapshot.write(
+        snapshot_file,
+        key=None,
+        ed25519_signer=decision_snapshot.Ed25519Signer("test-recall", private_raw),
+    )
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-recall": public_raw},
+    )
 
     result = run(
         root=Path(__file__).resolve().parents[2],
@@ -55,16 +79,25 @@ def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
     assert "This report does not gate CI" in result.markdown_path.read_text(encoding="utf-8")
 
 
-def test_baseline_matches_main_snapshot_on_approval_date(tmp_path: Path) -> None:
+def test_baseline_is_traceable_and_matches_fresh_verdicts(tmp_path: Path) -> None:
+    baseline = load_recall_baseline(HERE / "baseline.json")
+    report_path = (
+        HERE.parents[1]
+        / "docs"
+        / "recall"
+        / f"{baseline.as_of.isoformat()}-{baseline.snapshot}.json"
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert report["report_date"] == baseline.as_of.isoformat()
+    assert report["snapshot"] == baseline.snapshot
+
     result = run(
         root=Path(__file__).resolve().parents[2],
         output_dir=tmp_path,
-        report_date=date(2026, 9, 26),
+        report_date=baseline.as_of,
     )
-    baseline = load_recall_baseline(HERE / "baseline.json")
 
-    assert baseline.snapshot == "snap_8033b05900383a53"
-    assert baseline.as_of == date(2026, 9, 26)
     assert baseline.verdicts == {row.id: row.verdict for row in result.questions}
 
 
@@ -85,7 +118,9 @@ def test_the_ungated_fallback_keeps_the_premier_lineup(monkeypatch, tmp_path: Pa
 
     monkeypatch.setattr(recall, "build_from_repo", fake_build)
     _, gaps = recall._snapshot(
-        root=tmp_path, snapshot_file=None, report_date=date(2026, 9, 25),
+        root=tmp_path,
+        snapshot_file=None,
+        report_date=date(2026, 9, 25),
         registry=default_registry(),
     )
     premier = tmp_path / "premier" / "slice-1.yaml"
@@ -94,7 +129,7 @@ def test_the_ungated_fallback_keeps_the_premier_lineup(monkeypatch, tmp_path: Pa
 
 
 def test_the_direct_detector_reads_directness_against_the_request() -> None:
-    from decision.snapshot import load_snapshot_bytes
+    from decision.snapshot import load_built_snapshot
     from scripts.recall_run import _direct_objective_has_a_value
 
     registry = default_registry()
@@ -103,23 +138,31 @@ def test_the_direct_detector_reads_directness_against_the_request() -> None:
             models=[model("lab/alpha")],
             evidence=[evidence("lab/alpha", "terminal_bench_v4_0", 60.0)],
             sources=SOURCES,
-            benchmark_domains={"terminal_bench_v4_0": [
-                ("agentic_tool_use", "direct"), ("software_engineering", "proxy")]},
+            benchmark_domains={
+                "terminal_bench_v4_0": [
+                    ("agentic_tool_use", "direct"),
+                    ("software_engineering", "proxy"),
+                ]
+            },
         ),
         as_of=date(2026, 9, 24),
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="recall detector test build")
 
     def asks(capability: str):
-        return parse_spec({
-            "spec_version": 1,
-            "capabilities": {capability: "required"},
-            "optimize": {"max": "terminal_bench_v4_0 @direct"},
-        }, facets=registry.facet)
+        return parse_spec(
+            {
+                "spec_version": 1,
+                "capabilities": {capability: "required"},
+                "optimize": {"max": "terminal_bench_v4_0 @direct"},
+            },
+            facets=registry.facet,
+        )
 
     assert _direct_objective_has_a_value(asks("agentic_tool_use"), index, {"lab/alpha"}, registry)
     assert not _direct_objective_has_a_value(
-        asks("software_engineering"), index, {"lab/alpha"}, registry)
+        asks("software_engineering"), index, {"lab/alpha"}, registry
+    )
 
 
 def test_the_runner_judges_one_row_per_model() -> None:
@@ -132,11 +175,20 @@ def test_the_runner_judges_one_row_per_model() -> None:
             return OfferingRef(model=mid)
         return OfferingRef(model=mid, provider=provider, region="global", tier="standard")
 
-    ranked = [sold("lab/a", "p1"), sold("lab/a"), sold("lab/a", "p2"),
-              sold("lab/b", "p1"), sold("lab/c", "p1"), sold("lab/d", "p1")]
+    ranked = [
+        sold("lab/a", "p1"),
+        sold("lab/a"),
+        sold("lab/a", "p2"),
+        sold("lab/b", "p1"),
+        sold("lab/c", "p1"),
+        sold("lab/d", "p1"),
+    ]
     decision = Decision(
-        decision_id="dec_0123456789ab", snapshot="snap_0123456789abcdef",
-        spec_hash="sha256:" + "0" * 64, explain="none", status="partial",
+        decision_id="dec_0123456789ab",
+        snapshot="snap_0123456789abcdef",
+        spec_hash="sha256:" + "0" * 64,
+        explain="none",
+        status="partial",
         results=[Result(rank=i + 1, offering=o) for i, o in enumerate(ranked)],
         may_qualify=[
             MayQualify(model="lab/e", offering=sold("lab/e", "p1"), unknown=["x"]),
@@ -146,9 +198,86 @@ def test_the_runner_judges_one_row_per_model() -> None:
     )
     grouped = _one_row_per_model(decision, limit=3)
     assert [(r.rank, r.offering.model, r.offering.provider) for r in grouped.results] == [
-        (1, "lab/a", "p1"), (2, "lab/b", "p1"), (3, "lab/c", "p1")]
+        (1, "lab/a", "p1"),
+        (2, "lab/b", "p1"),
+        (3, "lab/c", "p1"),
+    ]
     assert [(m.model, m.unknown) for m in grouped.may_qualify] == [
-        ("lab/e", ["x", "y"]), ("lab/f", ["x"])]
+        ("lab/e", ["x", "y"]),
+        ("lab/f", ["x"]),
+    ]
+
+
+def test_rule_based_must_flag_ignores_models_that_fail_another_condition() -> None:
+    from decision.snapshot import load_snapshot_bytes
+    from scripts.recall_run import _rule_flag_models
+
+    def generator(mid: str, openness: str) -> dict:
+        return model(
+            mid,
+            facts=[
+                fact("model", mid, "model.class", "text-generator"),
+                fact("model", mid, "model.weights_openness", openness),
+            ],
+        )
+
+    snapshot = build_snapshot(
+        SnapshotInputs(
+            models=[
+                generator("lab/closed-unknown-context", "closed_weights"),
+                generator("lab/open-unknown-context", "open_weights"),
+            ],
+            sources=SOURCES,
+        ),
+        as_of=date(2026, 9, 26),
+    )
+    index = load_snapshot_bytes(snapshot.to_bytes(key=None), key=None)
+    registry = default_registry()
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "where": [
+                "model.class = text-generator",
+                "model.context_window >= 200000",
+                "model.weights_openness = closed_weights",
+            ],
+            "optimize": {"max": "arena_sc_longer_query"},
+        },
+        facets=registry.facet,
+    )
+
+    required = _rule_flag_models(
+        [{"rule": "generator whose published context length was not read"}],
+        index,
+        spec,
+        registry,
+    )
+
+    assert required == {"lab/closed-unknown-context"}
+
+
+def test_known_elimination_supersedes_an_older_must_flag_expectation() -> None:
+    from decision.contract import Decision, Eliminated, ModelElimination
+    from scripts.recall_run import _definitively_eliminated
+
+    decision = Decision(
+        decision_id="dec_0123456789ab",
+        snapshot="snap_0123456789abcdef",
+        spec_hash="sha256:" + "0" * 64,
+        explain="full",
+        status="partial",
+        eliminated=Eliminated(
+            models=[
+                ModelElimination(
+                    model="lab/open-model",
+                    condition="model.weights_openness = closed_weights",
+                    value="open_weights",
+                )
+            ]
+        ),
+    )
+
+    assert _definitively_eliminated(decision, "lab/open-model")
 
 
 def test_overlapping_capability_intervals_count_as_not_separable() -> None:

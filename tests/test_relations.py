@@ -233,23 +233,18 @@ def test_no_evidence_renders_nothing() -> None:
 # ── the front door ───────────────────────────────────────────────────────────
 
 def test_the_landing_page_links_to_the_site() -> None:
-    """Everything was live and unreachable from modelspec.dev itself.
+    from pipeline import landing
 
-    The landing page predates the site and was copied into the build verbatim,
-    so its only links were to GitHub. A visitor saw the same holding page as
-    before and reasonably concluded nothing had shipped.
-    """
-    from pipeline import render
-    from pipeline.build import REPO_ROOT, wire_landing, with_site_nav
-
-    # The build's own path: the real landing, wired, then given the site nav.
-    source = (REPO_ROOT / "site/holding/index.html").read_text(encoding="utf-8")
-    html = with_site_nav(
-        wire_landing(source, {"models": 1, "providers": 1, "edges": 1,
-                              "benchmarks": 1, "fields": 1}),
-        render.site_nav("ModelSpec", render.MS_NAV), "site/holding/index.html")
-    for route in ("/graph/", "/downselect/", "/models/", "/providers/"):
-        assert f'href="{route}"' in html, f"the front door does not link to {route}"
+    model = landing.PlotModel("model", "Model", .1, 1, 0, 2, True)
+    data = landing.LandingData(
+        "2026-09-27", 1, 40_000, 4_000, 10_000, (model,), "model", "model", 1,
+        1000, 1000, 0, (), 0,
+        landing._plot_axes([model]),
+    )
+    html = landing.render(data, variant="live")
+    for route in ("/decide/", "#agents", "/legal/terms/", "/legal/privacy/",
+                  "/legal/neutrality/"):
+        assert f'href="{route}"' in html, f"the landing does not link to {route}"
 
 
 def test_landing_statistics_come_from_the_build() -> None:

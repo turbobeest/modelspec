@@ -8,6 +8,8 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from typer.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -15,6 +17,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
 from cli.modelspec import decide_cmd  # noqa: E402
+from decision import snapshot as decision_snapshot  # noqa: E402
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes  # noqa: E402
 from decision.vocabulary import build_vocabulary  # noqa: E402
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering  # noqa: E402
@@ -40,6 +43,20 @@ where:
 optimize:
   weights: {software_engineering: 0.6, -offering.cost_per_task: 0.4}
 """
+
+
+def _test_ed25519_key(key_id: str):
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    return decision_snapshot.Ed25519Signer(key_id, private_raw), {key_id: public_raw}
 
 
 @pytest.fixture
@@ -99,10 +116,14 @@ def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
     cache = tmp_path / "cache"
     generation = cache / "decision" / snapshot.snapshot_id
     generation.mkdir(parents=True)
-    (generation / "snapshot.json.gz").write_bytes(snapshot.to_bytes(key=None))
+    signer, public_keys = _test_ed25519_key("test-cli-fixture")
+    (generation / "snapshot.json.gz").write_bytes(
+        snapshot.to_bytes(key=None, ed25519_signer=signer)
+    )
     (generation / "vocabulary.json").write_text(json.dumps(vocabulary))
     (cache / "decision" / "current").write_text(snapshot.snapshot_id + "\n")
     monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
+    monkeypatch.setattr(decision_snapshot, "load_public_keys", lambda: public_keys)
     return vocabulary
 
 
@@ -112,18 +133,80 @@ def _run(tmp_path: Path, text: str, *args: str):
     return CliRunner().invoke(cli_mod.app, ["decide", str(spec), *args])
 
 
-def test_a_valid_spec_requires_a_local_snapshot(tmp_path) -> None:
+def _write_rank_snapshot(cache: Path) -> None:
+    (cache / "snapshot.json").write_text(json.dumps({
+        "meta": {
+            "fetched_at": "2026-09-27T12:00:00+00:00",
+            "origin": "https://example.test",
+            "build_commit": "abc123",
+            "built_at": "2026-09-27T11:59:00+00:00",
+        },
+        "data": {
+            "index": {"build": {"commit": "abc123", "export_schema_version": "3.0"}},
+            "candidates": {"candidates": []},
+            "profiles": {"profiles": {}, "featured": []},
+            "hardware": {"nodes": []},
+        },
+    }))
+
+
+def test_decide_reports_offline_ed25519_verification(
+    tmp_path: Path,
+    cached_vocabulary: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    built = build_snapshot(SnapshotInputs(
+        models=[model("lab/a")],
+        offerings=[],
+        evidence=[evidence("lab/a", "swe_bench_pro", 70.0)],
+        sources=SOURCES,
+        benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+    ), gate=False, as_of=date(2026, 9, 27))
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    signer = decision_snapshot.Ed25519Signer("test-cli", private_raw)
+    snapshot_path = (
+        tmp_path / "cache" / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+    snapshot_path.write_bytes(built.to_bytes(key=None, ed25519_signer=signer))
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-cli": public_raw},
+    )
+
+    result = _run(tmp_path, VALID, "--json")
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["signature_verified"] is True
+
+
+def test_a_valid_spec_requires_a_local_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MODELSPEC_CACHE", str(tmp_path / "empty-cache"))
     result = _run(tmp_path, VALID)
     assert result.exit_code == 1
     assert "modelspec snapshot fetch" in result.output
 
 
-def test_json_reports_the_spec_hash_and_the_error_code(tmp_path) -> None:
+def test_json_reports_the_spec_hash_and_the_error_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MODELSPEC_CACHE", str(tmp_path / "empty-cache"))
     result = _run(tmp_path, VALID, "--json")
     assert result.exit_code == 1
     payload = json.loads(result.stderr)
     assert payload["command"] == "decide"
-    assert payload["contract_version"] == "1.7"
+    assert payload["contract_version"] == "1.10"
     assert payload["spec_hash"].startswith("sha256:")
     assert payload["error"]["code"] == "snapshot_required"
 
@@ -149,7 +232,8 @@ def test_json_lists_every_issue(tmp_path) -> None:
     assert all(i["condition"] and i["reason"] for i in error["issues"])
 
 
-def test_explain_overrides_the_spec(tmp_path) -> None:
+def test_explain_overrides_the_spec(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MODELSPEC_CACHE", str(tmp_path / "empty-cache"))
     ok = _run(tmp_path, VALID, "--explain", "full", "--json")
     assert json.loads(ok.stderr)["explain"] == "full"
     bad = _run(tmp_path, VALID, "--explain", "verbose")
@@ -246,6 +330,54 @@ def test_check_accepts_the_budget_coding_spec(tmp_path: Path, cached_vocabulary:
     result = _run(tmp_path, BUDGET_CODING, "--check")
     assert result.exit_code == 0
     assert "ok: musts: 3, prefers: 2, snapshot: latest" in result.stdout
+
+
+def test_compare_does_not_warn_that_latest_was_ignored(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    snapshot = (
+        tmp_path / "cache" / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+
+    result = _run(tmp_path, BUDGET_CODING, "--compare-to", str(snapshot))
+
+    assert result.exit_code == 0
+    assert "Spec snapshot pin ignored" not in result.stdout
+
+
+def test_compare_records_a_pin_to_the_current_snapshot_as_ignored(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    _write_rank_snapshot(tmp_path / "cache")
+    snapshot = (
+        tmp_path / "cache" / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+    spec = BUDGET_CODING.replace("snapshot: latest", f"snapshot: {cached_vocabulary['snapshot']}")
+
+    result = _run(tmp_path, spec, "--compare-to", str(snapshot), "--json")
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["result"]["spec_snapshot_ignored"] is True
+
+
+def test_compare_json_uses_the_common_cache_freshness_keys(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    cache = tmp_path / "cache"
+    _write_rank_snapshot(cache)
+    snapshot = (
+        cache / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+
+    result = _run(tmp_path, BUDGET_CODING, "--compare-to", str(snapshot), "--json")
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert set(payload["freshness"]) == {
+        "fetched_at", "age_days", "stale", "stale_after_days", "origin",
+        "build_commit", "built_at",
+    }
+    assert payload["freshness"]["build_commit"] == "abc123"
 
 
 def test_check_suggests_a_misspelled_facet(tmp_path: Path, cached_vocabulary: dict) -> None:
@@ -372,13 +504,16 @@ def _install_template_snapshot(tmp_path: Path, monkeypatch) -> Path:
     cache = tmp_path / "cache"
     generation = cache / "decision" / built.snapshot_id
     generation.mkdir(parents=True)
-    (generation / "snapshot.json.gz").write_bytes(built.to_bytes(key=None))
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    signer, public_keys = _test_ed25519_key("test-template-fixture")
+    snapshot_bytes = built.to_bytes(key=None, ed25519_signer=signer)
+    (generation / "snapshot.json.gz").write_bytes(snapshot_bytes)
+    index = load_snapshot_bytes(snapshot_bytes, key=None, public_keys=public_keys)
     (generation / "vocabulary.json").write_text(
         json.dumps(build_vocabulary(index), ensure_ascii=False), encoding="utf-8"
     )
     (cache / "decision" / "current").write_text(built.snapshot_id + "\n", encoding="utf-8")
     monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
+    monkeypatch.setattr(decision_snapshot, "load_public_keys", lambda: public_keys)
     return cache
 
 

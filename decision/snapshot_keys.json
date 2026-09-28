@@ -1,0 +1,11 @@
+{
+  "format": "modelspec.snapshot-keys",
+  "version": 1,
+  "keys": [
+    {
+      "key_id": "ed25519-dd3ae9b0899184e5",
+      "alg": "ed25519",
+      "public_key": "oWwLHwJvTvn6I10LEq37GCCkt28QPlXzBl+pCurpOLY="
+    }
+  ]
+}

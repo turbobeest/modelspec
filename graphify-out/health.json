@@ -1,25 +1,25 @@
 {
-  "node_count": 403,
+  "node_count": 532,
   "unverified_node_count": 0,
-  "raw_edge_count": 702,
+  "raw_edge_count": 996,
   "non_object_edges": 0,
   "missing_endpoint_edges": 0,
   "dangling_endpoint_edges": 0,
   "self_loop_edges": 0,
-  "valid_candidate_edges": 702,
+  "valid_candidate_edges": 996,
   "exact_duplicate_edges": 0,
-  "directed_unique_endpoint_pairs": 686,
-  "directed_same_endpoint_collapsed_edges": 16,
-  "undirected_unique_endpoint_pairs": 686,
-  "undirected_same_endpoint_collapsed_edges": 16,
-  "same_endpoint_group_count": 16,
-  "relation_variant_groups": 15,
+  "directed_unique_endpoint_pairs": 979,
+  "directed_same_endpoint_collapsed_edges": 17,
+  "undirected_unique_endpoint_pairs": 979,
+  "undirected_same_endpoint_collapsed_edges": 17,
+  "same_endpoint_group_count": 17,
+  "relation_variant_groups": 16,
   "source_file_variant_groups": 0,
   "source_location_variant_groups": 1,
   "context_variant_groups": 1,
   "post_build_graph_type": "Graph",
-  "post_build_node_count": 403,
-  "post_build_edge_count": 686,
+  "post_build_node_count": 532,
+  "post_build_edge_count": 979,
   "post_build_error": "",
   "producer_suppression": {
     "path": "/Users/terbeest/.local/share/uv/tools/graphifyy/lib/python3.11/site-packages/graphify/extract.py",
@@ -110,11 +110,11 @@
         "references"
       ],
       "source_files": [
-        "/Users/terbeest/dev/worktrees/modelspec-model-40/api/ranking/engine.py"
+        "/Users/terbeest/dev/worktrees/modelspec-182-signing/api/ranking/engine.py"
       ],
       "source_locations": [
-        "L1299",
-        "L1327"
+        "L1394",
+        "L1422"
       ],
       "contexts": [
         "call",
@@ -130,11 +130,31 @@
         "references"
       ],
       "source_files": [
-        "/Users/terbeest/dev/worktrees/modelspec-model-40/api/ranking/engine.py"
+        "/Users/terbeest/dev/worktrees/modelspec-182-signing/api/ranking/engine.py"
       ],
       "source_locations": [
-        "L1580",
-        "L1670"
+        "L1674",
+        "L1764"
+      ],
+      "contexts": [
+        "call",
+        "return_type"
+      ]
+    },
+    {
+      "source": "cli_modelspec_snapshot_resolve_credential",
+      "target": "cli_modelspec_snapshot_credential",
+      "edge_count": 2,
+      "relations": [
+        "calls",
+        "references"
+      ],
+      "source_files": [
+        "/Users/terbeest/dev/worktrees/modelspec-182-signing/cli/modelspec/snapshot.py"
+      ],
+      "source_locations": [
+        "L270",
+        "L280"
       ],
       "contexts": [
         "call",
@@ -150,11 +170,11 @@
         "references"
       ],
       "source_files": [
-        "/Users/terbeest/dev/worktrees/modelspec-model-40/cli/modelspec/snapshot.py"
+        "/Users/terbeest/dev/worktrees/modelspec-182-signing/cli/modelspec/snapshot.py"
       ],
       "source_locations": [
-        "L140",
-        "L163"
+        "L366",
+        "L389"
       ],
       "contexts": [
         "call",
@@ -170,35 +190,15 @@
         "references"
       ],
       "source_files": [
-        "/Users/terbeest/dev/worktrees/modelspec-model-40/pipeline/export.py"
+        "/Users/terbeest/dev/worktrees/modelspec-182-signing/pipeline/export.py"
       ],
       "source_locations": [
-        "L64",
-        "L65"
+        "L85",
+        "L86"
       ],
       "contexts": [
         "call",
         "return_type"
-      ]
-    },
-    {
-      "source": "pipeline_ranking_build_candidates",
-      "target": "pipeline_ranking_candidate",
-      "edge_count": 2,
-      "relations": [
-        "calls",
-        "references"
-      ],
-      "source_files": [
-        "/Users/terbeest/dev/worktrees/modelspec-model-40/pipeline/ranking.py"
-      ],
-      "source_locations": [
-        "L103",
-        "L77"
-      ],
-      "contexts": [
-        "call",
-        "generic_arg"
       ]
     }
   ]

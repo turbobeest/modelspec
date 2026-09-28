@@ -124,3 +124,23 @@
       snapshot_ref: sha256:1366c875e0ab9796ab73416b6f990fdce833072bfac59cbfb23b122dc38fb0c3
       cited_regions:
       - page
+  - id: anthropic/anthropic/claude-opus-4-7/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-4-7/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-pricing
+    - model-143-anthropic-claude-opus-4-7
+  - id: anthropic/anthropic/claude-opus-4-7/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-4-7/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-pricing
+    - model-143-anthropic-claude-opus-4-7

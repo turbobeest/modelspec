@@ -40,6 +40,8 @@ info:
   x-error-codes:
   - access_not_configured
   - access_store_not_configured
+  - comparison_snapshot_changed
+  - comparison_snapshot_unavailable
   - determinations_unavailable
   - export_unavailable
   - insufficient_evidence
@@ -58,6 +60,8 @@ info:
   - sandbox_not_available
   - snapshot_changed
   - snapshot_not_loaded
+  - snapshot_refused
+  - snapshot_unavailable
   - tier_not_configured
   - undetermined_present
   - unknown_hardware
@@ -74,6 +78,7 @@ info:
   x-max-request-bytes:
     /v1/rank: 16384
     /v1/decide: 65536
+    /v1/compare: 65536
     /v1/policy-check: 262144
 x-modelspec-access:
   status: wired; enforcement off
@@ -355,7 +360,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DecisionSpec'
-            example:
+            example: &id002
               spec_version: 1
               capabilities:
                 software_engineering: required
@@ -370,7 +375,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DecisionResponse'
-          headers:
+          headers: &id003
             X-ModelSpec-Snapshot:
               description: The verified snapshot that answered (MODEL-159).
               schema:
@@ -459,6 +464,116 @@ paths:
                 - oneOf:
                   - $ref: '#/components/schemas/DecisionSnapshotUnavailable'
                   - $ref: '#/components/schemas/DecisionRequestRefused'
+                - $ref: '#/components/schemas/AccessRefused'
+          headers:
+            Retry-After:
+              description: Seconds before retrying a no_snapshot response.
+              schema:
+                type: integer
+                minimum: 1
+  /v1/compare:
+    post:
+      operationId: compareDecisions
+      summary: Compare one spec against two signed snapshots.
+      parameters:
+      - name: X-ModelSpec-Snapshot
+        in: header
+        required: false
+        description: The current snapshot the caller expects.
+        schema:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComparisonRequest'
+            example:
+              compare_to: snap_0123456789abcdef
+              spec: *id002
+      responses:
+        '200':
+          description: The model-grained difference between two decisions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonResponse'
+          headers: *id003
+        '400':
+          description: The body lacks a valid spec or compare_to snapshot ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonRequestRefused'
+        '409':
+          description: The retained snapshot is unavailable or differs from compare_to.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonRequestRefused'
+        '404': *id001
+        '405':
+          description: /v1/compare takes POST.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+        '413':
+          description: The body is over 65536 bytes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonRequestRefused'
+        '502':
+          description: A published snapshot could not be fetched.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonRequestRefused'
+        '402':
+          description: Payment required when X402_ENABLED is on.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
+        '401':
+          description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
+            `error.how_to_get_a_key` says where to get one.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '403':
+          description: 'key_revoked: a key we know and will not serve. Retrying will not help.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '429':
+          description: 'rate_limited: the key''s daily or per-minute window is spent. States the limit,
+            the window and `resets_at`; `Retry-After` is set.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '500':
+          description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
+            or the deployment has no tier table (access_not_configured).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessRefused'
+        '503':
+          description: The snapshot is not published, a retained snapshot cannot be read, or a live key
+            cannot reach the access store. A no_snapshot response includes Retry-After.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - oneOf:
+                  - $ref: '#/components/schemas/ComparisonSnapshotUnavailable'
+                  - $ref: '#/components/schemas/ComparisonRequestRefused'
                 - $ref: '#/components/schemas/AccessRefused'
           headers:
             Retry-After:
@@ -2938,8 +3053,8 @@ components:
           title: Sources
           type: array
         contract_version:
-          const: '1.7'
-          default: '1.7'
+          const: '1.10'
+          default: '1.10'
           title: Contract Version
           type: string
         decision_id:
@@ -2950,6 +3065,10 @@ components:
           pattern: ^snap_[A-Za-z0-9:._-]+$
           title: Snapshot
           type: string
+        signature_verified:
+          default: false
+          title: Signature Verified
+          type: boolean
         spec_hash:
           pattern: ^sha256:[0-9a-f]{64}$
           title: Spec Hash
@@ -2980,6 +3099,8 @@ components:
           type: array
         eliminated:
           $ref: '#/components/schemas/DecisionEliminated'
+        truncated:
+          $ref: '#/components/schemas/DecisionTruncated'
         constraint_costs:
           items:
             $ref: '#/components/schemas/DecisionConstraintCost'
@@ -3141,6 +3262,25 @@ components:
           - type: 'null'
           default: null
           title: N
+        interval:
+          anyOf:
+          - maxItems: 2
+            minItems: 2
+            prefixItems:
+            - type: number
+            - type: number
+            type: array
+          - type: 'null'
+          default: null
+          title: Interval
+        quality_flags:
+          items:
+            enum:
+            - deprecated
+            - contamination_warning
+            type: string
+          title: Quality Flags
+          type: array
         measured_by:
           enum:
           - benchmark_author
@@ -4281,6 +4421,22 @@ components:
           title: Absolute
       title: Tolerance
       type: object
+    DecisionTruncated:
+      additionalProperties: false
+      description: Qualifying rows omitted only because of the requested result limit. Added in 1.9.
+      properties:
+        offerings:
+          default: 0
+          minimum: 0
+          title: Offerings
+          type: integer
+        models:
+          default: 0
+          minimum: 0
+          title: Models
+          type: integer
+      title: Truncated
+      type: object
     DecisionWindow:
       additionalProperties: false
       description: '``facet in [low, high]``, both ends inclusive.'
@@ -4336,6 +4492,7 @@ components:
       type: object
     DecisionRequestRefused:
       type: object
+      additionalProperties: false
       required:
       - contract_version
       - endpoint
@@ -4345,7 +4502,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.7'
+          - '1.10'
         endpoint:
           type: string
           enum:
@@ -4357,6 +4514,7 @@ components:
           - type: 'null'
         error:
           type: object
+          additionalProperties: false
           required:
           - code
           - message
@@ -4365,7 +4523,6 @@ components:
               type: string
               enum:
               - invalid_spec
-              - no_snapshot
               - origin_not_allowed
               - payload_too_large
               - snapshot_changed
@@ -4386,6 +4543,7 @@ components:
               description: 'snapshot_changed only: the snapshot that answers now.'
     DecisionSnapshotUnavailable:
       type: object
+      additionalProperties: false
       required:
       - contract_version
       - endpoint
@@ -4396,7 +4554,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.7'
+          - '1.10'
         endpoint:
           type: string
           enum:
@@ -4409,6 +4567,425 @@ components:
           - no_snapshot
         message:
           type: string
+    ComparisonRequestRefused:
+      type: object
+      additionalProperties: false
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - error
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.10'
+        endpoint:
+          type: string
+          enum:
+          - compare
+        snapshot:
+          anyOf:
+          - type: string
+            pattern: ^snap_[A-Za-z0-9:._-]+$
+          - type: 'null'
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              enum:
+              - comparison_snapshot_changed
+              - comparison_snapshot_unavailable
+              - invalid_request
+              - invalid_spec
+              - origin_not_allowed
+              - payload_too_large
+              - snapshot_changed
+              - snapshot_refused
+              - snapshot_unavailable
+            message:
+              type: string
+            issues:
+              type: array
+              items:
+                type: object
+            requested:
+              type: string
+              description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'
+            current:
+              type: string
+              description: 'snapshot_changed only: the snapshot that answers now.'
+    ComparisonSnapshotUnavailable:
+      type: object
+      additionalProperties: false
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - error
+      - message
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.10'
+        endpoint:
+          type: string
+          enum:
+          - compare
+        snapshot:
+          type: 'null'
+        error:
+          type: string
+          enum:
+          - no_snapshot
+        message:
+          type: string
+    ComparisonRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - compare_to
+      - spec
+      properties:
+        compare_to:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+        spec:
+          $ref: '#/components/schemas/DecisionSpec'
+    ComparisonOfferingRef:
+      type: object
+      additionalProperties: false
+      required:
+      - model
+      - provider
+      - region
+      - tier
+      properties:
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+        provider: &id004
+          anyOf:
+          - type: string
+          - type: 'null'
+        region: *id004
+        tier: *id004
+    ComparisonOfferingChange:
+      type: object
+      additionalProperties: false
+      required:
+      - old
+      - new
+      properties:
+        old:
+          $ref: '#/components/schemas/ComparisonOfferingRef'
+        new:
+          $ref: '#/components/schemas/ComparisonOfferingRef'
+    ComparisonFacetValue:
+      type: object
+      additionalProperties: false
+      required:
+      - value
+      - unit
+      - records
+      properties:
+        value:
+          anyOf:
+          - type: boolean
+          - type: integer
+          - type: number
+          - format: date
+            type: string
+          - type: string
+          - items:
+              anyOf:
+              - type: boolean
+              - type: integer
+              - type: number
+              - format: date
+                type: string
+              - type: string
+            type: array
+          - type: 'null'
+        unit: *id004
+        records: &id005
+          type: array
+          items:
+            type: string
+    ComparisonCostValue:
+      type: object
+      additionalProperties: false
+      required:
+      - value
+      - unit
+      - records
+      properties:
+        value:
+          type: number
+          nullable: true
+        unit: *id004
+        records: *id005
+    ComparisonCapabilityValue:
+      type: object
+      additionalProperties: false
+      required:
+      - value
+      - interval
+      - records
+      properties:
+        value:
+          type: number
+        interval:
+          type: array
+          items:
+            type: number
+          minItems: 2
+          maxItems: 2
+        records: *id005
+    ComparisonFacetChange:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - facet
+      - offering
+      - old
+      - new
+      properties:
+        kind:
+          type: string
+          enum:
+          - facet
+        facet:
+          type: string
+        offering: &id006
+          oneOf:
+          - $ref: '#/components/schemas/ComparisonOfferingRef'
+          - $ref: '#/components/schemas/ComparisonOfferingChange'
+        old:
+          $ref: '#/components/schemas/ComparisonFacetValue'
+        new:
+          $ref: '#/components/schemas/ComparisonFacetValue'
+    ComparisonCostChange:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - offering
+      - old
+      - new
+      properties:
+        kind:
+          type: string
+          enum:
+          - cost_per_task
+        offering: *id006
+        old:
+          $ref: '#/components/schemas/ComparisonCostValue'
+        new:
+          $ref: '#/components/schemas/ComparisonCostValue'
+    ComparisonCapabilityChange:
+      type: object
+      additionalProperties: false
+      required:
+      - kind
+      - domain
+      - offering
+      - old
+      - new
+      properties:
+        kind:
+          type: string
+          enum:
+          - capability
+        domain:
+          type: string
+        offering: *id006
+        old:
+          $ref: '#/components/schemas/ComparisonCapabilityValue'
+        new:
+          $ref: '#/components/schemas/ComparisonCapabilityValue'
+    ComparisonValueChange:
+      oneOf:
+      - $ref: '#/components/schemas/ComparisonFacetChange'
+      - $ref: '#/components/schemas/ComparisonCostChange'
+      - $ref: '#/components/schemas/ComparisonCapabilityChange'
+      discriminator:
+        propertyName: kind
+        mapping:
+          facet: '#/components/schemas/ComparisonFacetChange'
+          cost_per_task: '#/components/schemas/ComparisonCostChange'
+          capability: '#/components/schemas/ComparisonCapabilityChange'
+    ComparisonModelChange:
+      type: object
+      additionalProperties: false
+      required:
+      - model
+      - entered
+      - left
+      - rank_changed
+      - may_qualify
+      - values
+      properties:
+        model:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+        entered:
+          type: boolean
+        left:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required:
+          - reason
+          properties:
+            reason:
+              type: string
+        rank_changed:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required:
+          - old
+          - new
+          properties:
+            old:
+              type: integer
+            new:
+              type: integer
+        may_qualify:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required:
+          - old
+          - new
+          properties:
+            old:
+              type: array
+              nullable: true
+              items:
+                type: string
+            new:
+              type: array
+              nullable: true
+              items:
+                type: string
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComparisonValueChange'
+    ComparisonResult:
+      type: object
+      additionalProperties: false
+      required:
+      - changed
+      - snapshot
+      - status
+      - counts
+      - models
+      - spec_snapshot_ignored
+      properties:
+        changed:
+          type: boolean
+        snapshot:
+          type: object
+          additionalProperties: false
+          required:
+          - old
+          - new
+          properties:
+            old: &id007
+              type: object
+              additionalProperties: false
+              required:
+              - id
+              - as_of
+              properties:
+                id:
+                  type: string
+                  pattern: ^snap_[A-Za-z0-9:._-]+$
+                as_of: *id004
+            new: *id007
+        status:
+          type: object
+          additionalProperties: false
+          required:
+          - old
+          - new
+          properties:
+            old:
+              enum:
+              - answered
+              - partial
+              - no_feasible
+              title: Status
+              type: string
+            new:
+              enum:
+              - answered
+              - partial
+              - no_feasible
+              title: Status
+              type: string
+        counts:
+          type: object
+          additionalProperties: false
+          required:
+          - entered
+          - left
+          - rank_changed
+          - may_qualify_changed
+          - models_changed
+          properties:
+            entered:
+              type: integer
+            left:
+              type: integer
+            rank_changed:
+              type: integer
+            may_qualify_changed:
+              type: integer
+            models_changed:
+              type: integer
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComparisonModelChange'
+        spec_snapshot_ignored:
+          type: boolean
+    ComparisonResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - compare_to
+      - result
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '1.10'
+        endpoint:
+          type: string
+          enum:
+          - compare
+        snapshot:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+        compare_to:
+          type: string
+          pattern: ^snap_[A-Za-z0-9:._-]+$
+        result:
+          $ref: '#/components/schemas/ComparisonResult'
     PolicyCheckRequest:
       type: object
       additionalProperties: false
@@ -4897,7 +5474,7 @@ components:
       properties:
         checks:
           type: array
-          items: &id002
+          items: &id008
             $ref: '#/components/schemas/PolicyCheck'
         display_name:
           type: string
@@ -4971,7 +5548,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id002
+          items: *id008
         display_name:
           type: string
         failed:
@@ -5030,7 +5607,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id002
+          items: *id008
         display_name:
           type: string
         model_id:

@@ -69,6 +69,7 @@ from decision.model import (
     Verification,
     VerificationActor,
     VerificationTarget,
+    evidence_verification_value,
     value_hash,
 )
 from decision.normalise import (
@@ -136,7 +137,7 @@ class Claim:
             names=tuple(names),
             field=evidence.benchmark_id,
             label=label,
-            value=evidence.score,
+            value=evidence_verification_value(evidence),
             unit=evidence.unit,
             conditions={"effort": evidence.effort, "harness": evidence.harness,
                         "date": evidence.evidence_date},
@@ -437,7 +438,7 @@ class Reading:
     """One value an extractor found in a region, as written there."""
 
     subject: str | None
-    value: str | None
+    value: JsonValue
     unit: str | None = None
     conditions: Mapping[str, str | None] = field(default_factory=dict)
 
@@ -962,7 +963,13 @@ class StructuredDataExtractor:
             normal = {normalise_name(str(key)): value for key, value in row.items()}
             subject = next((normal.get(key) for key in self._SUBJECTS if normal.get(key)), None)
             value = normal.get(normalise_name(label))
-            if subject is None or value is None:
+            composite = isinstance(claim.value, dict) and "score" in claim.value
+            flags = []
+            if normal.get("deprecated") is True:
+                flags.append("deprecated")
+            if normal.get("release warning") is True:
+                flags.append("contamination_warning")
+            if subject is None or (value is None and not (composite and flags)):
                 continue
             effort = normal.get("reasoning effort") or normal.get("effort")
             if effort is None:
@@ -976,9 +983,21 @@ class StructuredDataExtractor:
             if date_ is not None:
                 date_ = str(date_).split("T", 1)[0]
             harness = "unregistered" if normal.get("agent") else None
+            reading_value: JsonValue = str(value) if value is not None else None
+            if composite:
+                lower = normal.get("rating lower")
+                upper = normal.get("rating upper")
+                interval = [lower, upper] if lower is not None and upper is not None else None
+                count = normal.get("vote count", normal.get("n"))
+                reading_value = {
+                    **({"score": str(value)} if value is not None else {}),
+                    **({"interval": interval} if interval is not None else {}),
+                    **({"n": count} if count is not None else {}),
+                    **({"quality_flags": flags} if flags else {}),
+                }
             out.append(Reading(
                 subject=str(subject),
-                value=str(value),
+                value=reading_value,
                 unit=self._UNITS.get(normalise_name(label)),
                 conditions={"effort": _text(effort),
                             "harness": harness, "date": _text(date_)},
@@ -1345,6 +1364,8 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         unit_differs = claim.unit is not None and claim.unit != q.unit
         return Diff("unit" if unit_differs else "value", expected, q.show())
     if isinstance(value, list):
+        if not value and normalise_name(reading.value) in _FALSE:
+            return None
         found_items = {s.strip().casefold()
                        for s in re.split(r",|;|\band\b", reading.value) if s.strip()}
         claimed_items = {str(v).strip().casefold() for v in value}
@@ -1450,6 +1471,122 @@ def _independent(claim: Claim, actor: VerificationActor, today: date) -> bool:
         return False
 
 
+def _number_agrees(expected: int | float, found: object, unit: str | None = None) -> bool:
+    quantity = parse_quantity(str(found), unit)
+    return quantity is not None and numbers_agree(expected, unit, quantity)
+
+
+def _verify_evidence_reading(
+    claim: Claim,
+    regions: Regions,
+    extractors: Sequence[Extractor],
+    *,
+    today: date,
+) -> Result:
+    """Verify a score and its decision-affecting metadata across cited regions."""
+    expected = claim.value
+    assert isinstance(expected, dict)
+    ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
+    own_names = {
+        identity
+        for name in claim.names
+        for identity in (normalise_name(name), split_model_cell(name)[0])
+    }
+    benchmark_names = {normalise_name(claim.field), normalise_name(claim.label or "")}
+    confirmed: set[str] = set()
+    found_flags: set[str] = set()
+    actor: VerificationActor | None = None
+    reachable = False
+    reasons: list[str] = []
+    diffs: list[Diff] = []
+
+    for source in claim.sources:
+        for region_id in source.cited_regions:
+            where = f"{source.source_id}#{region_id}"
+            text = regions.text(source.source_id, source.snapshot_ref, region_id)
+            if text is None:
+                reasons.append(f"unreachable:{where}")
+                continue
+            reachable = True
+            for extractor in [
+                item
+                for item in ordered
+                if item.accepts(text) and _independent(claim, item.actor, today)
+            ]:
+                try:
+                    readings = extractor.extract(claim, text)
+                except ExtractorError as exc:
+                    reasons.append(f"extractor_error:{where}: {exc}")
+                    continue
+                for reading in readings:
+                    if not isinstance(reading.value, dict) or not reading.subject:
+                        continue
+                    subject = split_model_cell(reading.subject)[0]
+                    own = subject in own_names
+                    benchmark = normalise_name(reading.subject) in benchmark_names
+                    if not own and not benchmark:
+                        continue
+                    actor = actor or extractor.actor
+                    found = reading.value
+                    if own and "score" in found:
+                        scalar_claim = replace(claim, value=expected["score"])
+                        scalar_reading = replace(reading, value=found["score"])
+                        score_diffs = _diffs(scalar_claim, scalar_reading)
+                        if score_diffs:
+                            diffs.extend(score_diffs)
+                        else:
+                            confirmed.add("score")
+                    if own and expected.get("interval") is not None and "interval" in found:
+                        wanted = expected["interval"]
+                        actual = found["interval"]
+                        if (
+                            isinstance(wanted, list)
+                            and isinstance(actual, list)
+                            and len(wanted) == len(actual) == 2
+                            and all(
+                                _number_agrees(want, got, claim.unit)
+                                for want, got in zip(wanted, actual, strict=True)
+                            )
+                        ):
+                            confirmed.add("interval")
+                        else:
+                            diffs.append(Diff("interval", wanted, actual))
+                    if own and expected.get("n") is not None and "n" in found:
+                        if _number_agrees(expected["n"], found["n"]):
+                            confirmed.add("n")
+                        else:
+                            diffs.append(Diff("n", expected["n"], found["n"]))
+                    found_flags.update(str(flag) for flag in found.get("quality_flags", []))
+
+    expected_flags = set(expected.get("quality_flags") or [])
+    if found_flags == expected_flags:
+        confirmed.add("quality_flags")
+    elif found_flags or expected_flags:
+        diffs.append(Diff("quality_flags", sorted(expected_flags), sorted(found_flags)))
+    required = {"score", "quality_flags"}
+    required.update(key for key in ("interval", "n") if expected.get(key) is not None)
+    if required <= confirmed and actor is not None:
+        return Result(claim.target, "verified", _verification(claim, actor, "verified", today))
+    for key in sorted(required - confirmed):
+        if not any(diff.field == key for diff in diffs):
+            diffs.append(Diff(key, expected.get(key), None))
+    if actor is not None:
+        return Result(
+            claim.target,
+            "mismatch",
+            _verification(claim, actor, "mismatch", today, diffs),
+            tuple(diffs),
+        )
+    if not reachable:
+        return Result(
+            claim.target,
+            "unreachable",
+            _verification(claim, REGION_LOOKUP, "unreachable", today),
+            reason="; ".join(reasons),
+        )
+    return Result(claim.target, "skipped", reason="; ".join(reasons))
+
+
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
            today: date) -> Result:
     """Re-read ``claim`` from each cited region of its sources and compare.
@@ -1458,6 +1595,9 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     the first that accepts a region and is independent of the collector reads it.
     Verified if any region confirms the value; otherwise the first mismatch.
     """
+    if isinstance(claim.value, dict) and "score" in claim.value:
+        return _verify_evidence_reading(claim, regions, extractors, today=today)
+
     ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
     reachable = False
     mismatch: tuple[VerificationActor, list[Diff]] | None = None

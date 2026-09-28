@@ -713,6 +713,15 @@ benchmarks:
       5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
       copied to either card. Adaptive thinking, max effort. Average over five trials.
     limitations: ''
+    id: anthropic/claude-fable-5-1#swe_bench_multimodal#11df5a49f147
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-anthropic-fable-5-1-system-card
+      snapshot_ref: sha256:1e58d8558d2d9c02a2ca84f8a1d41603a52993999fcb1be76e52b9978a6cf68e
+      cited_regions:
+      - evidence
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: Claude Fable 5.1
     score: 55.8
@@ -754,6 +763,15 @@ benchmarks:
       copied to either card. Adaptive thinking, max effort. Averaged over 10 trials
       per task (700 trials).
     limitations: ''
+    id: anthropic/claude-fable-5-1#terminal_bench_science#05e84a0624b2
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-anthropic-fable-5-1-system-card
+      snapshot_ref: sha256:1e58d8558d2d9c02a2ca84f8a1d41603a52993999fcb1be76e52b9978a6cf68e
+      cited_regions:
+      - evidence
   - benchmark_id: arc_agi_2
     model_id_as_evaluated: Claude Fable 5.1 (max)
     score: 90.0
@@ -769,6 +787,15 @@ benchmarks:
       5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
       copied to either card. Adaptive thinking, max effort. Max effort.
     limitations: ''
+    id: anthropic/claude-fable-5-1#arc_agi_2#e2edaf1ba046
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-anthropic-fable-5-1-system-card
+      snapshot_ref: sha256:1e58d8558d2d9c02a2ca84f8a1d41603a52993999fcb1be76e52b9978a6cf68e
+      cited_regions:
+      - evidence
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1507.58
@@ -791,9 +818,13 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:5b1d1f5db8552e7e438f8758c2c0c2c938ba740796f0e4cee157bbde173e780d
+      snapshot_ref: sha256:b2143e53db27d7506c982ed4a7fe246289fd9ba5d181149507f0ee86bae47c18
       cited_regions:
       - rows
+    interval:
+    - 1499.43
+    - 1515.73
+    n: 5783
   - benchmark_id: arena_elo_coding
     model_id_as_evaluated: claude-fable-5.1-max
     score: 1511.36
@@ -1428,6 +1459,293 @@ benchmarks:
       Opus 4.8 as the grader model, no tools. Anthropic''s own models only; the table''s GPT-6
       Astra column is a competitor''s score and is not attached.'
     limitations: Graded by the provider's own model; not comparable across graders.
+    id: anthropic/claude-fable-5-1#healthbench_professional#8b59da7ab9dc
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-anthropic-opus-5-5-system-card
+      snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
+      cited_regions:
+      - evidence
+  - benchmark_id: arena_sc_english
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1500.34
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1500.34 [1488.13,
+      1512.54], 2405 votes, rank 7. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_english#e388ca4b5e7d
+  - benchmark_id: arena_sc_chinese
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1592.17
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1592.17 [1560.05,
+      1624.29], 369 votes, rank 1. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_chinese#71357e1254c3
+  - benchmark_id: arena_sc_russian
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1513.13
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1513.13 [1490.36,
+      1535.91], 715 votes, rank 4. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_russian#611592ed684f
+  - benchmark_id: arena_sc_french
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1531.84
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1531.84 [1485.42,
+      1578.26], 187 votes, rank 1. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_french#3c7176f1ed68
+  - benchmark_id: arena_sc_vision_ocr
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1304.82
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / ocr, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1304.82 [1290.39,
+      1319.25], 1802 votes, rank 10. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1370bca68e20f410db1d74c3c5cc4deade992317d0334c3516f50b66938da114
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_vision_ocr#27c09f93e341
+  - benchmark_id: arena_sc_vision_diagram
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1323.41
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / diagram, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1323.41 [1299.04,
+      1347.78], 616 votes, rank 9. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:947bbb0cc1b11be394d53298f60b967420a1837ea2cccf9a2972bc6bd013c6bb
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_vision_diagram#e526d7d5c1be
+  - benchmark_id: arena_sc_vision_homework
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1336.59
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: vision_style_control / homework, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1336.59 [1305.12,
+      1368.07], 345 votes, rank 5. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:1a362e13f2481ace58aff43129253330adaf3b8d01910b4be8bc67b8e87f68e7
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_vision_homework#f53fbca12a72
+  - benchmark_id: arena_sc_document
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1512.58
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: document / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1512.58 [1497.40,
+      1527.76], 1403 votes, rank 2. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-document
+      snapshot_ref: sha256:ca71d77b360678771f5300146465c8e6298970b38f4dac38a224686a0af59f4d
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_document#735aca651f91
+  - benchmark_id: arena_sc_industry_software_it_services
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1527.54
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
+      1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1527.54 [1513.78,
+      1541.30], 1975 votes, rank 8. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_industry_software_it_services#c5db43d42386
+  - benchmark_id: arena_sc_industry_entertainment_sports_media
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1478.99
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
+      split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1478.99 [1462.30,
+      1495.67], 1426 votes, rank 3. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_industry_entertainment_sports_media#670c87a2176c
+  - benchmark_id: arena_sc_industry_mathematical
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1515.31
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1515.31 [1480.96,
+      1549.66], 299 votes, rank 6. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_industry_mathematical#98bd72b3ba29
+  - benchmark_id: arena_sc_factuality
+    model_id_as_evaluated: claude-fable-5.1-max
+    score: 1500.73
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: published
+    observed_at: '2026-09-27'
+    verified_at: '2026-09-27'
+    benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
+    configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1500.73 [1493.51,
+      1507.94], 5570 votes, rank 1. Observed 2026-09-27.
+    limitations: 'Crowd preference, not a checked answer. Data: LMArena, CC BY 4.0.'
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-factuality
+      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      cited_regions:
+      - rows
+    id: anthropic/claude-fable-5-1#arena_sc_factuality#1a20ac0a2c0d
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
@@ -2038,7 +2356,7 @@ facts:
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-26'
 authoring_guide:
   applies_to:
     model_id: anthropic/claude-fable-5-1

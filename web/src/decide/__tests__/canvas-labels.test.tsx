@@ -8,7 +8,7 @@ import type { Spec } from "../engine/types";
 import { encodeSpec } from "../state/spec";
 import { json, routeFetch, smallVocabulary } from "./vocab-fixtures";
 
-beforeEach(() => history.replaceState(null, "", "/"));
+beforeEach(() => history.replaceState(null, "", "/decide/"));
 afterEach(() => vi.unstubAllGlobals());
 
 const SPEC: Spec = {
@@ -45,7 +45,7 @@ async function canvas() {
     "fetch",
     routeFetch({ vocabulary: () => json(smallVocabulary), decide: () => json(withDominated()) }),
   );
-  history.replaceState(null, "", "/" + encodeSpec(SPEC, "task$"));
+  history.replaceState(null, "", "/decide/" + encodeSpec(SPEC, "task$"));
   render(<App />);
   return screen.findByRole("region", { name: "Trade-off canvas" });
 }

@@ -5,7 +5,8 @@ import type { Row, Spec } from "../adapter";
 import { encodeSpec } from "../state/spec";
 import type { Axis } from "../state/spec";
 import { toDecisionSpec } from "../adapter/view-model";
-import { boardHasPreference, toBoardDecisionSpec } from "../facet-board/model";
+import { boardHasPreference, encodeBoardSpec, toBoardDecisionSpec } from "../facet-board/model";
+import type { BoardUrlState } from "../facet-board/model";
 const tabs = [
   "Permalink",
   "API call",
@@ -20,6 +21,8 @@ export function Share({
   axis,
   row,
   demo,
+  refinementsFolded = false,
+  boardPermalink,
   onClose,
 }: {
   spec: Spec;
@@ -27,6 +30,8 @@ export function Share({
   axis: Axis;
   row: Row | null;
   demo: boolean;
+  refinementsFolded?: boolean;
+  boardPermalink?: { spec: Spec; state: BoardUrlState };
   onClose: () => void;
 }) {
   const { label } = useVocab();
@@ -92,6 +97,9 @@ export function Share({
         ...(unrankedBoard
           ? ["# unranked: no Prefer set; this objective only lets the spec run, it does not rank"]
           : []),
+        ...(refinementsFolded
+          ? ["# refinement weights folded into their parent domains until nested ranking is available"]
+          : []),
         `optimize: ${JSON.stringify(contractSpec.optimize)}`,
         `unknowns: ${contractSpec.unknowns ?? "default"}`,
         `explain: ${contractSpec.explain ?? "full"}`,
@@ -102,15 +110,17 @@ export function Share({
       ? location.origin +
         location.pathname +
         location.search +
-        encodeSpec(spec, axis)
+        (boardPermalink
+          ? encodeBoardSpec(boardPermalink.spec, axis, boardPermalink.state)
+          : encodeSpec(spec, axis))
       : tab === "API call"
         ? demo
           ? `# Fictional sample preview; this payload is not sent.\ncurl https://api.modelspec.example/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sample, null, 2).replaceAll("'", "'\\''")}'`
           : `${unrankedBoard ? "# unranked: no Prefer set; the objective below only lets the spec run, it does not rank\n" : ""}curl https://api.modelspec.dev/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sharedContractSpec, null, 2).replaceAll("'", "'\\''")}'`
         : tab === "CLI"
           ? demo
-            ? "# Fictional sample preview\nmodelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
-            : "modelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
+            ? "# Fictional sample preview\npipx install modelspec-dev\nmodelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
+            : "pipx install modelspec-dev\nmodelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
           : yaml;
   const clauses = row
     ? spec.conds.map((c, i) => {

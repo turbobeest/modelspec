@@ -156,7 +156,9 @@ def evidence_item(
         source=snapshot.source_url(row.source_ids[0]),
         source_snapshot=row.source_snapshot,
         directness=row.directness,
-        n=record.get("n"),
+        n=row.n,
+        interval=row.interval,
+        quality_flags=list(row.quality_flags),
         loading=loading,
         estimate_weight=estimate_weight,
         recency_weight=recency_weight,
@@ -294,7 +296,10 @@ def contributions(snapshot, cid, parts, evidence):
     return out
 
 
-def explain(decision, resolved, snapshot, filtered, ordered, selectors, domains):
+def explain(
+    decision, resolved, snapshot, filtered, ordered, selectors, domains, *,
+    comparison=False,
+):
     requested = set(resolved.spec.capabilities or {})
     for result, row in zip(decision.results, ordered.results):
         result.evidence = domain_evidence(snapshot, row.candidate_id, requested)
@@ -317,7 +322,10 @@ def explain(decision, resolved, snapshot, filtered, ordered, selectors, domains)
         for point in ordered.tipping_points
     ]
     if decision.explain == "full":
-        _full(decision, snapshot, ordered, requested, named_facets(resolved))
+        _full(
+            decision, snapshot, ordered, requested, named_facets(resolved),
+            comparison=comparison,
+        )
         decision.chart = contribution_chart(decision)
         decision.number_origins = list(number_origins(decision, snapshot))
         decision.sources = cited_sources(decision, snapshot)
@@ -409,8 +417,9 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             )
         )
         for reason in single.eliminated:
-            values = list(reason.value) if isinstance(reason.value, (tuple, list)) else []
-            value = None if values else reason.value
+            is_collection = isinstance(reason.value, (tuple, list))
+            values = list(reason.value) if is_collection else []
+            value = None if is_collection else reason.value
             ref = offering_ref(snapshot, reason.candidate)
             records = []
             unit = None
@@ -465,12 +474,14 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
         for reason in filtered.eliminated:
             ref = offering_ref(snapshot, reason.candidate)
             if ref.model_dump_json() not in already:
+                is_collection = isinstance(reason.value, (tuple, list))
                 decision.eliminated.models.append(
                     ModelElimination(
                         model=ref.model,
                         offering=ref,
                         condition=reason.condition,
-                        value=reason.value,
+                        value=None if is_collection else reason.value,
+                        values=list(reason.value) if is_collection else [],
                     )
                 )
         for cid, dominators in ordered.dominance.items():
@@ -480,14 +491,6 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                     model=ref.model, offering=ref, condition="dominated by " + ", ".join(dominators)
                 )
             )
-        for row in ordered.results[len(decision.results) :]:
-            ref = offering_ref(snapshot, row.candidate_id)
-            decision.eliminated.models.append(
-                ModelElimination(
-                    model=ref.model, offering=ref, condition="outside requested result limit"
-                )
-            )
-
         grouped = {}
         for row in decision.eliminated.models:
             group = grouped.setdefault(row.model, {"model": None, "offerings": {}})
@@ -528,9 +531,8 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             decision.near_misses.append(candidate_near_misses[best[0].candidate_id])
 
 
-def _full(decision, snapshot, ordered, requested, named):
-    """Up to 20 optimised candidates with the facets the spec names, the display
-    set, and evidence on the benchmarks the spec names: not every value held."""
+def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
+    """Facts and evidence for the full explanation or an internal comparison."""
     from decision.computed import COMPUTED_FACETS
     from decision.contract import CandidateValues, ShownFact
     from decision.engine import offering_ref
@@ -539,7 +541,8 @@ def _full(decision, snapshot, ordered, requested, named):
     stored = [facet for facet in snapshot.facet_ids() if facet in shown]
     benchmarks = named & set(snapshot.benchmark_ids())
     ranked = len(decision.results)
-    for position, row in enumerate(ordered.results[:20]):
+    rows = ordered.results[:ranked] if comparison else ordered.results[:20]
+    for position, row in enumerate(rows):
         cid = row.candidate_id
         facts = []
         for facet in stored:

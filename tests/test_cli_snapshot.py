@@ -8,19 +8,19 @@ script has to tell apart.
 
 from __future__ import annotations
 
+import base64
 import functools
 import gzip
 import json
-import shutil
 import subprocess
 import sys
-import sysconfig
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from typer.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -28,9 +28,26 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from api.ranking.engine import USE_CASE_PROFILES  # noqa: E402
 from cli.modelspec import offline, snapshot  # noqa: E402
+from decision import snapshot as decision_snapshot  # noqa: E402
 from decision.snapshot import Snapshot as DecisionSnapshot  # noqa: E402
 from decision.snapshot import content_hash as decision_content_hash  # noqa: E402
 from decision.snapshot import snapshot_id_for  # noqa: E402
+
+_TEST_PRIVATE = Ed25519PrivateKey.generate()
+_TEST_SIGNER = decision_snapshot.Ed25519Signer(
+    "test-fixture",
+    _TEST_PRIVATE.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    ),
+)
+_TEST_PUBLIC_KEYS = {
+    "test-fixture": _TEST_PRIVATE.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+}
 
 
 @pytest.fixture
@@ -38,6 +55,15 @@ def cache(tmp_path: Path) -> Path:
     directory = tmp_path / "cache"
     directory.mkdir()
     return directory
+
+
+@pytest.fixture(autouse=True)
+def _pin_test_snapshot_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: dict(_TEST_PUBLIC_KEYS),
+    )
 
 
 def _write(directory: Path, fetched_at: datetime | None = None) -> None:
@@ -64,7 +90,10 @@ def _write(directory: Path, fetched_at: datetime | None = None) -> None:
     }), encoding="utf-8")
 
 
-def _decision_artifacts(as_of: str = "2026-09-27") -> tuple[bytes, dict]:
+def _decision_artifacts(
+    as_of: str = "2026-09-27",
+    signer: decision_snapshot.Ed25519Signer | None = _TEST_SIGNER,
+) -> tuple[bytes, dict]:
     content = {
         "format_version": 1,
         "as_of": as_of,
@@ -86,7 +115,7 @@ def _decision_artifacts(as_of: str = "2026-09-27") -> tuple[bytes, dict]:
     }
     digest = decision_content_hash(content)
     built = DecisionSnapshot(content, digest, snapshot_id_for(digest))
-    return built.to_bytes(key="publisher-only-key"), {
+    return built.to_bytes(key="publisher-only-key", ed25519_signer=signer), {
         "vocabulary_version": 1,
         "snapshot": built.snapshot_id,
     }
@@ -249,8 +278,80 @@ def test_fetch_caches_the_decision_snapshot_and_vocabulary(cache: Path, monkeypa
     )
     decision_status = snapshot.status(cache)["decision_snapshot"]
     assert decision_status["present"] is True
-    assert decision_status["signature_verified"] is False
+    assert decision_status["signature_verified"] is True
     assert decision_status["as_of"] == "2026-09-27"
+
+
+def test_fetch_verifies_ed25519_with_the_cli_pinned_key_set(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    signer = decision_snapshot.Ed25519Signer("test-release", private_raw)
+    decision, vocabulary = _decision_artifacts(signer=signer)
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
+    _mock_http_client(monkeypatch, bodies)
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-release": public_raw},
+    )
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["signature_verified"] is True
+    status = snapshot.status(cache)["decision_snapshot"]
+    assert status["signature_verified"] is True
+    assert status["signature_key_id"] == "test-release"
+
+
+def test_fetch_refuses_a_tampered_ed25519_snapshot(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    signer = decision_snapshot.Ed25519Signer("test-release", private_raw)
+    decision, vocabulary = _decision_artifacts(signer=signer)
+    envelope = json.loads(gzip.decompress(decision))
+    envelope["content"]["as_of"] = "2099-01-01"
+    digest = decision_content_hash(envelope["content"])
+    envelope["content_hash"] = digest
+    envelope["snapshot_id"] = snapshot_id_for(digest)
+    forged = gzip.compress(json.dumps(envelope).encode())
+    vocabulary["snapshot"] = envelope["snapshot_id"]
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = forged
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
+    _mock_http_client(monkeypatch, bodies)
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-release": public_raw},
+    )
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["available"] is False
+    assert "Ed25519 signature" in result.decision_fetch["error"]
+    assert not (cache / "decision" / "current").exists()
 
 
 def test_successive_fetches_keep_current_and_previous_generations(
@@ -579,60 +680,32 @@ def test_the_original_exit_codes_keep_their_values() -> None:
 
 
 @functools.cache
-def _modelspec_cli() -> str:
-    """Absolute path to the installed ``modelspec`` console script.
+def _modelspec_cli() -> list[str]:
+    """Run the CLI module with the interpreter that is running pytest."""
+    return [sys.executable, "-m", "cli.modelspec.cli"]
 
-    The public entry point is ``[project.scripts] modelspec = cli.modelspec.cli:app``.
-    There is no ``python -m modelspec`` module (``python -m modelspec`` fails), so
-    these tests locate the generated console script for *this* interpreter — the
-    local venv, CI's system Python, or any other install. ``shutil.which`` alone
-    is not enough: ``.venv/bin/python -m pytest`` does not put ``.venv/bin`` on
-    ``PATH``. A missing CLI is an install failure, not a skip.
-    """
-    try:
-        dist = distribution("modelspec")
-    except PackageNotFoundError as exc:
-        raise RuntimeError(
-            "The modelspec package is not installed in this interpreter. "
-            "Install it with `pip install -e '.[dev]'` so the `modelspec` "
-            "console script is created."
-        ) from exc
-    if not any(
-        ep.group == "console_scripts" and ep.name == "modelspec"
-        for ep in dist.entry_points
-    ):
-        raise RuntimeError(
-            "The installed modelspec distribution does not declare a "
-            "`modelspec` console script (pyproject.toml [project.scripts])."
-        )
 
-    searched: list[Path] = [
-        Path(sysconfig.get_path("scripts")) / "modelspec",
-        Path(sys.executable).resolve().parent / "modelspec",
-    ]
-    which = shutil.which("modelspec")
-    if which is not None:
-        searched.append(Path(which))
-
-    seen: set[Path] = set()
-    for path in searched:
-        resolved = path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        if path.is_file():
-            return str(path)
-
-    raise RuntimeError(
-        "modelspec console script is declared but was not found on disk. "
-        "Looked in: " + ", ".join(str(p) for p in searched) + ". "
-        "Install the package into this interpreter."
+@functools.cache
+def _modelspec_test_cli() -> list[str]:
+    """Run the CLI with the generated public fixture key pinned."""
+    public_key = base64.b64encode(_TEST_PUBLIC_KEYS["test-fixture"]).decode("ascii")
+    bootstrap = (
+        "import base64; "
+        "from decision import snapshot as decision_snapshot; "
+        "decision_snapshot.load_public_keys = lambda: "
+        f"{{'test-fixture': base64.b64decode('{public_key}')}}; "
+        "from cli.modelspec.cli import app; app()"
     )
+    return [sys.executable, "-c", bootstrap]
+
+
+def test_cli_lookup_uses_the_current_interpreters_module() -> None:
+    assert _modelspec_cli() == [sys.executable, "-m", "cli.modelspec.cli"]
 
 
 def _run(args: list[str], cache: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [_modelspec_cli(), *args],
+        [*_modelspec_test_cli(), *args],
         capture_output=True, text=True, timeout=120,
         env={
             "PATH": "/usr/bin:/bin",

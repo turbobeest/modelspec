@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 import App from "../App";
-beforeEach(() => history.replaceState(null, "", "/?demo=1"));
+beforeEach(() => history.replaceState(null, "", "/decide/?demo=1"));
 it("parses Enter, shows a loading trace, and keeps the spec in the URL", async () => {
   render(<App />);
   const task = screen.getByLabelText("Describe your task");
@@ -50,7 +50,7 @@ it("supports keyboard handles, selection, table sorting, layout and modal tabs",
   const modal = screen.getByRole("dialog");
   fireEvent.click(within(modal).getByRole("tab", { name: "CLI" }));
   expect(modal).toHaveTextContent(
-    "modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
+    "pipx install modelspec-dev modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
   );
   fireEvent.click(within(modal).getByRole("tab", { name: "Spec YAML" }));
   expect(modal).toHaveTextContent("fictional");
@@ -137,7 +137,7 @@ it("restores the saved spec and respects query theme and layout", () => {
   history.replaceState(
     null,
     "",
-    "/?demo=1&theme=dark&layout=table#s=" +
+    "/decide/?demo=1&theme=dark&layout=table#s=" +
       btoa(
         encodeURIComponent(
           JSON.stringify({

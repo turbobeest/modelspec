@@ -4,7 +4,7 @@
 
 ModelSpec catalogs AI models as YAML+Markdown cards, exports them to versioned JSON on Cloudflare Pages ([modelspec.dev](https://modelspec.dev)), and ranks from that export — in the browser, or offline from a local snapshot. **No database is on the serving path.**
 
-- Site: [modelspec.dev](https://modelspec.dev) · [graph](https://modelspec.dev/graph/) · [downselect](https://modelspec.dev/downselect/)
+- Site: [modelspec.dev](https://modelspec.dev) · [decide](https://modelspec.dev/decide/) · [graph](https://modelspec.dev/graph/)
 - CLI contract: [`docs/cli-contract.md`](docs/cli-contract.md)
 - Current state: [`docs/handoff/current.md`](docs/handoff/current.md)
 - Agent entry: [`AGENTS.md`](AGENTS.md)
@@ -12,10 +12,7 @@ ModelSpec catalogs AI models as YAML+Markdown cards, exports them to versioned J
 ## Quick start
 
 ```bash
-git clone https://github.com/turbobeest/modelspec.git
-cd modelspec
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
+pipx install modelspec-dev
 modelspec snapshot fetch
 modelspec offline rank coding --json
 ```

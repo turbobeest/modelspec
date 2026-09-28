@@ -508,8 +508,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.7",
-          "default": "1.7",
+          "const": "1.10",
+          "default": "1.10",
           "title": "Contract Version",
           "type": "string"
         },
@@ -578,6 +578,11 @@
           "title": "Results",
           "type": "array"
         },
+        "signature_verified": {
+          "default": false,
+          "title": "Signature Verified",
+          "type": "boolean"
+        },
         "snapshot": {
           "pattern": "^snap_[A-Za-z0-9:._-]+$",
           "title": "Snapshot",
@@ -617,6 +622,9 @@
           },
           "title": "Top",
           "type": "array"
+        },
+        "truncated": {
+          "$ref": "#/$defs/Truncated"
         },
         "warnings": {
           "items": {
@@ -820,6 +828,28 @@
           "title": "Harness Unregistered",
           "type": "boolean"
         },
+        "interval": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
         "loading": {
           "anyOf": [
             {
@@ -855,6 +885,17 @@
           ],
           "default": null,
           "title": "N"
+        },
+        "quality_flags": {
+          "items": {
+            "enum": [
+              "deprecated",
+              "contamination_warning"
+            ],
+            "type": "string"
+          },
+          "title": "Quality Flags",
+          "type": "array"
         },
         "recency_weight": {
           "anyOf": [
@@ -2749,6 +2790,26 @@
       "title": "Tolerance",
       "type": "object"
     },
+    "Truncated": {
+      "additionalProperties": false,
+      "description": "Qualifying rows omitted only because of the requested result limit. Added in 1.9.",
+      "properties": {
+        "models": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Models",
+          "type": "integer"
+        },
+        "offerings": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offerings",
+          "type": "integer"
+        }
+      },
+      "title": "Truncated",
+      "type": "object"
+    },
     "Window": {
       "additionalProperties": false,
       "description": "``facet in [low, high]``, both ends inclusive.",
@@ -2865,5 +2926,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.7"
+  "x-contract-version": "1.10"
 }

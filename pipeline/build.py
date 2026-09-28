@@ -60,6 +60,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"Null means not researched.\n\n"
         f"- Machine-readable index: {base}/api/index.json\n"
         f"- Benchmark catalogue: {base}/api/catalogue.json\n"
+        f"- Decide: {base}/decide/\n"
         f"- Rank API: {RANK_API}\n"
         f"- API docs: {API_DOCS}\n"
         f"- MCP: {MCP_ENDPOINT}\n"
@@ -153,7 +154,7 @@ def with_site_nav(html: str, nav: str, page: str) -> str:
 
 
 def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
-    """Write the graph explorer to /graph/ with the site nav and its vendored libraries.
+    """Write the graph explorer to /graph/ with its vendored libraries.
 
     A full-viewport canvas app, so it is copied rather than rendered through the
     document shell. Its libraries are vendored so the page does not depend on a
@@ -164,11 +165,13 @@ def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
         return False
     page = ms / "graph/index.html"
     _inject(explorer, page, "<!-- catalogue-freshness -->", freshness)
-    page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav("ModelSpec", r.MS_NAV),
-                                  "web3d/explorer.html"), encoding="utf-8")
     vendor = root / "web3d/vendor"
-    if vendor.is_dir():
-        shutil.copytree(vendor, ms / "graph/vendor", dirs_exist_ok=True)
+    for name in ("three.min.js", "3d-force-graph.min.js"):
+        source = vendor / name
+        if source.is_file():
+            target = ms / "graph/vendor" / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
     return True
 
 
@@ -593,6 +596,20 @@ def main(argv: list[str] | None = None) -> int:
              ("Benchmark catalogue", "/benchmarks/"), ("API", "/api/index.json")],
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
 
+    # MODEL-186 replaces the old catalogue home. The deploy workflow adds the
+    # separately built decide app at /decide/ after holding derives from here.
+    from pipeline import landing as landing_page
+    landing_data = landing_page.build_data(str(root), today)
+    landing_page.write(ms, landing_data, variant="live")
+    (ms / "decide").mkdir(exist_ok=True)
+    (ms / "decide/index.html").write_text(
+        '<!doctype html><html><head><meta name="robots" content="noindex">'
+        '<link rel="canonical" href="https://modelspec.dev/decide/"></head>'
+        '<body><p>The deploy workflow installs the decision app here.</p></body></html>\n',
+        encoding="utf-8",
+    )
+    ms_paths.append("/decide/")
+
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
     (ms / "robots.txt").write_text(
@@ -606,6 +623,12 @@ def main(argv: list[str] | None = None) -> int:
     agent_counts = agent_ready.ship(
         root=root, ms=ms, models=models, benchmarks=benchmarks,
         catalogue=catalogue, build=build, by_provider=by_provider)
+    from pipeline.social_profiles import add_same_as
+    home = ms / "index.html"
+    home.write_text(
+        add_same_as(home.read_text(encoding="utf-8"), root / "brand" / "social" / "profiles.json"),
+        encoding="utf-8",
+    )
 
     missing = missing_internal_hrefs(ms)
     if missing:

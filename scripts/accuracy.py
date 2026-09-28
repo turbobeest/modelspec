@@ -550,12 +550,12 @@ def output_parity(root: Path, config: SuiteConfig) -> LayerResult:
 
 
 def _load_snapshot(root: Path, snapshot_file: Path | None, as_of: date):
-    from decision.snapshot import build_from_repo, load_snapshot, load_snapshot_bytes
+    from decision.snapshot import build_from_repo, load_built_snapshot, load_snapshot
 
     if snapshot_file is not None:
         return load_snapshot(snapshot_file, key=None, include_archive=False)
     built = build_from_repo(root, premier=root / "premier" / "slice-1.yaml", as_of=as_of)
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=False)
+    return load_built_snapshot(built, include_archive=False, source="accuracy build")
 
 
 def _recall_update_command(as_of: date) -> str:

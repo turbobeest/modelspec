@@ -57,6 +57,18 @@ jobs:
             --shard-index ${{ matrix.index }} > shard-files.txt
           python -m pytest --collect-only -q -m "not perf" \
             $(< shard-files.txt) > shard-${{ matrix.index }}-collection.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the landing browser and build the app on its pytest shard
+        # The landing browser test serves the built decide app at /decide/.
+        run: |
+          if grep -qx 'tests/test_landing.py' shard-files.txt; then
+            cd web
+            npm ci
+            npm run build
+            npx playwright install --with-deps chromium
+          fi
       - name: Run test shard
         # -n auto uses the four cores on ubuntu-latest. --dist loadfile also
         # keeps each module together for shared module and process state.
@@ -117,9 +129,58 @@ jobs:
           name: pytest-full-collection
           path: full-collection.txt
 
+  package-smoke:
+    name: Package smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Inspect the wheel contents
+        run: >-
+          python -c "import glob, zipfile;
+          names=zipfile.ZipFile(glob.glob('dist/*.whl')[0]).namelist();
+          roots={name.split('/', 1)[0] for name in names};
+          assert {'api', 'cli', 'decision', 'pipeline', 'registry', 'schema'} <= roots;
+          assert not ({'docs', 'models', 'tests', 'web'} & roots)"
+      - name: Install and run the wheel outside the checkout
+        run: |
+          repo_root="$PWD"
+          wheel="$(realpath dist/*.whl)"
+          venv="$RUNNER_TEMP/modelspec-package-venv"
+          python -m venv "$venv"
+          "$venv/bin/python" -m pip install "$wheel"
+          export PATH="$venv/bin:$PATH"
+          cd "$(mktemp -d)"
+          export MODELSPEC_CACHE="$PWD/cache"
+          modelspec --help
+          modelspec decide --help
+          modelspec verify --help >/dev/null
+          if modelspec verify accuracy --profile pr --config /nonexistent \
+            > verify-accuracy.txt 2>&1; then
+            echo "::error::the repository-only accuracy command ran from the wheel"
+            exit 1
+          fi
+          grep -Fq "No such command 'accuracy'" verify-accuracy.txt
+          modelspec snapshot fetch
+          "$venv/bin/python" "$repo_root/scripts/package_smoke_fixture.py" \
+            --cache "$MODELSPEC_CACHE" --key-id test-package-smoke
+          modelspec vocab >/dev/null
+          modelspec decide --template budget-coding >/dev/null
+          python -c "from decision.registry import default; assert default().facets()"
+
   required-pytest:
     name: Run pytest
-    needs: [pytest-shards, pytest-perf-and-collection]
+    needs: [pytest-shards, pytest-perf-and-collection, package-smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -128,6 +189,7 @@ jobs:
         env:
           SHARD_RESULT: ${{ needs.pytest-shards.result }}
           PERF_RESULT: ${{ needs.pytest-perf-and-collection.result }}
+          PACKAGE_RESULT: ${{ needs.package-smoke.result }}
         run: |
           test "$SHARD_RESULT" = success || {
             echo "::error::pytest shards finished with result: $SHARD_RESULT"
@@ -135,6 +197,10 @@ jobs:
           }
           test "$PERF_RESULT" = success || {
             echo "::error::pytest perf and collection finished with result: $PERF_RESULT"
+            exit 1
+          }
+          test "$PACKAGE_RESULT" = success || {
+            echo "::error::package smoke test finished with result: $PACKAGE_RESULT"
             exit 1
           }
       - name: Checkout

@@ -1,41 +1,41 @@
 {
-  "observed_at": "2026-09-14T11:50:00+00:00",
-  "source_commit_at_prepare": "0b4a6122dfdc8d963dcfd0a1cddf7d174f3c89e0",
-  "first_build": {
-    "nodes": 402,
-    "edges": 687,
-    "communities": 36,
-    "probe_query": "MODEL-40-PROBE-2026-09-14",
-    "probe_found": true
-  },
-  "controlled_edit": {
-    "path": "docs/handoff/current.md",
-    "added": "Graphify incremental refresh token: `MODEL-40-REFRESH-2026-09-14`.",
-    "prepare_check_before_refresh": "STALE: docs/handoff/current.md (exit 1)",
-    "uncached_after_prepare": [
-      "/Users/terbeest/dev/worktrees/modelspec-model-40/docs/handoff/current.md"
-    ],
-    "semantic_cache": "11 hit / 1 uncached"
+  "observed_at": "2026-09-28T12:57:32Z",
+  "source_commit_at_prepare": "7241fec3244af786ea41db6abdb63436c99a7be8",
+  "source_state": "working-tree bytes; commit alone is not freshness proof",
+  "scope": {
+    "files": 24,
+    "words": 54049,
+    "ast_nodes": 447,
+    "ast_edges": 941,
+    "semantic_cached": 0,
+    "semantic_extracted": 12
   },
   "after_refresh": {
-    "nodes": 403,
-    "edges": 686,
-    "communities": 38,
-    "node_delta": 1,
-    "refresh_query": "MODEL-40-REFRESH-2026-09-14",
-    "refresh_found": true,
-    "refresh_source": "docs/handoff/current.md:L102",
+    "nodes": 532,
+    "edges": 979,
+    "communities": 45,
+    "missing_endpoint_edges": 0,
+    "dangling_endpoint_edges": 0,
+    "exact_duplicate_edges": 0,
+    "same_endpoint_collapsed_edges": 17,
     "prepare_check_after": "FRESH: all 24 source hashes, scope, and extraction prompt match (exit 0)"
   },
   "acceptance_queries": {
-    "cli_rank_implementation": "found pipeline/ranking.py rank_report/_basis and cli/modelspec/offline.py",
-    "tests": "found tests/test_ranking.py, tests/test_cli_snapshot.py, tests/test_incomplete_evidence_ranking.py, tests/test_export.py",
-    "dpf_cli_contract": "found docs/cli-contract.md envelope, exit codes, evidence_basis mixed/partial-verified/verified",
-    "ranking_floors": "found MIN_BENCHMARK_COVERAGE 0.50, WIZARD_BENCHMARK_COVERAGE 0.25, api/ranking/engine.py",
-    "static_export": "found MODEL-2 static Pages JSON, export_schema_version, snapshot fetch, no R2/D1"
+    "probe": {
+      "query": "MODEL-40-PROBE-2026-09-14",
+      "found": true,
+      "source": "docs/handoff/current.md:L101"
+    },
+    "snapshot_signature": {
+      "query": "offline Ed25519 snapshot signature pinned public key signature_verified",
+      "found": true,
+      "source": "docs/cli-contract.md:L173-L181",
+      "related_test": "tests/test_cli_snapshot.py:L259"
+    }
   },
   "notes": [
-    "16 undirected same-endpoint collapsed edges are AST call+reference pairs; no missing/dangling endpoints.",
-    "Token usage unavailable; host-session extraction, no external LLM provider."
+    "The refresh used the bounded 24-file allowlist; models/** and benchmarks/** remained excluded DATA.",
+    "The 17 same-endpoint collapses are relation or source-location variants; there are no missing, dangling, self-loop, or exact-duplicate edges.",
+    "Token usage was unavailable for host-session semantic extraction; no paid external provider was invoked."
   ]
 }
