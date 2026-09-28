@@ -152,7 +152,7 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
                    f"One credit. The low end is the {cheapest_label}'s rate; the range "
                    "covers the plans and packs below. A full explanation costs two credits.")
     hero_heading = ("People decide free. Agents pay per answer." if access_enforced else
-                    "People decide free. Agents use the free tier.")
+                    "People decide free. Agents start free.")
     hero_copy = (f"The board on this site and the offline CLI cost nothing. Hosted API and "
                  f"MCP answers use {hero_payment}." if access_enforced else
                  "The board on this site and the offline CLI cost nothing. The hosted API "
