@@ -549,6 +549,13 @@ def main(argv: list[str] | None = None) -> int:
     pricing_counts = pricing.write(ms, root, build)
     ms_paths.extend(pricing_counts["sitemap_paths"])
 
+    # MODEL-186 is a separate front door while the decide board remains at `/`.
+    # Both variants use this one computed data model; holding mode re-renders it
+    # at `/` after this complete tree exists.
+    from pipeline import landing as landing_page
+    landing_data = landing_page.build_data(str(root), today)
+    landing_page.write(ms, landing_data, variant="live")
+
     # Benchmark pages sit beside /m/ and /p/. The catalogue carries the headline
     # figures the build computes, so those counts cannot drift from the cards.
     ms_paths.append("/benchmarks/")

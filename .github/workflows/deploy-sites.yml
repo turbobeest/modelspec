@@ -135,6 +135,9 @@ jobs:
           cp web/dist/decide.html dist/modelspec/index.html
           cp web/dist/decide.html dist/modelspec/404.html
           cp -a web/dist/assets dist/modelspec/assets
+          cp -a dist-v1/modelspec/landing dist/modelspec/landing
+          cp -a dist-v1/modelspec/landing-assets dist/modelspec/landing-assets
+          cp -a dist-v1/modelspec/fonts dist/modelspec/fonts
           find dist/modelspec/assets -type f -name 'main-*' -delete
           # The 2a icon set and social card, as pipeline.brand wrote them into the real build.
           for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest; do
@@ -198,6 +201,8 @@ jobs:
         run: |
           set -e
           test -s dist/modelspec/index.html
+          test -s dist/modelspec/landing/index.html
+          test -s dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html
           ! grep -Fiq 'X-Robots-Tag' dist/modelspec/_headers
@@ -253,6 +258,9 @@ jobs:
           test -s dist-holding/modelspec/index.html
           test -s dist-holding/modelspec/404.html
           grep -q 'X-Robots-Tag: noindex' dist-holding/modelspec/_headers
+          grep -Fq '<link rel="canonical" href="https://modelspec.dev/">' dist-holding/modelspec/index.html
+          ! grep -Eiq '<meta[^>]+noindex' dist-holding/modelspec/index.html
+          grep -Eiq '<meta[^>]+noindex' dist-holding/modelspec/404.html
           test ! -e dist-holding/modelspec/sitemap.xml
           test ! -e dist-holding/modelspec/_worker.js
           test ! -e dist-holding/modelspec/llms.txt
