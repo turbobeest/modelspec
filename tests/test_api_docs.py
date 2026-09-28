@@ -144,6 +144,36 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
         "`python api/worker/openapi.py` and commit the result.")
 
 
+def test_every_local_discriminator_mapping_resolves(spec: dict[str, Any]) -> None:
+    def mappings(value: Any):
+        if isinstance(value, dict):
+            discriminator = value.get("discriminator")
+            if isinstance(discriminator, dict):
+                yield from (discriminator.get("mapping") or {}).values()
+            for child in value.values():
+                yield from mappings(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from mappings(child)
+
+    def resolve(pointer: str) -> Any:
+        value: Any = spec
+        for token in pointer.removeprefix("#/").split("/"):
+            value = value[token.replace("~1", "/").replace("~0", "~")]
+        return value
+
+    dangling = []
+    for pointer in mappings(spec):
+        if not isinstance(pointer, str) or not pointer.startswith("#/"):
+            continue
+        try:
+            resolve(pointer)
+        except (KeyError, TypeError):
+            dangling.append(pointer)
+
+    assert dangling == []
+
+
 def test_payment_required_schema_accepts_keyed_and_keyless_offers(
         spec: dict[str, Any]) -> None:
     schema = spec["components"]["schemas"]["PaymentRequired"]

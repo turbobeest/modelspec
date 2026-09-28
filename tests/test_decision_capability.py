@@ -975,9 +975,9 @@ def test_one_models_offerings_do_not_make_its_evidence_not_separable() -> None:
     assert all("not_separable" not in row.warnings for row in decision.results)
 
 
-def test_overlapping_raw_intervals_from_different_versions_are_not_compared() -> None:
-    alpha = evidence("lab/alpha", "swe_bench_pro", 55.0, interval=[51.0, 59.0])
-    beta = evidence("lab/beta", "swe_bench_pro", 54.0, interval=[50.0, 58.0])
+def test_answer_members_overlap_even_when_evidence_versions_are_not_comparable() -> None:
+    alpha = evidence("lab/alpha", "swe_bench_pro", 1.0, interval=[0.8, 1.2])
+    beta = evidence("lab/beta", "swe_bench_pro", 0.9, interval=[0.85, 0.95])
     beta["benchmark_version"] = "2.0"
     rows = [alpha, beta]
     built = build_snapshot(
@@ -1003,7 +1003,10 @@ def test_overlapping_raw_intervals_from_different_versions_are_not_compared() ->
     decision = decide(spec, index, facets=default_registry().facet)
 
     assert [row.offering.model for row in decision.results] == ["lab/alpha", "lab/beta"]
-    assert all("not_separable" not in row.warnings for row in decision.results)
+    assert all("not_separable" in row.warnings for row in decision.results)
+    assert decision.answer is not None
+    assert decision.answer.kind == "tied"
+    assert decision.answer.members == ["lab/alpha", "lab/beta"]
 
 
 def test_overlapping_raw_interval_does_not_override_a_separating_weighted_objective() -> None:

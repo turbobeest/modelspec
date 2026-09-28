@@ -3265,8 +3265,8 @@ components:
           anyOf:
           - discriminator:
               mapping:
-                separated: '#/$defs/SeparatedAnswer'
-                tied: '#/$defs/TiedAnswer'
+                separated: '#/components/schemas/DecisionSeparatedAnswer'
+                tied: '#/components/schemas/DecisionTiedAnswer'
               propertyName: kind
             oneOf:
             - $ref: '#/components/schemas/DecisionSeparatedAnswer'

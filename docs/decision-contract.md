@@ -512,10 +512,8 @@ For a scalar objective, each candidate has a `score_interval`. The engine
 applies the same feasible-set affine transform to interval bounds that it uses
 for the point estimate. It does not clamp transformed bounds to 0 through 1.
 Exact facets such as cost contribute a point. A capability estimate contributes
-its 80% interval. A source-published evidence interval contributes only when
-the compared evidence has the same benchmark, version, unit, sub-category,
-effort and harness. The weighted interval is the sum of each transformed
-interval times its objective weight, less the exact soft penalty.
+its 80% interval. The weighted interval is the sum of each transformed interval
+times its objective weight, less the exact soft penalty.
 
 The point-estimate leader anchors the comparison. `members` contains that
 model and every other model whose score interval overlaps the leader's.

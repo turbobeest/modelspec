@@ -274,45 +274,6 @@ def _tie_breakers(rows: list[OptimisedResult], snapshot) -> TieBreakers:
     )
 
 
-def _selected_evidence_is_comparable(
-    leader: OptimisedResult, other: OptimisedResult
-) -> bool:
-    compared = {item.dimension: item for item in other.contributions}
-    for contribution in leader.contributions:
-        counterpart = compared.get(contribution.dimension)
-        if counterpart is None:
-            return False
-        if contribution.estimate is not None or counterpart.estimate is not None:
-            if contribution.estimate is None or counterpart.estimate is None:
-                return False
-            continue
-        if len(contribution.evidence) != 1 or len(counterpart.evidence) != 1:
-            continue
-        evidence = contribution.evidence[0]
-        other_evidence = counterpart.evidence[0]
-        if evidence.interval is None and other_evidence.interval is None:
-            continue
-        identity = (
-            evidence.benchmark_id,
-            evidence.version,
-            evidence.unit,
-            evidence.subcategory,
-            evidence.effort,
-            evidence.harness,
-        )
-        other_identity = (
-            other_evidence.benchmark_id,
-            other_evidence.version,
-            other_evidence.unit,
-            other_evidence.subcategory,
-            other_evidence.effort,
-            other_evidence.harness,
-        )
-        if identity != other_identity:
-            return False
-    return True
-
-
 def _answer(rows: list[OptimisedResult], snapshot):
     if not rows or rows[0].score_interval is None:
         return None
@@ -322,7 +283,6 @@ def _answer(rows: list[OptimisedResult], snapshot):
         row
         for row in rows
         if row.score_interval is not None
-        and _selected_evidence_is_comparable(leader, row)
         and max(leader_low, row.score_interval[0])
         <= min(leader_high, row.score_interval[1])
     ]
