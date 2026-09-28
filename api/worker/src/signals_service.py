@@ -86,21 +86,22 @@ def _acknowledgement_error(payload: object) -> str | None:
     pr_url = payload.get("pr_url")
     if pr_url is not None and not _valid_uri(pr_url):
         return "pr_url must be a URI or null"
-    recheck_due = payload.get("recheck_due")
-    if recheck_due is not None:
+    if "recheck_due" in payload:
+        recheck_due = payload["recheck_due"]
         if not isinstance(recheck_due, str) or RFC3339_FULL_DATE.fullmatch(recheck_due) is None:
             return "recheck_due must be an RFC 3339 full-date"
         try:
             date.fromisoformat(recheck_due)
         except ValueError:
             return "recheck_due must be an RFC 3339 full-date"
-    recheck_day = payload.get("recheck_day")
-    if recheck_day is not None and (
-        isinstance(recheck_day, bool)
-        or not isinstance(recheck_day, int)
-        or recheck_day not in (1, 7, 30)
-    ):
-        return "recheck_day must be 1, 7, or 30"
+    if "recheck_day" in payload:
+        recheck_day = payload["recheck_day"]
+        if (
+            isinstance(recheck_day, bool)
+            or not isinstance(recheck_day, int)
+            or recheck_day not in (1, 7, 30)
+        ):
+            return "recheck_day must be 1, 7, or 30"
     return None
 
 

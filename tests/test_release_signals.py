@@ -926,6 +926,16 @@ def test_worker_intake_authenticates_deduplicates_and_lists_pending() -> None:
             "result": "existing",
             "recheck_day": [],
         },
+        {
+            "signal_id": "grok-20260926-123456789",
+            "result": "existing",
+            "recheck_due": None,
+        },
+        {
+            "signal_id": "grok-20260926-123456789",
+            "result": "existing",
+            "recheck_day": None,
+        },
     ],
 )
 def test_worker_acknowledgement_rejects_payloads_outside_the_contract_before_kv_access(
