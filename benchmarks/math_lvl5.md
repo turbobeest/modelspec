@@ -95,6 +95,8 @@ freshness:
   researched_by: "Claude Opus 5.5, MODEL-116"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: competition_maths, directness: proxy}
 ---
 
 ## What it measures

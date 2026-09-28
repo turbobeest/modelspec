@@ -137,6 +137,9 @@ freshness:
 domains:
   - {id: maths, directness: direct}
   - {id: vision_documents, directness: direct}
+refinements:
+  - {id: visual_maths, directness: direct}
+  - {id: visual_maths_homework, directness: direct}
 ---
 
 ## What it measures

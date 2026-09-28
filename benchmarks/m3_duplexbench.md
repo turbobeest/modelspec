@@ -43,6 +43,8 @@ freshness:
   researched_by: "GPT-5.6 Luna, luna-stream-a-004 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: audio_speech, directness: direct}
 ---
 ## What it measures
 

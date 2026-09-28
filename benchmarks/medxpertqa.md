@@ -138,6 +138,8 @@ freshness:
   researched_by: "Grok Build, batch 7 pilot (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, pilot-review"
+refinements:
+  - {id: clinician_facing_tasks, directness: direct}
 ---
 
 ## What it measures

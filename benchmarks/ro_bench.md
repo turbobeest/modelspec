@@ -116,6 +116,8 @@ freshness:
   researched_by: "Grok Build, batch-080 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: video_understanding, directness: direct}
 ---
 
 ## What it measures

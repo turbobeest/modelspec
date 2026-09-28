@@ -36,6 +36,8 @@ sources:
     title: Inspect Evals repository
     accessed: "2026-09-08"
 freshness: {researched: "2026-09-08", researched_by: GPT-5.6 Luna, luna-new-001 (Codex coordinated), reviewed: "2026-09-08", reviewed_by: "Claude Sonnet 5 independent review, luna-new-001"}
+refinements:
+  - {id: computer_use_gui, directness: proxy}
 ---
 
 ## What it measures

@@ -112,6 +112,9 @@ freshness:
   researched_by: sonnet-5 agent, batch 1, slice H
   reviewed: ''
   reviewed_by: ''
+refinements:
+  - {id: api_function_calling, directness: direct}
+  - {id: customer_support_under_policy, directness: direct}
 ---
 
 ## What it measures

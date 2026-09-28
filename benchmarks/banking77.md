@@ -136,6 +136,8 @@ freshness:
   researched_by: "Grok Build, batch-027 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "GPT-5.6 Luna independent review, luna-batch-027"
+refinements:
+  - {id: financial_text_classification, directness: direct}
 ---
 
 ## What it measures

@@ -114,6 +114,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 4, slice F"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: equity_research_valuation, directness: direct}
 ---
 
 ## What it measures

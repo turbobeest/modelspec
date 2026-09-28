@@ -66,6 +66,8 @@ sources:
     title: "SWE-Explore-Bench dataset card"
     accessed: "2026-09-08"
 freshness: {researched: "2026-09-09", researched_by: "GPT-5.6 Luna, luna-stream-b-004 (Codex coordinated)", reviewed: "2026-09-08", reviewed_by: "Claude Sonnet 5 independent review, luna-stream-b-004"}
+refinements:
+  - {id: code_localisation_repo_exploration, directness: direct}
 ---
 ## What it measures
 

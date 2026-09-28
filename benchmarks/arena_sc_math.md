@@ -84,6 +84,8 @@ freshness:
 domains:
   - {id: chat_preference, directness: direct}
   - {id: maths, directness: proxy}
+refinements:
+  - {id: maths_prompts, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

@@ -144,6 +144,9 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: vision_documents, directness: direct}
+refinements:
+  - {id: charts_diagrams_figures, directness: direct}
+  - {id: scientific_figures_lab_protocols, directness: direct}
 ---
 
 ## What it measures

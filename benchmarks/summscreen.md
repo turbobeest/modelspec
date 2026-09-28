@@ -123,6 +123,8 @@ freshness:
   researched_by: "Claude Sonnet 5, sonnet-batch-006 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Claude Sonnet 5 independent review, sonnet-batch-006"
+refinements:
+  - {id: summarisation, directness: direct}
 ---
 
 ## What it measures

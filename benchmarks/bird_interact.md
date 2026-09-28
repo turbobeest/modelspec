@@ -27,6 +27,8 @@ sources:
     title: BIRD-INTERACT primary task source
     accessed: "2026-09-09"
 freshness: {researched: "2026-09-09", researched_by: "GPT-5.6 Luna, luna-stream-b-007 (Codex coordinated)", reviewed: "", reviewed_by: ""}
+refinements:
+  - {id: sql_text_to_sql, directness: direct}
 ---
 ## What it measures
 

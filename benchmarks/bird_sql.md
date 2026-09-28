@@ -152,6 +152,8 @@ freshness:
   researched_by: "Grok Build, batch-028 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-028"
+refinements:
+  - {id: sql_text_to_sql, directness: direct}
 ---
 
 ## What it measures

@@ -135,6 +135,8 @@ freshness:
   researched_by: "Grok Build, batch-001 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-001"
+refinements:
+  - {id: specialty_radiology_palliative_paediatrics, directness: direct}
 ---
 
 ## What it measures

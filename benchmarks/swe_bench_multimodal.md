@@ -101,6 +101,10 @@ freshness:
 domains:
   - {id: software_engineering, directness: direct}
   - {id: vision_documents, directness: proxy}
+refinements:
+  - {id: bug_fix, directness: direct}
+  - {id: javascript_typescript, directness: direct}
+  - {id: web_front_end, directness: direct}
 ---
 
 ## What it measures

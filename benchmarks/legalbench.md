@@ -143,6 +143,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice P"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: contracts_terms, directness: proxy}
+  - {id: legal_reasoning_type_issue_spotting_rule_recall_application_interpretation, directness: direct}
 ---
 
 ## What it measures

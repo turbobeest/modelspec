@@ -125,6 +125,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 5, slice E"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: sql_text_to_sql, directness: direct}
 ---
 
 ## What it measures

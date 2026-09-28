@@ -139,6 +139,8 @@ sources:
 freshness:
   researched: "2026-09-08"
   researched_by: "sonnet-5 agent, batch 2, slice E"
+refinements:
+  - {id: science_discipline_physics_chemistry_biology, directness: direct}
 ---
 
 ## What it measures

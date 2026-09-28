@@ -75,6 +75,8 @@ sources:
 freshness:
   researched: "2026-09-08"
   researched_by: "sonnet-5 agent, batch 1b, slice N"
+refinements:
+  - {id: accounting, directness: direct}
 ---
 
 Part of the [MMLU](mmlu.md) family.

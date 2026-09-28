@@ -270,6 +270,69 @@ def _benchmark_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappin
     return rows
 
 
+def _refinement_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mapping[str, Any]],
+                     registry: Any) -> list[dict[str, Any]]:
+    lineup_models = {snapshot.model_of(candidate) for candidate in lineup}
+    candidates_by_model: dict[str, list[str]] = {}
+    for candidate in lineup:
+        candidates_by_model.setdefault(snapshot.model_of(candidate), []).append(candidate)
+
+    tags_by_refinement: dict[str, list[dict[str, str]]] = {}
+    for benchmark_id, page in pages.items():
+        raw_tags = page.get("refinements") if isinstance(page, Mapping) else None
+        if not isinstance(raw_tags, list):
+            continue
+        for raw in raw_tags:
+            if not isinstance(raw, Mapping):
+                continue
+            id_, directness = raw.get("id"), raw.get("directness")
+            if isinstance(id_, str) and directness in ("direct", "proxy"):
+                tags_by_refinement.setdefault(id_, []).append({
+                    "id": str(benchmark_id),
+                    "directness": str(directness),
+                })
+
+    rows = []
+    for refinement in registry.refinements():
+        benchmark_tags = sorted(
+            tags_by_refinement.get(refinement.id, []),
+            key=lambda tag: (tag["id"], tag["directness"]),
+        )
+        measured: set[str] = set()
+        direct: set[str] = set()
+        for tag in benchmark_tags:
+            for model_id, candidates in candidates_by_model.items():
+                if any(
+                    evidence.verified
+                    for candidate in candidates
+                    for evidence in snapshot.evidence(candidate, tag["id"])
+                ):
+                    measured.add(model_id)
+                    if tag["directness"] == "direct":
+                        direct.add(model_id)
+        if len(direct) >= 3:
+            evidence_state = "live"
+        elif measured:
+            evidence_state = "thin"
+        elif benchmark_tags:
+            evidence_state = "not_measured"
+        else:
+            evidence_state = "no_benchmark"
+        rows.append({
+            "id": refinement.id,
+            "parent_domain": refinement.parent_domain,
+            "kind": refinement.kind,
+            "name": refinement.name,
+            "definition": refinement.definition,
+            "evidence_state": evidence_state,
+            "measured_models": len(measured),
+            "of_models": len(lineup_models),
+            "benchmarks": benchmark_tags,
+            "weight_key": refinement.weight_key,
+        })
+    return rows
+
+
 def _model_rows(snapshot: Any, cards: Mapping[str, Mapping[str, Any]],
                 ) -> dict[str, dict[str, Any]]:
     rows = {}
@@ -443,6 +506,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
             "benchmarks": [row["id"] for row in sorted(members, key=order)],
         })
     coverage = _coverage(view, lineup, registry)
+    refinements = _refinement_rows(view, lineup, pages or {}, registry)
     return {
         "vocabulary_version": VOCABULARY_VERSION,
         "contract_version": CONTRACT_VERSION,
@@ -453,6 +517,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "facets": facets,
         "benchmarks": benchmarks,
         "domains": domains,
+        "refinements": refinements,
         "models": _model_rows(view, cards or {}),
         "providers": {p.id: p.name for p in registry.providers()},
         "coverage": coverage,

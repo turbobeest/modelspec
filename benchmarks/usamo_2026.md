@@ -112,6 +112,8 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: maths, directness: direct}
+refinements:
+  - {id: proof_writing_formal_proof, directness: direct}
 ---
 
 ## What it measures

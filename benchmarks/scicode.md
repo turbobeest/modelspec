@@ -164,6 +164,8 @@ freshness:
   researched_by: "Grok Build eligible run, scicode"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: scientific_research_code, directness: direct}
 ---
 
 ## What it measures

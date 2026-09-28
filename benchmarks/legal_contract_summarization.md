@@ -130,6 +130,8 @@ freshness:
   researched_by: "Grok Build, batch-053 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-053"
+refinements:
+  - {id: contracts_terms, directness: direct}
 ---
 
 ## What it measures

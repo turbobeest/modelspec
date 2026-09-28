@@ -141,6 +141,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice F"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: consumer_health_conversations, directness: direct}
+  - {id: multi_turn_conversation, directness: proxy}
 ---
 
 ## What it measures

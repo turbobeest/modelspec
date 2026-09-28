@@ -77,6 +77,8 @@ freshness:
 domains:
   - {id: agentic_tool_use, directness: direct}
   - {id: software_engineering, directness: proxy}
+refinements:
+  - {id: shell_terminal, directness: proxy}
 ---
 
 ## What it measures

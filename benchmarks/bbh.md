@@ -105,6 +105,8 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: reasoning, directness: direct}
+refinements:
+  - {id: multi_step_knowledge_light_reasoning, directness: direct}
 ---
 
 ## What it measures

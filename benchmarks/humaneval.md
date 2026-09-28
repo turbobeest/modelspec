@@ -151,6 +151,9 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: software_engineering, directness: proxy}
+refinements:
+  - {id: function_level_completion, directness: proxy}
+  - {id: python, directness: proxy}
 ---
 
 ## What it measures

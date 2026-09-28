@@ -98,6 +98,9 @@ freshness:
   researched_by: "Grok Build, batch-074 (Codex coordinated)"
   reviewed: "2026-09-09"
   reviewed_by: "Grok Build independent review, batch-074"
+refinements:
+  - {id: refactor, directness: direct}
+  - {id: rust, directness: proxy}
 ---
 
 ## What it measures

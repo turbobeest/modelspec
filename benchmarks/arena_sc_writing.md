@@ -91,6 +91,9 @@ freshness:
 domains:
   - {id: chat_preference, directness: direct}
   - {id: writing, directness: proxy}
+refinements:
+  - {id: industry_occupation, directness: direct}
+  - {id: writing_literature_and_language_occupational, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

@@ -69,6 +69,8 @@ sources:
 freshness:
   researched: "2026-09-07"
   researched_by: "sonnet-5 agent, batch 1, slice A"
+refinements:
+  - {id: economics_quantitative, directness: direct}
 ---
 
 Part of the [MMLU](mmlu.md) family.

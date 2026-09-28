@@ -145,6 +145,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice A"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: clinician_facing_tasks, directness: direct}
 ---
 
 ## What it measures

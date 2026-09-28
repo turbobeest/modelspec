@@ -104,6 +104,8 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: maths, directness: direct}
+refinements:
+  - {id: school_word_problems, directness: direct}
 ---
 
 ## What it measures

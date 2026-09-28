@@ -100,6 +100,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice M"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: instruction_constraint_adherence, directness: direct}
+  - {id: instruction_following, directness: direct}
 ---
 
 ## What it measures

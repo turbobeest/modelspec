@@ -128,6 +128,8 @@ sources:
 freshness:
   researched: "2026-09-08"
   researched_by: "sonnet-5 agent, batch 3, slice E"
+refinements:
+  - {id: chinese, directness: direct}
 ---
 
 ## What it measures

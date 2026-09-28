@@ -105,6 +105,8 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: vision_documents, directness: direct}
+refinements:
+  - {id: ocr_scanned_documents, directness: direct}
 ---
 
 ## What it measures

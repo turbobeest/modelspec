@@ -85,6 +85,9 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: maths, directness: direct}
+refinements:
+  - {id: difficulty_tier, directness: proxy}
+  - {id: research_level_maths, directness: direct}
 ---
 
 ## What it measures

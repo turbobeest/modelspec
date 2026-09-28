@@ -136,6 +136,8 @@ freshness:
 domains:
   - {id: vision_documents, directness: direct}
   - {id: engineering_stem, directness: proxy}
+refinements:
+  - {id: scientific_figures_lab_protocols, directness: proxy}
 ---
 
 ## What it measures

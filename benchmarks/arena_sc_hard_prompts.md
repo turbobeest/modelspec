@@ -91,6 +91,9 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: chat_preference, directness: direct}
+refinements:
+  - {id: difficulty_tier, directness: direct}
+  - {id: hard_expert_prompts_preference, directness: direct}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

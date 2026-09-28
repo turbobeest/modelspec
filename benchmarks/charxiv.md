@@ -140,6 +140,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice K"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: charts_diagrams_figures, directness: direct}
 ---
 
 ## What it measures

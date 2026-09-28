@@ -166,6 +166,8 @@ freshness:
 domains:
   - {id: retrieval, directness: direct}
   - {id: multilingual, directness: direct}
+refinements:
+  - {id: multilingual_retrieval_embeddings, directness: direct}
 ---
 
 ## What it measures

@@ -214,6 +214,19 @@ def test_launch_domains_are_registered(registry):
     assert registry.domain("marketing_seo").proxy_only is True
 
 
+def test_the_refinement_registry_contains_the_129_surveyed_refinements(registry):
+    refinements = registry.refinements()
+    assert len(refinements) == 129
+    assert registry.refinement("software_engineering", "python").kind == "language"
+    assert registry.refinement("software_engineering", "bug_fix").kind == "task"
+    assert registry.refinement("software_engineering", "agentic_repo_level").kind == "mode"
+    assert registry.refinement("vision_documents", "ocr_scanned_documents").kind == "material"
+    assert registry.refinement("any", "input_length_long_context").parent_domain == "any"
+    assert registry.refinement("software_engineering", "python").weight_key == (
+        "software_engineering/python"
+    )
+
+
 # ── unknown IDs fail loudly ────────────────────────────────────────────────
 
 
@@ -235,6 +248,42 @@ def test_unknown_ids_fail_loudly(registry, accessor, bad):
 def test_unknown_id_error_suggests_the_near_miss(registry):
     with pytest.raises(UnknownIdError, match="model.context_window"):
         registry.facet("model.contxt_window")
+
+
+def test_unknown_refinement_fails_loudly(registry):
+    with pytest.raises(UnknownIdError, match="unknown refinement"):
+        registry.refinement("software_engineering", "python3")
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda row: row.update(parent_domain="missing_domain"), "parent_domain"),
+        (lambda row: row.update(kind="audience"), "kind"),
+        (lambda row: row.update(definition=""), "definition"),
+        (lambda row: row.update(id="Not Snake Case"), "snake_case"),
+    ],
+)
+def test_refinement_registry_rejects_invalid_entries(tmp_path, mutate, message):
+    root = _copy(tmp_path)
+
+    def edit(data):
+        mutate(data["refinements"][0])
+
+    _edit(root, "refinements", edit)
+    with pytest.raises(reg.RegistryError, match=message):
+        _load(root)
+
+
+def test_refinement_ids_are_unique_within_their_parent(tmp_path):
+    root = _copy(tmp_path)
+
+    def duplicate(data):
+        data["refinements"].append(dict(data["refinements"][0]))
+
+    _edit(root, "refinements", duplicate)
+    with pytest.raises(reg.RegistryError, match="duplicate id within parent_domain"):
+        _load(root)
 
 
 # ── validation ─────────────────────────────────────────────────────────────
@@ -367,6 +416,32 @@ def test_benchmark_domains_field_is_optional_and_additive():
     assert card.domains[0].directness == "direct"
 
 
+def test_benchmark_refinements_field_is_optional_and_additive():
+    minimal = {"id": "example_bench", "name": "Example", "category": "coding"}
+    assert BenchmarkCard.model_validate(minimal).refinements == []
+    card = BenchmarkCard.model_validate({
+        **minimal,
+        "refinements": [{"id": "python", "directness": "direct"}],
+    })
+    assert card.refinements[0].model_dump() == {"id": "python", "directness": "direct"}
+
+
+@pytest.mark.parametrize("refinements,needle", [
+    ([{"id": "python", "directness": "indirect"}], "directness"),
+    ([{"id": "python", "directness": "direct"},
+      {"id": "python", "directness": "proxy"}], "python"),
+    ([{"id": "python"}], "directness"),
+])
+def test_benchmark_refinements_field_rejects_bad_tags(refinements, needle):
+    with pytest.raises(ValueError, match=needle):
+        BenchmarkCard.model_validate({
+            "id": "example_bench",
+            "name": "Example",
+            "category": "coding",
+            "refinements": refinements,
+        })
+
+
 @pytest.mark.parametrize("domains,needle", [
     ([{"id": "maths", "directness": "indirect"}], "directness"),
     ([{"id": "maths", "directness": "direct"}, {"id": "maths", "directness": "proxy"}], "maths"),
@@ -388,6 +463,21 @@ def test_every_benchmark_domain_tag_is_registered(registry):
     for b in _tagged():
         for tag in BenchmarkCard.model_validate(b.front).domains:
             registry.domain(tag.id)  # raises on an unregistered domain
+            tagged += 1
+    assert tagged > 0
+
+
+def test_every_benchmark_refinement_tag_is_registered(registry):
+    tagged = 0
+    for benchmark in load_benchmarks():
+        card = BenchmarkCard.model_validate(benchmark.front)
+        for tag in card.refinements:
+            matches = [
+                refinement
+                for refinement in registry.refinements()
+                if refinement.id == tag.id
+            ]
+            assert matches, (benchmark.benchmark_id, tag.id)
             tagged += 1
     assert tagged > 0
 

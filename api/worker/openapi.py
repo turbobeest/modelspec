@@ -581,7 +581,10 @@ _ENTRY_ONLY = {
 }
 _DECIDE_ONLY = {
     "comparison_snapshot_changed", "comparison_snapshot_unavailable", "invalid_spec",
-    "no_snapshot", "snapshot_changed", "snapshot_not_loaded",
+    "no_snapshot",
+    "refinement_not_rankable_yet",
+    "snapshot_not_loaded",
+    "snapshot_changed",
 }
 
 
@@ -2617,7 +2620,8 @@ def build_spec() -> dict[str, Any]:
                             "headers": decide_snapshot_headers,
                         },
                         str(decide_service.HTTP_BAD_REQUEST): _json_body(
-                            "The body is not a contract-v1 spec.",
+                            "The body is not a contract-v1 spec, or it names a refinement "
+                            "weight that MODEL-190 has not made rankable yet.",
                             {"$ref": "#/components/schemas/DecisionRequestRefused"},
                         ),
                         str(decide_service.HTTP_CONFLICT): _json_body(

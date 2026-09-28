@@ -153,6 +153,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 4, slice E"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: browser_web_research, directness: direct}
 ---
 
 ## What it measures

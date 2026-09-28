@@ -135,6 +135,8 @@ freshness:
   researched_by: "Claude Sonnet 5, sonnet-batch-004 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Claude Sonnet 5 independent review, sonnet-batch-004"
+refinements:
+  - {id: sql_text_to_sql, directness: direct}
 ---
 
 ## What it measures

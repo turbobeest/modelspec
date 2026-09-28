@@ -122,6 +122,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice O"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: licensing_exam_knowledge, directness: direct}
 ---
 
 ## What it measures

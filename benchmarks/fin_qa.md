@@ -170,6 +170,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 5, slice F"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: filings_financial_statements_qa, directness: direct}
 ---
 
 ## What it measures

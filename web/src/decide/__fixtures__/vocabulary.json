@@ -2185,6 +2185,25 @@
       "default_benchmark": null
     }
   ],
+  "refinements": [
+    {
+      "id": "python",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "Python",
+      "definition": "Measures Python software engineering work rather than software engineering as a whole.",
+      "evidence_state": "live",
+      "measured_models": 7,
+      "of_models": 25,
+      "benchmarks": [
+        {
+          "id": "swe_bench_verified",
+          "directness": "direct"
+        }
+      ],
+      "weight_key": "software_engineering/python"
+    }
+  ],
   "models": {
     "anthropic/claude-fable-5": {
       "display_name": "Claude Fable 5",

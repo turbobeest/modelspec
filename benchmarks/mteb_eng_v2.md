@@ -90,6 +90,8 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: retrieval, directness: proxy}
+refinements:
+  - {id: english_vs_multilingual, directness: proxy}
 ---
 
 Part of the [MTEB](mteb.md) family.

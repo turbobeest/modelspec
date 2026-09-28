@@ -84,6 +84,9 @@ freshness:
 domains:
   - {id: agentic_tool_use, directness: direct}
   - {id: finance, directness: proxy}
+refinements:
+  - {id: business_judgement_simulation, directness: direct}
+  - {id: long_horizon_business_operation, directness: direct}
 ---
 
 ## What it measures

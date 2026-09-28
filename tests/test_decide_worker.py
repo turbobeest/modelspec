@@ -330,6 +330,26 @@ def test_unknown_excluded_benchmark_is_a_clean_400(service, snapshot) -> None:
     ]
 
 
+def test_refinement_weights_are_rejected_until_the_refinement_estimator_lands(
+    service, snapshot
+) -> None:
+    payload = _payload() | {
+        "optimize": {
+            "weights": {
+                "software_engineering": 0.5,
+                "software_engineering/python": 0.5,
+            }
+        }
+    }
+
+    status, body = service.decide(payload, snapshot)
+
+    assert status == 400
+    assert body["error"]["code"] == "refinement_not_rankable_yet"
+    assert "software_engineering/python" in body["error"]["message"]
+    assert "MODEL-190" in body["error"]["message"]
+
+
 def test_a_requested_snapshot_must_be_the_loaded_snapshot(service, snapshot) -> None:
     status, body = service.decide(_payload() | {"snapshot": "snap_0123456789abcdef"}, snapshot)
     assert status == 409
@@ -490,8 +510,10 @@ def test_vendor_copies_the_shared_decision_engine_and_registry(tmp_path: Path) -
         Path("decision/engine.py"),
         Path("decision/explain.py"),
         Path("decision/snapshot.py"),
+        Path("decision/vocabulary.py"),
         Path("registry/facets.yaml"),
         Path("registry/domains.yaml"),
+        Path("registry/refinements.yaml"),
     }
     assert required <= set(vendor.SOURCES)
     for source in required:

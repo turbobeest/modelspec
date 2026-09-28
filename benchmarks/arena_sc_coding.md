@@ -88,6 +88,8 @@ freshness:
 domains:
   - {id: chat_preference, directness: direct}
   - {id: software_engineering, directness: proxy}
+refinements:
+  - {id: coding_prompts, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

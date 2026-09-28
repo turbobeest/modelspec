@@ -38,8 +38,21 @@ DOMAINS = {
 }
 PAGES = {
     "swe_bench_verified": {"id": "swe_bench_verified", "name": "SWE-bench Verified",
-                           "metric": {"direction": "higher_is_better", "unit": "%"}},
-    "terminal_bench_v4_0": {"id": "terminal_bench_v4_0", "name": "Terminal-Bench 4.0"},
+                           "metric": {"direction": "higher_is_better", "unit": "%"},
+                           "refinements": [
+                               {"id": "python", "directness": "direct"},
+                               {"id": "bug_fix", "directness": "direct"},
+                           ]},
+    "terminal_bench_v4_0": {
+        "id": "terminal_bench_v4_0",
+        "name": "Terminal-Bench 4.0",
+        "refinements": [{"id": "terminal_agent", "directness": "proxy"}],
+    },
+    "swe_bench_promax": {
+        "id": "swe_bench_promax",
+        "name": "SWE-bench ProMax",
+        "refinements": [{"id": "refactor", "directness": "direct"}],
+    },
 }
 
 
@@ -272,6 +285,57 @@ def test_only_benchmarks_with_verified_evidence_are_listed(vocabulary):
     assert benchmarks["terminal_bench_v4_0"]["domains"] == [
         {"id": "agentic_tool_use", "directness": "direct"},
         {"id": "software_engineering", "directness": "proxy"}]
+
+
+def test_refinement_evidence_states_and_counts_use_distinct_lineup_models():
+    inputs = SnapshotInputs(
+        models=[generator("lab/a"), generator("lab/b"), generator("lab/c")],
+        offerings=[
+            sold("lab/a", "p1", 1.0),
+            sold("lab/a", "p2", 2.0),
+            sold("lab/b", "p1", 3.0),
+        ],
+        evidence=[
+            evidence("lab/a", "swe_bench_verified", 70.0),
+            evidence("lab/b", "swe_bench_verified", 65.0),
+            evidence("lab/c", "swe_bench_verified", 60.0),
+            evidence("lab/a", "terminal_bench_v4_0", 50.0),
+            evidence("lab/b", "terminal_bench_v4_0", 45.0),
+            evidence("lab/c", "terminal_bench_v4_0", 40.0),
+        ],
+        sources=SOURCES,
+        benchmark_domains=DOMAINS,
+    )
+    built = build_snapshot(inputs, gate=False, as_of=AS_OF)
+    snapshot = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    rows = by_id(build_vocabulary(snapshot, pages=PAGES)["refinements"])
+
+    assert rows["python"]["evidence_state"] == "live"
+    assert (rows["python"]["measured_models"], rows["python"]["of_models"]) == (3, 3)
+    assert rows["terminal_agent"]["evidence_state"] == "thin"
+    assert rows["refactor"]["evidence_state"] == "not_measured"
+    assert rows["code_review"]["evidence_state"] == "no_benchmark"
+
+
+def test_refinement_vocabulary_rows_match_the_pinned_shape_exactly(vocabulary):
+    expected = {
+        "id",
+        "parent_domain",
+        "kind",
+        "name",
+        "definition",
+        "evidence_state",
+        "measured_models",
+        "of_models",
+        "benchmarks",
+        "weight_key",
+    }
+    assert vocabulary["refinements"]
+    assert all(set(row) == expected for row in vocabulary["refinements"])
+    python = by_id(vocabulary["refinements"])["python"]
+    assert python["benchmarks"] == [
+        {"id": "swe_bench_verified", "directness": "direct"}
+    ]
 
 
 def test_domains_list_their_benchmarks_direct_first_then_by_coverage(vocabulary):

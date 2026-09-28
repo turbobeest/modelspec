@@ -86,6 +86,10 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: software_engineering, directness: direct}
+refinements:
+  - {id: agentic_repo_level, directness: direct}
+  - {id: in_ide_product_harness, directness: direct}
+  - {id: new_feature_build_from_a_brief, directness: proxy}
 ---
 
 ## What it measures

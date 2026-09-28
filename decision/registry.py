@@ -38,6 +38,7 @@ Subject = Literal["model", "offering", "evidence"]
 Tier = Literal["guaranteed", "best_effort"]
 Risk = Literal["capability", "governance"]
 UnknownPolicy = Literal["may_qualify", "not_satisfied"]
+RefinementKind = Literal["language", "task", "mode", "material"]
 
 SUBJECTS = ("model", "offering", "evidence")
 TIERS = ("guaranteed", "best_effort")
@@ -46,6 +47,7 @@ KINDS = ("number", "enum", "boolean", "date", "set", "range")
 PROVIDER_KINDS = ("lab_api", "cloud", "inference", "aggregator")
 SHOWN_BY = ("address", "incorporation", "governing_law")
 BASES = ("service_terms", "website_terms")
+REFINEMENT_KINDS = ("language", "task", "mode", "material")
 
 #: A facet definition shorter than this is a label, not a definition.
 MIN_DEFINITION_WORDS = 12
@@ -77,6 +79,7 @@ class UnknownIdError(RegistryError, KeyError):
 _FILE_FOR = {
     "facet": "facets.yaml", "unit": "facets.yaml", "source_kind": "facets.yaml",
     "provider": "providers.yaml", "harness": "harnesses.yaml", "domain": "domains.yaml",
+    "refinement": "refinements.yaml",
 }
 
 
@@ -207,6 +210,19 @@ class Domain:
     default_benchmark: str | None = None
 
 
+@dataclass(frozen=True)
+class Refinement:
+    id: str
+    parent_domain: str
+    kind: RefinementKind
+    name: str
+    definition: str
+
+    @property
+    def weight_key(self) -> str:
+        return f"{self.parent_domain}/{self.id}"
+
+
 # ── the registry ───────────────────────────────────────────────────────────
 
 
@@ -214,13 +230,17 @@ class Registry:
     """Typed, validated lookups over every registry file."""
 
     def __init__(self, *, units, source_kinds, facets, providers, harnesses, domains,
-                 named_lists: Mapping[str, Callable[[], frozenset[str]] | None]):
+                 named_lists: Mapping[str, Callable[[], frozenset[str]] | None],
+                 refinements=None):
         self._units: Mapping[str, Unit] = MappingProxyType(units)
         self._source_kinds: Mapping[str, SourceKind] = MappingProxyType(source_kinds)
         self._facets: Mapping[str, Facet] = MappingProxyType(facets)
         self._providers: Mapping[str, Provider] = MappingProxyType(providers)
         self._harnesses: Mapping[str, Harness] = MappingProxyType(harnesses)
         self._domains: Mapping[str, Domain] = MappingProxyType(domains)
+        self._refinements: Mapping[tuple[str, str], Refinement] = MappingProxyType(
+            refinements or {}
+        )
         self._named_lists = named_lists
         self._harness_versions = frozenset(v for h in harnesses.values() for v in h.versions)
 
@@ -268,6 +288,22 @@ class Registry:
     def domain(self, id_: str) -> Domain:
         return self._get("domain", self._domains, id_)
 
+    def refinement(self, parent_domain: str, id_: str) -> Refinement:
+        try:
+            return self._refinements[(parent_domain, id_)]
+        except (KeyError, TypeError):
+            known = (refinement.id for refinement in self._refinements.values()
+                     if refinement.parent_domain == parent_domain)
+            raise UnknownIdError("refinement", str(id_), known) from None
+
+    def refinement_by_weight_key(self, weight_key: str) -> Refinement:
+        parent, separator, id_ = weight_key.partition("/")
+        if not separator:
+            raise UnknownIdError("refinement", weight_key, (
+                refinement.weight_key for refinement in self._refinements.values()
+            ))
+        return self.refinement(parent, id_)
+
     def facets(self) -> tuple[Facet, ...]:
         return tuple(self._facets.values())
 
@@ -285,6 +321,9 @@ class Registry:
 
     def domains(self) -> tuple[Domain, ...]:
         return tuple(self._domains.values())
+
+    def refinements(self) -> tuple[Refinement, ...]:
+        return tuple(self._refinements.values())
 
     def resolve_harness(self, raw: str | None) -> str:
         """The registered `name@major.minor` for `raw`, else `unregistered`."""
@@ -678,6 +717,39 @@ def _load_domains(err: _Errors, root: Path) -> dict[str, Domain]:
     return out
 
 
+def _load_refinements(err: _Errors, root: Path, domains: Mapping[str, Domain]) -> dict[tuple[str, str], Refinement]:
+    entries = _read(root, "refinements", "refinements")
+    out: dict[tuple[str, str], Refinement] = {}
+    for entry in entries:
+        id_ = entry.get("id")
+        parent = entry.get("parent_domain")
+        where = f"refinements.yaml {parent!r}/{id_!r}"
+        _keys(err, where, entry, {"id", "parent_domain", "kind", "name", "definition"}, set())
+        if not isinstance(id_, str) or not SNAKE_ID.fullmatch(id_):
+            err.add(where, "id must be snake_case")
+        if parent != "any" and parent not in domains:
+            err.add(where, f"parent_domain {parent!r} is not registered in domains.yaml")
+        if entry.get("kind") not in REFINEMENT_KINDS:
+            err.add(where, f"kind {entry.get('kind')!r} must be one of {', '.join(REFINEMENT_KINDS)}")
+        if not isinstance(entry.get("name"), str) or not entry.get("name", "").strip():
+            err.add(where, "name must be a non-empty string")
+        _described(err, where, entry, MIN_DEFINITION_WORDS)
+        key = (str(parent), str(id_))
+        if key in out:
+            err.add(where, "duplicate id within parent_domain")
+            continue
+        if not isinstance(id_, str) or not isinstance(parent, str):
+            continue
+        out[key] = Refinement(
+            id=id_,
+            parent_domain=parent,
+            kind=entry.get("kind"),
+            name=str(entry.get("name", "")),
+            definition=" ".join(str(entry.get("definition", "")).split()),
+        )
+    return out
+
+
 def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry:
     """Read and validate every registry file under `root` (default `registry/`).
 
@@ -692,6 +764,7 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
         "providers": _read(root, "providers", "providers"),
         "harnesses": _read(root, "harnesses", "harnesses"),
         "domains": _read(root, "domains", "domains"),
+        "refinements": _read(root, "refinements", "refinements"),
     }
     lists = _named_lists(repo_root, raw)
     units, kinds = _load_units_and_kinds(err, root)
@@ -699,9 +772,11 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
     providers = _load_providers(err, root)
     harnesses = _load_harnesses(err, root)
     domains = _load_domains(err, root)
+    refinements = _load_refinements(err, root, domains)
     err.raise_if_any()
     return Registry(units=units, source_kinds=kinds, facets=facets, providers=providers,
-                    harnesses=harnesses, domains=domains, named_lists=lists)
+                    harnesses=harnesses, domains=domains, refinements=refinements,
+                    named_lists=lists)
 
 
 @cache

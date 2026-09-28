@@ -190,6 +190,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 6, slice C"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: french, directness: direct}
 ---
 
 ## What it measures

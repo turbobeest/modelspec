@@ -124,6 +124,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice F"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: jurisdiction_us_eu_cn_kr_br_uae_ch, directness: direct}
 ---
 
 ## What it measures

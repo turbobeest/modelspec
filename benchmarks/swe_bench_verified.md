@@ -108,6 +108,11 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: software_engineering, directness: direct}
+refinements:
+  - {id: agentic_repo_level, directness: direct}
+  - {id: bug_fix, directness: direct}
+  - {id: difficulty_tier, directness: proxy}
+  - {id: python, directness: direct}
 ---
 
 ## What it measures

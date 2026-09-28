@@ -135,6 +135,8 @@ freshness:
   researched_by: "Grok Build, batch-039 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-039"
+refinements:
+  - {id: case_law_litigation, directness: direct}
 ---
 
 ## What it measures

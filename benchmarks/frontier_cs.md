@@ -159,6 +159,8 @@ freshness:
   researched_by: "Grok Build, batch-044 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-044"
+refinements:
+  - {id: competitive_programming, directness: direct}
 ---
 
 ## What it measures

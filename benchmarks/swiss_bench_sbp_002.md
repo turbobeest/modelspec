@@ -119,6 +119,9 @@ freshness:
   researched_by: "Grok Build, batch-082 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: jurisdiction_us_eu_cn_kr_br_uae_ch, directness: direct}
+  - {id: regulatory_compliance, directness: direct}
 ---
 
 ## What it measures

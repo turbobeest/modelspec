@@ -94,6 +94,7 @@ UNMAPPED_FIELDS: dict[str, str] = {
     "models_covered": "must never be authored; derived at site build",
     "body": "the Markdown article itself",
     "domains": "decision-engine domain tags (MODEL-133); read by decision/, not graphed",
+    "refinements": "decision-engine refinement tags (MODEL-189); read by decision/, not graphed",
 }
 #: Schema leaves under a mapped parent. Anything under a known parent that is
 #: not one of these is a stray YAML key (a parse accident) and is unmapped.

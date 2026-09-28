@@ -110,6 +110,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice M"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: competitive_programming, directness: direct}
 ---
 
 ## What it measures

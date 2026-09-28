@@ -180,6 +180,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 5, slice C"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: secure_code_generation, directness: direct}
 ---
 
 ## What it measures

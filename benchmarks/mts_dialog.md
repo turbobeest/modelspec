@@ -147,6 +147,8 @@ freshness:
   researched_by: "Grok Build, batch-060 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-060"
+refinements:
+  - {id: clinical_documentation_notes_summaries_coding, directness: direct}
 ---
 
 ## What it measures

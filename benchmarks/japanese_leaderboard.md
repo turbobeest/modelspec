@@ -124,6 +124,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 6, slice D"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: japanese, directness: direct}
 ---
 
 ## What it measures

@@ -89,6 +89,9 @@ freshness:
 domains:
   - {id: chat_preference, directness: direct}
   - {id: vision_documents, directness: proxy}
+refinements:
+  - {id: image, directness: direct}
+  - {id: vision_prompts, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

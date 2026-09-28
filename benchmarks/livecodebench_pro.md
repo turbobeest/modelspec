@@ -147,6 +147,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice F"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: c_cpp, directness: direct}
+  - {id: competitive_programming, directness: direct}
 ---
 
 ## What it measures
