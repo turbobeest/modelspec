@@ -123,3 +123,23 @@
       snapshot_ref: sha256:cb15c98d8a625c21f6c13313f7eaf69f3219274c92048fac0c96d07636ff3010
       cited_regions:
       - page
+  - id: zai/zhipu/glm-5-3/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - zai-pricing
+    - model-143-zai-glm-5-3-guide
+  - id: zai/zhipu/glm-5-3/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - zai-pricing
+    - model-143-zai-glm-5-3-guide

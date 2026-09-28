@@ -123,3 +123,23 @@
       snapshot_ref: sha256:09e760bc29c728ba6dbb90d21d446f160dfbcbb1c13e804d7fd2b9422dd6620f
       cited_regions:
       - page
+  - id: xai/xai/grok-4-7/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - xai-grok-4-7
+    - model-143-xai-grok-4-7
+  - id: xai/xai/grok-4-7/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - xai-grok-4-7
+    - model-143-xai-grok-4-7
