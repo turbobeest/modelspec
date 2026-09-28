@@ -711,6 +711,15 @@ benchmarks:
       Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
       thinking at max effort, default sampling, averaged over five trials.'
     limitations: ''
+    id: anthropic/claude-opus-5-5#swe_bench_multimodal#5b5ebe3653cc
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-anthropic-opus-5-5-system-card
+      snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
+      cited_regions:
+      - evidence
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: Claude Opus 5.5 (xhigh)
     score: 66.4
@@ -741,6 +750,15 @@ benchmarks:
       Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
       thinking at max effort, default sampling, averaged over five trials.'
     limitations: ''
+    id: anthropic/claude-opus-5-5#terminal_bench_science#8cfae823fdc4
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-anthropic-opus-5-5-system-card
+      snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
+      cited_regions:
+      - evidence
   - benchmark_id: hle
     model_id_as_evaluated: Claude Opus 5.5
     score: 64.4
@@ -771,6 +789,15 @@ benchmarks:
       thinking at max effort, default sampling, averaged over five trials. With-tools
       row.'
     limitations: ''
+    id: anthropic/claude-opus-5-5#hle_tools#2575e2613692
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-anthropic-opus-5-5-system-card
+      snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
+      cited_regions:
+      - evidence
   - benchmark_id: arena_webdev
     model_id_as_evaluated: claude-opus-5.5-max
     score: 1818.41
@@ -834,6 +861,15 @@ benchmarks:
       Opus 4.8 as the grader model, no tools. Anthropic''s own models only; the table''s GPT-6
       Astra column is a competitor''s score and is not attached.'
     limitations: Graded by the provider's own model; not comparable across graders.
+    id: anthropic/claude-opus-5-5#healthbench_professional#c57df8f7d424
+    measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-191-anthropic-opus-5-5-system-card
+      snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
+      cited_regions:
+      - evidence
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

@@ -1261,6 +1261,26 @@ sources:
     locator:
       kind: page
       value: ''
+- id: model-160-arena-document
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/document/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-160-arena-text-factuality
+  volatility: live
+  url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_factuality/latest-00000-of-00001.parquet
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
 - id: model-160-cursorbench
   volatility: live
   url: https://cursor.com/cursorbench
@@ -3054,6 +3074,43 @@ sources:
   normaliser: text-default
   cited_regions:
   - id: rows
+    locator:
+      kind: page
+      value: ''
+# MODEL-191: retained primary-source regions for existing lineup rows; read 2026-09-27.
+- id: model-191-anthropic-opus-5-5-system-card
+  url: https://www.anthropic.com/claude-opus-5-5-system-card
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: evidence
+    locator:
+      kind: page
+      value: ''
+- id: model-191-anthropic-fable-5-1-system-card
+  url: https://www.anthropic.com/claude-fable-5-1-system-card
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: evidence
+    locator:
+      kind: page
+      value: ''
+- id: model-191-openai-gpt-6-astra
+  url: https://openai.com/index/gpt-6-astra/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: evidence
+    locator:
+      kind: page
+      value: ''
+- id: model-191-deepseek-v4-pro-paper
+  url: https://arxiv.org/abs/2606.19348
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: evidence
     locator:
       kind: page
       value: ''

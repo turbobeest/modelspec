@@ -141,7 +141,7 @@ def project_arena(parquet: bytes, config: str, category: str, *, url: str, page_
     import pyarrow.parquet as pq  # only this reader needs it; CI's test env lacks pyarrow
 
     table = pq.read_table(io.BytesIO(parquet)).to_pylist()
-    keys = ("model_name", "rating", "rating_lower", "rating_upper", "vote_count",
+    keys = ("model_name", "rank", "rating", "rating_lower", "rating_upper", "vote_count",
             "leaderboard_publish_date")
     rows = [{k: r.get(k) for k in keys} for r in table if r["category"] == category]
     return document(rows, url=url, page_ref=page_ref, read_date=read_date,
@@ -459,6 +459,27 @@ ARENA = {
                          "industry_life_and_physical_and_social_science"),
     "arena_sc_writing": ("text_style_control", "industry_writing_and_literature_and_language"),
     "arena_sc_vision": ("vision_style_control", "overall"),
+    "arena_sc_english": ("text_style_control", "english"),
+    "arena_sc_chinese": ("text_style_control", "chinese"),
+    "arena_sc_japanese": ("text_style_control", "japanese"),
+    "arena_sc_korean": ("text_style_control", "korean"),
+    "arena_sc_russian": ("text_style_control", "russian"),
+    "arena_sc_spanish": ("text_style_control", "spanish"),
+    "arena_sc_german": ("text_style_control", "german"),
+    "arena_sc_french": ("text_style_control", "french"),
+    "arena_sc_polish": ("text_style_control", "polish"),
+    "arena_sc_vision_ocr": ("vision_style_control", "ocr"),
+    "arena_sc_vision_diagram": ("vision_style_control", "diagram"),
+    "arena_sc_vision_homework": ("vision_style_control", "homework"),
+    "arena_sc_document": ("document", "overall"),
+    "arena_sc_industry_software_it_services": (
+        "text_style_control", "industry_software_and_it_services"
+    ),
+    "arena_sc_industry_entertainment_sports_media": (
+        "text_style_control", "industry_entertainment_and_sports_and_media"
+    ),
+    "arena_sc_industry_mathematical": ("text_style_control", "industry_mathematical"),
+    "arena_sc_factuality": ("text_factuality", "overall"),
     "arena_elo_overall": ("text", "overall"),
     "arena_elo_coding": ("text", "coding"),
     "arena_elo_vision": ("vision", "overall"),
