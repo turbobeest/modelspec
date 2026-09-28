@@ -42,6 +42,23 @@ it("opens a composer-era permalink as a populated board with migration notes", a
   expect(within(context).getByLabelText("Threshold")).toHaveValue(200000);
 });
 
+it("applies visible legacy controls and drops the unsupported parts named in the migration note", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
+  history.replaceState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
+
+  render(<App />);
+
+  const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
+  expect(note).toHaveTextContent("single-benchmark floor, so it's not applied");
+  expect(note).toHaveTextContent("soft(0.2)");
+  await waitFor(() => expect(sentSpecs(fetch).length).toBeGreaterThan(0));
+  const request = sentSpecs(fetch).at(-1)!;
+  expect(request.where).toContain("offering.region in {EU}");
+  expect(request.where).not.toContain("swe_bench_pro >= 50 @independent");
+  expect(request.where.every((condition: string) => !condition.includes("soft("))).toBe(true);
+});
+
 /** Keep the legacy full fixture consistent with the objective a UI test sends. */
 function decisionFor(init: RequestInit | undefined, decision = fixture) {
   const sent = JSON.parse(String(init?.body ?? "{}"));
@@ -290,7 +307,11 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(within(answer).getAllByText("Lab Inc. · via cloud").length).toBeGreaterThan(0);
   expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
   expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
-  expect(within(answer).getByText("Not ranked — set a Prefer to rank these")).toBeInTheDocument();
+  expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
+  expect(screen.getByLabelText("Why this model")).toHaveTextContent("Select a model to inspect");
+  expect(screen.getByRole("region", { name: "Trade-off canvas" })).toHaveTextContent(
+    "Software engineering capability (estimated from",
+  );
   const modelNames = within(answer).getAllByRole("listitem").map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
@@ -317,11 +338,11 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   await waitFor(() => expect(sentSpecs(fetch).some((body) =>
     body.where.includes("model.context_window >= 529096"),
   )).toBe(true));
-  expect(within(answer).getByText("Not ranked — set a Prefer to rank these")).toBeInTheDocument();
+  expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 });
 
-it("renders every model from the live empty-board decision alphabetically", async () => {
+it("renders the qualifying models from the live empty-board decision alphabetically", async () => {
   const fetch = routeFetch({
     vocabulary: () => json(realVocabulary),
     decide: () => json(liveEmptyBoard),
@@ -331,15 +352,26 @@ it("renders every model from the live empty-board decision alphabetically", asyn
 
   const answer = (await screen.findByLabelText("Facet board answer"))
     .closest<HTMLElement>(".board-answer")!;
-  fireEvent.click(within(answer).getByRole("button", { name: "Show all 32" }));
+  fireEvent.click(within(answer).getByRole("button", { name: "Show all 22" }));
   const rankedAnswer = answer.querySelector<HTMLElement>(".board-ranked-answer")!;
   const modelNames = within(rankedAnswer).getAllByRole("listitem").map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
 
-  expect(modelNames).toHaveLength(32);
+  expect(modelNames).toHaveLength(22);
   expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
   expect(within(answer).queryByText(/no capability data|no evidence for/i)).not.toBeInTheDocument();
+  const tableRows = screen.getByLabelText("Decision table").querySelectorAll("tbody tr");
+  expect(tableRows[0]?.querySelector("td")?.textContent).toBe("");
+  expect(tableRows[0]).toHaveTextContent("Claude Fable 5");
+
+  const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
+  const collapsed = within(canvas).queryByText(/\d+ not plotted/);
+  if (collapsed) {
+    expect(collapsed).toHaveTextContent("show");
+    fireEvent.click(within(collapsed).getByRole("button", { name: "show" }));
+    expect(within(canvas).getByText(/Not plotted:/)).toBeInTheDocument();
+  }
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {
@@ -684,6 +716,8 @@ it("renders unavailable snapshot facets instead of hiding them", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
   await screen.findByText("Coding agent on a budget");
+  const table = await screen.findByRole("region", { name: "Decision table" });
+  fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
   expect(within(detail).getAllByText("not available in this snapshot").length).toBeGreaterThan(0);
 });
@@ -736,6 +770,8 @@ it("renders capability intervals, probability of best and top-three stability", 
   render(<App />);
   await screen.findByText("Coding agent on a budget");
 
+  const table = await screen.findByRole("region", { name: "Decision table" });
+  fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
   expect(detail).toHaveTextContent("P(best) 62%");
   expect(detail).toHaveTextContent("Top-3 stability 91%");
@@ -751,6 +787,7 @@ it("renders the full decision as four models without machine condition syntax", 
   const table = await screen.findByRole("region", { name: "Decision table" });
   expect(within(table).getAllByRole("row")).toHaveLength(5);
   expect(screen.getByText("4 models · 8 offerings")).toBeInTheDocument();
+  fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   expect(screen.getAllByText("Type: Text generator").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Has a provider").length).toBeGreaterThan(0);
   expect(screen.getByText("No model is one condition away.")).toBeInTheDocument();

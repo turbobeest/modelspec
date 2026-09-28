@@ -48,7 +48,7 @@ import type { Question } from "./engine/reference";
 import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
 import {
   boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
-  legacySpecToBoard, refinementWeightKeys, toBoardDecisionSpec,
+  legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys, toBoardDecisionSpec,
 } from "./facet-board/model";
 import type { BoardSelections, Estate } from "./facet-board/model";
 
@@ -203,7 +203,8 @@ export function DesignedApp({
   }, [estateRequest, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
   const decision = liveDecision,
     e = decision?.explanation,
-    selectedId = selected || e?.shortlist.top?.m.id || e?.may[0]?.m.id || null,
+    boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => weight > 0),
+    selectedId = selected || (boardIsRanked ? e?.shortlist.top?.m.id || e?.may[0]?.m.id : null) || null,
     row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),
     simulatedError = sim === "error" && !retried,
@@ -444,13 +445,14 @@ export function DesignedApp({
         setInitialRestored(true);
         return;
       }
+      const restoredBase = legacyBoard ? legacyBoardBaseSpec(initial.spec) : initial.spec;
       const restored = boardToSpec(
-        initial.spec,
+        restoredBase,
         vocabulary,
         restoredBoard.selections,
         restoredBoard.mustOrder,
       );
-      setBoardBaseSpec(initial.spec);
+      setBoardBaseSpec(restoredBase);
       setBoardSelections(restoredBoard.selections);
       setBoardMustOrder(restoredBoard.mustOrder);
       setEstate(restoredBoard.estate);
@@ -597,10 +599,11 @@ export function DesignedApp({
           ? legacySpecToBoard(restored.spec, vocabulary, estate)
           : null;
         const restoredBoard = encodedBoard ?? legacyBoard;
+        const restoredBase = legacyBoard ? legacyBoardBaseSpec(restored.spec) : restored.spec;
         const nextSpec = vocabulary && restoredBoard
-          ? boardToSpec(restored.spec, vocabulary, restoredBoard.selections, restoredBoard.mustOrder)
+          ? boardToSpec(restoredBase, vocabulary, restoredBoard.selections, restoredBoard.mustOrder)
           : restored.spec;
-        setBoardBaseSpec(restored.spec);
+        setBoardBaseSpec(restoredBase);
         setBoardSelections(restoredBoard?.selections ?? {});
         setBoardMustOrder(restoredBoard?.mustOrder ?? []);
         if (restoredBoard) setEstate(restoredBoard.estate);

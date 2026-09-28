@@ -37,6 +37,7 @@ export function Canvas({
   const vocab = useVocab();
   const plot = useRef<HTMLDivElement>(null),
     [hover, setHover] = useState<Row | null>(null),
+    [showMissing, setShowMissing] = useState(false),
     [plotWidth, setPlotWidth] = useState(800),
     drag = useRef<"x" | "y" | null>(null);
   useEffect(() => {
@@ -591,13 +592,14 @@ export function Canvas({
       </div>
       {missing.length > 0 && (
         <small className="not-plotted">
-          Not plotted:{" "}
-          {missing
+          {missing.length > 5 && !showMissing
+            ? <>{missing.length} not plotted · <button className="text-button" onClick={() => setShowMissing(true)}>show</button></>
+            : <>Not plotted:{" "}{missing
             .map(
               (r) =>
                 `${r.m.name} (${r.cap === null ? "no " + vocab.basisName(spec) : "no " + ax.label.toLowerCase()})`,
             )
-            .join(", ")}
+            .join(", ")}{missing.length > 5 && <> · <button className="text-button" onClick={() => setShowMissing(false)}>hide</button></>}</>}
         </small>
       )}
     </section>

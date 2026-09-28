@@ -274,7 +274,7 @@ export function boardToSpec(
       domain: domain.id,
       basis: "estimate" as const,
       bench: domain.default_benchmark ?? domain.benchmarks[0] ?? base.bench,
-    } : { domain: undefined, basis: undefined }),
+    } : { domain: base.domain, basis: base.basis }),
   };
 }
 
@@ -471,13 +471,13 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
       continue;
     }
     if (condition.soft)
-      notes.push(`Soft condition retained but not editable on the board: ${contractCondition(condition)}.`);
+      notes.push(`Your old link also asked for ${contractCondition(condition)}; the board can't express that, so it's not applied.`);
     else if (condition.f === "bench")
-      notes.push(`Single-benchmark floor retained but not editable on the board: ${contractCondition(condition)}.`);
+      notes.push(`Your old link also asked for ${contractCondition(condition)}; the board can't express that single-benchmark floor, so it's not applied.`);
     else if (condition.f === "rel")
-      notes.push(`Relative-model condition retained but not editable on the board: ${contractCondition(condition)}.`);
+      notes.push(`Your old link also asked for ${contractCondition(condition)}; the board can't express that relative-model condition, so it's not applied.`);
     else
-      notes.push(`Condition retained but not editable on the board: ${contractCondition(condition)}.`);
+      notes.push(`Your old link also asked for ${contractCondition(condition)}; the board can't express that condition, so it's not applied.`);
   }
   const addPreference = (facetId: string, weightKey: string, weight: number) => {
     if (weight <= 0 || !knownFacets.has(facetId)) return false;
@@ -493,18 +493,23 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
   if (spec.w.cap > 0) {
     const facetId = spec.domain ? `capability.${spec.domain}` : null;
     if (!facetId || !addPreference(facetId, spec.domain ?? spec.bench, spec.w.cap))
-      notes.push(`Capability preference retained from ${spec.bench}, but this link does not identify a board domain.`);
+      notes.push(`Your old link also ranked on ${spec.bench}; the board can't express that without a capability domain, so it's not applied.`);
     else if (spec.basis === "benchmark")
-      notes.push(`The board shows the ${spec.domain?.replaceAll("_", " ")} domain preference; the old link's single-benchmark basis is retained but is not editable here.`);
+      notes.push(`Your old link ranked on ${spec.bench}; the board applies the visible ${spec.domain?.replaceAll("_", " ")} capability estimate instead.`);
   }
   addPreference("offering.cost_per_task", "-offering.cost_per_task", spec.w.cost);
   if (!addPreference("offering.speed.throughput", "offering.speed.throughput", spec.w.speed) && spec.w.speed > 0)
-    notes.push("The throughput preference is retained, but this snapshot does not expose an editable speed facet.");
+    notes.push("Your old link also preferred throughput; the board can't express that on this snapshot, so it's not applied.");
   if (spec.task?.trim())
     notes.push("The old task description remains in this link for provenance. The board does not interpret free text.");
   if (spec.bar !== undefined)
-    notes.push("The old shortlist threshold is retained in the link but has no board control.");
+    notes.push("Your old link also set a shortlist threshold; the board can't express that, so it's not applied.");
   return { selections, mustOrder: [...new Set(mustOrder)], estate, notes };
+}
+
+/** Keep only legacy values that the board either displays or needs to reconstruct visible controls. */
+export function legacyBoardBaseSpec(spec: Spec): Spec {
+  return { ...spec, task: "", conds: [], bar: undefined };
 }
 
 export function estateSpec(spec: Spec, providers: string[]): Spec {

@@ -576,6 +576,10 @@ body {
 .board-templates > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
 .board-templates button { min-height: 82px; text-align: left; display: flex; flex-direction: column; gap: 5px; }
 .board-templates button span { color: var(--muted); }
+.board-templates article { min-height: 82px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px; display: flex; flex-direction: column; gap: 5px; background: var(--surface2); }
+.board-templates article > span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-templates article details { color: var(--muted); font-size: 11px; }
+.board-templates article details p { margin: 5px 0; white-space: normal; }
 .estate-strip { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; align-items: center; }
 .estate-strip > div { display: flex; gap: 6px; flex-wrap: wrap; }
 .board-workspace { display: grid; grid-template-columns: minmax(520px, 600px) minmax(0, 1fr); gap: 14px; align-items: start; }
@@ -599,7 +603,7 @@ body {
 .facet-definition { padding: 5px 7px; margin-top: 3px; background: var(--surface2); }
 .facet-known { text-align: right; padding-top: 3px; font: 11px var(--mono); }
 .template-reason { color: var(--accent) !important; }
-.template-unavailable { color: var(--muted); }
+.template-unavailable { color: var(--muted); opacity: .65; }
 .facet-controls { min-width: 0; }
 .facet-state { display: flex; border: 1px solid var(--line); width: 100%; min-height: 28px; }
 .facet-state label { flex: 1; padding: 5px 4px; border-left: 1px solid var(--line); cursor: pointer; white-space: nowrap; font-size: 11px; text-align: center; }

@@ -13,6 +13,7 @@ import {
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Evidence, Row, Spec } from "../adapter";
 import { setWeight } from "../state/spec";
+import { boardHasPreference } from "../facet-board/model";
 export function Why({
   decision,
   spec,
@@ -36,6 +37,7 @@ export function Why({
   const [whyNot, setWhyNot] = useState(""),
     e = decision.explanation,
     compare = e.rows.find((r) => r.m.id === whyNot);
+  const boardRanked = spec.boardWeights === undefined || boardHasPreference(spec);
   if (!row)
     return (
       <section className="panel why-panel" aria-label="Why this model">
@@ -44,7 +46,7 @@ export function Why({
     );
   const m = row.m,
     o = row.best.o,
-    ranked = e.feasible.find((r) => r.m.id === m.id),
+    ranked = boardRanked ? e.feasible.find((r) => r.m.id === m.id) : undefined,
     insep = e.insep(ranked),
     bd = decision.benchmarks[spec.bench],
     result = decision.results.find((item) => item.offering.model === `${m.lab}/${m.id}`);

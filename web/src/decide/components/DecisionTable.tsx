@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   fmtB,
   fmtCI,
@@ -10,6 +10,7 @@ import {
 } from "../adapter";
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Row, Spec } from "../adapter";
+import { boardHasPreference } from "../facet-board/model";
 const unavailable = "not available in this snapshot";
 const columns: [string, string, (r: Row) => number | string][] = [
   ["rank", "#", (r) => r.rank ?? (r.status === 0 ? 500 : 1000 + r.dropAt)],
@@ -37,10 +38,15 @@ export function DecisionTable({
   onSelect: (id: string) => void;
 }) {
   const { label, basisName } = useVocab();
-  const [sort, setSort] = useState("rank"),
+  const ranked = spec.boardWeights === undefined || boardHasPreference(spec);
+  const [sort, setSort] = useState(ranked ? "rank" : "name"),
     [dir, setDir] = useState(1),
     [show, setShow] = useState(true),
     e = decision.explanation;
+  useEffect(() => {
+    setSort(ranked ? "rank" : "name");
+    setDir(1);
+  }, [ranked]);
   const val = columns.find((c) => c[0] === sort)?.[2] || columns[0][2],
     rows = e.rows
       .filter((r) => show || r.status !== -1)
@@ -100,7 +106,7 @@ export function DecisionTable({
                 className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row" : ""}`}
                 onClick={() => onSelect(r.m.id)}
               >
-                <td>{spec.boardWeights !== undefined && r.status === 0 ? "" : r.rank ?? ""}</td>
+                <td>{ranked ? r.rank ?? "" : ""}</td>
                 <td>
                   <button
                     className="table-model"

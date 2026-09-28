@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
   allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
-  formatBoardCondition, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
+  formatBoardCondition, legacyBoardBaseSpec, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
   templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
 import type { BoardSelections } from "../facet-board/model";
@@ -43,12 +43,23 @@ describe("legacy composer permalinks", () => {
     const restored = legacySpecToBoard(decoded.spec, realVocabulary, {
       providers: [], plans: [], hardware: [],
     });
-    expect(restored.notes.join(" ")).toMatch(/Single-benchmark floor retained/);
-    expect(restored.notes.join(" ")).toMatch(/Soft condition retained/);
-    expect(restored.notes.join(" ")).toMatch(/single-benchmark basis is retained/);
-    expect(restored.notes.join(" ")).toMatch(/shortlist threshold/);
+    expect(restored.notes.join(" ")).toMatch(/single-benchmark floor, so it's not applied/);
+    expect(restored.notes.join(" ")).toMatch(/soft\(0\.2\).*so it's not applied/);
+    expect(restored.notes.join(" ")).toMatch(/applies the visible software engineering capability estimate instead/);
+    expect(restored.notes.join(" ")).toMatch(/shortlist threshold.*so it's not applied/);
     expect(restored.selections["offering.region"]).toMatchObject({ mode: "must", value: ["EU"] });
     expect(restored.selections["offering.data.zero_retention"]).toMatchObject({ mode: "must", value: true });
+
+    const requestSpec = boardToSpec(
+      legacyBoardBaseSpec(decoded.spec),
+      realVocabulary,
+      restored.selections,
+      restored.mustOrder,
+    );
+    const where = toDecisionSpec(requestSpec, "full").where ?? [];
+    expect(where).toContain("offering.region in {EU}");
+    expect(where).not.toContain("swe_bench_pro >= 50 @independent");
+    expect(where.every((condition) => typeof condition !== "string" || !condition.includes("soft("))).toBe(true);
   });
 });
 
@@ -356,8 +367,9 @@ it("hides absent templates and expands groups with active canonical template fac
   const vocabulary = { ...smallVocabulary, templates: realVocabulary.templates };
   render(<FacetBoard vocabulary={vocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.getByRole("button", { name: /Budgetall Doesn't matter/ })).toHaveAttribute("aria-expanded", "false");
-  expect(screen.queryByRole("button", { name: /EU-only data handling/ })).not.toBeInTheDocument();
-  expect(screen.getByText("Not available on today's data: EU-only data handling — No offering passes: Inference region in the EU — 0 of 4 offerings")).toBeInTheDocument();
+  expect(screen.getByText("EU-only data handling").closest("article")).toHaveClass("template-unavailable");
+  expect(screen.getAllByText("No offering passes: Inference region in the EU — 0 of 4 offerings").length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Coding agent on a budget|Private assistant you host yourself|Regulated data|Maths and proofs|Retrieval embeddings|High volume, good enough|Long documents|EU-only data handling/)).toHaveLength(8);
   fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
   expect(screen.getByRole("button", { name: /Budget1 set/ })).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByText(/Why: The offering must stay within the per-task budget.*prefer the cheaper task/)).toBeInTheDocument();
@@ -365,6 +377,7 @@ it("hides absent templates and expands groups with active canonical template fac
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(cost).queryByText(/coming \(MODEL-172\)/)).not.toBeInTheDocument();
   expect(screen.getAllByText("Preference controls for these facets are coming soon.").length).toBeGreaterThan(0);
+  expect(screen.queryByText(/Plan pricing is coming soon|Hardware matching is coming soon/)).not.toBeInTheDocument();
 });
 
 it("restores default task tokens when a template has no token override", () => {

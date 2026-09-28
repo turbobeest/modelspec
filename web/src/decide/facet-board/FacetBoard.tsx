@@ -132,7 +132,7 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   return <section className="estate-strip" aria-label="My estate"><span className="eyebrow">My estate</span>
     <div>{estate.providers.map((provider) => <button key={provider} onClick={() => update({ ...estate, providers: estate.providers.filter((item) => item !== provider) })}>{vocabulary.providers[provider] ?? provider} ×</button>)}
       <label>+ provider <select aria-label="Add provider" value="" onChange={(event) => event.target.value && update({ ...estate, providers: [...new Set([...estate.providers, event.target.value])] })}><option value="">Choose…</option>{Object.entries(vocabulary.providers).filter(([id]) => !estate.providers.includes(id)).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-    </div><div><button onClick={() => update({ ...estate, plans: [...estate.plans, "Plan"] })}>+ plan</button> <small>Plan pricing is coming soon</small> <button onClick={() => update({ ...estate, hardware: [...estate.hardware, "Device"] })}>+ hardware</button> <small>Hardware matching is coming soon</small></div>
+    </div>
   </section>;
 }
 
@@ -180,7 +180,9 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   };
   return <div className="facet-board">
     <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div>{vocabulary.templates?.length ? <button aria-expanded={templatesOpen} onClick={() => setTemplatesOpen(!templatesOpen)}>ⓘ Templates</button> : null}</div>
-    {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.filter((template) => template.available).map((template) => <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.purpose}</span></button>)}</div>{vocabulary.templates.filter((template) => !template.available).map((template) => <p className="template-unavailable" key={template.id}>Not available on today's data: {template.name} — {template.unavailable_reason}</p>)}</section> : null}
+    {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.map((template) => template.available
+      ? <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.purpose}</span></button>
+      : <article className="template-unavailable" key={template.id}><strong>{template.name}</strong><span>{template.unavailable_reason}</span><details><summary>Info</summary><p>{template.purpose}</p><p>{template.unavailable_reason}</p></details></article>)}</div></section> : null}
     {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
     <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
