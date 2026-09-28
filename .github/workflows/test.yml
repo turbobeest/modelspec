@@ -148,11 +148,12 @@ jobs:
           "$venv/bin/python" -m pip install "$wheel"
           export PATH="$venv/bin:$PATH"
           cd "$(mktemp -d)"
+          export MODELSPEC_CACHE="$PWD/cache"
           modelspec --help
           modelspec decide --help
-          modelspec vocab
           modelspec snapshot fetch
-          modelspec decide --template budget-coding
+          modelspec vocab >/dev/null
+          modelspec decide --template budget-coding >/dev/null
           python -c "from decision.registry import default; assert default().facets()"
 
   required-pytest:
