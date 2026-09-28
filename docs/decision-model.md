@@ -95,6 +95,9 @@ parser remains the v1 reader. It does not preserve the new qualifiers.
 | `verified_at` | Legacy review date; it does not establish v2 verification |
 | `benchmark_version` | Existing optional field, still defaulting to an empty string |
 | `configuration`, `limitations` | Existing free-text qualifiers, unchanged |
+| `interval` | Optional two-number uncertainty interval for the measured value |
+| `n` | Optional integer sample or vote count behind the measurement |
+| `quality_flags` | Structured benchmark-quality warnings that affect whether the evidence can answer directly |
 
 The added optional fields are `id`, `subject`, `harness`, `effort`, `tools`,
 `measured_by`, `subcategory`, `sources`, and `verification`. Absent qualifiers
@@ -107,6 +110,12 @@ does not guess it from another field.
 Evidence subjects are models or offerings, never providers. Attaching a v2
 verification requires an explicit ID, subject, and source references. Legacy
 rows remain quarantined until independently verified under this contract.
+For evidence with `interval`, `n`, or `quality_flags`, the verification target's
+`value_hash` covers one canonical object containing `score`, `interval`, `n`,
+and sorted `quality_flags`. Null or empty members remain in that object, so
+adding, removing, or changing any decision-affecting metadata invalidates the
+verification. Evidence with none of these fields keeps the score-only hash for
+compatibility.
 
 ## Offerings and lifecycle
 

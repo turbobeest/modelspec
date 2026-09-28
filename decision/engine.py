@@ -95,6 +95,49 @@ def validate(
     return resolve(spec, facets=facets, profiles=profiles)
 
 
+def _overlaps_raw_evidence(row, others, snapshot) -> bool:
+    """Whether a selected measurement overlaps another model's interval."""
+    model_id = snapshot.model_of(row.candidate_id)
+    for contribution in row.contributions:
+        if len(contribution.evidence) != 1:
+            continue
+        evidence = contribution.evidence[0]
+        interval = evidence.interval
+        if interval is None:
+            continue
+        for other in others:
+            if snapshot.model_of(other.candidate_id) == model_id:
+                continue
+            for compared in other.contributions:
+                if compared.dimension != contribution.dimension or len(compared.evidence) != 1:
+                    continue
+                other_evidence = compared.evidence[0]
+                measurement_identity = (
+                    evidence.benchmark_id,
+                    evidence.version,
+                    evidence.unit,
+                    evidence.subcategory,
+                    evidence.effort,
+                    evidence.harness,
+                )
+                other_identity = (
+                    other_evidence.benchmark_id,
+                    other_evidence.version,
+                    other_evidence.unit,
+                    other_evidence.subcategory,
+                    other_evidence.effort,
+                    other_evidence.harness,
+                )
+                if measurement_identity != other_identity:
+                    continue
+                other_interval = other_evidence.interval
+                if other_interval is not None and max(interval[0], other_interval[0]) <= min(
+                    interval[1], other_interval[1]
+                ):
+                    return True
+    return False
+
+
 def decide(
     spec: Spec,
     snapshot: ExplanationIndex,
@@ -186,6 +229,12 @@ def decide(
             other_id != model_id
             and max(current.low, other.low) <= min(current.high, other.high)
             for other_id, other in model_estimates.items()
+        ):
+            warnings.append("not_separable")
+        if (
+            len(names) == 1
+            and _overlaps_raw_evidence(row, ordered.results, snapshot)
+            and "not_separable" not in warnings
         ):
             warnings.append("not_separable")
         p_best, top3 = probabilities.get(model_id, (None, None))

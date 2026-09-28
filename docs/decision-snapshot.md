@@ -59,7 +59,13 @@ hex digits. The signature is HMAC-SHA256 over the `content_hash` string with
 `lineup` and `archive` are columnar: `candidates` (id, kind, model, lifecycle,
 sorted by id), `facets` (per facet, sparse columns `row`, `state`, `value`,
 `sources`) and `evidence` (per candidate, rows of benchmark, version,
-sub-category, value, unit, measured_by, effort, harness, date, source IDs).
+sub-category, value, unit, measured_by, effort, harness, date, source IDs,
+record ID, date type, source snapshot, `interval`, `n`, and `quality_flags`).
+The builder admits an evidence row only when its winning verification matches
+the canonical evidence value. That value is the scalar score when no structured
+metadata exists; otherwise it is the composite of `score`, `interval`, `n`,
+and sorted `quality_flags`. A verification for the score alone cannot admit a
+row carrying decision-affecting metadata.
 
 ## Load
 
@@ -83,7 +89,8 @@ unsigned or wrongly signed file is refused. It returns a `SnapshotIndex`:
   model's evidence (MODEL-158): capability belongs to the model. Its own
   measurements of a benchmark, if it has any, replace its model's for that
   benchmark. This is resolved at load; the file stores evidence under its
-  subject only, so the bytes do not change.
+  subject only, so the bytes do not change. Loaded evidence exposes `interval`,
+  `n`, and `quality_flags` from the final three row positions.
 
 The bitsets are built at load time from the columns, so the file cannot hold a
 bitset that disagrees with its values. Evidence objects are built per candidate

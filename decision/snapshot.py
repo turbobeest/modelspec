@@ -49,7 +49,7 @@ from typing import Any, Literal, Protocol, runtime_checkable
 import yaml
 
 from decision.excluded import ExcludedSources, excluded_sources
-from decision.model import value_hash, verification_counts
+from decision.model import evidence_verification_value, value_hash, verification_counts
 
 FORMAT = "modelspec.decision-snapshot"
 FORMAT_VERSION = 1
@@ -141,6 +141,9 @@ class EvidenceValue:
     record_id: str | None = field(default=None, compare=False)
     date_type: str | None = None
     source_snapshot: str | None = None
+    interval: tuple[float, float] | None = None
+    n: int | None = None
+    quality_flags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -452,7 +455,11 @@ class _Compiler:
 
     def _retain(self, kind: str, record: dict) -> str:
         rid = str(record.get("id") or content_hash(record))
-        value = record.get("value") if kind == "fact" else record.get("score")
+        value = (
+            record.get("value")
+            if kind == "fact"
+            else evidence_verification_value(record)
+        )
         retained = {**record, "verification": self._verification(
             kind, record.get("id"), record.get("verification"), value)}
         if rid in self.records and self.records[rid] != retained:
@@ -569,7 +576,12 @@ class _Compiler:
         if sid not in self.subjects:
             raise SnapshotBuildError(f"evidence {e.get('id')!r} names {sid}, which is not in the catalogue")
         source_ids = self._source_ids(e.get("sources"))
-        reason = self._admit("evidence", e.get("id"), e.get("verification"), e.get("score"), source_ids,
+        reason = self._admit(
+            "evidence",
+            e.get("id"),
+            e.get("verification"),
+            evidence_verification_value(e),
+            source_ids,
                              extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
         if reason is not None:
             self._exclude(sid, reason)
@@ -581,6 +593,7 @@ class _Compiler:
             self._retain("evidence", e), e.get("date_type"),
             next((r.get("snapshot_ref") for r in e.get("sources", [])
                   if r["source_id"] == source_ids[0]), None),
+            e.get("interval"), e.get("n"), sorted(e.get("quality_flags") or []),
         ])
 
     # output ------------------------------------------------------------------
@@ -1087,6 +1100,9 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
             record_id=row[10] if len(row) > 10 else None,
             date_type=row[11] if len(row) > 11 else None,
             source_snapshot=row[12] if len(row) > 12 else None,
+            interval=tuple(row[13]) if len(row) > 13 and row[13] is not None else None,
+            n=row[14] if len(row) > 14 else None,
+            quality_flags=tuple(row[15]) if len(row) > 15 else (),
         )
 
     def record(self, cid: str, record_id: str) -> EvidenceValue | None:

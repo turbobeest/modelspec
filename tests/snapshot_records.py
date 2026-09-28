@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from decision.model import value_hash
+from decision.model import evidence_verification_value, value_hash
 from decision.snapshot import (
     EvidenceValue,
     FactValue,
@@ -74,7 +74,8 @@ def offering(mid, provider="lab-api", *, price=3.0, batch="not_offered", facts=N
 
 def evidence(mid, benchmark, score, *, eid=None, measured_by="independent_evaluator",
              effort=None, harness=None, day="2026-08-01", outcome="verified",
-             source="src-board", source_url="https://board.example.org/results", subject_kind="model"):
+             source="src-board", source_url="https://board.example.org/results", subject_kind="model",
+             interval=None, n=None, quality_flags=None):
     eid = eid or f"{mid}#{benchmark}#{score}"
     row = {
         "id": eid,
@@ -93,10 +94,15 @@ def evidence(mid, benchmark, score, *, eid=None, measured_by="independent_evalua
         "effort": effort,
         "harness": harness,
         "subcategory": None,
+        "interval": interval,
+        "n": n,
+        "quality_flags": quality_flags or [],
         "sources": [source_ref(source)],
     }
     if outcome:
-        row["verification"] = verification("evidence", eid, outcome, value=score)
+        row["verification"] = verification(
+            "evidence", eid, outcome, value=evidence_verification_value(row)
+        )
     return row
 
 
@@ -157,6 +163,9 @@ def loaded_index(
             row["benchmark_version"] = value.version
             row["subcategory"] = value.subcategory
             row["unit"] = value.unit
+            row["interval"] = value.interval
+            row["n"] = value.n
+            row["quality_flags"] = list(value.quality_flags)
             evidence_records.append(row)
 
     inputs = SnapshotInputs(

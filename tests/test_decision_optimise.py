@@ -22,6 +22,9 @@ def evidence_value(**overrides) -> EvidenceValue:
         "date": None,
         "source_ids": ("src-board",),
         "verified": True,
+        "interval": None,
+        "n": None,
+        "quality_flags": (),
     }
     values.update(overrides)
     return EvidenceValue(**values)
@@ -164,6 +167,26 @@ def test_evidence_qualifiers_and_provenance_without_picking_best_measurement():
     assert [row.value for row in result.results[0].contributions[0].evidence] == [40]
     assert result.results[0].contributions[0].sources == ("src-board",)
     assert result.results[2].warnings == ("missing_objective_value",)
+
+
+def test_deprecated_or_contaminated_evidence_is_not_a_direct_answer():
+    index = evidence_index({
+        "deprecated": [evidence_value(value=99, quality_flags=("deprecated",))],
+        "contaminated": [evidence_value(
+            value=98, quality_flags=("contamination_warning",)
+        )],
+        "clean": [evidence_value(value=80)],
+    })
+
+    result = optimise(
+        index,
+        index.candidates(),
+        Objective(max="quality"),
+        evidence_selectors={"quality": EvidenceSelector("bench")},
+    )
+
+    assert ids(result) == ["clean", "contaminated", "deprecated"]
+    assert result.missing == ("contaminated", "deprecated")
 
 
 def test_domain_objective_refuses_blending():

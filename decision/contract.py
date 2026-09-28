@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.7"
+CONTRACT_VERSION = "1.8"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1022,6 +1022,10 @@ class EvidenceItem(_Strict):
     value: float
     unit: str | None = None
     n: int | None = Field(default=None, ge=1)
+    interval: tuple[float, float] | None = None
+    quality_flags: list[Literal["deprecated", "contamination_warning"]] = Field(
+        default_factory=list
+    )
     measured_by: MeasuredBy
     effort: Effort | None = None
     harness: HarnessId | None = None
@@ -1244,7 +1248,7 @@ class Decision(_Strict):
     number_origins: list[NumberOrigin] = Field(default_factory=list)
     #: Every source the number origins cite, once each. Added in 1.4.
     sources: list[CitedSource] = Field(default_factory=list)
-    contract_version: Literal["1.7"] = CONTRACT_VERSION
+    contract_version: Literal["1.8"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     spec_hash: SpecHash

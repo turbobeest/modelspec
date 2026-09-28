@@ -26,7 +26,7 @@ from decision.snapshot import (
     load_premier,
     load_snapshot_bytes,
 )
-from tests.snapshot_records import SOURCES, evidence, model
+from tests.snapshot_records import SOURCES, evidence, model, offering
 
 AS_OF = date(2026, 9, 25)
 
@@ -388,6 +388,144 @@ def test_overlapping_intervals_are_reported_as_not_separable() -> None:
         if "not_separable" in result.warnings
     ]
     assert len(groups) >= 2
+
+
+def test_overlapping_raw_evidence_intervals_are_reported_as_not_separable() -> None:
+    rows = [
+        evidence("lab/alpha", "swe_bench_pro", 55.0, interval=[51.0, 59.0]),
+        evidence("lab/beta", "swe_bench_pro", 54.0, interval=[50.0, 58.0]),
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/alpha"), model("lab/beta")],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "swe_bench_pro @independent"},
+            "limit": 2,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert [row.offering.model for row in decision.results] == ["lab/alpha", "lab/beta"]
+    assert all("not_separable" in row.warnings for row in decision.results)
+
+
+def test_one_models_offerings_do_not_make_its_evidence_not_separable() -> None:
+    rows = [
+        evidence("lab/alpha", "swe_bench_pro", 90.0, interval=[89.0, 91.0]),
+        evidence("lab/beta", "swe_bench_pro", 50.0, interval=[49.0, 51.0]),
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/alpha"), model("lab/beta")],
+            offerings=[
+                offering("lab/alpha", "provider-a"),
+                offering("lab/alpha", "provider-b"),
+                offering("lab/beta", "provider-a"),
+            ],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "swe_bench_pro @independent"},
+            "limit": 3,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert [row.offering.model for row in decision.results] == [
+        "lab/alpha",
+        "lab/alpha",
+        "lab/beta",
+    ]
+    assert all("not_separable" not in row.warnings for row in decision.results)
+
+
+def test_overlapping_raw_intervals_from_different_versions_are_not_compared() -> None:
+    alpha = evidence("lab/alpha", "swe_bench_pro", 55.0, interval=[51.0, 59.0])
+    beta = evidence("lab/beta", "swe_bench_pro", 54.0, interval=[50.0, 58.0])
+    beta["benchmark_version"] = "2.0"
+    rows = [alpha, beta]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/alpha"), model("lab/beta")],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {"max": "swe_bench_pro @independent"},
+            "limit": 2,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert [row.offering.model for row in decision.results] == ["lab/alpha", "lab/beta"]
+    assert all("not_separable" not in row.warnings for row in decision.results)
+
+
+def test_overlapping_raw_interval_does_not_override_a_separating_weighted_objective() -> None:
+    rows = [
+        evidence("lab/alpha", "swe_bench_pro", 55.0, interval=[51.0, 59.0]),
+        evidence("lab/beta", "swe_bench_pro", 54.0, interval=[50.0, 58.0]),
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/alpha", context=200_000), model("lab/beta", context=100_000)],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "optimize": {
+                "weights": {
+                    "swe_bench_pro": 0.1,
+                    "model.context_window": 0.9,
+                }
+            },
+            "limit": 2,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert [row.offering.model for row in decision.results] == ["lab/alpha", "lab/beta"]
+    assert all("not_separable" not in row.warnings for row in decision.results)
 
 
 def test_identical_snapshot_inputs_remain_byte_identical_with_estimates() -> None:

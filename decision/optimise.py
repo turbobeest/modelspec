@@ -217,7 +217,8 @@ def _read(snapshot: SnapshotIndex, cid: str, facet: str,
         cid, selector.benchmark_id,
         measured_by=set(selector.measured_by) if selector.measured_by is not None else None,
         effort=selector.effort, harness=selector.harness, after=selector.after)
-    matches = [e for e in evidence if e.verified and _number(e.value) is not None
+    matches = [e for e in evidence if e.verified and not e.quality_flags
+               and _number(e.value) is not None
                and (selector.version is None or e.version == selector.version)
                and e.subcategory == selector.subcategory]
     # Multiple measurements need a resolver decision, not an implicit max or average.

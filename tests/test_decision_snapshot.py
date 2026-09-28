@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from decision import snapshot as snap
+from decision.model import value_hash
 from decision.registry import Registry
 from decision.registry import default as default_registry
 from decision.snapshot import (
@@ -190,6 +191,39 @@ def test_changed_value_is_quarantined_until_it_is_reverified(tmp_path):
         evidence=[],
     ))
     assert index.fact("lab/alpha", "model.context_window") == UNKNOWN
+    assert index.excluded == {"quarantined": 1}
+
+
+@pytest.mark.parametrize(
+    ("field", "mutated"),
+    [
+        ("interval", [51.0, 59.0]),
+        ("n", 500),
+        ("quality_flags", ["contamination_warning"]),
+    ],
+)
+def test_changed_evidence_metadata_is_quarantined_until_reverified(
+    tmp_path, field, mutated
+):
+    checked = evidence(
+        "lab/alpha",
+        "swe_bench_pro",
+        55.0,
+        interval=[52.0, 58.0],
+        n=400,
+        quality_flags=["deprecated"],
+    )
+    assert checked["verification"]["target"]["value_hash"] == value_hash({
+        "score": 55.0,
+        "interval": [52.0, 58.0],
+        "n": 400,
+        "quality_flags": ["deprecated"],
+    })
+    checked[field] = mutated
+
+    index = load(build(tmp_path, evidence=[checked]))
+
+    assert index.evidence("lab/alpha", "swe_bench_pro") == ()
     assert index.excluded == {"quarantined": 1}
 
 
@@ -556,6 +590,23 @@ def test_evidence_with_qualifiers(tmp_path):
                                             after=date(2026, 9, 1))] == [61.0]
     assert index.evidence("lab/alpha", "swe_bench_pro", harness="claude-code@2.1") == ()
     assert index.evidence("lab/alpha", "nonexistent") == ()
+
+
+def test_evidence_keeps_structured_uncertainty_and_quality_flags(tmp_path):
+    row = evidence(
+        "lab/alpha",
+        "swe_bench_pro",
+        55.0,
+        interval=[51.2, 58.8],
+        n=500,
+        quality_flags=["contamination_warning"],
+    )
+    index = load(build(tmp_path, evidence=[row]))
+
+    [stored] = index.evidence("lab/alpha", "swe_bench_pro")
+    assert stored.interval == (51.2, 58.8)
+    assert stored.n == 500
+    assert stored.quality_flags == ("contamination_warning",)
 
 
 def test_evidence_for_a_domain_carries_directness(tmp_path):

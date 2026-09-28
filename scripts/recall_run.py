@@ -171,6 +171,8 @@ def _top_is_tied(decision: Decision) -> bool:
     if len(decision.results) < 2:
         return False
     first_result, second_result = decision.results[:2]
+    if all("not_separable" in result.warnings for result in (first_result, second_result)):
+        return True
     first_estimates = {estimate.domain: estimate for estimate in first_result.estimates or []}
     for second in second_result.estimates or []:
         first = first_estimates.get(second.domain)
