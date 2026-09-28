@@ -683,7 +683,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: text/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-13, read 2026-09-24. Rank 15, 27615 votes, interval [1475.35, 1485.0].
@@ -695,13 +695,14 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:b2143e53db27d7506c982ed4a7fe246289fd9ba5d181149507f0ee86bae47c18
+      snapshot_ref: sha256:5499198274b1cf531f2446dd915dd0629a365172dec9759fc21a57a225867972
       cited_regions:
       - rows
     interval:
     - 1475.35
     - 1485.0
     n: 27615
+    observed_at: '2026-09-28'
   - benchmark_id: arena_elo_vision
     model_id_as_evaluated: muse-spark-1.1
     score: 1294.16
@@ -710,7 +711,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: vision/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-13, read 2026-09-24. Rank 21, 8447 votes, interval [1286.17, 1302.16].
@@ -722,9 +723,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision
-      snapshot_ref: sha256:12075d19b12efd468a1bd4314619e07e2f44409bd500c3c2cb0ca3d2b813fa7b
+      snapshot_ref: sha256:8b3576dfbe578011dcb615e39750cea063bda979f886205c1e9d8651d6f1d293
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_webdev
     model_id_as_evaluated: muse-spark-1.1
     score: 1542.36
@@ -733,7 +735,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: webdev/latest, overall
     configuration: LMArena leaderboard dataset, CC BY 4.0, category overall, leaderboard_publish_date
       2026-09-23, read 2026-09-24. Rank 32, 7521 votes, interval [1534.53, 1550.19].
@@ -745,9 +747,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:087c77f0270a031a23a14024c7245d440783c2258f99f9b5cd756c9f30e54d27
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: swe_bench_pro
     model_id_as_evaluated: Muse Spark 1.1*
     score: 61.5
@@ -756,7 +759,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-07-09'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: SWE-Bench Pro, public dataset
     configuration: Public-dataset row on the Scale Labs page, read 2026-09-24. Resolve
       rate 61.5, confidence interval upper 3.1, rank 1, createdAt 2026-07-09. The
@@ -769,9 +772,10 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-160-scale-swe-bench-pro-public
-      snapshot_ref: sha256:b0df5d5cbc6fd2c3925e740d0379f6570e00d58b98ca576c8141e6af67dc0666
+      snapshot_ref: sha256:27682f9d9581ddcc087df28d6400780b64742f9eb9eb0596542418b345387bf1
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: arena_sc_english
     model_id_as_evaluated: muse-spark-1.1
     score: 1492.12
@@ -780,8 +784,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1492.12 [1485.78,
       1498.47], 11415 votes, rank 14. Observed 2026-09-27.
@@ -791,7 +795,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      snapshot_ref: sha256:c10623c0b42bc927b984d3933d31aa31c3cd1c21841797328e80981e6d334892
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_english#31e729e27142
@@ -803,8 +807,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1532.52 [1518.01,
       1547.04], 1911 votes, rank 15. Observed 2026-09-27.
@@ -814,7 +818,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      snapshot_ref: sha256:1e2f3fa3120aa6532923deddea1fcb48e14b14f7e2f3396e16e17304594752bd
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_chinese#c98cdbfee5d7
@@ -826,8 +830,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / japanese, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1447.15 [1418.41,
       1475.88], 466 votes, rank 32. Observed 2026-09-27.
@@ -837,7 +841,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:378ee68fcc262e62231ba63141c81baffe954e5edb48ca7f0d21726b0417dadb
+      snapshot_ref: sha256:c9ec43cc46cde9a9a084781e014b590ecb91e24ff239d072e5e3e1fbe299075a
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_japanese#20f3f6eca474
@@ -849,8 +853,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / korean, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1474.72 [1449.13,
       1500.31], 563 votes, rank 7. Observed 2026-09-27.
@@ -860,7 +864,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:d02642dc7233db6fed665cc6abdf94d487b7d4d64a2d6bb7c33ff0bea0f8755c
+      snapshot_ref: sha256:da67028715236f4510ef6cd2b29aa4a819e6b581fd48575bbee287a0a72545fa
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_korean#8c762093cefb
@@ -872,8 +876,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1496.38 [1485.03,
       1507.73], 2917 votes, rank 13. Observed 2026-09-27.
@@ -883,7 +887,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      snapshot_ref: sha256:3d6ede20ed72833ccae1f56c86762a83c811d6fcb89f7960178d516bbb50aa8d
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_russian#d896a4ce5b9a
@@ -895,8 +899,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / spanish, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1488.34 [1466.70,
       1509.98], 812 votes, rank 6. Observed 2026-09-27.
@@ -906,7 +910,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:53285f933382c2e23254c68a5e01a25705206262f3000e8f5954e40597697cc1
+      snapshot_ref: sha256:626c233148bb4156f80113d49c8163082ed947cbfb64e20739771d4fe07b33f1
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_spanish#b9739318f5c4
@@ -918,8 +922,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / german, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1470.96 [1443.96,
       1497.96], 510 votes, rank 36. Observed 2026-09-27.
@@ -929,7 +933,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:5bc7f8c29190254b708e3b1b9c9130570cb30292791a5ac70d6baf464245a845
+      snapshot_ref: sha256:6074611b99cf8732f4dee1ad2a5718683b7a9ca7fdff6588d35ba1863ea5f8ac
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_german#a6a8198358b8
@@ -941,8 +945,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1518.44 [1497.63,
       1539.24], 956 votes, rank 6. Observed 2026-09-27.
@@ -952,7 +956,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      snapshot_ref: sha256:26b468ee0d48430ff995f4feb0483b5c391cb383a59ea1755a4e91eeb0f6a8f2
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_french#84661faa7c84
@@ -964,8 +968,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / polish, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1499.98 [1472.87,
       1527.09], 473 votes, rank 7. Observed 2026-09-27.
@@ -975,7 +979,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:c24dd604059a7b6a389b724e9819f1da9b856a619642c7b69e5124f146a92635
+      snapshot_ref: sha256:1d2df11d9abaf322e77c330fab6d5e5ef26979c835443f67601b6c89b8f3f299
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_polish#07d5589b0283
@@ -987,8 +991,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: vision_style_control / ocr, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1293.63 [1284.89,
       1302.37], 5713 votes, rank 22. Observed 2026-09-27.
@@ -998,7 +1002,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:1370bca68e20f410db1d74c3c5cc4deade992317d0334c3516f50b66938da114
+      snapshot_ref: sha256:99489a369ef55faf7aa620e6883cd433e47186123b5bf44b8343073a0f22fadf
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_vision_ocr#9a7907ee3a1f
@@ -1010,8 +1014,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: vision_style_control / diagram, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1307.84 [1294.68,
       1321.01], 2229 votes, rank 24. Observed 2026-09-27.
@@ -1021,7 +1025,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:947bbb0cc1b11be394d53298f60b967420a1837ea2cccf9a2972bc6bd013c6bb
+      snapshot_ref: sha256:9bc8dfd6db75a6a49f2764592a2a096290158c27a7288ac98c8fdee2efa80bd2
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_vision_diagram#0a4eddad4f9e
@@ -1033,8 +1037,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: vision_style_control / homework, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1281.19 [1259.81,
       1302.56], 788 votes, rank 42. Observed 2026-09-27.
@@ -1044,7 +1048,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:1a362e13f2481ace58aff43129253330adaf3b8d01910b4be8bc67b8e87f68e7
+      snapshot_ref: sha256:d55d1f7ffb986be7b796464f4c9b446aa3f66769bd4027b6e5a8394fe2ef1db0
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_vision_homework#39e4e6c5a74f
@@ -1056,8 +1060,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: document / overall, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1464.70 [1455.86,
       1473.54], 4885 votes, rank 18. Observed 2026-09-27.
@@ -1067,7 +1071,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-document
-      snapshot_ref: sha256:ca71d77b360678771f5300146465c8e6298970b38f4dac38a224686a0af59f4d
+      snapshot_ref: sha256:40f0c4aa079cc5d1dd633a2286b1bf63a24f2ee612d86330310020711b047a70
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_document#40d74c3db5c6
@@ -1079,8 +1083,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
       1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1525.00 [1518.44,
@@ -1091,7 +1095,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      snapshot_ref: sha256:4538dd5bcb06397043fc55c64535410a284e7da8668e8c13cc2950c6f1baa37c
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_industry_software_it_services#67f62c43978c
@@ -1103,8 +1107,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
       split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1454.04 [1446.02,
@@ -1115,7 +1119,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      snapshot_ref: sha256:89233e13dec450388587fa44e3af9cfb82da53034e616b951c1cbe809b0c4cef
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_industry_entertainment_sports_media#035d3598cbb0
@@ -1127,8 +1131,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1504.07 [1488.39,
       1519.75], 1482 votes, rank 16. Observed 2026-09-27.
@@ -1138,7 +1142,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      snapshot_ref: sha256:514a2f81b6bce9bc34481c6e0d7af71184302842a4f5b8284657dc5024965f25
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_industry_mathematical#ec4523d028f7
@@ -1150,8 +1154,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
     benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1464.86 [1460.77,
       1468.95], 27418 votes, rank 35. Observed 2026-09-27.
@@ -1161,7 +1165,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-factuality
-      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      snapshot_ref: sha256:359d85539a6e849ffbfe46427efdefadb4be9c907f9fbea9f799ce7bbf6c52c2
       cited_regions:
       - rows
     id: meta/muse-spark-1-1#arena_sc_factuality#97d6c161b741

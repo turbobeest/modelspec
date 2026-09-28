@@ -676,7 +676,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-24'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: MTEB(Multilingual, v2), mean over tasks
     configuration: MTEB leaderboard backend JSON, benchmarkName MTEB(Multilingual,
       v2), read 2026-09-24. Score is meanTask times 100. The JSON has no per-row run
@@ -689,9 +689,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-mteb-multilingual-v2-json
-      snapshot_ref: sha256:32f83871582a5ba431612365fb9728de9fb9d516c1c969ed188f4184c74de485
+      snapshot_ref: sha256:144d10f4d4b3c3937fb4b68481e6106f4cd652cc13cf45b3e61358a1e4aef46a
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   - benchmark_id: mteb_multilingual_v2
     model_id_as_evaluated: microsoft/harrier-oss-v1-27b
     score: 74.3

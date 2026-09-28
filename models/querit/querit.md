@@ -675,7 +675,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-25'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-28'
     benchmark_version: MTEB(eng, v2), Reranking task type
     configuration: Same JSON read, field scoresByTaskType.Reranking times 100. These
       models have no meanTask on this benchmark. Dated by the day the board was read.
@@ -686,9 +686,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-mteb-eng-v2
-      snapshot_ref: sha256:5e467d0a0ec11f72a35cf21af2d6e41e364af2a206d2ae7e474d92961be0e93d
+      snapshot_ref: sha256:81f1747f7113539a011501e3768ce4f223bcb308f21d00a852c9e3eacebeb8e4
       cited_regions:
       - rows
+    observed_at: '2026-09-28'
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
