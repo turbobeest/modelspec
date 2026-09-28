@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,12 @@ HEIGHT = 630
 LANDING_IMAGE = "og-card-landing.png"
 DECIDE_IMAGE = "og-card-decide.png"
 PRICING_IMAGE = "og-card-pricing.png"
+RENDER_ENV = "MODELSPEC_RENDER_SOCIAL_CARDS"
+
+
+def render_enabled() -> bool:
+    """True when the site build must render the PNG cards (needs npm and Chromium)."""
+    return os.environ.get(RENDER_ENV, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 @dataclass(frozen=True)

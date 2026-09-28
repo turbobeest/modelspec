@@ -82,6 +82,7 @@ jobs:
       - name: Build
         id: build
         env:
+          MODELSPEC_RENDER_SOCIAL_CARDS: '1'
           MODELSPEC_SNAPSHOT_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY || '' }}
           MODELSPEC_SNAPSHOT_ED25519_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_ED25519_KEY || '' }}
         run: |

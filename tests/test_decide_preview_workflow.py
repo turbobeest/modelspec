@@ -174,3 +174,11 @@ def test_the_live_composition_copies_exactly_the_brand_icon_set():
                   if step.get('name') == 'Check the pages we promise actually exist')
     for name in brand.FILES:
         assert f'test -s dist/modelspec/{name}' in checks['run'], name
+
+
+def test_the_deploy_build_renders_the_social_cards():
+    build = next(step for step in workflow()['jobs']['build']['steps']
+                 if step.get('id') == 'build')
+    assert build['env'][social_cards.RENDER_ENV] == '1'
+    assert 'pipeline.build' in build['run']
+    assert 'continue-on-error' not in build

@@ -235,14 +235,36 @@ def test_registry_drives_page_metadata_and_deploy_filenames(
     assert 'social_meta_for_page("/pricing/")' in pricing_page
 
 
+def _pricing_flags(monkeypatch: pytest.MonkeyPatch, **variables: str) -> None:
+    from pipeline import worker_flags
+
+    monkeypatch.setattr(worker_flags, "production_vars", lambda root: variables)
+
+
+@pytest.mark.parametrize(
+    ("variables", "agent_line", "other_line"),
+    [
+        ({}, "Agents start free.", "Agents pay per answer."),
+        ({"ACCESS_ENFORCED": "true"}, "Agents pay per answer.", "Agents start free."),
+    ],
+)
+def test_pricing_card_follows_the_access_flag(
+    monkeypatch: pytest.MonkeyPatch, variables: dict[str, str],
+    agent_line: str, other_line: str,
+) -> None:
+    _pricing_flags(monkeypatch, **variables)
+    card = social_cards.pricing_card()
+    assert card.headline == f"People decide free.<br>{agent_line}"
+    assert other_line not in card.headline
+    assert agent_line in card.alt
+
+
 def test_pricing_card_uses_production_flags_and_computed_rates() -> None:
     from pipeline import pricing, worker_flags
 
     card = social_cards.pricing_card()
-    assert "People decide free.<br>Agents start free." == card.headline
-    assert "Agents pay per answer" not in card.headline
     variables = worker_flags.production_vars(ROOT)
-    _, rate_range = pricing.hero_summary(
+    agent_line, rate_range = pricing.hero_summary(
         pricing.load_tiers(ROOT),
         access_enforced=worker_flags.enabled(variables, "ACCESS_ENFORCED"),
         x402_live=pricing.x402_is_live(
@@ -250,4 +272,58 @@ def test_pricing_card_uses_production_flags_and_computed_rates() -> None:
             worker_flags.enabled(variables, "X402_MAINNET"),
         ),
     )
+    assert card.headline == f"People decide free.<br>{agent_line}"
     assert rate_range in card.content
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(None, False), ("", False), ("0", False), ("false", False),
+     ("1", True), ("true", True), (" TRUE ", True)],
+)
+def test_render_flag_is_explicit(
+    monkeypatch: pytest.MonkeyPatch, value: str | None, expected: bool,
+) -> None:
+    if value is None:
+        monkeypatch.delenv(social_cards.RENDER_ENV, raising=False)
+    else:
+        monkeypatch.setenv(social_cards.RENDER_ENV, value)
+    assert social_cards.render_enabled() is expected
+
+
+def test_build_without_the_flag_needs_no_npm_or_chromium(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pipeline import build as builder
+
+    def refuse(*args: object, **kwargs: object) -> None:
+        raise AssertionError("the build launched the card renderer without the flag")
+
+    monkeypatch.delenv(social_cards.RENDER_ENV, raising=False)
+    monkeypatch.setattr(social_cards, "_render_jobs", refuse)
+    out = tmp_path / "dist"
+    assert builder.main(["--out", str(out), "--root", str(ROOT)]) == 0
+    assert not list((out / "modelspec").glob("og-card-*.png"))
+    for page, name in (("index.html", social_cards.LANDING_IMAGE),
+                       ("pricing/index.html", social_cards.PRICING_IMAGE)):
+        html_text = (out / "modelspec" / page).read_text(encoding="utf-8")
+        assert f'property="og:image" content="https://modelspec.dev/{name}"' in html_text
+
+
+def test_build_with_the_flag_renders_and_fails_hard(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pipeline import build as builder
+
+    def broken(tree: Path, data: landing.LandingData) -> None:
+        raise RuntimeError("chromium is missing")
+
+    monkeypatch.setenv(social_cards.RENDER_ENV, "1")
+    monkeypatch.setattr(social_cards, "render", broken)
+    with pytest.raises(RuntimeError, match="chromium is missing"):
+        builder.main(["--out", str(tmp_path / "dist"), "--root", str(ROOT)])
+
+
+def test_ci_installs_chromium_on_the_shard_that_renders_cards() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "test.yml").read_text(encoding="utf-8")
+    assert "grep -qxE 'tests/test_(landing|social_cards)\\.py' shard-files.txt" in workflow

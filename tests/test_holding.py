@@ -129,9 +129,10 @@ def test_the_holding_root_is_the_landing_and_the_404_stays_dark(trees):
 def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
     ms = trees["holding"] / "modelspec"
     top = sorted(p.name + ("/" if p.is_dir() else "") for p in ms.iterdir())
+    card = [social_cards.LANDING_IMAGE] if social_cards.render_enabled() else []
     assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/", "openapi.yaml",
-                          *brand.FILES, social_cards.LANDING_IMAGE, *holding.WRITTEN])
-    for name in (*brand.FILES, social_cards.LANDING_IMAGE):
+                          *brand.FILES, *card, *holding.WRITTEN])
+    for name in (*brand.FILES, *card):
         assert (ms / name).read_bytes() == (trees["real"] / "modelspec" / name).read_bytes(), name
 
 
