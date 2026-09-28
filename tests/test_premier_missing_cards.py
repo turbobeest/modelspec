@@ -9,6 +9,7 @@ end of this file. They are not products and must never be offered.
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -62,6 +63,7 @@ def test_model_161_quality_metadata_is_structured_on_premier_cards() -> None:
         ("deepseek/deepseek-v4-pro.md", 1_598_839_674_782),
         ("moonshot/kimi-k2-6.md", 1_026_879_376_368),
         ("moonshot/kimi-k3.md", 2_779_931_837_184),
+        ("qwen/qwen3-8-flash-next.md", 179_999_981_459),
         ("zhipu/glm-5-2.md", 753_329_940_480),
         ("zhipu/glm-5-3.md", 753_329_940_480),
     ],
@@ -76,6 +78,31 @@ def test_model_161_large_open_models_do_not_fit_an_rtx_4090(rel, parameters) -> 
     assert facts["model.fits_hardware"]["value"] == []
     assert facts["model.fits_hardware"]["state"] == "known"
     assert len(facts["model.fits_hardware"]["sources"]) == 2
+
+
+def test_model_161_qwen_is_eliminated_from_q17() -> None:
+    from decision.contract import parse_spec
+    from decision.engine import decide
+    from decision.registry import default as default_registry
+    from decision.snapshot import build_from_repo, load_snapshot_bytes
+
+    registry = default_registry()
+    built = build_from_repo(
+        ROOT,
+        premier=ROOT / "premier" / "slice-1.yaml",
+        as_of=date(2026, 9, 27),
+        registry=registry,
+        gate=False,
+    )
+    snapshot = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    spec = parse_spec(
+        (ROOT / "tests" / "recall" / "specs" / "Q17.yaml").read_text(encoding="utf-8"),
+        facets=registry.facet,
+    )
+
+    decision = decide(spec.model_copy(update={"limit": 500}), snapshot, facets=registry.facet)
+
+    assert "qwen/qwen3-8-flash-next" not in {row.model for row in decision.may_qualify}
 
 
 def _load(rel: str) -> ModelCard:
