@@ -163,7 +163,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     "check",
     [
         "altered_data", "challenge", "motion", "responsive", "holding",
-        "forwarding", "assembled_decide", "forwarded_state_ranks",
+        "forwarding", "assembled_decide", "assembled_decide_mobile", "forwarded_state_ranks",
     ],
 )
 def test_landing_behaviour_in_browser(
@@ -219,6 +219,9 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert live.count('href="/graph/">Explore the graph</a>') == 1
     assert live.index('href="/graph/">Explore the graph</a>') > live.index("<footer>")
     assert 'href="/graph/">Explore the graph</a>' not in holding
+    for page in (live, holding):
+        assert page.count('href="/pricing/">Pricing</a>') == 2
+        assert page.rindex('href="/pricing/">Pricing</a>') > page.index("<footer>")
     footer = (f"{len(data.routes)} of {data.template_count} templates · "
               "the others' top result has no published price")
     assert footer in live and footer in holding

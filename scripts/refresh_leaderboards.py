@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Refresh existing premier-set evidence from registered live boards (MODEL-124).
+"""Refresh evidence from registered live boards (MODEL-124 and MODEL-113).
 
-The refresh is deliberately narrower than a collector: it cannot add a card or
-an evidence row, and it never changes identity or licence facts.  Board readers
-produce one retained projection per board observation. Existing rows are
-matched against that projection. Changed and confirmed values both advance
-their observation metadata and pass through the normal two-key verification
+The weekly premier-set refresh updates existing evidence rows. A release-signal
+run may also add evidence to an explicitly selected existing card when one
+registered board row matches exactly and the board has an unambiguous metadata
+template. The refresh never adds a card or changes identity or licence facts.
+Board readers produce one retained projection per board observation. New,
+changed and confirmed evidence passes through the normal two-key verification
 queue.
 """
 
@@ -124,13 +125,23 @@ class RowObservation:
     new_value: float
     source: str
     observed_date: str
+    evidence_date: str
 
     @property
     def changed(self) -> bool:
         return self.old_value != self.new_value
 
     def score_change(self) -> ScoreChange:
-        return ScoreChange(**self.__dict__)
+        return ScoreChange(
+            card=self.card,
+            model_id=self.model_id,
+            model=self.model,
+            benchmark=self.benchmark,
+            old_value=self.old_value,
+            new_value=self.new_value,
+            source=self.source,
+            observed_date=self.observed_date,
+        )
 
 
 @dataclass(frozen=True)
@@ -154,6 +165,7 @@ class RefreshReport:
     reconfirmed: list[RowObservation] = field(default_factory=list)
     failures: list[RowFailure] = field(default_factory=list)
     quarantined: list[RowFailure] = field(default_factory=list)
+    added: int = 0
 
     def board(self, key: str) -> dict[str, Any]:
         return self.boards.setdefault(
@@ -203,6 +215,14 @@ def _value(board: BoardReading, row: Mapping[str, Any], unit: str | None) -> flo
     if board.fraction and unit == "percent":
         number *= 100
     return float(number)
+
+
+def _evidence_date(board: BoardReading, row: Mapping[str, Any]) -> str:
+    """Use the row's measurement date, or the live board's observation date."""
+    for key in ("date", "leaderboard_publish_date", "started_at", "Started at", "release_date"):
+        if value := row.get(key):
+            return str(value).split("T", 1)[0]
+    return board.observed_at
 
 
 def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any] | None:
@@ -284,6 +304,7 @@ def _plan_observations(
             new_value=new,
             source=board.source_url,
             observed_date=board.observed_at,
+            evidence_date=_evidence_date(board, match),
         ))
     return observations, failures
 
@@ -303,7 +324,7 @@ def plan_rows(
 def _rewrite_card(path: Path, updates: list[tuple[tuple[object, ...], dict[str, Any]]]) -> None:
     wanted = dict(updates)
     text = path.read_text(encoding="utf-8")
-    fields = ("score", "observed_at", "verified_at", "id", "sources")
+    fields = ("score", "evidence_date", "observed_at", "verified_at", "id", "sources")
 
     def update(match: re.Match[str]) -> str:
         block = match.group(0).rstrip("\n")
@@ -350,6 +371,99 @@ def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
     )
 
 
+def _matching_new_row(board: BoardReading, front: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    aliases = {
+        readers.normalise_name(str(value))
+        for value in (
+            front.get("display_name"), front.get("version"),
+            str(front.get("model_id") or "").rsplit("/", 1)[-1],
+        )
+        if value
+    }
+    matches = []
+    for row in board.rows:
+        identity, _ = readers.split_model_cell(_subject(row))
+        if identity in aliases:
+            matches.append(row)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _evidence_template(
+    root: Path, board: BoardReading, benchmark_id: str,
+) -> Mapping[str, Any] | None:
+    allowed_urls = board.card_urls or frozenset({board.source_url})
+    templates = []
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        for row in (front.get("benchmarks") or {}).get("evidence") or []:
+            if row.get("benchmark_id") == benchmark_id \
+                    and str(row.get("source_url") or "") in allowed_urls:
+                templates.append(row)
+    signatures = {
+        (row.get("unit"), row.get("source_kind"))
+        for row in templates
+    }
+    if len(signatures) != 1:
+        return None
+    return templates[0]
+
+
+def _new_evidence(
+    *, root: Path, model_id: str, front: Mapping[str, Any], board: BoardReading,
+) -> tuple[list[dict[str, Any]], list[RowFailure]]:
+    matched = _matching_new_row(board, front)
+    if matched is None:
+        return [], []
+    rows: list[dict[str, Any]] = []
+    failures: list[RowFailure] = []
+    for benchmark_id in sorted(board.benchmark_ids):
+        template = _evidence_template(root, board, benchmark_id)
+        if template is None:
+            failures.append(RowFailure(
+                model_id, benchmark_id, board.source_url,
+                "no unambiguous evidence metadata template for this registered board",
+            ))
+            continue
+        row = {
+            "benchmark_id": benchmark_id,
+            "model_id_as_evaluated": _subject(matched),
+            "score": _value(board, matched, str(template["unit"])),
+            "unit": template["unit"],
+            "source_url": template["source_url"],
+            "source_kind": template["source_kind"],
+            "evidence_date": board.observed_at,
+            "date_type": "evaluated",
+            "observed_at": board.observed_at,
+            "verified_at": board.observed_at,
+            "benchmark_version": "",
+            "configuration": "",
+            "limitations": "",
+            "sources": [SourceRef(
+                source_id=board.source_id,
+                snapshot_ref=board.snapshot_ref,
+                cited_regions=["rows"],
+            ).model_dump(mode="json")],
+        }
+        row["id"] = evidence_id(model_id, row)
+        rows.append(row)
+    return rows, failures
+
+
+def _append_evidence(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
+    text = path.read_text(encoding="utf-8")
+    parts = text.split("---", 2)
+    front = yaml.safe_load(parts[1]) or {}
+    benchmarks = dict(front.get("benchmarks") or {})
+    evidence = list(benchmarks.get("evidence") or [])
+    evidence.extend(dict(row) for row in rows)
+    benchmarks["evidence"] = evidence
+    front["benchmarks"] = benchmarks
+    path.write_text(
+        "---\n" + yaml.dump(front, sort_keys=False, allow_unicode=True) + "---" + parts[2],
+        encoding="utf-8",
+    )
+
+
 def _premier_cards(root: Path) -> dict[str, Path]:
     selected = {row["model_id"] for row in
                 yaml.safe_load((root / "premier" / "slice-1.yaml").read_text())[
@@ -366,10 +480,28 @@ def _premier_cards(root: Path) -> dict[str, Path]:
     return cards
 
 
+def _selected_cards(root: Path, model_ids: Iterable[str] | None) -> dict[str, Path]:
+    """Load the premier set by default, or an explicit release-signal scope."""
+    if model_ids is None:
+        return _premier_cards(root)
+    selected = set(model_ids)
+    cards: dict[str, Path] = {}
+    for path in sorted((root / "models").glob("*/*.md")):
+        model_id = str(_front(path).get("model_id") or "")
+        if model_id in selected:
+            cards[model_id] = path
+    missing = selected - cards.keys()
+    if missing:
+        raise ValueError(f"selected cards missing: {', '.join(sorted(missing))}")
+    return cards
+
+
 def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
-        source_cache: Path | None = None) -> RefreshReport:
+        source_cache: Path | None = None,
+        model_ids: Iterable[str] | None = None,
+        add_missing: bool = False) -> RefreshReport:
     date.fromisoformat(observed_at)
-    cards = _premier_cards(root)
+    cards = _selected_cards(root, model_ids)
     fronts = {model: _front(path) for model, path in cards.items()}
     tau_urls = {
         str(row["source_url"])
@@ -384,6 +516,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
     queue = Queue(root / "verification")
     filed_at = datetime.combine(date.fromisoformat(observed_at), datetime.min.time(), UTC)
     pending_updates: dict[Path, list[tuple[tuple[object, ...], dict[str, Any]]]] = {}
+    pending_additions: dict[Path, list[dict[str, Any]]] = {}
     claims: list[Claim] = []
 
     for board in boards:
@@ -402,6 +535,19 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                         and str(row.get("source_url") or "") in
                         (board.card_urls or frozenset({board.source_url}))]
             if not relevant:
+                if add_missing:
+                    additions, failures = _new_evidence(
+                        root=root, model_id=model_id, front=fronts[model_id], board=board,
+                    )
+                    report.failures.extend(failures)
+                    summary["failures"].extend(failure.reason for failure in failures)
+                    if additions:
+                        models_read.add(model_id)
+                        pending_additions.setdefault(path, []).extend(additions)
+                        claims.extend(
+                            _claim(model_id, fronts[model_id], row, board) for row in additions
+                        )
+                        report.added += len(additions)
                 continue
             for row in relevant:
                 if _match(board, row) is not None:
@@ -419,6 +565,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                            and float(row["score"]) == observation.old_value)
                 new = dict(old)
                 new["score"] = observation.new_value
+                new["evidence_date"] = observation.evidence_date
                 new["observed_at"] = observed_at
                 new["verified_at"] = observed_at
                 new["sources"] = [SourceRef(
@@ -440,9 +587,11 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                                          if change.source == board.source_url
                                          and change.benchmark in board.benchmark_ids)
 
-    if dry_run or not pending_updates:
+    if dry_run or (not pending_updates and not pending_additions):
         return report
 
+    for path, additions in pending_additions.items():
+        _append_evidence(path, additions)
     for path, updates in pending_updates.items():
         _rewrite_card(path, updates)
     # Verify only this refresh's claims. The repository queue can contain unrelated
@@ -594,6 +743,7 @@ def write_report_json(path: Path, report: RefreshReport) -> None:
         "reconfirmed": [row.__dict__ for row in report.reconfirmed],
         "failures": [row.__dict__ for row in report.failures],
         "quarantined": [row.__dict__ for row in report.quarantined],
+        "added": report.added,
     }
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 

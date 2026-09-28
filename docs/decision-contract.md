@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.10**
+Contract version: **1.11**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -329,7 +329,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.10",
+  "contract_version": "1.11",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -393,7 +393,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.10"`. |
+| `contract_version` | `"1.11"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -647,10 +647,14 @@ it instead of carrying its own list of facets or benchmarks. Built by
   admits), the `range` of those values, and its `domains` with `directness`.
 - `domains`: every registered domain with a listed benchmark. Each row emits
   `id`, `name`, `proxy_only`, `default_basis`, `estimate_models`,
-  `direct_models`, `default_benchmark` and `benchmarks`. `default_basis` is
+  `estimate_benchmarks`, `direct_models`, `default_benchmark` and `benchmarks`.
+  `default_basis` is
   `capability_estimate`; `estimate_models` counts distinct lineup models with
-  a stored estimate, and `direct_models` counts distinct lineup models with
-  verified direct evidence. `default_benchmark` is only the preselected
+  a stored estimate. `estimate_benchmarks` lists the benchmark drivers that
+  contribute to stored lineup estimates for the domain. It can differ from
+  `benchmarks`, which is the explicit measured-by drill-down. `direct_models`
+  counts distinct lineup models with verified direct evidence.
+  `default_benchmark` is only the preselected
   explicit "Measured by" drill-down and is null when the registry preference
   has no verified lineup evidence. It does not select the default ranking
   basis. `benchmarks` puts that verified registry preference first, then
@@ -658,6 +662,9 @@ it instead of carrying its own list of facets or benchmarks. Built by
 - `providers`: every registered provider's display name by ID
   (`registry/providers.yaml`), so a client shows "Anthropic API", not
   `anthropic`.
+- `models`: every snapshot model by ID, with `display_name`, `lab`, `lab_name`,
+  and optional `class`. The class is the snapshot's `model.class` fact and may
+  be null when that fact is unknown.
 - `templates`: the eight partial decision specs from `registry/templates.yaml`.
   Each row has `id`, `name`, `purpose`, reasoned `where` Musts, reasoned
   `weights` Prefers, optional non-default `task_tokens`, `needs`, `teaches`,
@@ -709,6 +716,9 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.11 — MODEL-168:** Vocabulary domain rows add the optional
+  `estimate_benchmarks` list, and vocabulary model rows add the optional
+  `class` field. Both additions are compatible.
 - **1.10 — MODEL-182:** A decision adds `signature_verified`. The CLI verifies
   the snapshot against its pinned Ed25519 key set. The Worker can continue to
   verify the HMAC signature with its private key.

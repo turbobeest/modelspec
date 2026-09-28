@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  fictionalEngine,
-  templates,
-  catalogue,
   candidateQuestions,
   hostedEngine,
   retryOnSnapshotChange,
   sharedReload,
   DecideApiError,
-  parseTask,
   fmtB,
   fmtCI,
 } from "./adapter";
@@ -23,10 +19,8 @@ import type {
 import {
   VocabularyError,
   loadVocabulary,
-  parseRealTask,
   realBaseSpec,
   realQuestions,
-  realTemplates,
   sendable as sendableSpec,
 } from "./vocabulary";
 import type { Vocabulary } from "./vocabulary";
@@ -37,12 +31,10 @@ import {
   registerProviders,
   registerValueLabels,
 } from "./adapter/condition-label";
-import { baseSpec, decodeSpec, encodeSpec, specHash } from "./state/spec";
+import { baseSpec, decodeSpec, specHash } from "./state/spec";
 import type { Axis } from "./state/spec";
-import { SpecPanel } from "./components/SpecPanel";
 import { Field } from "./components/Field";
 import { Canvas } from "./components/Canvas";
-import { Shortlist } from "./components/Shortlist";
 import { RankedAnswer } from "./facet-board/RankedAnswer";
 import { DecisionTable } from "./components/DecisionTable";
 import { Why } from "./components/Why";
@@ -50,13 +42,14 @@ import { Coverage } from "./components/Coverage";
 import { Share } from "./components/Share";
 import { BrandMark } from "./components/BrandMark";
 import "./decide.css";
-import { mapDecisionToViewModel, toDecisionSpec } from "./adapter/view-model";
+import { mapDecisionToViewModel } from "./adapter/view-model";
 import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
 import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
 import {
-  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
-  refinementWeightKeys, showsFacetBoard, toBoardDecisionSpec,
+  boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
+  legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys, sanitizeBoardState,
+  toBoardDecisionSpec,
 } from "./facet-board/model";
 import type { BoardSelections, Estate } from "./facet-board/model";
 
@@ -73,16 +66,12 @@ type EstateRequestState =
   | { kind: "error"; settledSpecHash: string; requestKey: string; generation: number };
 
 export function DesignedApp({
-  demo,
-  board = false,
   simulate,
 }: {
-  demo: boolean;
-  board?: boolean;
   simulate?: "loading" | "error" | "none";
 }) {
   const [initial] = useState(() => decodeSpec(location.hash)),
-    [initialBoard] = useState(() => board ? decodeBoardState(location.hash) : null),
+    [initialBoard] = useState(() => decodeBoardState(location.hash)),
     [spec, setSpec] = useState<Spec>(initial?.spec || baseSpec),
     [boardBaseSpec, setBoardBaseSpec] = useState<Spec>(initial?.spec || baseSpec),
     [boardSelections, setBoardSelections] = useState<BoardSelections>(initialBoard?.selections ?? {}),
@@ -90,11 +79,9 @@ export function DesignedApp({
     [refinementFallbackKeys, setRefinementFallbackKeys] = useState<Set<string>>(new Set()),
     [lastSentSpec, setLastSentSpec] = useState<Spec | null>(null),
     [axis, setAxis] = useState<Axis>(initial?.x || "task$"),
-    [view, setView] = useState(initial || board ? "work" : "arrive");
-  const [draft, setDraft] = useState(
-      initial?.spec.task ?? "Refactor a large Rust codebase, precision matters",
-    ),
-    [theme, setTheme] = useState(() =>
+    [legacyNotes, setLegacyNotes] = useState<string[]>([]),
+    [initialRestored, setInitialRestored] = useState(!initial);
+  const [theme, setTheme] = useState(() =>
       new URLSearchParams(location.search).get("theme") === "dark"
         ? "dark"
         : "light",
@@ -105,10 +92,6 @@ export function DesignedApp({
         : "canvas",
     );
   const [selected, setSelected] = useState<string | null>(null),
-    [parsing, setParsing] = useState(false),
-    [trace, setTrace] = useState<ReturnType<typeof parseTask>["trace"]>([]),
-    [addOpen, setAddOpen] = useState(false),
-    [edit, setEdit] = useState<number | null>(null),
     [dismissed, setDismissed] = useState<string[]>([]),
     [share, setShare] = useState(false),
     [provenance, setProvenance] = useState<{
@@ -116,20 +99,18 @@ export function DesignedApp({
       x: number;
       y: number;
     } | null>(null),
-    [retried, setRetried] = useState(false),
-    // "Find models" pressed before the vocabulary arrived: answered when it does.
-    [pendingFind, setPendingFind] = useState(false);
+    [retried, setRetried] = useState(false);
   const [estate, setEstate] = useState<Estate>(() => initialBoard?.estate ?? readEstate()),
     [estateRequest, setEstateRequest] = useState<EstateRequestState>({
       kind: "idle",
       settledSpecHash: null,
       generation: 0,
     });
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null),
-    requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
+  const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
     questionsAbort = useRef<AbortController | null>(null),
     provTrigger = useRef<HTMLElement | null>(null),
+    hashNavigation = useRef<() => void>(() => undefined),
     initialAnswered = useRef(false);
   // A site deploy can change the snapshot under an open page (MODEL-159). The
   // Worker says so with a 409; every request that hears it shares one reload.
@@ -155,7 +136,7 @@ export function DesignedApp({
       | { kind: "error"; error: VocabularyError }
     >({ kind: "loading" }),
     [vocabAttempt, setVocabAttempt] = useState(0);
-  const vocabulary = !demo && vocabState.kind === "ready" ? vocabState.vocabulary : null;
+  const vocabulary = vocabState.kind === "ready" ? vocabState.vocabulary : null;
   const vocab = useMemo(() => {
     if (!vocabulary) return fictionalVocab;
     registerBenchmarks(vocabulary.benchmarks);
@@ -164,22 +145,13 @@ export function DesignedApp({
     return realVocab(vocabulary);
   }, [vocabulary]);
   const shownAxis = vocab.axes.includes(axis) ? axis : (vocab.axes[0] ?? axis);
-  const liveTemplates = useMemo(
-    () => (vocabulary ? realTemplates(vocabulary) : []),
-    [vocabulary],
-  );
   /** Only the sliders the snapshot can answer, as the engine will be asked. */
   const sendable = (next: Spec): Spec =>
     vocabulary ? sendableSpec(vocabulary, next) : next;
   const questionsFor = (next: Spec) =>
     vocabulary ? realQuestions(vocabulary, next, dismissed) : candidateQuestions(next, dismissed);
-  // The fictional engine knows only the fictional catalogue: demo mode only.
-  const sampleDecision = useMemo(
-      () => (demo ? fictionalEngine.decide(spec, { axis, dismissed }) : null),
-      [demo, spec, axis, dismissed],
-    );
   const shownSpec = useMemo(() => {
-    if (demo || !hostedDecision || vocabulary) return spec;
+    if (!hostedDecision || vocabulary) return spec;
     const availableBenchmarks = [
       ...new Set(
         hostedDecision.top.flatMap((candidate) =>
@@ -193,7 +165,8 @@ export function DesignedApp({
       !availableBenchmarks.includes(spec.bench)
       ? { ...spec, bench: availableBenchmarks[0] }
       : spec;
-  }, [demo, hostedDecision, spec, vocabulary]);
+  }, [hostedDecision, spec, vocabulary]);
+  const boardRanked = shownSpec.boardWeights === undefined || boardHasPreference(shownSpec);
   const mapped = useMemo(() => {
     if (!hostedDecision) return { decision: null, error: null };
     try {
@@ -231,14 +204,15 @@ export function DesignedApp({
       return null;
     }
   }, [estateRequest, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
-  const decision = demo ? sampleDecision : liveDecision,
+  const decision = liveDecision,
     e = decision?.explanation,
-    selectedId = selected || e?.shortlist.top?.m.id || e?.may[0]?.m.id || null,
+    boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => weight > 0),
+    selectedId = selected || (boardIsRanked ? e?.shortlist.top?.m.id || e?.may[0]?.m.id : null) || null,
     row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),
-    simulatedError = demo && sim === "error" && !retried,
+    simulatedError = sim === "error" && !retried,
     error = simulatedError || requestState.kind === "error" || !!mapped.error,
-    loading = (demo && sim === "loading") || requestState.kind === "loading";
+    loading = sim === "loading" || requestState.kind === "loading";
   const placed = useMemo(
     () => (requestState.kind === "error" ? placeIssues(requestState.issues) : []),
     [requestState],
@@ -246,7 +220,6 @@ export function DesignedApp({
   const specIssues = placed.filter((issue) => issue.target.kind === "spec");
 
   async function runDecision(requested: Spec) {
-    if (demo) return;
     requestAbort.current?.abort();
     questionsAbort.current?.abort();
     const controller = new AbortController();
@@ -254,12 +227,11 @@ export function DesignedApp({
     setHostedDecision(null);
     setHostedQuestions([]);
     setLastSentSpec(null);
-    if (board)
-      setEstateRequest((current) => ({
-        kind: "idle",
-        settledSpecHash: null,
-        generation: current.generation,
-      }));
+    setEstateRequest((current) => ({
+      kind: "idle",
+      settledSpecHash: null,
+      generation: current.generation,
+    }));
     setRequestState({ kind: "loading" });
     const fail = (cause: unknown) =>
       setRequestState({
@@ -286,7 +258,7 @@ export function DesignedApp({
       const source = override ?? requested;
       const nextSpec = current ? sendableSpec(current, source) : source;
       return hostedEngine
-        .decide(board ? toBoardDecisionSpec(nextSpec, explain) : toDecisionSpec(nextSpec, explain), {
+        .decide(toBoardDecisionSpec(nextSpec, explain), {
           signal: controller.signal,
           snapshot: current?.snapshot,
         })
@@ -309,23 +281,20 @@ export function DesignedApp({
         vocabulary,
         (current) => ask(current, "summary"),
         reloadVocabulary,
-        board ? installReloadedVocabulary : undefined,
+        installReloadedVocabulary,
       );
       if (controller.signal.aborted) return;
-      if (!board && answer.vocabulary && answer.vocabulary !== vocabulary)
-        setVocabState({ kind: "ready", vocabulary: answer.vocabulary });
       used = answer.vocabulary;
       reloaded = used !== vocabulary;
       nextSpec = answer.result.nextSpec;
       setHostedDecision(answer.result.decision);
       setLastSentSpec(nextSpec);
       setRefinementFallbackKeys(new Set());
-      if (board)
-        setEstateRequest((current) => ({
-          kind: "idle",
-          settledSpecHash: specHash(requested),
-          generation: current.generation,
-        }));
+      setEstateRequest((current) => ({
+        kind: "idle",
+        settledSpecHash: specHash(requested),
+        generation: current.generation,
+      }));
       setHostedQuestions(
         used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec),
       );
@@ -333,7 +302,16 @@ export function DesignedApp({
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
       if (controller.signal.aborted) return;
-      if (board && used && cause instanceof DecideApiError && cause.status === 400 && cause.code === "refinement_not_rankable_yet") {
+      const refinementKeys = used ? refinementWeightKeys(used) : new Set<string>();
+      const requestHadRefinementWeights = Object.keys(
+        used ? sendableSpec(used, requested).boardWeights ?? {} : {},
+      ).some((key) => refinementKeys.has(key));
+      if (
+        used &&
+        cause instanceof DecideApiError &&
+        cause.status === 400 &&
+        requestHadRefinementWeights
+      ) {
         const folded = foldRefinementWeights(requested, used);
         const fallbackVocabulary = used;
         try {
@@ -384,7 +362,6 @@ export function DesignedApp({
   }
 
   function scheduleDecision(nextSpec: Spec) {
-    if (demo) return;
     if (requestTimer.current) clearTimeout(requestTimer.current);
     requestTimer.current = setTimeout(() => void runDecision(nextSpec), 300);
   }
@@ -395,10 +372,10 @@ export function DesignedApp({
   }
 
   const answered = hostedDecision !== null;
-  const effectiveSpec = board && lastSentSpec ? lastSentSpec : spec;
+  const effectiveSpec = lastSentSpec ?? spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
   useEffect(() => {
-    if (demo || !answered) return;
+    if (!answered) return;
     questionsAbort.current?.abort();
     const controller = new AbortController();
     questionsAbort.current = controller;
@@ -418,10 +395,10 @@ export function DesignedApp({
     };
     void evaluateQuestionOptions({
       engine: pinned,
-      spec: board ? toBoardDecisionSpec(sendable(effectiveSpec), "none") : toDecisionSpec(sendable(effectiveSpec), "none"),
+      spec: toBoardDecisionSpec(sendable(effectiveSpec), "none"),
       questions: candidates,
       signal: controller.signal,
-      deduplicateConditions: board,
+      deduplicateConditions: true,
       onUpdate: (next) =>
         setHostedQuestions(
           next.map((question) => ({
@@ -440,9 +417,8 @@ export function DesignedApp({
     // `answered`, not the decision: the full explanation replacing the summary
     // must not send every probe again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, board, answered, effectiveSpec, dismissed, vocabulary]);
+  }, [answered, effectiveSpec, dismissed, vocabulary]);
   useEffect(() => {
-    if (demo) return;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
     setVocabState({ kind: "loading" });
@@ -467,7 +443,7 @@ export function DesignedApp({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [demo, vocabAttempt]);
+  }, [vocabAttempt]);
   useEffect(() => {
     if (!vocabulary) return;
     if (initial) {
@@ -475,27 +451,47 @@ export function DesignedApp({
       // Once: a vocabulary reloaded after a deploy must not answer it again.
       if (initialAnswered.current) return;
       initialAnswered.current = true;
-      const restored = board
-        ? boardToSpec(initial.spec, vocabulary, initialBoard?.selections ?? {}, initialBoard?.mustOrder)
-        : initial.spec;
-      setBoardBaseSpec(initial.spec);
+      const legacyBoard = initialBoard ? null : legacySpecToBoard(initial.spec, vocabulary, estate);
+      const restoredBoard = initialBoard
+        ? sanitizeBoardState(initialBoard, vocabulary)
+        : legacyBoard;
+      if (!restoredBoard) {
+        setInitialRestored(true);
+        return;
+      }
+      const restoredBase = legacyBoard ? legacyBoardBaseSpec(initial.spec) : initial.spec;
+      const restored = boardToSpec(
+        restoredBase,
+        vocabulary,
+        restoredBoard.selections,
+        restoredBoard.mustOrder,
+      );
+      setBoardBaseSpec(restoredBase);
+      setBoardSelections(restoredBoard.selections);
+      setBoardMustOrder(restoredBoard.mustOrder);
+      setEstate(restoredBoard.estate);
+      setLegacyNotes(restoredBoard.notes);
       setSpec(restored);
+      setInitialRestored(true);
       void runDecision(restored);
       return;
     }
     const base = realBaseSpec(vocabulary);
-    const initialBase = board ? boardToSpec({ ...base, conds: [] }, vocabulary, {}) : base;
-    if (board) setBoardBaseSpec({ ...base, conds: [] });
+    const emptyBoard = sanitizeBoardState(
+      { selections: {}, mustOrder: [], estate },
+      vocabulary,
+    );
+    const initialBase = boardToSpec({ ...base, conds: [] }, vocabulary, emptyBoard.selections);
+    setBoardBaseSpec({ ...base, conds: [] });
     setSpec((current) => (current === baseSpec ? initialBase : current));
-    if (board && !initial && !initialAnswered.current) {
+    if (!initialAnswered.current) {
       initialAnswered.current = true;
       void runDecision(initialBase);
     }
     // Once per loaded vocabulary; runDecision reads the latest state itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabulary, board]);
+  }, [vocabulary]);
   useEffect(() => {
-    if (!board) return;
     if (
       !vocabulary ||
       estate.providers.length === 0 ||
@@ -586,117 +582,67 @@ export function DesignedApp({
     };
     // The key, not the summary/full response object, owns this request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [board, vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
+  }, [vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
   useEffect(() => {
-    if (!pendingFind || !vocabulary) return;
-    setPendingFind(false);
-    initialAnswered.current = true;
-    find(spec === baseSpec ? realBaseSpec(vocabulary) : spec);
-    // find reads the latest draft and spec itself.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingFind, vocabulary]);
-  useEffect(() => {
-    if (view === "work")
-      history.replaceState(
-        null,
-        "",
-        location.pathname + location.search + (board
-          ? encodeBoardSpec(boardBaseSpec, axis, { selections: boardSelections, mustOrder: boardMustOrder, estate })
-          : encodeSpec(spec, axis)),
-      );
-  }, [spec, axis, view, board, boardBaseSpec, boardSelections, boardMustOrder, estate]);
+    if (!vocabulary || !initialRestored) return;
+    history.replaceState(
+      null,
+      "",
+      location.pathname + location.search + encodeBoardSpec(
+        boardBaseSpec,
+        axis,
+        { selections: boardSelections, mustOrder: boardMustOrder, estate },
+      ),
+    );
+  }, [vocabulary, initialRestored, spec, axis, boardBaseSpec, boardSelections, boardMustOrder, estate]);
   useEffect(() => {
     document.documentElement.dataset.decideTheme = theme;
     return () => {
       delete document.documentElement.dataset.decideTheme;
     };
   }, [theme]);
+  hashNavigation.current = () => {
+    const restored = decodeSpec(location.hash);
+    if (!restored) return;
+    const encodedBoard = decodeBoardState(location.hash);
+    const legacyBoard = !encodedBoard && vocabulary
+      ? legacySpecToBoard(restored.spec, vocabulary, estate)
+      : null;
+    const restoredBoard = encodedBoard && vocabulary
+      ? sanitizeBoardState(encodedBoard, vocabulary)
+      : legacyBoard;
+    const restoredBase = legacyBoard ? legacyBoardBaseSpec(restored.spec) : restored.spec;
+    const nextSpec = vocabulary && restoredBoard
+      ? boardToSpec(restoredBase, vocabulary, restoredBoard.selections, restoredBoard.mustOrder)
+      : restored.spec;
+    setBoardBaseSpec(restoredBase);
+    setBoardSelections(restoredBoard?.selections ?? {});
+    setBoardMustOrder(restoredBoard?.mustOrder ?? []);
+    if (restoredBoard) setEstate(restoredBoard.estate);
+    setLegacyNotes(restoredBoard?.notes ?? []);
+    changeSpec(nextSpec);
+    setAxis(restored.x);
+    setSelected(null);
+  };
   useEffect(() => {
     const esc = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") {
         setShare(false);
         setProvenance(null);
-        setAddOpen(false);
-        setEdit(null);
         provTrigger.current?.focus();
       }
     };
-    const hash = () => {
-      const restored = decodeSpec(location.hash);
-      if (restored) {
-        const restoredBoard = board ? decodeBoardState(location.hash) : null;
-        const nextSpec = board && vocabulary
-          ? boardToSpec(restored.spec, vocabulary, restoredBoard?.selections ?? {}, restoredBoard?.mustOrder)
-          : restored.spec;
-        setBoardBaseSpec(restored.spec);
-        setBoardSelections(restoredBoard?.selections ?? {});
-        setBoardMustOrder(restoredBoard?.mustOrder ?? []);
-        if (restoredBoard) setEstate(restoredBoard.estate);
-        setSpec(nextSpec);
-        setAxis(restored.x);
-        setDraft(restored.spec.task || "");
-        setView("work");
-        setSelected(null);
-      }
-    };
+    const hash = () => hashNavigation.current();
     window.addEventListener("keydown", esc);
     window.addEventListener("hashchange", hash);
     return () => {
       window.removeEventListener("keydown", esc);
       window.removeEventListener("hashchange", hash);
-      if (timer.current) clearTimeout(timer.current);
       if (requestTimer.current) clearTimeout(requestTimer.current);
       requestAbort.current?.abort();
       questionsAbort.current?.abort();
     };
   }, []);
-  /** Parse the draft into `from` (the current spec unless told otherwise) and decide. */
-  function find(from: Spec = spec) {
-    setView("work");
-    setParsing(true);
-    setAddOpen(false);
-    setEdit(null);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      const p: ReturnType<typeof parseTask> & {
-        domain?: string | null;
-        basis?: "estimate" | "benchmark";
-      } = vocabulary
-          ? parseRealTask(vocabulary, draft)
-          : parseTask(draft),
-        keep = from.conds.filter(
-          (c) =>
-            !c.from &&
-            !p.conds.some(
-              (n) =>
-                n.f === c.f &&
-                (n.f !== "bench" || c.f !== "bench" || n.b === c.b),
-            ),
-        );
-      const nextSpec: Spec = {
-        ...from,
-        task: draft,
-        bench: p.bench,
-        ...(p.basis ? { basis: p.basis } : {}),
-        w: p.w,
-        conds: [...p.conds, ...keep],
-        ...(p.domain ? { domain: p.domain } : {}),
-      };
-      setSpec(nextSpec);
-      setTrace(p.trace);
-      setParsing(false);
-      setSelected(null);
-      setAxis(p.bench === "RetrievalEval v2" ? "in$" : "task$");
-      if (!demo && !vocabulary) {
-        // The vocabulary failed or is still loading; its own message says
-        // which, and the task is answered when it arrives.
-        setPendingFind(true);
-        setVocabAttempt((n) => (vocabState.kind === "error" ? n + 1 : n));
-        return;
-      }
-      void runDecision(nextSpec);
-    }, 420);
-  }
   function add(c: Cond) {
     const i = spec.conds.findIndex(
         (x) =>
@@ -720,17 +666,8 @@ export function DesignedApp({
         ),
       });
   }
-  function start(s: Spec) {
-    setSpec(structuredClone(s));
-    setDraft(s.task || "");
-    setView("work");
-    setSelected(null);
-    setTrace([]);
-    setDismissed([]);
-    void runDecision(s);
-  }
   const vocabAlert =
-    !demo && vocabState.kind === "error" ? (
+    vocabState.kind === "error" ? (
       <div role="alert" className="error">
         <div>
           <strong>
@@ -775,18 +712,15 @@ export function DesignedApp({
         <button
           className="brand"
           aria-label="ModelSpec home"
-          onClick={() => setView("arrive")}
+          onClick={() => { window.location.href = "/"; }}
         >
           <BrandMark transparent={theme === "dark"} />
           <span>
             Model<span>Spec</span>
           </span>
         </button>
-        {demo && <span className="sample-badge">Fictional sample data</span>}
         <div className="spacer" />
-        {view === "work" && (
-          decision && <span className="snapshot">{decision.snapshot}</span>
-        )}
+        {decision && <span className="snapshot">{decision.snapshot}</span>}
         <div className="segments" role="group" aria-label="Layout">
           <button
             aria-pressed={layout === "canvas"}
@@ -804,130 +738,18 @@ export function DesignedApp({
         <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </button>
-        {view === "work" && (
-          <>
-            {!demo && !board && (
-              <button className="ink-button" onClick={() => void runDecision(spec)}>
-                Run decision
-              </button>
-            )}
-            <button className="primary" onClick={() => setShare(true)}>
-              Share or act
-            </button>
-          </>
-        )}
+        <button className="primary" onClick={() => setShare(true)}>
+          Share or act
+        </button>
       </header>
-      {view === "arrive" && !board ? (
-        <main className="arrive">
-          <div className="arrival-intro">
-            <div className="eyebrow">Model decision engine</div>
-            <h1>
-              Which AI model fits your task, under your constraints, and why.
-            </h1>
-            <p>
-              Describe the task or set conditions. ModelSpec filters{" "}
-              {demo
-                ? `${catalogue.models.length} models across ${catalogue.offerings} provider offerings`
-                : "models in the current snapshot"}
-              , ranks what is left on evidence, and shows the source of every
-              number. Independent measurements sit next to lab claims.
-            </p>
-          </div>
-          <div className="task-box">
-            <label htmlFor="task" className="eyebrow">
-              Describe your task
-            </label>
-            <textarea
-              id="task"
-              rows={2}
-              value={draft}
-              onChange={(ev) => setDraft(ev.target.value)}
-              onKeyDown={(ev) => {
-                if (ev.key === "Enter" && !ev.shiftKey) {
-                  ev.preventDefault();
-                  find();
-                }
-              }}
-            />
-            <div>
-              <span>
-                A small classifier turns this into conditions you can see and
-                edit. There is no chat.
-              </span>
-              <button className="primary" onClick={() => find()}>
-                Find models ↵
-              </button>
-            </div>
-          </div>
+      <main className="work">
           {vocabAlert}
-          {!demo && vocabState.kind === "loading" && (
+          {vocabState.kind === "loading" && (
             <div role="status" aria-busy="true" className="loading">
               <span>Loading what the current snapshot can answer…</span>
             </div>
           )}
-          <div>
-            <div className="eyebrow">Or start from a template</div>
-            <div className="templates">
-              {(demo ? templates : liveTemplates).map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => start({ ...t.spec, task: t.task })}
-                >
-                  <strong>{t.name}</strong>
-                  <span>{t.task}</span>
-                  <div className="mini-chips">
-                    {t.spec.conds
-                      .filter((c) => c.f !== "active")
-                      .map((c, i) => (
-                        <span key={i}>{vocab.label(c)}</span>
-                      ))}
-                  </div>
-                  <footer>
-                    {demo && "counts" in t ? (
-                      <>
-                        <strong>{t.counts.feasible.length}</strong> qualify{" "}
-                        <span className="warn">
-                          {t.counts.may.length
-                            ? "+ " + t.counts.may.length + " may qualify"
-                            : ""}
-                        </span>
-                      </>
-                    ) : (
-                      <span>{"ranks" in t ? t.ranks : "Counts load from the current snapshot"}</span>
-                    )}
-                  </footer>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="start-constraints">
-            Or{" "}
-            <button
-              className="link"
-              onClick={() => {
-                start(vocabulary ? realBaseSpec(vocabulary) : baseSpec);
-                setAddOpen(true);
-              }}
-            >
-              start from constraints
-            </button>{" "}
-            and add conditions one at a time.
-          </div>
-        </main>
-      ) : (
-        <main className="work">
-          {parsing && !decision && demo && (
-            <div role="status" aria-busy="true" className="loading">
-              <span>Reading your task…</span>
-            </div>
-          )}
-          {vocabAlert}
-          {!demo && vocabState.kind === "loading" && (
-            <div role="status" aria-busy="true" className="loading">
-              <span>Loading what the current snapshot can answer…</span>
-            </div>
-          )}
-          {board && vocabulary ? <FacetBoard
+          {vocabulary && <FacetBoard
             vocabulary={vocabulary}
             spec={boardBaseSpec}
             onSpec={changeSpec}
@@ -939,6 +761,8 @@ export function DesignedApp({
             onEstate={setEstate}
             fit={decision?.explanation.feasible.length}
             may={decision?.explanation.may.length}
+            notes={legacyNotes}
+            onNotes={setLegacyNotes}
             refinementFallbackKeys={refinementFallbackKeys}
             answer={decision ? <>
               <Field
@@ -952,7 +776,7 @@ export function DesignedApp({
               />
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                <small className="board-tied-note">Tied-group answer: coming (MODEL-170)</small>
+                <small className="board-tied-note">Tied groups are summarized in the ranked list.</small>
                 {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 }))}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
               </section>
               {estate.providers.length > 0 && estateDecision
@@ -962,26 +786,6 @@ export function DesignedApp({
                   </div>
                 : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} />}
             </> : <section className="panel board-answer-loading" aria-live="polite">The live answer will appear here.</section>}
-          /> : (decision || !demo) && <SpecPanel
-            spec={shownSpec}
-            decision={decision}
-            issues={placed}
-            draft={draft}
-            onDraft={setDraft}
-            onParse={() => find()}
-            onSpec={changeSpec}
-            parsing={parsing}
-            trace={trace}
-            addOpen={addOpen}
-            setAddOpen={setAddOpen}
-            edit={edit}
-            setEdit={setEdit}
-          />}
-          {!board && decision && <Field
-            decision={decision}
-            spec={shownSpec}
-            onAdd={add}
-            onDismiss={(id) => setDismissed([...dismissed, id])}
           />}
           {error ? (
             <div role="alert" className="error">
@@ -1002,7 +806,7 @@ export function DesignedApp({
                 className="ink-button"
                 onClick={() => {
                   setRetried(true);
-                  if (!demo) void runDecision(spec);
+                  void runDecision(spec);
                 }}
               >
                 Retry
@@ -1014,9 +818,7 @@ export function DesignedApp({
                 <span className="skeleton" />
                 <div className="skeleton" />
                 <p>
-                  {demo
-                    ? `${catalogue.models.length} models, ${catalogue.offerings} offerings`
-                    : "Running decision against the current snapshot"}
+                  Running decision against the current snapshot
                 </p>
               </div>
               <div className="loading-cards">
@@ -1040,13 +842,8 @@ export function DesignedApp({
                 onSelect={setSelected}
                 onRelax={relax}
                 compact={layout === "table"}
+                boardRanked={boardRanked}
               />
-              {!board && <Shortlist
-                decision={decision}
-                spec={shownSpec}
-                selected={selectedId}
-                onSelect={setSelected}
-              />}
               <DecisionTable
                 decision={decision}
                 spec={shownSpec}
@@ -1057,7 +854,6 @@ export function DesignedApp({
                 decision={decision}
                 spec={shownSpec}
                 row={row}
-                onSpec={changeSpec}
                 onRelax={relax}
                 details={requestState.kind === "success" ? requestState.details : "ready"}
                 onProvenance={(ev) => {
@@ -1081,15 +877,16 @@ export function DesignedApp({
                     ),
                   });
                 }}
+                boardRanked={boardRanked}
               />
             </div>
             </>
           ) : null}
-        </main>
-      )}
+      </main>
       <footer className="site-footer" aria-label="About ModelSpec">
         <span>ModelSpec is neutral: no referral fees, no paid placement.</span>
         <nav aria-label="Legal and API">
+          <a href="/pricing/">Pricing</a>
           <a href="/legal/neutrality/">Neutrality</a>
           <a href="/legal/terms/">Terms</a>
           <a href="/legal/privacy/">Privacy</a>
@@ -1150,21 +947,20 @@ export function DesignedApp({
               </div>
             ))}
           </dl>
-          {demo && <small>Fictional sample evidence</small>}
         </div>
       )}
       {share && (
         <Share
-          spec={board && lastSentSpec ? lastSentSpec : shownSpec}
+          spec={lastSentSpec ?? shownSpec}
           snapshot={decision?.snapshot ?? "latest"}
           axis={shownAxis}
           row={row}
-          demo={demo}
-          refinementsFolded={board && refinementFallbackKeys.size > 0}
-          boardPermalink={board ? {
+          demo={false}
+          refinementsFolded={refinementFallbackKeys.size > 0}
+          boardPermalink={{
             spec: boardBaseSpec,
             state: { selections: boardSelections, mustOrder: boardMustOrder, estate },
-          } : undefined}
+          }}
           onClose={() => setShare(false)}
         />
       )}
@@ -1173,14 +969,6 @@ export function DesignedApp({
   );
 }
 
-export function DemoApp(props: { simulate?: "loading" | "error" | "none" }) {
-  return <DesignedApp demo {...props} />;
-}
-
 export default function App(props: { simulate?: "loading" | "error" | "none" }) {
-  return new URLSearchParams(location.search).get("demo") === "1" ? (
-    <DemoApp {...props} />
-  ) : (
-    <DesignedApp demo={false} board={import.meta.env.MODE !== "test" && showsFacetBoard(location.hostname)} {...props} />
-  );
+  return <DesignedApp {...props} />;
 }

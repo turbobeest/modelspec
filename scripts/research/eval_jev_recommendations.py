@@ -15,8 +15,6 @@ import gzip
 import hashlib
 import json
 import os
-import subprocess
-import tempfile
 import threading
 import time
 from collections import Counter, defaultdict
@@ -500,16 +498,30 @@ def blind_attribution_cases() -> list[Case]:
 
 
 def _claims_and_latest() -> tuple[dict[str, dict], dict[str, dict]]:
+    frozen_payload = yaml.safe_load(FROZEN_SOURCE_EXCERPTS.read_text(encoding="utf-8"))
+    frozen_refs = {row["snapshot_ref"] for row in frozen_payload["excerpts"]}
+    frozen_as_of = max(row["retrieved_at"] for row in frozen_payload["excerpts"])
     claims: dict[str, dict] = {}
     queue = ROOT / "verification/queue/events.jsonl"
     for line in queue.read_text(encoding="utf-8").splitlines():
         row = json.loads(line)
         if claim := row.get("claim"):
             target = claim["target"]
-            claims[f"{target['kind']}:{target['id']}"] = claim
+            key = f"{target['kind']}:{target['id']}"
+            refs = {source["snapshot_ref"] for source in claim["sources"]}
+            old_refs = {
+                source["snapshot_ref"] for source in claims.get(key, {}).get("sources", [])
+            }
+            # This study is a frozen rerun. A weekly refresh may append a newer
+            # claim for the same evidence ID, but its retained copy is not one of
+            # the licensed inputs the published study used.
+            if key not in claims or refs <= frozen_refs or not old_refs <= frozen_refs:
+                claims[key] = claim
     latest: dict[str, dict] = {}
     for line in (ROOT / "verification/log.jsonl").read_text(encoding="utf-8").splitlines():
         row = json.loads(line)
+        if row["date"] > frozen_as_of:
+            continue
         target = row["target"]
         key = f"{target['kind']}:{target['id']}"
         old = latest.get(key)
@@ -627,66 +639,6 @@ def case_input_fingerprint(cases: list[Case]) -> str:
     ]
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     return f"sha256:{hashlib.sha256(canonical).hexdigest()}"
-
-
-def parse_real_task_baseline(cases: list[Case]) -> list[dict[str, Any]]:
-    tasks = [c for c in cases if c.candidate in {"task_routing", "task_routing_blind"}]
-    payload = {
-        "vocabulary": str(VOCABULARY),
-        "tasks": [{"id": c.id, "text": c.state["task"]} for c in tasks],
-    }
-    with tempfile.TemporaryDirectory(dir=None) as temporary:
-        input_path = Path(temporary) / "task-input.json"
-        output_path = Path(temporary) / "task-output.json"
-        input_path.write_text(json.dumps(payload), encoding="utf-8")
-        env = os.environ.copy()
-        env["MODELSPEC_JEV_TASK_INPUT"] = str(input_path)
-        env["MODELSPEC_JEV_TASK_OUTPUT"] = str(output_path)
-        subprocess.run(
-            [
-                str(ROOT / "web/node_modules/.bin/vitest"),
-                "run",
-                "src/decide/__tests__/research-task-parser.test.ts",
-            ],
-            cwd=ROOT / "web",
-            env=env,
-            text=True,
-            capture_output=True,
-            check=True,
-        )
-        parsed_rows = json.loads(output_path.read_text(encoding="utf-8"))
-    parsed = {row["id"]: row for row in parsed_rows}
-    rows = []
-    for case in tasks:
-        found = parsed[case.id]
-        actual = {
-            "domain": found["domain"],
-            "class": found["class"],
-            **{
-                key: key.removeprefix("condition_") in found["conditions"]
-                for key in case.expected
-                if key.startswith("condition_")
-            },
-        }
-        rows.append(
-            {
-                "record": "item",
-                "candidate": case.candidate,
-                "arm": "parseRealTask",
-                "case_id": case.id,
-                "correct": actual == case.expected,
-                "expected": case.expected,
-                "actual": actual,
-                "latency_ms": found["latency_ms"],
-                "tokens_in": 0,
-                "tokens_out": 0,
-                "cost_usd": 0.0,
-                "band": "act",
-                "source_url": case.source_url,
-                "source_read_date": case.source_read_date,
-            }
-        )
-    return rows
 
 
 def llm_body(case: Case, model: str) -> dict[str, Any]:
@@ -807,7 +759,6 @@ def run(args: argparse.Namespace) -> None:
             raise SystemExit(f"unknown candidates: {', '.join(sorted(unknown))}")
         cases = [case for case in cases if case.candidate in selected]
         include_tuned_attribution = "creator_attribution_tuned" in selected
-    parser_rows = parse_real_task_baseline(cases)
     attribution_rows = published_attribution_rows(labels) if include_tuned_attribution else []
     for row in attribution_rows:
         row["candidate"] = "creator_attribution_tuned"
@@ -926,10 +877,8 @@ def run(args: argparse.Namespace) -> None:
         futures = [pool.submit(ask, case, arm) for arm in (jev, baseline) for case in cases]
         for future in futures:
             future.result()
-    rows = (
-        parser_rows
-        + attribution_rows
-        + sorted(paid_rows, key=lambda row: (row["arm"], row["candidate"], row["case_id"]))
+    rows = attribution_rows + sorted(
+        paid_rows, key=lambda row: (row["arm"], row["candidate"], row["case_id"])
     )
     summary = {
         "record": "summary",

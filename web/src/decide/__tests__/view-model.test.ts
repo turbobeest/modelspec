@@ -153,6 +153,91 @@ describe("the hosted Decision view-model mapper", () => {
     expect(view.explanation.insep(view.explanation.feasible[0]).length).toBeGreaterThan(0);
   });
 
+  it("plots unranked domain estimates and keeps decision models off the default frontier", () => {
+    const estimated = decisionSchema.parse({
+      ...fixture,
+      contract_version: "1.7",
+      top: fixture.top.map((candidate, index) => index === 0 ? {
+        ...candidate,
+        facts: candidate.facts.map((fact) => fact.facet === "model.class"
+          ? { ...fact, value: "decider" }
+          : fact),
+      } : candidate),
+      results: fixture.results.map((result, index) => ({
+        ...result,
+        estimates: [{
+          domain: "software_engineering",
+          value: 2 - index * 0.2,
+          interval: [1.6 - index * 0.2, 2.4 - index * 0.2],
+          harness: null,
+          effort: null,
+        }],
+      })),
+    });
+    const modelClasses = Object.fromEntries(
+      fixture.results.map((result) => [result.offering.model, {
+        display_name: null,
+        lab: "lab",
+        lab_name: null,
+        class: "text-generator",
+      }]),
+    );
+    const view = mapDecisionToViewModel(estimated, {
+      ...baseSpec,
+      bench: "quality",
+      domain: "software_engineering",
+      basis: "estimate",
+      boardWeights: {},
+    }, {
+      axis: "task$",
+      dismissed: [],
+      models: modelClasses,
+    });
+
+    expect(view.explanation.feasible.every((row) => row.cap !== null)).toBe(true);
+    expect(view.explanation.feasible[0].capR?.ci).toBeCloseTo(0.4);
+    expect(view.canvas_rows).toHaveLength(view.explanation.feasible.length - 1);
+    expect(view.frontier.some((row) => row.m.type === "decision")).toBe(false);
+    expect(view.canvas_class_excluded).toHaveLength(1);
+    expect(view.canvas_class_excluded[0].m.type).toBe("decision");
+    expect(view.not_plotted["task$"]).toEqual(["lab/delta"]);
+  });
+
+  it.each([
+    ["decider", "decision"],
+    ["vectoriser", "embed"],
+  ] as const)("plots the %s class selected by a model.class Must", (modelClass, type) => {
+    const classified = decisionSchema.parse({
+      ...fixture,
+      top: fixture.top.map((candidate) => ({
+        ...candidate,
+        facts: candidate.facts.map((fact) => fact.facet === "model.class"
+          ? { ...fact, value: modelClass }
+          : fact),
+      })),
+    });
+    const view = mapDecisionToViewModel(classified, {
+      ...baseSpec,
+      bench: "quality",
+      conds: [{ f: "facet", facet: "model.class", op: "=", value: modelClass }],
+      boardWeights: {},
+    }, {
+      axis: "task$",
+      dismissed: [],
+      models: Object.fromEntries(fixture.results.map((result) => [result.offering.model, {
+        display_name: null,
+        lab: "lab",
+        lab_name: null,
+        class: modelClass,
+      }])),
+    });
+
+    expect(view.canvas_rows).toHaveLength(view.explanation.feasible.length);
+    expect(view.canvas_rows.every((row) => row.m.type === type)).toBe(true);
+    expect(view.frontier.length).toBeGreaterThan(0);
+    expect(view.frontier.every((row) => row.m.type === type)).toBe(true);
+  });
+
   it("keeps an explicit benchmark drill-down on that benchmark", () => {
     const estimated = decisionSchema.parse({
       ...fixture,

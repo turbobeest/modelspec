@@ -3128,6 +3128,16 @@ sources:
     locator:
       kind: page
       value: ''
+- id: model-192-finance-benchmark-v2
+  volatility: live
+  url: https://finbenchmark.ai/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
 - id: openai-data
   url: https://platform.openai.com/docs/models/default-usage-policies-by-endpoint
   fetch: conditional_http

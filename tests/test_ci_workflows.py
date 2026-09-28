@@ -41,6 +41,14 @@ def test_pytest_workflow_runs_the_test_command_without_masking_it() -> None:
     assert "2>/dev/null" not in workflow
 
 
+def test_pytest_workflow_validates_every_github_workflow() -> None:
+    workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")
+
+    assert "rhysd/actionlint:1.7.7" in workflow
+    assert "-shellcheck=" in workflow
+    assert " -color" in workflow
+
+
 def test_required_check_job_names_match_branch_protection() -> None:
     """Main requires these exact check names (GitHub Actions app 15368)."""
     test_workflow = (WORKFLOWS / "test.yml").read_text(encoding="utf-8")

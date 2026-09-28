@@ -1,0 +1,11 @@
+{
+  "rows": [
+    {
+      "model": {"name": "Fixture/Embedding-Model"},
+      "meanTask": 0.7598,
+      "scoresByTaskType": {
+        "Retrieval": 0.7000
+      }
+    }
+  ]
+}
