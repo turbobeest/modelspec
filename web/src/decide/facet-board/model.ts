@@ -329,10 +329,12 @@ export function allocateBoardWeights(
     refinementsByParent.set(refinement.parent_domain, siblings);
   }
   for (const [parentDomain, refinements] of refinementsByParent) {
+    const parentChoice = selections[`capability.${parentDomain}`];
+    const parentActive = parentChoice?.mode === "must" || parentChoice?.mode === "prefer" || parentChoice?.mode === "both";
+    if (!parentActive) continue;
     const active = refinements.filter((refinement) =>
       selections[refinementSelectionId(refinement.id)]?.mode === "prefer",
     );
-    const parentChoice = selections[`capability.${parentDomain}`];
     const parentRanks = parentChoice?.mode === "prefer" || parentChoice?.mode === "both";
     const parentWeight = parentRanks ? parentChoice.weight ?? 0.5 : null;
     const requested = active.map((refinement) => ({

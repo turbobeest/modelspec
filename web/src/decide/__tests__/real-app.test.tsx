@@ -887,3 +887,59 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(vocabularyLoads).toBe(2);
 });
+
+it("folds a rejected refinement with the vocabulary installed after a snapshot change", async () => {
+  const fresh = {
+    ...refinementVocabulary,
+    snapshot: "snap_after_deploy",
+    refinements: refinementVocabulary.refinements?.map((row) => row.id === "python"
+      ? { ...row, parent_domain: "engineering_stem" }
+      : row),
+  };
+  let vocabularyLoads = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabularyLoads++ === 0 ? refinementVocabulary : fresh),
+    decide: (init) => {
+      const snapshot = new Headers(init?.headers).get("x-modelspec-snapshot");
+      const sent = JSON.parse(String(init?.body));
+      if (snapshot === refinementVocabulary.snapshot && "software_engineering/python" in sent.optimize.weights)
+        return json({ error: { code: "snapshot_changed", message: "reload the vocabulary and retry" } }, 409);
+      if ("software_engineering/python" in sent.optimize.weights)
+        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+      return json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(software).getByLabelText("Prefer"));
+  await waitFor(() => expect(sentSpecs(fetch).some((spec) =>
+    spec.explain === "summary" && spec.optimize.weights.software_engineering === 0.5,
+  )).toBe(true));
+  fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+  const callsBeforeRefinement = fetch.mock.calls.length;
+  fireEvent.click(within(within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!).getByLabelText("Prefer"));
+
+  const refinementSummaries = () => fetch.mock.calls.slice(callsBeforeRefinement).filter(([url, init]) =>
+    url !== VOCABULARY_URL && JSON.parse(String(init?.body)).explain === "summary" && (() => {
+      const weights = JSON.parse(String(init?.body)).optimize.weights;
+      return "software_engineering/python" in weights || "engineering_stem" in weights;
+    })(),
+  );
+  await waitFor(() => expect(refinementSummaries()).toHaveLength(3));
+  const summaries = refinementSummaries();
+  expect(summaries.map(([, init]) => ({
+    snapshot: new Headers(init?.headers).get("x-modelspec-snapshot"),
+    weights: JSON.parse(String(init?.body)).optimize.weights,
+  }))).toEqual([
+    { snapshot: refinementVocabulary.snapshot, weights: { software_engineering: 0.25, "software_engineering/python": 0.25 } },
+    { snapshot: fresh.snapshot, weights: { software_engineering: 0.25, "software_engineering/python": 0.25 } },
+    { snapshot: fresh.snapshot, weights: { software_engineering: 0.25, engineering_stem: 0.25 } },
+  ]);
+  expect(JSON.parse(String(summaries[1][1]?.body)).optimize.weights)
+    .toHaveProperty("software_engineering/python");
+  expect(JSON.parse(String(summaries[2][1]?.body)).optimize.weights)
+    .toEqual({ software_engineering: 0.25, engineering_stem: 0.25 });
+  expect(vocabularyLoads).toBe(2);
+});

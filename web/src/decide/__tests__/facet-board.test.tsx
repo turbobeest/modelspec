@@ -130,6 +130,31 @@ describe("refinements", () => {
     });
   });
 
+  it.each(["prefer", "must"] as const)("keeps a saved refinement dormant while its %s parent is off", (parentMode) => {
+    const active: BoardSelections = {
+      "capability.software_engineering": { mode: parentMode, weight: 0.6 },
+      "refinement.python": { mode: "prefer", weight: 0.25 },
+    };
+    expect(allocateBoardWeights(refinementVocabulary, active).weights)
+      .toHaveProperty("software_engineering/python", 0.25);
+
+    const dormant = {
+      ...active,
+      "capability.software_engineering": { ...active["capability.software_engineering"], mode: "off" as const },
+    };
+    const dormantAllocation = allocateBoardWeights(refinementVocabulary, dormant);
+    expect(dormantAllocation.weights).not.toHaveProperty("software_engineering/python");
+    expect(dormantAllocation.refinements).not.toHaveProperty("refinement.python");
+    expect(dormantAllocation.selections["refinement.python"]).toEqual({ mode: "prefer", weight: 0.25 });
+
+    const restored = {
+      ...dormantAllocation.selections,
+      "capability.software_engineering": active["capability.software_engineering"],
+    };
+    expect(allocateBoardWeights(refinementVocabulary, restored).weights)
+      .toHaveProperty("software_engineering/python", 0.25);
+  });
+
   it.each([
     { refinements: [["python", 0.4], ["bug_fix", 0.4]] },
     { refinements: [["python", 0.3], ["bug_fix", 0.3], ["new_feature", 0.3]] },

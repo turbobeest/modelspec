@@ -295,6 +295,11 @@ export function DesignedApp({
     let used = vocabulary,
       reloaded = false,
       nextSpec: Spec;
+    const installReloadedVocabulary = (fresh: Vocabulary) => {
+      used = fresh;
+      reloaded = true;
+      setVocabState({ kind: "ready", vocabulary: fresh });
+    };
     try {
       // Summary first: it is small and answers well inside the Worker's limits,
       // so the ranking draws at once. The full explanation and the probes
@@ -304,12 +309,12 @@ export function DesignedApp({
         vocabulary,
         (current) => ask(current, "summary"),
         reloadVocabulary,
+        installReloadedVocabulary,
       );
       if (controller.signal.aborted) return;
       used = answer.vocabulary;
       reloaded = used !== vocabulary;
       nextSpec = answer.result.nextSpec;
-      if (used && reloaded) setVocabState({ kind: "ready", vocabulary: used });
       setHostedDecision(answer.result.decision);
       setLastSentSpec(nextSpec);
       setRefinementFallbackKeys(new Set());
@@ -326,16 +331,18 @@ export function DesignedApp({
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
       if (controller.signal.aborted) return;
-      if (board && vocabulary && cause instanceof DecideApiError && cause.status === 400 && cause.code === "refinement_not_rankable_yet") {
-        const folded = foldRefinementWeights(requested, vocabulary);
+      if (board && used && cause instanceof DecideApiError && cause.status === 400 && cause.code === "refinement_not_rankable_yet") {
+        const folded = foldRefinementWeights(requested, used);
+        const fallbackVocabulary = used;
         try {
-          const answer = await retryOnSnapshotChange(vocabulary, (current) => ask(current, "summary", folded), reloadVocabulary);
+          const answer = await retryOnSnapshotChange(fallbackVocabulary, (current) => ask(current, "summary", folded), reloadVocabulary, installReloadedVocabulary);
           if (controller.signal.aborted) return;
-          used = answer.vocabulary;
+          const effectiveVocabulary = answer.vocabulary ?? fallbackVocabulary;
+          used = effectiveVocabulary;
           nextSpec = answer.result.nextSpec;
           setHostedDecision(answer.result.decision);
-          setHostedQuestions(used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec));
-          setRefinementFallbackKeys(refinementWeightKeys(vocabulary));
+          setHostedQuestions(realQuestions(effectiveVocabulary, nextSpec, dismissed));
+          setRefinementFallbackKeys(refinementWeightKeys(effectiveVocabulary));
           setLastSentSpec(nextSpec);
           setEstateRequest((current) => ({
             kind: "idle",
