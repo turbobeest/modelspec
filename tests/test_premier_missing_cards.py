@@ -75,9 +75,12 @@ def test_model_161_large_open_models_do_not_fit_an_rtx_4090(rel, parameters) -> 
 
     assert facts["model.parameters_total"]["value"] == parameters
     assert facts["model.parameters_total"]["state"] == "known"
-    assert facts["model.fits_hardware"]["value"] == []
+    assert "nvidia_rtx_4090" not in facts["model.fits_hardware"]["value"]
     assert facts["model.fits_hardware"]["state"] == "known"
-    assert len(facts["model.fits_hardware"]["sources"]) == 2
+    assert len(facts["model.fits_hardware"]["sources"]) == 1
+    source = facts["model.fits_hardware"]["sources"][0]
+    assert source["source_id"].endswith("-hardware-fit")
+    assert source["cited_regions"] == ["rows"]
 
 
 def test_model_161_qwen_is_eliminated_from_q17() -> None:

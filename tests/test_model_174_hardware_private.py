@@ -18,7 +18,6 @@ from decision.vocabulary import build_vocabulary
 from pipeline.hardware import WORKING_ALLOWANCE, load_devices
 from tests.snapshot_records import FactValue, loaded_index
 
-
 ROOT = Path(__file__).parents[1]
 
 
@@ -30,7 +29,7 @@ def repo_snapshot():
         premier=load_premier(ROOT / "premier/slice-1.yaml"),
         gate=False,
     )
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    return load_snapshot_bytes(built.to_bytes(key=None), key=None, public_keys={})
 
 
 def test_fit_computation_records_quantisation_formula_and_inputs() -> None:
