@@ -23,6 +23,7 @@ export interface BoardTemplateState {
 }
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
 export interface BoardUrlState { selections: BoardSelections; mustOrder: string[]; estate: Estate }
+export interface LegacyBoardState extends BoardUrlState { notes: string[] }
 
 const UNRANKED_OBJECTIVE = { "-offering.cost_per_task": 1 };
 
@@ -44,15 +45,6 @@ const boardUrlSchema = z.object({
     providers: z.array(z.string()), plans: z.array(z.string()), hardware: z.array(z.string()),
   }),
 });
-
-const PREVIEW_HOSTS = new Set([
-  "internal.modelspec-7np.pages.dev",
-  "localhost",
-  "127.0.0.1",
-]);
-
-/** Fail-safe runtime launch gate: unknown and empty hosts always get production. */
-export const showsFacetBoard = (hostname: string): boolean => PREVIEW_HOSTS.has(hostname);
 
 const GROUPS: Readonly<Record<string, string>> = {
   "model.class": "What it does",
@@ -416,6 +408,103 @@ export function decodeBoardState(hash: string): BoardUrlState | null {
   } catch {
     return null;
   }
+}
+
+const LEGACY_CLASS: Readonly<Record<string, string>> = {
+  llm: "text-generator",
+  embed: "vectoriser",
+  rerank: "orderer",
+  vision: "analyser",
+  speech: "transcriber",
+  decision: "decider",
+};
+
+function legacyConditionSelection(condition: Cond): { facetId: string; selection: FacetSelection } | null {
+  if (condition.soft) return null;
+  switch (condition.f) {
+    case "type":
+      return { facetId: "model.class", selection: { mode: "must", op: "=", value: LEGACY_CLASS[condition.v] } };
+    case "active":
+      return { facetId: "model.lifecycle", selection: { mode: "must", op: "=", value: "active" } };
+    case "ctx":
+      return { facetId: "model.context_window", selection: { mode: "must", op: ">=", value: condition.min } };
+    case "open":
+      return { facetId: "model.weights_openness", selection: { mode: "must", op: condition.v ? "=" : "!=", value: "open_weights" } };
+    case "commercial":
+      return { facetId: "licence.commercial_use", selection: { mode: "must", op: "in", value: ["permitted", "permitted_with_conditions"] } };
+    case "task$":
+      return { facetId: "offering.cost_per_task", selection: { mode: "must", op: "<=", value: condition.max } };
+    case "in$":
+      return { facetId: "offering.price.input", selection: { mode: "must", op: "<=", value: condition.max } };
+    case "resid":
+      return { facetId: "offering.region", selection: { mode: "must", op: "in", value: [condition.v] } };
+    case "ret0":
+      return { facetId: "offering.data.zero_retention", selection: { mode: "must", op: "=", value: true } };
+    case "ttft":
+      return { facetId: "offering.speed.time_to_first_token", selection: { mode: "must", op: "<=", value: condition.max } };
+    case "tps":
+      return { facetId: "offering.speed.throughput", selection: { mode: "must", op: ">=", value: condition.min } };
+    case "origin":
+      return { facetId: "origin.lab_jurisdiction", selection: { mode: "must", op: "not in", value: condition.ex } };
+    case "facet":
+      return { facetId: condition.facet, selection: { mode: "must", op: condition.op, value: condition.value } };
+    case "bench":
+    case "rel":
+      return null;
+  }
+}
+
+/** Translate a permalink written by the retired composer into visible board state. */
+export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Estate): LegacyBoardState {
+  const knownFacets = new Set([
+    ...vocabulary.facets.map((facet) => facet.id),
+    ...vocabulary.domains.map((domain) => `capability.${domain.id}`),
+  ]);
+  const selections: BoardSelections = {};
+  const mustOrder: string[] = [];
+  const notes: string[] = [];
+  for (const condition of spec.conds) {
+    const mapped = legacyConditionSelection(condition);
+    if (mapped && knownFacets.has(mapped.facetId)) {
+      selections[mapped.facetId] = mapped.selection;
+      mustOrder.push(mapped.facetId);
+      continue;
+    }
+    if (condition.soft)
+      notes.push(`Soft condition retained but not editable on the board: ${contractCondition(condition)}.`);
+    else if (condition.f === "bench")
+      notes.push(`Single-benchmark floor retained but not editable on the board: ${contractCondition(condition)}.`);
+    else if (condition.f === "rel")
+      notes.push(`Relative-model condition retained but not editable on the board: ${contractCondition(condition)}.`);
+    else
+      notes.push(`Condition retained but not editable on the board: ${contractCondition(condition)}.`);
+  }
+  const addPreference = (facetId: string, weightKey: string, weight: number) => {
+    if (weight <= 0 || !knownFacets.has(facetId)) return false;
+    const current = selections[facetId];
+    selections[facetId] = {
+      ...current,
+      mode: current?.mode === "must" ? "both" : "prefer",
+      weight,
+      weightKey,
+    };
+    return true;
+  };
+  if (spec.w.cap > 0) {
+    const facetId = spec.domain ? `capability.${spec.domain}` : null;
+    if (!facetId || !addPreference(facetId, spec.domain ?? spec.bench, spec.w.cap))
+      notes.push(`Capability preference retained from ${spec.bench}, but this link does not identify a board domain.`);
+    else if (spec.basis === "benchmark")
+      notes.push(`The board shows the ${spec.domain?.replaceAll("_", " ")} domain preference; the old link's single-benchmark basis is retained but is not editable here.`);
+  }
+  addPreference("offering.cost_per_task", "-offering.cost_per_task", spec.w.cost);
+  if (!addPreference("offering.speed.throughput", "offering.speed.throughput", spec.w.speed) && spec.w.speed > 0)
+    notes.push("The throughput preference is retained, but this snapshot does not expose an editable speed facet.");
+  if (spec.task?.trim())
+    notes.push("The old task description remains in this link for provenance. The board does not interpret free text.");
+  if (spec.bar !== undefined)
+    notes.push("The old shortlist threshold is retained in the link but has no board control.");
+  return { selections, mustOrder: [...new Set(mustOrder)], estate, notes };
 }
 
 export function estateSpec(spec: Spec, providers: string[]): Spec {

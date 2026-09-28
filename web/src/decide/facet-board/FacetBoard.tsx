@@ -36,7 +36,9 @@ function ValueControl({ facet, choice, onChange }: {
     </div>
   );
   const selected = value === undefined ? [] : Array.isArray(value) ? value.map(String) : [String(value)];
-  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{facet.values?.map((item) => {
+  const listed = new Set(facet.values?.map((item) => String(item.value)) ?? []);
+  const legacyValues = selected.filter((item) => !listed.has(item));
+  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{legacyValues.map((item) => <label key={`legacy-${item}`}><input type="checkbox" checked readOnly />{item} (from older link)</label>)}{facet.values?.map((item) => {
     const checked = selected.includes(String(item.value));
     return <label key={String(item.value)}><input type="checkbox" checked={checked} onChange={() => {
       const values = checked ? selected.filter((v) => v !== String(item.value)) : [...selected, String(item.value)];
@@ -111,7 +113,7 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
       <div className="facet-state" role="radiogroup" aria-label={`State for ${facet.label}`}>
         <label><input type="radio" name={`state-${facet.id}`} checked={choice.mode === "off"} onChange={() => setMode("off")} />Doesn't matter</label>
         <label><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={must && !prefer} onChange={() => setMode("must")} />Must</label>
-        <label title={!preference ? "coming (MODEL-172)" : undefined}><input type="radio" name={`state-${facet.id}`} disabled={unavailable || !preference} checked={prefer} onChange={() => setMode("prefer")} />Prefer</label>
+        <label title={!preference ? "Preference is not available for this facet yet" : undefined}><input type="radio" name={`state-${facet.id}`} disabled={unavailable || !preference} checked={prefer} onChange={() => setMode("prefer")} />Prefer</label>
       </div>
       {unavailable && <small>Not yet tracked; Must and Prefer are unavailable.</small>}
       {(must || prefer) && !unavailable && <div className="facet-settings">
@@ -119,7 +121,7 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
         {prefer && <label>Weight <input aria-label={`Weight for ${facet.label}`} type="range" min="0.05" max="1" step="0.05" value={choice.weight ?? 0.5} onChange={(event) => onChange({ ...choice, weight: Number(event.target.value) })} />{(choice.weight ?? 0.5).toFixed(2)}</label>}
         {prefer && ["number", "date"].includes(facet.value_type) && <label><input type="checkbox" checked={choice.mode === "both"} onChange={(event) => setMode(event.target.checked ? "both" : "prefer")} />and never worse than…</label>}
       </div>}
-      {facet.id.startsWith("capability.") && <details className="benchmarks"><summary>Benchmarks</summary><p>Benchmark switches: coming (MODEL-171)</p></details>}
+      {facet.id.startsWith("capability.") && <details className="benchmarks"><summary>Benchmarks</summary><p>Benchmark switches are coming soon.</p></details>}
       {facet.id.startsWith("capability.") && choice.mode !== "off" && refinements.length > 0 && <Refinements rows={refinements} selections={selections} parent={choice} fallbackKeys={fallbackKeys} onChange={onRefinementChange} />}
     </div>
   </div>;
@@ -130,11 +132,11 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   return <section className="estate-strip" aria-label="My estate"><span className="eyebrow">My estate</span>
     <div>{estate.providers.map((provider) => <button key={provider} onClick={() => update({ ...estate, providers: estate.providers.filter((item) => item !== provider) })}>{vocabulary.providers[provider] ?? provider} ×</button>)}
       <label>+ provider <select aria-label="Add provider" value="" onChange={(event) => event.target.value && update({ ...estate, providers: [...new Set([...estate.providers, event.target.value])] })}><option value="">Choose…</option>{Object.entries(vocabulary.providers).filter(([id]) => !estate.providers.includes(id)).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-    </div><div><button onClick={() => update({ ...estate, plans: [...estate.plans, "Plan"] })}>+ plan</button> <small>coming (MODEL-173)</small> <button onClick={() => update({ ...estate, hardware: [...estate.hardware, "Device"] })}>+ hardware</button> <small>coming (MODEL-174)</small></div>
+    </div><div><button onClick={() => update({ ...estate, plans: [...estate.plans, "Plan"] })}>+ plan</button> <small>Plan pricing is coming soon</small> <button onClick={() => update({ ...estate, hardware: [...estate.hardware, "Device"] })}>+ hardware</button> <small>Hardware matching is coming soon</small></div>
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0, refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number; refinementFallbackKeys?: ReadonlySet<string> }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0, notes = [], refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; refinementFallbackKeys?: ReadonlySet<string> }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -179,6 +181,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   return <div className="facet-board">
     <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div>{vocabulary.templates?.length ? <button aria-expanded={templatesOpen} onClick={() => setTemplatesOpen(!templatesOpen)}>ⓘ Templates</button> : null}</div>
     {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.filter((template) => template.available).map((template) => <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.purpose}</span></button>)}</div>{vocabulary.templates.filter((template) => !template.available).map((template) => <p className="template-unavailable" key={template.id}>Not available on today's data: {template.name} — {template.unavailable_reason}</p>)}</section> : null}
+    {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
     <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
     <div className="board-workspace">
@@ -189,7 +192,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
           const activeCount = active.length + activeRefinementCount(new Set(group.facets.map((facet) => facet.id)));
           const survival = active.flatMap((facet) => facet.values?.map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
           const open = expandedGroups[group.name] === true;
-          return <section className="facet-group" key={group.name}><button className="facet-group-summary" aria-expanded={open} onClick={() => setExpandedGroups((current) => ({ ...current, [group.name]: !open }))}><span>{group.name}</span><small>{activeCount ? `${activeCount} set` : "all Doesn't matter"}{survival.length ? ` · → ${Math.min(...survival)} survive` : " · no change"}</small><b aria-hidden="true">{open ? "−" : "+"}</b></button>{open && <div>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selected[facet.id] ?? { mode: "off" }} refinements={(vocabulary.refinements ?? []).filter((row) => facet.id === `capability.${row.parent_domain}`)} selections={selected} fallbackKeys={refinementFallbackKeys} onChange={(choice) => update(facet.id, choice)} onRefinementChange={update} />)}{group.facets.some((facet) => facet.known > 0 && !supportsPreference(facet.id)) && <p className="group-coming">Prefer on these facets: coming (MODEL-172)</p>}</div>}</section>;
+          return <section className="facet-group" key={group.name}><button className="facet-group-summary" aria-expanded={open} onClick={() => setExpandedGroups((current) => ({ ...current, [group.name]: !open }))}><span>{group.name}</span><small>{activeCount ? `${activeCount} set` : "all Doesn't matter"}{survival.length ? ` · → ${Math.min(...survival)} survive` : " · no change"}</small><b aria-hidden="true">{open ? "−" : "+"}</b></button>{open && <div>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selected[facet.id] ?? { mode: "off" }} refinements={(vocabulary.refinements ?? []).filter((row) => facet.id === `capability.${row.parent_domain}`)} selections={selected} fallbackKeys={refinementFallbackKeys} onChange={(choice) => update(facet.id, choice)} onRefinementChange={update} />)}{group.facets.some((facet) => facet.known > 0 && !supportsPreference(facet.id)) && <p className="group-coming">Preference controls for these facets are coming soon.</p>}</div>}</section>;
         })}
         {!!grouped.untracked.length && <section className="facet-group untracked"><button className="facet-group-summary" aria-expanded={expandedGroups.untracked === true} onClick={() => setExpandedGroups((current) => ({ ...current, untracked: !current.untracked }))}><span>Not yet tracked</span><small>{grouped.untracked.length} facets · no values</small><b aria-hidden="true">{expandedGroups.untracked ? "−" : "+"}</b></button>{expandedGroups.untracked && <div><p>No model in this snapshot has a value. Must and Prefer are disabled; a null beats a guess.</p>{grouped.untracked.map((facet) => <FacetRow key={facet.id} facet={facet} choice={{ mode: "off" }} onChange={() => undefined} />)}</div>}</section>}
       </section>

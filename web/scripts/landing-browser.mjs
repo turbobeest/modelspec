@@ -49,10 +49,10 @@ function recordBrowserFailures(page) {
   return failures;
 }
 
-async function assertRankedShortlist(page) {
-  await page.getByText("start from constraints").click();
-  await page.getByText("Shortlist", { exact: true }).waitFor();
-  await page.locator(".shortlist .model-name").first().waitFor();
+async function assertRankedBoard(page) {
+  await page.getByRole("heading", { name: "Set what matters. Watch the field narrow." }).waitFor();
+  assert.equal(await page.locator("textarea").count(), 0);
+  await page.locator(".board-ranked-answer li").first().waitFor();
 }
 
 async function load(page, html) {
@@ -151,10 +151,23 @@ try {
   await forwarding.close();
 
   const assembled = await browser.newContext();
+  const vocabularyFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
+  const decisionFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
+  await assembled.route("https://modelspec.dev/**", (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    const relative = pathname === "/decide/" ? "decide/index.html" : pathname.replace(/^\//, "");
+    const staticFile = path.resolve(assembledPath, relative);
+    if (!staticFile.startsWith(assembledRoot + path.sep) || !fs.existsSync(staticFile))
+      return route.fulfill({ status: 404, body: "not found" });
+    const types = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript" };
+    return route.fulfill({ status: 200, contentType: types[path.extname(staticFile)] ?? "application/octet-stream", body: fs.readFileSync(staticFile) });
+  });
+  await assembled.route("**/api/decision/vocabulary.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: vocabularyFixture }));
+  await assembled.route("**/v1/decide", (route) => route.fulfill({ status: 200, contentType: "application/json", body: decisionFixture }));
   const decidePage = await assembled.newPage();
   const decideFailures = recordBrowserFailures(decidePage);
-  await decidePage.goto(`${origin}/decide/?demo=1`);
-  await assertRankedShortlist(decidePage);
+  await decidePage.goto("https://modelspec.dev/decide/?demo=1");
+  await assertRankedBoard(decidePage);
   assert.deepEqual(decideFailures, []);
   results.assembled_decide = true;
 
@@ -170,8 +183,7 @@ try {
   await oldRootPage.goto(`${origin}/?demo=1#s=${state}`);
   await oldRootPage.waitForURL(`${origin}/decide/?demo=1#s=${state}`);
   assert.equal(new URL(oldRootPage.url()).hash, `#s=${state}`);
-  await oldRootPage.getByText("Shortlist", { exact: true }).waitFor();
-  await oldRootPage.locator(".shortlist .model-name").first().waitFor();
+  await assertRankedBoard(oldRootPage);
   assert.deepEqual(forwardedFailures, []);
   results.forwarded_state_ranks = true;
   await assembled.close();

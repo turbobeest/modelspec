@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
   allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
-  formatBoardCondition, nextMustOrder, parseBoardCondition, showsFacetBoard, supportsPreference,
+  formatBoardCondition, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
   templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
 import type { BoardSelections } from "../facet-board/model";
@@ -11,14 +11,58 @@ import { realBaseSpec } from "../vocabulary";
 import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
 import { decisionSpecSchema } from "../adapter/contract";
+import { decodeSpec } from "../state/spec";
+import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import { vocabularySchema } from "../vocabulary";
 
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 
-describe("facet board launch gate", () => {
-  it.each(["internal.modelspec-7np.pages.dev", "localhost", "127.0.0.1"])("allows %s", (host) => expect(showsFacetBoard(host)).toBe(true));
-  it.each(["modelspec.dev", "www.modelspec.dev", "abc123.modelspec-7np.pages.dev", "modelspec-7np.pages.dev", "example.com", ""])("keeps the current page on %s", (host) => expect(showsFacetBoard(host)).toBe(false));
+describe("legacy composer permalinks", () => {
+  it("maps old conditions and weights onto editable board facets", () => {
+    const decoded = decodeSpec(LEGACY_PERMALINKS.budgetCoding);
+    if (!decoded) throw new Error("legacy budget fixture did not decode");
+    const restored = legacySpecToBoard(decoded.spec, realVocabulary, {
+      providers: [], plans: [], hardware: [],
+    });
+    expect(restored.selections).toMatchObject({
+      "model.class": { mode: "must", value: "text-generator" },
+      "model.context_window": { mode: "must", value: 200000 },
+      "offering.cost_per_task": { mode: "both", value: 0.1, weight: 0.4 },
+      "model.weights_openness": { mode: "must", value: "open_weights" },
+      "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+    });
+    expect(restored.notes).toEqual([
+      "The old task description remains in this link for provenance. The board does not interpret free text.",
+    ]);
+  });
+
+  it("names every old spec part that the board cannot edit", () => {
+    const decoded = decodeSpec(LEGACY_PERMALINKS.unsupportedParts);
+    if (!decoded) throw new Error("legacy unsupported-parts fixture did not decode");
+    const restored = legacySpecToBoard(decoded.spec, realVocabulary, {
+      providers: [], plans: [], hardware: [],
+    });
+    expect(restored.notes.join(" ")).toMatch(/Single-benchmark floor retained/);
+    expect(restored.notes.join(" ")).toMatch(/Soft condition retained/);
+    expect(restored.notes.join(" ")).toMatch(/single-benchmark basis is retained/);
+    expect(restored.notes.join(" ")).toMatch(/shortlist threshold/);
+    expect(restored.selections["offering.region"]).toMatchObject({ mode: "must", value: ["EU"] });
+    expect(restored.selections["offering.data.zero_retention"]).toMatchObject({ mode: "must", value: true });
+  });
+});
+
+it("keeps internal ticket IDs out of the rendered board", () => {
+  render(
+    <FacetBoard
+      vocabulary={realVocabulary}
+      spec={realBaseSpec(realVocabulary)}
+      onSpec={vi.fn()}
+      estate={{ providers: [], plans: [], hardware: [] }}
+      onEstate={vi.fn()}
+    />,
+  );
+  expect(document.body).not.toHaveTextContent("MODEL-");
 });
 
 describe("facet state mapping", () => {
@@ -320,7 +364,7 @@ it("hides absent templates and expands groups with active canonical template fac
   expect(onSpec).toHaveBeenCalledOnce();
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(cost).queryByText(/coming \(MODEL-172\)/)).not.toBeInTheDocument();
-  expect(screen.getAllByText("Prefer on these facets: coming (MODEL-172)").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Preference controls for these facets are coming soon.").length).toBeGreaterThan(0);
 });
 
 it("restores default task tokens when a template has no token override", () => {
