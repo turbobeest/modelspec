@@ -25,8 +25,8 @@ from decision.snapshot import (
     LoadedSnapshot,
     build_snapshot,
     collect_repo,
+    load_built_snapshot,
     load_premier,
-    load_snapshot_bytes,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -159,7 +159,7 @@ def validate(root: Path, report_date: date) -> dict[str, Any]:
         guard=excluded_sources(),
         gate=False,
     )
-    loaded = load_snapshot_bytes(snapshot.to_bytes(key=None), key=None)
+    loaded = load_built_snapshot(snapshot, source="capability validation build")
     observations = _observations(loaded)
     specs = {
         benchmark: BenchmarkSpec(

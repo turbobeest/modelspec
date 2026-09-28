@@ -8,6 +8,7 @@ script has to tell apart.
 
 from __future__ import annotations
 
+import base64
 import functools
 import gzip
 import json
@@ -32,12 +33,37 @@ from decision.snapshot import Snapshot as DecisionSnapshot  # noqa: E402
 from decision.snapshot import content_hash as decision_content_hash  # noqa: E402
 from decision.snapshot import snapshot_id_for  # noqa: E402
 
+_TEST_PRIVATE = Ed25519PrivateKey.generate()
+_TEST_SIGNER = decision_snapshot.Ed25519Signer(
+    "test-fixture",
+    _TEST_PRIVATE.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    ),
+)
+_TEST_PUBLIC_KEYS = {
+    "test-fixture": _TEST_PRIVATE.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+}
+
 
 @pytest.fixture
 def cache(tmp_path: Path) -> Path:
     directory = tmp_path / "cache"
     directory.mkdir()
     return directory
+
+
+@pytest.fixture(autouse=True)
+def _pin_test_snapshot_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: dict(_TEST_PUBLIC_KEYS),
+    )
 
 
 def _write(directory: Path, fetched_at: datetime | None = None) -> None:
@@ -66,7 +92,7 @@ def _write(directory: Path, fetched_at: datetime | None = None) -> None:
 
 def _decision_artifacts(
     as_of: str = "2026-09-27",
-    signer: decision_snapshot.Ed25519Signer | None = None,
+    signer: decision_snapshot.Ed25519Signer | None = _TEST_SIGNER,
 ) -> tuple[bytes, dict]:
     content = {
         "format_version": 1,
@@ -252,7 +278,7 @@ def test_fetch_caches_the_decision_snapshot_and_vocabulary(cache: Path, monkeypa
     )
     decision_status = snapshot.status(cache)["decision_snapshot"]
     assert decision_status["present"] is True
-    assert decision_status["signature_verified"] is False
+    assert decision_status["signature_verified"] is True
     assert decision_status["as_of"] == "2026-09-27"
 
 
@@ -659,13 +685,27 @@ def _modelspec_cli() -> list[str]:
     return [sys.executable, "-m", "cli.modelspec.cli"]
 
 
+@functools.cache
+def _modelspec_test_cli() -> list[str]:
+    """Run the CLI with the generated public fixture key pinned."""
+    public_key = base64.b64encode(_TEST_PUBLIC_KEYS["test-fixture"]).decode("ascii")
+    bootstrap = (
+        "import base64; "
+        "from decision import snapshot as decision_snapshot; "
+        "decision_snapshot.load_public_keys = lambda: "
+        f"{{'test-fixture': base64.b64decode('{public_key}')}}; "
+        "from cli.modelspec.cli import app; app()"
+    )
+    return [sys.executable, "-c", bootstrap]
+
+
 def test_cli_lookup_uses_the_current_interpreters_module() -> None:
     assert _modelspec_cli() == [sys.executable, "-m", "cli.modelspec.cli"]
 
 
 def _run(args: list[str], cache: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [*_modelspec_cli(), *args],
+        [*_modelspec_test_cli(), *args],
         capture_output=True, text=True, timeout=120,
         env={
             "PATH": "/usr/bin:/bin",

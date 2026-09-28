@@ -6,6 +6,10 @@ import json
 from datetime import date
 from pathlib import Path
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+from decision import snapshot as decision_snapshot
 from decision.contract import parse_spec
 from decision.registry import default as default_registry
 from decision.snapshot import SnapshotInputs, build_snapshot
@@ -27,7 +31,7 @@ def test_all_twenty_contract_specs_parse() -> None:
         assert spec.explain == "full"
 
 
-def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
+def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path, monkeypatch) -> None:
     snapshot = build_snapshot(
         SnapshotInputs(
             models=[model("lab/alpha")],
@@ -40,7 +44,26 @@ def test_runner_reports_against_a_fixture_snapshot(tmp_path: Path) -> None:
         as_of=date(2026, 9, 24),
     )
     snapshot_file = tmp_path / "fixture-snapshot.json.gz"
-    snapshot.write(snapshot_file)
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    snapshot.write(
+        snapshot_file,
+        key=None,
+        ed25519_signer=decision_snapshot.Ed25519Signer("test-recall", private_raw),
+    )
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-recall": public_raw},
+    )
 
     result = run(
         root=Path(__file__).resolve().parents[2],
@@ -104,7 +127,7 @@ def test_the_ungated_fallback_keeps_the_premier_lineup(monkeypatch, tmp_path: Pa
 
 
 def test_the_direct_detector_reads_directness_against_the_request() -> None:
-    from decision.snapshot import load_snapshot_bytes
+    from decision.snapshot import load_built_snapshot
     from scripts.recall_run import _direct_objective_has_a_value
 
     registry = default_registry()
@@ -118,7 +141,7 @@ def test_the_direct_detector_reads_directness_against_the_request() -> None:
         ),
         as_of=date(2026, 9, 24),
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="recall detector test build")
 
     def asks(capability: str):
         return parse_spec({

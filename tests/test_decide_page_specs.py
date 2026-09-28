@@ -46,7 +46,7 @@ def test_the_web_fixture_has_the_shape_the_builder_writes():
     """The fixture is a vocabulary.json; a field the builder renames breaks here."""
     from datetime import date
 
-    from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
     from decision.vocabulary import build_vocabulary
     from tests.snapshot_records import SOURCES, evidence, model
 
@@ -56,7 +56,7 @@ def test_the_web_fixture_has_the_shape_the_builder_writes():
         sources=SOURCES,
         benchmark_domains={"swe_bench_verified": [("software_engineering", "direct")]},
     ), gate=False, as_of=date(2026, 9, 24))
-    fresh = build_vocabulary(load_snapshot_bytes(built.to_bytes(key=None), key=None))
+    fresh = build_vocabulary(load_built_snapshot(built, source="web fixture build"))
     assert set(VOCABULARY) == set(fresh)
     assert set(VOCABULARY["benchmarks"][0]) == set(fresh["benchmarks"][0])
     assert set(VOCABULARY["domains"][0]) == set(fresh["domains"][0])

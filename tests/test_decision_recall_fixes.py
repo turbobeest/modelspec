@@ -15,7 +15,7 @@ from pydantic import ValidationError
 from decision.contract import Decision, EvidenceItem, parse_spec
 from decision.engine import decide
 from decision.registry import facet as facets
-from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 AS_OF = date(2026, 9, 24)
@@ -45,7 +45,9 @@ def snapshot(models, *, rows=(), offerings=(), premier=None, domains=None):
         gate=False,
         as_of=AS_OF,
     )
-    return built, load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    return built, load_built_snapshot(
+        built, include_archive=True, source="recall fix test build"
+    )
 
 
 def spec(*, where=("model.class = text-generator",), objective=None, capabilities=None,

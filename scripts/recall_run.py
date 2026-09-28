@@ -26,8 +26,8 @@ from decision.snapshot import (
     Gap,
     LoadedSnapshot,
     build_from_repo,
+    load_built_snapshot,
     load_snapshot,
-    load_snapshot_bytes,
 )
 
 Verdict = Literal["pass", "partial", "fail"]
@@ -544,9 +544,7 @@ def _snapshot(
         built = build_from_repo(
             root, premier=premier, as_of=report_date, registry=registry, gate=False
         )
-    loaded = load_snapshot_bytes(
-        built.to_bytes(key=None), key=None, include_archive=True, source="repository build"
-    )
+    loaded = load_built_snapshot(built, include_archive=True)
     return loaded, gaps
 
 
