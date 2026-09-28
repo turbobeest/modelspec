@@ -790,7 +790,7 @@ def human_count(value: Any) -> str:
     return f"{n:,.0f}"
 
 
-MS_NAV = [("Decide", "/decide/"), ("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Pricing", "/pricing/"), ("Benchmarks", "/benchmarks/"), ("API", "/api/index.json")]
+MS_NAV = [("Decide", "/decide/"), ("How we decide", "/method/"), ("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Pricing", "/pricing/"), ("Benchmarks", "/benchmarks/"), ("API", "/api/index.json")]
 
 
 def _write(path: Path, text: str) -> None:
