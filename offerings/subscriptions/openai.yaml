@@ -8,8 +8,9 @@
   - id: openai/subscription/plus#offering.subscription.price
     subject: {kind: offering, id: openai/subscription/plus}
     facet: offering.subscription.price
-    state: known
-    value: 20
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-plus]
     sources:
     - source_id: model-173-openai-plus
       snapshot_ref: sha256:82ab3db50555c4af4641c4e002df82d6bae176653d8022500b4ec1677990cf1b
@@ -17,8 +18,9 @@
   - id: openai/subscription/plus#offering.subscription.billing_period
     subject: {kind: offering, id: openai/subscription/plus}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-plus]
     sources:
     - source_id: model-173-openai-plus
       snapshot_ref: sha256:82ab3db50555c4af4641c4e002df82d6bae176653d8022500b4ec1677990cf1b
@@ -26,8 +28,9 @@
   - id: openai/subscription/plus#offering.subscription.models_covered
     subject: {kind: offering, id: openai/subscription/plus}
     facet: offering.subscription.models_covered
-    state: known
-    value: [openai/gpt-5-6-sol, openai/gpt-6-astra]
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
     sources:
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:bff0ae082c27ac3767ce795bc54b4b8e00e3bdf592c1053950b2c3f182c1aec7
@@ -45,8 +48,9 @@
   - id: openai/subscription/plus#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: openai/subscription/plus}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Codex is included; raw API usage is separate
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
     sources:
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:bff0ae082c27ac3767ce795bc54b4b8e00e3bdf592c1053950b2c3f182c1aec7
@@ -59,8 +63,9 @@
   - id: openai/subscription/pro-5x#offering.subscription.price
     subject: {kind: offering, id: openai/subscription/pro-5x}
     facet: offering.subscription.price
-    state: known
-    value: 100
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-pro]
     sources:
     - source_id: model-173-openai-pro
       snapshot_ref: sha256:b8341a9236722535fa428e3a3cb25ff97be52249775a7071b04c2c9861dfc88b
@@ -68,8 +73,9 @@
   - id: openai/subscription/pro-5x#offering.subscription.billing_period
     subject: {kind: offering, id: openai/subscription/pro-5x}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-pro]
     sources:
     - source_id: model-173-openai-pro
       snapshot_ref: sha256:b8341a9236722535fa428e3a3cb25ff97be52249775a7071b04c2c9861dfc88b
@@ -77,8 +83,9 @@
   - id: openai/subscription/pro-5x#offering.subscription.models_covered
     subject: {kind: offering, id: openai/subscription/pro-5x}
     facet: offering.subscription.models_covered
-    state: known
-    value: [openai/gpt-5-6-sol, openai/gpt-6-astra]
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
     sources:
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:bff0ae082c27ac3767ce795bc54b4b8e00e3bdf592c1053950b2c3f182c1aec7
@@ -86,8 +93,9 @@
   - id: openai/subscription/pro-5x#offering.subscription.usage_allowance
     subject: {kind: offering, id: openai/subscription/pro-5x}
     facet: offering.subscription.usage_allowance
-    state: known
-    value: 5x higher usage than Plus
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-pro]
     sources:
     - source_id: model-173-openai-pro
       snapshot_ref: sha256:b8341a9236722535fa428e3a3cb25ff97be52249775a7071b04c2c9861dfc88b
@@ -95,8 +103,9 @@
   - id: openai/subscription/pro-5x#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: openai/subscription/pro-5x}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Codex is included; raw API usage is separate
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
     sources:
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:bff0ae082c27ac3767ce795bc54b4b8e00e3bdf592c1053950b2c3f182c1aec7
@@ -109,8 +118,9 @@
   - id: openai/subscription/pro-20x#offering.subscription.price
     subject: {kind: offering, id: openai/subscription/pro-20x}
     facet: offering.subscription.price
-    state: known
-    value: 200
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-pro]
     sources:
     - source_id: model-173-openai-pro
       snapshot_ref: sha256:b8341a9236722535fa428e3a3cb25ff97be52249775a7071b04c2c9861dfc88b
@@ -118,8 +128,9 @@
   - id: openai/subscription/pro-20x#offering.subscription.billing_period
     subject: {kind: offering, id: openai/subscription/pro-20x}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-pro]
     sources:
     - source_id: model-173-openai-pro
       snapshot_ref: sha256:b8341a9236722535fa428e3a3cb25ff97be52249775a7071b04c2c9861dfc88b
@@ -127,8 +138,9 @@
   - id: openai/subscription/pro-20x#offering.subscription.models_covered
     subject: {kind: offering, id: openai/subscription/pro-20x}
     facet: offering.subscription.models_covered
-    state: known
-    value: [openai/gpt-5-6-sol, openai/gpt-6-astra]
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
     sources:
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:bff0ae082c27ac3767ce795bc54b4b8e00e3bdf592c1053950b2c3f182c1aec7
@@ -136,8 +148,9 @@
   - id: openai/subscription/pro-20x#offering.subscription.usage_allowance
     subject: {kind: offering, id: openai/subscription/pro-20x}
     facet: offering.subscription.usage_allowance
-    state: known
-    value: 20x usage than Plus
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-pro]
     sources:
     - source_id: model-173-openai-pro
       snapshot_ref: sha256:b8341a9236722535fa428e3a3cb25ff97be52249775a7071b04c2c9861dfc88b
@@ -145,8 +158,9 @@
   - id: openai/subscription/pro-20x#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: openai/subscription/pro-20x}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Codex is included; raw API usage is separate
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
     sources:
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:bff0ae082c27ac3767ce795bc54b4b8e00e3bdf592c1053950b2c3f182c1aec7

@@ -8,8 +8,9 @@
   - id: anthropic/subscription/pro#offering.subscription.price
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.price
-    state: known
-    value: 20
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -17,8 +18,9 @@
   - id: anthropic/subscription/pro#offering.subscription.billing_period
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -36,8 +38,9 @@
   - id: anthropic/subscription/pro#offering.subscription.usage_allowance
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.usage_allowance
-    state: known
-    value: At least 5x Free usage per five-hour session
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -45,8 +48,9 @@
   - id: anthropic/subscription/pro#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Claude Code is included; raw API usage is separate
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-claude-code]
     sources:
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a522cbdd9ed515e88d0963d2f9fffc168a967a390b311bd8280f85cd5fb44867
@@ -59,8 +63,9 @@
   - id: anthropic/subscription/max-5x#offering.subscription.price
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.price
-    state: known
-    value: 100
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -68,8 +73,9 @@
   - id: anthropic/subscription/max-5x#offering.subscription.billing_period
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -87,8 +93,9 @@
   - id: anthropic/subscription/max-5x#offering.subscription.usage_allowance
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.usage_allowance
-    state: known
-    value: 5x Pro usage per five-hour session
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -96,8 +103,9 @@
   - id: anthropic/subscription/max-5x#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Claude Code is included; raw API usage is separate
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-claude-code]
     sources:
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a522cbdd9ed515e88d0963d2f9fffc168a967a390b311bd8280f85cd5fb44867
@@ -110,8 +118,9 @@
   - id: anthropic/subscription/max-20x#offering.subscription.price
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.price
-    state: known
-    value: 200
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -119,8 +128,9 @@
   - id: anthropic/subscription/max-20x#offering.subscription.billing_period
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -138,8 +148,9 @@
   - id: anthropic/subscription/max-20x#offering.subscription.usage_allowance
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.usage_allowance
-    state: known
-    value: 20x Pro usage per five-hour session
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-consumer-pricing]
     sources:
     - source_id: model-173-anthropic-consumer-pricing
       snapshot_ref: sha256:9e2563576e51557d6a50558d2e9491450d16df86fa89bd2a11063a575c542253
@@ -147,8 +158,9 @@
   - id: anthropic/subscription/max-20x#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Claude Code is included; raw API usage is separate
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-anthropic-claude-code]
     sources:
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a522cbdd9ed515e88d0963d2f9fffc168a967a390b311bd8280f85cd5fb44867

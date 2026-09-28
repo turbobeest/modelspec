@@ -18,8 +18,9 @@
   - id: google-gemini-api/subscription/ai-plus#offering.subscription.billing_period
     subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -27,8 +28,9 @@
   - id: google-gemini-api/subscription/ai-plus#offering.subscription.models_covered
     subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
     facet: offering.subscription.models_covered
-    state: known
-    value: [google/gemini-3-1-pro-preview]
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -36,8 +38,9 @@
   - id: google-gemini-api/subscription/ai-plus#offering.subscription.usage_allowance
     subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
     facet: offering.subscription.usage_allowance
-    state: known
-    value: 2x higher than standard Gemini Apps limits
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-gemini-limits]
     sources:
     - source_id: model-173-google-gemini-limits
       snapshot_ref: sha256:733ea0fb3c2d1583b0730fb4b5868a626e8ef6f3220e8cdcd88b9706e82cdf22
@@ -45,8 +48,9 @@
   - id: google-gemini-api/subscription/ai-plus#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Limited Google AI Studio and Google Antigravity access
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -59,8 +63,9 @@
   - id: google-gemini-api/subscription/ai-pro#offering.subscription.price
     subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
     facet: offering.subscription.price
-    state: known
-    value: 19.99
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -68,8 +73,9 @@
   - id: google-gemini-api/subscription/ai-pro#offering.subscription.billing_period
     subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -77,8 +83,9 @@
   - id: google-gemini-api/subscription/ai-pro#offering.subscription.models_covered
     subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
     facet: offering.subscription.models_covered
-    state: known
-    value: [google/gemini-3-1-pro-preview]
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -86,8 +93,9 @@
   - id: google-gemini-api/subscription/ai-pro#offering.subscription.usage_allowance
     subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
     facet: offering.subscription.usage_allowance
-    state: known
-    value: 4x higher than standard Gemini Apps limits
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-gemini-limits]
     sources:
     - source_id: model-173-google-gemini-limits
       snapshot_ref: sha256:733ea0fb3c2d1583b0730fb4b5868a626e8ef6f3220e8cdcd88b9706e82cdf22
@@ -95,8 +103,9 @@
   - id: google-gemini-api/subscription/ai-pro#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Expanded Google AI Studio, Google Antigravity, and Jules limits
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -109,8 +118,9 @@
   - id: google-gemini-api/subscription/ai-ultra#offering.subscription.price
     subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
     facet: offering.subscription.price
-    state: known
-    value: 99.99
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -118,8 +128,9 @@
   - id: google-gemini-api/subscription/ai-ultra#offering.subscription.billing_period
     subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
     facet: offering.subscription.billing_period
-    state: known
-    value: monthly
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -127,8 +138,9 @@
   - id: google-gemini-api/subscription/ai-ultra#offering.subscription.models_covered
     subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
     facet: offering.subscription.models_covered
-    state: known
-    value: [google/gemini-3-1-pro-preview]
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e
@@ -136,8 +148,9 @@
   - id: google-gemini-api/subscription/ai-ultra#offering.subscription.usage_allowance
     subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
     facet: offering.subscription.usage_allowance
-    state: known
-    value: 5x or 20x higher than AI Pro limits, depending on subscription
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-gemini-limits]
     sources:
     - source_id: model-173-google-gemini-limits
       snapshot_ref: sha256:733ea0fb3c2d1583b0730fb4b5868a626e8ef6f3220e8cdcd88b9706e82cdf22
@@ -145,8 +158,9 @@
   - id: google-gemini-api/subscription/ai-ultra#offering.subscription.programmatic_or_agent_use
     subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
     facet: offering.subscription.programmatic_or_agent_use
-    state: known
-    value: Higher Google AI Studio, Google Antigravity, and Jules limits
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-google-ai-plans]
     sources:
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:194e5a49b186623afe04b1326fdc5ed6f89a62a6fc7da99b1a6b814fd240ba0e

@@ -83,6 +83,43 @@ def fact_data(**changes):
     }
 
 
+SUBSCRIPTION_VALUES = {
+    "offering.subscription.price": 20,
+    "offering.subscription.billing_period": "monthly",
+    "offering.subscription.models_covered": ["fake-lab/fake-model"],
+    "offering.subscription.usage_allowance": "5x standard usage per five-hour session",
+    "offering.subscription.programmatic_or_agent_use": "Fake Harness is included",
+}
+
+
+def subscription_data(*, state="known"):
+    sid = "fake-provider/subscription/pro"
+    facts = []
+    for facet, value in SUBSCRIPTION_VALUES.items():
+        changes = {
+            "id": f"{sid}#{facet}",
+            "subject": {"kind": "offering", "id": sid},
+            "facet": facet,
+        }
+        if state != "known":
+            changes.update(
+                state=state,
+                value=None,
+                sources=[],
+                checked_sources=["fake-doc"],
+            )
+        else:
+            changes["value"] = value
+        facts.append(fact_data(**changes))
+    return {
+        "kind": "subscription",
+        "provider": "fake-provider",
+        "plan": "pro",
+        "name": "Fake Pro",
+        "facts": facts,
+    }
+
+
 def verification_data(**changes):
     return {
         "target": {
@@ -487,26 +524,7 @@ def test_subscription_offering_validates_and_round_trips(context, tmp_path):
     from decision.model import SubscriptionOffering, load_subscription_offerings
 
     sid = "fake-provider/subscription/pro"
-    rows = [{
-        "kind": "subscription",
-        "provider": "fake-provider",
-        "plan": "pro",
-        "name": "Fake Pro",
-        "facts": [
-            fact_data(
-                id=f"{sid}#offering.subscription.price",
-                subject={"kind": "offering", "id": sid},
-                facet="offering.subscription.price",
-                value=20,
-            ),
-            fact_data(
-                id=f"{sid}#offering.subscription.usage_allowance",
-                subject={"kind": "offering", "id": sid},
-                facet="offering.subscription.usage_allowance",
-                value="5x standard usage per five-hour session",
-            ),
-        ],
-    }]
+    rows = [subscription_data()]
     directory = tmp_path / "subscriptions"
     directory.mkdir()
     path = directory / "fake-provider.yaml"
@@ -527,20 +545,52 @@ def test_subscription_offering_rejects_wrong_subject_and_file_provider(context, 
 
     from decision.model import SubscriptionOffering, load_subscription_offerings
 
-    data = {
-        "kind": "subscription",
-        "provider": "fake-provider",
-        "plan": "pro",
-        "name": "Fake Pro",
-        "facts": [fact_data()],
-    }
+    data = subscription_data()
+    data["facts"] = [fact_data()]
     with pytest.raises(ValidationError, match="subject"):
         SubscriptionOffering.model_validate(data, context=context)
 
     path = tmp_path / "wrong-provider.yaml"
-    path.write_text(yaml.safe_dump([{**data, "facts": []}]))
+    path.write_text(yaml.safe_dump([subscription_data(state="not_disclosed")]))
     with pytest.raises(ValueError, match="does not match path"):
         load_subscription_offerings(path, registry=context["registry"])
+
+
+def test_subscription_offering_requires_every_subscription_facet(context):
+    from decision.model import SubscriptionOffering
+
+    data = subscription_data(state="not_disclosed")
+
+    for missing in SUBSCRIPTION_VALUES:
+        incomplete = {**data, "facts": [
+            fact for fact in data["facts"] if fact["facet"] != missing
+        ]}
+        with pytest.raises(ValidationError, match="exactly one fact"):
+            SubscriptionOffering.model_validate(incomplete, context=context)
+
+    with pytest.raises(ValidationError, match="exactly one fact"):
+        SubscriptionOffering.model_validate({**data, "facts": []}, context=context)
+
+
+@pytest.mark.parametrize("state", ["unknown", "not_disclosed", "requires_contract"])
+def test_subscription_non_known_facts_require_checked_sources(context, state):
+    from decision.model import SubscriptionOffering
+
+    data = subscription_data(state=state)
+    data["facts"][0]["checked_sources"] = []
+
+    with pytest.raises(ValidationError, match="checked_sources"):
+        SubscriptionOffering.model_validate(data, context=context)
+
+
+def test_subscription_known_facts_require_sources(context):
+    from decision.model import SubscriptionOffering
+
+    data = subscription_data()
+    data["facts"][0]["sources"] = []
+
+    with pytest.raises(ValidationError, match="known fact requires"):
+        SubscriptionOffering.model_validate(data, context=context)
 
 
 def test_repository_subscription_offerings_validate_against_the_real_registry():
@@ -567,6 +617,24 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
         "xai/subscription/supergrok",
         "xai/subscription/supergrok-plus",
     ]
+    assert all(
+        fact.state == "not_disclosed"
+        and fact.value is None
+        and fact.checked_sources
+        for subscription in loaded
+        for fact in subscription.facts
+    )
+    xai_programmatic = [
+        fact
+        for subscription in loaded
+        if subscription.provider == "xai"
+        for fact in subscription.facts
+        if fact.facet == "offering.subscription.programmatic_or_agent_use"
+    ]
+    assert all(
+        "model-173-xai-consumer-terms" in fact.checked_sources
+        for fact in xai_programmatic
+    )
 
 
 def test_fake_offering_covers_provider_dependent_facts(context):
