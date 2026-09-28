@@ -125,14 +125,19 @@ def _one_row_per_model(decision: Decision, limit: int) -> Decision:
         if first is not item:
             unknown = list(dict.fromkeys([*first.unknown, *item.unknown]))
             flagged[item.model] = first.model_copy(update={"unknown": unknown})
-    return decision.model_copy(
-        update={"results": results, "may_qualify": list(flagged.values())})
+    return decision.model_copy(update={"results": results, "may_qualify": list(flagged.values())})
 
 
 def _decision_models(decision: Decision) -> tuple[list[str], set[str]]:
     results = [result.offering.model for result in decision.results]
     flagged = {row.model for row in decision.may_qualify}
     return results, flagged
+
+
+def _definitively_eliminated(decision: Decision, model_id: str) -> bool:
+    """Whether every reported elimination for a model uses a known value."""
+    rows = [row for row in decision.eliminated.models if row.model == model_id]
+    return bool(rows) and all(row.value is not None for row in rows)
 
 
 def _models_with_fact(snapshot: LoadedSnapshot, facet: str, value: Any) -> set[str]:
@@ -146,14 +151,33 @@ def _models_with_fact(snapshot: LoadedSnapshot, facet: str, value: Any) -> set[s
     return models
 
 
-def _rule_flag_models(entries: Sequence[Mapping[str, Any]], snapshot: LoadedSnapshot) -> set[str]:
+def _rule_flag_models(
+    entries: Sequence[Mapping[str, Any]],
+    snapshot: LoadedSnapshot,
+    spec: Spec,
+    registry: Registry,
+) -> set[str]:
     models: set[str] = set()
     for entry in entries:
         rule = str(entry.get("rule") or "").lower()
         if "class is speech-to-text" in rule:
             models.update(_models_with_fact(snapshot, "model.class", "transcriber"))
         elif "generator whose published context length was not read" in rule:
-            for model in _models_with_fact(snapshot, "model.class", "text-generator"):
+            other_conditions = [
+                condition
+                for condition in spec.where
+                if getattr(condition, "facet", None) != "model.context_window"
+            ]
+            without_context = spec.model_copy(update={"where": other_conditions})
+            filtered = apply(resolve(without_context, facets=registry.facet), snapshot)
+            eligible = {
+                snapshot.model_of(candidate)
+                for candidate in [
+                    *filtered.feasible,
+                    *(item.candidate for item in filtered.may_qualify),
+                ]
+            }
+            for model in _models_with_fact(snapshot, "model.class", "text-generator") & eligible:
                 if snapshot.fact(model, "model.context_window").state != "known":
                     models.add(model)
     return models
@@ -302,7 +326,9 @@ def _score(
 
     candidates = _model_ids(snapshot)
     must_flag_entries = expected.get("must_flag") or []
-    required_flags = _models(must_flag_entries) | _rule_flag_models(must_flag_entries, snapshot)
+    required_flags = _models(must_flag_entries) | _rule_flag_models(
+        must_flag_entries, snapshot, spec, registry
+    )
     for model in sorted(required_flags - flagged):
         if model not in candidates:
             where = (
@@ -321,6 +347,8 @@ def _score(
                     "engine_behavior", "fail", f"{model} should be in may_qualify but was ranked"
                 )
             )
+        elif _definitively_eliminated(decision, model):
+            continue
         else:
             findings.append(
                 Finding(
@@ -551,9 +579,7 @@ def _snapshot(
 
 
 def _catalogue(root: Path) -> frozenset[str]:
-    return frozenset(
-        f"{path.parent.name}/{path.stem}" for path in (root / "models").glob("*/*.md")
-    )
+    return frozenset(f"{path.parent.name}/{path.stem}" for path in (root / "models").glob("*/*.md"))
 
 
 def run(
