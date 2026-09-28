@@ -50,6 +50,14 @@ def test_finance_proxy_tags_cover_the_three_approved_benchmarks() -> None:
         assert {"id": "finance", "directness": "proxy"} in card["domains"]
 
 
+def test_finance_domain_is_marked_proxy_only() -> None:
+    domains = yaml.safe_load((ROOT / "registry" / "domains.yaml").read_text())[
+        "domains"
+    ]
+    finance = next(domain for domain in domains if domain["id"] == "finance")
+    assert finance["proxy_only"] is True
+
+
 def test_arena_refinement_sources_are_registered_live() -> None:
     sources = yaml.safe_load((ROOT / "registry" / "sources.yaml").read_text())["sources"]
     by_id = {source["id"]: source for source in sources}
