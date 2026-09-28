@@ -739,7 +739,7 @@ benchmarks:
       snapshot_ref: sha256:14027aa3f8e9ce487958f93ea86dc29a6716c12211687e41be1bdb5f59f83330
       cited_regions:
       - benchmark-data
-  - benchmark_id: humanitys_last_exam
+  - benchmark_id: hle_tools
     model_id_as_evaluated: Claude Sonnet 5.5
     score: 64.5
     unit: percent
@@ -748,10 +748,10 @@ benchmarks:
     evidence_date: '2026-09-28'
     date_type: published
     verified_at: '2026-09-28'
-    benchmark_version: Humanity's Last Exam
-    configuration: Anthropic launch comparison table; Sonnet 5.5 column only.
+    benchmark_version: Humanity's Last Exam (with tools)
+    configuration: Anthropic launch comparison table; Sonnet 5.5 column only. Anthropic labels the result with tools.
     limitations: Provider self-report.
-    id: anthropic/claude-sonnet-5-5#humanitys_last_exam#0dae564ef41b
+    id: anthropic/claude-sonnet-5-5#hle_tools#6e0da59ba3ed
     subject:
       kind: model
       id: anthropic/claude-sonnet-5-5
@@ -765,56 +765,6 @@ benchmarks:
       - benchmark-data
     tools:
     - tools
-  - benchmark_id: osworld_2_1
-    model_id_as_evaluated: Claude Sonnet 5.5
-    score: 80.1
-    unit: percent
-    source_url: https://www.anthropic.com/claude-sonnet-5-5
-    source_kind: provider_self_report
-    evidence_date: '2026-09-28'
-    date_type: published
-    verified_at: '2026-09-28'
-    benchmark_version: OSWorld 2.1
-    configuration: Anthropic launch comparison table; Sonnet 5.5 column only. Anthropic
-      labels the result partial.
-    limitations: Provider self-report.
-    id: anthropic/claude-sonnet-5-5#osworld_2_1#ec22fa799ae1
-    subject:
-      kind: model
-      id: anthropic/claude-sonnet-5-5
-    measured_by: provider_self_report
-    effort: null
-    harness: null
-    sources:
-    - source_id: model-s55-anthropic-claude-sonnet-5-5-launch
-      snapshot_ref: sha256:14027aa3f8e9ce487958f93ea86dc29a6716c12211687e41be1bdb5f59f83330
-      cited_regions:
-      - benchmark-data
-  - benchmark_id: chartography
-    model_id_as_evaluated: Claude Sonnet 5.5
-    score: 61.6
-    unit: percent
-    source_url: https://www.anthropic.com/claude-sonnet-5-5
-    source_kind: provider_self_report
-    evidence_date: '2026-09-28'
-    date_type: published
-    verified_at: '2026-09-28'
-    benchmark_version: Chartography
-    configuration: Anthropic launch comparison table; Sonnet 5.5 column only. Anthropic
-      labels the result no tools.
-    limitations: Provider self-report.
-    id: anthropic/claude-sonnet-5-5#chartography#9b3b33792964
-    subject:
-      kind: model
-      id: anthropic/claude-sonnet-5-5
-    measured_by: provider_self_report
-    effort: null
-    harness: null
-    sources:
-    - source_id: model-s55-anthropic-claude-sonnet-5-5-launch
-      snapshot_ref: sha256:14027aa3f8e9ce487958f93ea86dc29a6716c12211687e41be1bdb5f59f83330
-      cited_regions:
-      - benchmark-data
 deployment:
   api_only: false
   local_inference: false

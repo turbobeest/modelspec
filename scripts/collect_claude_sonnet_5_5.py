@@ -102,10 +102,17 @@ EVIDENCE = (
     ("terminal_bench_v4_0", "Terminal-Bench 4.0", 70.6, "percent", None, None),
     ("frontiercode_v1_1", "FrontierCode 1.1 (Main)", 46.2, "percent", "max", None),
     ("cursorbench_4", "CursorBench 4.0", 55.5, "percent", None, None),
-    ("humanitys_last_exam", "Humanity's Last Exam", 64.5, "percent", None, ["tools"]),
+    ("hle_tools", "Humanity's Last Exam", 64.5, "percent", None, ["tools"]),
+)
+
+# Published in the launch table but with no benchmark page to land on; kept in
+# the snapshot data only, never written to the card.
+UNPAGED_LAUNCH_ROWS = (
     ("osworld_2_1", "OSWorld 2.1", 80.1, "percent", None, None),
     ("chartography", "Chartography", 61.6, "percent", None, None),
 )
+
+BENCHMARK_VERSION = {"hle_tools": "Humanity's Last Exam (with tools)"}
 
 
 def fetch(client: httpx.Client, url: str) -> bytes:
@@ -167,7 +174,7 @@ def launch_evidence_data(page: bytes) -> bytes:
     if table is None or "| Sonnet 5.5 | Sonnet 5 | Opus 5.5 | GPT-6 Sol" not in table:
         raise RuntimeError("Anthropic launch benchmark table was not found")
     rows = []
-    for _benchmark_id, label, score, unit, effort, _tools in EVIDENCE:
+    for _benchmark_id, label, score, unit, effort, _tools in EVIDENCE + UNPAGED_LAUNCH_ROWS:
         published = f"{score:g}%" if unit == "percent" else f"{score:g}"
         published_label = label.replace("'", "’")
         if published not in table or published_label not in table:
@@ -360,7 +367,7 @@ def evidence_rows(launch_copy: str) -> list[dict]:
             "evidence_date": READ_DATE,
             "date_type": "published",
             "verified_at": READ_DATE,
-            "benchmark_version": version,
+            "benchmark_version": BENCHMARK_VERSION.get(benchmark_id, version),
             "configuration": "Anthropic launch comparison table; Sonnet 5.5 column only.",
             "limitations": "Provider self-report.",
             "id": f"{MODEL_ID}#{benchmark_id}#{suffix}",
@@ -372,10 +379,8 @@ def evidence_rows(launch_copy: str) -> list[dict]:
         }
         if tools is not None:
             row["tools"] = tools
-        if benchmark_id == "osworld_2_1":
-            row["configuration"] += " Anthropic labels the result partial."
-        if benchmark_id == "chartography":
-            row["configuration"] += " Anthropic labels the result no tools."
+        if benchmark_id == "hle_tools":
+            row["configuration"] += " Anthropic labels the result with tools."
         rows.append(row)
     return rows
 

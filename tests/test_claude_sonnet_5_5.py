@@ -32,10 +32,9 @@ def test_card_records_only_published_identity_specs_and_evidence() -> None:
         "terminal_bench_v4_0": 70.6,
         "frontiercode_v1_1": 46.2,
         "cursorbench_4": 55.5,
-        "humanitys_last_exam": 64.5,
-        "osworld_2_1": 80.1,
-        "chartography": 61.6,
+        "hle_tools": 64.5,
     }
+    assert all((ROOT / "benchmarks" / f"{key}.md").is_file() for key in evidence)
     assert all(row.source_kind == "provider_self_report" for row in evidence.values())
     assert all(row.evidence_date == READ_DATE for row in evidence.values())
     assert all(row.verified_at == READ_DATE for row in evidence.values())
