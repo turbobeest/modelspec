@@ -157,7 +157,7 @@ it("folds unsupported refinement weights into the parent without losing board st
     .toEqual({ mode: "prefer", weight: 0.25 });
   fireEvent.click(within(beforeFallbackShare).getByRole("button", { name: "Close Share or act" }));
 
-  expect(await within(python).findByText("Ranking by Python is coming — shown by general software engineering for now")).toBeInTheDocument();
+  expect(await within(python).findByText("Ranked by general software engineering: Python isn't ranked separately today.")).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByText("Checking…")).not.toBeInTheDocument());
   const requests = sentSpecs(fetch);
   expect(requests.some((body) => body.optimize.weights["software_engineering/python"] > 0)).toBe(true);

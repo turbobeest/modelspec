@@ -460,14 +460,26 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
     ...vocabulary.facets.map((facet) => facet.id),
     ...vocabulary.domains.map((domain) => `capability.${domain.id}`),
   ]);
+  const editableFacets = new Set([
+    ...vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
+    ...vocabulary.domains.filter((domain) => domain.estimate_models > 0).map((domain) => `capability.${domain.id}`),
+  ]);
+  const facetLabels = new Map([
+    ...vocabulary.facets.map((facet) => [facet.id, facet.label] as const),
+    ...vocabulary.domains.map((domain) => [`capability.${domain.id}`, domain.name] as const),
+  ]);
   const selections: BoardSelections = {};
   const mustOrder: string[] = [];
   const notes: string[] = [];
   for (const condition of spec.conds) {
     const mapped = legacyConditionSelection(condition);
-    if (mapped && knownFacets.has(mapped.facetId)) {
+    if (mapped && editableFacets.has(mapped.facetId)) {
       selections[mapped.facetId] = mapped.selection;
       mustOrder.push(mapped.facetId);
+      continue;
+    }
+    if (mapped && knownFacets.has(mapped.facetId)) {
+      notes.push(`Your old link also selected ${facetLabels.get(mapped.facetId) ?? mapped.facetId}; the board doesn't track it in this snapshot, so it's not applied.`);
       continue;
     }
     if (condition.soft)
@@ -481,6 +493,10 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
   }
   const addPreference = (facetId: string, weightKey: string, weight: number) => {
     if (weight <= 0 || !knownFacets.has(facetId)) return false;
+    if (!editableFacets.has(facetId)) {
+      notes.push(`Your old link also ranked on ${facetLabels.get(facetId) ?? facetId}; the board doesn't track it in this snapshot, so it's not applied.`);
+      return false;
+    }
     const current = selections[facetId];
     selections[facetId] = {
       ...current,
@@ -492,10 +508,13 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
   };
   if (spec.w.cap > 0) {
     const facetId = spec.domain ? `capability.${spec.domain}` : null;
-    if (!facetId || !addPreference(facetId, spec.domain ?? spec.bench, spec.w.cap))
+    if (!facetId || !knownFacets.has(facetId))
       notes.push(`Your old link also ranked on ${spec.bench}; the board can't express that without a capability domain, so it's not applied.`);
-    else if (spec.basis === "benchmark")
-      notes.push(`Your old link ranked on ${spec.bench}; the board applies the visible ${spec.domain?.replaceAll("_", " ")} capability estimate instead.`);
+    else {
+      const added = addPreference(facetId, spec.domain ?? spec.bench, spec.w.cap);
+      if (added && spec.basis === "benchmark")
+        notes.push(`Your old link ranked on ${spec.bench}; the board applies the visible ${spec.domain?.replaceAll("_", " ")} capability estimate instead.`);
+    }
   }
   addPreference("offering.cost_per_task", "-offering.cost_per_task", spec.w.cost);
   if (!addPreference("offering.speed.throughput", "offering.speed.throughput", spec.w.speed) && spec.w.speed > 0)

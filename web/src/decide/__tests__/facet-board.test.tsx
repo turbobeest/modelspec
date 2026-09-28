@@ -15,6 +15,7 @@ import { decodeSpec } from "../state/spec";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import { vocabularySchema } from "../vocabulary";
+import type { Spec } from "../engine/types";
 
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 
@@ -60,6 +61,33 @@ describe("legacy composer permalinks", () => {
     expect(where).toContain("offering.region in {EU}");
     expect(where).not.toContain("swe_bench_pro >= 50 @independent");
     expect(where.every((condition) => typeof condition !== "string" || !condition.includes("soft("))).toBe(true);
+  });
+
+  it("drops legacy selections for untracked facets and domains", () => {
+    const unavailableFacet = { ...smallVocabulary.facets[0], known: 0 };
+    const unavailableDomain = { ...smallVocabulary.domains[0], estimate_models: 0 };
+    const vocabulary = {
+      ...smallVocabulary,
+      facets: [unavailableFacet, ...smallVocabulary.facets.slice(1)],
+      domains: [unavailableDomain],
+    };
+    const legacy = {
+      ...realBaseSpec(vocabulary),
+      domain: unavailableDomain.id,
+      bench: "quality",
+      basis: "estimate",
+      conds: [{ f: "facet", facet: unavailableFacet.id, op: "=", value: "text-generator" }],
+      w: { cap: 0.6, cost: 0.4, speed: 0 },
+    } satisfies Spec;
+    const restored = legacySpecToBoard(legacy, vocabulary, { providers: [], plans: [], hardware: [] });
+    const request = boardToSpec(legacyBoardBaseSpec(legacy), vocabulary, restored.selections, restored.mustOrder);
+
+    expect(restored.selections).not.toHaveProperty(unavailableFacet.id);
+    expect(restored.selections).not.toHaveProperty(`capability.${unavailableDomain.id}`);
+    expect(request.conds).not.toEqual(expect.arrayContaining([expect.objectContaining({ facet: unavailableFacet.id })]));
+    expect(request.boardWeights).not.toHaveProperty(unavailableDomain.id);
+    expect(restored.notes.join(" ")).toContain(unavailableFacet.label);
+    expect(restored.notes.join(" ")).toContain(unavailableDomain.name);
   });
 });
 
@@ -307,11 +335,17 @@ describe("refinements", () => {
     const rust = screen.getByText("Rust").closest<HTMLElement>(".refinement-row")!;
     expect(within(rust).getByLabelText("Prefer")).toBeDisabled();
     expect(within(rust).getByLabelText("Prefer")).toHaveAccessibleDescription("Benchmarks exist; no scores for these models yet");
-    expect(within(rust).getByLabelText("Must")).toHaveAccessibleDescription("Must for refinements is coming");
+    expect(within(rust).queryByLabelText("Must")).not.toBeInTheDocument();
     expect(within(rust).getByText("Benchmarks exist; no scores for these models yet")).toBeInTheDocument();
     const terminal = screen.getByText("Terminal agent").closest<HTMLElement>(".refinement-row")!;
     expect(within(terminal).getByLabelText("Prefer")).toBeEnabled();
     expect(within(terminal).getByText("proxy evidence only")).toBeInTheDocument();
+  });
+
+  it("does not promise future refinement features", () => {
+    render(<FacetBoard vocabulary={refinementVocabulary} spec={realBaseSpec(refinementVocabulary)} selections={{ "capability.software_engineering": { mode: "prefer" } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Refine" }));
+    expect(document.body.textContent).not.toMatch(/coming(?: soon)?/i);
   });
 
   it("excludes a saved refinement from counts while its parent is off", () => {
