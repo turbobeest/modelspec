@@ -163,6 +163,78 @@ def test_worker_and_cli_agree_on_a_value_preference(
     assert service.serialise(body) == cli.stdout.encode("utf-8")
 
 
+def test_worker_and_cli_agree_on_a_boolean_preference(
+    tmp_path: Path, service,
+) -> None:
+    def sold(provider: str, value, *, state: str = "known"):
+        oid = f"{provider}/lab/m/global/standard"
+        return offering("lab/m", provider, facts=[
+            fact("offering", oid, "offering.price.input", 1.0, source="src-pricing"),
+            fact("offering", oid, "offering.data.zero_retention", value, state=state),
+        ])
+
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/m")],
+            offerings=[
+                sold("p-false", False),
+                sold("p-true", True),
+                sold("p-unknown", None, state="unknown"),
+            ],
+            evidence=[],
+            sources=SOURCES,
+        ),
+        gate=False,
+        as_of=date(2026, 9, 25),
+    )
+    raw = built.to_bytes(key=KEY)
+    snapshot = load_snapshot_bytes(raw, key=KEY, source="boolean preference snapshot")
+    payload = {
+        "spec_version": 1,
+        "optimize": {"weights": {
+            "offering.data.zero_retention": {"prefer": True, "weight": 1},
+        }},
+        "explain": "summary",
+    }
+    snapshot_path = tmp_path / "snapshot.json.gz"
+    snapshot_path.write_bytes(raw)
+    spec_path = tmp_path / "boolean.yaml"
+    spec_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    cli = CliRunner().invoke(
+        cli_mod.app,
+        ["decide", str(spec_path), "--snapshot-file", str(snapshot_path), "--json"],
+        env={"MODELSPEC_SNAPSHOT_KEY": KEY.decode()},
+    )
+    status, body = service.decide(payload, snapshot)
+
+    assert cli.exit_code == 0, cli.output
+    assert status == 200
+    assert [row["offering"]["provider"] for row in body["results"]][0] == "p-true"
+    values = {
+        row["offering"]["provider"]: row["contributions"][0]["value"]
+        for row in body["results"]
+    }
+    assert values == {"p-true": 1, "p-false": 0, "p-unknown": 0}
+    unknown = next(r for r in body["results"] if r["offering"]["provider"] == "p-unknown")
+    assert unknown["warnings"] == ["unknown_preference_value"]
+    assert service.serialise(body) == cli.stdout.encode("utf-8")
+
+
+def test_value_preference_with_evidence_qualifier_is_a_400(service, snapshot) -> None:
+    payload = _payload() | {"optimize": {"weights": {
+        "model.weights_openness @independent": {"prefer": "open_weights", "weight": 1},
+    }}}
+
+    status, body = service.decide(payload, snapshot)
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_spec"
+    [issue] = body["error"]["issues"]
+    assert issue["field"] == "model.weights_openness"
+    assert issue["reason"] == "evidence qualifiers are only valid on evidence facets"
+
+
 def test_every_recall_contract_spec_has_worker_cli_parity(
     tmp_path: Path, service, snapshot_bytes: bytes, snapshot
 ) -> None:

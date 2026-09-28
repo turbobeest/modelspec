@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "1.11"
+    assert c.CONTRACT_VERSION == "2.0"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -335,6 +335,43 @@ def test_weights_reject_preference_forms_the_facet_does_not_support(weights, rea
 
     assert reason in info.value.issues[0].reason
     assert info.value.issues[0].path == "optimize.weights"
+
+
+def test_weights_accept_a_boolean_preference_and_reject_a_non_boolean_one() -> None:
+    def parse(prefer):
+        return c.parse_spec({
+            "spec_version": 1,
+            "optimize": {"weights": {
+                "offering.data.zero_retention": {"prefer": prefer, "weight": 1},
+            }},
+        }, facets=registry_facet)
+
+    assert parse(True).optimize.weights["offering.data.zero_retention"].prefer is True
+    assert parse(False).optimize.weights["offering.data.zero_retention"].prefer is False
+    for wrong in ("yes", 1):
+        with pytest.raises(c.SpecError) as info:
+            parse(wrong)
+        assert "true or false" in info.value.issues[0].reason
+
+
+@pytest.mark.parametrize(
+    "facet",
+    ["model.weights_openness", "offering.data.zero_retention"],
+)
+def test_weights_reject_evidence_qualifiers_on_a_value_preference(facet) -> None:
+    prefer = "open_weights" if facet == "model.weights_openness" else True
+    with pytest.raises(c.SpecError) as info:
+        c.parse_spec({
+            "spec_version": 1,
+            "optimize": {"weights": {
+                f"{facet} @independent": {"prefer": prefer, "weight": 1},
+            }},
+        }, facets=registry_facet)
+
+    [issue] = info.value.issues
+    assert issue.field == facet
+    assert "evidence qualifiers are only valid on evidence facets" in issue.reason
+    assert issue.path == "optimize.weights"
 
 
 # ── the spec ──────────────────────────────────────────────────────────────

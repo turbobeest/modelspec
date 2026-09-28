@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.11"
+CONTRACT_VERSION = "2.0"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1086,7 +1086,7 @@ class Contribution(_Strict):
     evidence: list[EvidenceItem] = Field(default_factory=list)
     #: How a computed raw value was reached, with the numbers. Added in 1.3.
     formula: str | None = None
-    #: The requested value and its match state for a boolean or enum Prefer. Added in 1.11.
+    #: The requested value and its match state for a boolean or enum Prefer. Added in 2.0.
     preferred_value: Scalar | None = None
     preference_status: PreferenceStatus | None = None
 
@@ -1269,7 +1269,7 @@ class Decision(_Strict):
     number_origins: list[NumberOrigin] = Field(default_factory=list)
     #: Every source the number origins cite, once each. Added in 1.4.
     sources: list[CitedSource] = Field(default_factory=list)
-    contract_version: Literal["1.11"] = CONTRACT_VERSION
+    contract_version: Literal["2.0"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1492,6 +1492,8 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
                 continue
             kind = info.value_type if isinstance(info.value_type, str) else info.value_type.kind
             if isinstance(term, Preference):
+                use(facet_id, False, "optimize.weights", None,
+                    objective.qualifiers.get(facet_id))
                 if signed.startswith("-"):
                     issues.append(Issue(None, facet_id,
                                         "a value preference cannot use a minus prefix",

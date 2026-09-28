@@ -163,6 +163,61 @@ def test_value_preference_explains_matches_unknowns_and_keeps_musts_as_gates():
     assert answer.may_qualify == []
 
 
+def test_boolean_preference_scores_offerings_and_keeps_musts_as_gates():
+    from tests.snapshot_records import fact as record, model as card, offering as sold
+
+    def retained(provider, value, *, state="known", price=1.0):
+        oid = f"{provider}/lab/m/global/standard"
+        facts = [
+            record("offering", oid, "offering.price.input", price, source="src-pricing"),
+            record("offering", oid, "offering.data.zero_retention", value, state=state),
+        ]
+        return sold("lab/m", provider, facts=facts)
+
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[card("lab/m")],
+            offerings=[
+                retained("p-false", False),
+                retained("p-true", True),
+                retained("p-unknown", None, state="unknown"),
+                retained("p-dear", True, price=99.0),
+            ],
+            evidence=[],
+            sources=SOURCES,
+        ),
+        gate=False,
+        as_of=date(2026, 9, 24),
+    )
+    snapshot = decision_snapshot.load_built_snapshot(
+        built, include_archive=True, source="boolean preference test"
+    )
+    request = parse_spec({
+        "spec_version": 1,
+        "where": ["offering.price.input <= 10"],
+        "optimize": {"weights": {
+            "offering.data.zero_retention": {"prefer": True, "weight": 1},
+        }},
+        "explain": "summary",
+    }, facets=facets)
+
+    answer = decide(request, snapshot, facets=facets)
+
+    by_provider = {row.offering.provider: row for row in answer.results}
+    assert set(by_provider) == {"p-true", "p-false", "p-unknown"}, "the Must still gates"
+    assert answer.results[0].offering.provider == "p-true"
+
+    def part(provider):
+        return by_provider[provider].contributions[0]
+
+    assert (part("p-true").value, part("p-true").preference_status) == (1, "satisfied")
+    assert (part("p-false").value, part("p-false").preference_status) == (0, "not_satisfied")
+    assert (part("p-unknown").value, part("p-unknown").preference_status) == (0, "unknown")
+    assert part("p-true").preferred_value is True
+    assert by_provider["p-unknown"].warnings == ["unknown_preference_value"]
+    assert by_provider["p-true"].warnings == [] and by_provider["p-false"].warnings == []
+
+
 def test_costs_and_near_misses_measure_one_relaxed_condition(index):
     decision = decide(spec(), index, facets=facets)
     (cost,) = decision.constraint_costs

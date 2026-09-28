@@ -79,6 +79,47 @@ def test_value_preference_reorders_without_excluding_and_flags_unknown() -> None
     assert result.results[2].warnings == ("unknown_preference_value",)
 
 
+def test_boolean_preference_scores_true_as_one_false_as_zero_unknown_as_zero_with_warning() -> None:
+    result = run(
+        {
+            "a-false": {"offering.data.zero_retention": False},
+            "b-unknown": {},
+            "z-true": {"offering.data.zero_retention": True},
+        },
+        {"weights": {
+            "offering.data.zero_retention": {"prefer": True, "weight": 0.5},
+        }},
+    )
+
+    assert ids(result) == ["z-true", "a-false", "b-unknown"]
+    assert result.status == "answered"
+    assert [row.score for row in result.results] == [0.5, 0.0, 0.0]
+    parts = [row.contributions[0] for row in result.results]
+    assert [p.value for p in parts] == [1.0, 0.0, 0.0]
+    assert [p.preference_status for p in parts] == [
+        "satisfied", "not_satisfied", "unknown",
+    ]
+    assert all(p.preferred_value is True for p in parts)
+    assert [row.warnings for row in result.results] == [
+        (), (), ("unknown_preference_value",),
+    ]
+
+
+def test_boolean_preference_for_false_favours_false() -> None:
+    result = run(
+        {
+            "a-true": {"offering.data.zero_retention": True},
+            "z-false": {"offering.data.zero_retention": False},
+        },
+        {"weights": {
+            "offering.data.zero_retention": {"prefer": False, "weight": 1},
+        }},
+    )
+
+    assert ids(result) == ["z-false", "a-true"]
+    assert [row.contributions[0].value for row in result.results] == [1.0, 0.0]
+
+
 def test_unknown_preference_warning_survives_a_missing_scale_value() -> None:
     result = run(
         {

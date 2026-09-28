@@ -1,6 +1,6 @@
 {
   "vocabulary_version": 1,
-  "contract_version": "1.11",
+  "contract_version": "2.0",
   "snapshot": "snap_7bf37267f8f2b2eb",
   "default_task_tokens": {
     "input": 40000,

@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.11**
+Contract version: **2.0**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -364,7 +364,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.11",
+  "contract_version": "2.0",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -428,7 +428,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.11"`. |
+| `contract_version` | `"2.0"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -744,8 +744,12 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
-- **1.11 — MODEL-172:** `optimize.weights` accepts value preferences for
-  boolean and enum facets. A match contributes 1, a mismatch or unknown
+- **2.0 — MODEL-172 (major):** `optimize.weights` values widen from a number
+  to a number or a value preference (`{prefer, weight}`). A 1.x client that
+  read every weight of a spec or echoed spec as a number must handle the new
+  form, so by the versioning rule above this is a major bump. Nothing else
+  about the decision's existing fields changed. `optimize.weights` accepts
+  value preferences for boolean and enum facets. A match contributes 1, a mismatch or unknown
   contributes 0, and an unknown adds `unknown_preference_value`. Contributions
   add the optional `preferred_value` and `preference_status` fields. The facet
   vocabulary reports whether a facet uses continuous, value-match, or no
