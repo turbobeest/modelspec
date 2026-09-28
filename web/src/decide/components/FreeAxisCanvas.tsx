@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdapterDecision, Decision, Row } from "../adapter";
 import { reason, status } from "../adapter";
 import type { Vocabulary } from "../vocabulary";
@@ -9,6 +9,7 @@ import {
   type CanvasAxisId,
   type CanvasAxisOption,
 } from "./canvas-axis";
+import { placeLabels } from "./labels";
 
 export interface CanvasAxes {
   x: CanvasAxisId;
@@ -116,6 +117,39 @@ function scale(values: number[]) {
   };
 }
 
+function frontierIds(
+  points: readonly PlotPoint[],
+  xAxis: CanvasAxisOption,
+  yAxis: CanvasAxisOption,
+): Set<string> {
+  const qualifies = points.filter(({ row }) => row.status === 1);
+  const better = (left: number, right: number, lower: boolean) =>
+    lower ? left <= right : left >= right;
+  const strictlyBetter = (left: number, right: number, lower: boolean) =>
+    lower ? left < right : left > right;
+  return new Set(
+    qualifies.flatMap((candidate) => {
+      const dominated = qualifies.some(
+        (other) =>
+          other !== candidate &&
+          better(other.x.value, candidate.x.value, xAxis.lowerIsBetter) &&
+          better(other.y.value, candidate.y.value, yAxis.lowerIsBetter) &&
+          (strictlyBetter(
+            other.x.value,
+            candidate.x.value,
+            xAxis.lowerIsBetter,
+          ) ||
+            strictlyBetter(
+              other.y.value,
+              candidate.y.value,
+              yAxis.lowerIsBetter,
+            )),
+      );
+      return dominated ? [] : [candidate.row.m.id];
+    }),
+  );
+}
+
 function mustValue(
   axis: CanvasAxisOption,
   selections: BoardSelections,
@@ -167,6 +201,16 @@ export function FreeAxisCanvas({
   const plot = useRef<HTMLDivElement>(null);
   const drag = useRef<"x" | "y" | null>(null);
   const [hover, setHover] = useState<Row | null>(null);
+  const [plotWidth, setPlotWidth] = useState(800);
+  useEffect(() => {
+    const element = plot.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0) setPlotWidth(entry.contentRect.width);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   if (!xAxis || !yAxis) return null;
   const decisions = plotDecision
     ? [plotDecision, rankingDecision]
@@ -188,6 +232,53 @@ export function FreeAxisCanvas({
   );
   const xMust = mustValue(xAxis, selections);
   const yMust = mustValue(yAxis, selections);
+  const height = compact ? 300 : 460;
+  const frontier = frontierIds(points, xAxis, yAxis);
+  const winner = decision.explanation.shortlist.top?.m.id;
+  const nearMisses = new Set(
+    decision.nearMisses.map((nearMiss) => nearMiss.row.m.id),
+  );
+  const labelRank = (row: Row) =>
+    row.m.id === selected
+      ? 0
+      : row.m.id === winner
+        ? 1
+        : frontier.has(row.m.id)
+          ? 2
+          : nearMisses.has(row.m.id)
+            ? 3
+            : row.status === 0
+              ? 4
+              : row.m.id === hover?.m.id
+                ? 5
+                : null;
+  const labelText = (row: Row) =>
+    `${row.m.name}${row.status === 0 ? " · may qualify" : nearMisses.has(row.m.id) ? " · near miss" : ""}`;
+  const labelled = points
+    .flatMap((point) => {
+      const rank = labelRank(point.row);
+      return rank === null ? [] : [{ ...point, rank }];
+    })
+    .sort((left, right) => left.rank - right.rank);
+  const placements = placeLabels(
+    labelled.map(({ row, x, y }) => ({
+      id: row.m.id,
+      text: labelText(row),
+      x: xScale.at(x.value),
+      y: 1 - yScale.at(y.value),
+    })),
+    points.map(({ x, y }) => ({
+      x: xScale.at(x.value),
+      y: 1 - yScale.at(y.value),
+    })),
+    plotWidth,
+    height,
+  );
+  const labels = labelled.map((point, index) => ({
+    ...point,
+    dy: placements[index].dy,
+    right: placements[index].side === "left",
+  }));
   const setThreshold = (axis: CanvasAxisOption, raw: number) =>
     onMust(
       axis,
@@ -240,7 +331,7 @@ export function FreeAxisCanvas({
       <div className="chart-title">
         {yAxis.label}{yAxis.unit ? ` (${yAxis.unit.replaceAll("_", " ")})` : ""}
       </div>
-      <div className="plot-wrap" style={{ height: compact ? 300 : 460 }}>
+      <div className="plot-wrap" style={{ height }}>
         <div
           className="plot"
           ref={plot}
@@ -257,6 +348,32 @@ export function FreeAxisCanvas({
             drag.current = null;
           }}
         >
+          <svg
+            className="frontier"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {labels
+              .filter(({ dy }) => dy !== 0)
+              .map(({ row, x, y, dy, right }) => (
+                <line
+                  key={modelId(row)}
+                  className="label-leader"
+                  x1={100 * xScale.at(x.value)}
+                  y1={100 * (1 - yScale.at(y.value))}
+                  x2={
+                    100 *
+                    (xScale.at(x.value) +
+                      ((right ? -1 : 1) * 10) / plotWidth)
+                  }
+                  y2={
+                    100 * (1 - yScale.at(y.value) + dy / height)
+                  }
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+          </svg>
           {points.map(({ row, x, y }) => {
             const left = xScale.at(x.value);
             const top = 1 - yScale.at(y.value);
@@ -296,6 +413,19 @@ export function FreeAxisCanvas({
               </div>
             );
           })}
+          {labels.map(({ row, x, y, dy, right }) => (
+            <span
+              key={modelId(row)}
+              className={`point-label ${row.status === 0 ? "warn" : ""}`}
+              style={{
+                left: percent(xScale.at(x.value)),
+                top: percent(1 - yScale.at(y.value)),
+                transform: `translate(${right ? "calc(-100% - 12px)" : "12px"}, calc(-50% + ${dy}px))`,
+              }}
+            >
+              {labelText(row)}
+            </span>
+          ))}
           {xAxis.mustOp && (
             <div
               role="slider"

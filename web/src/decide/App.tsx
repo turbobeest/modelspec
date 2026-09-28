@@ -38,7 +38,6 @@ import { Canvas } from "./components/Canvas";
 import { FreeAxisCanvas } from "./components/FreeAxisCanvas";
 import type { CanvasAxes } from "./components/FreeAxisCanvas";
 import {
-  capabilityPlotSpec,
   canvasAxisOptions,
   canvasPlotSpec,
 } from "./components/canvas-axis";
@@ -234,23 +233,26 @@ export function DesignedApp({
     const y = options.get(shownCanvasAxes.y);
     if (!x || !y) return;
     const rankingSpec = toBoardDecisionSpec(lastSentSpec, "summary");
-    const domains = [x, y].flatMap((option) =>
-      option.kind === "capability" ? [option.key] : [],
+    const numericFallback = [...options.values()].find(
+      (option) => !option.disabled && option.valueType === "number",
     );
-    if (!capabilityPlotSpec(rankingSpec, domains)) {
-      plotKey.current = "";
-      setPlotDecision(null);
-      return;
-    }
-    const plotSpec = canvasPlotSpec(rankingSpec, x, y);
+    const plotSpec = canvasPlotSpec(rankingSpec, x, y, numericFallback);
     const key = `${hostedDecision.snapshot}:${JSON.stringify(plotSpec)}`;
     if (plotKey.current === key) return;
     const controller = new AbortController();
     plotKey.current = key;
     setPlotDecision(null);
-    void hostedEngine
-      .decide(plotSpec, { signal: controller.signal, snapshot: vocabulary.snapshot })
-      .then((plotDecision) => {
+    void retryOnSnapshotChange(
+      vocabulary,
+      (current) =>
+        hostedEngine.decide(plotSpec, {
+          signal: controller.signal,
+          snapshot: (current ?? vocabulary).snapshot,
+        }),
+      reloadVocabulary,
+      (fresh) => setVocabState({ kind: "ready", vocabulary: fresh }),
+    )
+      .then(({ result: plotDecision }) => {
         if (!controller.signal.aborted)
           setPlotDecision(plotDecision);
       })
@@ -264,6 +266,7 @@ export function DesignedApp({
     lastSentSpec,
     shownCanvasAxes,
     vocabulary,
+    reloadVocabulary,
   ]);
   const estateDecision = useMemo(() => {
     if (estateRequest.kind !== "done" || !vocabulary) return null;

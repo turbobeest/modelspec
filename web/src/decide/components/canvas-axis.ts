@@ -133,14 +133,25 @@ export function canvasPlotSpec(
   ranking: DecisionSpec,
   x: CanvasAxisOption,
   y: CanvasAxisOption,
+  numericFallback?: CanvasAxisOption,
 ): DecisionSpec {
-  const dimensions = [x, y].map((axis) =>
+  const numericAxes = [x, y].filter((axis) => axis.valueType === "number");
+  const objectiveAxes = numericAxes.length > 0
+    ? numericAxes
+    : numericFallback
+      ? [numericFallback]
+      : [];
+  const dimensions = objectiveAxes.map((axis) =>
     `${axis.lowerIsBetter ? "-" : ""}${axis.key}`,
   );
   const unique = [...new Set(dimensions)];
-  const weights = Object.fromEntries(
-    unique.map((dimension) => [dimension, 1 / unique.length]),
-  );
+  const optimize = unique.length > 0
+    ? {
+        weights: Object.fromEntries(
+          unique.map((dimension) => [dimension, 1 / unique.length]),
+        ),
+      }
+    : ranking.optimize;
   const capabilityDomains = [...new Set(
     [x, y].flatMap((axis) =>
       axis.kind === "capability" ? [axis.key] : [],
@@ -154,8 +165,8 @@ export function canvasPlotSpec(
     where: [],
     capabilities:
       capabilities.length > 0 ? Object.fromEntries(capabilities) : undefined,
-    optimize: { weights },
-    explain: "summary",
+    optimize,
+    explain: "full",
     limit: 500,
   };
 }
