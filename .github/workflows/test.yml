@@ -57,11 +57,16 @@ jobs:
             --shard-index ${{ matrix.index }} > shard-files.txt
           python -m pytest --collect-only -q -m "not perf" \
             $(< shard-files.txt) > shard-${{ matrix.index }}-collection.txt
-      - name: Install the landing browser on its pytest shard
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the landing browser and build the app on its pytest shard
+        # The landing browser test serves the built decide app at /decide/.
         run: |
           if grep -qx 'tests/test_landing.py' shard-files.txt; then
             cd web
             npm ci
+            npm run build
             npx playwright install --with-deps chromium
           fi
       - name: Run test shard

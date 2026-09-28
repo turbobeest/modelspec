@@ -1,8 +1,7 @@
 # Holding mode
 
-Since 2026-09-24 modelspec.dev shows a holding page, and Checkout is closed.
-Jamie's decision: the rankings are stale while the redesign is under way, and
-the product is not to be seen until he says go. The data stays up.
+`SITE_MODE` has been `live` since 2026-09-25. Checkout remains closed. This
+document records the fail-closed holding tree and how the workflow derives it.
 
 ## The switch
 
@@ -19,6 +18,10 @@ A missing variable is holding. No merge can bring the old site back by accident.
 Every run builds the real site with `pipeline.build`, as before, and then
 `python -m pipeline.holding build` writes `dist-holding`. The build job's
 summary names the mode and which tree production got.
+
+The real tree serves the MODEL-186 landing at `/` and the decision board at
+`/decide/`. The `internal` preview is a byte-identical copy. `/landing/`
+permanently redirects to `/`.
 
 ## benchgraph.dev
 
@@ -71,8 +74,8 @@ The real modelspec site from `main` is always on the preview branch:
 
 - https://internal.modelspec-7np.pages.dev
 
-It is the full site, links included. Benchmark pages are `/b/<id>/` there.
-Its canonical URLs still name `modelspec.dev`.
+It is byte-identical to the live production tree. `/` is the landing and
+`/decide/` is the board. Their canonical URLs name `modelspec.dev`.
 
 https://internal.benchgraph.pages.dev serves the same redirect file as
 production. It does not host the benchmark pages.
@@ -86,7 +89,7 @@ curl -so /dev/null -w '%{http_code}\n' https://modelspec.dev/models/   # 404
 curl -s  https://modelspec.dev/api/build.json              # the export, as ever
 ```
 
-## Relaunch
+## Switch to live
 
 Only when Jamie says go.
 

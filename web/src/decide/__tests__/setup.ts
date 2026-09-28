@@ -4,7 +4,7 @@ import { cleanup } from "@testing-library/react";
 
 afterEach(() => {
   cleanup();
-  history.replaceState(null, "", "/decide.html");
+  history.replaceState(null, "", "/decide/");
 });
 
 // jsdom has no native top layer. Browser tests exercise the real dialog.

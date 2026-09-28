@@ -60,6 +60,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"Null means not researched.\n\n"
         f"- Machine-readable index: {base}/api/index.json\n"
         f"- Benchmark catalogue: {base}/api/catalogue.json\n"
+        f"- Decide: {base}/decide/\n"
         f"- Rank API: {RANK_API}\n"
         f"- API docs: {API_DOCS}\n"
         f"- MCP: {MCP_ENDPOINT}\n"
@@ -549,13 +550,6 @@ def main(argv: list[str] | None = None) -> int:
     pricing_counts = pricing.write(ms, root, build)
     ms_paths.extend(pricing_counts["sitemap_paths"])
 
-    # MODEL-186 is a separate front door while the decide board remains at `/`.
-    # Both variants use this one computed data model; holding mode re-renders it
-    # at `/` after this complete tree exists.
-    from pipeline import landing as landing_page
-    landing_data = landing_page.build_data(str(root), today)
-    landing_page.write(ms, landing_data, variant="live")
-
     # Benchmark pages sit beside /m/ and /p/. The catalogue carries the headline
     # figures the build computes, so those counts cannot drift from the cards.
     ms_paths.append("/benchmarks/")
@@ -600,6 +594,20 @@ def main(argv: list[str] | None = None) -> int:
              ("Benchmark catalogue", "/benchmarks/"), ("API", "/api/index.json")],
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
 
+    # MODEL-186 replaces the old catalogue home. The deploy workflow adds the
+    # separately built decide app at /decide/ after holding derives from here.
+    from pipeline import landing as landing_page
+    landing_data = landing_page.build_data(str(root), today)
+    landing_page.write(ms, landing_data, variant="live")
+    (ms / "decide").mkdir(exist_ok=True)
+    (ms / "decide/index.html").write_text(
+        '<!doctype html><html><head><meta name="robots" content="noindex">'
+        '<link rel="canonical" href="https://modelspec.dev/decide/"></head>'
+        '<body><p>The deploy workflow installs the decision app here.</p></body></html>\n',
+        encoding="utf-8",
+    )
+    ms_paths.append("/decide/")
+
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
     (ms / "robots.txt").write_text(
@@ -613,6 +621,12 @@ def main(argv: list[str] | None = None) -> int:
     agent_counts = agent_ready.ship(
         root=root, ms=ms, models=models, benchmarks=benchmarks,
         catalogue=catalogue, build=build, by_provider=by_provider)
+    from pipeline.social_profiles import add_same_as
+    home = ms / "index.html"
+    home.write_text(
+        add_same_as(home.read_text(encoding="utf-8"), root / "brand" / "social" / "profiles.json"),
+        encoding="utf-8",
+    )
 
     missing = missing_internal_hrefs(ms)
     if missing:
