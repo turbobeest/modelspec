@@ -1477,10 +1477,22 @@ facts:
     snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
     cited_regions:
     - audit
+- id: anthropic/claude-opus-5-5#model.fits_hardware
+  subject:
+    kind: model
+    id: anthropic/claude-opus-5-5
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-anthropic-claude-opus-5-5-hardware-fit
+    snapshot_ref: sha256:faccbde82cd5a905123c99ad975537e2128a502541468a1aa98c50d06afa2ea3
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-28'
 ---
 
 # Claude Opus 5.5

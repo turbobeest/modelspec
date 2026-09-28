@@ -2213,10 +2213,22 @@ facts:
     snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
     cited_regions:
     - audit
+- id: meta/muse-spark#model.fits_hardware
+  subject:
+    kind: model
+    id: meta/muse-spark
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-meta-muse-spark-hardware-fit
+    snapshot_ref: sha256:d7163e4f92a7d35f7ce6c50b51272bfb5bf761eee0c08ff2959dfcb4ed13937f
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: manual
 card_created: '2026-04-08'
-card_updated: '2026-09-18'
+card_updated: '2026-09-28'
 ---
 
 

@@ -36,7 +36,7 @@ templates:
       - condition: model.class = text-generator
         reason: A conversational assistant needs a text-generating model.
       - condition: model.weights_openness = open_weights
-        reason: Self-hosting requires downloadable weights; fits-your-hardware is coming in MODEL-174.
+        reason: Self-hosting requires downloadable weights; add a model.fits_hardware Must for the device you own.
       - condition: licence.commercial_use in {permitted, permitted_with_conditions}
         reason: The licence must allow commercial use, including use with stated conditions.
     weights:

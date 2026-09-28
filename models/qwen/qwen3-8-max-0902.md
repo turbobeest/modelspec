@@ -1118,10 +1118,22 @@ facts:
     snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
     cited_regions:
     - audit
+- id: qwen/qwen3-8-max-0902#model.fits_hardware
+  subject:
+    kind: model
+    id: qwen/qwen3-8-max-0902
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-qwen-qwen3-8-max-0902-hardware-fit
+    snapshot_ref: sha256:f30f2196ffe61a02683b053a9fda22965e36b77cf32f1d6af7e805df253c02c9
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
-card_updated: '2026-09-24'
+card_updated: '2026-09-28'
 ---
 
 # Qwen3.8 Max 0902

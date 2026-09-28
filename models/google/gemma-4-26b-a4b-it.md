@@ -860,16 +860,68 @@ sources:
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 facts:
-- facet: model.fits_hardware
+- id: google/gemma-4-26b-a4b-it#model.fits_hardware
+  subject:
+    kind: model
+    id: google/gemma-4-26b-a4b-it
+  facet: model.fits_hardware
   value:
+  - amd_instinct_mi210
+  - amd_instinct_mi250x
+  - amd_instinct_mi300x
+  - amd_instinct_mi325x
+  - amd_instinct_mi355x
+  - amd_rx_7900_xt
+  - amd_rx_7900_xtx
+  - amd_ryzen_ai_max_plus_395
+  - apple_m1_max
+  - apple_m2_max
+  - apple_m2_ultra
+  - apple_m3_max
+  - apple_m3_ultra
+  - apple_m4
+  - apple_m4_max
+  - apple_m4_pro
+  - apple_m5_max
+  - google_tpu7x
+  - google_tpu_v4
+  - google_tpu_v5p
+  - google_tpu_v6e
+  - intel_gaudi_2
+  - intel_gaudi_3
+  - nvidia_a100_40gb_sxm
+  - nvidia_a100_80gb_sxm
+  - nvidia_b200
+  - nvidia_b300
+  - nvidia_dgx_spark
+  - nvidia_gb200_superchip
+  - nvidia_h100_nvl
+  - nvidia_h100_pcie
+  - nvidia_h100_sxm
+  - nvidia_h200_sxm
+  - nvidia_jetson_agx_orin_32gb
+  - nvidia_jetson_agx_orin_64gb
+  - nvidia_jetson_t4000
+  - nvidia_jetson_t5000
+  - nvidia_l4
+  - nvidia_l40s
+  - nvidia_rtx_3090
+  - nvidia_rtx_4000_sff_ada
   - nvidia_rtx_4090
+  - nvidia_rtx_4500_ada
+  - nvidia_rtx_5000_ada
+  - nvidia_rtx_5090
+  - nvidia_rtx_6000_ada
+  - nvidia_rtx_a6000
+  - nvidia_rubin_gpu
+  - nvidia_tesla_p40
+  - qualcomm_snapdragon_x_elite
   state: known
   sources:
-  - source_id: model-163-local-google-gemma-4-26b-a4b-it-memory
-    snapshot_ref: sha256:6e208ea9ec77f53a8a5eba6cb22f1fcf578fd299f7ba9d2a99b4d6a5b5873184
+  - source_id: model-174-google-gemma-4-26b-a4b-it-hardware-fit
+    snapshot_ref: sha256:046c0a2c0a5389891141cd19a30ce1fcc7494c256abc15729bd299cf5276152b
     cited_regions:
-    - row
-  checked_sources: []
+    - rows
 - facet: model.class
   value: text-generator
   state: known
@@ -1065,10 +1117,22 @@ facts:
     - model-spec
   checked_sources:
   - model-163-google-gemma-4-26b-a4b-it
+- id: google/gemma-4-26b-a4b-it#model.parameters_total
+  subject:
+    kind: model
+    id: google/gemma-4-26b-a4b-it
+  facet: model.parameters_total
+  value: 25805936206
+  state: known
+  sources:
+  - source_id: model-174-google-gemma-4-26b-a4b-it-hardware-fit
+    snapshot_ref: sha256:046c0a2c0a5389891141cd19a30ce1fcc7494c256abc15729bd299cf5276152b
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-23'
+card_updated: '2026-09-28'
 ---
 
 

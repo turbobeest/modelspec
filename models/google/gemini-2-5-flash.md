@@ -1374,10 +1374,19 @@ facts:
     - model-spec
   checked_sources:
   - model-163-google-gemini-2-5-flash
+- id: google/gemini-2-5-flash#model.fits_hardware
+  subject:
+    kind: model
+    id: google/gemini-2-5-flash
+  facet: model.fits_hardware
+  value: null
+  state: unknown
+  checked_sources:
+  - model-174-google-gemini-2-5-flash-hardware-fit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-23'
+card_updated: '2026-09-28'
 authoring_guide:
   applies_to:
     model_id: google/gemini-2-5-flash

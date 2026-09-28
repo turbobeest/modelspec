@@ -1352,10 +1352,22 @@ facts:
     snapshot_ref: sha256:922e58ef4d71b65498751f1ef2981e92478d177353e2cf7ec1eee0901ab667f3
     cited_regions:
     - audit
+- id: xai/grok-4-7#model.fits_hardware
+  subject:
+    kind: model
+    id: xai/grok-4-7
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-xai-grok-4-7-hardware-fit
+    snapshot_ref: sha256:eb51329c8b7eb4c8709818a40ded79565f1cb1643a2744f4bfd75dda5006945e
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-28'
 ---
 
 # Grok 4.7

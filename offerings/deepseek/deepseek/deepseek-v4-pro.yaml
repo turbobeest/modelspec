@@ -143,3 +143,15 @@
     checked_sources:
     - deepseek-v4-pricing
     - model-143-deepseek-deepseek-v4-pro
+  - id: deepseek/deepseek/deepseek-v4-pro/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: deepseek/deepseek/deepseek-v4-pro/global/standard
+    facet: offering.private_deployment
+    value: true
+    state: known
+    sources:
+    - source_id: model-174-deepseek-deepseek-deepseek-v4-pro-global-standard
+      snapshot_ref: sha256:6c4f7c06f74ac42c4daf0f3bae408df562649ae1032341d6eb8fa7e16ea3a931
+      cited_regions:
+      - rows

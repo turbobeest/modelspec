@@ -2226,10 +2226,22 @@ facts:
     snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
     cited_regions:
     - audit
+- id: openai/gpt-6-astra#model.fits_hardware
+  subject:
+    kind: model
+    id: openai/gpt-6-astra
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-openai-gpt-6-astra-hardware-fit
+    snapshot_ref: sha256:e53497a716c7803e09f7d9a380337f49b31c6a163298f6c9f2549d6dc38a4742
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 authoring_guide:
   applies_to:
     model_id: openai/gpt-6-astra

@@ -143,3 +143,13 @@
     checked_sources:
     - meta-model-api-pricing
     - model-143-meta-muse-spark-1-1
+  - id: meta-model-api/meta/muse-spark-1-1/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: meta-model-api/meta/muse-spark-1-1/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - meta-model-api-pricing
+    - model-143-meta-muse-spark-1-1

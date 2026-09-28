@@ -1304,10 +1304,35 @@ facts:
     - model-spec
   checked_sources:
   - model-163-deepseek-deepseek-v3-1
+- id: deepseek/deepseek-v3-1#model.parameters_total
+  subject:
+    kind: model
+    id: deepseek/deepseek-v3-1
+  facet: model.parameters_total
+  value: 684531386000
+  state: known
+  sources:
+  - source_id: model-174-deepseek-deepseek-v3-1-hardware-fit
+    snapshot_ref: sha256:6ccb107507e8ef7a8aba39c8ef52ba53a37cd70f4d2513aade4547be6013c61b
+    cited_regions:
+    - rows
+- id: deepseek/deepseek-v3-1#model.fits_hardware
+  subject:
+    kind: model
+    id: deepseek/deepseek-v3-1
+  facet: model.fits_hardware
+  value:
+  - apple_m3_ultra
+  state: known
+  sources:
+  - source_id: model-174-deepseek-deepseek-v3-1-hardware-fit
+    snapshot_ref: sha256:6ccb107507e8ef7a8aba39c8ef52ba53a37cd70f4d2513aade4547be6013c61b
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-23'
+card_updated: '2026-09-28'
 authoring_guide:
   applies_to:
     model_id: deepseek/deepseek-v3-1

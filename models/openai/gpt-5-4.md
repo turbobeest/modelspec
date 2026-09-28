@@ -2446,10 +2446,22 @@ facts:
     snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
     cited_regions:
     - audit
+- id: openai/gpt-5-4#model.fits_hardware
+  subject:
+    kind: model
+    id: openai/gpt-5-4
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-openai-gpt-5-4-hardware-fit
+    snapshot_ref: sha256:ccd93116815ddc212d6a2617e905121cff1693a619d8eb410f35162f733d460d
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 authoring_guide:
   applies_to:
     model_id: openai/gpt-5-4

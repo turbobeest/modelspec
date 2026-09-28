@@ -2075,10 +2075,22 @@ facts:
     snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
     cited_regions:
     - audit
+- id: google/gemini-3-7-flash#model.fits_hardware
+  subject:
+    kind: model
+    id: google/gemini-3-7-flash
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-google-gemini-3-7-flash-hardware-fit
+    snapshot_ref: sha256:8bc72e20539faf4354cb8be0e0ac71541ebf873a5ea055e0339bfb46aa8ea527
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-28'
 ---
 
 # Gemini 3.7 Flash

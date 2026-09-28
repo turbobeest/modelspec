@@ -143,3 +143,15 @@
     checked_sources:
     - azure-pricing
     - model-143-openai-gpt-6-astra
+  - id: azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-astra/global-short-context/standard
+    facet: offering.private_deployment
+    value: true
+    state: known
+    sources:
+    - source_id: model-174-azure-ai-foundry-openai-gpt-6-astra-global-short-context-standard
+      snapshot_ref: sha256:d4bc7898882780a122e100fd3445b119443edb1275c9ffafb34939eddefedffc
+      cited_regions:
+      - rows

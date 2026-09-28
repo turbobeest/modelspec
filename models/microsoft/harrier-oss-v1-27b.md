@@ -1183,10 +1183,84 @@ facts:
     snapshot_ref: sha256:a2e833cbb9725dfcac56f298b865bf7f5d8b101b4e7113f8b4581dc4bd936ab9
     cited_regions:
     - rows
+- id: microsoft/harrier-oss-v1-27b#model.parameters_total
+  subject:
+    kind: model
+    id: microsoft/harrier-oss-v1-27b
+  facet: model.parameters_total
+  value: 27009346304
+  state: known
+  sources:
+  - source_id: model-174-microsoft-harrier-oss-v1-27b-hardware-fit
+    snapshot_ref: sha256:14cc44999ff9e66e1e7c392f2b4e26a51bcec682d23618d2dbcbb04f33b04379
+    cited_regions:
+    - rows
+- id: microsoft/harrier-oss-v1-27b#model.fits_hardware
+  subject:
+    kind: model
+    id: microsoft/harrier-oss-v1-27b
+  facet: model.fits_hardware
+  value:
+  - amd_instinct_mi210
+  - amd_instinct_mi250x
+  - amd_instinct_mi300x
+  - amd_instinct_mi325x
+  - amd_instinct_mi355x
+  - amd_rx_7900_xt
+  - amd_rx_7900_xtx
+  - amd_ryzen_ai_max_plus_395
+  - apple_m1_max
+  - apple_m2_max
+  - apple_m2_ultra
+  - apple_m3_max
+  - apple_m3_ultra
+  - apple_m4
+  - apple_m4_max
+  - apple_m4_pro
+  - apple_m5_max
+  - google_tpu7x
+  - google_tpu_v4
+  - google_tpu_v5p
+  - google_tpu_v6e
+  - intel_gaudi_2
+  - intel_gaudi_3
+  - nvidia_a100_40gb_sxm
+  - nvidia_a100_80gb_sxm
+  - nvidia_b200
+  - nvidia_b300
+  - nvidia_dgx_spark
+  - nvidia_gb200_superchip
+  - nvidia_h100_nvl
+  - nvidia_h100_pcie
+  - nvidia_h100_sxm
+  - nvidia_h200_sxm
+  - nvidia_jetson_agx_orin_32gb
+  - nvidia_jetson_agx_orin_64gb
+  - nvidia_jetson_t4000
+  - nvidia_jetson_t5000
+  - nvidia_l4
+  - nvidia_l40s
+  - nvidia_rtx_3090
+  - nvidia_rtx_4000_sff_ada
+  - nvidia_rtx_4090
+  - nvidia_rtx_4500_ada
+  - nvidia_rtx_5000_ada
+  - nvidia_rtx_5090
+  - nvidia_rtx_6000_ada
+  - nvidia_rtx_a6000
+  - nvidia_rubin_gpu
+  - nvidia_tesla_p40
+  - qualcomm_snapdragon_x_elite
+  state: known
+  sources:
+  - source_id: model-174-microsoft-harrier-oss-v1-27b-hardware-fit
+    snapshot_ref: sha256:14cc44999ff9e66e1e7c392f2b4e26a51bcec682d23618d2dbcbb04f33b04379
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: Claude Opus 5.5
 card_created: '2026-09-24'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 # harrier-oss-v1-27b

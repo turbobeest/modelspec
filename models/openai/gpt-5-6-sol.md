@@ -2322,10 +2322,22 @@ facts:
     snapshot_ref: sha256:281462a94d8676b839c6c41a484a3e0390d988621bd868610c201ab884360f94
     cited_regions:
     - audit
+- id: openai/gpt-5-6-sol#model.fits_hardware
+  subject:
+    kind: model
+    id: openai/gpt-5-6-sol
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-openai-gpt-5-6-sol-hardware-fit
+    snapshot_ref: sha256:e8320a3515787af4b3070fca1229457ac2aa9acdd790a41941430991dfd24f21
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-28'
 ---
 
 # GPT-5.6 Sol

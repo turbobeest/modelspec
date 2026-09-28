@@ -1063,10 +1063,19 @@ facts:
     - model-spec
   checked_sources:
   - model-163-bytedance-seed1-5-embedding
+- id: bytedance/seed1-5-embedding#model.fits_hardware
+  subject:
+    kind: model
+    id: bytedance/seed1-5-embedding
+  facet: model.fits_hardware
+  value: null
+  state: unknown
+  checked_sources:
+  - model-174-bytedance-seed1-5-embedding-hardware-fit
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
-card_updated: '2026-09-24'
+card_updated: '2026-09-28'
 ---
 
 # Seed1.5-Embedding

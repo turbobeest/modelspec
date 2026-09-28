@@ -1217,6 +1217,37 @@ facts:
   - model-143-alibaba-modelstudio-terms
   - model-143-qwen3-8-flash-next-license
   - model-143-hf-metadata-qwen-qwen3-8-flash-next
+- id: qwen/qwen3-8-flash-next#model.fits_hardware
+  subject:
+    kind: model
+    id: qwen/qwen3-8-flash-next
+  facet: model.fits_hardware
+  value:
+  - amd_instinct_mi250x
+  - amd_instinct_mi300x
+  - amd_instinct_mi325x
+  - amd_instinct_mi355x
+  - amd_ryzen_ai_max_plus_395
+  - apple_m2_ultra
+  - apple_m3_max
+  - apple_m3_ultra
+  - apple_m4_max
+  - apple_m5_max
+  - google_tpu7x
+  - intel_gaudi_3
+  - nvidia_b200
+  - nvidia_b300
+  - nvidia_dgx_spark
+  - nvidia_gb200_superchip
+  - nvidia_h200_sxm
+  - nvidia_jetson_t5000
+  - nvidia_rubin_gpu
+  state: known
+  sources:
+  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-fit
+    snapshot_ref: sha256:8f5699fcc29470eba84c525b268289e7c32be8bd693d69c8b5ce8c052bcccc69
+    cited_regions:
+    - rows
 - id: qwen/qwen3-8-flash-next#model.parameters_total
   subject:
     kind: model
@@ -1225,30 +1256,14 @@ facts:
   value: 179999981459
   state: known
   sources:
-  - source_id: model-161-qwen3-8-flash-next-rtx-4090-fit
-    snapshot_ref: sha256:9258c7fa8ac271f31491b9558b066f6cda2a344b38e7560abc3cb103a72a16e0
-    cited_regions:
-    - rows
-- id: qwen/qwen3-8-flash-next#model.fits_hardware
-  subject:
-    kind: model
-    id: qwen/qwen3-8-flash-next
-  facet: model.fits_hardware
-  value: []
-  state: known
-  sources:
-  - source_id: model-161-qwen3-8-flash-next-rtx-4090-fit
-    snapshot_ref: sha256:9258c7fa8ac271f31491b9558b066f6cda2a344b38e7560abc3cb103a72a16e0
-    cited_regions:
-    - rows
-  - source_id: model-161-nvidia-rtx-4090-memory
-    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
+  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-fit
+    snapshot_ref: sha256:8f5699fcc29470eba84c525b268289e7c32be8bd693d69c8b5ce8c052bcccc69
     cited_regions:
     - rows
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 # Qwen3.8-Flash-Next

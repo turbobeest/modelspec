@@ -143,3 +143,15 @@
     checked_sources:
     - openai-data
     - model-143-openai-gpt-5-6-sol
+  - id: openai/openai/gpt-5-6-sol/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-6-sol/global/standard
+    facet: offering.private_deployment
+    value: true
+    state: known
+    sources:
+    - source_id: model-174-openai-openai-gpt-5-6-sol-global-standard
+      snapshot_ref: sha256:0e8c3b96e0bc4c1ca99a32097e804c1e62329db14c97fda6fe5624fbaf753a1e
+      cited_regions:
+      - rows

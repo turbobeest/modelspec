@@ -1140,10 +1140,35 @@ facts:
     - model-spec
   checked_sources:
   - model-163-deepseek-deepseek-flash
+- id: deepseek/deepseek-flash#model.parameters_total
+  subject:
+    kind: model
+    id: deepseek/deepseek-flash
+  facet: model.parameters_total
+  value: 763205315794
+  state: known
+  sources:
+  - source_id: model-174-deepseek-deepseek-flash-hardware-fit
+    snapshot_ref: sha256:0b2641582f36ab93690575bb89c7c118e44f05e3114b8871d2e869f5b3221b88
+    cited_regions:
+    - rows
+- id: deepseek/deepseek-flash#model.fits_hardware
+  subject:
+    kind: model
+    id: deepseek/deepseek-flash
+  facet: model.fits_hardware
+  value:
+  - apple_m3_ultra
+  state: known
+  sources:
+  - source_id: model-174-deepseek-deepseek-flash-hardware-fit
+    snapshot_ref: sha256:0b2641582f36ab93690575bb89c7c118e44f05e3114b8871d2e869f5b3221b88
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-28'
 ---
 
 # DeepSeek V4.1 Flash

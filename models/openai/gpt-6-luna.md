@@ -1019,10 +1019,19 @@ facts:
     cited_regions:
     - model-spec
   checked_sources: []
+- id: openai/gpt-6-luna#model.fits_hardware
+  subject:
+    kind: model
+    id: openai/gpt-6-luna
+  facet: model.fits_hardware
+  value: null
+  state: unknown
+  checked_sources:
+  - model-174-openai-gpt-6-luna-hardware-fit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-28'
 ---
 
 # GPT-6 Luna

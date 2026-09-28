@@ -1135,10 +1135,22 @@ facts:
     snapshot_ref: sha256:76d62afee853b619884488423f708a5726d7eb427800e1a1bae4fab74bdb42c2
     cited_regions:
     - rows
+- id: jcorners/ingot-8b-r3#model.fits_hardware
+  subject:
+    kind: model
+    id: jcorners/ingot-8b-r3
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-jcorners-ingot-8b-r3-hardware-fit
+    snapshot_ref: sha256:48ed2e5ff6a59290d6b97067f38fdc112f09d3e84cbae7ab9b5d09a981ba4ac2
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 # Ingot 8B R3

@@ -143,3 +143,15 @@
     checked_sources:
     - vertex-pricing
     - model-143-google-gemini-3-5-flash
+  - id: google-vertex-ai/google/gemini-3-5-flash/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: google-vertex-ai/google/gemini-3-5-flash/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - google-attestations
+    - model-143-google-gemini-3-5-flash
+    - vertex-data
+    - vertex-pricing

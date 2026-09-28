@@ -2564,10 +2564,22 @@ facts:
     snapshot_ref: sha256:cfb59d90c8b31ffb9c1e3a0b95bff416c7b3d19218eb3c15e8d0169ea36caeca
     cited_regions:
     - audit
+- id: anthropic/claude-opus-4-6#model.fits_hardware
+  subject:
+    kind: model
+    id: anthropic/claude-opus-4-6
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-anthropic-claude-opus-4-6-hardware-fit
+    snapshot_ref: sha256:de1bf6de91daa00faf7b8c7add0a8d3494ef575652d0e956e9eff74484bf0313
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 authoring_guide:
   applies_to:
     model_id: anthropic/claude-opus-4-6

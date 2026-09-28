@@ -143,3 +143,15 @@
     checked_sources:
     - azure-pricing
     - model-143-openai-gpt-6-sol
+  - id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: azure-ai-foundry/openai/gpt-6-sol/global-short-context/standard
+    facet: offering.private_deployment
+    value: true
+    state: known
+    sources:
+    - source_id: model-174-azure-ai-foundry-openai-gpt-6-sol-global-short-context-standard
+      snapshot_ref: sha256:bd5ac1537cb8cdc0cf4b437fde4ba6ae17f4b3ff13adceda224350868a46aaea
+      cited_regions:
+      - rows

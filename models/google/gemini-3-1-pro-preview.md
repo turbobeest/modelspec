@@ -2437,10 +2437,22 @@ facts:
     snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
     cited_regions:
     - audit
+- id: google/gemini-3-1-pro-preview#model.fits_hardware
+  subject:
+    kind: model
+    id: google/gemini-3-1-pro-preview
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-google-gemini-3-1-pro-preview-hardware-fit
+    snapshot_ref: sha256:5714c12149f9c2a08b7a3445cc3a04d0933008fb97a7b678c19f19364fbc9d5d
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 

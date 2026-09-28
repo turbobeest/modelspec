@@ -143,3 +143,15 @@
     checked_sources:
     - vertex-pricing
     - model-143-anthropic-claude-fable-5-1
+  - id: google-vertex-ai/anthropic/claude-fable-5-1/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-fable-5-1/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - google-attestations
+    - model-143-anthropic-claude-fable-5-1
+    - vertex-data
+    - vertex-pricing

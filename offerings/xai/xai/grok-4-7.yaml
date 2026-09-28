@@ -143,3 +143,14 @@
     checked_sources:
     - xai-grok-4-7
     - model-143-xai-grok-4-7
+  - id: xai/xai/grok-4-7/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: xai/xai/grok-4-7/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - model-143-xai-grok-4-7
+    - xai-grok-4-7
+    - xai-security

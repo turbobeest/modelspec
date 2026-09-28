@@ -1742,10 +1742,22 @@ facts:
     snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
     cited_regions:
     - audit
+- id: meta/muse-spark-1-3#model.fits_hardware
+  subject:
+    kind: model
+    id: meta/muse-spark-1-3
+  facet: model.fits_hardware
+  value: []
+  state: known
+  sources:
+  - source_id: model-174-meta-muse-spark-1-3-hardware-fit
+    snapshot_ref: sha256:b10ec783414b23a3e15d985844299612a17b35a01ee6c673a718ca1d7347ca7f
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 # Muse Spark 1.3

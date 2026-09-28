@@ -143,3 +143,15 @@
     checked_sources:
     - aws-pricing
     - model-143-anthropic-claude-opus-5-5
+  - id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-5-5/global-cross-region/standard
+    facet: offering.private_deployment
+    value: false
+    state: known
+    sources:
+    - source_id: model-174-aws-bedrock-anthropic-claude-opus-5-5-global-cross-region-standard
+      snapshot_ref: sha256:7ad395e610af1bbf50c997122666ee86fc98c03471d346d8cfd0ace8eaa0a0a1
+      cited_regions:
+      - rows

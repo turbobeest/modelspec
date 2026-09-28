@@ -143,3 +143,15 @@
     checked_sources:
     - vertex-pricing
     - model-143-anthropic-claude-opus-5-5
+  - id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-opus-5-5/global/standard
+    facet: offering.private_deployment
+    value: true
+    state: known
+    sources:
+    - source_id: model-174-google-vertex-ai-anthropic-claude-opus-5-5-global-standard
+      snapshot_ref: sha256:0877abc6fae2aa9eeca8c428d743de8e79ccc52142ae8f1c1d85f95f48004120
+      cited_regions:
+      - rows

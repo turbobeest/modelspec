@@ -823,16 +823,79 @@ sources:
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 facts:
-- facet: model.fits_hardware
+- id: google/gemma-4-e4b-it#model.fits_hardware
+  subject:
+    kind: model
+    id: google/gemma-4-e4b-it
+  facet: model.fits_hardware
   value:
+  - amd_instinct_mi210
+  - amd_instinct_mi250x
+  - amd_instinct_mi300x
+  - amd_instinct_mi325x
+  - amd_instinct_mi355x
+  - amd_rx_7900_xt
+  - amd_rx_7900_xtx
+  - amd_rx_9070_xt
+  - amd_ryzen_ai_max_plus_395
+  - apple_m1_max
+  - apple_m2_max
+  - apple_m2_ultra
+  - apple_m3_max
+  - apple_m3_ultra
+  - apple_m4
+  - apple_m4_max
+  - apple_m4_pro
+  - apple_m5_max
+  - google_tpu7x
+  - google_tpu_v4
+  - google_tpu_v5e
+  - google_tpu_v5p
+  - google_tpu_v6e
+  - intel_arc_a770_16gb
+  - intel_gaudi_2
+  - intel_gaudi_3
+  - nvidia_a100_40gb_sxm
+  - nvidia_a100_80gb_sxm
+  - nvidia_b200
+  - nvidia_b300
+  - nvidia_dgx_spark
+  - nvidia_gb200_superchip
+  - nvidia_h100_nvl
+  - nvidia_h100_pcie
+  - nvidia_h100_sxm
+  - nvidia_h200_sxm
+  - nvidia_jetson_agx_orin_32gb
+  - nvidia_jetson_agx_orin_64gb
+  - nvidia_jetson_orin_nano_8gb
+  - nvidia_jetson_orin_nx_16gb
+  - nvidia_jetson_orin_nx_8gb
+  - nvidia_jetson_t4000
+  - nvidia_jetson_t5000
+  - nvidia_l4
+  - nvidia_l40s
+  - nvidia_rtx_3060_12gb
+  - nvidia_rtx_3090
+  - nvidia_rtx_4000_sff_ada
+  - nvidia_rtx_4060_ti_16gb
+  - nvidia_rtx_4070_ti_super
+  - nvidia_rtx_4080_super
   - nvidia_rtx_4090
+  - nvidia_rtx_4500_ada
+  - nvidia_rtx_5000_ada
+  - nvidia_rtx_5080
+  - nvidia_rtx_5090
+  - nvidia_rtx_6000_ada
+  - nvidia_rtx_a6000
+  - nvidia_rubin_gpu
+  - nvidia_tesla_p40
+  - qualcomm_snapdragon_x_elite
   state: known
   sources:
-  - source_id: model-163-local-google-gemma-4-e4b-it-memory
-    snapshot_ref: sha256:9cc27f893dac3c5767a4568f99ffd26327277ac9c9f0174e55a498007a6eeaf7
+  - source_id: model-174-google-gemma-4-e4b-it-hardware-fit
+    snapshot_ref: sha256:2c6a04d27e28d52f337e12752b608c56ea8cf55548c11f301cc7d0a67e727eee
     cited_regions:
-    - row
-  checked_sources: []
+    - rows
 - facet: model.class
   value: text-generator
   state: known
@@ -1028,10 +1091,22 @@ facts:
     - model-spec
   checked_sources:
   - model-163-google-gemma-4-e4b-it
+- id: google/gemma-4-e4b-it#model.parameters_total
+  subject:
+    kind: model
+    id: google/gemma-4-e4b-it
+  facet: model.parameters_total
+  value: 7996156490
+  state: known
+  sources:
+  - source_id: model-174-google-gemma-4-e4b-it-hardware-fit
+    snapshot_ref: sha256:2c6a04d27e28d52f337e12752b608c56ea8cf55548c11f301cc7d0a67e727eee
+    cited_regions:
+    - rows
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-04-05'
+card_updated: '2026-09-28'
 ---
 
 
