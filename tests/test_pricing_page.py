@@ -100,12 +100,39 @@ def test_honesty_contracts_match_cli_billing_and_legal_docs() -> None:
     html = _page()
     assert "offline CLI cost nothing" in html
     assert re.search(r"CLI.{0,30}(metered|costs? credits)", html, re.I) is None
+    assert "No answer, no charge" not in html
+    assert "Only a successful answer draws credits." in html
     assert "An error, a refusal, or no model fits" in html
     assert "anything that is not a successful answer" in html
-    assert "free</strong>" in html
+    assert 'class="free">free</td>' in html
+    x402_rule = "Per-call settlement cannot be un-settled if `produce` then returns 5xx."
+    assert x402_rule in (REPO_ROOT / "docs/x402.md").read_text()
+    assert ("A per-call payment is settled before the answer is produced; if the service "
+            "then fails, that payment isn't refunded automatically.") in html
     pledge = "No referral fees, no paid placement, no provider-paid visibility"
     assert pledge in html
     assert pledge in (REPO_ROOT / "docs/legal/neutrality.md").read_text()
+
+
+def test_price_lists_and_answer_costs_have_table_semantics() -> None:
+    html = _page()
+    tables = re.findall(r'<table\b[^>]*>(.*?)</table>', html)
+    assert len(tables) == 3
+    assert [re.search(r'<caption>(.*?)</caption>', table).group(1) for table in tables] == [
+        "Monthly plans · allowance resets each invoice",
+        "Packs · one-off, last 365 days",
+        "Credits drawn from a prepaid balance",
+    ]
+    for table in tables:
+        assert re.search(r'<th scope="col">', table)
+        assert re.search(r'<th scope="row">', table)
+    tiers = json.loads(TIERS_PATH.read_text())
+    prices = tiers["billing"]["prices"].values()
+    assert len(re.findall(r'<tr class="price-row plan">', tables[0])) == sum(
+        row["kind"] == "plan" for row in prices)
+    assert len(re.findall(r'<tr class="price-row pack">', tables[1])) == sum(
+        row["kind"] == "pack" for row in prices)
+    assert len(re.findall(r'<tr class="cost-row">', tables[2])) == 5
 
 
 def test_endpoints_contact_and_no_third_party_assets() -> None:

@@ -1,18 +1,39 @@
 export function packCost(credits, packs) {
   if (credits <= 0) return { usd: 0, how: "" };
-  const big = packs[packs.length - 1];
-  const bigCount = Math.floor(credits / big.credits);
-  const remainder = credits - bigCount * big.credits;
-  let best = null;
-  for (const pack of packs) {
-    const count = remainder > 0 ? Math.ceil(remainder / pack.credits) : 0;
-    const usd = count * pack.usd;
-    if (best === null || usd < best.usd) best = { usd, count, pack };
+
+  const gcd = (left, right) => right === 0 ? left : gcd(right, left % right);
+  const unit = packs.reduce((value, pack) => gcd(value, pack.credits), packs[0].credits);
+  const scaled = packs.map((pack) => ({ ...pack, units: pack.credits / unit }));
+  const target = Math.ceil(credits / unit);
+  const limit = target + Math.max(...scaled.map((pack) => pack.units));
+  const costs = Array(limit + 1).fill(Infinity);
+  const previous = Array(limit + 1).fill(null);
+  costs[0] = 0;
+
+  for (let covered = 1; covered <= limit; covered += 1) {
+    for (let index = 0; index < scaled.length; index += 1) {
+      const pack = scaled[index];
+      if (covered >= pack.units && costs[covered - pack.units] + pack.usd < costs[covered]) {
+        costs[covered] = costs[covered - pack.units] + pack.usd;
+        previous[covered] = index;
+      }
+    }
   }
-  const parts = [];
-  if (bigCount) parts.push(`${bigCount} × ${big.credits.toLocaleString("en-US")}`);
-  if (best.count) parts.push(`${best.count} × ${best.pack.credits.toLocaleString("en-US")}`);
-  return { usd: bigCount * big.usd + best.usd, how: `${parts.join(" + ")} packs` };
+
+  let bestCovered = target;
+  for (let covered = target + 1; covered <= limit; covered += 1) {
+    if (costs[covered] < costs[bestCovered]) bestCovered = covered;
+  }
+  const counts = Array(packs.length).fill(0);
+  for (let covered = bestCovered; covered > 0;) {
+    const index = previous[covered];
+    counts[index] += 1;
+    covered -= scaled[index].units;
+  }
+  const parts = counts.flatMap((count, index) => count
+    ? [`${count} × ${packs[index].credits.toLocaleString("en-US")}`]
+    : []);
+  return { usd: costs[bestCovered], how: `${parts.join(" + ")} packs` };
 }
 
 export function calculate(data, state) {
