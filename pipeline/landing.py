@@ -19,7 +19,7 @@ from decision.computed import COST_PER_TASK, with_computed
 from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
 from decision.engine import decide
 from decision.registry import default
-from decision.snapshot import build_from_repo, load_snapshot_bytes
+from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_templates
 from pipeline import brand
 from pipeline.load import load_models
@@ -191,7 +191,9 @@ def _input_digest(root: Path, as_of: date) -> str:
 def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
     root = Path(root_value)
     snapshot = build_from_repo(root, premier=None, as_of=as_of, gate=False)
-    loaded = load_snapshot_bytes(snapshot.to_bytes(), key=None)
+    # This snapshot never leaves the build process. Check its content hash, but
+    # do not sign it or require a publisher signature meant for public clients.
+    loaded = load_built_snapshot(snapshot, source="landing-page build")
     priced = with_computed(loaded, DEFAULT_TASK_TOKENS)
     cards = {model.model_id: model for model in load_models(root)}
 
@@ -326,6 +328,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
              else '<span class="board-status">Board opening soon</span>')
     board_compact = (f'<a class="button primary" href="{DECIDE_PATH}">Open the board</a>'
                      if variant == "live" else '<span class="board-status">Board opening soon</span>')
+    graph_link = '<a href="/graph/">Explore the graph</a>' if variant == "live" else ""
     install = ('<pre class="install" aria-label="First run">'
                + "\n".join(f'<code>{line}</code>' for line in FIRST_RUN) + '</pre>'
                if package_published else
@@ -374,7 +377,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <meta property="og:description" content="{DESCRIPTION}">
 {robots}{canonical}{brand.head_links()}{brand.social_meta(TITLE)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
 <body><div class="axis" aria-hidden="true"></div>
-<header>{_logo()}<span class="wordmark"><b>Model</b>Spec</span><nav><a href="#receipt">What it costs you</a><a href="#agents">For agents</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
+<header>{_logo()}<span class="wordmark"><b>Model</b>Spec</span><nav><a href="#receipt">What it costs you</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><h1>Your model is a guess.</h1>
 <p class="fud"><span class="desktop-only">The evidence can't tell {tied_others} of these models apart from the top one. The cheapest of them costs {data.ratio:.1f}× less. Benchmarks disagree, leaderboards reshuffle, and nothing in your stack will ever tell you that you chose wrong.</span><span class="mobile-only">The evidence can't tell {tied_others} of these models apart from the top one. The cheapest costs {data.ratio:.1f}× less, and nothing in your stack will tell you.</span></p>
 <p class="close">ModelSpec shows you the model your job needs, from sourced evidence. Nobody pays to rank higher. When one model wins, we say so. When it's a tie, we hand you the cheapest.</p>
@@ -395,7 +398,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>{len(data.routes)} of {data.template_count} templates · the others' top result has no published price</span></div></div></div></section>
 <section class="challenge" id="pick-a-model"><h2>Think you know the best coding model?</h2><form id="pick-form"><label for="model-pick"><span class="desktop-only">Put your pick on the board. See exactly where it lands, and why.</span><span class="mobile-only">Put your pick on the board and see where it lands.</span></label><div><select id="model-pick">{options}</select><button type="submit">Check my pick</button></div><output id="pick-result" aria-live="polite">Choose a model to compare with the top estimate.</output></form></section>
 <section class="trust"><div>{trust_source}</div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p></div></section></main>
-<footer><span>© Sparks and Sawdust LLC</span><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>
+<footer><span>© Sparks and Sawdust LLC</span>{graph_link}<a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>
 <div class="sticky">{board_compact}<a class="button secondary" href="#agents">Agents</a></div>
 <script id="{DATA_ID}" type="application/json">{payload}</script><script src="/{ASSET_DIR}/landing.js" defer></script></body></html>\n'''
 

@@ -154,7 +154,7 @@ def with_site_nav(html: str, nav: str, page: str) -> str:
 
 
 def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
-    """Write the graph explorer to /graph/ with the site nav and its vendored libraries.
+    """Write the graph explorer to /graph/ with its vendored libraries.
 
     A full-viewport canvas app, so it is copied rather than rendered through the
     document shell. Its libraries are vendored so the page does not depend on a
@@ -165,11 +165,13 @@ def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
         return False
     page = ms / "graph/index.html"
     _inject(explorer, page, "<!-- catalogue-freshness -->", freshness)
-    page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav("ModelSpec", r.MS_NAV),
-                                  "web3d/explorer.html"), encoding="utf-8")
     vendor = root / "web3d/vendor"
-    if vendor.is_dir():
-        shutil.copytree(vendor, ms / "graph/vendor", dirs_exist_ok=True)
+    for name in ("three.min.js", "3d-force-graph.min.js"):
+        source = vendor / name
+        if source.is_file():
+            target = ms / "graph/vendor" / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
     return True
 
 

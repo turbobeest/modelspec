@@ -2815,7 +2815,7 @@ components:
       type: object
     DecisionBenchmarkEstimateChange:
       additionalProperties: false
-      description: How one model's domain estimate changed after removing evidence. Added in 1.11.
+      description: How one model's domain estimate changed after removing evidence. Added in 1.12.
       properties:
         model:
           pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
@@ -2847,7 +2847,7 @@ components:
       type: object
     DecisionBenchmarkExclusions:
       additionalProperties: false
-      description: Benchmarks a spec distrusted and their visible estimate effects. Added in 1.11.
+      description: Benchmarks a spec distrusted and their visible estimate effects. Added in 1.12.
       properties:
         benchmarks:
           items:
@@ -3109,8 +3109,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '1.11'
-          default: '1.11'
+          const: '1.12'
+          default: '1.12'
           title: Contract Version
           type: string
         decision_id:
@@ -4564,7 +4564,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.11'
+          - '1.12'
         endpoint:
           type: string
           enum:
@@ -4616,7 +4616,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.11'
+          - '1.12'
         endpoint:
           type: string
           enum:
@@ -4641,7 +4641,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.11'
+          - '1.12'
         endpoint:
           type: string
           enum:
@@ -4695,7 +4695,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.11'
+          - '1.12'
         endpoint:
           type: string
           enum:
@@ -5035,7 +5035,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.11'
+          - '1.12'
         endpoint:
           type: string
           enum:

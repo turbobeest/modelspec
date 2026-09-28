@@ -23,6 +23,7 @@ from decision.snapshot import (
     SnapshotInputs,
     build_snapshot,
     collect_repo,
+    load_built_snapshot,
     load_premier,
     load_snapshot_bytes,
 )
@@ -120,6 +121,21 @@ def test_fit_is_deterministic_and_saturation_reduces_frontier_information() -> N
     assert first.to_payload() == second.to_payload()
     item = first.items["novel_repo_work"]
     assert item.information(4.0) < item.information(0.0)
+
+
+def test_payload_ignores_cross_interpreter_float_noise() -> None:
+    fit = fit_capabilities(synthetic_observations(), SPECS, as_of=AS_OF)
+    item_id, item = next(iter(fit.items.items()))
+    lower = replace(
+        fit,
+        items={**fit.items, item_id: replace(item, discrimination=0.453699382112)},
+    )
+    upper = replace(
+        fit,
+        items={**fit.items, item_id: replace(item, discrimination=0.453699382113)},
+    )
+
+    assert lower.to_payload()["items"][item_id] == upper.to_payload()["items"][item_id]
 
 
 def test_fractional_random_baseline_is_not_divided_twice() -> None:
@@ -237,7 +253,7 @@ def medical_case_snapshot():
         guard=excluded_sources(),
         gate=False,
     )
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    return load_built_snapshot(built, source="capability test build")
 
 
 def test_medical_proxy_regression_follows_its_only_domain_benchmark(
@@ -334,7 +350,7 @@ def snapshot() -> object:
         registry=default_registry(),
         as_of=AS_OF,
     )
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    return load_built_snapshot(built, source="capability test build")
 
 
 def direct_and_proxy_snapshot() -> object:
@@ -374,7 +390,7 @@ def direct_and_proxy_snapshot() -> object:
         registry=default_registry(),
         as_of=AS_OF,
     )
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    return load_built_snapshot(built)
 
 
 def test_excluding_the_only_direct_benchmark_refits_and_explains_the_change() -> None:
@@ -472,6 +488,9 @@ def test_an_empty_excluded_set_is_byte_identical_to_omission() -> None:
     )
 
 
+ARCHIVE_KEY = b"archive-visibility-test-key"
+
+
 def archive_snapshot_bytes() -> bytes:
     rows = [
         row
@@ -525,15 +544,15 @@ def archive_snapshot_bytes() -> bytes:
         registry=default_registry(),
         as_of=AS_OF,
     )
-    return built.to_bytes(key=None)
+    return built.to_bytes(key=ARCHIVE_KEY)
 
 
 def test_exclusion_refit_does_not_depend_on_archive_visibility() -> None:
     from decision.capability import excluding_benchmarks
 
     data = archive_snapshot_bytes()
-    without = load_snapshot_bytes(data, key=None)
-    with_archive = load_snapshot_bytes(data, key=None, include_archive=True)
+    without = load_snapshot_bytes(data, key=ARCHIVE_KEY)
+    with_archive = load_snapshot_bytes(data, key=ARCHIVE_KEY, include_archive=True)
     assert without.snapshot_id == with_archive.snapshot_id
 
     first = excluding_benchmarks(without, ["novel_patch_work"])
@@ -585,7 +604,7 @@ def singleton_snapshot() -> object:
         registry=default_registry(),
         as_of=AS_OF,
     )
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    return load_built_snapshot(built)
 
 
 def test_removed_drivers_name_only_evidence_that_was_a_baseline_driver() -> None:
@@ -705,7 +724,7 @@ def test_overlapping_raw_evidence_intervals_are_reported_as_not_separable() -> N
         registry=default_registry(),
         as_of=AS_OF,
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="capability test build")
     spec = parse_spec(
         {
             "spec_version": 1,
@@ -741,7 +760,7 @@ def test_one_models_offerings_do_not_make_its_evidence_not_separable() -> None:
         registry=default_registry(),
         as_of=AS_OF,
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="capability test build")
     spec = parse_spec(
         {
             "spec_version": 1,
@@ -776,7 +795,7 @@ def test_overlapping_raw_intervals_from_different_versions_are_not_compared() ->
         registry=default_registry(),
         as_of=AS_OF,
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="capability test build")
     spec = parse_spec(
         {
             "spec_version": 1,
@@ -807,7 +826,7 @@ def test_overlapping_raw_interval_does_not_override_a_separating_weighted_object
         registry=default_registry(),
         as_of=AS_OF,
     )
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="capability test build")
     spec = parse_spec(
         {
             "spec_version": 1,

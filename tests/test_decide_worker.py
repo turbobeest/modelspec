@@ -27,6 +27,7 @@ from decision.snapshot import (  # noqa: E402
     SnapshotIntegrityError,
     build_snapshot,
     collect_repo,
+    load_built_snapshot,
     load_premier,
     load_snapshot_bytes,
 )
@@ -215,7 +216,9 @@ def test_worker_compare_returns_an_http_comparison_from_two_snapshots(service) -
             offerings=[offering("lab/a", "p1")],
             sources=SOURCES,
         ), gate=False, as_of=when)
-        return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+        return load_built_snapshot(
+            built, include_archive=True, source="worker compare test build"
+        )
 
     old, new = make(100, date(2026, 9, 26)), make(200, date(2026, 9, 27))
     status, body = service.compare({

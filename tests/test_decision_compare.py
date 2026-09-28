@@ -7,8 +7,11 @@ import os
 from datetime import date
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from cli.modelspec.snapshot import resolve_decision_generation
+from decision import snapshot as decision_snapshot
 from decision.compare import compare
 from decision.contract import (
     CandidateValues,
@@ -29,10 +32,24 @@ from decision.snapshot import (
     SnapshotInputs,
     build_snapshot,
     content_hash,
-    load_snapshot_bytes,
+    load_built_snapshot,
     snapshot_id_for,
 )
 from tests.snapshot_records import SOURCES, fact, model, offering
+
+_TEST_PRIVATE = Ed25519PrivateKey.generate()
+_TEST_SIGNER = decision_snapshot.Ed25519Signer(
+    "test-comparison",
+    _TEST_PRIVATE.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    ),
+)
+_TEST_PUBLIC = _TEST_PRIVATE.public_key().public_bytes(
+    serialization.Encoding.Raw,
+    serialization.PublicFormat.Raw,
+)
 
 
 def _decision(snapshot: str, rows: list[tuple[str, int, float]]) -> Decision:
@@ -85,7 +102,7 @@ def _engine_snapshot(
         gate=False,
         as_of=as_of,
     )
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    return load_built_snapshot(built, include_archive=True, source="comparison test build")
 
 
 def test_price_change_and_new_model_name_exactly_those_models():
@@ -373,12 +390,21 @@ def _generation(cache, as_of: str) -> str:
     snapshot_id = snapshot_id_for(digest)
     generation = cache / "decision" / snapshot_id
     generation.mkdir(parents=True)
-    Snapshot(content, digest, snapshot_id).write(generation / "snapshot.json.gz", key=None)
+    Snapshot(content, digest, snapshot_id).write(
+        generation / "snapshot.json.gz",
+        key=None,
+        ed25519_signer=_TEST_SIGNER,
+    )
     (generation / "vocabulary.json").write_text(json.dumps({"snapshot": snapshot_id}))
     return snapshot_id
 
 
-def test_previous_resolves_the_retained_non_current_generation(tmp_path):
+def test_previous_resolves_the_retained_non_current_generation(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-comparison": _TEST_PUBLIC},
+    )
     old = _generation(tmp_path, "2026-09-26")
     new = _generation(tmp_path, "2026-09-27")
     os.utime(tmp_path / "decision" / old, (1, 1))
@@ -387,7 +413,12 @@ def test_previous_resolves_the_retained_non_current_generation(tmp_path):
     assert resolve_decision_generation("previous", tmp_path).parent.name == old
 
 
-def test_unknown_snapshot_lists_the_cached_ids(tmp_path):
+def test_unknown_snapshot_lists_the_cached_ids(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-comparison": _TEST_PUBLIC},
+    )
     first = _generation(tmp_path, "2026-09-26")
     second = _generation(tmp_path, "2026-09-27")
     (tmp_path / "decision" / "current").write_text(second + "\n")

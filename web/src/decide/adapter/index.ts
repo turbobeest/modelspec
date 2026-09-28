@@ -148,6 +148,8 @@ export interface AdapterDecision extends Decision {
   nearMisses: FullEval["nearMisses"];
   questions: ReturnType<typeof suggestions>;
   frontier: Row[];
+  canvas_rows: Row[];
+  canvas_class_excluded: Row[];
   winning_strip: { row: Row | undefined; start: number; count: number }[];
   benchmarks: Record<string, BenchDef>;
   not_plotted: Record<Axis, string[]>;
@@ -314,7 +316,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "1.11",
+      contract_version: "1.12",
       truncated: { offerings: 0, models: 0 },
       out_of_lineup: 0,
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
@@ -442,6 +444,8 @@ export const fictionalEngine: SampleDecisionEngine = {
         .filter((q) => (q.gain ?? 0) > 0)
         .slice(0, 3),
       frontier,
+      canvas_rows: e.feasible,
+      canvas_class_excluded: [],
       winning_strip,
       benchmarks: BENCH,
       not_plotted: axisRecord((key) =>

@@ -131,6 +131,7 @@ def build(tmp_path: Path, name="snap.json.gz", *, key=None, premier=None, **over
 
 def load(path: Path, **kw):
     kw.setdefault("key", None)
+    kw.setdefault("public_keys", {})
     return load_snapshot(path, **kw)
 
 
@@ -254,9 +255,105 @@ def test_ci_ed25519_key_accepts_the_documented_formats(
     monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
 
     signer = snap.env_ed25519_signer()
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    data = built.to_bytes(key=None)
+    loaded = snap.load_snapshot_bytes(data, key=None)
 
     assert signer is not None
     assert signer.key_id == "test-ci"
+    assert loaded.signature_verified is True
+    assert loaded.signature_key_id == "test-ci"
+
+
+def test_empty_public_key_set_skips_env_ed25519_signing_with_a_warning(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    secret = private.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ).decode()
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [],
+    }))
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+
+    with pytest.warns(RuntimeWarning, match="skipping Ed25519 signing"):
+        data = built.to_bytes(key=KEY)
+
+    envelope = json.loads(gzip.decompress(data))
+    assert envelope["signature"]["alg"] == "hmac-sha256"
+    assert envelope["signatures"] == []
+    assert snap.load_snapshot_bytes(data, key=KEY).signature_verified is True
+
+
+def test_unpinned_env_ed25519_key_fails_before_writing_a_signature(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    _, other_public = ed25519_keys("test-other")
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [{
+            "key_id": key_id,
+            "alg": "ed25519",
+            "public_key": base64.b64encode(public).decode(),
+        } for key_id, public in other_public.items()],
+    }))
+    secret = base64.b64encode(private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )).decode()
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+
+    with pytest.raises(SnapshotBuildError, match="not in snapshot-keys.json"):
+        built.to_bytes(key=KEY)
+
+
+def test_in_process_load_ignores_publisher_credentials_but_checks_the_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    _, other_public = ed25519_keys("test-other")
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [{
+            "key_id": key_id,
+            "alg": "ed25519",
+            "public_key": base64.b64encode(public).decode(),
+        } for key_id, public in other_public.items()],
+    }))
+    secret = private.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ).decode()
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+
+    loaded = snap.load_built_snapshot(built, source="test build")
+
+    assert loaded.snapshot_id == built.snapshot_id
+    assert loaded.signature_verified is False
+    tampered_content = json.loads(json.dumps(built.content))
+    tampered_content["lineup"]["facets"]["model.context_window"]["value"][0] = 1
+    tampered = snap.Snapshot(tampered_content, built.content_hash, built.snapshot_id)
+    with pytest.raises(SnapshotIntegrityError, match="content hash mismatch"):
+        snap.load_built_snapshot(tampered, source="tampered test build")
 
 
 def test_snapshot_id_matches_the_contract_pattern(tmp_path):
@@ -599,7 +696,7 @@ def test_the_key_comes_from_the_environment(tmp_path, monkeypatch):
     built.write(path)  # key from the environment
     assert load_snapshot(path).signature_verified is True
     monkeypatch.delenv(snap.KEY_ENV)
-    assert load_snapshot(path).signature_verified is False
+    assert load_snapshot(path, public_keys={}).signature_verified is False
 
 
 def test_the_loader_rejects_a_file_that_is_not_a_snapshot(tmp_path):

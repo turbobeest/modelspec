@@ -12,24 +12,23 @@ import {
 } from "../adapter";
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Evidence, Row, Spec } from "../adapter";
-import { setWeight } from "../state/spec";
 export function Why({
   decision,
   spec,
   row,
-  onSpec,
   onRelax,
   details = "ready",
   onProvenance,
+  boardRanked,
 }: {
   decision: AdapterDecision;
   spec: Spec;
   row: Row | null;
-  onSpec: (s: Spec) => void;
   onRelax: (i: number) => void;
   /** Whether the `full` explanation behind a summary is still coming, or failed. */
   details?: "loading" | "ready" | "unavailable";
   onProvenance: (e: Evidence) => void;
+  boardRanked: boolean;
 }) {
   const vocab = useVocab(),
     { label } = vocab;
@@ -44,7 +43,7 @@ export function Why({
     );
   const m = row.m,
     o = row.best.o,
-    ranked = e.feasible.find((r) => r.m.id === m.id),
+    ranked = boardRanked ? e.feasible.find((r) => r.m.id === m.id) : undefined,
     insep = e.insep(ranked),
     bd = decision.benchmarks[spec.bench],
     result = decision.results.find((item) => item.offering.model === `${m.lab}/${m.id}`);
@@ -256,44 +255,6 @@ export function Why({
             The outline is the weight you set; the fill is the share it earns.
             Conditions filter. They never add points.
           </p>
-          {e.tip && e.shortlist.top && (
-            <div className="tipping">
-              <div className="eyebrow">Tipping point</div>
-              <p>
-                {e.shortlist.top.m.name} stays #1 while the $ per task weight is
-                between {(e.tip.lo?.at ?? 0).toFixed(2)} and{" "}
-                {(e.tip.hi?.at ?? 1).toFixed(2)}.
-                {e.tip.hi &&
-                  ` Above ${e.tip.hi.at.toFixed(2)}, ${e.tip.hi.who.m.name} takes #1.`}
-                {e.tip.lo &&
-                  ` Below ${e.tip.lo.at.toFixed(2)}, ${e.tip.lo.who.m.name} does.`}
-              </p>
-              <div className="tip-track">
-                <span
-                  style={{
-                    left: (e.tip.lo?.at ?? 0) * 100 + "%",
-                    width:
-                      ((e.tip.hi?.at ?? 1) - (e.tip.lo?.at ?? 0)) * 100 + "%",
-                  }}
-                />
-              </div>
-              <input
-                aria-label="Tipping point cost weight"
-                type="range"
-                min="0"
-                max="1"
-                step=".01"
-                value={spec.w.cost}
-                onChange={(ev) =>
-                  onSpec({
-                    ...spec,
-                    w: setWeight(spec.w, "cost", Number(ev.target.value)),
-                  })
-                }
-              />
-              <small>$ per task weight · now {spec.w.cost.toFixed(2)}</small>
-            </div>
-          )}
         </div>
         <div>
           <div className="eyebrow">Evidence, with provenance</div>
@@ -487,8 +448,8 @@ export function Why({
           {compare && (
             <p>
               {compare.m.name}: {status(compare)}
-              {compare.rank ? " · #" + compare.rank : ""}. {reason(compare)}{" "}
-              {compare.rank &&
+              {boardRanked && compare.rank ? " · #" + compare.rank : ""}. {reason(compare)}{" "}
+              {boardRanked && compare.rank &&
                 `${vocab.benchName(spec.bench)}: ${fmtB(spec.bench, compare.cap)}; ${money(compare.cost)} per task; ${compare.tps ?? "unknown"} tok/s.`}
             </p>
           )}

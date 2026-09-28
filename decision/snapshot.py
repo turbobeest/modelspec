@@ -40,6 +40,7 @@ import io
 import json
 import math
 import os
+import warnings
 from bisect import bisect_left, bisect_right
 from collections import Counter
 from collections.abc import Iterable, Iterator, Mapping, Sequence
@@ -394,7 +395,16 @@ def env_ed25519_signer() -> Ed25519Signer | None:
         serialization.Encoding.Raw,
         serialization.PublicFormat.Raw,
     )
-    for key_id, candidate in load_public_keys().items():
+    public_keys = load_public_keys()
+    if not public_keys:
+        warnings.warn(
+            f"{ED25519_KEY_ENV} is set but {PUBLIC_KEY_SET_PATH.name} contains no keys; "
+            "skipping Ed25519 signing",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
+    for key_id, candidate in public_keys.items():
         if hmac.compare_digest(public, candidate):
             return Ed25519Signer(key_id, value)
     raise SnapshotBuildError(
@@ -1637,6 +1647,27 @@ def load_snapshot_bytes(
         signature_verified=verified,
         signature_status=signature_status,
         signature_key_id=signature_key_id,
+    )
+
+
+def load_built_snapshot(
+    snapshot: Snapshot,
+    *,
+    include_archive: bool = False,
+    source: str = "repository build",
+) -> LoadedSnapshot:
+    """Load a trusted in-process build without publisher credentials.
+
+    The loader still checks the content hash and snapshot ID. Public snapshot
+    readers must use ``load_snapshot`` or ``load_snapshot_bytes`` so they verify
+    the configured HMAC or a pinned Ed25519 signature.
+    """
+    return load_snapshot_bytes(
+        snapshot.to_bytes(key=None, ed25519_signer=None),
+        key=None,
+        public_keys={},
+        include_archive=include_archive,
+        source=source,
     )
 
 

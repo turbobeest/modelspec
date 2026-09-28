@@ -24,7 +24,7 @@ from decision.engine import decide
 from decision.explain import render_html
 from decision.registry import default as registry
 from decision.registry import facet as facets
-from decision.snapshot import SnapshotBuildError, SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.snapshot import SnapshotBuildError, SnapshotInputs, build_snapshot, load_built_snapshot
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 AS_OF = date(2026, 9, 24)
@@ -66,7 +66,7 @@ def index(offerings=None):
         benchmark_domains=DOMAINS,
     )
     built = build_snapshot(inputs, gate=False, as_of=AS_OF)
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    return load_built_snapshot(built, include_archive=True, source="cost test build")
 
 
 def spec(where=(), objective=None, explain="none", tokens=None):
@@ -216,4 +216,4 @@ def test_the_worker_answers_a_spec_with_task_tokens():
         "explain": "none",
     }, index())
     assert status == 200, body
-    assert body["contract_version"] == "1.11"
+    assert body["contract_version"] == "1.12"

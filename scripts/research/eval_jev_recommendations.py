@@ -15,8 +15,6 @@ import gzip
 import hashlib
 import json
 import os
-import subprocess
-import tempfile
 import threading
 import time
 from collections import Counter, defaultdict
@@ -629,66 +627,6 @@ def case_input_fingerprint(cases: list[Case]) -> str:
     return f"sha256:{hashlib.sha256(canonical).hexdigest()}"
 
 
-def parse_real_task_baseline(cases: list[Case]) -> list[dict[str, Any]]:
-    tasks = [c for c in cases if c.candidate in {"task_routing", "task_routing_blind"}]
-    payload = {
-        "vocabulary": str(VOCABULARY),
-        "tasks": [{"id": c.id, "text": c.state["task"]} for c in tasks],
-    }
-    with tempfile.TemporaryDirectory(dir=None) as temporary:
-        input_path = Path(temporary) / "task-input.json"
-        output_path = Path(temporary) / "task-output.json"
-        input_path.write_text(json.dumps(payload), encoding="utf-8")
-        env = os.environ.copy()
-        env["MODELSPEC_JEV_TASK_INPUT"] = str(input_path)
-        env["MODELSPEC_JEV_TASK_OUTPUT"] = str(output_path)
-        subprocess.run(
-            [
-                str(ROOT / "web/node_modules/.bin/vitest"),
-                "run",
-                "src/decide/__tests__/research-task-parser.test.ts",
-            ],
-            cwd=ROOT / "web",
-            env=env,
-            text=True,
-            capture_output=True,
-            check=True,
-        )
-        parsed_rows = json.loads(output_path.read_text(encoding="utf-8"))
-    parsed = {row["id"]: row for row in parsed_rows}
-    rows = []
-    for case in tasks:
-        found = parsed[case.id]
-        actual = {
-            "domain": found["domain"],
-            "class": found["class"],
-            **{
-                key: key.removeprefix("condition_") in found["conditions"]
-                for key in case.expected
-                if key.startswith("condition_")
-            },
-        }
-        rows.append(
-            {
-                "record": "item",
-                "candidate": case.candidate,
-                "arm": "parseRealTask",
-                "case_id": case.id,
-                "correct": actual == case.expected,
-                "expected": case.expected,
-                "actual": actual,
-                "latency_ms": found["latency_ms"],
-                "tokens_in": 0,
-                "tokens_out": 0,
-                "cost_usd": 0.0,
-                "band": "act",
-                "source_url": case.source_url,
-                "source_read_date": case.source_read_date,
-            }
-        )
-    return rows
-
-
 def llm_body(case: Case, model: str) -> dict[str, Any]:
     payload = json.dumps({"state": case.state, "questions": case.questions}, sort_keys=True)
     return {
@@ -807,7 +745,6 @@ def run(args: argparse.Namespace) -> None:
             raise SystemExit(f"unknown candidates: {', '.join(sorted(unknown))}")
         cases = [case for case in cases if case.candidate in selected]
         include_tuned_attribution = "creator_attribution_tuned" in selected
-    parser_rows = parse_real_task_baseline(cases)
     attribution_rows = published_attribution_rows(labels) if include_tuned_attribution else []
     for row in attribution_rows:
         row["candidate"] = "creator_attribution_tuned"
@@ -926,10 +863,8 @@ def run(args: argparse.Namespace) -> None:
         futures = [pool.submit(ask, case, arm) for arm in (jev, baseline) for case in cases]
         for future in futures:
             future.result()
-    rows = (
-        parser_rows
-        + attribution_rows
-        + sorted(paid_rows, key=lambda row: (row["arm"], row["candidate"], row["case_id"]))
+    rows = attribution_rows + sorted(
+        paid_rows, key=lambda row: (row["arm"], row["candidate"], row["case_id"])
     )
     summary = {
         "record": "summary",

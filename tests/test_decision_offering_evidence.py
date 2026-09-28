@@ -13,7 +13,7 @@ from datetime import date
 from decision.contract import parse_spec
 from decision.engine import decide
 from decision.registry import facet as facets
-from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 AS_OF = date(2026, 9, 24)
@@ -54,7 +54,9 @@ def inputs(rows=None, extra_offerings=()):
 
 def build(rows=None, extra_offerings=()):
     built = build_snapshot(inputs(rows, extra_offerings), gate=False, as_of=AS_OF)
-    return built, load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    return built, load_built_snapshot(
+        built, include_archive=True, source="offering evidence test build"
+    )
 
 
 def spec(where=(), objective=None):
@@ -172,7 +174,7 @@ def test_a_model_with_no_offering_ranks_as_itself():
         evidence=[evidence("lab/m", TERMINAL, 60.0), evidence("lab/open", TERMINAL, 58.0)],
         sources=SOURCES, benchmark_domains=DOMAINS,
     ), gate=False, as_of=AS_OF)
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="offering benchmark test build")
     decision = decide(spec(), index, facets=facets)
     assert [(r.offering.model, r.offering.provider) for r in decision.results] == [
         ("lab/m", "p1"), ("lab/open", None)]
@@ -228,7 +230,7 @@ def test_an_offering_condition_never_makes_a_bare_model_a_near_miss():
         evidence=[evidence("lab/m", TERMINAL, 60.0), evidence("lab/open", TERMINAL, 58.0)],
         sources=SOURCES, benchmark_domains=DOMAINS,
     ), gate=False, as_of=AS_OF)
-    index = load_snapshot_bytes(built.to_bytes(key=None), key=None)
+    index = load_built_snapshot(built, source="offering metadata test build")
     request = parse_spec({
         "spec_version": 1,
         "where": ["known(offering.provider)"],

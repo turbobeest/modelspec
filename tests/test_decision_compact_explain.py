@@ -19,7 +19,7 @@ from decision.contract import Decision, parse_spec
 from decision.engine import decide
 from decision.explain import DISPLAY_FACETS, presented_values
 from decision.registry import facet as facets
-from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 BENCH = "swe_bench_pro"
@@ -71,7 +71,7 @@ def snapshot(extra_benchmarks=0):
         gate=False,
         as_of=date(2026, 9, 25),
     )
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    return load_built_snapshot(built, include_archive=True, source="compact explanation build")
 
 
 def spec(**updates):
@@ -188,7 +188,7 @@ def test_the_compact_decision_round_trips_through_the_contract(index):
     decision = decide(spec(), index, facets=facets)
     again = Decision.model_validate(json.loads(decision.model_dump_json()))
     assert again == decision
-    assert decision.contract_version == "1.11"
+    assert decision.contract_version == "1.12"
 
 
 def test_summary_carries_no_sources_table(index):

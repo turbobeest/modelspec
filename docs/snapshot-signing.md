@@ -9,6 +9,15 @@ the same file at
 The secret accepts either a PKCS8 PEM Ed25519 private key or the base64 encoding
 of the 32-byte raw private key. Use PEM for the first key.
 
+Signing selects a key ID by deriving the public key from the secret and matching
+it against `decision/snapshot_keys.json`. If that file contains keys but none
+matches, snapshot writing fails before it emits an unverifiable signature. An
+empty key set is the one bootstrap exception: the build warns, omits the
+Ed25519 signature, and still writes the HMAC signature when its key is set. This
+keeps deployment available while the first public key commit lands. Internal
+build-only snapshots, such as the landing page's data input, check their content
+hash without requiring a publisher signature.
+
 ## Add the first key
 
 Run these commands from the repository root. They generate the private key

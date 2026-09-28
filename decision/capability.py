@@ -255,7 +255,10 @@ class CapabilityFit:
 
 
 def _round(value: float) -> float:
-    return round(float(value), 12)
+    # Interpreter/libm differences can perturb the fitted value in the final
+    # few decimal places. Keep more precision than the evidence supports while
+    # making the canonical snapshot stable across supported Python versions.
+    return round(float(value), 9)
 
 
 def _sigmoid(value: float) -> float:

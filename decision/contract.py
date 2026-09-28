@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.11"
+CONTRACT_VERSION = "1.12"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -993,7 +993,7 @@ class Spec(_Strict):
     task: str | None = None
     task_type: TaskType | None = None
     capabilities: dict[FacetId, CapabilityLevel] | None = None
-    #: Benchmarks whose evidence must not contribute to this decision. Added in 1.11.
+    #: Benchmarks whose evidence must not contribute to this decision. Added in 1.12.
     exclude_benchmarks: list[FacetId] = Field(
         default_factory=list,
         exclude_if=lambda value: not value,
@@ -1075,7 +1075,7 @@ class Estimate(_Strict):
 
 
 class BenchmarkEstimateChange(_Strict):
-    """How one model's domain estimate changed after removing evidence. Added in 1.11."""
+    """How one model's domain estimate changed after removing evidence. Added in 1.12."""
 
     model: ModelId
     domain: FacetId
@@ -1085,7 +1085,7 @@ class BenchmarkEstimateChange(_Strict):
 
 
 class BenchmarkExclusions(_Strict):
-    """Benchmarks a spec distrusted and their visible estimate effects. Added in 1.11."""
+    """Benchmarks a spec distrusted and their visible estimate effects. Added in 1.12."""
 
     benchmarks: list[FacetId]
     estimate_changes: list[BenchmarkEstimateChange] = Field(default_factory=list)
@@ -1286,7 +1286,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["1.11"] = CONTRACT_VERSION
+    contract_version: Literal["1.12"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.

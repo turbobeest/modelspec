@@ -21,7 +21,7 @@ from pathlib import Path
 from decision.contract import CONTRACT_VERSION, parse_spec
 from decision.engine import decide
 from decision.registry import facet as facets
-from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
+from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 ARENA = "arena_elo_overall"
@@ -55,7 +55,7 @@ def q10_snapshot():
         gate=False,
         as_of=date(2026, 9, 25),
     )
-    return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+    return load_built_snapshot(built, include_archive=True, source="relaxation test build")
 
 
 def q10(explain: str = "none"):
@@ -123,4 +123,4 @@ def test_an_answered_decision_suggests_nothing():
 
 
 def test_relax_to_remains_in_contract_1_6():
-    assert CONTRACT_VERSION == "1.11"
+    assert CONTRACT_VERSION == "1.12"

@@ -142,7 +142,7 @@
     },
     "BenchmarkEstimateChange": {
       "additionalProperties": false,
-      "description": "How one model's domain estimate changed after removing evidence. Added in 1.11.",
+      "description": "How one model's domain estimate changed after removing evidence. Added in 1.12.",
       "properties": {
         "after": {
           "anyOf": [
@@ -193,7 +193,7 @@
     },
     "BenchmarkExclusions": {
       "additionalProperties": false,
-      "description": "Benchmarks a spec distrusted and their visible estimate effects. Added in 1.11.",
+      "description": "Benchmarks a spec distrusted and their visible estimate effects. Added in 1.12.",
       "properties": {
         "benchmarks": {
           "items": {
@@ -596,8 +596,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.11",
-          "default": "1.11",
+          "const": "1.12",
+          "default": "1.12",
           "title": "Contract Version",
           "type": "string"
         },
@@ -3022,5 +3022,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.11"
+  "x-contract-version": "1.12"
 }
