@@ -30,7 +30,14 @@ from decision.snapshot import (  # noqa: E402
     load_premier,
     load_snapshot_bytes,
 )
-from tests.snapshot_records import SOURCES, evidence, fact, model, thirty_models  # noqa: E402
+from tests.snapshot_records import (  # noqa: E402
+    SOURCES,
+    evidence,
+    fact,
+    model,
+    offering,
+    thirty_models,
+)
 
 KEY = b"model-151-test-key"
 COLD_DOMAIN_DECISION_BUDGET_MS = 1_000
@@ -181,6 +188,38 @@ def test_a_requested_snapshot_must_be_the_loaded_snapshot(service, snapshot) -> 
     assert body["snapshot"] == snapshot.snapshot_id
 
 
+def test_worker_compare_returns_an_http_comparison_from_two_snapshots(service) -> None:
+    def make(context: int, when: date):
+        built = build_snapshot(SnapshotInputs(
+            models=[model("lab/a", facts=[
+                fact("model", "lab/a", "model.context_window", context),
+            ])],
+            offerings=[offering("lab/a", "p1")],
+            sources=SOURCES,
+        ), gate=False, as_of=when)
+        return load_snapshot_bytes(built.to_bytes(key=None), key=None, include_archive=True)
+
+    old, new = make(100, date(2026, 9, 26)), make(200, date(2026, 9, 27))
+    status, body = service.compare({
+        "compare_to": old.snapshot_id,
+        "spec": {
+            "spec_version": 1,
+            "snapshot": new.snapshot_id,
+            "where": ["model.context_window >= 150"],
+            "optimize": {"max": "model.context_window"},
+        },
+    }, old, new)
+
+    assert status == 200
+    assert body["endpoint"] == "compare"
+    assert body["result"]["snapshot"] == {
+        "old": {"id": old.snapshot_id, "as_of": "2026-09-26"},
+        "new": {"id": new.snapshot_id, "as_of": "2026-09-27"},
+    }
+    assert body["result"]["models"][0]["model"] == "lab/a"
+    assert body["result"]["spec_snapshot_ignored"] is True
+
+
 def test_missing_published_snapshot_is_retryable(service) -> None:
     status, body = service.no_snapshot("the published decision snapshot does not exist")
 
@@ -193,6 +232,12 @@ def test_missing_published_snapshot_is_retryable(service) -> None:
         "message": "the published decision snapshot does not exist",
     }
     assert service.RETRY_AFTER_SECONDS > 0
+
+    compare_status, compare_body = service.no_snapshot(
+        "the published decision snapshot does not exist", endpoint="compare"
+    )
+    assert compare_status == 503
+    assert compare_body["endpoint"] == "compare"
 
 
 def test_explain_none_p95_is_under_200_ms(service) -> None:
@@ -284,7 +329,15 @@ def test_entry_routes_decide_through_the_existing_access_gate() -> None:
     assert "await self._decide(" in source
 
 
-def test_entry_imports_the_decision_stack_only_for_the_decide_route() -> None:
+def test_entry_routes_compare_through_the_existing_access_gate() -> None:
+    source = (WORKER_SRC / "entry.py").read_text(encoding="utf-8")
+    assert '"POST /v1/compare"' in source
+    assert '"/v1/compare"' in source
+    assert "await access.gate(" in source
+    assert "await self._compare(" in source
+
+
+def test_entry_imports_the_decision_stack_only_for_decision_routes() -> None:
     source = (WORKER_SRC / "entry.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     top_level_imports = {
@@ -295,7 +348,7 @@ def test_entry_imports_the_decision_stack_only_for_the_decide_route() -> None:
     }
 
     assert "decide_service" not in top_level_imports
-    assert 'if path == "/v1/decide":' in source
+    assert 'if path in ("/v1/decide", "/v1/compare"):' in source
     assert "decider = _decide_service()" in source
     assert 'headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)' in source
 

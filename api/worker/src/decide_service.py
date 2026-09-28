@@ -11,6 +11,7 @@ from dataclasses import replace
 from typing import Any, NamedTuple, Protocol
 
 from decision import contract
+from decision.compare import compare as compare_decisions
 from decision.engine import decide as run_decision
 from decision.registry import facet
 from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
@@ -248,8 +249,10 @@ def _issues(exc: contract.SpecError) -> list[dict[str, Any]]:
     ]
 
 
-def _facets(snapshot):
-    benchmark_ids = frozenset(snapshot.benchmark_ids())
+def _facets(*snapshots):
+    benchmark_ids = frozenset(
+        benchmark_id for snapshot in snapshots for benchmark_id in snapshot.benchmark_ids()
+    )
 
     def lookup(facet_id: str):
         if facet_id in benchmark_ids:
@@ -266,23 +269,24 @@ def error_response(
     status: int,
     snapshot_id: str | None,
     issues: list[dict[str, Any]] | None = None,
+    endpoint: str = "decide",
 ) -> tuple[int, dict[str, Any]]:
     error: dict[str, Any] = {"code": code, "message": message}
     if issues is not None:
         error["issues"] = issues
     return status, {
         "contract_version": contract.CONTRACT_VERSION,
-        "endpoint": "decide",
+        "endpoint": endpoint,
         "snapshot": snapshot_id,
         "error": error,
     }
 
 
-def no_snapshot(message: str) -> tuple[int, dict[str, Any]]:
+def no_snapshot(message: str, *, endpoint: str = "decide") -> tuple[int, dict[str, Any]]:
     """Return the temporary state used until Pages publishes a signed snapshot."""
     return HTTP_SERVICE_UNAVAILABLE, {
         "contract_version": contract.CONTRACT_VERSION,
-        "endpoint": "decide",
+        "endpoint": endpoint,
         "snapshot": None,
         "error": "no_snapshot",
         "message": message,
@@ -333,6 +337,61 @@ def decide(payload: Any, snapshot, *,
         )
     decision = run_decision(spec, snapshot, facets=facets)
     return HTTP_OK, decision.model_dump(mode="json")
+
+
+def compare(payload: Any, old_snapshot, new_snapshot, *,
+            expected_snapshot: str | None = None) -> tuple[int, dict[str, Any]]:
+    """Compare one spec against two verified snapshots for ``POST /v1/compare``."""
+    if expected_snapshot and expected_snapshot != new_snapshot.snapshot_id:
+        status, body = snapshot_changed(expected_snapshot, new_snapshot)
+        body["endpoint"] = "compare"
+        return status, body
+    if not isinstance(payload, dict) or not isinstance(payload.get("spec"), dict):
+        return error_response(
+            "invalid_request",
+            "the request body must contain a spec object and compare_to snapshot ID",
+            status=HTTP_BAD_REQUEST,
+            snapshot_id=new_snapshot.snapshot_id,
+            endpoint="compare",
+        )
+    compare_to = payload.get("compare_to")
+    if compare_to != old_snapshot.snapshot_id:
+        return error_response(
+            "comparison_snapshot_changed",
+            f"the comparison snapshot is {old_snapshot.snapshot_id}, not {compare_to}",
+            status=HTTP_CONFLICT,
+            snapshot_id=new_snapshot.snapshot_id,
+            endpoint="compare",
+        )
+    facets = _facets(old_snapshot, new_snapshot)
+    try:
+        spec = contract.parse_spec(payload["spec"], facets=facets)
+    except contract.SpecError as exc:
+        return error_response(
+            "invalid_spec",
+            "the request body does not contain a valid decision spec",
+            status=HTTP_BAD_REQUEST,
+            snapshot_id=new_snapshot.snapshot_id,
+            issues=_issues(exc),
+            endpoint="compare",
+        )
+    comparison_spec = spec.model_copy(update={"snapshot": "latest", "explain": "full"})
+    old = run_decision(comparison_spec, old_snapshot, facets=facets, comparison=True)
+    new = run_decision(comparison_spec, new_snapshot, facets=facets, comparison=True)
+    result = compare_decisions(
+        old,
+        new,
+        old_as_of=old_snapshot.as_of.isoformat() if old_snapshot.as_of else None,
+        new_as_of=new_snapshot.as_of.isoformat() if new_snapshot.as_of else None,
+    )
+    result["spec_snapshot_ignored"] = spec.snapshot != "latest"
+    return HTTP_OK, {
+        "contract_version": contract.CONTRACT_VERSION,
+        "endpoint": "compare",
+        "snapshot": new_snapshot.snapshot_id,
+        "compare_to": old_snapshot.snapshot_id,
+        "result": result,
+    }
 
 
 def serialise(body: dict[str, Any]) -> bytes:

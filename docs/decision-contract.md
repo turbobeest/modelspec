@@ -497,6 +497,7 @@ field) and the `reason`.
 
 ```
 modelspec decide SPEC.yaml [--explain none|summary|full] [--check] [--json]
+modelspec decide SPEC.yaml --compare-to SNAPSHOT_ID [--json]
 ```
 
 `--explain` overrides the spec's `explain`. By default the command reads the
@@ -522,6 +523,21 @@ capability domain with no coverage. Human output is `ok` plus one line with the
 Must count, Prefer count, and snapshot pin. JSON success includes `ok`,
 `summary`, `warnings`, and the cached `snapshot`. A snapshot pin that differs
 from the cached vocabulary produces a warning, not a failure.
+
+`--compare-to` is additive CLI behavior. It accepts a cached decision snapshot
+ID, `previous`, or a path to a snapshot `.gz`; it runs the real decision engine
+against both snapshots and groups the difference by model. The comparison
+ignores a `snapshot` pin in the spec. Internally it requests full explanation
+data so departures can name the failed Must and changed values can retain their
+record IDs, but it does not change ordinary decision output or the decision
+contract. JSON comparison output uses the CLI envelope documented in
+`cli-contract.md`; unchanged comparisons still exit 0.
+
+The hosted equivalent is `POST /v1/compare` with a body containing `spec` and
+`compare_to`. It runs the same comparison function after verifying both signed
+Snapshots. The current static origin does not publish retained Snapshot files,
+so the endpoint reports `comparison_snapshot_unavailable` until that separate
+hosting work ships. See [`decide-api.md`](decide-api.md#comparing-snapshots).
 
 ### Explanation provenance (MODEL-145)
 

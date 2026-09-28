@@ -8,8 +8,8 @@ What is left here is transport: route, read the body, fetch the published
 export, read the determination store, serialise, and report the deployed
 version.
 
-Three endpoints, and they differ in one way that matters. `POST /v1/rank` and
-`POST /v1/decide` hold
+Four endpoints, and they differ in one way that matters. `POST /v1/rank`,
+`POST /v1/decide`, and `POST /v1/compare` hold
 no private data at all. `POST /v1/policy-check` (MODEL-80) answers from the
 public export *plus*, for an entitled caller, the policy determinations — which
 are the paid product, are never in this repository, and reach the Worker only
@@ -42,6 +42,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+import re
 import time
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -73,6 +74,10 @@ HARDWARE_PATH = "/api/rank/hardware.json"
 #: commercial-use grant and per-platform availability for every card.
 POLICY_PATH = "/api/policy/catalogue.json"
 DECISION_SNAPSHOT_PATH = "/api/decision/snapshot.json.gz"
+#: Reserved URL shape for the separate retained-snapshot hosting work. Unlike
+#: ``DECISION_SNAPSHOT_PATH``, this is not a currently published static path;
+#: comparison requests report ``comparison_snapshot_unavailable`` on its 404.
+DECISION_HISTORY_TEMPLATE = "/api/decision/snapshots/{snapshot_id}.json.gz"
 SNAPSHOT_KEY_VAR = "MODELSPEC_SNAPSHOT_KEY"
 
 #: KV keys holding the private determinations, staged by
@@ -102,7 +107,8 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 #: is named. `/v1/policy-check` (MODEL-80) is on this list for the same reason
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
 ACCEPTED_ENDPOINTS = (
-    "POST /v1/rank", "POST /v1/decide", "POST /v1/policy-check", "GET /v1/health",
+    "POST /v1/rank", "POST /v1/decide", "POST /v1/compare",
+    "POST /v1/policy-check", "GET /v1/health",
     "GET /v1/credits",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
@@ -111,7 +117,7 @@ ACCEPTED_ENDPOINTS = (
 #: The subset that takes a body. All refuse a wrong verb through the one
 #: `_method_not_allowed` below, and a path outside this tuple is a 404 before
 #: anything is read or fetched.
-POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/policy-check")
+POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/compare", "/v1/policy-check")
 
 # The browser clients: the production site (what SITE_MODE=live serves on the
 # apex and www) and the private Pages preview branch deployed by
@@ -146,7 +152,7 @@ _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
 
 
 def _decide_service():
-    """Import the decision stack only after the router selects ``/v1/decide``."""
+    """Import the decision stack only after the router selects a decision route."""
     return importlib.import_module("decide_service")
 
 
@@ -482,7 +488,7 @@ class Default(WorkerEntrypoint):
         method = str(request.method).upper()
 
         decider = None
-        if path == "/v1/decide":
+        if path in ("/v1/decide", "/v1/compare"):
             decider = _decide_service()
 
         if decider is not None and method == "OPTIONS":
@@ -490,10 +496,10 @@ class Default(WorkerEntrypoint):
             if not headers:
                 return _json_response(service.HTTP_NOT_FOUND, {
                     "contract_version": decider.contract.CONTRACT_VERSION,
-                    "endpoint": "decide",
+                    "endpoint": path.rsplit("/", 1)[-1],
                     "snapshot": None,
                     "error": {"code": "origin_not_allowed",
-                              "message": "this origin may not call /v1/decide"},
+                              "message": f"this origin may not call {path}"},
                 })
             return Response("", status=204, headers=headers)
 
@@ -544,6 +550,7 @@ class Default(WorkerEntrypoint):
                     f"the body must be at most {max_body} bytes",
                     status=service.HTTP_PAYLOAD_TOO_LARGE,
                     snapshot_id=None,
+                    endpoint=path.rsplit("/", 1)[-1],
                 )[1]
                 return _decision_response(
                     service.HTTP_PAYLOAD_TOO_LARGE, response, _cors_headers(request)
@@ -564,6 +571,7 @@ class Default(WorkerEntrypoint):
                     f"the body is not valid JSON: {exc}",
                     status=decider.HTTP_BAD_REQUEST,
                     snapshot_id=None,
+                    endpoint=path.rsplit("/", 1)[-1],
                 )
                 return _decision_response(status, body, _cors_headers(request))
             else:
@@ -599,9 +607,10 @@ class Default(WorkerEntrypoint):
                     "policy data. Call /v1/policy-check with a live key.",
                     envelope=envelope)
         elif decider is not None:
+            endpoint = path.rsplit("/", 1)[-1]
             envelope = {
                 "contract_version": decider.contract.CONTRACT_VERSION,
-                "endpoint": "decide",
+                "endpoint": endpoint,
                 "snapshot": getattr(_decision_holder(origin).snapshot, "snapshot_id", None),
                 "service_commit": service_commit,
                 "export_origin": origin,
@@ -610,14 +619,19 @@ class Default(WorkerEntrypoint):
             sent = request.headers.get(decider.SNAPSHOT_HEADER)
             expected = None if _absent(sent) else str(sent).strip()
 
-            async def _anonymous():
+            async def _answer():
+                if path == "/v1/compare":
+                    return await self._compare(payload, origin, expected)
                 return await self._decide(payload, origin, expected)
+
+            async def _anonymous():
+                return await _answer()
 
             async def _live(record, tier):
-                return await self._decide(payload, origin, expected)
+                return await _answer()
 
             async def _live_unfunded(record, tier):
-                return await self._decide(payload, origin, expected)
+                return await _answer()
 
             def sandbox():
                 return access.refusal(
@@ -677,7 +691,7 @@ class Default(WorkerEntrypoint):
                 outcome.status, outcome.body, settlement=x402_trace.settlement
             ),
         }
-        if path == "/v1/decide":
+        if path in ("/v1/decide", "/v1/compare"):
             if outcome.status == decider.HTTP_SERVICE_UNAVAILABLE \
                     and outcome.body.get("error") == "no_snapshot":
                 headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)
@@ -699,6 +713,8 @@ class Default(WorkerEntrypoint):
                     if isinstance(payload, dict) else "summary"
                 )
                 resource = f"decide.{explain}"
+            elif clean_path.endswith("compare"):
+                resource = "decide.full"
             else:
                 resource = "rank"
             return (policy.credits.weight(resource), policy.credits.pack_expiry_days,
@@ -942,6 +958,72 @@ class Default(WorkerEntrypoint):
                 snapshot_id=None,
             )
         return decider.decide(payload, snapshot, expected_snapshot=expected)
+
+    async def _compare(self, payload, origin: str, expected: str | None = None):
+        """``POST /v1/compare`` against the current and one named snapshot."""
+        decider = _decide_service()
+        key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
+        if key is None:
+            return decider.no_snapshot(
+                "no signed decision snapshot is published because the verification key "
+                "is not configured",
+                endpoint="compare",
+            )
+        if not isinstance(payload, dict) or not isinstance(payload.get("compare_to"), str):
+            return decider.error_response(
+                "invalid_request",
+                "the request body must contain a spec object and compare_to snapshot ID",
+                status=decider.HTTP_BAD_REQUEST,
+                snapshot_id=None,
+                endpoint="compare",
+            )
+        compare_to = payload["compare_to"]
+        if re.fullmatch(decider.contract.SNAPSHOT_PATTERN, compare_to) is None:
+            return decider.error_response(
+                "invalid_request",
+                "compare_to must be a snapshot ID",
+                status=decider.HTTP_BAD_REQUEST,
+                snapshot_id=None,
+                endpoint="compare",
+            )
+        try:
+            current = await _decision_holder(origin).current(key)
+            if expected and expected != current.snapshot_id:
+                current = await _decision_holder(origin).current(key, force=True)
+            fetched = await _snapshot_fetcher(
+                origin + DECISION_HISTORY_TEMPLATE.format(snapshot_id=compare_to)
+            )(None)
+            if fetched.status == 404:
+                return decider.error_response(
+                    "comparison_snapshot_unavailable",
+                    f"the origin does not publish retained decision snapshot {compare_to}",
+                    status=decider.HTTP_CONFLICT,
+                    snapshot_id=current.snapshot_id,
+                    endpoint="compare",
+                )
+            if fetched.status != 200 or fetched.body is None:
+                raise RuntimeError(f"comparison snapshot returned HTTP {fetched.status}")
+            previous = decider.load_snapshot(fetched.body, key=key)
+        except decider.SnapshotMissingError:
+            return decider.no_snapshot(
+                "the published decision snapshot does not exist", endpoint="compare"
+            )
+        except decider.SnapshotRefusalError as exc:
+            return decider.error_response(
+                "snapshot_refused", str(exc), status=decider.HTTP_SERVICE_UNAVAILABLE,
+                snapshot_id=None, endpoint="compare",
+            )
+        except Exception as exc:  # noqa: BLE001 - the failed origin read is returned
+            return decider.error_response(
+                "snapshot_unavailable",
+                f"could not read the published decision snapshots: {exc}",
+                status=decider.HTTP_BAD_GATEWAY,
+                snapshot_id=None,
+                endpoint="compare",
+            )
+        return decider.compare(
+            payload, previous, current, expected_snapshot=expected
+        )
 
     def _method_not_allowed(self, service_commit: str, path: str,
                             takes: str, method: str) -> Response:

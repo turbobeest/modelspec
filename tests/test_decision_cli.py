@@ -112,6 +112,23 @@ def _run(tmp_path: Path, text: str, *args: str):
     return CliRunner().invoke(cli_mod.app, ["decide", str(spec), *args])
 
 
+def _write_rank_snapshot(cache: Path) -> None:
+    (cache / "snapshot.json").write_text(json.dumps({
+        "meta": {
+            "fetched_at": "2026-09-27T12:00:00+00:00",
+            "origin": "https://example.test",
+            "build_commit": "abc123",
+            "built_at": "2026-09-27T11:59:00+00:00",
+        },
+        "data": {
+            "index": {"build": {"commit": "abc123", "export_schema_version": "3.0"}},
+            "candidates": {"candidates": []},
+            "profiles": {"profiles": {}, "featured": []},
+            "hardware": {"nodes": []},
+        },
+    }))
+
+
 def test_a_valid_spec_requires_a_local_snapshot(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -253,6 +270,54 @@ def test_check_accepts_the_budget_coding_spec(tmp_path: Path, cached_vocabulary:
     result = _run(tmp_path, BUDGET_CODING, "--check")
     assert result.exit_code == 0
     assert "ok: musts: 3, prefers: 2, snapshot: latest" in result.stdout
+
+
+def test_compare_does_not_warn_that_latest_was_ignored(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    snapshot = (
+        tmp_path / "cache" / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+
+    result = _run(tmp_path, BUDGET_CODING, "--compare-to", str(snapshot))
+
+    assert result.exit_code == 0
+    assert "Spec snapshot pin ignored" not in result.stdout
+
+
+def test_compare_records_a_pin_to_the_current_snapshot_as_ignored(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    _write_rank_snapshot(tmp_path / "cache")
+    snapshot = (
+        tmp_path / "cache" / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+    spec = BUDGET_CODING.replace("snapshot: latest", f"snapshot: {cached_vocabulary['snapshot']}")
+
+    result = _run(tmp_path, spec, "--compare-to", str(snapshot), "--json")
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["result"]["spec_snapshot_ignored"] is True
+
+
+def test_compare_json_uses_the_common_cache_freshness_keys(
+    tmp_path: Path, cached_vocabulary: dict,
+) -> None:
+    cache = tmp_path / "cache"
+    _write_rank_snapshot(cache)
+    snapshot = (
+        cache / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+
+    result = _run(tmp_path, BUDGET_CODING, "--compare-to", str(snapshot), "--json")
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert set(payload["freshness"]) == {
+        "fetched_at", "age_days", "stale", "stale_after_days", "origin",
+        "build_commit", "built_at",
+    }
+    assert payload["freshness"]["build_commit"] == "abc123"
 
 
 def test_check_suggests_a_misspelled_facet(tmp_path: Path, cached_vocabulary: dict) -> None:

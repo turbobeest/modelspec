@@ -157,6 +157,42 @@ def decision_vocabulary_path(directory: Path | None = None) -> Path:
             (_decision_root(directory) / ".absent" / DECISION_VOCABULARY_FILENAME))
 
 
+def cached_decision_generations(directory: Path | None = None) -> list[Path]:
+    """Return valid retained generations, newest first."""
+    root = _decision_root(directory)
+    try:
+        candidates = [path for path in root.iterdir()
+                      if path.is_dir() and not path.name.startswith(".tmp-")]
+    except OSError:
+        return []
+    valid = []
+    for path in candidates:
+        try:
+            _validate_decision_generation(path)
+        except (OSError, UnicodeError, ValueError, KeyError, json.JSONDecodeError):
+            continue
+        valid.append(path)
+    return sorted(valid, key=lambda path: path.stat().st_mtime, reverse=True)
+
+
+def resolve_decision_generation(reference: str, directory: Path | None = None) -> Path:
+    """Resolve a retained snapshot ID or ``previous`` to its snapshot file."""
+    generations = cached_decision_generations(directory)
+    current, _error = _current_decision_generation(directory)
+    if reference == "previous":
+        choices = [path for path in generations if current is None or path != current]
+        if choices:
+            return choices[0] / DECISION_SNAPSHOT_FILENAME
+    else:
+        match = next((path for path in generations if path.name == reference), None)
+        if match is not None:
+            return match / DECISION_SNAPSHOT_FILENAME
+    cached = ", ".join(sorted(path.name for path in generations)) or "none"
+    raise ValueError(
+        f"decision snapshot {reference!r} is not cached; cached snapshot ids: {cached}"
+    )
+
+
 @dataclass(frozen=True)
 class Snapshot:
     path: Path
