@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const facetId = z.string().regex(/^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$/);
+const objectiveId = z.string().regex(/^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(\/[a-z][a-z0-9_-]*)?$/);
 const modelId = z.string().regex(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/);
 const nullableString = z.string().nullable();
 const scalar = z.union([z.string(), z.number().finite(), z.boolean()]);
@@ -320,7 +321,7 @@ export const decisionSchema = z
 const objectiveSchema = z.union([
   z.object({ max: facetId }).strict(),
   z.object({ min: facetId }).strict(),
-  z.object({ weights: z.record(facetId, z.number().positive()) }).strict(),
+  z.object({ weights: z.record(objectiveId, z.number().positive()) }).strict(),
   z.object({ pareto: z.array(facetId).min(2) }).strict(),
   z
     .object({

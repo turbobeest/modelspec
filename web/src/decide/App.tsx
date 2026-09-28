@@ -55,8 +55,8 @@ import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
 import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
 import {
-  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, showsFacetBoard,
-  toBoardDecisionSpec,
+  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
+  refinementWeightKeys, showsFacetBoard, toBoardDecisionSpec,
 } from "./facet-board/model";
 import type { BoardSelections, Estate } from "./facet-board/model";
 
@@ -87,6 +87,8 @@ export function DesignedApp({
     [boardBaseSpec, setBoardBaseSpec] = useState<Spec>(initial?.spec || baseSpec),
     [boardSelections, setBoardSelections] = useState<BoardSelections>(initialBoard?.selections ?? {}),
     [boardMustOrder, setBoardMustOrder] = useState<string[]>(initialBoard?.mustOrder ?? []),
+    [refinementFallbackKeys, setRefinementFallbackKeys] = useState<Set<string>>(new Set()),
+    [lastSentSpec, setLastSentSpec] = useState<Spec | null>(null),
     [axis, setAxis] = useState<Axis>(initial?.x || "task$"),
     [view, setView] = useState(initial || board ? "work" : "arrive");
   const [draft, setDraft] = useState(
@@ -251,6 +253,7 @@ export function DesignedApp({
     requestAbort.current = controller;
     setHostedDecision(null);
     setHostedQuestions([]);
+    setLastSentSpec(null);
     if (board)
       setEstateRequest((current) => ({
         kind: "idle",
@@ -279,8 +282,9 @@ export function DesignedApp({
         ),
       );
     }, DECISION_WATCHDOG_MS);
-    const ask = (current: Vocabulary | null, explain: "summary" | "full") => {
-      const nextSpec = current ? sendableSpec(current, requested) : requested;
+    const ask = (current: Vocabulary | null, explain: "summary" | "full", override?: Spec) => {
+      const source = override ?? requested;
+      const nextSpec = current ? sendableSpec(current, source) : source;
       return hostedEngine
         .decide(board ? toBoardDecisionSpec(nextSpec, explain) : toDecisionSpec(nextSpec, explain), {
           signal: controller.signal,
@@ -291,6 +295,11 @@ export function DesignedApp({
     let used = vocabulary,
       reloaded = false,
       nextSpec: Spec;
+    const installReloadedVocabulary = (fresh: Vocabulary) => {
+      used = fresh;
+      reloaded = true;
+      setVocabState({ kind: "ready", vocabulary: fresh });
+    };
     try {
       // Summary first: it is small and answers well inside the Worker's limits,
       // so the ranking draws at once. The full explanation and the probes
@@ -300,13 +309,17 @@ export function DesignedApp({
         vocabulary,
         (current) => ask(current, "summary"),
         reloadVocabulary,
+        board ? installReloadedVocabulary : undefined,
       );
       if (controller.signal.aborted) return;
+      if (!board && answer.vocabulary && answer.vocabulary !== vocabulary)
+        setVocabState({ kind: "ready", vocabulary: answer.vocabulary });
       used = answer.vocabulary;
       reloaded = used !== vocabulary;
       nextSpec = answer.result.nextSpec;
-      if (used && reloaded) setVocabState({ kind: "ready", vocabulary: used });
       setHostedDecision(answer.result.decision);
+      setLastSentSpec(nextSpec);
+      setRefinementFallbackKeys(new Set());
       if (board)
         setEstateRequest((current) => ({
           kind: "idle",
@@ -320,8 +333,35 @@ export function DesignedApp({
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
       if (controller.signal.aborted) return;
-      fail(cause);
-      return;
+      if (board && used && cause instanceof DecideApiError && cause.status === 400 && cause.code === "refinement_not_rankable_yet") {
+        const folded = foldRefinementWeights(requested, used);
+        const fallbackVocabulary = used;
+        try {
+          const answer = await retryOnSnapshotChange(fallbackVocabulary, (current) => ask(current, "summary", folded), reloadVocabulary, installReloadedVocabulary);
+          if (controller.signal.aborted) return;
+          const effectiveVocabulary = answer.vocabulary ?? fallbackVocabulary;
+          used = effectiveVocabulary;
+          nextSpec = answer.result.nextSpec;
+          setHostedDecision(answer.result.decision);
+          setHostedQuestions(realQuestions(effectiveVocabulary, nextSpec, dismissed));
+          setRefinementFallbackKeys(refinementWeightKeys(effectiveVocabulary));
+          setLastSentSpec(nextSpec);
+          setEstateRequest((current) => ({
+            kind: "idle",
+            settledSpecHash: specHash(requested),
+            generation: current.generation,
+          }));
+          setRequestState({ kind: "success", details: "loading" });
+        } catch (fallbackCause) {
+          if (controller.signal.aborted || (fallbackCause instanceof Error && fallbackCause.name === "AbortError"))
+            return;
+          fail(fallbackCause);
+          return;
+        }
+      } else {
+        fail(cause);
+        return;
+      }
     } finally {
       clearTimeout(watchdog);
     }
@@ -329,8 +369,8 @@ export function DesignedApp({
       // Once the summary has reloaded, a second 409 here leaves the summary
       // standing: the background request never starts another reload.
       const answer = reloaded
-        ? { result: await ask(used, "full"), vocabulary: used }
-        : await retryOnSnapshotChange(used, (current) => ask(current, "full"), reloadVocabulary);
+        ? { result: await ask(used, "full", nextSpec), vocabulary: used }
+        : await retryOnSnapshotChange(used, (current) => ask(current, "full", nextSpec), reloadVocabulary);
       if (controller.signal.aborted) return;
       if (answer.vocabulary && answer.vocabulary !== used)
         setVocabState({ kind: "ready", vocabulary: answer.vocabulary });
@@ -355,13 +395,14 @@ export function DesignedApp({
   }
 
   const answered = hostedDecision !== null;
+  const effectiveSpec = board && lastSentSpec ? lastSentSpec : spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
   useEffect(() => {
     if (demo || !answered) return;
     questionsAbort.current?.abort();
     const controller = new AbortController();
     questionsAbort.current = controller;
-    const candidates = questionsFor(spec);
+    const candidates = questionsFor(effectiveSpec);
     // Each probe names the snapshot too; after one 409 the rest use the reload.
     let current = vocabulary;
     const pinned: HostedDecisionEngine = {
@@ -377,7 +418,7 @@ export function DesignedApp({
     };
     void evaluateQuestionOptions({
       engine: pinned,
-      spec: board ? toBoardDecisionSpec(sendable(spec), "none") : toDecisionSpec(sendable(spec), "none"),
+      spec: board ? toBoardDecisionSpec(sendable(effectiveSpec), "none") : toDecisionSpec(sendable(effectiveSpec), "none"),
       questions: candidates,
       signal: controller.signal,
       deduplicateConditions: board,
@@ -399,7 +440,7 @@ export function DesignedApp({
     // `answered`, not the decision: the full explanation replacing the summary
     // must not send every probe again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo, board, answered, spec, dismissed, vocabulary]);
+  }, [demo, board, answered, effectiveSpec, dismissed, vocabulary]);
   useEffect(() => {
     if (demo) return;
     const controller = new AbortController();
@@ -496,7 +537,7 @@ export function DesignedApp({
         (current) => {
           const pinned = current ?? vocabulary;
           return hostedEngine.decide(toBoardDecisionSpec(
-            estateSpec(sendableSpec(pinned, spec), estate.providers), "summary",
+            estateSpec(sendableSpec(pinned, effectiveSpec), estate.providers), "summary",
           ), {
             signal: controller.signal,
             snapshot: pinned.snapshot,
@@ -898,6 +939,7 @@ export function DesignedApp({
             onEstate={setEstate}
             fit={decision?.explanation.feasible.length}
             may={decision?.explanation.may.length}
+            refinementFallbackKeys={refinementFallbackKeys}
             answer={decision ? <>
               <Field
                 decision={decision}
@@ -1113,11 +1155,16 @@ export function DesignedApp({
       )}
       {share && (
         <Share
-          spec={shownSpec}
+          spec={board && lastSentSpec ? lastSentSpec : shownSpec}
           snapshot={decision?.snapshot ?? "latest"}
           axis={shownAxis}
           row={row}
           demo={demo}
+          refinementsFolded={board && refinementFallbackKeys.size > 0}
+          boardPermalink={board ? {
+            spec: boardBaseSpec,
+            state: { selections: boardSelections, mustOrder: boardMustOrder, estate },
+          } : undefined}
           onClose={() => setShare(false)}
         />
       )}

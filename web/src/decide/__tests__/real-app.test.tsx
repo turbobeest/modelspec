@@ -4,6 +4,7 @@ import fixtureJson from "../__fixtures__/full-decision.json";
 import liveBudgetCodingJson from "../__fixtures__/live-budget-coding-full.json";
 import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
 import liveSwePreferJson from "../__fixtures__/live-swe-prefer-full.json";
+import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import App, { DesignedApp } from "../App";
 import { decisionSchema } from "../adapter";
 import {
@@ -13,12 +14,14 @@ import {
   sentSpecs,
   smallVocabulary,
 } from "./vocab-fixtures";
-import { VOCABULARY_URL } from "../vocabulary";
+import { VOCABULARY_URL, vocabularySchema } from "../vocabulary";
+import { decodeBoardState } from "../facet-board/model";
 
 const fixture = decisionSchema.parse(fixtureJson);
 const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
+const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 
 /** Keep the legacy full fixture consistent with the objective a UI test sends. */
 function decisionFor(init: RequestInit | undefined, decision = fixture) {
@@ -63,6 +66,114 @@ function decisionFor(init: RequestInit | undefined, decision = fixture) {
 
 beforeEach(() => history.replaceState(null, "", "/"));
 afterEach(() => vi.unstubAllGlobals());
+
+it("folds unsupported refinement weights into the parent without losing board state", async () => {
+  let unsupportedRequests = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: (init) => {
+      const sent = JSON.parse(String(init?.body));
+      if ("software_engineering/python" in sent.optimize.weights) {
+        unsupportedRequests += 1;
+        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+      }
+      return json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  const app = render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(software).getByLabelText("Prefer"));
+  fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+  const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
+  fireEvent.click(within(python).getByLabelText("Prefer"));
+
+  fireEvent.change(screen.getByLabelText("Add provider"), {
+    target: { value: Object.keys(refinementVocabulary.providers)[0] },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
+  const beforeFallbackShare = screen.getByRole("dialog");
+  const beforeFallbackPermalink = within(beforeFallbackShare)
+    .getByRole("tabpanel", { name: "Permalink" }).querySelector("pre")?.textContent;
+  expect(decodeBoardState(new URL(beforeFallbackPermalink!).hash)?.selections["refinement.python"])
+    .toEqual({ mode: "prefer", weight: 0.25 });
+  fireEvent.click(within(beforeFallbackShare).getByRole("button", { name: "Close Share or act" }));
+
+  expect(await within(python).findByText("Ranking by Python is coming — shown by general software engineering for now")).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByText("Checking…")).not.toBeInTheDocument());
+  const requests = sentSpecs(fetch);
+  expect(requests.some((body) => body.optimize.weights["software_engineering/python"] > 0)).toBe(true);
+  expect(requests.some((body) => body.optimize.weights.software_engineering === 0.5 && !("software_engineering/python" in body.optimize.weights))).toBe(true);
+  expect(unsupportedRequests).toBe(1);
+  expect(requests.filter((body) => body.where.some((condition: string) =>
+    condition.startsWith("offering.provider in"),
+  ))).toEqual([expect.objectContaining({
+    optimize: { weights: { software_engineering: 0.5 } },
+  })]);
+  expect(within(python).getByLabelText("Prefer")).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
+  const share = screen.getByRole("dialog");
+  const permalink = within(share).getByRole("tabpanel", { name: "Permalink" }).querySelector("pre")?.textContent;
+  expect(permalink).toContain("#s=");
+  expect(permalink).toContain(location.origin + location.pathname);
+  expect(permalink).toBe(beforeFallbackPermalink);
+  fireEvent.click(within(share).getByRole("tab", { name: "Spec YAML" }));
+  expect(share).toHaveTextContent("refinement weights folded into their parent domains");
+  expect(share).toHaveTextContent('optimize: {"weights":{"software_engineering":0.5}}');
+
+  app.unmount();
+  const shared = new URL(permalink!);
+  history.replaceState(null, "", shared.pathname + shared.search + shared.hash);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+  const restoredSoftware = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(restoredSoftware).getByRole("button", { name: "Refine" }));
+  const restoredPython = within(restoredSoftware).getByText("Python").closest<HTMLElement>(".refinement-row")!;
+  expect(within(restoredPython).getByLabelText("Prefer")).toBeChecked();
+});
+
+it("lets a newer board request win when an in-flight folded retry is aborted", async () => {
+  let fallbackStarted: (() => void) | undefined;
+  const fallbackInFlight = new Promise<void>((resolve) => { fallbackStarted = resolve; });
+  let rejectedRefinement = false;
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: (init) => {
+      const sent = JSON.parse(String(init?.body));
+      if ("software_engineering/python" in sent.optimize.weights) {
+        rejectedRefinement = true;
+        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+      }
+      if (rejectedRefinement && sent.optimize.weights.software_engineering === 0.5) {
+        fallbackStarted?.();
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+        });
+      }
+      return json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(software).getByLabelText("Prefer"));
+  fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+  const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
+  fireEvent.click(within(python).getByLabelText("Prefer"));
+  await fallbackInFlight;
+
+  fireEvent.change(within(software).getByLabelText("Weight for Software engineering"), {
+    target: { value: "0.6" },
+  });
+
+  await waitFor(() => expect(screen.getByLabelText("Facet board answer")).toBeInTheDocument());
+  expect(screen.queryByText("The decision service could not be reached.")).not.toBeInTheDocument();
+  await waitFor(() => expect(sentSpecs(fetch).some((body) =>
+    body.optimize.weights.software_engineering === 0.6,
+  )).toBe(true));
+});
 
 it("runs the designed App on a full hosted decision without fictional labels", async () => {
   const fetch = routeFetch({
@@ -774,5 +885,91 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
     expect(sentSpecs(fetch).filter((spec) => spec.explain === "full")).toHaveLength(1),
   );
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(vocabularyLoads).toBe(2);
+});
+
+it("keeps the production vocabulary unchanged when a retried summary fails", async () => {
+  const fresh = {
+    ...smallVocabulary,
+    snapshot: "snap_retry_fails",
+    domains: smallVocabulary.domains.map((domain, index) => index === 0
+      ? { ...domain, name: "Fresh vocabulary marker" }
+      : domain),
+  };
+  let vocabularyLoads = 0;
+  let decisionRequests = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabularyLoads++ === 0 ? smallVocabulary : fresh),
+    decide: () => {
+      decisionRequests += 1;
+      return decisionRequests === 1
+        ? json({ error: { code: "snapshot_changed", message: "reload the vocabulary and retry" } }, 409)
+        : json({ error: { code: "retry_failed", message: "retry failed" } }, 500);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByText("Coding agent on a budget");
+  fireEvent.click(screen.getByText("start from constraints"));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("retry failed");
+  expect(screen.queryByText("Fresh vocabulary marker")).not.toBeInTheDocument();
+  expect(vocabularyLoads).toBe(2);
+  expect(decisionRequests).toBe(2);
+});
+
+it("folds a rejected refinement with the vocabulary installed after a snapshot change", async () => {
+  const fresh = {
+    ...refinementVocabulary,
+    snapshot: "snap_after_deploy",
+    refinements: refinementVocabulary.refinements?.map((row) => row.id === "python"
+      ? { ...row, parent_domain: "engineering_stem" }
+      : row),
+  };
+  let vocabularyLoads = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabularyLoads++ === 0 ? refinementVocabulary : fresh),
+    decide: (init) => {
+      const snapshot = new Headers(init?.headers).get("x-modelspec-snapshot");
+      const sent = JSON.parse(String(init?.body));
+      if (snapshot === refinementVocabulary.snapshot && "software_engineering/python" in sent.optimize.weights)
+        return json({ error: { code: "snapshot_changed", message: "reload the vocabulary and retry" } }, 409);
+      if ("software_engineering/python" in sent.optimize.weights)
+        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+      return json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(software).getByLabelText("Prefer"));
+  await waitFor(() => expect(sentSpecs(fetch).some((spec) =>
+    spec.explain === "summary" && spec.optimize.weights.software_engineering === 0.5,
+  )).toBe(true));
+  fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+  const callsBeforeRefinement = fetch.mock.calls.length;
+  fireEvent.click(within(within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!).getByLabelText("Prefer"));
+
+  const refinementSummaries = () => fetch.mock.calls.slice(callsBeforeRefinement).filter(([url, init]) =>
+    url !== VOCABULARY_URL && JSON.parse(String(init?.body)).explain === "summary" && (() => {
+      const weights = JSON.parse(String(init?.body)).optimize.weights;
+      return "software_engineering/python" in weights || "engineering_stem" in weights;
+    })(),
+  );
+  await waitFor(() => expect(refinementSummaries()).toHaveLength(3));
+  const summaries = refinementSummaries();
+  expect(summaries.map(([, init]) => ({
+    snapshot: new Headers(init?.headers).get("x-modelspec-snapshot"),
+    weights: JSON.parse(String(init?.body)).optimize.weights,
+  }))).toEqual([
+    { snapshot: refinementVocabulary.snapshot, weights: { software_engineering: 0.25, "software_engineering/python": 0.25 } },
+    { snapshot: fresh.snapshot, weights: { software_engineering: 0.25, "software_engineering/python": 0.25 } },
+    { snapshot: fresh.snapshot, weights: { software_engineering: 0.25, engineering_stem: 0.25 } },
+  ]);
+  expect(JSON.parse(String(summaries[1][1]?.body)).optimize.weights)
+    .toHaveProperty("software_engineering/python");
+  expect(JSON.parse(String(summaries[2][1]?.body)).optimize.weights)
+    .toEqual({ software_engineering: 0.25, engineering_stem: 0.25 });
   expect(vocabularyLoads).toBe(2);
 });
