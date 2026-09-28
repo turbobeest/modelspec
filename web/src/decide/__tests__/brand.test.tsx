@@ -2,7 +2,7 @@ import { render } from "@testing-library/react";
 import { beforeEach, expect, it } from "vitest";
 import App from "../App";
 
-beforeEach(() => history.replaceState(null, "", "/?demo=1"));
+beforeEach(() => history.replaceState(null, "", "/decide/?demo=1"));
 
 function headerMark(container: HTMLElement) {
   const mark = container.querySelector(".global-header .brand svg");
@@ -33,7 +33,7 @@ it("renders the 2a mark in the header, with the package's ids and colours", () =
 });
 
 it("uses the transparent mark in dark mode, where the tile matches the page", () => {
-  history.replaceState(null, "", "/?demo=1&theme=dark");
+  history.replaceState(null, "", "/decide/?demo=1&theme=dark");
   const { container } = render(<App />);
   const mark = headerMark(container);
   expect(mark.querySelector("#tile")?.getAttribute("fill")).toBe("none");

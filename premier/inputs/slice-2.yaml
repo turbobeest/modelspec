@@ -1,0 +1,86 @@
+schema_version: 1
+read_date: '2026-09-26'
+
+# Local candidates enter this input only after the cited parameter, artifact,
+# and configured runtime-memory facts have passed two-key verification. Budget
+# candidates come from verified repository offerings and admitted card evidence.
+# The generator applies the quotas and threshold below; neither path uses a
+# lineup allow-list.
+budget:
+  quota_per_class: 3
+
+widely_offered:
+  minimum_major_providers: 3
+local:
+  max_memory_gb: 24
+  candidates:
+  - model_id: google/gemma-4-e2b-it
+    memory_model_names: [Gemma 4 E2B]
+    quantisation: Q4_K_M
+    artifact: gemma-4-E2B-it-Q4_K_M.gguf
+    parameter_count: 5123178051
+    published_size_bytes: 3106738272
+    published_size_gb: 3.106738272
+    runtime_memory_gb: 3.5
+    context_tokens: 8192
+    memory_method: published calculation including weights, f16 KV cache, and runtime overhead
+    parameter_source_url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+    size_source_url: https://huggingface.co/api/models/unsloth/gemma-4-E2B-it-GGUF/tree/main?recursive=true&expand=false
+    memory_source_url: https://runmyllm.com/models/gemma-4-e2b/hardware
+    read_date: '2026-09-27'
+  - model_id: google/gemma-4-e4b-it
+    memory_model_names: [Gemma 4 E4B]
+    quantisation: Q4_K_M
+    artifact: gemma-4-E4B-it-Q4_K_M.gguf
+    parameter_count: 7996156490
+    published_size_bytes: 4977171584
+    published_size_gb: 4.977171584
+    runtime_memory_gb: 5.2
+    context_tokens: 8192
+    memory_method: published calculation including weights, 8K KV cache, and runtime overhead
+    parameter_source_url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+    size_source_url: https://huggingface.co/api/models/unsloth/gemma-4-E4B-it-GGUF/tree/main?recursive=true&expand=false
+    memory_source_url: https://runmyllm.com/models/gemma-4-e4b/hardware
+    read_date: '2026-09-27'
+  - model_id: microsoft/phi-4
+    memory_model_names: [Phi 4]
+    quantisation: Q4_K_M
+    artifact: phi-4-Q4_K_M.gguf
+    parameter_count: 14659507200
+    published_size_bytes: 9053114816
+    published_size_gb: 9.053114816
+    runtime_memory_gb: 10.72
+    context_tokens: 8192
+    memory_method: published calculation including weights, KV cache, and runtime overhead
+    parameter_source_url: https://huggingface.co/api/models/microsoft/phi-4
+    size_source_url: https://huggingface.co/api/models/bartowski/phi-4-GGUF/tree/main?recursive=true&expand=false
+    memory_source_url: https://localllmchecker.com/models/phi-4/
+    read_date: '2026-09-27'
+  - model_id: google/gemma-4-26b-a4b-it
+    memory_model_names: [Gemma4-26B parent]
+    quantisation: Q4_K_M
+    artifact: gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
+    parameter_count: 25805936206
+    published_size_bytes: 16947541728
+    published_size_gb: 16.947541728
+    runtime_memory_gb: 19.4
+    context_tokens: 16384
+    memory_method: measured in Ollama with Q4_K_M and 16k context
+    parameter_source_url: https://huggingface.co/api/models/google/gemma-4-26b-a4b-it
+    size_source_url: https://huggingface.co/api/models/unsloth/gemma-4-26B-A4B-it-GGUF/tree/main?recursive=true&expand=false
+    memory_source_url: https://huggingface.co/JThomas-CoE/coe-gemma4-coding-hc-14b-a4b-q4_k_m/blob/main/README.md
+    read_date: '2026-09-27'
+  - model_id: google/gemma-4-31b-it
+    memory_model_names: [Gemma 4 31B]
+    quantisation: Q4_K_M
+    artifact: gemma-4-31B-it-Q4_K_M.gguf
+    parameter_count: 31273088876
+    published_size_bytes: 18323733440
+    published_size_gb: 18.32373344
+    runtime_memory_gb: 22.6
+    context_tokens: 8192
+    memory_method: published calculation including weights, f16 KV cache, and runtime overhead
+    parameter_source_url: https://huggingface.co/api/models/google/gemma-4-31B-it
+    size_source_url: https://huggingface.co/api/models/unsloth/gemma-4-31B-it-GGUF/tree/main?recursive=true&expand=false
+    memory_source_url: https://canitrun.dev/models/gemma-4-31b/
+    read_date: '2026-09-27'

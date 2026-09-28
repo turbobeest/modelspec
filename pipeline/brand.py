@@ -59,7 +59,10 @@ def manifest() -> str:
     return json.dumps({
         "name": "ModelSpec",
         "short_name": "ModelSpec",
-        "start_url": "/",
+        # Keep the app identity rooted at the origin while launching the product.
+        "id": "/",
+        "start_url": "/decide/",
+        "scope": "/",
         "display": "browser",
         "background_color": BACKGROUND,
         "theme_color": TILE,

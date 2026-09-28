@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.9**
+Contract version: **1.10**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -329,9 +329,10 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.9",
+  "contract_version": "1.10",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
+  "signature_verified": true,
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
   "explain": "summary",
   "status": "answered",
@@ -392,9 +393,10 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.9"`. |
+| `contract_version` | `"1.10"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
+| `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
 | `spec_hash` | The canonical spec hash. |
 | `explain` | The explanation level used. |
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
@@ -707,6 +709,9 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.10 — MODEL-182:** A decision adds `signature_verified`. The CLI verifies
+  the snapshot against its pinned Ed25519 key set. The Worker can continue to
+  verify the HMAC signature with its private key.
 - **1.9 — MODEL-169:** A decision adds `truncated`, with counts of qualifying
   offerings and models omitted by `limit`. Qualifying candidates are no longer
   listed in `eliminated` because of the result limit. Pareto-dominated

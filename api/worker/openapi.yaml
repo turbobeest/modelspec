@@ -3053,8 +3053,8 @@ components:
           title: Sources
           type: array
         contract_version:
-          const: '1.9'
-          default: '1.9'
+          const: '1.10'
+          default: '1.10'
           title: Contract Version
           type: string
         decision_id:
@@ -3065,6 +3065,10 @@ components:
           pattern: ^snap_[A-Za-z0-9:._-]+$
           title: Snapshot
           type: string
+        signature_verified:
+          default: false
+          title: Signature Verified
+          type: boolean
         spec_hash:
           pattern: ^sha256:[0-9a-f]{64}$
           title: Spec Hash
@@ -4498,7 +4502,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.9'
+          - '1.10'
         endpoint:
           type: string
           enum:
@@ -4550,7 +4554,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.9'
+          - '1.10'
         endpoint:
           type: string
           enum:
@@ -4575,7 +4579,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.9'
+          - '1.10'
         endpoint:
           type: string
           enum:
@@ -4629,7 +4633,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.9'
+          - '1.10'
         endpoint:
           type: string
           enum:
@@ -4969,7 +4973,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.9'
+          - '1.10'
         endpoint:
           type: string
           enum:

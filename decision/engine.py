@@ -278,6 +278,7 @@ def decide(
         + hashlib.sha256((digest + snapshot.snapshot_id).encode()).hexdigest()[:24],
         spec_hash=digest,
         snapshot=snapshot.snapshot_id,
+        signature_verified=getattr(snapshot, "signature_verified", False),
         explain=spec.explain,
         status="partial"
         if ordered.status == "answered" and filtered.may_qualify

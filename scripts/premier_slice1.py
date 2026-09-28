@@ -25,9 +25,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from api.classes import class_for_model_type  # noqa: E402
+from decision.excluded import excluded_sources  # noqa: E402
+from decision.model import value_hash, verification_counts  # noqa: E402
+from decision.registry import default as default_registry  # noqa: E402
+from decision.sources import load_sources  # noqa: E402
 
 INPUTS = ROOT / "premier" / "inputs"
 OUTPUT = ROOT / "premier" / "slice-1.yaml"
+SLICE2_INPUT = INPUTS / "slice-2.yaml"
 
 READ_DATE = "2026-09-24"
 RELEASE_WINDOW_START = "2026-06-26"  # 90 days before the read date
@@ -38,7 +43,7 @@ PAST_YEAR_START = "2025-09-24"
 QUOTA = {
     "frontier-generation": 12,
     "open-weights-generation": 6,
-    "embedding": 4,
+    "embedding": 6,
     "rerank": 2,
     "vision": 4,
     "decision": 1,
@@ -307,9 +312,7 @@ def leaderboards() -> list[dict]:
     ):
         table = _load_json(filename)
         if kind == "embedding":
-            source_rows = [
-                row for row in table["rows"] if row.get("model_type") != "cross-encoder"
-            ]
+            source_rows = [row for row in table["rows"] if row.get("model_type") != "cross-encoder"]
             score_of = lambda row: row.get("mean_task")  # noqa: E731
         else:
             source_rows = [
@@ -374,43 +377,267 @@ def rank_board(board: dict) -> list[dict]:
 
 def load_cards() -> dict[str, dict]:
     cards: dict[str, dict] = {}
+    verifications = _verification_index()
+    guaranteed = {
+        facet.id
+        for facet in default_registry().facets()
+        if facet.subject == "model"
+        and facet.tier == "guaranteed"
+        and facet.computed_by is None
+    }
     for path in sorted((ROOT / "models").glob("*/*.md")):
         text = path.read_text(encoding="utf-8", errors="replace")
         if not text.startswith("---"):
             continue
-        try:
-            front = yaml.safe_load(text.split("---", 2)[1]) or {}
-        except yaml.YAMLError:
-            continue
-        model_id = str(front.get("model_id") or "")
+        frontmatter = text.split("---", 2)[1]
+
+        def scalar(name: str) -> str:
+            match = re.search(rf"(?m)^{re.escape(name)}:\s*['\"]?([^\n'\"]*)", frontmatter)
+            return match.group(1).strip() if match else ""
+
+        data = yaml.safe_load(frontmatter)
+        model_id = scalar("model_id")
         if not model_id:
             continue
-        licensing = front.get("licensing") or {}
-        availability = front.get("availability") or {}
-        primary = availability.get("primary_provider") or {}
         platforms = []
-        if (primary.get("api_endpoint") or primary.get("model_id_on_platform") or "").strip():
+        availability = frontmatter.partition("\navailability:")[2].partition("\nbenchmarks:")[0]
+        primary = re.search(
+            r"(?ms)^  primary_provider:\n(.*?)(?=^  [a-z][a-z0-9_]*:|\Z)", availability
+        )
+        if primary and re.search(
+            r"(?m)^    (?:api_endpoint|model_id_on_platform):\s*\S+", primary.group(1)
+        ):
             platforms.append("lab_api")
         for name in MAJOR_PLATFORMS:
-            entry = availability.get(name) or {}
-            if isinstance(entry, dict) and entry.get("available") is True:
+            entry = re.search(
+                rf"(?ms)^  {re.escape(name)}:\n(.*?)(?=^  [a-z][a-z0-9_]*:|\Z)",
+                availability,
+            )
+            if entry and re.search(r"(?m)^    available:\s*true\s*$", entry.group(1)):
                 platforms.append(name)
-        release = str(front.get("release_date") or "")[:10]
-        retirement = front.get("retirement_date") or front.get("deprecation_date") or None
+        open_match = re.search(
+            r"(?ms)^licensing:\n.*?^  open_weights:\s*(true|false)\s*$", frontmatter
+        )
+        release = scalar("release_date")[:10]
+        retirement = scalar("retirement_date") or scalar("deprecation_date") or None
+        model_type = scalar("model_type")
+        verified_facets = {
+            str(fact["facet"])
+            for fact in data.get("facts") or []
+            if fact.get("facet")
+            and fact.get("sources")
+            and (
+                verification := verifications.get(
+                    (
+                        "fact",
+                        f"{model_id}#{fact['facet']}",
+                        value_hash(fact.get("value")),
+                    )
+                )
+            )
+            and verification["outcome"] == "verified"
+        }
         cards[model_id] = {
             "model_id": model_id,
-            "display_name": str(front.get("display_name") or ""),
-            "provider": str(front.get("provider") or ""),
-            "status": str(front.get("status") or ""),
-            "model_type": str(front.get("model_type") or ""),
-            "class_id": class_for_model_type(str(front.get("model_type") or "")) or "",
-            "open_weights": licensing.get("open_weights") is True,
+            "display_name": scalar("display_name"),
+            "provider": scalar("provider"),
+            "status": scalar("status"),
+            "model_type": model_type,
+            "class_id": class_for_model_type(model_type) or "",
+            "open_weights": bool(open_match and open_match.group(1) == "true"),
             "release_date": release,
             "retirement_date": str(retirement)[:10] if retirement else None,
             "platforms": platforms,
+            "guaranteed_facts_verified": guaranteed <= verified_facets,
             "path": str(path.relative_to(ROOT)),
         }
     return cards
+
+
+def _verification_index() -> dict[tuple[str, str, str], dict]:
+    """Latest counting verification for each exact record value."""
+    latest: dict[tuple[str, str, str], tuple[str, int, dict]] = {}
+    path = ROOT / "verification" / "log.jsonl"
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if not verification_counts(
+            str(row["outcome"]),
+            str(row["collector"]["model_family"]),
+            str(row["verifier"]["model_family"]),
+        ):
+            continue
+        target = row["target"]
+        key = (str(target["kind"]), str(target["id"]), str(target["value_hash"]))
+        candidate = (str(row["date"]), line_number, row)
+        if key not in latest or candidate[:2] >= latest[key][:2]:
+            latest[key] = candidate
+    return {key: row for key, (_, _, row) in latest.items()}
+
+
+def _record_is_admitted(
+    record: dict,
+    *,
+    kind: str,
+    value_field: str,
+    verifications: dict[tuple[str, str, str], dict],
+    source_urls: dict[str, str],
+) -> bool:
+    record_id = record.get("id")
+    sources = record.get("sources") or []
+    source_ids = [str(source.get("source_id") or "") for source in sources]
+    if (
+        not record_id
+        or not source_ids
+        or any(source_id not in source_urls for source_id in source_ids)
+    ):
+        return False
+    guard = excluded_sources()
+    if any(guard.url(source_urls[source_id]) for source_id in source_ids):
+        return False
+    if kind == "evidence" and guard.benchmark(record.get("benchmark_id")):
+        return False
+    key = (kind, str(record_id), value_hash(record.get(value_field)))
+    verification = verifications.get(key)
+    return verification is not None and verification["outcome"] == "verified"
+
+
+def select_budget_candidates(candidates: list[dict], *, quota_per_class: int) -> list[dict]:
+    """Select the cheapest eligible candidates in each class."""
+    by_class: dict[str, list[dict]] = {}
+    for candidate in candidates:
+        if not candidate.get("prices_verified") or not candidate.get("has_admitted_evidence"):
+            continue
+        by_class.setdefault(str(candidate["class"]), []).append(candidate)
+    selected = []
+    for class_id in sorted(by_class):
+        rows = sorted(
+            by_class[class_id],
+            key=lambda row: (
+                float(row["input_price_per_million"]),
+                float(row["output_price_per_million"]),
+                str(row["model_id"]),
+            ),
+        )
+        selected.extend(rows[:quota_per_class])
+    return selected
+
+
+def select_widely_offered_candidates(
+    cards: dict[str, dict], *, minimum_major_providers: int
+) -> list[dict]:
+    """Select every card offered by the required number of major providers."""
+    selected = []
+    for model_id, card in cards.items():
+        providers = sorted(set(card.get("platforms") or []))
+        if card.get("guaranteed_facts_verified") and len(providers) >= minimum_major_providers:
+            selected.append({"model_id": model_id, "providers": providers})
+    return sorted(selected, key=lambda row: row["model_id"])
+
+
+def select_local_candidates(candidates: list[dict], *, max_memory_gb: float) -> list[dict]:
+    """Admit local models only when every size fact is verified and runtime fits."""
+    return [
+        candidate
+        for candidate in candidates
+        if candidate.get("parameter_verified")
+        and candidate.get("artifact_verified")
+        and candidate.get("runtime_memory_verified")
+        and float(candidate["published_size_gb"]) <= max_memory_gb
+        and float(candidate["runtime_memory_gb"]) <= max_memory_gb
+    ]
+
+
+def local_candidate_universe(candidates: list[dict]) -> list[dict]:
+    """Attach exact-value verification state to the filed local facts."""
+    verifications = _verification_index()
+    suffixes = {
+        "parameter_verified": ("model.parameters_total", "parameter_count"),
+        "artifact_verified": ("local.quantised_size_bytes", "published_size_bytes"),
+        "runtime_memory_verified": ("local.runtime_memory_gb", "runtime_memory_gb"),
+    }
+    normalized = []
+    for candidate in candidates:
+        row = dict(candidate)
+        for flag, (suffix, value_field) in suffixes.items():
+            key = (
+                "fact",
+                f"{row['model_id']}#{suffix}",
+                value_hash(row.get(value_field)),
+            )
+            verification = verifications.get(key)
+            row[flag] = verification is not None and verification["outcome"] == "verified"
+        normalized.append(row)
+    return normalized
+
+
+def budget_candidate_universe(cards: dict[str, dict]) -> list[dict]:
+    """Derive budget candidates from admitted offering prices and card evidence."""
+    verifications = _verification_index()
+    sources = load_sources(ROOT / "registry" / "sources.yaml")
+    source_urls = {source_id: str(source.url) for source_id, source in sources.items()}
+
+    evidence_by_model: dict[str, dict] = {}
+    for model_id, card in cards.items():
+        raw = yaml.safe_load((ROOT / card["path"]).read_text(encoding="utf-8").split("---", 2)[1])
+        for evidence in (raw.get("benchmarks") or {}).get("evidence") or []:
+            if _record_is_admitted(
+                evidence,
+                kind="evidence",
+                value_field="score",
+                verifications=verifications,
+                source_urls=source_urls,
+            ):
+                evidence_by_model[model_id] = evidence
+                break
+
+    cheapest: dict[str, dict] = {}
+    for path in sorted((ROOT / "offerings").glob("*/*/*.yaml")):
+        for offering in yaml.safe_load(path.read_text(encoding="utf-8")) or []:
+            model_id = str(offering.get("model") or "")
+            card = cards.get(model_id)
+            if card is None or card["status"] == "sunset" or model_id not in evidence_by_model:
+                continue
+            facts = {fact.get("facet"): fact for fact in offering.get("facts") or []}
+            input_fact = facts.get("offering.price.input")
+            output_fact = facts.get("offering.price.output")
+            if not input_fact or not output_fact:
+                continue
+            prices_verified = all(
+                _record_is_admitted(
+                    fact,
+                    kind="fact",
+                    value_field="value",
+                    verifications=verifications,
+                    source_urls=source_urls,
+                )
+                and fact.get("state") == "known"
+                and isinstance(fact.get("value"), int | float)
+                for fact in (input_fact, output_fact)
+            )
+            if not prices_verified:
+                continue
+            source_id = str((input_fact.get("sources") or [{}])[0].get("source_id") or "")
+            candidate = {
+                "model_id": model_id,
+                "class": card["class_id"],
+                "input_price_per_million": input_fact["value"],
+                "output_price_per_million": output_fact["value"],
+                "benchmark_id": evidence_by_model[model_id]["benchmark_id"],
+                "source_url": source_urls[source_id],
+                "read_date": str(input_fact.get("verified_at") or "2026-09-26")[:10],
+                "prices_verified": True,
+                "has_admitted_evidence": True,
+            }
+            current = cheapest.get(model_id)
+            key = (candidate["input_price_per_million"], candidate["output_price_per_million"])
+            if current is None or key < (
+                current["input_price_per_million"],
+                current["output_price_per_million"],
+            ):
+                cheapest[model_id] = candidate
+    return list(cheapest.values())
 
 
 def match_index(cards: dict[str, dict], aliases: dict[str, str]) -> dict[str, str]:
@@ -435,7 +662,11 @@ def match_index(cards: dict[str, dict], aliases: dict[str, str]) -> dict[str, st
         undated = [mid for mid in unique if not _DATE_TOKEN.search(mid)]
         active = [mid for mid in (undated or unique) if cards[mid]["status"] == "active"]
         pool = active or undated or unique
-        exact = [mid for mid in pool if slug(mid, strip=True) == key or slug(cards[mid]["display_name"], strip=True) == key]
+        exact = [
+            mid
+            for mid in pool
+            if slug(mid, strip=True) == key or slug(cards[mid]["display_name"], strip=True) == key
+        ]
         pool = exact or pool
         if len(pool) == 1:
             resolved[key] = pool[0]
@@ -477,6 +708,7 @@ def build() -> dict:
     aliases = json.loads((INPUTS / "aliases.json").read_text())
     cards = load_cards()
     index = match_index(cards, aliases)
+    slice2 = yaml.safe_load(SLICE2_INPUT.read_text(encoding="utf-8"))
 
     missing: list[dict] = []
     by_model: dict[str, dict] = {}
@@ -508,7 +740,9 @@ def build() -> dict:
             entry["evidence"].append(_evidence(hit))
             entry["clauses"].add(1)
 
-    qualifying_labs = {item["card"]["provider"] for item in by_model.values() if item["card"]["provider"]}
+    qualifying_labs = {
+        item["card"]["provider"] for item in by_model.values() if item["card"]["provider"]
+    }
 
     clause2_pool: list[str] = []
     for model_id, card in cards.items():
@@ -524,10 +758,15 @@ def build() -> dict:
         entry = by_model.setdefault(model_id, {"card": card, "evidence": [], "clauses": set()})
         entry["clauses"].add(2)
 
+    widely_offered_candidates = select_widely_offered_candidates(
+        cards,
+        minimum_major_providers=int(slice2["widely_offered"]["minimum_major_providers"]),
+    )
+    widely_offered = {candidate["model_id"] for candidate in widely_offered_candidates}
     clause3_pool: list[str] = []
-    for model_id, card in cards.items():
-        if len(card["platforms"]) < 3:
-            continue
+    for candidate in widely_offered_candidates:
+        model_id = candidate["model_id"]
+        card = cards[model_id]
         if card["class_id"] not in SLICE_CLASSES:
             continue
         if card["status"] == "sunset":
@@ -535,7 +774,7 @@ def build() -> dict:
         clause3_pool.append(model_id)
         entry = by_model.setdefault(model_id, {"card": card, "evidence": [], "clauses": set()})
         entry["clauses"].add(3)
-        entry["platforms"] = card["platforms"]
+        entry["platforms"] = candidate["providers"]
 
     # Clause 4. The brief names this card; it is not inferred from a board.
     if DECISION_MODEL in cards:
@@ -545,6 +784,33 @@ def build() -> dict:
         )
         entry["clauses"].add(4)
 
+    budget_candidates = select_budget_candidates(
+        budget_candidate_universe(cards),
+        quota_per_class=int(slice2["budget"]["quota_per_class"]),
+    )
+    for candidate in budget_candidates:
+        model_id = candidate["model_id"]
+        entry = by_model.setdefault(
+            model_id, {"card": cards[model_id], "evidence": [], "clauses": set()}
+        )
+        entry["clauses"].add(5)
+        entry["budget"] = candidate
+
+    local_limit = float(slice2["local"]["max_memory_gb"])
+    local_candidates = select_local_candidates(
+        local_candidate_universe(slice2["local"]["candidates"]),
+        max_memory_gb=local_limit,
+    )
+    for candidate in local_candidates:
+        model_id = candidate["model_id"]
+        if model_id not in cards or cards[model_id]["status"] == "sunset":
+            continue
+        entry = by_model.setdefault(
+            model_id, {"card": cards[model_id], "evidence": [], "clauses": set()}
+        )
+        entry["clauses"].add(6)
+        entry["local"] = candidate
+
     def release_key(model_id: str) -> int:
         raw = by_model[model_id]["card"]["release_date"]
         digits = raw.replace("-", "") if raw else ""
@@ -552,9 +818,7 @@ def build() -> dict:
 
     def sort_key(model_id: str) -> tuple:
         entry = by_model[model_id]
-        fresh = [
-            item["rank"] for item in entry["evidence"] if item["board"] in FRESH_BOARDS
-        ]
+        fresh = [item["rank"] for item in entry["evidence"] if item["board"] in FRESH_BOARDS]
         fresh_best = min(fresh) if fresh else 50
         return (fresh_best, -release_key(model_id), model_id)
 
@@ -602,17 +866,41 @@ def build() -> dict:
             selected.append(model_id)
             selected_set.add(model_id)
 
-    for group in ("vision", "frontier-generation", "open-weights-generation", "embedding", "rerank", "decision"):
+    for group in (
+        "vision",
+        "frontier-generation",
+        "open-weights-generation",
+        "embedding",
+        "rerank",
+        "decision",
+    ):
         take(group, grouped[group])
+
+    # Slice 2 clauses are additions to the balanced frontier cut. Clause 3 is
+    # no longer suppressed by a full quota: continued sale by three major
+    # providers is the evidence that keeps an older model in the live lineup.
+    supplemental = [
+        model_id
+        for model_id, entry in by_model.items()
+        if entry["card"]["status"] != "sunset"
+        and (entry["clauses"].intersection({5, 6}) or model_id in widely_offered)
+    ]
+    supplemental.sort()
+    for model_id in supplemental:
+        if model_id not in selected_set:
+            selected.append(model_id)
+            selected_set.add(model_id)
 
     # A model that reached a top 10 and shipped in the last three weeks is not
     # cut to honour the quota. Grok 4.7 is the case this is here for.
     protected = [
         model_id
         for model_id, entry in by_model.items()
-        if 1 in entry["clauses"]
-        and entry["card"]["status"] != "sunset"
-        and entry["card"]["release_date"] >= "2026-09-01"
+        if entry["card"]["status"] != "sunset"
+        and (
+            (1 in entry["clauses"] and entry["card"]["release_date"] >= "2026-09-01")
+            or (2 in entry["clauses"] and entry["card"]["release_date"] >= "2026-09-19")
+        )
     ]
     protected.sort(key=sort_key)
     for model_id in protected:
@@ -629,9 +917,7 @@ def build() -> dict:
     clause2_only.sort(key=lambda mid: (cards[mid]["release_date"], mid), reverse=True)
     for group in GROUP_ORDER:
         pool = [
-            model_id
-            for model_id in clause2_only
-            if bucket_for(cards[model_id], set()) == group
+            model_id for model_id in clause2_only if bucket_for(cards[model_id], set()) == group
         ]
         take(group, pool)
 
@@ -643,9 +929,7 @@ def build() -> dict:
     clause3_only.sort(key=lambda mid: (-len(cards[mid]["platforms"]), mid))
     for group in GROUP_ORDER:
         pool = [
-            model_id
-            for model_id in clause3_only
-            if bucket_for(cards[model_id], set()) == group
+            model_id for model_id in clause3_only if bucket_for(cards[model_id], set()) == group
         ]
         take(group, pool)
 
@@ -654,7 +938,10 @@ def build() -> dict:
         entry = by_model[model_id]
         card = entry["card"]
         clauses = []
-        for item in sorted(entry["evidence"], key=lambda row: (row["domain"], row["board"], row["rank"])):
+        for item in sorted(
+            entry["evidence"],
+            key=lambda row: (row["domain"], row["board"], row["rank"]),
+        ):
             clauses.append(item)
         if 2 in entry["clauses"]:
             clauses.append(
@@ -684,6 +971,43 @@ def build() -> dict:
                     "note": (
                         "Reviewer addition. The MODEL-136 brief requires one "
                         "decision model, and this card is the TypeSafe Jev card."
+                    ),
+                }
+            )
+        if 5 in entry["clauses"]:
+            candidate = entry["budget"]
+            clauses.append(
+                {
+                    "clause": 5,
+                    "class": candidate["class"],
+                    "input_price_per_million": candidate["input_price_per_million"],
+                    "output_price_per_million": candidate["output_price_per_million"],
+                    "benchmark": candidate["benchmark_id"],
+                    "url": candidate["source_url"],
+                    "read_date": candidate["read_date"],
+                    "note": "Within the cheapest verified, benchmarked candidates in its class.",
+                }
+            )
+        if 6 in entry["clauses"]:
+            candidate = entry["local"]
+            clauses.append(
+                {
+                    "clause": 6,
+                    "quantisation": candidate["quantisation"],
+                    "parameter_count": candidate["parameter_count"],
+                    "published_size_bytes": candidate["published_size_bytes"],
+                    "published_size_gb": candidate["published_size_gb"],
+                    "runtime_memory_gb": candidate["runtime_memory_gb"],
+                    "context_tokens": candidate["context_tokens"],
+                    "memory_method": candidate["memory_method"],
+                    "max_memory_gb": slice2["local"]["max_memory_gb"],
+                    "parameter_url": candidate["parameter_source_url"],
+                    "artifact_url": candidate["size_source_url"],
+                    "url": candidate["memory_source_url"],
+                    "read_date": candidate["read_date"],
+                    "note": (
+                        "The published runtime-memory requirement at this quantisation and "
+                        "context is no larger than the 24 GB limit."
                     ),
                 }
             )
@@ -767,14 +1091,19 @@ def build() -> dict:
 
     return {
         "schema_version": 1,
-        "status": "pending-jamie-approval",
+        "status": "approved",
+        "approved_date": "2026-09-26",
         "read_date": READ_DATE,
         "release_window_start": RELEASE_WINDOW_START,
         "rule": [
-            "Top 10 of its class on a slice-1 board, after collapsing effort settings of the same model.",
+            "Top 10 of its class on a slice-1 board, after collapsing effort "
+            "settings of the same model.",
             "Released on or after the window start by a lab that has a model in the first clause.",
             "At least three major providers recorded on the card.",
             "A reviewer added it. Slice 1 adds the TypeSafe Jev card.",
+            "Among the cheapest verified candidates in its class with admitted benchmark evidence.",
+            "Verified parameter count, quantised artifact size, and runtime/peak memory "
+            "at the stated quantisation and context all fit the 24 GB consumer-hardware limit.",
         ],
         "quota": QUOTA,
         "models": models,

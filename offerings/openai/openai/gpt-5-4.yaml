@@ -123,3 +123,23 @@
       snapshot_ref: sha256:5ba7e5e263e436a5b8eb672f753d2457686ebe9180af83d5724fcacbbff6bc4f
       cited_regions:
       - page
+  - id: openai/openai/gpt-5-4/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - openai-data
+    - model-143-openai-gpt-5-4
+  - id: openai/openai/gpt-5-4/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: openai/openai/gpt-5-4/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - openai-data
+    - model-143-openai-gpt-5-4

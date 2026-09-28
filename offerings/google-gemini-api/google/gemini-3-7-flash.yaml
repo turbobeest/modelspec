@@ -123,3 +123,23 @@
       snapshot_ref: sha256:0aa4807bba00a35d3f500fa9deaae99d4049396f9b13feac2a06be1d473dcd6d
       cited_regions:
       - page
+  - id: google-gemini-api/google/gemini-3-7-flash/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-7-flash/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - gemini-pricing
+    - model-143-google-gemini-3-7-flash
+  - id: google-gemini-api/google/gemini-3-7-flash/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-7-flash/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - gemini-pricing
+    - model-143-google-gemini-3-7-flash

@@ -1,6 +1,6 @@
 # Slice-1 premier set
 
-Status: pending Jamie's approval. This list is a proposal. It is not the premier set until Jamie says so.
+Status: approved by Jamie on 2026-09-26.
 
 The rule is the one in the decision-engine design, section 5. A model is in the set if any of these holds:
 
@@ -8,6 +8,26 @@ The rule is the one in the decision-engine design, section 5. A model is in the 
 2. Its lab had a model in clause 1, and this model was released on or after 2026-06-26, ninety days before the read date.
 3. At least three major providers offer it, counted only from providers the card already records.
 4. A reviewer added it. The MODEL-136 brief requires one decision model, so the set includes `typesafe/jev-1-13`.
+5. It is among the cheapest verified candidates in its class, has verified input
+   and output token prices, and has at least one admitted benchmark.
+6. A published quantised artifact and its configured runtime-memory requirement
+   both fit within 24 GB. The runtime fact states its quantisation and context.
+
+Slice 2 stays in `premier/slice-1.yaml` because every snapshot and recall
+consumer already reads that path. The budget candidate universe comes from all
+repository offerings whose input and output price facts pass exact-value
+verification, joined to each card's actual class and at least one admitted piece
+of evidence. `premier/inputs/slice-2.yaml` holds the budget quota, the
+wide-offering threshold, and dated local-memory observations. The generator
+derives the wide-offering candidates from every card whose guaranteed model
+facts pass exact-value verification. The input file contains no model
+allowlist, and unverified legacy availability rows cannot bypass a quota.
+
+The frontier-generation quota remains 12 and the embedding quota is 6. A model
+released in the last seven days under clause 2 is protected from the quota, as
+are clause-1 models released since 2026-09-01. An older model with three
+verified major-provider offerings remains eligible even when it predates the
+90-day release window.
 
 Retired models leave the set. The only `sunset` cards the rule reaches are the two GPT-5.5 pre-release checkpoints Epoch AI evaluated, `openai/gpt-5-5-pre-release` and `openai/gpt-5-5-pro-pre-release`. They were never offered, and `sunset` is the closest existing status, so they are the whole of `archived` in the YAML. Deprecated models would stay, with a retirement date when the card records one. None of the selected cards are deprecated.
 
@@ -35,9 +55,19 @@ Within each group the script keeps the models with the best rank on a fresh boar
 
 The four strongest models on the Arena vision board are the vision balance. They are general generators. Their engine class stays `text-generator`, and their clauses still list every board they lead. The vision board's top 10 does not contain a `vlm` card.
 
-Quotas: frontier generation 12, open-weights generation 6, embedding 4, rerank 2, vision 4, decision 1. Rerank stops at one card because the embedding leaderboard publishes a reranking score for only a few cross-encoders, and only Jina Reranker v3 has a card.
+Quotas: frontier generation 12, open-weights generation 6, embedding 6, rerank 2, vision 4, decision 1. Clause 5 selects up to three candidates per class from the verified offering and card join. Clause 6 admits every candidate whose verified runtime memory fits the local limit. These additions do not consume the frontier quality balance. Rerank stops short when the eligible card pool is smaller than its quota.
 
-Clause 2 is recorded on models that are already in through clause 1 and were released inside the window. It did not add a model the quota had no room for. Clause 3 added nobody. Frontier cards do not record three of the lab API, Bedrock, Vertex, Azure, or the main inference providers.
+Gemini 2.0 Flash does not enter slice 2. Google's current pricing page no
+longer lists it, its card records only one major provider, and it has no
+published local artifact. Adding it would require guessing a current price or
+overriding the rule by name.
+
+Clause 2 also protects a release from the final seven days even when the
+quality quota is full; this admits GPT-6 Luna without naming it in the rule.
+Clause 3 admits every active, complete, verified card with at least three
+recorded major providers, including DeepSeek V3.1. These models do not compete
+for the balanced frontier quota because the provider threshold is itself a
+premier-set clause.
 
 ## Inputs, read 2026-09-24
 
@@ -53,6 +83,7 @@ Clause 2 is recorded on models that are already in through clause 1 and were rel
 | `epoch-gpqa_diamond.csv` | Epoch GPQA Diamond, CC BY 4.0 | same |
 | `epoch-swe_bench_verified.csv` | Epoch's own SWE-bench Verified runs, CC BY 4.0 | same |
 | `scale-hle.json` | Scale SEAL, Humanity's Last Exam | https://labs.scale.com/leaderboard/humanitys_last_exam |
+| `slice-2.yaml` | Budget quota plus dated provider, parameter, artifact, and configured runtime-memory observations | Offering facts and the parameter, weights, and memory sources cited per row |
 
 Epoch's composite capability index is not a board. Superseded FrontierMath files are not boards. Epoch files whose names end in `_external` keep their original licences and are not used.
 

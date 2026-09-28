@@ -123,3 +123,23 @@
       snapshot_ref: sha256:b8754d2c15368932c8cd5999b6520ac0a8bdaeff7abb5ab45ee4d070801cbceb
       cited_regions:
       - page
+  - id: aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - aws-pricing
+    - model-143-anthropic-claude-opus-4-6
+  - id: aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-opus-4-6/global-cross-region/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - aws-pricing
+    - model-143-anthropic-claude-opus-4-6

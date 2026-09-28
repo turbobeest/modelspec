@@ -24,6 +24,7 @@ dependencies = [
     "rich>=13.0",
     "typer>=0.12",
     "click>=8.0",
+    "cryptography>=43,<46",
 ]
 
 [project.urls]

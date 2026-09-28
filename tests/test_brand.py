@@ -94,6 +94,9 @@ def test_the_manifest_names_the_192_and_512_icons(tmp_path):
     brand.write_icons(tmp_path)
     manifest = json.loads((tmp_path / "site.webmanifest").read_text(encoding="utf-8"))
     assert manifest["name"] == "ModelSpec"
+    assert manifest["id"] == "/"
+    assert manifest["start_url"] == "/decide/"
+    assert manifest["scope"] == "/"
     assert manifest["theme_color"] == "#0B1426"
     icons = {icon["src"]: icon for icon in manifest["icons"]}
     assert icons["/icon-192.png"]["sizes"] == "192x192"
@@ -127,7 +130,7 @@ def test_the_decide_page_head_links_the_icons_and_the_social_card():
     assert 'property="og:image" content="https://modelspec.dev/og-card.png"' in html
     assert 'property="og:image:width" content="1200"' in html
     assert 'name="twitter:card" content="summary_large_image"' in html
-    assert 'property="og:url" content="https://modelspec.dev/"' in html
+    assert 'property="og:url" content="https://modelspec.dev/decide/"' in html
 
 
 def test_the_v1_landing_links_the_2a_icons():

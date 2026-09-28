@@ -56,8 +56,8 @@ def test_slice1_offerings_have_every_guaranteed_facet_once() -> None:
     for offering in offerings:
         assert offering.model in premier
         facets = [fact.facet for fact in offering.facts]
-        assert set(facets) == GUARANTEED
-        assert len(facets) == len(GUARANTEED)
+        assert GUARANTEED <= set(facets)
+        assert all(facets.count(facet) == 1 for facet in GUARANTEED)
 
 
 def test_governance_facts_only_use_the_serving_providers_own_documents() -> None:

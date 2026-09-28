@@ -280,6 +280,9 @@ def test_keyed_origin_falls_back_for_public_decision_files_without_sending_key(
             "available": True,
             "origin": public.url,
             "snapshot_id": _decision_artifacts()[1]["snapshot"],
+            "signature_verified": False,
+            "signature_status": "unsigned (ed25519 key not yet provisioned)",
+            "signature_key_id": None,
         }
         assert all("Authorization" not in headers for _, headers in public.seen)
         assert snapshot.decision_snapshot_path(cache).exists()
@@ -306,6 +309,9 @@ def test_keyed_origin_falls_back_when_decision_route_refuses_key(
             "available": True,
             "origin": public.url,
             "snapshot_id": _decision_artifacts()[1]["snapshot"],
+            "signature_verified": False,
+            "signature_status": "unsigned (ed25519 key not yet provisioned)",
+            "signature_key_id": None,
         }
         assert all("Authorization" not in headers for _, headers in public.seen)
         assert snapshot.decision_snapshot_path(cache).exists()

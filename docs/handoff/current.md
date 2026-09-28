@@ -9,10 +9,10 @@ instructions are not current policy.
 deployed: the Worker and the live export both report
 `export_schema_version: 3.0`.
 
-> **2026-09-24: both sites are in holding mode, and Checkout is closed.**
-> Production shows a holding page; `/api/**`, `/legal/**` and `api.modelspec.dev`
-> stay up; the real site is on the `internal` Pages preview. The switch is the
-> `SITE_MODE` repository variable. See [`holding-mode.md`](holding-mode.md).
+> **2026-09-28: `SITE_MODE=live`; Checkout remains closed.**
+> Production and the `internal` Pages preview publish the same tree. The
+> MODEL-186 landing is `/`, and the decision board is `/decide/`. See
+> [`holding-mode.md`](holding-mode.md) for the fail-closed switch and dark tree.
 
 ## Read this first if you are picking the work up
 

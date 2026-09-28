@@ -19,11 +19,12 @@ builds it, gates it and loads it:
   registry, such as ``estimate.capability``) are skipped: slice 1 does not
   compute them.
 * ``Snapshot.write`` serialises canonical JSON, gzips it with a fixed header,
-  and signs the content hash with HMAC-SHA256 when ``MODELSPEC_SNAPSHOT_KEY`` is
-  set. The same inputs give the same bytes.
-* ``load_snapshot`` checks the hash and, when a key is available, the
-  signature, then builds the in-memory index: three-valued bitsets over the
-  candidates, per facet value.
+  and signs the content hash with HMAC-SHA256 for the Worker and Ed25519 for
+  public clients when their respective keys are set. The same inputs and keys
+  give the same bytes.
+* ``load_snapshot`` checks the hash and verifies either the Worker's HMAC or a
+  pinned Ed25519 signature, then builds the in-memory index: three-valued
+  bitsets over the candidates, per facet value.
 
 Inputs are MODEL-134's records (``decision.model``) or their serialised dicts;
 the builder reads them by field name, so either works.
@@ -31,6 +32,7 @@ the builder reads them by field name, so either works.
 
 from __future__ import annotations
 
+import base64
 import gzip
 import hashlib
 import hmac
@@ -55,6 +57,10 @@ FORMAT = "modelspec.decision-snapshot"
 FORMAT_VERSION = 1
 KEY_ENV = "MODELSPEC_SNAPSHOT_KEY"
 SIGNATURE_ALG = "hmac-sha256"
+ED25519_KEY_ENV = "MODELSPEC_SNAPSHOT_ED25519_KEY"
+ED25519_SIGNATURE_ALG = "ed25519"
+PUBLIC_KEY_SET_PATH = Path(__file__).with_name("snapshot_keys.json")
+UNPROVISIONED_SIGNATURE_STATUS = "unsigned (ed25519 key not yet provisioned)"
 
 FactState = Literal["known", "unknown", "not_disclosed", "requires_contract"]
 Lifecycle = Literal["active", "deprecated", "retired"]
@@ -312,6 +318,89 @@ def env_key() -> bytes | None:
     return _key_bytes(os.environ.get(KEY_ENV))
 
 
+@dataclass(frozen=True)
+class Ed25519Signer:
+    """One build-time signing key and the public key ID written beside it."""
+
+    key_id: str
+    private_key: bytes | str
+
+    def sign(self, digest: str) -> str:
+        key = _load_ed25519_private_key(self.private_key)
+        signature = key.sign(digest.encode("ascii"))
+        return base64.b64encode(signature).decode("ascii")
+
+
+def _load_ed25519_private_key(value: bytes | str):
+    """Parse an Ed25519 private key from PEM, raw bytes, or raw base64."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    encoded = value.encode("ascii") if isinstance(value, str) else value
+    if encoded.lstrip().startswith(b"-----BEGIN"):
+        key = serialization.load_pem_private_key(encoded, password=None)
+        if not isinstance(key, Ed25519PrivateKey):
+            raise SnapshotBuildError("the snapshot signing key is not an Ed25519 private key")
+        return key
+    if len(encoded) != 32:
+        try:
+            encoded = base64.b64decode(encoded, validate=True)
+        except (ValueError, TypeError) as exc:
+            raise SnapshotBuildError(
+                "the Ed25519 private key must be PEM or raw base64"
+            ) from exc
+    if len(encoded) != 32:
+        raise SnapshotBuildError("the raw Ed25519 private key must contain 32 bytes")
+    return Ed25519PrivateKey.from_private_bytes(encoded)
+
+
+def load_public_keys(path: str | Path | None = None) -> dict[str, bytes]:
+    """Read the pinned Ed25519 key set shipped by the CLI and public site."""
+    path = PUBLIC_KEY_SET_PATH if path is None else path
+    try:
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise SnapshotIntegrityError(f"could not read the pinned snapshot keys: {exc}") from exc
+    if (not isinstance(raw, dict) or raw.get("format") != "modelspec.snapshot-keys"
+            or raw.get("version") != 1 or not isinstance(raw.get("keys"), list)):
+        raise SnapshotIntegrityError("the pinned snapshot key set has an invalid format")
+    keys: dict[str, bytes] = {}
+    for row in raw["keys"]:
+        try:
+            if row["alg"] != ED25519_SIGNATURE_ALG:
+                raise ValueError("unsupported algorithm")
+            key_id = str(row["key_id"])
+            public = base64.b64decode(row["public_key"], validate=True)
+            if not key_id or len(public) != 32 or key_id in keys:
+                raise ValueError("invalid key")
+        except (KeyError, TypeError, ValueError) as exc:
+            raise SnapshotIntegrityError(
+                "the pinned snapshot key set contains an invalid key"
+            ) from exc
+        keys[key_id] = public
+    return keys
+
+
+def env_ed25519_signer() -> Ed25519Signer | None:
+    """Match the CI private key to its ID in the pinned public key set."""
+    value = os.environ.get(ED25519_KEY_ENV)
+    if not value:
+        return None
+    key = _load_ed25519_private_key(value)
+    from cryptography.hazmat.primitives import serialization
+
+    public = key.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    for key_id, candidate in load_public_keys().items():
+        if hmac.compare_digest(public, candidate):
+            return Ed25519Signer(key_id, value)
+    raise SnapshotBuildError(
+        f"the {ED25519_KEY_ENV} public key is not in {PUBLIC_KEY_SET_PATH.name}"
+    )
+
+
 def _record_fields(
     record: Mapping[str, Any], prefix: tuple[str, ...] = (),
 ) -> Iterable[tuple[tuple[str, ...], Any]]:
@@ -370,25 +459,34 @@ class Snapshot:
     content_hash: str
     snapshot_id: str
 
-    def envelope(self, key: bytes | str | None = _FROM_ENV) -> dict[str, Any]:
+    def envelope(self, key: bytes | str | None = _FROM_ENV,
+                 ed25519_signer: Ed25519Signer | None | Any = _FROM_ENV) -> dict[str, Any]:
         key = env_key() if key is _FROM_ENV else _key_bytes(key)
         signature = None if key is None else {"alg": SIGNATURE_ALG,
                                               "value": _sign(self.content_hash, key)}
+        signer = env_ed25519_signer() if ed25519_signer is _FROM_ENV else ed25519_signer
+        signatures = [] if signer is None else [{
+            "alg": ED25519_SIGNATURE_ALG,
+            "key_id": signer.key_id,
+            "value": signer.sign(self.content_hash),
+        }]
         return {"format": FORMAT, "format_version": FORMAT_VERSION,
                 "snapshot_id": self.snapshot_id, "content_hash": self.content_hash,
-                "signature": signature, "content": self.content}
+                "signature": signature, "signatures": signatures, "content": self.content}
 
-    def to_bytes(self, key: bytes | str | None = _FROM_ENV) -> bytes:
+    def to_bytes(self, key: bytes | str | None = _FROM_ENV,
+                 ed25519_signer: Ed25519Signer | None | Any = _FROM_ENV) -> bytes:
         buf = io.BytesIO()
         # A fixed mtime and no file name keep the gzip header deterministic.
         with gzip.GzipFile(filename="", mode="wb", fileobj=buf, compresslevel=9, mtime=0) as gz:
-            gz.write(canonical_json(self.envelope(key)))
+            gz.write(canonical_json(self.envelope(key, ed25519_signer)))
         return buf.getvalue()
 
-    def write(self, path: str | Path, *, key: bytes | str | None = _FROM_ENV) -> Path:
+    def write(self, path: str | Path, *, key: bytes | str | None = _FROM_ENV,
+              ed25519_signer: Ed25519Signer | None | Any = _FROM_ENV) -> Path:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(self.to_bytes(key))
+        path.write_bytes(self.to_bytes(key, ed25519_signer))
         return path
 
 
@@ -1127,11 +1225,16 @@ class LoadedSnapshot:
     """The in-memory index over one snapshot. Implements ``SnapshotIndex``."""
 
     def __init__(self, envelope: Mapping[str, Any], *, include_archive: bool,
-                 signature_verified: bool):
+                 signature_verified: bool, signature_status: str | None = None,
+                 signature_key_id: str | None = None):
         content = envelope["content"]
         self.snapshot_id: str = envelope["snapshot_id"]
         self.content_hash: str = envelope["content_hash"]
         self.signature_verified = signature_verified
+        self.signature_status = signature_status or (
+            "verified" if signature_verified else UNPROVISIONED_SIGNATURE_STATUS
+        )
+        self.signature_key_id = signature_key_id
         self.as_of = _date(content.get("as_of"))
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
         #: Active models the build left out because they are not in the premier set.
@@ -1431,6 +1534,7 @@ def load_snapshot_bytes(
     data: bytes,
     *,
     key: bytes | str | None = _FROM_ENV,
+    public_keys: Mapping[str, bytes] | None | Any = _FROM_ENV,
     include_archive: bool = False,
     source: str = "snapshot bytes",
 ) -> LoadedSnapshot:
@@ -1471,6 +1575,8 @@ def load_snapshot_bytes(
         raise SnapshotIntegrityError(f"{source}: snapshot ID does not match its content hash")
     key = env_key() if key is _FROM_ENV else _key_bytes(key)
     verified = False
+    signature_status = UNPROVISIONED_SIGNATURE_STATUS
+    signature_key_id = None
     if key is not None:
         signature = envelope.get("signature")
         if not signature:
@@ -1479,21 +1585,66 @@ def load_snapshot_bytes(
                 or not hmac.compare_digest(str(signature.get("value")), _sign(digest, key))):
             raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
         verified = True
-    return LoadedSnapshot(envelope, include_archive=include_archive, signature_verified=verified)
+        signature_status = "verified (hmac-sha256)"
+    else:
+        pinned = load_public_keys() if public_keys is _FROM_ENV else dict(public_keys or {})
+        if pinned:
+            from cryptography.exceptions import InvalidSignature
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+            signatures = envelope.get("signatures")
+            if not isinstance(signatures, list):
+                raise SnapshotIntegrityError(f"{source}: Ed25519 signature is missing")
+            known_signature = False
+            for signature in signatures:
+                if not isinstance(signature, Mapping):
+                    continue
+                key_id = str(signature.get("key_id") or "")
+                if signature.get("alg") != ED25519_SIGNATURE_ALG or key_id not in pinned:
+                    continue
+                known_signature = True
+                try:
+                    value = base64.b64decode(str(signature.get("value") or ""), validate=True)
+                    Ed25519PublicKey.from_public_bytes(pinned[key_id]).verify(
+                        value, digest.encode("ascii")
+                    )
+                except (ValueError, TypeError, InvalidSignature):
+                    continue
+                verified = True
+                signature_key_id = key_id
+                signature_status = f"verified (ed25519 key {key_id})"
+                break
+            if not verified:
+                reason = "does not verify" if known_signature else "uses no pinned key"
+                raise SnapshotIntegrityError(f"{source}: Ed25519 signature {reason}")
+    return LoadedSnapshot(
+        envelope,
+        include_archive=include_archive,
+        signature_verified=verified,
+        signature_status=signature_status,
+        signature_key_id=signature_key_id,
+    )
 
 
 def load_snapshot(path: str | Path, *, key: bytes | str | None = _FROM_ENV,
+                  public_keys: Mapping[str, bytes] | None | Any = _FROM_ENV,
                   include_archive: bool = False) -> LoadedSnapshot:
     """Read, check and index a snapshot.
 
-    The content hash is always checked. The key defaults to
-    ``MODELSPEC_SNAPSHOT_KEY``; with a key, the snapshot must be signed with it.
-    Without one, the signature cannot be checked and ``signature_verified`` is
-    false. Retired models are left out unless ``include_archive``.
+    The content hash is always checked. The HMAC key defaults to
+    ``MODELSPEC_SNAPSHOT_KEY``. Without an HMAC key, the loader uses the pinned
+    Ed25519 public key set. Retired models are left out unless
+    ``include_archive``.
     """
     path = Path(path)
     try:
         data = path.read_bytes()
     except OSError as exc:
         raise SnapshotIntegrityError(f"{path}: not a gzipped JSON snapshot: {exc}") from exc
-    return load_snapshot_bytes(data, key=key, include_archive=include_archive, source=str(path))
+    return load_snapshot_bytes(
+        data,
+        key=key,
+        public_keys=public_keys,
+        include_archive=include_archive,
+        source=str(path),
+    )

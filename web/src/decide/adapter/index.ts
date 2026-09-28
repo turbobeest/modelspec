@@ -314,10 +314,11 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "1.9",
+      contract_version: "1.10",
       truncated: { offerings: 0, models: 0 },
       out_of_lineup: 0,
       decision_id: "dec_fictional" + specHash(spec).slice(0, 12),
+      signature_verified: false,
       snapshot: snapshotId(spec),
       spec_hash: "sha256:" + specHash(spec),
       explain: "full",

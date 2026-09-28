@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import gc
 import gzip
 import json
@@ -11,6 +12,8 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from decision import snapshot as snap
 from decision.model import value_hash
@@ -43,6 +46,23 @@ from tests.snapshot_records import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AS_OF = date(2026, 9, 24)
 KEY = b"test-key-not-a-secret"
+
+
+def ed25519_keys(key_id: str = "test-2026-09"):
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    return (
+        snap.Ed25519Signer(key_id, private_raw),
+        {key_id: public_raw},
+    )
 
 
 # Completeness tests intentionally exercise a small slice of the real registry
@@ -138,6 +158,105 @@ def test_input_order_does_not_change_the_snapshot(tmp_path):
 
 def test_signed_snapshots_are_byte_identical_too(tmp_path):
     assert build(tmp_path, "a", key=KEY).read_bytes() == build(tmp_path, "b", key=KEY).read_bytes()
+
+
+def test_ed25519_signature_is_alongside_hmac_and_names_its_key(tmp_path):
+    signer, public_keys = ed25519_keys()
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    data = built.to_bytes(key=KEY, ed25519_signer=signer)
+    envelope = json.loads(gzip.decompress(data))
+
+    assert envelope["signature"]["alg"] == "hmac-sha256"
+    assert envelope["signatures"] == [{
+        "alg": "ed25519",
+        "key_id": "test-2026-09",
+        "value": envelope["signatures"][0]["value"],
+    }]
+    assert base64.b64decode(envelope["signatures"][0]["value"], validate=True)
+    assert snap.load_snapshot_bytes(data, key=None, public_keys=public_keys).signature_verified
+
+
+def test_ed25519_verification_accepts_any_pinned_rotation_key(tmp_path):
+    old_signer, old_public = ed25519_keys("test-old")
+    new_signer, new_public = ed25519_keys("test-new")
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    data = built.to_bytes(key=None, ed25519_signer=new_signer)
+
+    loaded = snap.load_snapshot_bytes(
+        data,
+        key=None,
+        public_keys=old_public | new_public,
+    )
+
+    assert loaded.signature_verified is True
+    assert loaded.signature_key_id == "test-new"
+
+
+def test_ed25519_refuses_a_rehashed_tampered_snapshot(tmp_path):
+    signer, public_keys = ed25519_keys()
+    built = build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF)
+    envelope = json.loads(gzip.decompress(
+        built.to_bytes(key=None, ed25519_signer=signer)
+    ))
+    envelope["content"]["lineup"]["facets"]["model.context_window"]["value"][0] = 1
+    digest = snap.content_hash(envelope["content"])
+    envelope["content_hash"] = digest
+    envelope["snapshot_id"] = snap.snapshot_id_for(digest)
+    forged = gzip.compress(json.dumps(envelope).encode())
+
+    with pytest.raises(SnapshotIntegrityError, match="Ed25519 signature"):
+        snap.load_snapshot_bytes(forged, key=None, public_keys=public_keys)
+
+
+def test_empty_public_key_set_reports_the_provisioning_state(tmp_path):
+    index = snap.load_snapshot_bytes(
+        build_snapshot(inputs(), registry=REGISTRY, as_of=AS_OF).to_bytes(key=KEY),
+        key=None,
+        public_keys={},
+    )
+
+    assert index.signature_verified is False
+    assert index.signature_status == "unsigned (ed25519 key not yet provisioned)"
+
+
+@pytest.mark.parametrize("key_format", ["pem", "raw-base64"])
+def test_ci_ed25519_key_accepts_the_documented_formats(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, key_format: str
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [{
+            "key_id": "test-ci",
+            "alg": "ed25519",
+            "public_key": base64.b64encode(public_raw).decode(),
+        }],
+    }))
+    if key_format == "pem":
+        secret = private.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        ).decode()
+    else:
+        secret = base64.b64encode(private.private_bytes(
+            serialization.Encoding.Raw,
+            serialization.PrivateFormat.Raw,
+            serialization.NoEncryption(),
+        )).decode()
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, secret)
+
+    signer = snap.env_ed25519_signer()
+
+    assert signer is not None
+    assert signer.key_id == "test-ci"
 
 
 def test_snapshot_id_matches_the_contract_pattern(tmp_path):

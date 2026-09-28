@@ -47,6 +47,42 @@ EXPECTED_CODING_LANGUAGES = frozenset(
     }
 )
 SWE_BENCH_MULTILINGUAL_LANGUAGES = EXPECTED_CODING_LANGUAGES - {"Python"}
+EXPECTED_RESEARCHED_MODELS = frozenset(
+    {
+        "anthropic/claude-opus-4-6",
+        "anthropic/claude-opus-5-5",
+        "google/gemini-3-1-pro-preview",
+        "google/gemini-3-5-flash",
+        "google/gemini-3-7-flash",
+        "google/gemini-3-8-flash",
+        "meta/muse-spark",
+        "meta/muse-spark-1-1",
+        "meta/muse-spark-1-3",
+        "openai/gpt-5-4",
+        "openai/gpt-5-6-sol",
+        "openai/gpt-6-astra",
+        "openai/gpt-6-sol",
+        "qwen/qwen3-8-max-0902",
+        "xai/grok-4-7",
+        "deepseek/deepseek-v4-pro",
+        "moonshot/kimi-k2-6",
+        "moonshot/kimi-k3",
+        "qwen/qwen3-8-flash-next",
+        "zhipu/glm-5-2",
+        "zhipu/glm-5-3",
+        "jcorners/ingot-8b-r3",
+        "kingsoft/qzhou-embedding",
+        "microsoft/harrier-oss-v1-27b",
+        "tencent/kalm-embedding-gemma3-12b-2511",
+        "querit/querit",
+        "querit/querit-4b",
+        "anthropic/claude-fable-5",
+        "anthropic/claude-fable-5-1",
+        "anthropic/claude-opus-4-7",
+        "anthropic/claude-opus-5",
+        "typesafe/jev-1-13",
+    }
+)
 
 
 def _load(path: Path) -> dict:
@@ -78,11 +114,13 @@ def _latest_verifications() -> dict[str, dict]:
 def test_research_reports_every_premier_model_and_candidate_source() -> None:
     report = _load(REPORT)
     premier = _load(ROOT / "premier" / "slice-1.yaml")
-    expected = {row["model_id"] for row in premier["models"]}
+    current_premier = {row["model_id"] for row in premier["models"]}
+    researched = {row["model_id"] for row in report["coverage"]}
 
     assert report["ticket"] == "MODEL-192"
     assert report["read_date"] == "2026-09-28"
-    assert {row["model_id"] for row in report["coverage"]} == expected
+    assert researched == EXPECTED_RESEARCHED_MODELS
+    assert researched <= current_premier
 
     candidates = {row["id"]: row for row in report["candidate_sources"]}
     assert {

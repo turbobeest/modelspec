@@ -25,6 +25,22 @@ and is not used by either site.
 The OFL requires the licence to travel with the font. `Archivo-OFL.txt` is that
 copy; do not delete it when pruning assets.
 
+## Instrument Sans
+
+| | |
+|---|---|
+| Family | Instrument Sans (variable width 75–100% and weight 400–700) |
+| Files | `instrument-sans-latin-wdth-normal.woff2` (57,332 bytes), `instrument-sans-latin-ext-wdth-normal.woff2` (18,856 bytes) |
+| Version | v4 from `@fontsource-variable/instrument-sans` 5.3.0 |
+| Retrieved | 2026-09-27, from the npm registry |
+| Licence | SIL Open Font License 1.1, full text in `InstrumentSans-OFL.txt` |
+| Source | `https://github.com/google/fonts` |
+| Copyright | Copyright 2022 The Instrument Sans Project Authors |
+
+The landing page uses the width axis for its display type. The two subsets
+cover the same 400–700 weight range. The OFL requires the licence to travel
+with the font; do not delete `InstrumentSans-OFL.txt` when pruning assets.
+
 ## JetBrains Mono
 
 | | |
