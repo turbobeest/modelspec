@@ -52,7 +52,7 @@ MCP_NAME = "dev.modelspec/catalogue"
 MCP_NAME_PATTERN = r"^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$"
 MCP_DESCRIPTION_MAX = 100
 MCP_TOOLS = (
-    "rank", "model_info", "list_use_cases", "policy_check", "decide", "vocab"
+    "decide", "rank", "model_info", "list_use_cases", "policy_check", "vocab"
 )
 _BYTES_WIDTH = 8
 PAGES_FILE_LIMIT = 20_000
@@ -531,9 +531,7 @@ def mcp_card() -> dict[str, Any]:
     `tools` is extra; draft-07 additionalProperties default to true, and the
     The public card lists every MCP tool named here.
     """
-    description = (
-        "Rank models, inspect cards, list use cases, and check policy."
-    )
+    description = "Decide which model fits a task, inspect cards, and check policy."
     if len(description) > MCP_DESCRIPTION_MAX:
         raise ValueError("MCP description exceeds schema maxLength 100")
     return {
@@ -549,16 +547,16 @@ def mcp_card() -> dict[str, Any]:
         },
         "remotes": [{"type": "streamable-http", "url": MCP_ENDPOINT}],
         "tools": [
+            {"name": "decide",
+             "description": "POST /v1/decide. Downselect from a decision spec."},
             {"name": "rank",
-             "description": "POST /v1/rank. Shortlist models for a use case."},
+             "description": "POST /v1/rank (legacy v1). Fixed-benchmark shortlist."},
             {"name": "model_info",
              "description": "GET a model card as JSON from the public export."},
             {"name": "list_use_cases",
              "description": "GET /api/rank/profiles.json ranking profiles."},
             {"name": "policy_check",
              "description": "POST /v1/policy-check. pass/fail/undetermined."},
-            {"name": "decide",
-             "description": "POST /v1/decide. Downselect from a decision spec."},
             {"name": "vocab",
              "description": "GET the decision vocabulary for valid spec values."},
         ],
@@ -675,7 +673,8 @@ def auth_markdown(root: Path) -> str:
         "",
         "How an agent gets access to ModelSpec.",
         "",
-        "The rank and policy-check APIs live at `https://api.modelspec.dev`. "
+        "The decide, legacy v1 rank, and policy-check APIs live at "
+        "`https://api.modelspec.dev`. "
         "Present a key with `Authorization: Bearer <key>` or `X-API-Key`. "
         "A key is never read from the query string.",
         "",
@@ -698,7 +697,9 @@ def auth_markdown(root: Path) -> str:
         "",
         "### Free tier (no key)",
         "",
-        "- `POST /v1/rank` — live catalogue, no signup.",
+        "- `POST /v1/decide` — downselect from a decision spec, no signup.",
+        "- `POST /v1/rank` (legacy v1) — retired fixed-benchmark ranking, "
+        "no signup.",
         "- `POST /v1/policy-check` — live catalogue public fields. "
         "Checks that need the private determination store stay "
         "`undetermined` with `why: tier`. That is not a pass.",
@@ -708,7 +709,8 @@ def auth_markdown(root: Path) -> str:
         "### Sandbox (`test_` keys)",
         "",
         "Any key beginning `test_` is unlimited and is answered from the "
-        "sandbox. No signup, no key store, no published export. Rank only; "
+        "sandbox. No signup, no key store, no published export. Legacy v1 "
+        "rank only; "
         "`POST /v1/policy-check` with a `test_` key is `400 sandbox_not_available`. "
         "Rows are synthetic, from the real scorer, not live catalogue data.",
         "",

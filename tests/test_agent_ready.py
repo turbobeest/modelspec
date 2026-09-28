@@ -137,14 +137,18 @@ def test_api_catalog_lists_rank_policy_and_mcp() -> None:
         assert row["service-doc"][0]["href"].startswith("https://github.com/turbobeest/modelspec")
 
 
-def test_mcp_card_points_at_streamable_http_and_four_tools() -> None:
+def test_mcp_card_leads_with_decide_and_marks_rank_legacy_v1() -> None:
     card = ar.mcp_card()
     assert card["$schema"] == ar.MCP_SCHEMA
     assert re.fullmatch(ar.MCP_NAME_PATTERN, card["name"])
     assert len(card["description"]) <= ar.MCP_DESCRIPTION_MAX
+    assert card["description"].startswith("Decide")
     assert card["remotes"][0]["url"] == ar.MCP_ENDPOINT
     assert card["remotes"][0]["type"] == "streamable-http"
     assert [t["name"] for t in card["tools"]] == list(ar.MCP_TOOLS)
+    assert card["tools"][0]["name"] == "decide"
+    rank = next(tool for tool in card["tools"] if tool["name"] == "rank")
+    assert "legacy v1" in rank["description"]
 
 
 def test_skills_index_digest_matches_skill_bytes() -> None:
@@ -187,6 +191,8 @@ def test_auth_md_billing_copy_follows_the_flag() -> None:
     assert "test_" in text
     assert "No key is required" in text
     assert ar.RANK_API.split("/v1")[0] in text or "api.modelspec.dev" in text
+    assert text.index("`POST /v1/decide`") < text.index("`POST /v1/rank`")
+    assert "`POST /v1/rank` (legacy v1)" in text
 
 
 def test_llms_full_states_cap_and_stays_under_it() -> None:

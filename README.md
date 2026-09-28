@@ -39,7 +39,10 @@ modelspec offline fit [<hardware-id>]
 modelspec offline class-fit [<task>]
 ```
 
-The root `rank`, `search`, `compare`, `hardware`, `info`, `stats`, and `gaps` commands are also legacy v1 commands. They need a local FalkorDB and are outside the contract.
+The root `rank`, `search`, `compare`, `hardware`, `info`, `stats`, and `gaps`
+commands are also legacy v1 commands and are outside the contract. `gaps`
+works offline from the local YAML cards; the other root legacy commands need a
+local FalkorDB.
 
 ## Serving path
 

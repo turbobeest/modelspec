@@ -71,7 +71,9 @@ def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
 
     assert "python -m build" in commands
     assert "python -m venv" in commands
-    assert "modelspec --help" in commands
+    assert "modelspec --help > modelspec-help.txt" in commands
+    assert "modelspec --help |" not in commands
+    assert "cat modelspec-help.txt" in commands
     assert 'decide" -lt "$rank"' in commands
     assert "modelspec decide --help" in commands
     assert 'cd "$(mktemp -d)"' in commands
