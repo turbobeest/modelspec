@@ -2024,6 +2024,19 @@
       "default_basis": "capability_estimate",
       "estimate_models": 25,
       "direct_models": 22,
+      "estimate_benchmarks": [
+        "arena_elo_coding",
+        "arena_sc_coding",
+        "arena_webdev",
+        "cursorbench_4",
+        "deepswe_v1_1",
+        "frontiercode_v1_1",
+        "metr_time_horizon_50",
+        "metr_time_horizon_80",
+        "swe_bench_pro",
+        "swe_bench_verified",
+        "terminal_bench_v4_0"
+      ],
       "benchmarks": [
         "swe_bench_verified",
         "arena_webdev",
@@ -2038,6 +2051,7 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 18,
+      "estimate_benchmarks": ["gpqa_diamond", "hle"],
       "benchmarks": [
         "gpqa_diamond",
         "hle"
@@ -2051,6 +2065,7 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 17,
+      "estimate_benchmarks": ["frontiermath_tiers_1_3_v2", "hle"],
       "benchmarks": [
         "frontiermath_tiers_1_3_v2",
         "hle"
@@ -2064,6 +2079,7 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 0,
+      "estimate_benchmarks": ["gpqa_diamond", "hle"],
       "benchmarks": [
         "gpqa_diamond",
         "hle"
@@ -2077,6 +2093,7 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 18,
+      "estimate_benchmarks": ["terminal_bench_v4_0"],
       "benchmarks": [
         "terminal_bench_v4_0"
       ],
@@ -2089,6 +2106,7 @@
       "default_basis": "capability_estimate",
       "estimate_models": 12,
       "direct_models": 0,
+      "estimate_benchmarks": ["arena_sc_vision"],
       "benchmarks": [
         "arena_sc_vision"
       ],
@@ -2101,6 +2119,7 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 0,
+      "estimate_benchmarks": ["mteb_multilingual_v2"],
       "benchmarks": [
         "mteb_multilingual_v2"
       ],
@@ -2113,6 +2132,11 @@
       "default_basis": "capability_estimate",
       "estimate_models": 25,
       "direct_models": 25,
+      "estimate_benchmarks": [
+        "arena_elo_style_control",
+        "arena_webdev",
+        "arena_sc_vision"
+      ],
       "benchmarks": [
         "arena_elo_style_control",
         "arena_webdev",
@@ -2127,6 +2151,11 @@
       "default_basis": "capability_estimate",
       "estimate_models": 4,
       "direct_models": 2,
+      "estimate_benchmarks": [
+        "mteb_v2_retrieval",
+        "mteb_eng_v2",
+        "mteb_multilingual_v2"
+      ],
       "benchmarks": [
         "mteb_v2_retrieval",
         "mteb_eng_v2",
@@ -2615,7 +2644,7 @@
         },
         {
           "condition": "model.weights_openness = open_weights",
-          "reason": "Self-hosting requires downloadable weights; fits-your-hardware is coming in MODEL-174."
+          "reason": "Self-hosting requires downloadable weights. Hardware fit isn't matched yet; this template doesn't filter on it."
         },
         {
           "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",

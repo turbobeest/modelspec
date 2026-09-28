@@ -399,16 +399,22 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     elif access_staged:
         assert "configured, not yet active" in FLAT_PRIVACY and "commented out" in FLAT_PRIVACY
 
-    # Only the access modules write KV. billing*.py decides; access_billing.py stores.
+    # Only the access modules and disclosed release-signal service write KV.
+    # billing*.py decides; access_billing.py stores.
     # credits*.py mutate the Durable Object via SQL, not Workers KV.
     for src in sorted((worker / "src").glob("*.py")):
         body = src.read_text(encoding="utf-8")
-        if src.name.startswith("access") or src.name.startswith("credits"):
+        if (src.name.startswith("access") or src.name.startswith("credits")
+                or src.name == "signals_service.py"):
             continue
         assert ".put(" not in body and ".delete(" not in body, (
             f"{src.name} writes to KV; the privacy statement says the Worker "
             "only ever reads from DETERMINATIONS")
     _assert_access_writes_only_records_and_counters(worker / "src")
+    for claim in ("release signal", "model name", "provider name", "first-seen X URL",
+                  "confidence", "signal id", "1, 7 and 30 days", "SIGNALS_ENABLED"):
+        assert claim in FLAT_PRIVACY, (
+            f"the signal service writes ACCESS and the privacy statement does not say {claim!r}")
 
 
 def _assert_access_writes_only_records_and_counters(src: Path) -> None:
@@ -520,7 +526,7 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
 IN_FORCE = {
     "terms": "Version `1.0`, effective 2026-09-19.",
     "neutrality": "Version `1.1`, effective 2026-09-23.",
-    "privacy": "Version `1.1`, effective 2026-09-23.",
+    "privacy": "Version `1.2`, effective 2026-09-26.",
 }
 
 

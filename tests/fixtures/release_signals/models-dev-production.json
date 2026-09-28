@@ -1,0 +1,33 @@
+{
+  "acme": {
+    "id": "acme",
+    "name": "Acme",
+    "doc": "https://acme.example/models",
+    "npm": "@ai-sdk/acme",
+    "models": {
+      "orbit-2": {
+        "id": "orbit-2",
+        "name": "Orbit 2",
+        "family": "orbit",
+        "release_date": "2026-09-26",
+        "last_updated": "2026-09-26",
+        "attachment": false,
+        "reasoning": true,
+        "tool_call": true,
+        "cost": {
+          "input": 1.25,
+          "output": 5.0,
+          "cache_read": 0.25
+        },
+        "limit": {
+          "context": 131072,
+          "output": 32768
+        },
+        "modalities": {
+          "input": ["text"],
+          "output": ["text"]
+        }
+      }
+    }
+  }
+}

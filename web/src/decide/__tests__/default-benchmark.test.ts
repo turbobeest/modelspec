@@ -55,7 +55,7 @@ describe("domain capability is the default ranking basis", () => {
     const template = realTemplates(realVocabulary).find((item) => item.id === "budget-agent");
     const domain = realVocabulary.domains.find((item) => item.id === "software_engineering")!;
     expect(template?.ranks).toBe(
-      `Software engineering capability (estimated from ${domain.benchmarks.length} benchmarks)`,
+      `Software engineering capability (estimated from ${domain.estimate_benchmarks?.length ?? domain.benchmarks.length} benchmarks)`,
     );
   });
 

@@ -2615,7 +2615,7 @@
         },
         {
           "condition": "model.weights_openness = open_weights",
-          "reason": "Self-hosting requires downloadable weights; fits-your-hardware is coming in MODEL-174."
+          "reason": "Self-hosting requires downloadable weights. Hardware fit isn't matched yet; this template doesn't filter on it."
         },
         {
           "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",

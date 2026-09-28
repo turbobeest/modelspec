@@ -128,6 +128,7 @@ export const vocabularySchema = z.object({
       proxy_only: z.boolean(),
       default_basis: z.literal("capability_estimate").default("capability_estimate"),
       estimate_models: z.number().int().nonnegative().default(0),
+      estimate_benchmarks: z.array(z.string()).optional(),
       direct_models: z.number().int().nonnegative().default(0),
       /** The preselected explicit benchmark drill-down, when it has verified data. */
       default_benchmark: z.string().nullable().optional(),
@@ -144,6 +145,7 @@ export const vocabularySchema = z.object({
         display_name: z.string().nullable(),
         lab: z.string(),
         lab_name: z.string().nullable(),
+        class: z.string().nullable().optional(),
       }),
     )
     .default({}),
@@ -253,8 +255,9 @@ export function benchmark(v: Vocabulary, id: string): VocabBenchmark | null {
 /** Plain copy for the learned domain basis shown throughout the decision UI. */
 export function domainEstimateLabel(v: Vocabulary, domain: string): string {
   const row = v.domains.find((item) => item.id === domain);
+  const count = row?.estimate_benchmarks?.length ?? row?.benchmarks.length;
   return row
-    ? `${row.name} capability (estimated from ${row.benchmarks.length} benchmarks)`
+    ? `${row.name} capability (estimated from ${count} benchmarks)`
     : `${domain} capability estimate`;
 }
 

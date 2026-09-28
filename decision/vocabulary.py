@@ -143,6 +143,15 @@ def _estimate_models(snapshot: Any, domain_id: str) -> int:
     return len(models)
 
 
+def _estimate_benchmarks(snapshot: Any, domain_id: str) -> list[str]:
+    """Benchmarks that actually drive stored lineup estimates for a domain."""
+    return sorted({
+        driver.benchmark_id
+        for candidate in _lineup(snapshot)
+        for driver in snapshot.capability_drivers(candidate, domain_id)
+    })
+
+
 def require_frontier_coverage(
     snapshot: Any,
     domain_id: str,
@@ -264,12 +273,16 @@ def _benchmark_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappin
 def _model_rows(snapshot: Any, cards: Mapping[str, Mapping[str, Any]],
                 ) -> dict[str, dict[str, Any]]:
     rows = {}
-    for mid in sorted({snapshot.model_of(cid) for cid in snapshot.candidates()}):
+    candidates_by_model: dict[str, str] = {}
+    for cid in snapshot.candidates():
+        candidates_by_model.setdefault(snapshot.model_of(cid), cid)
+    for mid, cid in sorted(candidates_by_model.items()):
         card = cards.get(mid) or {}
         rows[mid] = {
             "display_name": card.get("display_name") or None,
             "lab": card.get("provider") or mid.split("/", 1)[0],
             "lab_name": card.get("provider_display") or None,
+            "class": snapshot.fact(cid, "model.class").value,
         }
     return rows
 
@@ -422,6 +435,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
             "proxy_only": domain.proxy_only,
             "default_basis": "capability_estimate",
             "estimate_models": _estimate_models(snapshot, domain.id),
+            "estimate_benchmarks": _estimate_benchmarks(snapshot, domain.id),
             "direct_models": estimate_coverage["direct"],
             # Kept only to preselect the explicit benchmark drill-down. It is
             # never the domain's default ranking basis.
@@ -439,7 +453,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "facets": facets,
         "benchmarks": benchmarks,
         "domains": domains,
-        "models": _model_rows(snapshot, cards or {}),
+        "models": _model_rows(view, cards or {}),
         "providers": {p.id: p.name for p in registry.providers()},
         "coverage": coverage,
         "templates": _template_rows(snapshot, registry),

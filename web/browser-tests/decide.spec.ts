@@ -1,120 +1,65 @@
 import { expect, test } from "@playwright/test";
-test("dragging a cap updates the spec and keyboard floor respects Shift", async ({
-  page,
-}) => {
+import { readFileSync } from "node:fs";
+
+const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
+const decision = readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
+
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/decision/vocabulary.json", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: vocabulary,
+  }));
+  await page.route("**/v1/decide", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: decision,
+  }));
+});
+
+async function openBoard(page: import("@playwright/test").Page) {
   await page.goto("/decide.html?demo=1");
-  await page.getByText("start from constraints", { exact: true }).click();
-  await page.keyboard.press("Escape");
-  const plot = page.locator(".plot");
-  const bounds = await plot.boundingBox();
-  if (!bounds) throw new Error("Plot missing");
-  const handle = page.getByRole("slider", { name: /per task cap/ });
-  const box = await handle.boundingBox();
-  if (!box) throw new Error("Cap missing");
-  await page.mouse.move(box.x + 1, box.y + 100);
-  await page.mouse.down();
-  await page.mouse.move(bounds.x + bounds.width * 0.6, bounds.y + 100, {
-    steps: 10,
-  });
-  await page.mouse.up();
   await expect(
-    page.getByRole("button", { name: /Edit condition: ≤ .* per task/ }),
+    page.getByRole("heading", { name: "Set what matters. Watch the field narrow." }),
   ).toBeVisible();
-  const floor = page.getByRole("slider", { name: /CodeBench Pro floor/ });
-  await floor.focus();
-  await page.keyboard.press("ArrowUp");
-  const first = Number(await floor.getAttribute("aria-valuenow"));
-  await page.keyboard.press("Shift+ArrowUp");
-  await expect(floor).toHaveAttribute("aria-valuenow", String(first + 5));
+  await expect(page.locator("textarea")).toHaveCount(0);
+}
+
+test("the public decision page opens on the facet board", async ({ page }) => {
+  await openBoard(page);
+  await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
+  await expect(page.getByLabel("Facet board answer")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Share or act" })).toBeVisible();
+});
+
+test("a board facet updates the decision and survives reload", async ({ page }) => {
+  await openBoard(page);
+  await page.getByRole("button", { name: /Size of work/ }).click();
+  const context = page.locator('[data-facet="model.context_window"]');
+  await context.getByLabel("Must").check();
+  await expect(page).toHaveURL(/#s=/);
   await page.reload();
-  await expect(
-    page.getByRole("button", { name: /Edit condition: CodeBench Pro/ }),
-  ).toBeVisible();
+  await expect(page.locator('[data-facet="model.context_window"]').getByLabel("Must")).toBeChecked();
 });
-test("table selection, sorting and excluded toggle drive the Why panel", async ({
-  page,
-}) => {
-  await page.goto("/decide.html?demo=1&layout=table&theme=dark");
-  await page.getByText("start from constraints", { exact: true }).click();
-  await page.keyboard.press("Escape");
-  const table = page.getByRole("region", {
-    name: "Decision table",
-    exact: true,
-  });
-  await table.getByRole("button", { name: "Atlas 2.5", exact: true }).click();
-  await expect(
-    page.getByRole("region", { name: "Why this model" }),
-  ).toContainText("Retired 2026-03-31");
-  await table.getByRole("button", { name: "$ per task", exact: true }).click();
-  await expect(
-    table.getByRole("columnheader", { name: "$ per task ↑" }),
-  ).toHaveAttribute("aria-sort", "ascending");
-  await table.getByRole("checkbox").uncheck();
-  await expect(
-    table.getByRole("button", { name: "Atlas 2.5", exact: true }),
-  ).toHaveCount(0);
-});
-test("native modal traps focus, exports CSV, copies links and restores trigger focus", async ({
-  page,
-  context,
-}) => {
+
+test("share dialog copies the board permalink and restores focus", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("/decide.html?demo=1");
-  await page.getByText("start from constraints", { exact: true }).click();
-  await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Share or act", exact: true }).click();
+  await openBoard(page);
+  const trigger = page.getByRole("button", { name: "Share or act" });
+  await trigger.click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Copy", exact: true }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
-    "#s=",
-  );
-  await dialog.getByRole("tab", { name: "Procurement review" }).click();
-  const download = page.waitForEvent("download");
-  await dialog.getByRole("button", { name: "Download CSV" }).click();
-  expect((await download).suggestedFilename()).toContain(
-    "modelspec-snap_2026-09-24_",
-  );
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("#s=");
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Share or act", exact: true }),
-  ).toBeFocused();
+  await expect(trigger).toBeFocused();
 });
-test("reduced motion disables transitions and narrow desktop collapses result grid", async ({
-  page,
-}) => {
-  await page.goto("/decide.html?demo=1");
-  await page.getByText("start from constraints", { exact: true }).click();
-  await page.keyboard.press("Escape");
-  expect(
-    await page
-      .locator(".point")
-      .first()
-      .evaluate((el) => getComputedStyle(el).transitionDuration),
-  ).toBe("0s");
-  await page.setViewportSize({ width: 1050, height: 1000 });
-  expect(
-    await page
-      .locator(".results")
-      .evaluate(
-        (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
-      ),
-  ).toBe(1);
-  await expect(page.locator(".snapshot")).not.toBeVisible();
-});
-test("context arrows move between standard sizes rather than snapping back", async ({
-  page,
-}) => {
-  await page.goto("/decide.html?demo=1");
-  await page.getByText("start from constraints", { exact: true }).click();
-  await page.keyboard.press("Escape");
-  await page.getByLabel("X axis", { exact: true }).selectOption("ctx");
-  const slider = page.getByRole("slider", { name: /Context length minimum/ });
-  await slider.focus();
-  await page.keyboard.press("ArrowRight");
-  const first = Number(await slider.getAttribute("aria-valuenow"));
-  await page.keyboard.press("ArrowRight");
-  expect(Number(await slider.getAttribute("aria-valuenow"))).toBeGreaterThan(
-    first,
-  );
+
+test("the board fits a 390px viewport in light and dark mode", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openBoard(page);
+  for (const buttonName of ["Dark mode", "Light mode"]) {
+    await page.getByRole("button", { name: buttonName }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  }
 });

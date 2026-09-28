@@ -231,7 +231,11 @@ def test_rule_based_must_flag_ignores_models_that_fail_another_condition() -> No
         ),
         as_of=date(2026, 9, 26),
     )
-    index = load_snapshot_bytes(snapshot.to_bytes(key=None), key=None, public_keys={})
+    index = load_snapshot_bytes(
+        snapshot.to_bytes(key=None),
+        key=None,
+        public_keys=None,
+    )
     registry = default_registry()
     spec = parse_spec(
         {

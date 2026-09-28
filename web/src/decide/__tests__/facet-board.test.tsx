@@ -3,27 +3,139 @@ import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
   allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
-  formatBoardCondition, nextMustOrder, parseBoardCondition, showsFacetBoard, supportsPreference,
-  templateToBoard, toBoardDecisionSpec,
+  formatBoardCondition, legacyBoardBaseSpec, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
+  sanitizeBoardState, templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
 import type { BoardSelections } from "../facet-board/model";
 import { realBaseSpec } from "../vocabulary";
 import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
 import { decisionSpecSchema } from "../adapter/contract";
+import { decodeSpec } from "../state/spec";
+import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import { vocabularySchema } from "../vocabulary";
+import type { Vocabulary } from "../vocabulary";
+import type { Spec } from "../engine/types";
 
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
+const emptyEstate = { providers: [], plans: [], hardware: [] };
+const boardSpec = (
+  base: Spec,
+  vocabulary: Vocabulary,
+  selections: BoardSelections,
+  mustOrder: readonly string[] = Object.keys(selections),
+) => {
+  const sanitized = sanitizeBoardState({ selections, mustOrder: [...mustOrder], estate: emptyEstate }, vocabulary);
+  return boardToSpec(base, vocabulary, sanitized.selections, sanitized.mustOrder);
+};
 
-describe("facet board launch gate", () => {
-  it.each(["internal.modelspec-7np.pages.dev", "localhost", "127.0.0.1"])("allows %s", (host) => expect(showsFacetBoard(host)).toBe(true));
-  it.each(["modelspec.dev", "www.modelspec.dev", "abc123.modelspec-7np.pages.dev", "modelspec-7np.pages.dev", "example.com", ""])("keeps the current page on %s", (host) => expect(showsFacetBoard(host)).toBe(false));
+describe("legacy composer permalinks", () => {
+  it("maps old conditions and weights onto editable board facets", () => {
+    const decoded = decodeSpec(LEGACY_PERMALINKS.budgetCoding);
+    if (!decoded) throw new Error("legacy budget fixture did not decode");
+    const restored = legacySpecToBoard(decoded.spec, realVocabulary, {
+      providers: [], plans: [], hardware: [],
+    });
+    expect(restored.selections).toMatchObject({
+      "model.class": { mode: "must", value: "text-generator" },
+      "model.context_window": { mode: "must", value: 200000 },
+      "offering.cost_per_task": { mode: "both", value: 0.1, weight: 0.4 },
+      "model.weights_openness": { mode: "must", value: "open_weights" },
+      "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+    });
+    expect(restored.notes).toEqual([
+      "The old task description remains in this link for provenance. The board does not interpret free text.",
+    ]);
+  });
+
+  it("names every old spec part that the board cannot edit", () => {
+    const decoded = decodeSpec(LEGACY_PERMALINKS.unsupportedParts);
+    if (!decoded) throw new Error("legacy unsupported-parts fixture did not decode");
+    const restored = legacySpecToBoard(decoded.spec, realVocabulary, {
+      providers: [], plans: [], hardware: [],
+    });
+    expect(restored.notes.join(" ")).toMatch(/single-benchmark floor, so it's not applied/);
+    expect(restored.notes.join(" ")).toMatch(/soft\(0\.2\).*so it's not applied/);
+    expect(restored.notes.join(" ")).toMatch(/applies the visible software engineering capability estimate instead/);
+    expect(restored.notes.join(" ")).toMatch(/shortlist threshold.*so it's not applied/);
+    expect(restored.selections["offering.region"]).toMatchObject({ mode: "must", value: ["EU"] });
+    expect(restored.selections["offering.data.zero_retention"]).toMatchObject({ mode: "must", value: true });
+
+    const requestSpec = boardSpec(
+      legacyBoardBaseSpec(decoded.spec),
+      realVocabulary,
+      restored.selections,
+      restored.mustOrder,
+    );
+    const where = toDecisionSpec(requestSpec, "full").where ?? [];
+    expect(where).toContain("offering.region in {EU}");
+    expect(where).not.toContain("swe_bench_pro >= 50 @independent");
+    expect(where.every((condition) => typeof condition !== "string" || !condition.includes("soft("))).toBe(true);
+  });
+
+  it("drops legacy selections for untracked facets and domains", () => {
+    const unavailableFacet = { ...smallVocabulary.facets[0], known: 0 };
+    const unavailableDomain = { ...smallVocabulary.domains[0], estimate_models: 0 };
+    const vocabulary = {
+      ...smallVocabulary,
+      facets: [unavailableFacet, ...smallVocabulary.facets.slice(1)],
+      domains: [unavailableDomain],
+    };
+    const legacy = {
+      ...realBaseSpec(vocabulary),
+      domain: unavailableDomain.id,
+      bench: "quality",
+      basis: "estimate",
+      conds: [{ f: "facet", facet: unavailableFacet.id, op: "=", value: "text-generator" }],
+      w: { cap: 0.6, cost: 0.4, speed: 0 },
+    } satisfies Spec;
+    const restored = legacySpecToBoard(legacy, vocabulary, { providers: [], plans: [], hardware: [] });
+    const request = boardSpec(legacyBoardBaseSpec(legacy), vocabulary, restored.selections, restored.mustOrder);
+
+    expect(restored.selections).not.toHaveProperty(unavailableFacet.id);
+    expect(restored.selections).not.toHaveProperty(`capability.${unavailableDomain.id}`);
+    expect(request.conds).not.toEqual(expect.arrayContaining([expect.objectContaining({ facet: unavailableFacet.id })]));
+    expect(request.boardWeights).not.toHaveProperty(unavailableDomain.id);
+    expect(restored.notes.join(" ")).toContain(unavailableFacet.label);
+    expect(restored.notes.join(" ")).toContain(unavailableDomain.name);
+  });
+});
+
+it("keeps internal ticket IDs out of the rendered board", () => {
+  render(
+    <FacetBoard
+      vocabulary={realVocabulary}
+      spec={realBaseSpec(realVocabulary)}
+      onSpec={vi.fn()}
+      estate={{ providers: [], plans: [], hardware: [] }}
+      onEstate={vi.fn()}
+    />,
+  );
+  expect(document.body).not.toHaveTextContent("MODEL-");
+});
+
+it("counts estimate drivers without presenting the drill-down as the estimate basis", () => {
+  const software = groupFacets(realVocabulary).groups
+    .flatMap((group) => group.facets)
+    .find((facet) => facet.id === "capability.software_engineering");
+  expect(software?.definition).toBe("Capability estimate from 11 benchmarks.");
+
+  render(
+    <FacetBoard
+      vocabulary={realVocabulary}
+      spec={realBaseSpec(realVocabulary)}
+      onSpec={vi.fn()}
+      estate={{ providers: [], plans: [], hardware: [] }}
+      onEstate={vi.fn()}
+    />,
+  );
+  expect(screen.queryByText("Capability estimate from 3 benchmarks.")).not.toBeInTheDocument();
 });
 
 describe("facet state mapping", () => {
   const base = realBaseSpec(smallVocabulary);
-  const contract = (selections: BoardSelections) => toBoardDecisionSpec(boardToSpec(base, smallVocabulary, selections), "full");
+  const contract = (selections: BoardSelections) => toBoardDecisionSpec(boardSpec(base, smallVocabulary, selections), "full");
   const weights = (selections: BoardSelections) => {
     const objective = contract(selections).optimize;
     if (!("weights" in objective)) throw new Error("board objective must use weights");
@@ -57,15 +169,15 @@ describe("facet state mapping", () => {
   });
   it("starts with no hidden conditions and adds only visible board gates", () => {
     const emptyBase = { ...base, conds: [] };
-    expect(toDecisionSpec(boardToSpec(emptyBase, smallVocabulary, {}), "full").where).toEqual([]);
-    expect(toDecisionSpec(boardToSpec(emptyBase, smallVocabulary, {
+    expect(toDecisionSpec(boardSpec(emptyBase, smallVocabulary, {}), "full").where).toEqual([]);
+    expect(toDecisionSpec(boardSpec(emptyBase, smallVocabulary, {
       "offering.cost_per_task": { mode: "must", op: "<=", value: 0.25 },
     }), "full").where).toEqual(["offering.cost_per_task <= 0.25"]);
   });
   it("waits for an enum value before adding a Must condition", () => {
     const emptyBase = { ...realBaseSpec(realVocabulary), conds: [] };
     const where = (selections: BoardSelections) => toDecisionSpec(
-      boardToSpec(emptyBase, realVocabulary, selections), "full",
+      boardSpec(emptyBase, realVocabulary, selections), "full",
     ).where;
     expect(where({
       "model.weights_openness": { mode: "must" },
@@ -118,7 +230,7 @@ describe("refinements", () => {
       "capability.software_engineering": { mode: "prefer", weight: 0.6 },
       "refinement.python": { mode: "prefer", weight: 0.3 },
     };
-    const carved = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections);
+    const carved = boardSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections);
     expect(toBoardDecisionSpec(carved, "summary").optimize).toEqual({
       weights: { software_engineering: 0.3, "software_engineering/python": 0.3 },
     });
@@ -128,7 +240,7 @@ describe("refinements", () => {
   });
 
   it("adds a refinement preference when its parent is Must-only", () => {
-    const spec = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
+    const spec = boardSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
       "capability.software_engineering": { mode: "must", value: 0.5 },
       "refinement.python": { mode: "prefer", weight: 0.25 },
     });
@@ -185,7 +297,7 @@ describe("refinements", () => {
     expect(allocateBoardWeights(refinementVocabulary, allocation.selections).weights)
       .toEqual(allocation.weights);
     const request = toBoardDecisionSpec(
-      boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections),
+      boardSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections),
       "summary",
     );
     expect("weights" in request.optimize && request.optimize.weights)
@@ -194,7 +306,7 @@ describe("refinements", () => {
   });
 
   it("omits a fully carved parent from the request and keeps positive refinements", () => {
-    const spec = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
+    const spec = boardSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
       "capability.software_engineering": { mode: "prefer", weight: 0.3 },
       "refinement.python": { mode: "prefer", weight: 0.3 },
     });
@@ -242,11 +354,17 @@ describe("refinements", () => {
     const rust = screen.getByText("Rust").closest<HTMLElement>(".refinement-row")!;
     expect(within(rust).getByLabelText("Prefer")).toBeDisabled();
     expect(within(rust).getByLabelText("Prefer")).toHaveAccessibleDescription("Benchmarks exist; no scores for these models yet");
-    expect(within(rust).getByLabelText("Must")).toHaveAccessibleDescription("Must for refinements is coming");
+    expect(within(rust).queryByLabelText("Must")).not.toBeInTheDocument();
     expect(within(rust).getByText("Benchmarks exist; no scores for these models yet")).toBeInTheDocument();
     const terminal = screen.getByText("Terminal agent").closest<HTMLElement>(".refinement-row")!;
     expect(within(terminal).getByLabelText("Prefer")).toBeEnabled();
     expect(within(terminal).getByText("proxy evidence only")).toBeInTheDocument();
+  });
+
+  it("does not promise future refinement features", () => {
+    render(<FacetBoard vocabulary={refinementVocabulary} spec={realBaseSpec(refinementVocabulary)} selections={{ "capability.software_engineering": { mode: "prefer" } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Refine" }));
+    expect(document.body.textContent).not.toMatch(/coming(?: soon)?/i);
   });
 
   it("excludes a saved refinement from counts while its parent is off", () => {
@@ -320,15 +438,17 @@ it("hides absent templates and expands groups with active canonical template fac
   const vocabulary = { ...smallVocabulary, templates: realVocabulary.templates };
   render(<FacetBoard vocabulary={vocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.getByRole("button", { name: /Budgetall Doesn't matter/ })).toHaveAttribute("aria-expanded", "false");
-  expect(screen.queryByRole("button", { name: /EU-only data handling/ })).not.toBeInTheDocument();
-  expect(screen.getByText("Not available on today's data: EU-only data handling — No offering passes: Inference region in the EU — 0 of 4 offerings")).toBeInTheDocument();
+  expect(screen.getByText("EU-only data handling").closest("article")).toHaveClass("template-unavailable");
+  expect(screen.getAllByText("No offering passes: Inference region in the EU — 0 of 4 offerings").length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Coding agent on a budget|Private assistant you host yourself|Regulated data|Maths and proofs|Retrieval embeddings|High volume, good enough|Long documents|EU-only data handling/)).toHaveLength(8);
   fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
   expect(screen.getByRole("button", { name: /Budget1 set/ })).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByText(/Why: The offering must stay within the per-task budget.*prefer the cheaper task/)).toBeInTheDocument();
   expect(onSpec).toHaveBeenCalledOnce();
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(cost).queryByText(/coming \(MODEL-172\)/)).not.toBeInTheDocument();
-  expect(screen.queryByText("Prefer on these facets: coming (MODEL-172)")).not.toBeInTheDocument();
+  expect(screen.queryByText("Preference controls for these facets are coming soon.")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Plan pricing is coming soon|Hardware matching is coming soon/)).not.toBeInTheDocument();
 });
 
 it("restores default task tokens when a template has no token override", () => {
@@ -351,7 +471,7 @@ it("restores default task tokens when a template has no token override", () => {
 });
 
 describe("canonical template mapping", () => {
-  it.each(realVocabulary.templates ?? [])("round-trips $id through board serialization", (template) => {
+  it.each(realVocabulary.templates?.filter((template) => template.available) ?? [])("round-trips $id through board serialization", (template) => {
     const converted = templateToBoard(template, realVocabulary);
     for (const row of template.where) {
       const parsed = parseBoardCondition(row.condition);
@@ -362,7 +482,7 @@ describe("canonical template mapping", () => {
       ? { ...base, tokIn: converted.taskTokens.input, tokOut: converted.taskTokens.output }
       : base;
     const serialized = toBoardDecisionSpec(
-      boardToSpec(withTokens, realVocabulary, converted.selections, converted.mustOrder),
+      boardSpec(withTokens, realVocabulary, converted.selections, converted.mustOrder),
       "full",
     );
     expect(serialized.where).toEqual(template.spec.where);
@@ -395,7 +515,7 @@ describe("canonical template mapping", () => {
       nextSelections["offering.cost_per_task"],
     );
     expect(order).toEqual(["model.context_window", "offering.cost_per_task"]);
-    expect(toDecisionSpec(boardToSpec(
+    expect(toDecisionSpec(boardSpec(
       { ...realBaseSpec(smallVocabulary), conds: [] }, smallVocabulary, nextSelections, order,
     ), "full").where).toEqual([
       "model.context_window >= 200000",
@@ -443,7 +563,7 @@ describe("canonical template mapping", () => {
       nextSelections["model.context_window"],
     );
     expect(order).toEqual(["model.context_window", "offering.cost_per_task"]);
-    expect(toDecisionSpec(boardToSpec(
+    expect(toDecisionSpec(boardSpec(
       { ...realBaseSpec(smallVocabulary), conds: [] }, smallVocabulary, nextSelections, order,
     ), "full").where).toEqual([
       "model.context_window >= 250000",

@@ -5,7 +5,7 @@ import type { Vocabulary, VocabFacet, VocabRefinement } from "../vocabulary";
 import {
   allocateBoardWeights, boardToSpec, defaultFacetOp, defaultFacetValue, facetGroup, GROUP_ORDER,
   groupFacets, nextMustOrder, readEstate, refinementSelectionId, supportsPreference,
-  templateToBoard, writeEstate,
+  sanitizeBoardState, templateToBoard, writeEstate,
 } from "./model";
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
 
@@ -36,7 +36,9 @@ function ValueControl({ facet, choice, onChange }: {
     </div>
   );
   const selected = value === undefined ? [] : Array.isArray(value) ? value.map(String) : [String(value)];
-  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{facet.values?.map((item) => {
+  const listed = new Set(facet.values?.map((item) => String(item.value)) ?? []);
+  const legacyValues = selected.filter((item) => !listed.has(item));
+  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{legacyValues.map((item) => <label key={`legacy-${item}`}><input type="checkbox" checked readOnly />{item} (from older link)</label>)}{facet.values?.map((item) => {
     const checked = selected.includes(String(item.value));
     return <label key={String(item.value)}><input type="checkbox" checked={checked} onChange={() => {
       const values = checked ? selected.filter((v) => v !== String(item.value)) : [...selected, String(item.value)];
@@ -62,15 +64,13 @@ function RefinementRow({ row, choice, parent, allocation, fallback, onChange }: 
     : row.evidence_state === "no_benchmark" ? "No public benchmark measures this yet"
     : row.evidence_state === "thin" ? proxyOnly ? "proxy evidence only" : "Order may rest on 1–2 models"
     : null;
-  const mustReasonId = `refinement-${row.id}-must-reason`;
   const preferReasonId = reason ? `refinement-${row.id}-prefer-reason` : undefined;
   return <div className={`refinement-row ${disabled ? "refinement-unavailable" : ""}`} data-refinement={row.id}>
     <div className="refinement-heading"><span><strong>{row.name}</strong><button className="facet-info" aria-label={`About ${row.name}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span><span className={`refinement-badge evidence-${row.evidence_state}`}>{EVIDENCE_LABELS[row.evidence_state]}</span><small>measured on {row.measured_models} of {row.of_models}</small></div>
     {infoOpen && <div className="refinement-definition"><p>{row.definition}</p>{row.benchmarks.length > 0 && <ul>{row.benchmarks.map((benchmark) => <li key={`${benchmark.id}-${benchmark.directness}`}><code>{benchmark.id}</code> · {benchmark.directness}</li>)}</ul>}</div>}
-    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled aria-describedby={mustReasonId} />Must</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} aria-describedby={disabled ? preferReasonId : undefined} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
-    <small id={mustReasonId} className="refinement-reason">Must for refinements is coming</small>
+    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} aria-describedby={disabled ? preferReasonId : undefined} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
     {reason && <small id={preferReasonId} className="refinement-reason">{reason}</small>}
-    {fallback && choice.mode === "prefer" && <small className="refinement-fallback">Ranking by {row.name} is coming — shown by general {row.parent_domain.replaceAll("_", " ")} for now</small>}
+    {fallback && choice.mode === "prefer" && <small className="refinement-fallback">Ranked by general {row.parent_domain.replaceAll("_", " ")}: {row.name} isn't ranked separately today.</small>}
     {choice.mode === "prefer" && !disabled && <label className="refinement-weight">{row.name} weight <input aria-label={`Weight for ${row.name}`} type="range" min="0.05" max={max} step="0.05" value={weight} onChange={(event) => onChange({ ...choice, mode: "prefer", weight: Number(event.target.value) })} />{weight.toFixed(2)}</label>}
   </div>;
 }
@@ -112,7 +112,7 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
       <div className="facet-state" role="radiogroup" aria-label={`State for ${facet.label}`}>
         <label><input type="radio" name={`state-${facet.id}`} checked={choice.mode === "off"} onChange={() => setMode("off")} />Doesn't matter</label>
         <label><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={must && !prefer} onChange={() => setMode("must")} />Must</label>
-        <label title={!preference ? "coming (MODEL-172)" : undefined}><input type="radio" name={`state-${facet.id}`} disabled={unavailable || !preference} checked={prefer} onChange={() => setMode("prefer")} />Prefer</label>
+        {preference && <label><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={prefer} onChange={() => setMode("prefer")} />Prefer</label>}
       </div>
       {unavailable && <small>Not yet tracked; Must and Prefer are unavailable.</small>}
       {(must || prefer) && !unavailable && <div className="facet-settings">
@@ -121,7 +121,6 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
         {prefer && <label>Weight <input aria-label={`Weight for ${facet.label}`} type="range" min="0.05" max="1" step="0.05" value={choice.weight ?? 0.5} onChange={(event) => onChange({ ...choice, weight: Number(event.target.value) })} />{(choice.weight ?? 0.5).toFixed(2)}</label>}
         {prefer && ["number", "date"].includes(facet.value_type) && <label><input type="checkbox" checked={choice.mode === "both"} onChange={(event) => setMode(event.target.checked ? "both" : "prefer")} />and never worse than…</label>}
       </div>}
-      {facet.id.startsWith("capability.") && <details className="benchmarks"><summary>Benchmarks</summary><p>Benchmark switches: coming (MODEL-171)</p></details>}
       {facet.id.startsWith("capability.") && choice.mode !== "off" && refinements.length > 0 && <Refinements rows={refinements} selections={selections} parent={choice} fallbackKeys={fallbackKeys} onChange={onRefinementChange} />}
     </div>
   </div>;
@@ -132,11 +131,11 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   return <section className="estate-strip" aria-label="My estate"><span className="eyebrow">My estate</span>
     <div>{estate.providers.map((provider) => <button key={provider} onClick={() => update({ ...estate, providers: estate.providers.filter((item) => item !== provider) })}>{vocabulary.providers[provider] ?? provider} ×</button>)}
       <label>+ provider <select aria-label="Add provider" value="" onChange={(event) => event.target.value && update({ ...estate, providers: [...new Set([...estate.providers, event.target.value])] })}><option value="">Choose…</option>{Object.entries(vocabulary.providers).filter(([id]) => !estate.providers.includes(id)).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-    </div><div><button onClick={() => update({ ...estate, plans: [...estate.plans, "Plan"] })}>+ plan</button> <small>coming (MODEL-173)</small> <button onClick={() => update({ ...estate, hardware: [...estate.hardware, "Device"] })}>+ hardware</button> <small>coming (MODEL-174)</small></div>
+    </div>
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0, refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number; refinementFallbackKeys?: ReadonlySet<string> }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string> }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -164,27 +163,34 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   const update = (id: string, next: FacetSelection) => {
     const all = allocateBoardWeights(vocabulary, { ...selected, [id]: next }).selections;
     const nextOrder = nextMustOrder(orderedMusts, selected, id, next);
+    const sanitized = sanitizeBoardState({ selections: all, mustOrder: nextOrder, estate }, vocabulary, notes);
     if (next.mode !== "off") setExpandedGroups((current) => ({ ...current, [grouped.groups.find((group) => group.facets.some((facet) => facet.id === id))?.name ?? "Other"]: true }));
-    if (onMustOrder) onMustOrder(nextOrder); else setLocalMustOrder(nextOrder);
-    setSelected(all); onSpec(boardToSpec(spec, vocabulary, all, nextOrder));
+    if (onMustOrder) onMustOrder(sanitized.mustOrder); else setLocalMustOrder(sanitized.mustOrder);
+    setSelected(sanitized.selections); onNotes?.(sanitized.notes);
+    onSpec(boardToSpec(spec, vocabulary, sanitized.selections, sanitized.mustOrder));
   };
   const applyTemplate = (template: NonNullable<Vocabulary["templates"]>[number]) => {
     const converted = templateToBoard(template, vocabulary);
-    const all = converted.selections;
+    const sanitized = sanitizeBoardState({ selections: converted.selections, mustOrder: converted.mustOrder, estate }, vocabulary);
+    const all = sanitized.selections;
     const activeGroups = grouped.groups.filter((group) => group.facets.some((facet) => ["must", "prefer", "both"].includes(all[facet.id]?.mode)));
     setExpandedGroups((current) => Object.fromEntries(grouped.groups.map((group) => [group.name, group.name === "What it's good at" || activeGroups.some((active) => active.name === group.name) || current[group.name] === true])));
     const taskTokens = converted.taskTokens ?? vocabulary.default_task_tokens;
     const templateSpec = { ...spec, tokIn: taskTokens.input, tokOut: taskTokens.output };
-    if (onMustOrder) onMustOrder(converted.mustOrder); else setLocalMustOrder(converted.mustOrder);
-    setSelected(all); setTemplatesOpen(false); onSpec(boardToSpec(templateSpec, vocabulary, all, converted.mustOrder));
+    if (onMustOrder) onMustOrder(sanitized.mustOrder); else setLocalMustOrder(sanitized.mustOrder);
+    setSelected(all); onNotes?.(sanitized.notes); setTemplatesOpen(false);
+    onSpec(boardToSpec(templateSpec, vocabulary, all, sanitized.mustOrder));
   };
   return <div className="facet-board">
     <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div>{vocabulary.templates?.length ? <button aria-expanded={templatesOpen} onClick={() => setTemplatesOpen(!templatesOpen)}>ⓘ Templates</button> : null}</div>
-    {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.filter((template) => template.available).map((template) => <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.purpose}</span></button>)}</div>{vocabulary.templates.filter((template) => !template.available).map((template) => <p className="template-unavailable" key={template.id}>Not available on today's data: {template.name} — {template.unavailable_reason}</p>)}</section> : null}
+    {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.map((template) => template.available
+      ? <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.purpose}</span></button>
+      : <article className="template-unavailable" key={template.id}><strong>{template.name}</strong><span>{template.unavailable_reason}</span><details><summary>Info</summary><p>{template.purpose}</p><p>{template.unavailable_reason}</p></details></article>)}</div></section> : null}
+    {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
     <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
     <div className="board-workspace">
-      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{activeSelectionCount} set</small></span><button onClick={() => { setSelected({}); if (onMustOrder) onMustOrder([]); else setLocalMustOrder([]); setExpandedGroups({ "What it's good at": true }); onSpec(boardToSpec(spec, vocabulary, {}, [])); }}>Reset all</button></header>
+      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{activeSelectionCount} set</small></span><button onClick={() => { const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary); setSelected(empty.selections); if (onMustOrder) onMustOrder([]); else setLocalMustOrder([]); onNotes?.([]); setExpandedGroups({ "What it's good at": true }); onSpec(boardToSpec(spec, vocabulary, empty.selections, [])); }}>Reset all</button></header>
         <div className="facet-columns" aria-hidden="true"><span>Facet</span><span>Known</span><span>State</span></div>
         {grouped.groups.map((group) => {
           const active = group.facets.filter((facet) => selected[facet.id]?.mode && selected[facet.id]?.mode !== "off");

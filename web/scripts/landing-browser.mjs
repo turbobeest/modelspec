@@ -49,10 +49,10 @@ function recordBrowserFailures(page) {
   return failures;
 }
 
-async function assertRankedShortlist(page) {
-  await page.getByText("start from constraints").click();
-  await page.getByText("Shortlist", { exact: true }).waitFor();
-  await page.locator(".shortlist .model-name").first().waitFor();
+async function assertRankedBoard(page) {
+  await page.getByRole("heading", { name: "Set what matters. Watch the field narrow." }).waitFor();
+  assert.equal(await page.locator("textarea").count(), 0);
+  await page.locator(".board-ranked-answer li").first().waitFor();
 }
 
 async function load(page, html) {
@@ -151,12 +151,50 @@ try {
   await forwarding.close();
 
   const assembled = await browser.newContext();
+  const vocabularyFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
+  const decisionFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
+  await assembled.route("https://modelspec.dev/**", (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    const relative = pathname === "/decide/" ? "decide/index.html" : pathname.replace(/^\//, "");
+    const staticFile = path.resolve(assembledPath, relative);
+    if (!staticFile.startsWith(assembledRoot + path.sep) || !fs.existsSync(staticFile))
+      return route.fulfill({ status: 404, body: "not found" });
+    const types = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript" };
+    return route.fulfill({ status: 200, contentType: types[path.extname(staticFile)] ?? "application/octet-stream", body: fs.readFileSync(staticFile) });
+  });
+  await assembled.route("**/api/decision/vocabulary.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: vocabularyFixture }));
+  await assembled.route("**/v1/decide", (route) => route.fulfill({ status: 200, contentType: "application/json", body: decisionFixture }));
   const decidePage = await assembled.newPage();
   const decideFailures = recordBrowserFailures(decidePage);
-  await decidePage.goto(`${origin}/decide/?demo=1`);
-  await assertRankedShortlist(decidePage);
+  await decidePage.goto("https://modelspec.dev/decide/?demo=1");
+  await assertRankedBoard(decidePage);
   assert.deepEqual(decideFailures, []);
   results.assembled_decide = true;
+
+  await decidePage.setViewportSize({ width: 390, height: 844 });
+  async function assertDecideFitsViewport(theme) {
+    await decidePage.getByRole("button", { name: theme === "dark" ? "Dark mode" : "Light mode" }).click();
+    const overflow = await decidePage.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      offenders: [...document.querySelectorAll("body *")]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { tag: element.tagName, className: element.className?.baseVal ?? element.className, left: rect.left, right: rect.right, width: rect.width };
+        })
+        .filter(({ left, right }) => left < 0 || Math.abs(right - document.documentElement.scrollWidth) < 1)
+        .sort((left, right) => right.right - left.right)
+        .slice(0, 30),
+    }));
+    assert.equal(
+      overflow.scrollWidth <= 390,
+      true,
+      `${theme} decide overflow: ${JSON.stringify(overflow)}`,
+    );
+  }
+  await assertDecideFitsViewport("dark");
+  await assertDecideFitsViewport("light");
+  results.assembled_decide_mobile = true;
 
   const state = btoa(encodeURIComponent(JSON.stringify({
     tokIn: 40000,
@@ -170,8 +208,7 @@ try {
   await oldRootPage.goto(`${origin}/?demo=1#s=${state}`);
   await oldRootPage.waitForURL(`${origin}/decide/?demo=1#s=${state}`);
   assert.equal(new URL(oldRootPage.url()).hash, `#s=${state}`);
-  await oldRootPage.getByText("Shortlist", { exact: true }).waitFor();
-  await oldRootPage.locator(".shortlist .model-name").first().waitFor();
+  await assertRankedBoard(oldRootPage);
   assert.deepEqual(forwardedFailures, []);
   results.forwarded_state_ranks = true;
   await assembled.close();
