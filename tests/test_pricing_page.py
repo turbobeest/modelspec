@@ -19,8 +19,8 @@ def _build() -> Build:
                  as_of=date(2026, 9, 17))
 
 
-def _page(tiers: dict | None = None) -> str:
-    return pricing.page(tiers or json.loads(TIERS_PATH.read_text()), build=_build())
+def _page(tiers: dict | None = None, **flags: bool | str) -> str:
+    return pricing.page(tiers or json.loads(TIERS_PATH.read_text()), build=_build(), **flags)
 
 
 def _payload(page: str) -> dict:
@@ -62,6 +62,7 @@ def test_all_prices_credits_weights_and_x402_rate_come_from_tiers_json() -> None
     packs = [row for row in prices.values() if row["kind"] == "pack"]
     smallest = min(packs, key=lambda row: row["credits"])
     assert data["perCall"] == smallest["usd"] / smallest["credits"]
+    assert data["payPerCall"] is True
     for row in prices.values():
         assert f"{row['credits']:,}" in html
         assert f"${row['usd']}" in html
@@ -124,13 +125,17 @@ def test_price_lists_and_answer_costs_have_table_semantics() -> None:
         "Credits drawn from a prepaid balance",
     ]
     for table in tables:
-        assert re.search(r'<th scope="col">', table)
-        assert re.search(r'<th scope="row">', table)
+        assert re.search(r'<th scope="col"(?: role="columnheader")?>', table)
+        assert re.search(r'<th scope="row"(?: role="rowheader")?>', table)
+    for table in tables[:2]:
+        assert 'role="rowgroup"' in table
+        assert 'role="row"' in table
+        assert 'role="cell"' in table
     tiers = json.loads(TIERS_PATH.read_text())
     prices = tiers["billing"]["prices"].values()
-    assert len(re.findall(r'<tr class="price-row plan">', tables[0])) == sum(
+    assert len(re.findall(r'<tr class="price-row plan" role="row">', tables[0])) == sum(
         row["kind"] == "plan" for row in prices)
-    assert len(re.findall(r'<tr class="price-row pack">', tables[1])) == sum(
+    assert len(re.findall(r'<tr class="price-row pack" role="row">', tables[1])) == sum(
         row["kind"] == "pack" for row in prices)
     assert len(re.findall(r'<tr class="cost-row">', tables[2])) == 5
 
@@ -144,6 +149,60 @@ def test_endpoints_contact_and_no_third_party_assets() -> None:
     assert "fonts.gstatic" not in html
     for match in re.finditer(r'<(?:script|img)\b[^>]*\bsrc=[\'\"](https?://[^\'\"]+)', html, re.I):
         raise AssertionError(f"third-party request: {match.group(1)}")
+
+
+def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
+    from api.worker import openapi
+
+    assert openapi.billing_enabled() is False
+    assert openapi.x402_enabled() is False
+    assert openapi.x402_mainnet_enabled() is False
+    pricing.write(tmp_path, REPO_ROOT, _build())
+    html = (tmp_path / "pricing" / "index.html").read_text()
+    assert "<form" not in html
+    assert "x402" not in html.lower()
+    assert "Or let your agents pay as they go" not in html
+    assert _payload(html)["payPerCall"] is False
+    assert "perCall" not in _payload(html)
+    assert "coming soon" not in html.lower()
+    assert "opening soon" not in html.lower()
+
+
+def test_billing_and_x402_render_independently() -> None:
+    tiers = json.loads(TIERS_PATH.read_text())
+    form_count = sum(not row.get("placeholder")
+                     for row in tiers["billing"]["prices"].values())
+    for billing_live in (False, True):
+        for x402_live in (False, True):
+            html = _page(tiers, billing_live=billing_live, x402_live=x402_live,
+                         x402_network="eip155:8453")
+            assert len(re.findall(r"<form\b", html)) == (form_count if billing_live else 0)
+            assert ("Or let your agents pay as they go" in html) is x402_live
+            assert ("Pay per call" in html) is False
+            assert _payload(html)["payPerCall"] is x402_live
+            assert ("to $0.004" in html) is x402_live
+            assert ("settled on Base mainnet" in html) is x402_live
+            if not x402_live:
+                assert "x402" not in html.lower()
+                assert "per-call payment" not in html
+                assert "plans and packs below" in html
+
+
+def test_x402_requires_mainnet_before_the_page_presents_it() -> None:
+    from api.worker import openapi
+
+    for enabled, mainnet in ((False, False), (False, True), (True, False), (True, True)):
+        live = pricing.x402_is_live(enabled, mainnet)
+        html = _page(x402_live=live, x402_network="eip155:8453")
+        assert live is (enabled and mainnet)
+        assert ("Or let your agents pay as they go" in html) is live
+    assert openapi.x402_network() == "eip155:84532"
+
+
+def test_x402_copy_names_the_configured_network() -> None:
+    html = _page(x402_live=True, x402_network="eip155:84532")
+    assert "settled on Base Sepolia" in html
+    assert "settled on Base mainnet" not in html
 
 
 def test_landing_and_decide_link_pricing() -> None:

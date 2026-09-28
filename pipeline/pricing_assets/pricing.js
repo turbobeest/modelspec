@@ -41,22 +41,24 @@ export function calculate(data, state) {
     state.decisions * (state.full ? data.weights.decideFull : data.weights.decide)
     + state.checks * data.weights.check
   ));
-  const options = [{
+  const options = data.payPerCall ? [{
     name: "Pay per call (x402)",
     how: `${monthly.toLocaleString("en-US")} credits at ${rate(data.perCall)}`,
     usd: monthly * data.perCall,
-  }];
+    subscription: false,
+  }] : [];
   const packsOnly = packCost(monthly, data.packs);
-  options.push({ name: "Packs only", how: packsOnly.how, usd: packsOnly.usd });
+  options.push({ name: "Packs only", how: packsOnly.how, usd: packsOnly.usd, subscription: false });
   for (const plan of data.plans) {
     const extra = packCost(monthly - plan.credits, data.packs);
     options.push({
       name: `${plan.name} plan`,
       how: extra.usd ? `${plan.name} + ${extra.how}` : `${plan.credits.toLocaleString("en-US")} credits a month`,
       usd: plan.usd + extra.usd,
+      subscription: true,
     });
   }
-  options.sort((a, b) => a.usd - b.usd);
+  options.sort((a, b) => a.usd - b.usd || Number(a.subscription) - Number(b.subscription));
   return { monthly, options, best: options[0] };
 }
 

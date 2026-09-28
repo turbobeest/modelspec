@@ -58,6 +58,21 @@ describe("pricing calculator", () => {
     }
   });
 
+  it("prefers a non-subscription option on an exact tie", () => {
+    const tied = calculate(data, { decisions: 100, full: false, checks: 100 });
+    expect(tied.options.filter(({ usd }: { usd: number }) => usd === 50)
+      .map(({ name }: { name: string }) => name)).toEqual(["Packs only", "Team plan"]);
+    expect(tied.best.name).toBe("Packs only");
+  });
+
+  it("omits pay per call when the production switches are not live", () => {
+    const result = calculate({ ...data, payPerCall: false }, {
+      decisions: 1_000, full: false, checks: 0,
+    });
+    expect(result.options.map(({ name }: { name: string }) => name))
+      .not.toContain("Pay per call (x402)");
+  });
+
   it.each([
     [100, false, 0, "Solo plan", 10], [100, false, 100, "Packs only", 50],
     [100, false, 1_000, "Solo plan", 310], [100, true, 0, "Solo plan", 20],

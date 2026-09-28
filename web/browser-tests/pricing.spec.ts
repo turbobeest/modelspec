@@ -13,9 +13,9 @@ for (const width of [1440, 390]) {
     await expect(page.locator("[data-credits]")).toContainText("300,000 credits");
     await expect(page.locator("[data-best-cost]")).not.toHaveText(before || "");
     const forms = page.locator(`form[action="https://api.modelspec.dev/v1/billing/checkout"]`);
-    await expect(forms).toHaveCount(6);
-    expect(await forms.locator('input[name="price_id"]').evaluateAll((nodes) =>
-      nodes.map((node) => (node as HTMLInputElement).value))).toHaveLength(6);
+    await expect(forms).toHaveCount(0);
+    await expect(page.getByText("Or let your agents pay as they go")).toHaveCount(0);
+    await expect(page.getByText("Pay per call (x402)")).toHaveCount(0);
     if (process.env.MODELSPEC_SCREENSHOT_DIR) {
       await page.screenshot({
         path: `${process.env.MODELSPEC_SCREENSHOT_DIR}/pricing-${width}.png`,

@@ -1054,9 +1054,24 @@ def access_store_bound() -> bool:
 
 
 def x402_enabled() -> bool:
+    """The shipped value of `X402_ENABLED`."""
     import re
     found = re.search(r'"X402_ENABLED"\s*:\s*"([^"]*)"', _wrangler_live_lines())
     return x402.flag(found.group(1) if found else None)
+
+
+def x402_mainnet_enabled() -> bool:
+    """The shipped value of `X402_MAINNET`."""
+    import re
+    found = re.search(r'"X402_MAINNET"\s*:\s*"([^"]*)"', _wrangler_live_lines())
+    return x402.flag(found.group(1) if found else None)
+
+
+def x402_network() -> str:
+    """The shipped x402 CAIP-2 network."""
+    import re
+    found = re.search(r'"X402_NETWORK"\s*:\s*"([^"]*)"', _wrangler_live_lines())
+    return found.group(1) if found else x402.NETWORK_BASE_SEPOLIA
 
 
 def _x402() -> dict[str, Any]:
@@ -1072,8 +1087,8 @@ def _x402() -> dict[str, Any]:
     return {
         "wired": True,
         "enabled": x402_enabled(),
-        "mainnet": x402.flag(var("X402_MAINNET", "false")),
-        "network": var("X402_NETWORK", x402.NETWORK_BASE_SEPOLIA),
+        "mainnet": x402_mainnet_enabled(),
+        "network": x402_network(),
         "per_credit_atomic": packs[0].atomic // packs[0].credits,
         "keyless_price_rule": "4000 atomic USDC per endpoint credit",
         "packs": [{"name": row.name, "credits": row.credits,
