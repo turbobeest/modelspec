@@ -1960,6 +1960,28 @@ benchmarks:
       cited_regions:
       - rows
     id: anthropic/claude-opus-4-6#arena_sc_factuality#0c6d56ce6915
+  - benchmark_id: finance_benchmark_v2
+    model_id_as_evaluated: anthropic/claude-opus-4-6
+    score: 86.3014
+    unit: percent
+    source_url: https://finbenchmark.ai/
+    source_kind: independent_evaluator
+    evidence_date: '2026-06-15'
+    date_type: evaluated
+    observed_at: '2026-09-28'
+    verified_at: '2026-09-28'
+    benchmark_version: Finance Benchmark v2, harness 0.1.0
+    configuration: 73 v2 tasks; three attempts per task; temperature zero.
+    limitations: Passes at least once, so this value does not measure repeated-run consistency.
+    measured_by: independent_evaluator
+    effort: null
+    harness: unregistered
+    sources:
+    - source_id: model-192-finance-benchmark-v2
+      snapshot_ref: sha256:a8d3d8dec4605e37bf43a29ef09b35b6e47a78e4bc9e64b701d620d9dfb668d7
+      cited_regions:
+      - rows
+    id: anthropic/claude-opus-4-6#finance_benchmark_v2#916c9b059ba6
 deployment:
   api_only: false
   local_inference: false

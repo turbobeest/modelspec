@@ -81,7 +81,7 @@ domains:
       Financial analysis tasks graded against expert answers: reading filings
       and statements, financial calculations, and domain questions in
       accounting, markets and banking.
-    proxy_only: true
+    proxy_only: false
   - id: writing
     name: Writing
     definition: >-
