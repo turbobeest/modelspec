@@ -1,0 +1,104 @@
+# MODEL-173. Primary sources read 2026-09-28. The pricing page names Grok 4.6,
+# not premier model xai/grok-4-7, so exact covered-model IDs remain undisclosed.
+- kind: subscription
+  provider: xai
+  plan: supergrok
+  name: SuperGrok
+  facts:
+  - id: xai/subscription/supergrok#offering.subscription.price
+    subject: {kind: offering, id: xai/subscription/supergrok}
+    facet: offering.subscription.price
+    state: known
+    value: 30
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+  - id: xai/subscription/supergrok#offering.subscription.billing_period
+    subject: {kind: offering, id: xai/subscription/supergrok}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+  - id: xai/subscription/supergrok#offering.subscription.models_covered
+    subject: {kind: offering, id: xai/subscription/supergrok}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-xai-consumer-pricing]
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+  - id: xai/subscription/supergrok#offering.subscription.usage_allowance
+    subject: {kind: offering, id: xai/subscription/supergrok}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: Higher rate limits across all features
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+  - id: xai/subscription/supergrok#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: xai/subscription/supergrok}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Grok Bot access is included
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+- kind: subscription
+  provider: xai
+  plan: supergrok-plus
+  name: SuperGrok Plus
+  facts:
+  - id: xai/subscription/supergrok-plus#offering.subscription.price
+    subject: {kind: offering, id: xai/subscription/supergrok-plus}
+    facet: offering.subscription.price
+    state: known
+    value: 100
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-plus#offering.subscription.billing_period
+    subject: {kind: offering, id: xai/subscription/supergrok-plus}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-plus#offering.subscription.models_covered
+    subject: {kind: offering, id: xai/subscription/supergrok-plus}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-xai-consumer-pricing]
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-plus#offering.subscription.usage_allowance
+    subject: {kind: offering, id: xai/subscription/supergrok-plus}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: Significantly higher usage across Chat, Imagine, Voice and Build
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-plus#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: xai/subscription/supergrok-plus}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Grok Bot access is included
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:de1d407435f822e534b2635c0938bbd97b6ddb94fae3eb115fe934e0fe4397b1
+      cited_regions: [page]

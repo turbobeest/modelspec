@@ -232,6 +232,8 @@ class SnapshotIndex(Protocol):
 
     def model_of(self, cid: str) -> str: ...
 
+    def subscription_offerings(self) -> Sequence[Mapping[str, Any]]: ...
+
 
 @runtime_checkable
 class ExplanationIndex(SnapshotIndex, Protocol):
@@ -256,6 +258,7 @@ class SnapshotInputs:
 
     models: Sequence[Any] = ()
     offerings: Sequence[Any] = ()
+    subscriptions: Sequence[Any] = ()
     evidence: Sequence[Any] = ()
     #: Registered source ID -> URL.
     sources: Mapping[str, str] = field(default_factory=dict)
@@ -675,6 +678,19 @@ class _Compiler:
                 self._check_facet(facet_id, "offering")
                 row[facet_id] = ["known", str(o[part]), []]
 
+    def add_subscription(self, raw: Any) -> None:
+        subscription = _as_dict(raw)
+        sid = f"{subscription['provider']}/subscription/{subscription['plan']}"
+        if sid in self.subjects:
+            raise SnapshotBuildError(f"subscription offering {sid} appears twice")
+        self.subjects[sid] = {
+            "kind": "subscription",
+            "provider": str(subscription["provider"]),
+            "plan": str(subscription["plan"]),
+            "name": str(subscription["name"]),
+        }
+        self._add_facts(sid, "offering", subscription.get("facts"))
+
     def add_evidence(self, raw: Any) -> None:
         e = _as_dict(raw)
         subject = e.get("subject") or {}
@@ -733,8 +749,14 @@ class _Compiler:
         evidence and records; only their number is kept, as ``out_of_lineup``.
         """
         wanted = None if premier is None else set(premier)
-        archive = sorted(s for s, v in self.subjects.items() if v["lifecycle"] == "retired")
-        lineup = sorted(s for s, v in self.subjects.items() if v["lifecycle"] != "retired"
+        candidate_subjects = {
+            s: v for s, v in self.subjects.items() if v["kind"] != "subscription"
+        }
+        subscription_ids = sorted(
+            s for s, v in self.subjects.items() if v["kind"] == "subscription"
+        )
+        archive = sorted(s for s, v in candidate_subjects.items() if v["lifecycle"] == "retired")
+        lineup = sorted(s for s, v in candidate_subjects.items() if v["lifecycle"] != "retired"
                         and (wanted is None or v["model"] in wanted))
         kept = {*lineup, *archive}
         out_of_lineup = sum(1 for s, v in self.subjects.items()
@@ -748,9 +770,13 @@ class _Compiler:
             for row in self.evidence.get(sid, ()):
                 sources.update(row[9])
                 record_ids.add(row[10])
+        for sid in subscription_ids:
+            for _state, _value, source_ids in self.facts.get(sid, {}).values():
+                sources.update(source_ids)
+            record_ids.update(self.fact_records.get(sid, {}).values())
         excluded: Counter[str] = Counter()
         for sid, counts in self.excluded.items():
-            if sid is None or sid in kept:
+            if sid is None or sid in kept or sid in subscription_ids:
                 excluded.update(counts)
         domains = {}
         for bench, tags in sorted(self.inputs.benchmark_domains.items()):
@@ -809,7 +835,7 @@ class _Compiler:
                 self.subjects[sid]["model"] for sid in kept
                 if self.subjects[sid]["kind"] == "model"
             )
-        return {
+        content = {
             "format_version": FORMAT_VERSION,
             "as_of": as_of.isoformat() if as_of else None,
             "facet_subjects": dict(sorted(self.facet_subject.items())),
@@ -821,8 +847,29 @@ class _Compiler:
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
             "record_table": _pack_records({r: self.records[r] for r in record_ids}),
-            "fact_records": {sid: rows for sid, rows in self.fact_records.items() if sid in kept},
+            "fact_records": {
+                sid: rows
+                for sid, rows in self.fact_records.items()
+                if sid in kept or sid in subscription_ids
+            },
         }
+        if subscription_ids:
+            content["subscriptions"] = [
+                {
+                    "id": sid,
+                    "provider": self.subjects[sid]["provider"],
+                    "plan": self.subjects[sid]["plan"],
+                    "name": self.subjects[sid]["name"],
+                    "facts": {
+                        facet_id: [state, value, source_ids]
+                        for facet_id, (state, value, source_ids) in sorted(
+                            self.facts.get(sid, {}).items()
+                        )
+                    },
+                }
+                for sid in subscription_ids
+            ]
+        return content
 
     # the gate ----------------------------------------------------------------
 
@@ -878,6 +925,8 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
         c.add_model(m)
     for o in inputs.offerings:
         c.add_offering(o)
+    for subscription in inputs.subscriptions:
+        c.add_subscription(subscription)
     for e in inputs.evidence:
         c.add_evidence(e)
     premier = None if premier is None else tuple(premier)
@@ -909,7 +958,8 @@ def collect_repo(root: Path) -> SnapshotInputs:
     * Cards (``models/``): ``lifecycle`` (else the v1 ``status``: deprecated and
       sunset map to ``deprecated``, everything else to ``active``), v2 ``facts``,
       and ``benchmarks.evidence`` rows. ``benchmarks.scores`` is never read.
-    * Offerings: ``offerings/<provider>/<lab>/<model>.yaml``, each a list.
+    * Metered offerings: ``offerings/<provider>/<lab>/<model>.yaml``, each a list.
+    * Subscription offerings: ``offerings/subscriptions/<provider>.yaml``, each a list.
     * Sources: canonical ``registry/sources.yaml``; see ``verification/README.md``.
     * Domains: each benchmark page's ``domains`` tags.
     * The verification log: ``verification/log.jsonl``.
@@ -941,6 +991,23 @@ def collect_repo(root: Path) -> SnapshotInputs:
             o["facts"] = [{"subject": {"kind": "offering", "id": oid},
                            "id": f"{oid}#{f.get('facet')}", **f} for f in o.get("facts") or []]
             offerings.append(o)
+    subscriptions = []
+    for path in sorted((root / "offerings" / "subscriptions").glob("*.yaml")):
+        rows = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+        if not isinstance(rows, list):
+            raise SnapshotBuildError(f"{path}: a subscription offering file is a list")
+        for subscription in rows:
+            subscription = dict(subscription)
+            sid = f"{subscription['provider']}/subscription/{subscription['plan']}"
+            subscription["facts"] = [
+                {
+                    "subject": {"kind": "offering", "id": sid},
+                    "id": f"{sid}#{fact.get('facet')}",
+                    **fact,
+                }
+                for fact in subscription.get("facts") or []
+            ]
+            subscriptions.append(subscription)
     from decision.sources import load_sources
 
     sources = {
@@ -966,7 +1033,8 @@ def collect_repo(root: Path) -> SnapshotInputs:
         for line in verification_log.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 verifications.append(json.loads(line))
-    return SnapshotInputs(models=models, offerings=offerings, evidence=evidence, sources=sources,
+    return SnapshotInputs(models=models, offerings=offerings, subscriptions=subscriptions,
+                          evidence=evidence, sources=sources,
                           benchmark_domains=domains, benchmark_metadata=metadata,
                           verifications=verifications)
 
@@ -1257,6 +1325,19 @@ class LoadedSnapshot:
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
         #: Active models the build left out because they are not in the premier set.
         self.out_of_lineup: int = int(content.get("out_of_lineup") or 0)
+        self._subscription_offerings = tuple(
+            {
+                "id": row["id"],
+                "provider": row["provider"],
+                "plan": row["plan"],
+                "name": row["name"],
+                "facts": {
+                    facet_id: FactValue(state, value, tuple(sources))
+                    for facet_id, (state, value, sources) in row.get("facts", {}).items()
+                },
+            }
+            for row in content.get("subscriptions", ())
+        )
         self._sources: dict[str, str] = dict(content["sources"])
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
@@ -1346,6 +1427,9 @@ class LoadedSnapshot:
 
     def candidates(self) -> Sequence[str]:
         return self._ids
+
+    def subscription_offerings(self) -> Sequence[Mapping[str, Any]]:
+        return self._subscription_offerings
 
     def _check(self, cid: str) -> int:
         try:

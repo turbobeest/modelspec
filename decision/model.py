@@ -463,3 +463,49 @@ def load_offerings(path: str | Path, *, registry=None) -> list[Offering]:
             raise ValueError(f"duplicate offering: {row.id}")
         ids.add(row.id)
     return rows
+
+
+class SubscriptionOffering(Record):
+    """A fixed-period plan that covers one or more models.
+
+    Subscription facts stay separate from metered inference offerings because
+    a plan can cover several models and its allowance is not a token price.
+    """
+
+    kind: Literal["subscription"]
+    provider: PathPart
+    plan: PathPart
+    name: Text
+    facts: list[Fact] = Field(default_factory=list)
+
+    @property
+    def id(self) -> str:
+        return f"{self.provider}/subscription/{self.plan}"
+
+    @model_validator(mode="after")
+    def valid_subscription(self, info: ValidationInfo) -> Self:
+        _registered(info, "provider", self.provider)
+        _check_facts(self.facts, "offering", self.id)
+        return self
+
+
+def load_subscription_offerings(
+    path: str | Path, *, registry=None
+) -> list[SubscriptionOffering]:
+    """Read ``offerings/subscriptions/<provider>.yaml``."""
+
+    path = Path(path)
+    rows = TypeAdapter(list[SubscriptionOffering]).validate_python(
+        yaml.safe_load(path.read_text(encoding="utf-8")),
+        context={"registry": registry},
+    )
+    ids: set[str] = set()
+    for row in rows:
+        if path.stem != row.provider:
+            raise ValueError(
+                f"subscription offering {row.id} does not match path {row.provider}.yaml"
+            )
+        if row.id in ids:
+            raise ValueError(f"duplicate subscription offering: {row.id}")
+        ids.add(row.id)
+    return rows

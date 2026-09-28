@@ -72,6 +72,28 @@ def offering(mid, provider="lab-api", *, price=3.0, batch="not_offered", facts=N
             "facts": base if facts is None else facts}
 
 
+def subscription(provider="lab-api", plan="pro", *, facts=None):
+    sid = f"{provider}/subscription/{plan}"
+    base = [
+        fact("offering", sid, "offering.subscription.price", 20, source="src-pricing"),
+        fact("offering", sid, "offering.subscription.billing_period", "monthly",
+             source="src-pricing"),
+        fact("offering", sid, "offering.subscription.models_covered", ["lab/alpha"],
+             source="src-pricing"),
+        fact("offering", sid, "offering.subscription.usage_allowance",
+             "5x standard usage per five-hour session", source="src-pricing"),
+        fact("offering", sid, "offering.subscription.programmatic_or_agent_use",
+             "Coding harness included", source="src-pricing"),
+    ]
+    return {
+        "kind": "subscription",
+        "provider": provider,
+        "plan": plan,
+        "name": "Pro",
+        "facts": base if facts is None else facts,
+    }
+
+
 def evidence(mid, benchmark, score, *, eid=None, measured_by="independent_evaluator",
              effort=None, harness=None, day="2026-08-01", outcome="verified",
              source="src-board", source_url="https://board.example.org/results", subject_kind="model",

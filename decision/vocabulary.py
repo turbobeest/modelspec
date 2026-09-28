@@ -69,6 +69,7 @@ OPERATORS: Mapping[str, tuple[str, ...]] = {
     "enum": ("=", "!=", "in", "not in", "known"),
     "boolean": ("=", "!=", "known"),
     "set": ("in", "not in", "known"),
+    "string": ("=", "!=", "known"),
 }
 _LITERALS = ("unbounded", "not_offered")
 
@@ -399,6 +400,10 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
                for kind in ("model", "offering")}
     facets = []
     for facet in registry.facets():
+        # Subscription facts are snapshot metadata until MODEL-179 teaches the
+        # holder-cost engine how to compare allowances and plan prices.
+        if facet.id.startswith("offering.subscription."):
+            continue
         if facet.parameter is not None:
             continue
         unit = registry.unit(facet.unit).definition if facet.unit else None

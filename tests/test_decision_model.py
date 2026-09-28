@@ -31,8 +31,21 @@ class RegistryStub:
             "region": "string",
             "attestations": "string_set",
             "release": "date",
+            "offering.subscription.price": "number",
+            "offering.subscription.billing_period": "enum",
+            "offering.subscription.models_covered": "string_set",
+            "offering.subscription.usage_allowance": "string",
+            "offering.subscription.programmatic_or_agent_use": "string",
         }
-        return SimpleNamespace(id=id, value_type=types[id], tier="guaranteed", risk="capability")
+        fields = dict(
+            id=id,
+            value_type=types[id],
+            tier="best_effort",
+            risk="capability",
+        )
+        if id.startswith("offering.subscription."):
+            fields["subject"] = "offering"
+        return SimpleNamespace(**fields)
 
     def provider(self, id):
         if id != "fake-provider":
@@ -466,6 +479,94 @@ def test_offering_loader_checks_file_identity_and_duplicate_offerings(context, t
     path.write_text("offerings: []")
     with pytest.raises(ValidationError):
         load_offerings(path, registry=context["registry"])
+
+
+def test_subscription_offering_validates_and_round_trips(context, tmp_path):
+    import yaml
+
+    from decision.model import SubscriptionOffering, load_subscription_offerings
+
+    sid = "fake-provider/subscription/pro"
+    rows = [{
+        "kind": "subscription",
+        "provider": "fake-provider",
+        "plan": "pro",
+        "name": "Fake Pro",
+        "facts": [
+            fact_data(
+                id=f"{sid}#offering.subscription.price",
+                subject={"kind": "offering", "id": sid},
+                facet="offering.subscription.price",
+                value=20,
+            ),
+            fact_data(
+                id=f"{sid}#offering.subscription.usage_allowance",
+                subject={"kind": "offering", "id": sid},
+                facet="offering.subscription.usage_allowance",
+                value="5x standard usage per five-hour session",
+            ),
+        ],
+    }]
+    directory = tmp_path / "subscriptions"
+    directory.mkdir()
+    path = directory / "fake-provider.yaml"
+    path.write_text(yaml.safe_dump(rows))
+
+    [subscription] = load_subscription_offerings(path, registry=context["registry"])
+
+    assert subscription.id == sid
+    assert subscription.kind == "subscription"
+    assert subscription.name == "Fake Pro"
+    assert SubscriptionOffering.model_validate_json(
+        subscription.model_dump_json(), context=context
+    ) == subscription
+
+
+def test_subscription_offering_rejects_wrong_subject_and_file_provider(context, tmp_path):
+    import yaml
+
+    from decision.model import SubscriptionOffering, load_subscription_offerings
+
+    data = {
+        "kind": "subscription",
+        "provider": "fake-provider",
+        "plan": "pro",
+        "name": "Fake Pro",
+        "facts": [fact_data()],
+    }
+    with pytest.raises(ValidationError, match="subject"):
+        SubscriptionOffering.model_validate(data, context=context)
+
+    path = tmp_path / "wrong-provider.yaml"
+    path.write_text(yaml.safe_dump([{**data, "facts": []}]))
+    with pytest.raises(ValueError, match="does not match path"):
+        load_subscription_offerings(path, registry=context["registry"])
+
+
+def test_repository_subscription_offerings_validate_against_the_real_registry():
+    from decision.model import load_subscription_offerings
+    from decision.registry import default
+
+    root = Path(__file__).resolve().parents[1] / "offerings" / "subscriptions"
+    loaded = [
+        subscription
+        for path in sorted(root.glob("*.yaml"))
+        for subscription in load_subscription_offerings(path, registry=default())
+    ]
+
+    assert [subscription.id for subscription in loaded] == [
+        "anthropic/subscription/pro",
+        "anthropic/subscription/max-5x",
+        "anthropic/subscription/max-20x",
+        "google-gemini-api/subscription/ai-plus",
+        "google-gemini-api/subscription/ai-pro",
+        "google-gemini-api/subscription/ai-ultra",
+        "openai/subscription/plus",
+        "openai/subscription/pro-5x",
+        "openai/subscription/pro-20x",
+        "xai/subscription/supergrok",
+        "xai/subscription/supergrok-plus",
+    ]
 
 
 def test_fake_offering_covers_provider_dependent_facts(context):
