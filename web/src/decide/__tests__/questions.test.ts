@@ -6,6 +6,7 @@ import type { Question } from "../engine/reference";
 
 const decision = (count: number): Decision => ({
   contract_version: "1.2",
+  signature_verified: false,
   out_of_lineup: 0,
   decision_id: `dec_${String(count).padStart(8, "0")}`,
   snapshot: "snap_question_test",

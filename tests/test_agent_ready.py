@@ -15,6 +15,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from decision.snapshot import load_public_keys  # noqa: E402
 from pipeline import agent_ready as ar  # noqa: E402
 from pipeline import brand  # noqa: E402
 from pipeline import build as builder  # noqa: E402
@@ -274,11 +275,11 @@ def test_built_site_publishes_the_cli_pinned_snapshot_key_set(dist: Path) -> Non
     published = dist / "modelspec" / ".well-known" / "modelspec-snapshot-keys.json"
 
     assert published.read_bytes() == (ROOT / "decision" / "snapshot_keys.json").read_bytes()
-    assert json.loads(published.read_text(encoding="utf-8")) == {
-        "format": "modelspec.snapshot-keys",
-        "version": 1,
-        "keys": [],
-    }
+    key_set = json.loads(published.read_text(encoding="utf-8"))
+    assert key_set["format"] == "modelspec.snapshot-keys"
+    assert key_set["version"] == 1
+    assert isinstance(key_set["keys"], list)
+    assert list(load_public_keys(published)) == [row["key_id"] for row in key_set["keys"]]
     assert not (dist / "benchgraph" / ".well-known" / published.name).exists()
 
 
