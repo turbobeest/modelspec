@@ -43,7 +43,7 @@ import os
 import warnings
 from bisect import bisect_left, bisect_right
 from collections import Counter
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -243,6 +243,7 @@ class ExplanationIndex(SnapshotIndex, Protocol):
     def facet_ids(self) -> tuple[str, ...]: ...
     def domain_ids(self) -> tuple[str, ...]: ...
     def benchmark_ids(self) -> tuple[str, ...]: ...
+    def corpus_evidence(self) -> Iterator[tuple[str, EvidenceValue]]: ...
     def benchmark_domain_tags(self) -> dict[str, tuple[tuple[str, str], ...]]: ...
 
 
@@ -1257,6 +1258,7 @@ class LoadedSnapshot:
             if "fact_records" in content and ("record_table" in content or "records" in content)
             else "snapshot predates retained verification records; rebuild it before explaining"
         )
+        self._corpus_sections = (content["lineup"], content["archive"])
         sections = [content["lineup"]] + ([content["archive"]] if include_archive else [])
 
         rows: list[tuple[dict[str, Any], dict[str, Any], int]] = []
@@ -1514,6 +1516,18 @@ class LoadedSnapshot:
 
     def benchmark_ids(self) -> tuple[str, ...]:
         return self._benchmarks
+
+    def corpus_evidence(self) -> Iterator[tuple[str, EvidenceValue]]:
+        """Every stored evidence row of the snapshot, lineup and archive, as (model, row).
+
+        The fit that built the snapshot read this whole corpus, so a refit must
+        too: it must not change with ``include_archive``.
+        """
+        for section in self._corpus_sections:
+            model_of = {c["id"]: c["model"] for c in section["candidates"]}
+            for subject in sorted(section["evidence"]):
+                for row in section["evidence"][subject]:
+                    yield model_of[subject], _Evidence._value(row)
 
     def benchmark_domain_tags(self) -> dict[str, tuple[tuple[str, str], ...]]:
         """Each benchmark's (domain, directness) tags, sorted by domain."""

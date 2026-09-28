@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
-from decision.contract import Contribution, DomainEvidence, EvidenceItem
+from decision.contract import (
+    BenchmarkEstimateChange,
+    BenchmarkExclusions,
+    Contribution,
+    DomainEvidence,
+    Estimate,
+    EvidenceItem,
+)
 from decision.registry import UNREGISTERED
 from decision.registry import facet as registry_facet
 
@@ -296,16 +303,84 @@ def contributions(snapshot, cid, parts, evidence):
     return out
 
 
+def excluded_benchmark_impacts(snapshot, decision, result_rows, shown_domains):
+    """Describe the estimate changes caused by a benchmark-exclusion view."""
+    excluded = list(getattr(snapshot, "excluded_benchmarks", ()))
+    if not excluded:
+        return None
+    candidate_by_model = {}
+    for cid in snapshot.candidates():
+        candidate_by_model.setdefault(snapshot.model_of(cid), cid)
+    impacted_candidates = [row.candidate_id for _result, row in result_rows]
+    impacted_candidates.extend(
+        candidate_by_model[item.model]
+        for item in decision.may_qualify
+        if item.model in candidate_by_model
+    )
+    changes = []
+    seen = set()
+    for cid in impacted_candidates:
+        model_id = snapshot.model_of(cid)
+        for domain in sorted(shown_domains):
+            identity = (model_id, domain)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            before = snapshot.baseline_capability_estimate(cid, domain)
+            after = snapshot.capability_estimate(cid, domain)
+            baseline_drivers = {
+                driver.record_id
+                for driver in snapshot.baseline_capability_drivers(cid, domain)
+            }
+            removed = {
+                evidence.record_id: evidence
+                for evidence in snapshot.removed_evidence_for_domain(
+                    cid, domain
+                )
+                if evidence.record_id in baseline_drivers
+            }
+            if before is None and after is None and not removed:
+                continue
+            changes.append(BenchmarkEstimateChange(
+                model=model_id,
+                domain=domain,
+                before=None if before is None else Estimate(
+                    domain=domain,
+                    value=before.value,
+                    interval=(before.low, before.high),
+                ),
+                after=None if after is None else Estimate(
+                    domain=domain,
+                    value=after.value,
+                    interval=(after.low, after.high),
+                ),
+                removed_drivers=[
+                    evidence_item(snapshot, evidence, domain)
+                    for evidence in sorted(
+                        removed.values(), key=lambda item: (item.benchmark_id, item.record_id)
+                    )
+                ],
+            ))
+    return BenchmarkExclusions(benchmarks=excluded, estimate_changes=changes)
+
+
 def explain(
     decision, resolved, snapshot, filtered, ordered, selectors, domains, *,
     comparison=False,
 ):
     requested = set(resolved.spec.capabilities or {})
-    for result, row in zip(decision.results, ordered.results):
+    result_rows = list(zip(decision.results, ordered.results))
+    for result, row in result_rows:
         result.evidence = domain_evidence(snapshot, row.candidate_id, requested)
         result.contributions = contributions(
             snapshot, row.candidate_id, row.contributions, result.evidence
         )
+    decision.benchmark_exclusions = excluded_benchmark_impacts(
+        snapshot,
+        decision,
+        result_rows,
+        requested | (named_facets(resolved) & set(domains)),
+    )
     decision.eliminated.funnel = [step.as_contract() for step in filtered.funnel]
     _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, domains)
     from decision.contract import TippingPoint
@@ -816,6 +891,9 @@ def render_html(decision, snapshot):
             )
         return "".join(out)
 
+    has_estimates = any(result.estimates for result in decision.results) or bool(
+        decision.benchmark_exclusions and decision.benchmark_exclusions.estimate_changes
+    )
     out = [
         '<!doctype html><html lang="en"><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -828,8 +906,43 @@ def render_html(decision, snapshot):
         "svg text{fill:var(--fg);font:14px system-ui}svg rect{fill:var(--accent)}",
         "</style><body><h1>ModelSpec decision</h1>",
         f"<p>{esc(decision.decision_id)} · {esc(decision.snapshot)} · {esc(decision.status)}</p>",
-        "<p>Evidence is unblended. Capability estimates and probabilities are not available.</p>",
+        (
+            "<p>Capability estimates use verified evidence and include uncertainty intervals.</p>"
+            if has_estimates
+            else "<p>Evidence is unblended. Capability estimates and probabilities are not available.</p>"
+        ),
     ]
+    if decision.benchmark_exclusions is not None:
+        exclusions = decision.benchmark_exclusions
+        out.append(
+            "<section><h2>Excluded benchmarks</h2><p>"
+            + esc(", ".join(exclusions.benchmarks))
+            + "</p>"
+        )
+        for change in exclusions.estimate_changes:
+            before = change.before
+            after = change.after
+            before_text = (
+                "unavailable"
+                if before is None
+                else f"{before.value:g} [{before.interval[0]:g}, {before.interval[1]:g}]"
+            )
+            after_text = (
+                "unavailable"
+                if after is None
+                else f"{after.value:g} [{after.interval[0]:g}, {after.interval[1]:g}]"
+            )
+            records = [item.record_id for item in change.removed_drivers if item.record_id]
+            removed_benchmarks = ", ".join(
+                item.benchmark for item in change.removed_drivers
+            )
+            out.append(
+                f"<p>{esc(change.model)} · {esc(change.domain)}: "
+                f"{esc(before_text)} before; {esc(after_text)} after. "
+                f"Removed drivers: {esc(removed_benchmarks)}. "
+                f"{links(records)}</p>"
+            )
+        out.append("</section>")
     for r in decision.results:
         out.append(f"<section><h2>{esc(r.offering.model)}</h2>")
         if r.offering.provider:
