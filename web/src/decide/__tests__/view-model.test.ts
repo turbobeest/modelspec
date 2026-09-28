@@ -223,7 +223,7 @@ describe("the hosted Decision view-model mapper", () => {
     const firstOffering = fixture.results[0].offering;
     const hosted = decisionSchema.parse({
       ...fixture,
-      contract_version: "1.10",
+      contract_version: "1.11",
       results: fixture.results.filter((result) => result.offering.model !== firstOffering.model),
       near_misses: [
         {

@@ -180,6 +180,23 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
+    benchmark_exclusions: z
+      .object({
+        benchmarks: z.array(facetId),
+        estimate_changes: z.array(
+          z
+            .object({
+              model: modelId,
+              domain: facetId,
+              before: estimateSchema.nullable(),
+              after: estimateSchema.nullable(),
+              removed_drivers: z.array(evidenceItemSchema),
+            })
+            .strict(),
+        ),
+      })
+      .strict()
+      .optional(),
     contract_version: z.enum([
       "1.1",
       "1.2",
@@ -191,6 +208,7 @@ export const decisionSchema = z
       "1.8",
       "1.9",
       "1.10",
+      "1.11",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -383,6 +401,7 @@ export const decisionSpecSchema = z
       .record(facetId, z.enum(["required", "preferred"]))
       .nullable()
       .optional(),
+    exclude_benchmarks: z.array(facetId).optional(),
     task_tokens: z
       .object({
         input: z.number().int().nonnegative(),

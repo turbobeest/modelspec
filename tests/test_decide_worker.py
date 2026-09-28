@@ -181,6 +181,24 @@ def test_invalid_specs_name_every_contract_issue(service, snapshot) -> None:
     assert body["error"]["issues"][0]["path"] == "unknown"
 
 
+def test_unknown_excluded_benchmark_is_a_clean_400(service, snapshot) -> None:
+    status, body = service.decide(
+        _payload() | {"exclude_benchmarks": ["made_up_benchmark"]},
+        snapshot,
+    )
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_spec"
+    assert body["error"]["issues"] == [
+        {
+            "path": "exclude_benchmarks[0]",
+            "condition": None,
+            "field": "made_up_benchmark",
+            "reason": "unknown benchmark ID in this snapshot",
+        }
+    ]
+
+
 def test_a_requested_snapshot_must_be_the_loaded_snapshot(service, snapshot) -> None:
     status, body = service.decide(_payload() | {"snapshot": "snap_0123456789abcdef"}, snapshot)
     assert status == 409
@@ -299,6 +317,30 @@ def test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget(service
         f"(load {load_ms:.2f} ms, decision and serialization {decision_ms:.2f} ms)"
     )
 
+    excluded_payload = payload | {"exclude_benchmarks": ["swe_bench_pro"]}
+    excluded_start = perf_counter()
+    excluded_status, excluded_body = service.decide(excluded_payload, loaded)
+    service.serialise(excluded_body)
+    excluded_ms = (perf_counter() - excluded_start) * 1_000
+    assert excluded_status == 200
+    assert excluded_body["benchmark_exclusions"]["benchmarks"] == ["swe_bench_pro"]
+    assert excluded_ms < 10_000, (
+        f"lineup-scale benchmark exclusion and refit took {excluded_ms:.2f} ms"
+    )
+
+    warm_samples = []
+    for _ in range(20):
+        warm_start = perf_counter()
+        status, body = service.decide(excluded_payload, loaded)
+        service.serialise(body)
+        warm_samples.append((perf_counter() - warm_start) * 1_000)
+        assert status == 200
+    warm_p95 = sorted(warm_samples)[int(len(warm_samples) * 0.95) - 1]
+    print(f"benchmark exclusion cold {excluded_ms:.2f} ms; cached warm p95 {warm_p95:.2f} ms")
+    assert warm_p95 < COLD_DOMAIN_DECISION_BUDGET_MS, (
+        f"cached lineup-scale benchmark exclusion p95 was {warm_p95:.2f} ms"
+    )
+
 
 def test_vendor_copies_the_shared_decision_engine_and_registry(tmp_path: Path) -> None:
     spec = importlib.util.spec_from_file_location(
@@ -310,8 +352,10 @@ def test_vendor_copies_the_shared_decision_engine_and_registry(tmp_path: Path) -
 
     required = {
         Path("api/classes.py"),
+        Path("decision/capability.py"),
         Path("decision/contract.py"),
         Path("decision/engine.py"),
+        Path("decision/explain.py"),
         Path("decision/snapshot.py"),
         Path("registry/facets.yaml"),
         Path("registry/domains.yaml"),

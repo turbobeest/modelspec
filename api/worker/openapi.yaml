@@ -2813,6 +2813,57 @@ components:
       - any
       title: AnyOf
       type: object
+    DecisionBenchmarkEstimateChange:
+      additionalProperties: false
+      description: How one model's domain estimate changed after removing evidence. Added in 1.11.
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        domain:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Domain
+          type: string
+        before:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionEstimate'
+          - type: 'null'
+          default: null
+        after:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionEstimate'
+          - type: 'null'
+          default: null
+        removed_drivers:
+          items:
+            $ref: '#/components/schemas/DecisionEvidenceItem'
+          title: Removed Drivers
+          type: array
+      required:
+      - model
+      - domain
+      title: BenchmarkEstimateChange
+      type: object
+    DecisionBenchmarkExclusions:
+      additionalProperties: false
+      description: Benchmarks a spec distrusted and their visible estimate effects. Added in 1.11.
+      properties:
+        benchmarks:
+          items:
+            pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          title: Benchmarks
+          type: array
+        estimate_changes:
+          items:
+            $ref: '#/components/schemas/DecisionBenchmarkEstimateChange'
+          title: Estimate Changes
+          type: array
+      required:
+      - benchmarks
+      title: BenchmarkExclusions
+      type: object
     DecisionBudget:
       additionalProperties: false
       properties:
@@ -3052,9 +3103,14 @@ components:
             $ref: '#/components/schemas/DecisionCitedSource'
           title: Sources
           type: array
+        benchmark_exclusions:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionBenchmarkExclusions'
+          - type: 'null'
+          default: null
         contract_version:
-          const: '1.10'
-          default: '1.10'
+          const: '1.11'
+          default: '1.11'
           title: Contract Version
           type: string
         decision_id:
@@ -4302,6 +4358,12 @@ components:
           - type: 'null'
           default: null
           title: Capabilities
+        exclude_benchmarks:
+          items:
+            pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          title: Exclude Benchmarks
+          type: array
         task_tokens:
           anyOf:
           - $ref: '#/components/schemas/DecisionTaskTokens'
@@ -4502,7 +4564,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:
@@ -4554,7 +4616,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:
@@ -4579,7 +4641,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:
@@ -4633,7 +4695,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:
@@ -4973,7 +5035,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '1.10'
+          - '1.11'
         endpoint:
           type: string
           enum:

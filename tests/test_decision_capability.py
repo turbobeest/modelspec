@@ -15,7 +15,7 @@ from decision.capability import (
     backtest_newest_capabilities,
     fit_capabilities,
 )
-from decision.contract import parse_spec
+from decision.contract import SpecError, parse_spec
 from decision.engine import decide
 from decision.excluded import excluded_sources
 from decision.registry import default as default_registry
@@ -335,6 +335,141 @@ def snapshot() -> object:
         as_of=AS_OF,
     )
     return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+
+
+def direct_and_proxy_snapshot() -> object:
+    rows = [
+        row
+        for row in synthetic_observations()
+        if row.benchmark_id in {"novel_repo_work", "novel_preference_proxy"}
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model(f"lab/model-{index}") for index in range(10)],
+            evidence=[
+                evidence(
+                    row.model_id,
+                    row.benchmark_id,
+                    row.value,
+                    eid=row.record_id,
+                    measured_by=row.measured_by,
+                    day=row.date.isoformat(),
+                )
+                for row in rows
+            ],
+            sources=SOURCES,
+            benchmark_domains={
+                "novel_repo_work": [("software_engineering", "direct")],
+                "novel_preference_proxy": [("software_engineering", "proxy")],
+            },
+            benchmark_metadata={
+                name: {
+                    "random_baseline": SPECS[name].random_baseline,
+                    "sample_size": SPECS[name].sample_size,
+                    "direction": SPECS[name].direction,
+                }
+                for name in ("novel_repo_work", "novel_preference_proxy")
+            },
+        ),
+        registry=default_registry(),
+        as_of=AS_OF,
+    )
+    return load_snapshot_bytes(built.to_bytes(key=None), key=None)
+
+
+def test_excluding_the_only_direct_benchmark_refits_and_explains_the_change() -> None:
+    index = direct_and_proxy_snapshot()
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "exclude_benchmarks": ["novel_repo_work"],
+            "capabilities": {"software_engineering": "required"},
+            "optimize": {"max": "software_engineering"},
+            "explain": "summary",
+            "limit": 10,
+        },
+        facets=default_registry().facet,
+    )
+
+    decision = decide(spec, index, facets=default_registry().facet)
+
+    assert decision.benchmark_exclusions is not None
+    assert decision.benchmark_exclusions.benchmarks == ["novel_repo_work"]
+    impact = next(
+        row
+        for row in decision.benchmark_exclusions.estimate_changes
+        if row.model == "lab/model-9" and row.domain == "software_engineering"
+    )
+    assert impact.before is not None and impact.after is not None
+    assert impact.after.interval[1] - impact.after.interval[0] > (
+        impact.before.interval[1] - impact.before.interval[0]
+    )
+    assert {driver.benchmark for driver in impact.removed_drivers} == {"novel_repo_work"}
+    assert all(
+        item.benchmark != "novel_repo_work"
+        for result in decision.results
+        for contribution in result.contributions
+        for item in contribution.evidence
+    )
+
+
+def test_excluded_evidence_cannot_answer_a_benchmark_objective() -> None:
+    index = direct_and_proxy_snapshot()
+
+    def facets(facet_id: str):
+        if facet_id in index.benchmark_ids():
+            return replace(default_registry().facet("evidence.benchmark"), id=facet_id)
+        return default_registry().facet(facet_id)
+
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "exclude_benchmarks": ["novel_repo_work"],
+            "optimize": {"max": "novel_repo_work"},
+            "explain": "summary",
+        },
+        facets=facets,
+    )
+
+    decision = decide(spec, index, facets=facets)
+
+    assert decision.status == "no_feasible"
+    assert decision.results == []
+
+
+def test_an_unknown_excluded_benchmark_names_the_bad_field() -> None:
+    index = direct_and_proxy_snapshot()
+    spec = parse_spec(
+        {
+            "spec_version": 1,
+            "exclude_benchmarks": ["made_up_benchmark"],
+            "optimize": {"max": "software_engineering"},
+        },
+        facets=default_registry().facet,
+    )
+
+    with pytest.raises(SpecError) as info:
+        decide(spec, index, facets=default_registry().facet)
+
+    [issue] = info.value.issues
+    assert issue.path == "exclude_benchmarks[0]"
+    assert issue.field == "made_up_benchmark"
+    assert issue.reason == "unknown benchmark ID in this snapshot"
+
+
+def test_an_empty_excluded_set_is_byte_identical_to_omission() -> None:
+    index = direct_and_proxy_snapshot()
+    base = {
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"},
+        "explain": "summary",
+    }
+    omitted = parse_spec(base, facets=default_registry().facet)
+    empty = parse_spec(base | {"exclude_benchmarks": []}, facets=default_registry().facet)
+
+    assert decide(omitted, index, facets=default_registry().facet).model_dump_json() == (
+        decide(empty, index, facets=default_registry().facet).model_dump_json()
+    )
 
 
 def test_snapshot_stores_estimates_and_domain_objectives_read_them() -> None:

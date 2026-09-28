@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.10**
+Contract version: **1.11**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -36,6 +36,7 @@ task_type: refactor
 capabilities:
   software_engineering: required
   formal_verification: preferred
+exclude_benchmarks: [swe_bench_pro]
 task_tokens: { input: 60000, output: 6000 }
 where:
   - offering.price.input in [0.50, 3.00]
@@ -65,6 +66,7 @@ save_as: acme-rust-refactor
 | `task` | string | none | Free text for the decision model. **Not yet in slice 1:** a spec that sets it is refused. Send `task_type` and `capabilities`. |
 | `task_type` | closed set, below | none | What kind of task this is. |
 | `capabilities` | map of domain ID to `required` or `preferred` | none | The capabilities the task needs. |
+| `exclude_benchmarks` | list of benchmark IDs | `[]` | Verified evidence from these benchmarks cannot filter, answer an objective or contribute to a capability estimate. Unknown IDs are refused. |
 | `task_tokens` | `{input, output}`, whole numbers ≥ 0 | `{input: 40000, output: 4000}` | Tokens one task takes. Prices `offering.cost_per_task`; see below. |
 | `where` | list of conditions | `[]` | Conditions, ANDed, applied in order. The order sets the order of the elimination funnel. |
 | `optimize` | objective | required | Exactly one objective form. |
@@ -74,6 +76,29 @@ save_as: acme-rust-refactor
 | `save_as` | lowercase slug | none | A name to save the spec under. Saved specs and alerts arrive in a later slice. |
 
 A spec with a field not named here is refused. Nothing is silently ignored.
+
+### Excluding benchmarks
+
+`exclude_benchmarks` lets the person asking distrust one or more registered
+benchmarks for one decision. The engine treats the list as a set, sorts it for
+the canonical spec hash, and removes those evidence rows before it filters,
+optimises or explains. It then refits the capability estimates from the
+snapshot's remaining verified evidence. No fixed replacement weights or
+benchmark list are used.
+
+An omitted field and `exclude_benchmarks: []` have the same canonical JSON and
+produce byte-identical decisions. A non-empty list must contain benchmark IDs
+from the loaded snapshot. An unknown ID returns `invalid_spec` at the field's
+list position.
+
+The loaded snapshot caches a refit by its content hash and the sorted excluded
+set. The first request for a set pays the full deterministic fit. Later
+requests reuse it. This keeps warm Worker requests within the one-second
+budget at the cost of retaining up to 16 fits per loaded snapshot; the least
+recently used set is evicted when a seventeenth arrives. On 2026-09-28, the
+current lineup took 2.24 seconds for the first refit and 90.20 ms cached warm
+p95 over 20 requests on the shared development Mac. The Worker test gates
+cached warm p95 below one second.
 
 **`task_type`** is one of `new_feature`, `bug_fix`, `refactor`,
 `test_writing`, `docs`, `migration`, `performance`, `security_fix`, `review`,
@@ -329,7 +354,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.10",
+  "contract_version": "1.11",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -393,10 +418,11 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.10"`. |
+| `contract_version` | `"1.11"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
+| `benchmark_exclusions` | Present for `summary` and `full` decisions with a non-empty `exclude_benchmarks` set. `benchmarks` lists the removed IDs. Each `estimate_changes` row names a result `model` and `domain`, the `before` and `after` estimate and interval, and the sourced `removed_drivers`. An estimate is null when the remaining evidence cannot fit it. |
 | `spec_hash` | The canonical spec hash. |
 | `explain` | The explanation level used. |
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
@@ -476,8 +502,8 @@ the estimate as proxy-only.
 | `explain` | Populated |
 |---|---|
 | `none` | `results` without `contributions`; `may_qualify`. For high-rate automated calls. |
-| `summary` | Adds `contributions`, the `funnel`, `constraint_costs` and `tipping_points`. |
-| `full` | Adds `eliminated.models`, `eliminated.model_groups`, `top` candidates with their relevant values, `chart`, `number_origins` and the `sources` they cite. |
+| `summary` | Adds `contributions`, the `funnel`, `constraint_costs`, `tipping_points` and, when requested, `benchmark_exclusions`. |
+| `full` | Adds `eliminated.models`, `eliminated.model_groups`, `top` candidates with their relevant values, `chart`, `number_origins`, the `sources` they cite and, when requested, `benchmark_exclusions`. |
 
 The fields are always present. At a lower level, the lists it does not populate
 are empty.
@@ -694,8 +720,10 @@ Decided now, so that later slices do not widen anything:
 
 - `estimates`, `p_best` and `top3_stability` are **nullable from 1.0**. Version
   1.7 fills them without a major bump.
-- Every list and object in a decision is **always present**. Explanation
-  levels decide what is populated, not what is present.
+- Every list and object defined before 1.11 is **always present**. Explanation
+  levels decide what is populated, not what is present. The optional 1.11
+  `benchmark_exclusions` object is absent unless a non-empty exclusion set is
+  explained.
 - `warnings` (on the decision and on each result) are **an open set of
   lowercase codes**. Clients must accept codes they do not know. A new code is
   not a widening.
@@ -709,6 +737,11 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **1.11 (MODEL-171):** A spec adds `exclude_benchmarks`. The engine removes
+  those evidence rows from conditions and objectives, refits capability
+  estimates from the remaining verified evidence, and reports the before and
+  after intervals with the removed drivers in `benchmark_exclusions`. An
+  omitted or empty set retains the prior canonical spec and decision bytes.
 - **1.10 — MODEL-182:** A decision adds `signature_verified`. The CLI verifies
   the snapshot against its pinned Ed25519 key set. The Worker can continue to
   verify the HMAC signature with its private key.
