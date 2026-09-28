@@ -393,6 +393,30 @@ def test_the_dpf_example_parses() -> None:
     assert spec.save_as == "acme-rust-refactor"
 
 
+def test_excluded_benchmarks_are_a_canonical_optional_set() -> None:
+    base = {"spec_version": 1, "optimize": {"max": "software_engineering"}}
+    omitted = c.parse_spec(base, facets=registry_facet)
+    empty = c.parse_spec(base | {"exclude_benchmarks": []}, facets=registry_facet)
+    selected = c.parse_spec(
+        base
+        | {
+            "exclude_benchmarks": [
+                "novel_repo_work",
+                "novel_patch_work",
+                "novel_repo_work",
+            ]
+        },
+        facets=registry_facet,
+    )
+
+    assert omitted.exclude_benchmarks == []
+    assert selected.exclude_benchmarks == ["novel_patch_work", "novel_repo_work"]
+    assert c.canonical_json(omitted) == c.canonical_json(empty)
+    assert '"exclude_benchmarks":["novel_patch_work","novel_repo_work"]' in (
+        c.canonical_json(selected)
+    )
+
+
 def test_free_text_task_is_parsed_but_rejected_in_slice_1() -> None:
     text = DPF_SPEC + 'task: "Refactor the Rust parser module"\n'
     with pytest.raises(c.SpecError) as info:
@@ -682,6 +706,14 @@ def _samples() -> list:
         result.evidence[0],
         result.evidence[0].items[0],
         result.estimates[0],
+        c.BenchmarkEstimateChange(
+            model=result.offering.model,
+            domain=result.estimates[0].domain,
+            before=result.estimates[0],
+            after=result.estimates[0],
+            removed_drivers=[result.evidence[0].items[0]],
+        ),
+        c.BenchmarkExclusions(benchmarks=["swe_bench_pro"]),
         result.contributions[0],
         decision.may_qualify[0],
         decision.eliminated,

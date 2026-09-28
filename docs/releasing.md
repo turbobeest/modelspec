@@ -3,6 +3,14 @@
 ModelSpec publishes the `modelspec-dev` distribution. The installed command is
 `modelspec`.
 
+## Release notes
+
+### 0.1.1 (2026-09-28)
+
+- Sign snapshots with Ed25519 and publish the verification key.
+- Compare decisions against another snapshot with `--compare-to`.
+- Include the CLI fixes merged since 0.1.0.
+
 ## Configure the first release
 
 Jamie must complete these steps once:

@@ -140,6 +140,83 @@
       "title": "AnyOf",
       "type": "object"
     },
+    "BenchmarkEstimateChange": {
+      "additionalProperties": false,
+      "description": "How one model's domain estimate changed after removing evidence. Added in 1.12.",
+      "properties": {
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Estimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Estimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "domain": {
+          "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+          "title": "Domain",
+          "type": "string"
+        },
+        "model": {
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "removed_drivers": {
+          "items": {
+            "$ref": "#/$defs/EvidenceItem"
+          },
+          "title": "Removed Drivers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model",
+        "domain"
+      ],
+      "title": "BenchmarkEstimateChange",
+      "type": "object"
+    },
+    "BenchmarkExclusions": {
+      "additionalProperties": false,
+      "description": "Benchmarks a spec distrusted and their visible estimate effects. Added in 1.12.",
+      "properties": {
+        "benchmarks": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+            "type": "string"
+          },
+          "title": "Benchmarks",
+          "type": "array"
+        },
+        "estimate_changes": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkEstimateChange"
+          },
+          "title": "Estimate Changes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "benchmarks"
+      ],
+      "title": "BenchmarkExclusions",
+      "type": "object"
+    },
     "Budget": {
       "additionalProperties": false,
       "properties": {
@@ -530,6 +607,17 @@
       "additionalProperties": false,
       "description": "The engine's answer to one spec against one snapshot.",
       "properties": {
+        "benchmark_exclusions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BenchmarkExclusions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "chart": {
           "anyOf": [
             {
@@ -2601,6 +2689,14 @@
           ],
           "default": null,
           "title": "Capabilities"
+        },
+        "exclude_benchmarks": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+            "type": "string"
+          },
+          "title": "Exclude Benchmarks",
+          "type": "array"
         },
         "explain": {
           "default": "summary",

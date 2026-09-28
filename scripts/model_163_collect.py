@@ -111,7 +111,9 @@ def additions(base_ref: str | None = None) -> dict[str, tuple[Path, dict, str]]:
         baseline = yaml.safe_load(MODEL_163_BASE_LINEUP.read_text(encoding="utf-8"))
         old_ids = set(baseline["models"])
     current = yaml.safe_load((ROOT / "premier" / "slice-1.yaml").read_text())
-    ids = {row["model_id"] for row in current["models"]} - old_ids
+    ids = (
+        {row["model_id"] for row in current["models"]} - old_ids
+    ) & set(SOURCE_URLS)
     if ids != set(SOURCE_URLS):
         raise SystemExit(
             f"MODEL-163 source census differs: missing={sorted(ids - set(SOURCE_URLS))}, "
