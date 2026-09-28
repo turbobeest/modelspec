@@ -256,6 +256,58 @@ def test_an_unknown_hardware_fit_may_qualify() -> None:
     assert [row.candidate for row in result.may_qualify] == ["lab/unknown"]
 
 
+def _mixed_device_index():
+    return loaded_index({
+        "lab/fits-and-refused": {
+            "model.fits_hardware": ["nvidia_rtx_5090"],
+            "model.hardware_fit_indeterminate": ["cerebras_wse3"],
+        },
+        "lab/refused-only": {
+            "model.fits_hardware": [],
+            "model.hardware_fit_indeterminate": ["cerebras_wse3"],
+        },
+        "lab/fits-only": {
+            "model.fits_hardware": ["nvidia_rtx_5090"],
+            "model.hardware_fit_indeterminate": [],
+        },
+    })
+
+
+def _candidates(snapshot, bits: int) -> set[str]:
+    return {cid for row, cid in enumerate(snapshot.candidates()) if bits >> row & 1}
+
+
+def test_a_must_naming_a_fitting_and_a_refused_device_keeps_them_disjoint() -> None:
+    snapshot = _mixed_device_index()
+
+    result = filter_apply(
+        hardware_spec("nvidia_rtx_5090, cerebras_wse3"), snapshot
+    )
+
+    assert set(result.feasible) == {"lab/fits-and-refused", "lab/fits-only"}
+    assert [row.candidate for row in result.may_qualify] == ["lab/refused-only"]
+    assert result.eliminated == ()
+
+
+def test_contains_all_counts_fitting_devices_as_passing_and_refused_as_unknown() -> None:
+    snapshot = _mixed_device_index()
+
+    both = snapshot.ids_where(
+        "model.fits_hardware", "contains_all", ["nvidia_rtx_5090", "cerebras_wse3"]
+    )
+    assert _candidates(snapshot, both.passing) == set()
+    assert _candidates(snapshot, both.unknown) == {"lab/fits-and-refused"}
+    assert _candidates(snapshot, both.failing) == {"lab/refused-only", "lab/fits-only"}
+
+    fitted = snapshot.ids_where(
+        "model.fits_hardware", "contains_all", ["nvidia_rtx_5090"]
+    )
+    assert _candidates(snapshot, fitted.passing) == {
+        "lab/fits-and-refused", "lab/fits-only",
+    }
+    assert _candidates(snapshot, fitted.failing) == {"lab/refused-only"}
+
+
 def test_private_deployment_is_also_a_three_valued_must(repo_snapshot) -> None:
     parsed = parse_spec({
         "spec_version": 1,
