@@ -508,8 +508,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.9",
-          "default": "1.9",
+          "const": "1.10",
+          "default": "1.10",
           "title": "Contract Version",
           "type": "string"
         },
@@ -577,6 +577,11 @@
           },
           "title": "Results",
           "type": "array"
+        },
+        "signature_verified": {
+          "default": false,
+          "title": "Signature Verified",
+          "type": "boolean"
         },
         "snapshot": {
           "pattern": "^snap_[A-Za-z0-9:._-]+$",
@@ -2921,5 +2926,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.9"
+  "x-contract-version": "1.10"
 }

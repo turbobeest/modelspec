@@ -270,6 +270,18 @@ def test_built_api_catalog_rfc9727(dist: Path) -> None:
     assert (dist / "benchgraph" / ".well-known" / "api-catalog").exists() is False
 
 
+def test_built_site_publishes_the_cli_pinned_snapshot_key_set(dist: Path) -> None:
+    published = dist / "modelspec" / ".well-known" / "modelspec-snapshot-keys.json"
+
+    assert published.read_bytes() == (ROOT / "decision" / "snapshot_keys.json").read_bytes()
+    assert json.loads(published.read_text(encoding="utf-8")) == {
+        "format": "modelspec.snapshot-keys",
+        "version": 1,
+        "keys": [],
+    }
+    assert not (dist / "benchgraph" / ".well-known" / published.name).exists()
+
+
 def test_built_link_headers(dist: Path) -> None:
     ms = (dist / "modelspec" / "_headers").read_text(encoding="utf-8")
     assert 'rel="describedby"' in ms and "</llms.txt>" in ms

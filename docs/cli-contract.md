@@ -170,12 +170,15 @@ The stable envelope fields are `schema_version`, `command`, `freshness`, and
 
 `snapshot status --json` also adds `result.decision_snapshot`. This additive
 object always has `present` and `path`. When present, it also has `snapshot_id`,
-`as_of`, `age_days`, `valid`, and `signature_verified` when valid. A corrupt
+`as_of`, `age_days`, `valid`, `signature_verified`, `signature_status`, and
+`signature_key_id` when valid. A corrupt
 cached file has `present: true`, `valid: false`, and `error`; it does not change
 the rank snapshot's status or exit code. `age_days` is the age of the
-cached file, not the snapshot's `as_of` date. A public fetch cannot verify the
-publisher's HMAC without the signing secret, so `signature_verified` is
-`false`. The fetch still checks the decision snapshot's `content_hash` and
+cached file, not the snapshot's `as_of` date. The CLI verifies Ed25519 offline
+against its pinned key set and reports `signature_verified: true`. Before the
+first key is provisioned, it reports
+`unsigned (ed25519 key not yet provisioned)` and `signature_verified: false`.
+The fetch always checks the decision snapshot's `content_hash` and
 that its `snapshot_id` derives from that hash before it replaces any cached
 file.
 

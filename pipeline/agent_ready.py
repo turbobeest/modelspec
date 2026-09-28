@@ -881,6 +881,10 @@ def ship(*, root: Path, ms: Path, models: list[Model],
     well.mkdir(parents=True, exist_ok=True)
     (well / "api-catalog").write_text(_json(api_catalog()), encoding="utf-8")
     (well / "mcp.json").write_text(_json(mcp_card()), encoding="utf-8")
+    shutil.copy2(
+        root / "decision" / "snapshot_keys.json",
+        well / "modelspec-snapshot-keys.json",
+    )
 
     skill_text = skill_markdown()
     skill_bytes = skill_text.encode("utf-8")

@@ -8,6 +8,8 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from typer.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -15,6 +17,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
 from cli.modelspec import decide_cmd  # noqa: E402
+from decision import snapshot as decision_snapshot  # noqa: E402
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes  # noqa: E402
 from decision.vocabulary import build_vocabulary  # noqa: E402
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering  # noqa: E402
@@ -129,6 +132,45 @@ def _write_rank_snapshot(cache: Path) -> None:
     }))
 
 
+def test_decide_reports_offline_ed25519_verification(
+    tmp_path: Path,
+    cached_vocabulary: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    built = build_snapshot(SnapshotInputs(
+        models=[model("lab/a")],
+        offerings=[],
+        evidence=[evidence("lab/a", "swe_bench_pro", 70.0)],
+        sources=SOURCES,
+        benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+    ), gate=False, as_of=date(2026, 9, 27))
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    signer = decision_snapshot.Ed25519Signer("test-cli", private_raw)
+    snapshot_path = (
+        tmp_path / "cache" / "decision" / cached_vocabulary["snapshot"] / "snapshot.json.gz"
+    )
+    snapshot_path.write_bytes(built.to_bytes(key=None, ed25519_signer=signer))
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-cli": public_raw},
+    )
+
+    result = _run(tmp_path, VALID, "--json")
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["signature_verified"] is True
+
+
 def test_a_valid_spec_requires_a_local_snapshot(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -146,7 +188,7 @@ def test_json_reports_the_spec_hash_and_the_error_code(
     assert result.exit_code == 1
     payload = json.loads(result.stderr)
     assert payload["command"] == "decide"
-    assert payload["contract_version"] == "1.9"
+    assert payload["contract_version"] == "1.10"
     assert payload["spec_hash"].startswith("sha256:")
     assert payload["error"]["code"] == "snapshot_required"
 

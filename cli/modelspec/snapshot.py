@@ -591,8 +591,8 @@ def _fetch_decision_files(origin: str, directory: Path,
             source = DEFAULT_ORIGIN
             decision_data, vocabulary_raw = download(source, send_credential=False)
 
-        # A public client cannot verify the HMAC without the publishing secret.
-        # It still verifies the content hash and snapshot ID.
+        # Public clients verify Ed25519 with the key set pinned in the package.
+        # The loader permits hash-only validation only while that set is empty.
         decision = load_snapshot_bytes(
             decision_data, key=None, include_archive=True,
             source=source + DECISION_SNAPSHOT_ROUTE,
@@ -644,7 +644,14 @@ def _fetch_decision_files(origin: str, directory: Path,
         shutil.rmtree(temporary, ignore_errors=True)
 
     _prune_decision_generations(root, decision.snapshot_id)
-    return {"available": True, "origin": source, "snapshot_id": decision.snapshot_id}
+    return {
+        "available": True,
+        "origin": source,
+        "snapshot_id": decision.snapshot_id,
+        "signature_verified": decision.signature_verified,
+        "signature_status": decision.signature_status,
+        "signature_key_id": decision.signature_key_id,
+    }
 
 
 def _prune_decision_generations(root: Path, current_id: str) -> None:
@@ -703,6 +710,8 @@ def status(directory: Path | None = None) -> dict[str, Any]:
                 "as_of": decision.as_of.isoformat() if decision.as_of else None,
                 "age_days": round(age_of(decision_path), 2),
                 "signature_verified": decision.signature_verified,
+                "signature_status": decision.signature_status,
+                "signature_key_id": decision.signature_key_id,
             }
         except (OSError, ValueError) as exc:
             decision_status = {

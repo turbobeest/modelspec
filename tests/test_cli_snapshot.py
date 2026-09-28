@@ -18,6 +18,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from typer.testing import CliRunner
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -25,6 +27,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from api.ranking.engine import USE_CASE_PROFILES  # noqa: E402
 from cli.modelspec import offline, snapshot  # noqa: E402
+from decision import snapshot as decision_snapshot  # noqa: E402
 from decision.snapshot import Snapshot as DecisionSnapshot  # noqa: E402
 from decision.snapshot import content_hash as decision_content_hash  # noqa: E402
 from decision.snapshot import snapshot_id_for  # noqa: E402
@@ -61,7 +64,10 @@ def _write(directory: Path, fetched_at: datetime | None = None) -> None:
     }), encoding="utf-8")
 
 
-def _decision_artifacts(as_of: str = "2026-09-27") -> tuple[bytes, dict]:
+def _decision_artifacts(
+    as_of: str = "2026-09-27",
+    signer: decision_snapshot.Ed25519Signer | None = None,
+) -> tuple[bytes, dict]:
     content = {
         "format_version": 1,
         "as_of": as_of,
@@ -83,7 +89,7 @@ def _decision_artifacts(as_of: str = "2026-09-27") -> tuple[bytes, dict]:
     }
     digest = decision_content_hash(content)
     built = DecisionSnapshot(content, digest, snapshot_id_for(digest))
-    return built.to_bytes(key="publisher-only-key"), {
+    return built.to_bytes(key="publisher-only-key", ed25519_signer=signer), {
         "vocabulary_version": 1,
         "snapshot": built.snapshot_id,
     }
@@ -248,6 +254,78 @@ def test_fetch_caches_the_decision_snapshot_and_vocabulary(cache: Path, monkeypa
     assert decision_status["present"] is True
     assert decision_status["signature_verified"] is False
     assert decision_status["as_of"] == "2026-09-27"
+
+
+def test_fetch_verifies_ed25519_with_the_cli_pinned_key_set(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    signer = decision_snapshot.Ed25519Signer("test-release", private_raw)
+    decision, vocabulary = _decision_artifacts(signer=signer)
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
+    _mock_http_client(monkeypatch, bodies)
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-release": public_raw},
+    )
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["signature_verified"] is True
+    status = snapshot.status(cache)["decision_snapshot"]
+    assert status["signature_verified"] is True
+    assert status["signature_key_id"] == "test-release"
+
+
+def test_fetch_refuses_a_tampered_ed25519_snapshot(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private = Ed25519PrivateKey.generate()
+    private_raw = private.private_bytes(
+        serialization.Encoding.Raw,
+        serialization.PrivateFormat.Raw,
+        serialization.NoEncryption(),
+    )
+    public_raw = private.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    signer = decision_snapshot.Ed25519Signer("test-release", private_raw)
+    decision, vocabulary = _decision_artifacts(signer=signer)
+    envelope = json.loads(gzip.decompress(decision))
+    envelope["content"]["as_of"] = "2099-01-01"
+    digest = decision_content_hash(envelope["content"])
+    envelope["content_hash"] = digest
+    envelope["snapshot_id"] = snapshot_id_for(digest)
+    forged = gzip.compress(json.dumps(envelope).encode())
+    vocabulary["snapshot"] = envelope["snapshot_id"]
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = forged
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = vocabulary
+    _mock_http_client(monkeypatch, bodies)
+    monkeypatch.setattr(
+        decision_snapshot,
+        "load_public_keys",
+        lambda: {"test-release": public_raw},
+    )
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["available"] is False
+    assert "Ed25519 signature" in result.decision_fetch["error"]
+    assert not (cache / "decision" / "current").exists()
 
 
 def test_successive_fetches_keep_current_and_previous_generations(

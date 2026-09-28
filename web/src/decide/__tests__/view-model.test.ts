@@ -219,11 +219,11 @@ describe("the hosted Decision view-model mapper", () => {
     expect(view.nearMisses).toEqual([]);
   });
 
-  it("reads model-grained funnel, eliminations and near misses from contract 1.9", () => {
+  it("reads model-grained funnel, eliminations and near misses from contract 1.10", () => {
     const firstOffering = fixture.results[0].offering;
     const hosted = decisionSchema.parse({
       ...fixture,
-      contract_version: "1.9",
+      contract_version: "1.10",
       results: fixture.results.filter((result) => result.offering.model !== firstOffering.model),
       near_misses: [
         {
