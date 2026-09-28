@@ -20,6 +20,7 @@ export function Share({
   axis,
   row,
   demo,
+  refinementsFolded = false,
   onClose,
 }: {
   spec: Spec;
@@ -27,6 +28,7 @@ export function Share({
   axis: Axis;
   row: Row | null;
   demo: boolean;
+  refinementsFolded?: boolean;
   onClose: () => void;
 }) {
   const { label } = useVocab();
@@ -91,6 +93,9 @@ export function Share({
         ),
         ...(unrankedBoard
           ? ["# unranked: no Prefer set; this objective only lets the spec run, it does not rank"]
+          : []),
+        ...(refinementsFolded
+          ? ["# refinement weights folded into their parent domains until nested ranking is available"]
           : []),
         `optimize: ${JSON.stringify(contractSpec.optimize)}`,
         `unknowns: ${contractSpec.unknowns ?? "default"}`,

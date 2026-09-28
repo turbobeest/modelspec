@@ -4,6 +4,7 @@ import fixtureJson from "../__fixtures__/full-decision.json";
 import liveBudgetCodingJson from "../__fixtures__/live-budget-coding-full.json";
 import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
 import liveSwePreferJson from "../__fixtures__/live-swe-prefer-full.json";
+import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import App, { DesignedApp } from "../App";
 import { decisionSchema } from "../adapter";
 import {
@@ -13,12 +14,13 @@ import {
   sentSpecs,
   smallVocabulary,
 } from "./vocab-fixtures";
-import { VOCABULARY_URL } from "../vocabulary";
+import { VOCABULARY_URL, vocabularySchema } from "../vocabulary";
 
 const fixture = decisionSchema.parse(fixtureJson);
 const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
+const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 
 /** Keep the legacy full fixture consistent with the objective a UI test sends. */
 function decisionFor(init: RequestInit | undefined, decision = fixture) {
@@ -63,6 +65,38 @@ function decisionFor(init: RequestInit | undefined, decision = fixture) {
 
 beforeEach(() => history.replaceState(null, "", "/"));
 afterEach(() => vi.unstubAllGlobals());
+
+it("folds unsupported refinement weights into the parent without losing board state", async () => {
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: (init) => {
+      const sent = JSON.parse(String(init?.body));
+      if ("software_engineering/python" in sent.optimize.weights) {
+        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+      }
+      return json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp demo={false} board />);
+  await screen.findByLabelText("Facet board answer");
+  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(software).getByLabelText("Prefer"));
+  fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+  const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
+  fireEvent.click(within(python).getByLabelText("Prefer"));
+
+  expect(await within(python).findByText("Ranking by Python is coming — shown by general software engineering for now")).toBeInTheDocument();
+  const requests = sentSpecs(fetch);
+  expect(requests.some((body) => body.optimize.weights["software_engineering/python"] > 0)).toBe(true);
+  expect(requests.some((body) => body.optimize.weights.software_engineering === 0.5 && !("software_engineering/python" in body.optimize.weights))).toBe(true);
+  expect(within(python).getByLabelText("Prefer")).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
+  const share = screen.getByRole("dialog");
+  fireEvent.click(within(share).getByRole("tab", { name: "Spec YAML" }));
+  expect(share).toHaveTextContent("refinement weights folded into their parent domains");
+  expect(share).toHaveTextContent('optimize: {"weights":{"software_engineering":0.5}}');
+});
 
 it("runs the designed App on a full hosted decision without fictional labels", async () => {
   const fetch = routeFetch({

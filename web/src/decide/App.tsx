@@ -55,8 +55,8 @@ import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
 import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
 import {
-  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, showsFacetBoard,
-  toBoardDecisionSpec,
+  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
+  refinementWeightKeys, showsFacetBoard, toBoardDecisionSpec,
 } from "./facet-board/model";
 import type { BoardSelections, Estate } from "./facet-board/model";
 
@@ -87,6 +87,8 @@ export function DesignedApp({
     [boardBaseSpec, setBoardBaseSpec] = useState<Spec>(initial?.spec || baseSpec),
     [boardSelections, setBoardSelections] = useState<BoardSelections>(initialBoard?.selections ?? {}),
     [boardMustOrder, setBoardMustOrder] = useState<string[]>(initialBoard?.mustOrder ?? []),
+    [refinementFallbackKeys, setRefinementFallbackKeys] = useState<Set<string>>(new Set()),
+    [lastSentSpec, setLastSentSpec] = useState<Spec | null>(null),
     [axis, setAxis] = useState<Axis>(initial?.x || "task$"),
     [view, setView] = useState(initial || board ? "work" : "arrive");
   const [draft, setDraft] = useState(
@@ -279,8 +281,9 @@ export function DesignedApp({
         ),
       );
     }, DECISION_WATCHDOG_MS);
-    const ask = (current: Vocabulary | null, explain: "summary" | "full") => {
-      const nextSpec = current ? sendableSpec(current, requested) : requested;
+    const ask = (current: Vocabulary | null, explain: "summary" | "full", override?: Spec) => {
+      const source = override ?? requested;
+      const nextSpec = current ? sendableSpec(current, source) : source;
       return hostedEngine
         .decide(board ? toBoardDecisionSpec(nextSpec, explain) : toDecisionSpec(nextSpec, explain), {
           signal: controller.signal,
@@ -307,6 +310,8 @@ export function DesignedApp({
       nextSpec = answer.result.nextSpec;
       if (used && reloaded) setVocabState({ kind: "ready", vocabulary: used });
       setHostedDecision(answer.result.decision);
+      setLastSentSpec(nextSpec);
+      setRefinementFallbackKeys(new Set());
       if (board)
         setEstateRequest((current) => ({
           kind: "idle",
@@ -320,8 +325,26 @@ export function DesignedApp({
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
       if (controller.signal.aborted) return;
-      fail(cause);
-      return;
+      if (board && vocabulary && cause instanceof DecideApiError && cause.status === 400 && cause.code === "refinement_not_rankable_yet") {
+        const folded = foldRefinementWeights(requested, vocabulary);
+        try {
+          const answer = await retryOnSnapshotChange(vocabulary, (current) => ask(current, "summary", folded), reloadVocabulary);
+          if (controller.signal.aborted) return;
+          used = answer.vocabulary;
+          nextSpec = answer.result.nextSpec;
+          setHostedDecision(answer.result.decision);
+          setHostedQuestions(used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec));
+          setRefinementFallbackKeys(refinementWeightKeys(vocabulary));
+          setLastSentSpec(nextSpec);
+          setRequestState({ kind: "success", details: "loading" });
+        } catch (fallbackCause) {
+          fail(fallbackCause);
+          return;
+        }
+      } else {
+        fail(cause);
+        return;
+      }
     } finally {
       clearTimeout(watchdog);
     }
@@ -329,8 +352,8 @@ export function DesignedApp({
       // Once the summary has reloaded, a second 409 here leaves the summary
       // standing: the background request never starts another reload.
       const answer = reloaded
-        ? { result: await ask(used, "full"), vocabulary: used }
-        : await retryOnSnapshotChange(used, (current) => ask(current, "full"), reloadVocabulary);
+        ? { result: await ask(used, "full", nextSpec), vocabulary: used }
+        : await retryOnSnapshotChange(used, (current) => ask(current, "full", nextSpec), reloadVocabulary);
       if (controller.signal.aborted) return;
       if (answer.vocabulary && answer.vocabulary !== used)
         setVocabState({ kind: "ready", vocabulary: answer.vocabulary });
@@ -898,6 +921,7 @@ export function DesignedApp({
             onEstate={setEstate}
             fit={decision?.explanation.feasible.length}
             may={decision?.explanation.may.length}
+            refinementFallbackKeys={refinementFallbackKeys}
             answer={decision ? <>
               <Field
                 decision={decision}
@@ -1113,11 +1137,12 @@ export function DesignedApp({
       )}
       {share && (
         <Share
-          spec={shownSpec}
+          spec={board && lastSentSpec ? lastSentSpec : shownSpec}
           snapshot={decision?.snapshot ?? "latest"}
           axis={shownAxis}
           row={row}
           demo={demo}
+          refinementsFolded={board && refinementFallbackKeys.size > 0}
           onClose={() => setShare(false)}
         />
       )}

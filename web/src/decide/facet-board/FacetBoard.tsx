@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Spec } from "../engine/types";
-import type { Vocabulary, VocabFacet } from "../vocabulary";
+import type { Vocabulary, VocabFacet, VocabRefinement } from "../vocabulary";
 import {
   boardToSpec, defaultFacetOp, defaultFacetValue, facetGroup, GROUP_ORDER,
-  groupFacets, nextMustOrder, readEstate, supportsPreference, templateToBoard, writeEstate,
+  groupFacets, nextMustOrder, readEstate, refinementSelectionId, supportsPreference,
+  templateToBoard, writeEstate,
 } from "./model";
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
 
@@ -46,7 +47,43 @@ function ValueControl({ facet, choice, onChange }: {
   })}</fieldset>;
 }
 
-function FacetRow({ facet, choice, onChange }: { facet: VocabFacet; choice: FacetSelection; onChange: (next: FacetSelection) => void }) {
+const KIND_LABELS = { language: "Language", task: "Task", mode: "Mode", material: "Material" } as const;
+const EVIDENCE_LABELS = { live: "Live", thin: "Thin", not_measured: "Not yet measured", no_benchmark: "No benchmark" } as const;
+const EVIDENCE_ORDER = { live: 0, thin: 1, not_measured: 2, no_benchmark: 3 } as const;
+
+function RefinementRow({ row, choice, parent, fallback, onChange }: { row: VocabRefinement; choice: FacetSelection; parent: FacetSelection; fallback: boolean; onChange: (next: FacetSelection) => void }) {
+  const [infoOpen, setInfoOpen] = useState(false);
+  const disabled = row.evidence_state === "not_measured" || row.evidence_state === "no_benchmark";
+  const proxyOnly = row.benchmarks.length > 0 && row.benchmarks.every((benchmark) => benchmark.directness === "proxy");
+  const parentWeight = parent.mode === "prefer" || parent.mode === "both" ? parent.weight ?? 0.5 : null;
+  const weight = choice.weight ?? (parentWeight === null ? 0.5 : parentWeight / 2);
+  const reason = row.evidence_state === "not_measured" ? "Benchmarks exist; no scores for these models yet"
+    : row.evidence_state === "no_benchmark" ? "No public benchmark measures this yet"
+    : row.evidence_state === "thin" ? proxyOnly ? "proxy evidence only" : "Order may rest on 1–2 models"
+    : null;
+  return <div className={`refinement-row ${disabled ? "refinement-unavailable" : ""}`} data-refinement={row.id}>
+    <div className="refinement-heading"><span><strong>{row.name}</strong><button className="facet-info" aria-label={`About ${row.name}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span><span className={`refinement-badge evidence-${row.evidence_state}`}>{EVIDENCE_LABELS[row.evidence_state]}</span><small>measured on {row.measured_models} of {row.of_models}</small></div>
+    {infoOpen && <div className="refinement-definition"><p>{row.definition}</p>{row.benchmarks.length > 0 && <ul>{row.benchmarks.map((benchmark) => <li key={`${benchmark.id}-${benchmark.directness}`}><code>{benchmark.id}</code> · {benchmark.directness}</li>)}</ul>}</div>}
+    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label title="Must for refinements is coming"><input type="radio" name={`state-refinement-${row.id}`} disabled />Must</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
+    {reason && <small className="refinement-reason">{reason}</small>}
+    {fallback && choice.mode === "prefer" && <small className="refinement-fallback">Ranking by {row.name} is coming — shown by general {row.parent_domain.replaceAll("_", " ")} for now</small>}
+    {choice.mode === "prefer" && !disabled && <label className="refinement-weight">{row.name} weight <input aria-label={`Weight for ${row.name}`} type="range" min="0.05" max={parentWeight ?? 1} step="0.05" value={Math.min(weight, parentWeight ?? 1)} onChange={(event) => onChange({ ...choice, mode: "prefer", weight: Number(event.target.value) })} />{weight.toFixed(2)}</label>}
+  </div>;
+}
+
+function Refinements({ rows, selections, parent, fallbackKeys, onChange }: { rows: VocabRefinement[]; selections: BoardSelections; parent: FacetSelection; fallbackKeys: ReadonlySet<string>; onChange: (id: string, next: FacetSelection) => void }) {
+  const [open, setOpen] = useState(false);
+  const active = rows.filter((row) => selections[refinementSelectionId(row.id)]?.mode === "prefer");
+  const parentWeight = parent.mode === "prefer" || parent.mode === "both" ? parent.weight ?? 0.5 : null;
+  const carved = active.reduce((sum, row) => sum + (selections[refinementSelectionId(row.id)]?.weight ?? 0.5), 0);
+  const general = parentWeight === null ? null : Math.max(0, parentWeight - carved);
+  return <section className="refinements"><button className="refine-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>Refine</button>
+    {general !== null && active.length > 0 && <div className="refinement-carve"><span>general {general.toFixed(1)}{active.map((row) => ` · ${row.name} ${(selections[refinementSelectionId(row.id)]?.weight ?? 0.5).toFixed(1)}`).join("")}</span><label>General remainder <input aria-label="General remainder" type="range" min="0" max={parentWeight ?? 1} step="0.05" value={general} readOnly /></label></div>}
+    {open && (["language", "task", "mode", "material"] as const).map((kind) => { const grouped = rows.filter((row) => row.kind === kind).sort((left, right) => EVIDENCE_ORDER[left.evidence_state] - EVIDENCE_ORDER[right.evidence_state] || left.name.localeCompare(right.name)); return grouped.length > 0 && <section className="refinement-group" key={kind}><h4>{KIND_LABELS[kind]}</h4>{grouped.map((row) => <RefinementRow key={row.id} row={row} choice={selections[refinementSelectionId(row.id)] ?? { mode: "off" }} parent={parent} fallback={fallbackKeys.has(row.weight_key)} onChange={(next) => onChange(refinementSelectionId(row.id), next)} />)}</section>; })}
+  </section>;
+}
+
+function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKeys = new Set(), onChange, onRefinementChange = () => undefined }: { facet: VocabFacet; choice: FacetSelection; refinements?: VocabRefinement[]; selections?: BoardSelections; fallbackKeys?: ReadonlySet<string>; onChange: (next: FacetSelection) => void; onRefinementChange?: (id: string, next: FacetSelection) => void }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const unavailable = facet.known === 0;
   const preference = supportsPreference(facet.id);
@@ -79,6 +116,7 @@ function FacetRow({ facet, choice, onChange }: { facet: VocabFacet; choice: Face
         {prefer && ["number", "date"].includes(facet.value_type) && <label><input type="checkbox" checked={choice.mode === "both"} onChange={(event) => setMode(event.target.checked ? "both" : "prefer")} />and never worse than…</label>}
       </div>}
       {facet.id.startsWith("capability.") && <details className="benchmarks"><summary>Benchmarks</summary><p>Benchmark switches: coming (MODEL-171)</p></details>}
+      {facet.id.startsWith("capability.") && choice.mode !== "off" && refinements.length > 0 && <Refinements rows={refinements} selections={selections} parent={choice} fallbackKeys={fallbackKeys} onChange={onRefinementChange} />}
     </div>
   </div>;
 }
@@ -92,7 +130,7 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0 }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0, refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number; refinementFallbackKeys?: ReadonlySet<string> }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -136,7 +174,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
           const active = group.facets.filter((facet) => selected[facet.id]?.mode && selected[facet.id]?.mode !== "off");
           const survival = active.flatMap((facet) => facet.values?.map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
           const open = expandedGroups[group.name] === true;
-          return <section className="facet-group" key={group.name}><button className="facet-group-summary" aria-expanded={open} onClick={() => setExpandedGroups((current) => ({ ...current, [group.name]: !open }))}><span>{group.name}</span><small>{active.length ? `${active.length} set` : "all Doesn't matter"}{survival.length ? ` · → ${Math.min(...survival)} survive` : " · no change"}</small><b aria-hidden="true">{open ? "−" : "+"}</b></button>{open && <div>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selected[facet.id] ?? { mode: "off" }} onChange={(choice) => update(facet.id, choice)} />)}{group.facets.some((facet) => facet.known > 0 && !supportsPreference(facet.id)) && <p className="group-coming">Prefer on these facets: coming (MODEL-172)</p>}</div>}</section>;
+          return <section className="facet-group" key={group.name}><button className="facet-group-summary" aria-expanded={open} onClick={() => setExpandedGroups((current) => ({ ...current, [group.name]: !open }))}><span>{group.name}</span><small>{active.length ? `${active.length} set` : "all Doesn't matter"}{survival.length ? ` · → ${Math.min(...survival)} survive` : " · no change"}</small><b aria-hidden="true">{open ? "−" : "+"}</b></button>{open && <div>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selected[facet.id] ?? { mode: "off" }} refinements={(vocabulary.refinements ?? []).filter((row) => facet.id === `capability.${row.parent_domain}`)} selections={selected} fallbackKeys={refinementFallbackKeys} onChange={(choice) => update(facet.id, choice)} onRefinementChange={update} />)}{group.facets.some((facet) => facet.known > 0 && !supportsPreference(facet.id)) && <p className="group-coming">Prefer on these facets: coming (MODEL-172)</p>}</div>}</section>;
         })}
         {!!grouped.untracked.length && <section className="facet-group untracked"><button className="facet-group-summary" aria-expanded={expandedGroups.untracked === true} onClick={() => setExpandedGroups((current) => ({ ...current, untracked: !current.untracked }))}><span>Not yet tracked</span><small>{grouped.untracked.length} facets · no values</small><b aria-hidden="true">{expandedGroups.untracked ? "−" : "+"}</b></button>{expandedGroups.untracked && <div><p>No model in this snapshot has a value. Must and Prefer are disabled; a null beats a guess.</p>{grouped.untracked.map((facet) => <FacetRow key={facet.id} facet={facet} choice={{ mode: "off" }} onChange={() => undefined} />)}</div>}</section>}
       </section>

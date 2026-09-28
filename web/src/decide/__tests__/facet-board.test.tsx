@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
-  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, groupFacets,
+  boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
   formatBoardCondition, nextMustOrder, parseBoardCondition, showsFacetBoard, supportsPreference,
   templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
@@ -10,6 +10,10 @@ import type { BoardSelections } from "../facet-board/model";
 import { realBaseSpec } from "../vocabulary";
 import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
+import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
+import { vocabularySchema } from "../vocabulary";
+
+const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 
 describe("facet board launch gate", () => {
   it.each(["internal.modelspec-7np.pages.dev", "localhost", "127.0.0.1"])("allows %s", (host) => expect(showsFacetBoard(host)).toBe(true));
@@ -98,6 +102,61 @@ describe("facet state mapping", () => {
   it("only enables weights the engine supports", () => {
     expect(supportsPreference("offering.cost_per_task")).toBe(true);
     expect(supportsPreference("model.context_window")).toBe(false);
+  });
+});
+
+describe("refinements", () => {
+  it("carves refinement weights from the parent and folds them back exactly", () => {
+    const selections: BoardSelections = {
+      "capability.software_engineering": { mode: "prefer", weight: 0.6 },
+      "refinement.python": { mode: "prefer", weight: 0.3 },
+    };
+    const carved = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, selections);
+    expect(toBoardDecisionSpec(carved, "summary").optimize).toEqual({
+      weights: { software_engineering: 0.3, "software_engineering/python": 0.3 },
+    });
+    expect(toBoardDecisionSpec(foldRefinementWeights(carved, refinementVocabulary), "summary").optimize).toEqual({
+      weights: { software_engineering: 0.6 },
+    });
+  });
+
+  it("adds a refinement preference when its parent is Must-only", () => {
+    const spec = boardToSpec(realBaseSpec(refinementVocabulary), refinementVocabulary, {
+      "capability.software_engineering": { mode: "must", value: 0.5 },
+      "refinement.python": { mode: "prefer", weight: 0.25 },
+    });
+    expect(toBoardDecisionSpec(spec, "summary").optimize).toEqual({
+      weights: { "software_engineering/python": 0.25 },
+    });
+  });
+
+  it("shows Refine only for an active domain and orders evidence within each kind", () => {
+    const base = realBaseSpec(refinementVocabulary);
+    const view = render(<FacetBoard vocabulary={refinementVocabulary} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Refine" })).not.toBeInTheDocument();
+    view.rerender(<FacetBoard vocabulary={refinementVocabulary} spec={base} selections={{ "capability.software_engineering": { mode: "prefer", weight: 0.6 } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Refine" }));
+    const language = screen.getByRole("heading", { name: "Language" }).closest("section")!;
+    expect(within(language).getAllByText(/Python|Go|Java|Rust|TypeScript/).map((node) => node.textContent)).toEqual(["Python", "Go", "Java", "Rust", "TypeScript"]);
+    const rust = screen.getByText("Rust").closest<HTMLElement>(".refinement-row")!;
+    expect(within(rust).getByLabelText("Prefer")).toBeDisabled();
+    expect(within(rust).getByText("Benchmarks exist; no scores for these models yet")).toBeInTheDocument();
+    const terminal = screen.getByText("Terminal agent").closest<HTMLElement>(".refinement-row")!;
+    expect(within(terminal).getByLabelText("Prefer")).toBeEnabled();
+    expect(within(terminal).getByText("proxy evidence only")).toBeInTheDocument();
+  });
+
+  it("restores refinement selection and weight from the board URL", () => {
+    const restored = decodeBoardState(encodeBoardSpec(realBaseSpec(refinementVocabulary), "task$", {
+      selections: { "refinement.python": { mode: "prefer", weight: 0.3 } },
+      mustOrder: [], estate: { providers: [], plans: [], hardware: [] },
+    }));
+    expect(restored?.selections["refinement.python"]).toEqual({ mode: "prefer", weight: 0.3 });
+  });
+
+  it("renders no Refine control when the optional field is absent", () => {
+    render(<FacetBoard vocabulary={realVocabulary} spec={realBaseSpec(realVocabulary)} selections={{ "capability.software_engineering": { mode: "prefer" } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Refine" })).not.toBeInTheDocument();
   });
 });
 

@@ -38,6 +38,9 @@ export function RankedAnswer({
   const capability = vocabulary.domains.find((domain) =>
     Object.keys(spec.boardWeights ?? {}).includes(domain.id),
   );
+  const activeRefinements = (vocabulary.refinements ?? []).filter((refinement) =>
+    Object.keys(spec.boardWeights ?? {}).includes(refinement.weight_key),
+  );
   const rows = ranked
     ? decision.explanation.feasible
     : allCandidates.sort((left, right) =>
@@ -91,6 +94,11 @@ export function RankedAnswer({
             <strong>{row.m.name}</strong>
             <small>{row.m.labName} · via {row.best.o.provider}</small>
             {otherProviders.length > 0 && <small>also via {otherProviders.join(", ")}</small>}
+            {activeRefinements.map((refinement) => {
+              const result = decision.results.find((item) => item.offering.model === `${row.m.lab}/${row.m.id}`);
+              const hasEvidence = result?.evidence.some((group) => group.items.some((item) => item.sub_category === refinement.id || refinement.benchmarks.some((benchmark) => benchmark.id === item.benchmark))) ?? false;
+              return !hasEvidence && <small key={refinement.id}>no {refinement.name} evidence — estimated from general coding</small>;
+            })}
           </div>
           <div className="board-ranked-cost"><small>Cost per task</small><span>{money(row.cost)}</span></div>
           {capability && <div className="board-capability">
