@@ -24,7 +24,7 @@ from __future__ import annotations
 import hashlib
 import math
 import random
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date
@@ -46,6 +46,17 @@ _RIDGE_ITEM = 0.25
 _MIN_ITEM_MODELS = 2
 _DOMAIN_PRIOR_PRECISION = 0.25
 _PROJECTION_PROXY_LOADING = 0.35
+# The noise variance of one fresh, direct, standardised measurement around the
+# model's domain capability (MODEL-206). Unit variance made the 80% intervals
+# cover 94% of held-out direct cells. Held-out errors are larger for models
+# measured directly on few benchmarks, so a model with fewer than
+# _WELL_MEASURED direct measurements in a projection gets the sparse variance.
+# Both are fitted by leave-one-cell-out predictive likelihood on held-out
+# direct cells: scripts/capability_calibration.py writes the method and the
+# coverage by evidence level to docs/research/capability-interval-calibration.md.
+_OBSERVATION_VARIANCE = 0.45
+_SPARSE_OBSERVATION_VARIANCE = 0.75
+_WELL_MEASURED = 5
 _EXCLUSION_CACHE_SIZE = 16
 # The between-model spread of a refinement adjustment. A refinement's own
 # estimate is pooled with this default, weighted as this many models, and
@@ -540,10 +551,16 @@ def _domain_estimates(
             for row in rows
             if domain in dict(items[row.item_id].domains)
         ]
+        direct = Counter(
+            row.observation.model_id for row in domain_rows
+            if dict(items[row.item_id].domains)[domain] == "direct"
+        )
         scores: dict[str, list[tuple[_Prepared, float, float]]] = defaultdict(list)
         for row, z_score in _item_zscores(domain_rows):
             directness_loading = _projection_loading(items[row.item_id].domains, domain)
-            precision = directness_loading**2 * row.recency_weight
+            precision = _projection_precision(
+                directness_loading, row.recency_weight,
+                observation_variance(direct[row.observation.model_id]))
             scores[row.observation.model_id].append((row, z_score, precision))
 
         for model_id, model_rows in sorted(scores.items()):
@@ -585,6 +602,16 @@ def _item_zscores(rows: Sequence[_Prepared]) -> list[tuple[_Prepared, float]]:
 
 def _projection_loading(tags: Sequence[tuple[str, Directness]], tag: str) -> float:
     return 1.0 if dict(tags)[tag] == "direct" else _PROJECTION_PROXY_LOADING
+
+
+def observation_variance(direct: int) -> float:
+    """The noise variance of one measurement for a model with ``direct`` direct measurements."""
+    return _OBSERVATION_VARIANCE if direct >= _WELL_MEASURED else _SPARSE_OBSERVATION_VARIANCE
+
+
+def _projection_precision(loading: float, recency: float, variance: float) -> float:
+    """What one standardised measurement adds to a projected estimate's precision."""
+    return loading**2 * recency / variance
 
 
 def _projection_drivers(
@@ -639,19 +666,35 @@ def _refinement_estimates(
     for key in keys:
         parent = refinement_parent(key)
         own = {row.benchmark_id for row in observations if key in dict(row.refinements)}
+        base_rows = [
+            (row, z_score) for row, z_score in domain_zscores
+            if parent != ANY_PARENT and parent in dict(items[row.item_id].domains)
+            and row.observation.benchmark_id not in own
+        ]
+        own_rows = [
+            (row, z_score) for row, z_score in zscores
+            if key in dict(refinement_items[row.item_id].domains)
+        ]
+        base_direct = Counter(
+            row.observation.model_id for row, _ in base_rows
+            if dict(items[row.item_id].domains)[parent] == "direct"
+        )
+        own_direct = Counter(
+            row.observation.model_id for row, _ in own_rows
+            if dict(refinement_items[row.item_id].domains)[key] == "direct"
+        )
         base_scores: dict[str, list[tuple[float, float]]] = defaultdict(list)
-        if parent != ANY_PARENT:
-            for row, z_score in domain_zscores:
-                tags = items[row.item_id].domains
-                if parent in dict(tags) and row.observation.benchmark_id not in own:
-                    weight = _projection_loading(tags, parent) ** 2 * row.recency_weight
-                    base_scores[row.observation.model_id].append((z_score, weight))
+        for row, z_score in base_rows:
+            weight = _projection_precision(
+                _projection_loading(items[row.item_id].domains, parent), row.recency_weight,
+                observation_variance(base_direct[row.observation.model_id]))
+            base_scores[row.observation.model_id].append((z_score, weight))
         scores: dict[str, list[tuple[_Prepared, float, float]]] = defaultdict(list)
-        for row, z_score in zscores:
-            tags = refinement_items[row.item_id].domains
-            if key in dict(tags):
-                weight = _projection_loading(tags, key) ** 2 * row.recency_weight
-                scores[row.observation.model_id].append((row, z_score, weight))
+        for row, z_score in own_rows:
+            weight = _projection_precision(
+                _projection_loading(refinement_items[row.item_id].domains, key),
+                row.recency_weight, observation_variance(own_direct[row.observation.model_id]))
+            scores[row.observation.model_id].append((row, z_score, weight))
 
         def base(model_id: str) -> tuple[float, float]:
             parts = base_scores.get(model_id, ())

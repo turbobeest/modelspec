@@ -686,6 +686,11 @@ body {
 .board-tie-answer p { margin: 4px 0; font-size: 12.5px; overflow-wrap: anywhere; }
 .board-tie-note, .board-tie-caption { color: var(--muted); }
 .board-tie-answer ul { list-style: none; margin: 0; padding: 0; }
+.board-blend { margin: 0 0 4px; color: var(--muted); }
+.board-tie-group, .board-band-rest, .board-band-thin, .board-blend-terms { padding-left: 0; list-style: none; margin: 0; }
+.board-band-rest li, .board-band-thin li, .board-blend-terms li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); min-width: 0; }
+.board-band-rest small, .board-band-thin small { color: var(--muted); overflow-wrap: anywhere; }
+.board-thin-tag { margin-left: 8px; font-size: 11px; font-weight: 400; border: 1px dashed var(--line); padding: 0 6px; border-radius: 999px; color: var(--muted); }
 .board-tie-group li, .board-tie-breakers li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); min-width: 0; }
 .board-tie-group small, .board-tie-breakers small { color: var(--muted); overflow-wrap: anywhere; }
 .board-tie-caption { margin: 8px 0 0; font-size: 12px; }

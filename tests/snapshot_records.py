@@ -239,8 +239,9 @@ LINEUP = [
 ]
 
 
-# Measurement intervals that make alpha and gamma overlap, so the engine answers "tied".
-TIED_INTERVALS = {"lab/alpha": [86.0, 98.0], "lab/gamma": [82.0, 94.0]}
+# Measurement intervals wide enough that gamma's score is at least alpha's with
+# probability 0.25 or more, so the engine answers "tied" (MODEL-206).
+TIED_INTERVALS = {"lab/alpha": [80.0, 104.0], "lab/gamma": [76.0, 100.0]}
 
 
 def build_lineup_snapshot(intervals=None):

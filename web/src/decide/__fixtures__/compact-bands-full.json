@@ -1,0 +1,2298 @@
+{
+  "near_misses": [],
+  "top": [
+    {
+      "offering": {
+        "model": "lab/unproven",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/unproven#model.class",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "lab/unproven#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/unproven#model.lifecycle",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "lab/unproven#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 0.3,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/unproven/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 1.2,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/unproven/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 0.0168,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "cloud/lab/unproven/global/standard#offering.price.input",
+            "cloud/lab/unproven/global/standard#offering.price.output"
+          ],
+          "formula": "(0.3 USD per 1M input tokens × 40,000 input tokens + 1.2 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.0168 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    },
+    {
+      "offering": {
+        "model": "lab/steady",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/steady#model.class",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "lab/steady#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/steady#model.lifecycle",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "lab/steady#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 2.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/steady/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 8.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/steady/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 0.112,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "cloud/lab/steady/global/standard#offering.price.input",
+            "cloud/lab/steady/global/standard#offering.price.output"
+          ],
+          "formula": "(2 USD per 1M input tokens × 40,000 input tokens + 8 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.112 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    },
+    {
+      "offering": {
+        "model": "lab/cheap",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/cheap#model.class",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "lab/cheap#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/cheap#model.lifecycle",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "lab/cheap#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 0.4,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/cheap/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 1.6,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/cheap/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 0.0224,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "cloud/lab/cheap/global/standard#offering.price.input",
+            "cloud/lab/cheap/global/standard#offering.price.output"
+          ],
+          "formula": "(0.4 USD per 1M input tokens × 40,000 input tokens + 1.6 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.0224 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    },
+    {
+      "offering": {
+        "model": "lab/strong",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/strong#model.class",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "lab/strong#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/strong#model.lifecycle",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "lab/strong#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 6.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/strong/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 24.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/strong/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 0.336,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "cloud/lab/strong/global/standard#offering.price.input",
+            "cloud/lab/strong/global/standard#offering.price.output"
+          ],
+          "formula": "(6 USD per 1M input tokens × 40,000 input tokens + 24 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.336 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    },
+    {
+      "offering": {
+        "model": "lab/weak",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.class",
+          "value": "text-generator",
+          "unit": null,
+          "record_id": "lab/weak#model.class",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "lab/weak#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.lifecycle",
+          "value": "active",
+          "unit": null,
+          "record_id": "lab/weak#model.lifecycle",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "lab/weak#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 1.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/weak/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 4.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "cloud/lab/weak/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 0.056,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "cloud/lab/weak/global/standard#offering.price.input",
+            "cloud/lab/weak/global/standard#offering.price.output"
+          ],
+          "formula": "(1 USD per 1M input tokens × 40,000 input tokens + 4 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.056 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    }
+  ],
+  "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 550\" role=\"img\" aria-label=\"Objective contributions in original units\"><text x=\"8\" y=\"18\">lab/unproven · -offering.cost_per_task: 0.0168 usd_per_task</text><rect x=\"8\" y=\"27\" width=\"15\" height=\"12\" /><text x=\"8\" y=\"73\">lab/unproven · software_engineering: 0.270487 latent capability</text><rect x=\"8\" y=\"82\" width=\"70.1512\" height=\"12\" /><text x=\"8\" y=\"128\">lab/steady · -offering.cost_per_task: 0.112 usd_per_task</text><rect x=\"8\" y=\"137\" width=\"100\" height=\"12\" /><text x=\"8\" y=\"183\">lab/steady · software_engineering: 0.514048 latent capability</text><rect x=\"8\" y=\"192\" width=\"133.319\" height=\"12\" /><text x=\"8\" y=\"238\">lab/cheap · -offering.cost_per_task: 0.0224 usd_per_task</text><rect x=\"8\" y=\"247\" width=\"20\" height=\"12\" /><text x=\"8\" y=\"293\">lab/cheap · software_engineering: -0.212793 latent capability</text><rect x=\"8\" y=\"302\" width=\"55.1881\" height=\"12\" /><text x=\"8\" y=\"348\">lab/strong · -offering.cost_per_task: 0.336 usd_per_task</text><rect x=\"8\" y=\"357\" width=\"300\" height=\"12\" /><text x=\"8\" y=\"403\">lab/strong · software_engineering: 0.880537 latent capability</text><rect x=\"8\" y=\"412\" width=\"228.369\" height=\"12\" /><text x=\"8\" y=\"458\">lab/weak · -offering.cost_per_task: 0.056 usd_per_task</text><rect x=\"8\" y=\"467\" width=\"50\" height=\"12\" /><text x=\"8\" y=\"513\">lab/weak · software_engineering: -1.15673 latent capability</text><rect x=\"8\" y=\"522\" width=\"300\" height=\"12\" /></svg>",
+  "number_origins": [
+    {
+      "path": "/results/0/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/estimates/0/value",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/estimates/0/interval/0",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/estimates/0/interval/1",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/p_best",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/top3_stability",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/contributions/0/raw_value",
+      "basis": "computed per decision: (0.3 USD per 1M input tokens × 40,000 input tokens + 1.2 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.0168 USD per task",
+      "records": [
+        "cloud/lab/unproven/global/standard#offering.price.input",
+        "cloud/lab/unproven/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/unproven/global/standard#offering.price.input",
+        "cloud/lab/unproven/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/1/raw_value",
+      "basis": "computed per decision: monotone domain evidence estimate",
+      "records": [
+        "lab/unproven#preference_proxy#80.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/1/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "lab/unproven#preference_proxy#80.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/1/evidence/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/unproven#preference_proxy#80.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/1/evidence/0/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/contributions/1/evidence/0/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/contributions/1/evidence/0/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/estimates/0/value",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/estimates/0/interval/0",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/estimates/0/interval/1",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/p_best",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/top3_stability",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/contributions/0/raw_value",
+      "basis": "computed per decision: (2 USD per 1M input tokens × 40,000 input tokens + 8 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.112 USD per task",
+      "records": [
+        "cloud/lab/steady/global/standard#offering.price.input",
+        "cloud/lab/steady/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/steady/global/standard#offering.price.input",
+        "cloud/lab/steady/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/1/raw_value",
+      "basis": "computed per decision: monotone domain evidence estimate",
+      "records": [
+        "lab/steady#patch_work#61.0",
+        "lab/steady#repo_work#64.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/1/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "lab/steady#patch_work#61.0",
+        "lab/steady#repo_work#64.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/1/evidence/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/steady#patch_work#61.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/1/evidence/0/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/contributions/1/evidence/0/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/contributions/1/evidence/0/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/contributions/1/evidence/1/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/steady#repo_work#64.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/1/evidence/1/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/contributions/1/evidence/1/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/contributions/1/evidence/1/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/estimates/0/value",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/estimates/0/interval/0",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/estimates/0/interval/1",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/p_best",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/top3_stability",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/contributions/0/raw_value",
+      "basis": "computed per decision: (0.4 USD per 1M input tokens × 40,000 input tokens + 1.6 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.0224 USD per task",
+      "records": [
+        "cloud/lab/cheap/global/standard#offering.price.input",
+        "cloud/lab/cheap/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/cheap/global/standard#offering.price.input",
+        "cloud/lab/cheap/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/1/raw_value",
+      "basis": "computed per decision: monotone domain evidence estimate",
+      "records": [
+        "lab/cheap#patch_work#47.0",
+        "lab/cheap#repo_work#50.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/1/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "lab/cheap#patch_work#47.0",
+        "lab/cheap#repo_work#50.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/1/evidence/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/cheap#patch_work#47.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/1/evidence/0/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/contributions/1/evidence/0/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/contributions/1/evidence/0/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/contributions/1/evidence/1/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/cheap#repo_work#50.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/1/evidence/1/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/contributions/1/evidence/1/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/contributions/1/evidence/1/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/estimates/0/value",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/estimates/0/interval/0",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/estimates/0/interval/1",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/p_best",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/top3_stability",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/contributions/0/raw_value",
+      "basis": "computed per decision: (6 USD per 1M input tokens × 40,000 input tokens + 24 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.336 USD per task",
+      "records": [
+        "cloud/lab/strong/global/standard#offering.price.input",
+        "cloud/lab/strong/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/strong/global/standard#offering.price.input",
+        "cloud/lab/strong/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/1/raw_value",
+      "basis": "computed per decision: monotone domain evidence estimate",
+      "records": [
+        "lab/strong#patch_work#66.0",
+        "lab/strong#repo_work#72.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/1/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "lab/strong#patch_work#66.0",
+        "lab/strong#repo_work#72.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/1/evidence/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/strong#patch_work#66.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/1/evidence/0/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/contributions/1/evidence/0/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/contributions/1/evidence/0/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/contributions/1/evidence/1/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/strong#repo_work#72.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/1/evidence/1/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/contributions/1/evidence/1/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/contributions/1/evidence/1/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/estimates/0/value",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/estimates/0/interval/0",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/estimates/0/interval/1",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/p_best",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/top3_stability",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/0/raw_value",
+      "basis": "computed per decision: (1 USD per 1M input tokens × 40,000 input tokens + 4 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.056 USD per task",
+      "records": [
+        "cloud/lab/weak/global/standard#offering.price.input",
+        "cloud/lab/weak/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/4/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "cloud/lab/weak/global/standard#offering.price.input",
+        "cloud/lab/weak/global/standard#offering.price.output"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-pricing"
+      ]
+    },
+    {
+      "path": "/results/4/contributions/1/raw_value",
+      "basis": "computed per decision: monotone domain evidence estimate",
+      "records": [
+        "lab/weak#patch_work#30.0",
+        "lab/weak#preference_proxy#40.0",
+        "lab/weak#repo_work#31.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/4/contributions/1/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "lab/weak#patch_work#30.0",
+        "lab/weak#preference_proxy#40.0",
+        "lab/weak#repo_work#31.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/0/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/weak#patch_work#30.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/0/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/0/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/0/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/1/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/weak#repo_work#31.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/1/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/1/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/1/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/2/value",
+      "basis": "snapshot measurement",
+      "records": [
+        "lab/weak#preference_proxy#40.0"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-board"
+      ]
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/2/loading",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/2/estimate_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/4/contributions/1/evidence/2/recency_weight",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/constraint_costs/0/gain/-offering.cost_per_task",
+      "basis": "best relaxed raw objective value minus best current raw value",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/constraint_costs/0/gain/software_engineering",
+      "basis": "best relaxed raw objective value minus best current raw value",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/tipping_points/0/threshold",
+      "basis": "optimise weight crossing with other weights and normalisation fixed",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/tipping_points/1/threshold",
+      "basis": "optimise weight crossing with other weights and normalisation fixed",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    }
+  ],
+  "sources": [
+    {
+      "id": "src-board",
+      "url": "https://board.example.org/results",
+      "title": null,
+      "date": "2026-09-20"
+    },
+    {
+      "id": "src-lab-docs",
+      "url": "https://lab.example.com/docs/models",
+      "title": null,
+      "date": "2026-09-20"
+    },
+    {
+      "id": "src-pricing",
+      "url": "https://lab.example.com/pricing",
+      "title": null,
+      "date": "2026-09-20"
+    }
+  ],
+  "contract_version": "2.7",
+  "decision_id": "dec_9b52c5b2f6cd8cab89248556",
+  "snapshot": "snap_b00a0d674da5f48d",
+  "signature_verified": false,
+  "spec_hash": "sha256:3ae6878d8fb680bed7aaf1e0d0334af2ca76d1d80372f1bb430e204bf99f9234",
+  "explain": "full",
+  "status": "answered",
+  "answer": {
+    "kind": "tied",
+    "members": [
+      "lab/steady",
+      "lab/cheap"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+      "cheapest": "lab/cheap",
+      "open_weights": null,
+      "most_independently_measured": null,
+      "fastest": null
+    },
+    "deterministic_order": [
+      "lab/steady",
+      "lab/cheap"
+    ]
+  },
+  "bands": {
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "lab/steady",
+    "best": [
+      {
+        "model": "lab/steady",
+        "offering": {
+          "model": "lab/steady",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.772766,
+        "score_interval": [
+          0.546339,
+          0.999193
+        ],
+        "p_best": 0.3203125,
+        "p_beats_leader": null,
+        "cost_per_task": 0.112,
+        "estimates": [
+          {
+            "dimension": "software_engineering",
+            "value": 0.514047556,
+            "interval": [
+              -0.25477292,
+              1.282868032
+            ],
+            "benchmarks": 2,
+            "direct_benchmarks": 2
+          }
+        ]
+      },
+      {
+        "model": "lab/cheap",
+        "offering": {
+          "model": "lab/cheap",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.670984,
+        "score_interval": [
+          0.444557,
+          0.897411
+        ],
+        "p_best": 0.11328125,
+        "p_beats_leader": 0.3419,
+        "cost_per_task": 0.0224,
+        "estimates": [
+          {
+            "dimension": "software_engineering",
+            "value": -0.212792552,
+            "interval": [
+              -0.981613028,
+              0.556027924
+            ],
+            "benchmarks": 2,
+            "direct_benchmarks": 2
+          }
+        ]
+      }
+    ],
+    "rest": [
+      {
+        "model": "lab/strong",
+        "offering": {
+          "model": "lab/strong",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.6,
+        "score_interval": [
+          0.373573,
+          0.826427
+        ],
+        "p_best": 0.07421875,
+        "p_beats_leader": 0.2446,
+        "cost_per_task": 0.336,
+        "estimates": [
+          {
+            "dimension": "software_engineering",
+            "value": 0.880537101,
+            "interval": [
+              0.111716625,
+              1.649357577
+            ],
+            "benchmarks": 2,
+            "direct_benchmarks": 2
+          }
+        ]
+      },
+      {
+        "model": "lab/weak",
+        "offering": {
+          "model": "lab/weak",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.350877,
+        "score_interval": [
+          0.130509,
+          0.571246
+        ],
+        "p_best": 0.01171875,
+        "p_beats_leader": 0.0435,
+        "cost_per_task": 0.056,
+        "estimates": [
+          {
+            "dimension": "software_engineering",
+            "value": -1.156730491,
+            "interval": [
+              -1.904980346,
+              -0.408480635
+            ],
+            "benchmarks": 3,
+            "direct_benchmarks": 2
+          }
+        ]
+      }
+    ],
+    "thin": [
+      {
+        "model": "lab/unproven",
+        "offering": {
+          "model": "lab/unproven",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.820333,
+        "score_interval": [
+          0.227164,
+          1.413502
+        ],
+        "p_best": 0.48046875,
+        "p_beats_leader": 0.5382,
+        "cost_per_task": 0.0168,
+        "estimates": [
+          {
+            "dimension": "software_engineering",
+            "value": 0.27048666,
+            "interval": [
+              -1.743587479,
+              2.284560799
+            ],
+            "benchmarks": 1,
+            "direct_benchmarks": 0
+          }
+        ]
+      }
+    ]
+  },
+  "blend": [
+    {
+      "dimension": "software_engineering",
+      "weight": 0.6,
+      "share": 0.6,
+      "estimated": true,
+      "leaders": [
+        "lab/strong"
+      ],
+      "value": 0.880537101,
+      "p_best": 0.609375,
+      "runner_up": "lab/steady",
+      "p_runner_up": 0.3329,
+      "order": [
+        "lab/strong",
+        "lab/steady",
+        "lab/cheap",
+        "lab/weak"
+      ],
+      "thin": [
+        "lab/unproven"
+      ]
+    },
+    {
+      "dimension": "-offering.cost_per_task",
+      "weight": 0.4,
+      "share": 0.4,
+      "estimated": false,
+      "leaders": [
+        "lab/unproven"
+      ],
+      "value": 0.0168,
+      "p_best": null,
+      "runner_up": null,
+      "p_runner_up": null,
+      "order": [
+        "lab/unproven",
+        "lab/cheap",
+        "lab/weak",
+        "lab/steady",
+        "lab/strong"
+      ],
+      "thin": []
+    }
+  ],
+  "results": [
+    {
+      "rank": 1,
+      "offering": {
+        "model": "lab/unproven",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "lab/unproven",
+      "model_rank": 1,
+      "cost_per_task": 0.0168,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": [
+        {
+          "domain": "software_engineering",
+          "value": 0.27048666,
+          "interval": [
+            -1.743587479,
+            2.284560799
+          ],
+          "harness": null,
+          "effort": null
+        }
+      ],
+      "p_best": 0.48046875,
+      "top3_stability": 0.73046875,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.0168,
+          "unit": "usd_per_task",
+          "records": [
+            "cloud/lab/unproven/global/standard#offering.price.input",
+            "cloud/lab/unproven/global/standard#offering.price.output"
+          ],
+          "dimension": "-offering.cost_per_task",
+          "weight": 0.4,
+          "value": 1.0,
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": "(0.3 USD per 1M input tokens × 40,000 input tokens + 1.2 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.0168 USD per task",
+          "preferred_value": null,
+          "preference_status": null
+        },
+        {
+          "raw_value": 0.27048666,
+          "unit": "latent capability",
+          "records": [
+            "lab/unproven#preference_proxy#80.0"
+          ],
+          "dimension": "software_engineering",
+          "weight": 0.6,
+          "value": 0.7005545842894849,
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "evidence": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/unproven#preference_proxy#80.0",
+              "benchmark": "preference_proxy",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 80.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "proxy",
+              "loading": 0.35,
+              "estimate_weight": 1.0,
+              "recency_weight": 0.948216019
+            }
+          ],
+          "formula": "monotone domain evidence estimate",
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": [
+        "not_separable"
+      ]
+    },
+    {
+      "rank": 2,
+      "offering": {
+        "model": "lab/steady",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "lab/steady",
+      "model_rank": 2,
+      "cost_per_task": 0.112,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": [
+        {
+          "domain": "software_engineering",
+          "value": 0.514047556,
+          "interval": [
+            -0.25477292,
+            1.282868032
+          ],
+          "harness": null,
+          "effort": null
+        }
+      ],
+      "p_best": 0.3203125,
+      "top3_stability": 0.8515625,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.112,
+          "unit": "usd_per_task",
+          "records": [
+            "cloud/lab/steady/global/standard#offering.price.input",
+            "cloud/lab/steady/global/standard#offering.price.output"
+          ],
+          "dimension": "-offering.cost_per_task",
+          "weight": 0.4,
+          "value": 0.7017543859649122,
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": "(2 USD per 1M input tokens × 40,000 input tokens + 8 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.112 USD per task",
+          "preferred_value": null,
+          "preference_status": null
+        },
+        {
+          "raw_value": 0.514047556,
+          "unit": "latent capability",
+          "records": [
+            "lab/steady#patch_work#61.0",
+            "lab/steady#repo_work#64.0"
+          ],
+          "dimension": "software_engineering",
+          "weight": 0.6,
+          "value": 0.8201073111656311,
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "evidence": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/steady#patch_work#61.0",
+              "benchmark": "patch_work",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 61.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct",
+              "loading": 1.0,
+              "estimate_weight": 0.5,
+              "recency_weight": 0.948216019
+            },
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/steady#repo_work#64.0",
+              "benchmark": "repo_work",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 64.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct",
+              "loading": 1.0,
+              "estimate_weight": 0.5,
+              "recency_weight": 0.948216019
+            }
+          ],
+          "formula": "monotone domain evidence estimate",
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": [
+        "not_separable"
+      ]
+    },
+    {
+      "rank": 3,
+      "offering": {
+        "model": "lab/cheap",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "lab/cheap",
+      "model_rank": 3,
+      "cost_per_task": 0.0224,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": [
+        {
+          "domain": "software_engineering",
+          "value": -0.212792552,
+          "interval": [
+            -0.981613028,
+            0.556027924
+          ],
+          "harness": null,
+          "effort": null
+        }
+      ],
+      "p_best": 0.11328125,
+      "top3_stability": 0.765625,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.0224,
+          "unit": "usd_per_task",
+          "records": [
+            "cloud/lab/cheap/global/standard#offering.price.input",
+            "cloud/lab/cheap/global/standard#offering.price.output"
+          ],
+          "dimension": "-offering.cost_per_task",
+          "weight": 0.4,
+          "value": 0.9824561403508771,
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": "(0.4 USD per 1M input tokens × 40,000 input tokens + 1.6 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.0224 USD per task",
+          "preferred_value": null,
+          "preference_status": null
+        },
+        {
+          "raw_value": -0.212792552,
+          "unit": "latent capability",
+          "records": [
+            "lab/cheap#patch_work#47.0",
+            "lab/cheap#repo_work#50.0"
+          ],
+          "dimension": "software_engineering",
+          "weight": 0.6,
+          "value": 0.46333527451508194,
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "evidence": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/cheap#patch_work#47.0",
+              "benchmark": "patch_work",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 47.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct",
+              "loading": 1.0,
+              "estimate_weight": 0.5,
+              "recency_weight": 0.948216019
+            },
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/cheap#repo_work#50.0",
+              "benchmark": "repo_work",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 50.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct",
+              "loading": 1.0,
+              "estimate_weight": 0.5,
+              "recency_weight": 0.948216019
+            }
+          ],
+          "formula": "monotone domain evidence estimate",
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": [
+        "not_separable"
+      ]
+    },
+    {
+      "rank": 4,
+      "offering": {
+        "model": "lab/strong",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "lab/strong",
+      "model_rank": 4,
+      "cost_per_task": 0.336,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": [
+        {
+          "domain": "software_engineering",
+          "value": 0.880537101,
+          "interval": [
+            0.111716625,
+            1.649357577
+          ],
+          "harness": null,
+          "effort": null
+        }
+      ],
+      "p_best": 0.07421875,
+      "top3_stability": 0.5625,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.336,
+          "unit": "usd_per_task",
+          "records": [
+            "cloud/lab/strong/global/standard#offering.price.input",
+            "cloud/lab/strong/global/standard#offering.price.output"
+          ],
+          "dimension": "-offering.cost_per_task",
+          "weight": 0.4,
+          "value": 0.0,
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": "(6 USD per 1M input tokens × 40,000 input tokens + 24 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.336 USD per task",
+          "preferred_value": null,
+          "preference_status": null
+        },
+        {
+          "raw_value": 0.880537101,
+          "unit": "latent capability",
+          "records": [
+            "lab/strong#patch_work#66.0",
+            "lab/strong#repo_work#72.0"
+          ],
+          "dimension": "software_engineering",
+          "weight": 0.6,
+          "value": 1.0,
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "evidence": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/strong#patch_work#66.0",
+              "benchmark": "patch_work",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 66.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct",
+              "loading": 1.0,
+              "estimate_weight": 0.5,
+              "recency_weight": 0.948216019
+            },
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/strong#repo_work#72.0",
+              "benchmark": "repo_work",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 72.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct",
+              "loading": 1.0,
+              "estimate_weight": 0.5,
+              "recency_weight": 0.948216019
+            }
+          ],
+          "formula": "monotone domain evidence estimate",
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": [
+        "not_separable"
+      ]
+    },
+    {
+      "rank": 5,
+      "offering": {
+        "model": "lab/weak",
+        "provider": "cloud",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "lab/weak",
+      "model_rank": 5,
+      "cost_per_task": 0.056,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": [
+        {
+          "domain": "software_engineering",
+          "value": -1.156730491,
+          "interval": [
+            -1.904980346,
+            -0.408480635
+          ],
+          "harness": null,
+          "effort": null
+        }
+      ],
+      "p_best": 0.01171875,
+      "top3_stability": 0.08984375,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 0.056,
+          "unit": "usd_per_task",
+          "records": [
+            "cloud/lab/weak/global/standard#offering.price.input",
+            "cloud/lab/weak/global/standard#offering.price.output"
+          ],
+          "dimension": "-offering.cost_per_task",
+          "weight": 0.4,
+          "value": 0.8771929824561404,
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": "(1 USD per 1M input tokens × 40,000 input tokens + 4 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.056 USD per task",
+          "preferred_value": null,
+          "preference_status": null
+        },
+        {
+          "raw_value": -1.156730491,
+          "unit": "latent capability",
+          "records": [
+            "lab/weak#patch_work#30.0",
+            "lab/weak#repo_work#31.0",
+            "lab/weak#preference_proxy#40.0"
+          ],
+          "dimension": "software_engineering",
+          "weight": 0.6,
+          "value": 0.0,
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "evidence": [
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/weak#patch_work#30.0",
+              "benchmark": "patch_work",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 30.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct",
+              "loading": 1.0,
+              "estimate_weight": 0.471142521,
+              "recency_weight": 0.948216019
+            },
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/weak#repo_work#31.0",
+              "benchmark": "repo_work",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 31.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "direct",
+              "loading": 1.0,
+              "estimate_weight": 0.471142521,
+              "recency_weight": 0.948216019
+            },
+            {
+              "requested_domain": "software_engineering",
+              "record_id": "lab/weak#preference_proxy#40.0",
+              "benchmark": "preference_proxy",
+              "version": "1.0",
+              "sub_category": null,
+              "value": 40.0,
+              "unit": "percent",
+              "n": null,
+              "interval": null,
+              "quality_flags": [],
+              "measured_by": "independent",
+              "effort": null,
+              "harness": null,
+              "harness_unregistered": false,
+              "date": "2026-09-01",
+              "date_type": "observed",
+              "source": "https://board.example.org/results",
+              "source_snapshot": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "directness": "proxy",
+              "loading": 0.35,
+              "estimate_weight": 0.057714959,
+              "recency_weight": 0.948216019
+            }
+          ],
+          "formula": "monotone domain evidence estimate",
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": [
+        "not_separable"
+      ]
+    }
+  ],
+  "by_model": [
+    {
+      "model": "lab/unproven",
+      "status": "ranked",
+      "rank": 1,
+      "cost_per_task": 0.0168,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/unproven",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 1,
+          "cost_per_task": 0.0168,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "lab/steady",
+      "status": "ranked",
+      "rank": 2,
+      "cost_per_task": 0.112,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/steady",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 2,
+          "cost_per_task": 0.112,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "lab/cheap",
+      "status": "ranked",
+      "rank": 3,
+      "cost_per_task": 0.0224,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/cheap",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 3,
+          "cost_per_task": 0.0224,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "lab/strong",
+      "status": "ranked",
+      "rank": 4,
+      "cost_per_task": 0.336,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/strong",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 4,
+          "cost_per_task": 0.336,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "lab/weak",
+      "status": "ranked",
+      "rank": 5,
+      "cost_per_task": 0.056,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/weak",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 5,
+          "cost_per_task": 0.056,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    }
+  ],
+  "may_qualify": [],
+  "eliminated": {
+    "funnel": [
+      {
+        "condition": "model.class = text-generator",
+        "before": 5,
+        "after": 5,
+        "may_qualify": 0,
+        "models_before": 5,
+        "models_after": 5,
+        "offerings_before": 5,
+        "offerings_after": 5,
+        "models_may_qualify": 0,
+        "offerings_may_qualify": 0
+      }
+    ],
+    "models": [],
+    "model_groups": []
+  },
+  "truncated": {
+    "offerings": 0,
+    "models": 0
+  },
+  "constraint_costs": [
+    {
+      "units": {
+        "-offering.cost_per_task": "usd_per_task",
+        "software_engineering": "latent capability"
+      },
+      "records": [
+        "cloud/lab/unproven/global/standard#offering.price.input",
+        "cloud/lab/unproven/global/standard#offering.price.output",
+        "lab/strong#patch_work#66.0",
+        "lab/strong#repo_work#72.0"
+      ],
+      "condition": "model.class = text-generator",
+      "admits": 0,
+      "gain": {
+        "-offering.cost_per_task": 0.0,
+        "software_engineering": 0.0
+      }
+    }
+  ],
+  "tipping_points": [
+    {
+      "description": "decrease weight past threshold; other weights and normalisation fixed",
+      "dimension": "-offering.cost_per_task",
+      "threshold": 0.2405119564214229,
+      "new_top": "lab/steady"
+    },
+    {
+      "description": "increase weight past threshold; other weights and normalisation fixed",
+      "dimension": "software_engineering",
+      "threshold": 0.9978713888945876,
+      "new_top": "lab/steady"
+    }
+  ],
+  "relax": [],
+  "relax_to": [],
+  "warnings": [],
+  "out_of_lineup": 0
+}

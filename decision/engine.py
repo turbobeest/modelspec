@@ -7,6 +7,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import replace
 from math import inf, isfinite, sqrt
 
+from decision import bands as bands_module
 from decision import estate as estate_module
 from decision import plans as plans_module
 from decision.by_model import build_by_model
@@ -210,9 +211,6 @@ def _overlaps_raw_evidence(row, others, snapshot) -> bool:
     return False
 
 
-_ANSWER_BASIS = (
-    "leader-overlap score intervals; capability estimates use 80% intervals"
-)
 _INDEPENDENT_MEASURERS = frozenset({
     "benchmark_author",
     "independent",
@@ -346,32 +344,26 @@ def _tie_breakers(rows: list[OptimisedResult], snapshot, cost=_candidate_cost) -
     )
 
 
-def _answer(rows: list[OptimisedResult], snapshot, cost=_candidate_cost):
-    if not rows or rows[0].score_interval is None:
+def _answer(rows: list[OptimisedResult], banded, snapshot, cost=_candidate_cost):
+    """The best band as the model-level answer, members in point-score order."""
+    if banded is None or banded.leader is None:
         return None
-    leader = rows[0]
-    leader_low, leader_high = leader.score_interval
-    members = [
-        row
-        for row in rows
-        if row.score_interval is not None
-        and max(leader_low, row.score_interval[0])
-        <= min(leader_high, row.score_interval[1])
-    ]
+    best = {snapshot.model_of(row.candidate_id) for row in banded.best}
+    members = [row for row in rows if snapshot.model_of(row.candidate_id) in best]
     model_ids = [snapshot.model_of(row.candidate_id) for row in members]
     if len(members) == 1:
         return SeparatedAnswer(
             kind="separated",
             members=model_ids,
             leader=model_ids[0],
-            basis=_ANSWER_BASIS,
+            basis=bands_module.BASIS,
             tie_breakers=TieBreakers(),
             deterministic_order=model_ids,
         )
     return TiedAnswer(
         kind="tied",
         members=model_ids,
-        basis=_ANSWER_BASIS,
+        basis=bands_module.BASIS,
         tie_breakers=_tie_breakers(members, snapshot, cost),
         deterministic_order=model_ids,
     )
@@ -581,8 +573,10 @@ def _decide(
     probabilities = {}
     model_estimates = {}
     representative_rows = _representative_rows(ordered.results, snapshot, tie_cost)
-    answer = _answer(representative_rows, snapshot, tie_cost)
-    if spec.optimize.lexicographic is None and spec.optimize.pareto is None:
+    banded = None
+    blend = []
+    scalar = spec.optimize.lexicographic is None and spec.optimize.pareto is None
+    if scalar:
         from decision.capability import deterministic_probabilities
 
         for row in representative_rows:
@@ -593,6 +587,31 @@ def _decide(
             model_estimates,
             seed_material=f"{snapshot.snapshot_id}:{digest}:{probability_domain or 'weighted'}",
         )
+    if scalar and representative_rows and representative_rows[0].score_interval is not None:
+        from decision.capability import deterministic_probabilities
+
+        p_best = {model_id: pair[0] for model_id, pair in probabilities.items()}
+        banded = bands_module.band(
+            representative_rows,
+            {
+                snapshot.model_of(row.candidate_id): bands_module.Distribution(
+                    row.score,
+                    sqrt(getattr(model_estimates.get(snapshot.model_of(row.candidate_id)),
+                                 "sd", 0.0) ** 2 + bands_module.published_variance(row)),
+                )
+                for row in representative_rows
+            },
+            snapshot.model_of,
+            p_best,
+        )
+
+        def dimension_p_best(dimension, spreads):
+            drawn = deterministic_probabilities(
+                spreads, seed_material=f"{snapshot.snapshot_id}:{digest}:{dimension}")
+            return {model_id: pair[0] for model_id, pair in drawn.items()}
+
+        blend = bands_module.blend(ordered.results, snapshot.model_of, dimension_p_best)
+    answer = _answer(representative_rows, banded, snapshot, tie_cost)
 
     returned_rows = ordered.results[: spec.limit]
     if _capture is not None:
@@ -695,6 +714,12 @@ def _decide(
         if ordered.status == "answered" and filtered.may_qualify
         else ordered.status,
         answer=answer,
+        bands=None if banded is None else bands_module.entries(
+            banded, snapshot, lambda cid: offering_ref(snapshot, cid),
+            lambda cid: _candidate_cost(snapshot, cid),
+            {model_id: pair[0] for model_id, pair in probabilities.items()},
+        ),
+        blend=blend,
         results=results,
         relax=relax,
         relax_to=relax_to,

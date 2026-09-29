@@ -41,6 +41,15 @@ DESCRIPTION = ("See which AI models the evidence can't tell apart, what each one
 ASSET_DIR = "landing-assets"
 DATA_ID = "landing-data"
 DECIDE_PATH = "/decide/"
+#: The landing's tie is /decide's answer to this question: coding alone, over
+#: every priced text generator.
+TIE_SPEC = {
+    "spec_version": 1,
+    "where": ["model.class = text-generator", f"{COST_PER_TASK} >= 0"],
+    "optimize": {"max": SOFTWARE_ENGINEERING},
+    "explain": "none",
+    "limit": 1,
+}
 DECIDE_QUERY_KEYS = ("demo", "estate", "layout", "simulate", "theme")
 DECIDE_HASH_KEYS = ("s",)
 
@@ -60,7 +69,10 @@ class PlotModel:
     estimate: float
     low: float
     high: float
+    #: In the leader's band: /decide's ``bands.best`` for coding alone.
     tied: bool
+    #: Not enough evidence yet: /decide's ``bands.thin``.
+    thin: bool = False
 
 
 @dataclass(frozen=True)
@@ -195,46 +207,35 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
     # This snapshot never leaves the build process. Check its content hash, but
     # do not sign it or require a publisher signature meant for public clients.
     loaded = load_built_snapshot(snapshot, source="landing-page build")
-    priced = with_computed(loaded, DEFAULT_TASK_TOKENS)
     cards = {model.model_id: model for model in load_models(root)}
 
-    rows: list[PlotModel] = []
-    candidates = tuple(priced.candidates())
-    for model_id in candidates:
-        if priced.kind(model_id) != "model":
-            continue
-        if priced.fact(model_id, "model.class").value != "text-generator":
-            continue
-        estimate = priced.capability_estimate(model_id, SOFTWARE_ENGINEERING)
-        offerings = [
-            (computed.value, candidate)
-            for candidate in candidates
-            if priced.kind(candidate) == "offering"
-            and priced.model_of(candidate) == model_id
-            and (computed := priced.computed(candidate, COST_PER_TASK)) is not None
-        ]
-        if estimate is None or not offerings:
-            continue
-        cost, _ = min(offerings)
-        rows.append(PlotModel(
-            id=model_id,
-            name=cards[model_id].display_name,
-            cost=cost,
-            estimate=estimate.value,
-            low=estimate.low,
-            high=estimate.high,
-            tied=False,
-        ))
-    if not rows:
-        raise ValueError("the landing page has no priced text models with coding estimates")
-
-    leader = max(rows, key=lambda model: (model.estimate, -model.cost, model.id))
-    tie_ids = {model.id for model in rows if model.high >= leader.low}
-    rows = [PlotModel(**(asdict(model) | {"tied": model.id in tie_ids})) for model in rows]
+    registry = default()
+    # The same bands /decide answers with (MODEL-206), over the priced text
+    # generators with a coding estimate: a model without a price or an
+    # estimate may qualify, and is not plotted.
+    coding = decide(parse_spec(TIE_SPEC, facets=registry.facet), loaded, facets=registry.facet)
+    if coding.bands is None or coding.bands.leader is None:
+        raise ValueError("the landing page has no priced text model with enough coding evidence")
+    bands = coding.bands
+    best = {entry.model for entry in bands.best}
+    thin = {entry.model for entry in bands.thin}
+    rows = [
+        PlotModel(
+            id=entry.model,
+            name=cards[entry.model].display_name,
+            cost=entry.cost_per_task,
+            estimate=entry.estimates[0].value,
+            low=entry.estimates[0].interval[0],
+            high=entry.estimates[0].interval[1],
+            tied=entry.model in best,
+            thin=entry.model in thin,
+        )
+        for entry in (*bands.best, *bands.rest, *bands.thin)
+    ]
+    leader = next(model for model in rows if model.id == bands.leader)
     tie = [model for model in rows if model.tied]
     cheapest = min(tie, key=lambda model: (model.cost, -model.estimate, model.id))
 
-    registry = default()
     templates = load_templates(registry=registry)
     routes: list[TemplateRoute] = []
     template_count = 0
