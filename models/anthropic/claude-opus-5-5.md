@@ -677,13 +677,20 @@ benchmarks:
     source_kind: provider_self_report
     evidence_date: '2026-09-22'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: SWE-bench Pro
-    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
-      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
-      thinking at max effort, default sampling, averaged over five trials.'
+    configuration: Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A, Opus 5.5
+      column only. Adaptive thinking at max effort, default sampling, averaged over five trials.
     limitations: ''
     measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-233-anthropic-opus-5-5-system-card-table-8-1-a
+      snapshot_ref: sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1
+      cited_regions:
+      - table-8-1-a
+    id: anthropic/claude-opus-5-5#swe_bench_pro#28e9858e5132
   - benchmark_id: swe_bench_multilingual
     model_id_as_evaluated: Claude Opus 5.5
     score: 93.9
@@ -692,13 +699,20 @@ benchmarks:
     source_kind: provider_self_report
     evidence_date: '2026-09-22'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: SWE-bench Multilingual
-    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
-      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
-      thinking at max effort, default sampling, averaged over five trials.'
+    configuration: Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A, Opus 5.5
+      column only. Adaptive thinking at max effort, default sampling, averaged over five trials.
     limitations: ''
     measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-233-anthropic-opus-5-5-system-card-table-8-1-a
+      snapshot_ref: sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1
+      cited_regions:
+      - table-8-1-a
+    id: anthropic/claude-opus-5-5#swe_bench_multilingual#0656e8a710e5
   - benchmark_id: swe_bench_multimodal
     model_id_as_evaluated: Claude Opus 5.5
     score: 61.4
@@ -707,38 +721,42 @@ benchmarks:
     source_kind: provider_self_report
     evidence_date: '2026-09-22'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: SWE-bench Multimodal
-    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
-      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
-      thinking at max effort, default sampling, averaged over five trials.'
+    configuration: Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A, Opus 5.5
+      column only. Adaptive thinking at max effort, default sampling, averaged over five trials.
     limitations: ''
-    id: anthropic/claude-opus-5-5#swe_bench_multimodal#5b5ebe3653cc
     measured_by: provider_self_report
     effort: max
     harness: null
     sources:
-    - source_id: model-191-anthropic-opus-5-5-system-card
-      snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
+    - source_id: model-233-anthropic-opus-5-5-system-card-table-8-1-a
+      snapshot_ref: sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1
       cited_regions:
-      - evidence
+      - table-8-1-a
+    id: anthropic/claude-opus-5-5#swe_bench_multimodal#5b5ebe3653cc
   - benchmark_id: terminal_bench_v4_0
-    model_id_as_evaluated: Claude Opus 5.5 (xhigh)
+    model_id_as_evaluated: Claude Opus 5.5
     score: 66.4
     unit: percent
     source_url: https://www.anthropic.com/claude-opus-5-5-system-card
     source_kind: provider_self_report
     evidence_date: '2026-09-22'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Terminal-Bench 4.0
-    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
-      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
-      thinking at max effort, default sampling, averaged over five trials. Terminal-Bench
-      4.0 is reported at xhigh effort (the card''s note); launch page gives SE ±2.6
-      pts.'
+    configuration: Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A, Opus 5.5
+      column only. Adaptive thinking at xhigh effort, default sampling, averaged over five trials.
     limitations: ''
     measured_by: provider_self_report
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-233-anthropic-opus-5-5-system-card-table-8-1-a
+      snapshot_ref: sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1
+      cited_regions:
+      - table-8-1-a
+    id: anthropic/claude-opus-5-5#terminal_bench_v4_0#cef666866997
   - benchmark_id: terminal_bench_science
     model_id_as_evaluated: Claude Opus 5.5
     score: 58.7
@@ -747,21 +765,20 @@ benchmarks:
     source_kind: provider_self_report
     evidence_date: '2026-09-22'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Terminal-Bench-Science 0.1
-    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
-      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
-      thinking at max effort, default sampling, averaged over five trials.'
+    configuration: Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A, Opus 5.5
+      column only. Adaptive thinking at max effort, default sampling, averaged over five trials.
     limitations: ''
-    id: anthropic/claude-opus-5-5#terminal_bench_science#8cfae823fdc4
     measured_by: provider_self_report
     effort: max
     harness: null
     sources:
-    - source_id: model-191-anthropic-opus-5-5-system-card
-      snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
+    - source_id: model-233-anthropic-opus-5-5-system-card-table-8-1-a
+      snapshot_ref: sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1
       cited_regions:
-      - evidence
+      - table-8-1-a
+    id: anthropic/claude-opus-5-5#terminal_bench_science#8cfae823fdc4
   - benchmark_id: hle
     model_id_as_evaluated: Claude Opus 5.5
     score: 64.4
@@ -770,14 +787,20 @@ benchmarks:
     source_kind: provider_self_report
     evidence_date: '2026-09-22'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Humanity's Last Exam (no tools)
-    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
-      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
-      thinking at max effort, default sampling, averaged over five trials. No-tools
-      row.'
+    configuration: Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A, Opus 5.5
+      column only. Adaptive thinking at max effort, default sampling, averaged over five trials.
     limitations: ''
     measured_by: provider_self_report
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-233-anthropic-opus-5-5-system-card-table-8-1-a
+      snapshot_ref: sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1
+      cited_regions:
+      - table-8-1-a
+    id: anthropic/claude-opus-5-5#hle#d31fe5331e1f
   - benchmark_id: hle_tools
     model_id_as_evaluated: Claude Opus 5.5
     score: 67.7
@@ -786,22 +809,20 @@ benchmarks:
     source_kind: provider_self_report
     evidence_date: '2026-09-22'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Humanity's Last Exam (with tools)
-    configuration: 'Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A,
-      Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
-      thinking at max effort, default sampling, averaged over five trials. With-tools
-      row.'
+    configuration: Claude Opus 5.5 System Card (dated September 22, 2026), Table 8.1.A, Opus 5.5
+      column only. Adaptive thinking at max effort, default sampling, averaged over five trials.
     limitations: ''
-    id: anthropic/claude-opus-5-5#hle_tools#2575e2613692
     measured_by: provider_self_report
     effort: max
     harness: null
     sources:
-    - source_id: model-191-anthropic-opus-5-5-system-card
-      snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
+    - source_id: model-233-anthropic-opus-5-5-system-card-table-8-1-a
+      snapshot_ref: sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1
       cited_regions:
-      - evidence
+      - table-8-1-a
+    id: anthropic/claude-opus-5-5#hle_tools#2575e2613692
   - benchmark_id: arena_webdev
     model_id_as_evaluated: claude-opus-5.5-max
     score: 1818.41
@@ -810,7 +831,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: max;
@@ -823,32 +844,34 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:1342f43f483667f8e4313a1fb517522e1f18aa1b09d4812f8d3163c4ff30b9bc
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: cursorbench_4
     model_id_as_evaluated: Opus 5.5 (max)
     score: 57.8
     unit: percent
     source_url: https://cursor.com/cursorbench
     source_kind: benchmark_author
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: CursorBench 4.0
     configuration: Cursor's CursorBench 4.0 board read 2026-09-24 (tasks updated 2026-09-10
       per its changelog); the board states no row date, so the reading is dated by the observation.
       Highest-effort row (max); $13.43 a task.
     limitations: Runs only in Cursor's production agent harness.
-    id: anthropic/claude-opus-5-5#cursorbench_4#c17f30f6758e
+    id: anthropic/claude-opus-5-5#cursorbench_4#fd2dcb7a4013
     measured_by: benchmark_author
     effort: max
     harness: null
     sources:
     - source_id: model-160-cursorbench
-      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      snapshot_ref: sha256:b49a5d5cb43476f9ef20fef431f3677fa11cb6523453499c336dc64cdc298b30
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: healthbench_professional
     model_id_as_evaluated: Claude Opus 5.5
     score: 65.6
@@ -874,6 +897,72 @@ benchmarks:
       snapshot_ref: sha256:c75c15c46a59a9d80b7a2a8290bc1954d98d58155f1584848d618ec5d348df02
       cited_regions:
       - evidence
+  - benchmark_id: frontiermath_tiers_1_3_v2
+    model_id_as_evaluated: claude-opus-5-5_max
+    score: 91.22807017543859
+    unit: percent
+    source_url: https://epoch.ai/frontiermath
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-22'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
+      snapshot_ref: sha256:290afed31fc291e207d29c71b15aea9b6ad5e6bd50795136d1a6781e259aabcd
+      cited_regions:
+      - rows
+    id: anthropic/claude-opus-5-5#frontiermath_tiers_1_3_v2#c221ece8b08d
+  - benchmark_id: simpleqa_verified
+    model_id_as_evaluated: claude-opus-5-5_max
+    score: 72.2
+    unit: percent
+    source_url: https://epoch.ai/benchmarks/simpleqa-verified
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-22'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: max
+    harness: null
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:563eeb084e21ec07a8843924df2451b3e802138eac826f0956d19c4bf37fa4fb
+      cited_regions:
+      - rows
+    id: anthropic/claude-opus-5-5#simpleqa_verified#4892045d6e63
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: Claude Opus 5.5
+    score: 9235.248333333331
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-29'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:94074584ec83e973b31884f48956a6bc43e36a33d47dc3feaa7c52adf23a9c12
+      cited_regions:
+      - rows
+    id: anthropic/claude-opus-5-5#vending_bench_2#713bfb101310
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

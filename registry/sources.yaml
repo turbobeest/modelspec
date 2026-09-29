@@ -4527,3 +4527,40 @@ sources:
   cited_regions:
   - id: page
     locator: {kind: page, value: ''}
+# MODEL-233: primary sources for the thin lineup models.
+- id: model-233-google-gemma-4-model-card
+  url: https://ai.google.dev/gemma/docs/core/model_card_4
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: benchmark-results
+    locator:
+      kind: table
+      value: '2'
+- id: model-233-anthropic-opus-5-5-system-card-table-8-1-a
+  url: https://www.anthropic.com/claude-opus-5-5-system-card
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: table-8-1-a
+    locator:
+      kind: page
+      value: ''
+- id: model-233-deepseek-v4-1-flash-model-card
+  url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: comparison-with-frontier-models
+    locator:
+      kind: heading
+      value: 'comparison-with-frontier-models-max-reasoning-effort'
+- id: model-233-qwen3-8-flash-next-model-card
+  url: https://huggingface.co/Qwen/Qwen3.8-Flash-Next
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: benchmark-results-language
+    locator:
+      kind: heading
+      value: 'language'

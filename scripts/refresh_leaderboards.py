@@ -42,7 +42,7 @@ from decision.verify import (
     run as verify_claims,
 )
 from scripts import model_160_evidence as readers
-from scripts.model_143_evidence import evidence_id, evidence_key
+from scripts.model_143_evidence import evidence_id, evidence_key, measured_by
 
 ROOT = Path(__file__).resolve().parents[1]
 USER_AGENT = "ModelSpec-Leaderboard-Refresh/1.0 (+https://modelspec.dev)"
@@ -431,13 +431,16 @@ def _new_evidence(
             "unit": template["unit"],
             "source_url": template["source_url"],
             "source_kind": template["source_kind"],
-            "evidence_date": board.observed_at,
+            "evidence_date": _evidence_date(board, matched),
             "date_type": "evaluated",
             "observed_at": board.observed_at,
             "verified_at": board.observed_at,
             "benchmark_version": "",
             "configuration": "",
             "limitations": "",
+            "measured_by": measured_by(template),
+            "effort": None,
+            "harness": None,
             "sources": [SourceRef(
                 source_id=board.source_id,
                 snapshot_ref=board.snapshot_ref,
@@ -452,6 +455,19 @@ def _new_evidence(
 def _append_evidence(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
     text = path.read_text(encoding="utf-8")
     parts = text.split("---", 2)
+    # Append to the block list as text, so the rest of the card is untouched.
+    front, blocks = parts[1], "".join(readers.new_row_block(dict(row)) for row in rows)
+    head, empty = "\n  evidence:\n  - ", "\n  evidence: []\n"
+    if head in front or empty in front:
+        if head in front:
+            start = front.index(head) + len(head)
+            after = re.compile(r"^(?:  [a-z]|[a-z])", re.M).search(front, start)
+            end = after.start() if after else len(front)
+            front = front[:end] + blocks + front[end:]
+        else:
+            front = front.replace(empty, "\n  evidence:\n" + blocks, 1)
+        path.write_text("---".join((parts[0], front, parts[2])), encoding="utf-8")
+        return
     front = yaml.safe_load(parts[1]) or {}
     benchmarks = dict(front.get("benchmarks") or {})
     evidence = list(benchmarks.get("evidence") or [])
