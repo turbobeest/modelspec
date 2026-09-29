@@ -262,12 +262,15 @@ loses the minority runs to the vantage rule and may fail its gates, so that
 must be settled before any baseline spend.
 
 **Where and how often.** The pilot runs once, by hand, from a
-`workflow_dispatch` job on a GitHub-hosted `ubuntu-latest` runner. After the
+`workflow_dispatch` job on a GitHub-hosted `ubuntu-latest` runner:
+[`.github/workflows/speed-probe.yml`](../../.github/workflows/speed-probe.yml),
+mode `preflight` (free) or `pilot` (paid, capped by `SPEED_CAP_USD` in the
+file, not by an input). The pilot's run file, measurement and verification
+records go to a `data/` pull request, never to `main`. After the
 pilot is reviewed, the baseline runs a three-day window (12 slots at the four
 slot hours) every three weeks, which keeps every fact inside the 30-day
-staleness limit. The workflow file is
-added in the approval PR, not before, so nothing can run on a schedule until
-Jamie approves it. Runner time is measured, not guessed, where possible:
+staleness limit. The workflow has no schedule; the baseline needs a separate
+approval and a reviewed change to that file. Runner time is measured, not guessed, where possible:
 
 - Job setup is **about 14 seconds**, measured on this repository's scheduled
   Python job (`leaderboard-refresh.yml`, run 36476089270): checkout 6 s,
