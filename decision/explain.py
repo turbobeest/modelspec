@@ -19,6 +19,13 @@ class ExplanationError(ValueError):
     """A displayed measurement cannot be traced to a verified snapshot record."""
 
 
+#: An offering's provider, region and tier are its identity: structural, never
+#: a sourced claim, so they carry no record (``decision.snapshot``). A value
+#: preference on one used to fail its explanation (MODEL-203).
+OFFERING_IDENTITY = frozenset({"offering.provider", "offering.region", "offering.tier"})
+OFFERING_IDENTITY_FORMULA = "the offering's identity, which carries no source"
+
+
 #: Facets a top candidate always shows when known, beside those the spec names:
 #: what the decide page displays for a candidate (contract 1.4).
 DISPLAY_FACETS = (
@@ -96,6 +103,8 @@ def fact_provenance(snapshot, cid, facet_id):
         for rid in found.records:
             checked_record(snapshot, rid)
         return list(found.records), facet_unit(facet_id), found.formula
+    if facet_id in OFFERING_IDENTITY:
+        return [], None, OFFERING_IDENTITY_FORMULA
     fact = snapshot.fact(cid, facet_id)
     checked_record(snapshot, fact.record_id)
     return [fact.record_id], facet_unit(facet_id), None

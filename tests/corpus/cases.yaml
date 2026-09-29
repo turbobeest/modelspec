@@ -1,0 +1,449 @@
+# The hand-written decision spec corpus (MODEL-203). tests/corpus/corpus.py adds
+# every template at each explain level, every board facet as Must and as Prefer,
+# and every domain.
+#
+# Each case: `id`, a one-line `intent`, the `snapshot` it runs on (`repo` is the
+# repository's premier lineup; `lineup`, `lineup-tied`, `plans` and
+# `plans-unverified` are the synthetic catalogues in tests/corpus/corpus.py),
+# the `spec` (a mapping, or text for a spec that is not valid YAML) and what it
+# must answer (`expect`: `http`, and `code`, `status` or `answer`). On `repo` the
+# data decides the status, so a case leaves it open unless the spec forces it.
+# `covers` names the checklist items tests/test_corpus.py requires. `live: true`
+# cases are POSTed to api.modelspec.dev after each deploy.
+
+cases:
+
+# ── access: the board's five answers to "How will you use it?" ──────────────
+
+- id: access-none-repo
+  intent: 'No access ("Doesn''t matter") on the real lineup ranks every route.'
+  spec: {spec_version: 1, capabilities: {software_engineering: required},
+         optimize: {max: software_engineering}, explain: full, limit: 10}
+  expect: {http: 200}
+  covers: [access:none]
+  live: true
+
+- id: access-null-repo
+  intent: An explicit null access is the same question as no access, byte for byte.
+  spec: {spec_version: 1, capabilities: {software_engineering: required},
+         optimize: {max: software_engineering}, explain: full, limit: 10, access: null}
+  same_as: access-none-repo
+  expect: {http: 200}
+  covers: [access:none-byte-identical]
+
+- id: access-chat-app-repo
+  intent: A chat app on the real lineup, where no plan's coverage is verified yet.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: full,
+         limit: 10, access: chat_app}
+  expect: {http: 200}
+  covers: [access:chat_app]
+  live: true
+
+- id: access-coding-tool-repo
+  intent: A coding tool in Claude Code on the real lineup.
+  spec: {spec_version: 1, capabilities: {software_engineering: required},
+         optimize: {max: software_engineering}, explain: full, limit: 10,
+         access: {kind: coding_tool, harness: claude-code}}
+  expect: {http: 200}
+  covers: [access:coding_tool]
+  live: true
+
+- id: access-coding-tool-any-harness-repo
+  intent: A coding tool with no harness named takes any harness.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: summary,
+         limit: 10, access: coding_tool}
+  expect: {http: 200}
+  covers: [access:coding_tool]
+
+- id: access-own-software-repo
+  intent: Own software on the real lineup ranks pay-per-use routes by cost.
+  spec: {spec_version: 1, optimize: {weights: {software_engineering: 0.7,
+         -offering.cost_per_task: 0.3}}, explain: full, limit: 10, access: own_software}
+  expect: {http: 200}
+  covers: [access:own_software]
+  live: true
+
+- id: access-own-hardware-repo
+  intent: Own hardware on the real lineup ranks only self-hostable models.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: full,
+         limit: 10, access: own_hardware, estate: {devices: [nvidia_h100_sxm]}}
+  expect: {http: 200}
+  covers: [access:own_hardware, estate:devices]
+  live: true
+
+- id: plans-chat-app
+  intent: A Max 20x holder in a chat app, coverage sourced, gets monthly plan routes.
+  snapshot: plans
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         access: chat_app, estate: {plans: [anthropic/subscription/max-20x]}}
+  expect: {http: 200, status: partial, answer: tied}
+  covers: [access:chat_app, estate:plan-verified]
+
+- id: plans-coding-tool
+  intent: A Max 20x holder in Claude Code gets plan routes with a break-even.
+  snapshot: plans
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         access: {kind: coding_tool, harness: claude-code},
+         estate: {plans: [anthropic/subscription/max-20x]}}
+  expect: {http: 200, status: answered, answer: separated}
+  covers: [access:coding_tool, estate:plan-verified]
+
+- id: plans-own-software
+  intent: A Max 20x holder's own software pays per use and is warned the plan does not cover it.
+  snapshot: plans
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         access: own_software, estate: {plans: [anthropic/subscription/max-20x]}}
+  expect: {http: 200, status: answered, answer: separated}
+  covers: [access:own_software, estate:plan-verified]
+
+- id: plans-own-hardware
+  intent: Own hardware reaches only the model that fits a held device.
+  snapshot: plans
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         access: own_hardware, estate: {devices: [apple_m3_max]}}
+  expect: {http: 200, status: partial, answer: separated}
+  covers: [access:own_hardware, estate:devices]
+
+- id: plans-no-access
+  intent: 'No access with a plan and a device: every route, the cheapest named per model.'
+  snapshot: plans
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         estate: {plans: [anthropic/subscription/max-20x], devices: [apple_m3_max]}}
+  expect: {http: 200, status: answered, answer: separated}
+  covers: [access:none, estate:plan-verified, estate:devices]
+
+- id: plans-chat-app-unverified
+  intent: Today's catalogue, no plan coverage verified, so a chat app answers only may-qualify.
+  snapshot: plans-unverified
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         access: chat_app, estate: {plans: [anthropic/subscription/max-20x]}}
+  expect: {http: 200}
+  covers: [access:chat_app, estate:plan-unverified]
+
+- id: plans-coding-tool-unverified
+  intent: A coding tool whose held plan may cover a row, but not verifiably.
+  snapshot: plans-unverified
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         access: coding_tool, estate: {plans: [anthropic/subscription/max-20x]}}
+  expect: {http: 200}
+  covers: [access:coding_tool, estate:plan-unverified]
+
+# ── estate ─────────────────────────────────────────────────────────────────
+
+- id: estate-plan-exhausted
+  intent: An exhausted plan is not used, and raises no own-software warning.
+  snapshot: plans
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         access: own_software,
+         estate: {plans: [anthropic/subscription/max-20x], providers: [anthropic],
+                  exhausted: [anthropic/subscription/max-20x]}}
+  expect: {http: 200, status: answered}
+  covers: [estate:exhausted]
+
+- id: estate-provider-exhausted
+  intent: An exhausted provider takes its key and its plans with it.
+  snapshot: plans
+  spec: {spec_version: 1, optimize: {max: model.context_window}, explain: full,
+         estate: {plans: [anthropic/subscription/max-20x], providers: [anthropic, openai],
+                  exhausted: [anthropic]}}
+  expect: {http: 200, status: answered}
+  covers: [estate:exhausted]
+
+- id: estate-providers-repo
+  intent: Pay-per-use accounts on the real lineup draw with_estate beside the open answer.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: full, limit: 10,
+         estate: {providers: [anthropic, openai]}}
+  expect: {http: 200}
+  covers: [estate:providers]
+  live: true
+
+- id: estate-everything-exhausted-repo
+  intent: Every held provider exhausted leaves the estate answer empty, not an error.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: summary, limit: 5,
+         estate: {providers: [anthropic], plans: [anthropic/subscription/max-20x],
+                  exhausted: [anthropic]}}
+  expect: {http: 200}
+  covers: [estate:exhausted]
+
+- id: estate-unverified-plan-repo
+  intent: A held plan on the real lineup, whose coverage is not verified yet.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: full, limit: 10,
+         access: coding_tool, estate: {plans: [anthropic/subscription/max-20x]}}
+  expect: {http: 200}
+  covers: [estate:plan-unverified]
+  live: true
+
+# ── refinements ────────────────────────────────────────────────────────────
+
+- id: refinement-live
+  intent: A live refinement (Python) nests its estimate in software engineering.
+  spec: {spec_version: 1, optimize: {weights: {software_engineering: 0.5,
+         software_engineering/python: 0.5}}, explain: full, limit: 10}
+  expect: {http: 200}
+  covers: [refinement:live]
+  live: true
+
+- id: refinement-thin
+  intent: A thin refinement (Rust) still ranks, on the little evidence there is.
+  spec: {spec_version: 1, optimize: {weights: {software_engineering: 0.5,
+         software_engineering/rust: 0.5}}, explain: summary, limit: 10}
+  expect: {http: 200}
+  covers: [refinement:thin]
+
+- id: refinement-not-measured
+  intent: A refinement no lineup model is measured on cannot rank and is refused.
+  spec: {spec_version: 1, optimize: {weights: {software_engineering/sql_text_to_sql: 1}},
+         explain: summary}
+  expect: {http: 400, code: invalid_spec}
+  covers: [refinement:not_measured, error:invalid_spec]
+
+- id: refinement-no-benchmark
+  intent: A registered refinement no benchmark measures is refused.
+  spec: {spec_version: 1, optimize: {weights: {software_engineering/code_review: 1}},
+         explain: summary}
+  expect: {http: 400, code: invalid_spec}
+  covers: [refinement:not_measured]
+
+- id: refinement-unregistered
+  intent: A refinement the registry does not know is refused, naming its parent.
+  spec: {spec_version: 1, optimize: {weights: {software_engineering/cobol: 1}},
+         explain: summary}
+  expect: {http: 400, code: invalid_spec}
+  covers: [refinement:unregistered]
+
+- id: refinement-bad-parent
+  intent: A refinement under a parent that is not a domain is refused at parse time.
+  spec: {spec_version: 1, optimize: {weights: {cooking/rust: 1}}}
+  expect: {http: 400, code: invalid_spec}
+  covers: [refinement:unregistered]
+
+# ── benchmark exclusion ────────────────────────────────────────────────────
+
+- id: exclude-one-benchmark
+  intent: Excluding SWE-bench Pro re-estimates software engineering without it.
+  spec: {spec_version: 1, capabilities: {software_engineering: required},
+         exclude_benchmarks: [swe_bench_pro], optimize: {max: software_engineering},
+         explain: full, limit: 10}
+  expect: {http: 200}
+  covers: [exclude_benchmarks]
+  live: true
+
+- id: exclude-a-domains-benchmarks
+  intent: Excluding every maths benchmark leaves maths with nothing to estimate from.
+  spec: {spec_version: 1, exclude_benchmarks: [frontiermath_tiers_1_3_v2, aime_2026,
+         arena_sc_industry_mathematical, arena_sc_math], optimize: {max: maths},
+         explain: summary, limit: 5}
+  expect: {http: 200}
+  covers: [exclude_benchmarks]
+
+# ── answers ────────────────────────────────────────────────────────────────
+
+- id: answer-separated
+  intent: The page's default task on the four-model lineup has one clear leader.
+  snapshot: lineup
+  spec: {spec_version: 1, task_type: refactor, capabilities: {software_engineering: required},
+         task_tokens: {input: 40000, output: 4000},
+         where: [model.class = text-generator, quality >= 60 @independent],
+         optimize: {weights: {quality: 0.78, -offering.cost_per_task: 0.22}},
+         explain: full, limit: 20}
+  expect: {http: 200, status: answered, answer: separated}
+  covers: [answer:separated]
+
+- id: answer-tied
+  intent: Overlapping measurement intervals make the top two a tie, with its tie-breakers.
+  snapshot: lineup-tied
+  spec: {spec_version: 1, task_type: refactor, capabilities: {software_engineering: required},
+         task_tokens: {input: 40000, output: 4000},
+         where: [model.class = text-generator, quality >= 60 @independent],
+         optimize: {weights: {quality: 0.78, -offering.cost_per_task: 0.22}},
+         explain: full, limit: 20}
+  expect: {http: 200, status: answered, answer: tied}
+  covers: [answer:tied]
+
+- id: answer-no-feasible
+  intent: A Must nothing meets answers no_feasible with what to relax.
+  snapshot: lineup
+  spec: {spec_version: 1, where: [model.context_window >= 10000000],
+         optimize: {max: quality}, explain: full}
+  expect: {http: 200, status: no_feasible}
+  covers: [answer:no_feasible]
+
+- id: answer-no-feasible-repo
+  intent: The same impossible Must on the real lineup.
+  spec: {spec_version: 1, where: [model.context_window >= 1000000000],
+         optimize: {max: software_engineering}, explain: summary}
+  expect: {http: 200, status: no_feasible}
+  covers: [answer:no_feasible]
+  live: true
+
+- id: answer-partial
+  intent: A Must one model is known to meet, and others are not known to, answers partial.
+  snapshot: plans
+  spec: {spec_version: 1, where: ["model.fits_hardware in {apple_m3_max}"],
+         optimize: {max: model.context_window}, explain: full}
+  expect: {http: 200, status: partial, answer: separated}
+  covers: [answer:partial]
+
+- id: answer-all-unknown
+  intent: A Must on a fact no model states moves every model to may-qualify, not to an error.
+  snapshot: lineup
+  spec: {spec_version: 1, where: [offering.attestation.baa = true],
+         optimize: {max: quality}, explain: full}
+  expect: {http: 200, status: no_feasible}
+  covers: [answer:no_feasible]
+
+- id: explain-none-lineup
+  intent: The default task at explain none.
+  snapshot: lineup
+  spec: {spec_version: 1, capabilities: {software_engineering: required},
+         optimize: {max: quality}, explain: none}
+  expect: {http: 200, status: answered, answer: separated}
+
+- id: explain-summary-lineup
+  intent: The default task at explain summary.
+  snapshot: lineup
+  spec: {spec_version: 1, capabilities: {software_engineering: required},
+         optimize: {max: quality}, explain: summary}
+  expect: {http: 200, status: answered, answer: separated}
+
+# ── limits ─────────────────────────────────────────────────────────────────
+
+- id: limit-one
+  intent: A limit of 1 returns one row and reports the rest as truncated.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: full, limit: 1}
+  expect: {http: 200}
+  covers: [limit:1]
+  live: true
+
+- id: limit-max
+  intent: The maximum limit (500) returns the whole lineup.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: summary, limit: 500}
+  expect: {http: 200}
+  covers: [limit:max]
+
+# ── malformed specs, one per way the contract refuses one ──────────────────
+
+- id: malformed-not-yaml
+  intent: Text that is not YAML is refused, not guessed at.
+  spec: "optimize: {max: [unclosed"
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-not-a-mapping
+  intent: A spec must be a mapping.
+  spec: "- spec_version: 1"
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-duplicate-key
+  intent: A key given twice is refused rather than the last one winning.
+  spec: "spec_version: 1\noptimize: {max: software_engineering}\nlimit: 3\nlimit: 5\n"
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-spec-version
+  intent: An unknown spec_version is refused.
+  spec: {spec_version: 2, optimize: {max: software_engineering}}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+  live: true
+
+- id: malformed-no-optimize
+  intent: A spec without an objective is refused.
+  spec: {spec_version: 1}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-unknown-key
+  intent: A top-level key the contract does not define is refused.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, rank_by: price}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-unknown-facet
+  intent: A Must on a facet that is not registered is refused, naming it.
+  spec: {spec_version: 1, where: [model.vibes >= 3], optimize: {max: software_engineering}}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-condition-syntax
+  intent: A Must that does not parse is refused.
+  spec: {spec_version: 1, where: ["model.context_window >>= 5"],
+         optimize: {max: software_engineering}}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-ordered-op-on-set
+  intent: An ordering operator on an unordered facet is refused.
+  spec: {spec_version: 1, where: ["model.languages >= 3"], optimize: {max: software_engineering}}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-access-kind
+  intent: An access answer the board does not offer is refused.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, access: in_a_spreadsheet}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-harness-without-coding-tool
+  intent: A harness is only for a coding tool.
+  spec: {spec_version: 1, optimize: {max: software_engineering},
+         access: {kind: own_software, harness: claude-code}}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-limit-zero
+  intent: A limit below 1 is refused.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, limit: 0}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-limit-over-max
+  intent: A limit above 500 is refused.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, limit: 501}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-explain
+  intent: An explain level the contract does not define is refused.
+  spec: {spec_version: 1, optimize: {max: software_engineering}, explain: verbose}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-minus-preference
+  intent: A value preference cannot be minimised.
+  spec: {spec_version: 1, optimize: {weights: {-model.weights_openness:
+         {prefer: open_weights, weight: 1}}}}
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-estate-too-long
+  intent: More than 64 held IDs in one estate list is refused.
+  spec:
+    spec_version: 1
+    optimize: {max: software_engineering}
+    estate:
+      providers: [p00, p01, p02, p03, p04, p05, p06, p07, p08, p09, p10, p11, p12, p13, p14,
+                  p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29,
+                  p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44,
+                  p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59,
+                  p60, p61, p62, p63, p64]
+  expect: {http: 400, code: invalid_spec}
+  covers: [error:invalid_spec]
+
+- id: malformed-snapshot-pin
+  intent: A spec pinned to a snapshot the Worker has not loaded is refused, not answered from another.
+  spec: {spec_version: 1, snapshot: snap_0000000000000000, optimize: {max: software_engineering}}
+  expect: {http: 409, code: snapshot_not_loaded}
+  covers: [error:snapshot_not_loaded]
+  divergence: >-
+    `modelspec decide` answers from the local snapshot whatever the spec pins;
+    only `--check` warns about a pin.
+
+- id: malformed-stale-vocabulary
+  intent: A request built from an older vocabulary is told the snapshot changed.
+  header: stale
+  spec: {spec_version: 1, optimize: {max: software_engineering}}
+  expect: {http: 409, code: snapshot_changed}
+  covers: [error:snapshot_changed]
+  divergence: The CLI sends no X-ModelSpec-Snapshot header; it answers from its own snapshot.

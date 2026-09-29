@@ -72,12 +72,30 @@ jobs:
           npx playwright install --with-deps chromium
           npm run build
 
+      - name: Write the spec corpus's decisions for the web suite
+        # MODEL-203. The engine's answer to every spec in tests/corpus, and each
+        # corpus snapshot's vocabulary. The next two steps parse them with the
+        # page's schema and draw them on the built page, so a field the page
+        # reads strictly and the engine sends as null (#361) fails this PR.
+        run: python -m tests.corpus decisions --out web/src/decide/__corpus__
+
       - name: Test the decide app
         # The web suite (Vitest) guards the decide page on every PR: this job is
-        # the required "Build both sites" check. Browser (Playwright) tests stay
-        # local; they need installed browsers.
+        # the required "Build both sites" check.
         working-directory: web
+        env:
+          MODELSPEC_CORPUS_REQUIRED: '1'
         run: npm test
+
+      - name: Draw the spec corpus on the built decide page in Chromium
+        # MODEL-203. vite preview serves web/dist; the vocabulary and /v1/decide
+        # are stubbed per case. No invalid_response, no blank table, no route
+        # called "API". The Reset-all template check is an expected failure
+        # until MODEL-204 lands.
+        working-directory: web
+        env:
+          CI: true
+        run: npx playwright test --config=playwright.corpus.config.ts
 
       - name: Build
         id: build
@@ -481,3 +499,76 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist/benchgraph --project-name=benchgraph --branch=internal
+
+  smoke:
+    # MODEL-203. After each deploy, what visitors and the CLI get, with nothing
+    # stubbed: corpus specs POSTed to api.modelspec.dev and parsed with the page's
+    # schema, the deployed /decide/ page drawing an answer in Chromium, and a
+    # clean install of this commit's wheel against the published snapshot. It
+    # fails loudly and rolls nothing back: the deploy already happened.
+    name: Smoke-test the deployed decide surfaces
+    needs: [build, deploy]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      API: https://api.modelspec.dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          pip install pydantic pyyaml "httpx==0.28.1" build
+          cd web && npm ci
+
+      - name: Wait for the Worker from this commit
+        # rank-api.yml deploys it from the same push; up to 10 minutes, then a
+        # warning and the Worker that is serving is tested anyway.
+        run: python -m tests.corpus wait-worker --origin "$API" --commit "$GITHUB_SHA"
+
+      - name: POST the live corpus specs to api.modelspec.dev
+        run: python -m tests.corpus live --origin "$API" --out live-corpus
+
+      - name: Parse the live answers with the page's schema
+        if: ${{ !cancelled() }}
+        working-directory: web
+        env:
+          MODELSPEC_CORPUS_DIR: ../live-corpus
+          MODELSPEC_CORPUS_REQUIRED: '1'
+        run: npx vitest run src/decide/__tests__/corpus.test.ts
+
+      - name: Load the deployed /decide/ in Chromium
+        if: ${{ !cancelled() }}
+        working-directory: web
+        env:
+          CI: true
+        run: |
+          npx playwright install --with-deps chromium
+          urls="https://internal.modelspec-7np.pages.dev/decide/"
+          if [ "${{ needs.build.outputs.mode }}" = "live" ]; then urls="$urls https://modelspec.dev/decide/"; fi
+          status=0
+          for url in $urls; do
+            echo "::group::$url"
+            MODELSPEC_DECIDE_URL="$url" npx playwright test --config=playwright.corpus.config.ts || { status=1; echo "::error::$url did not draw a decision"; }
+            echo "::endgroup::"
+          done
+          exit $status
+
+      - name: Run the CLI matrix from a clean install of this commit's wheel
+        if: ${{ !cancelled() }}
+        run: |
+          python -m build --wheel --outdir "$RUNNER_TEMP/wheel"
+          python -m venv "$RUNNER_TEMP/cli"
+          "$RUNNER_TEMP/cli/bin/pip" install -q "$RUNNER_TEMP"/wheel/*.whl
+          python -m tests.corpus cli-matrix --modelspec "$RUNNER_TEMP/cli/bin/modelspec" --work "$RUNNER_TEMP/cli-matrix"
