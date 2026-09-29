@@ -107,8 +107,9 @@ def test_subscription_facets_are_record_only_until_holder_costs_exist(registry):
         if facet.id.startswith("offering.subscription.")
     ]
 
-    # MODEL-173's five, plus MODEL-200's surfaces, families, quote and allowance.
-    assert len(subscriptions) == 12
+    # MODEL-173's five, MODEL-200's surfaces, families, quote and allowance, and
+    # MODEL-201's CNY price.
+    assert len(subscriptions) == 13
     assert all(not facet.addressable for facet in subscriptions)
 
 

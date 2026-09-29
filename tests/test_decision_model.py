@@ -605,21 +605,46 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
     ]
 
     assert [subscription.id for subscription in loaded] == [
+        "alibaba-model-studio/subscription/coding-pro",
         "anthropic/subscription/pro",
         "anthropic/subscription/max-5x",
         "anthropic/subscription/max-20x",
+        "anthropic/subscription/team-standard",
+        "anthropic/subscription/team-premium",
+        "anthropic/subscription/enterprise",
         "google-gemini-api/subscription/ai-plus",
         "google-gemini-api/subscription/ai-pro",
-        "google-gemini-api/subscription/ai-ultra",
+        "google-gemini-api/subscription/ai-ultra-5x",
+        "google-gemini-api/subscription/ai-ultra-20x",
+        "minimax/subscription/token-plus",
+        "minimax/subscription/token-max",
+        "minimax/subscription/token-ultra",
+        "mistral/subscription/pro",
+        "mistral/subscription/team",
+        "moonshot/subscription/andante",
+        "moonshot/subscription/moderato",
+        "moonshot/subscription/allegretto",
+        "moonshot/subscription/allegro",
         "openai/subscription/plus",
         "openai/subscription/pro-5x",
         "openai/subscription/pro-20x",
+        "openai/subscription/go",
+        "openai/subscription/business-standard",
+        "openai/subscription/business-premium",
         "xai/subscription/supergrok",
         "xai/subscription/supergrok-plus",
+        "xai/subscription/supergrok-lite",
+        "xai/subscription/supergrok-heavy",
+        "xai/subscription/business",
+        "zai/subscription/glm-coding-lite",
+        "zai/subscription/glm-coding-pro",
+        "zai/subscription/glm-coding-max",
     ]
     facts = [fact for subscription in loaded for fact in subscription.facts]
-    # MODEL-173's 55, plus MODEL-200's seven plan facts on each of 11 plans.
-    assert len(facts) == 55 + 7 * 11
+    # 34 plans with MODEL-173's five facets each (170), plus 108 plan facts:
+    # MODEL-200's seven on the ten of its 11 plans that remain (ai-ultra was
+    # split), and those MODEL-201 researched on the plans it added.
+    assert len(facts) == 5 * 34 + 108
     assert all(fact.sources for fact in facts if fact.state == "known")
     assert all(
         fact.value is None and (fact.checked_sources or fact.state == "unknown")
@@ -635,11 +660,16 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
         "offering.subscription.surfaces",
         "offering.subscription.allowance.relative_to",
         "offering.subscription.allowance.multiplier",
+        # MODEL-201
+        "offering.subscription.families_covered",
+        "offering.subscription.coverage_quote",
+        "offering.subscription.allowance.window",
+        "offering.subscription.price_cny",
     }
     xai_programmatic = [
         fact
         for subscription in loaded
-        if subscription.provider == "xai"
+        if subscription.id in {"xai/subscription/supergrok", "xai/subscription/supergrok-plus"}
         for fact in subscription.facts
         if fact.facet == "offering.subscription.programmatic_or_agent_use"
     ]

@@ -790,15 +790,27 @@ class SubscriptionPageExtractor:
 
     def accepts(self, text: str) -> bool:
         return bool(re.search(
-            r"(?i)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
+            r"(?im)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
             r"everything in .+?, plus|\bcodex\b|claude code|more usage than pro|"
-            r"google ai studio)",
+            r"google ai studio|\$\s?[0-9.]+\s*(?:/\s*(?:user/)?mo|per (?:member|user|seat))|"
+            r"^\$[0-9.]+$|^all plans support |^supported models \||^#+ models$|"
+            # MODEL-201's plan-fact layouts: a plans table with no price in it, a
+            # yuan price, a plan's help article, a per-plan statement, a tier page.
+            r"^(?:features|plan)\s*\||¥\s?[0-9]|^what is the .+ plan\?$|"
+            r"\beach plan is\b|^quota windows\s*\||\bsupergrok\b)",
             text,
         ))
 
     def extract(self, claim: Claim, text: str) -> list[Reading]:
         if not claim.field.startswith("offering.subscription."):
             raise ExtractorError("not a subscription claim")
+        readings = self._page_layouts(claim, text)
+        for more in (_plan_cards(claim, text), _plan_facts(claim, text)):
+            readings += [r for r in more if r not in readings]
+        return readings
+
+    def _page_layouts(self, claim: Claim, text: str) -> list[Reading]:
+        """The layouts MODEL-173's pages use (plan cards keyed by a price line)."""
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         aliases = {normalise_name(name) for name in claim.names}
 
@@ -926,11 +938,12 @@ class SubscriptionPageExtractor:
                 if amount:
                     return [Reading(subject=claim.names[0], value=amount.group(1))]
             for line in lines:
-                if not matches(line):
-                    continue
-                amount = re.search(r"\$([0-9.]+)", line)
-                if amount:
-                    return [Reading(subject=claim.names[0], value=amount.group(1))]
+                # One amount, after the plan's name: a line quoting several prices,
+                # or naming the plan after the amount ("... vs. AI Pro"), is not
+                # the plan's price line.
+                amounts = list(re.finditer(r"\$([0-9.]+)", line))
+                if len(amounts) == 1 and matches(line[:amounts[0].start()]):
+                    return [Reading(subject=claim.names[0], value=amounts[0].group(1))]
             return []
 
         if claim.field == "offering.subscription.billing_period":
@@ -1010,6 +1023,19 @@ class SubscriptionPageExtractor:
                 return [Reading(subject=claim.names[0], value=claude.group(0))]
             return []
 
+        if claim.field == "offering.subscription.models_covered":
+            # ChatGPT's comparison rows: "Plan: Plus, Feature: GPT-6 Astra, Yes". Any
+            # cell but "No" lists the model for that plan ("Limited access in ...").
+            row = re.compile(r"^Plan: (.+?), Feature: (GPT-\d.*?), (.+)$")
+            listed = [
+                m.group(2) for line in lines
+                if (m := row.match(line)) and matches(m.group(1))
+                and normalise_name(m.group(3)) != "no"
+            ]
+            if listed:
+                return [Reading(subject=claim.names[0],
+                                value=", ".join(dict.fromkeys(listed)))]
+
         if claim.field != "offering.subscription.models_covered" or wanted is None:
             return []
 
@@ -1020,6 +1046,391 @@ class SubscriptionPageExtractor:
         ]
         models = list(dict.fromkeys(models))
         return [Reading(subject=wanted, value=", ".join(models))] if models else []
+
+
+#: An amount in a currency symbol; ``$ 50``, ``$117.6`` and ``¥99`` included.
+_AMOUNTS = {symbol: re.compile(re.escape(symbol) + r"\s?([0-9][0-9,]*(?:\.[0-9]+)?)")
+            for symbol in ("$", "¥")}
+_PLAN_LABEL = re.compile(r"(?i)(?:monthly|annual) plan:?\s*$")
+
+
+def _priced(text: str, symbol: str = "$") -> list[tuple[str, str | None]]:
+    """Each amount in ``symbol`` in ``text`` with the billing period its own words give.
+
+    An amount's words run to the next amount; a "Monthly plan:" or "Annual plan:"
+    label just before it belongs to it. "per month, billed annually" is annual.
+    """
+    found = list(_AMOUNTS[symbol].finditer(text))
+    out = []
+    for i, m in enumerate(found):
+        end = found[i + 1].start() if i + 1 < len(found) else len(text)
+        words = _PLAN_LABEL.sub("", text[m.end():end].split("|", 1)[0])
+        label = _PLAN_LABEL.search(text[:m.start()])
+        words = (label.group(0) if label else "") + words
+        period = ("annual" if re.search(r"(?i)annual|/\s*y(?:ea)?r\b|per year", words)
+                  else "monthly" if re.search(r"(?i)month|/\s*(?:user/)?mo\b", words)
+                  else None)
+        out.append((m.group(1).replace(",", ""), period))
+    return out
+
+
+def _price_readings(subject: str, field: str, text: str) -> list[Reading]:
+    """Prices and periods for one plan from ``text``. When the plan publishes a
+    monthly price, its annual rate is not read as the plan's price. A dollar price
+    is read only from dollars and a yuan price only from yuan."""
+    if field == "offering.subscription.billing_period":
+        # As for the price: a plan that publishes a monthly price is billed monthly;
+        # its annual option does not make "annual" a reading for it.
+        periods = {p for symbol in _AMOUNTS for _, p in _priced(text, symbol) if p}
+        period = "monthly" if "monthly" in periods else next(iter(periods), None)
+        return [Reading(subject=subject, value=period)] if period else []
+    symbol = {"offering.subscription.price": "$", "offering.subscription.price_cny": "¥"}.get(field)
+    if symbol is None:
+        return []
+    priced = _priced(text, symbol)
+    monthly = [a for a, p in priced if p == "monthly"]
+    return [Reading(subject=subject, value=a)
+            for a in (monthly or [a for a, _ in priced])]
+
+
+def _model_list(cell: str) -> str:
+    """A supported-models cell as a comma list: labels and qualifiers dropped."""
+    cell = re.sub(r"(?i)only the following exact model versions are supported:|"
+                  r"recommended models:|more models:|models not listed above are not "
+                  r"supported\.?|\(vision\)", ",", cell)
+    items = [i.strip() for i in re.split(r",|\band\b", cell) if i.strip()]
+    return ", ".join(items)
+
+
+def _plan_cards(claim: Claim, text: str) -> list[Reading]:
+    """Plan facts from generic plan-page layouts (MODEL-201).
+
+    * a card: a line that is exactly the plan's name (markdown heading marks
+      allowed), then within six lines its price line(s);
+    * a tier line: "$199.99 / month: 20x higher usage limits vs. AI Pro", the tier
+      named by its multiplier;
+    * a table whose header names the plan as a column, or whose row starts with it;
+    * a help article titled "What is the <plan>?", whose sentences are the plan's;
+    * "All plans support A, B." and a "### Models" list, which apply to every plan
+      on the page.
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    aliases = {normalise_name(name) for name in claim.names}
+    subject, field = claim.names[0], claim.field
+    readings: list[Reading] = []
+
+    def heading(line: str) -> bool:
+        return _card_heading(line, aliases)
+
+    for i, line in enumerate(lines):
+        if not heading(line):
+            continue
+        window: list[str] = [line] if _PRICED_HEADING.match(line) else []
+        for later in lines[i + 1:i + 7]:
+            priced = "$" in later or "¥" in later
+            if window and not (priced or later.startswith("/")):
+                break
+            if priced or (window and later.startswith("/")):
+                window.append(later)
+        readings += _price_readings(subject, field, " ".join(window))
+
+    multiplier = next((m.group(1) for name in claim.names
+                       if (m := re.search(r"\b(\d+x)\b", name, re.IGNORECASE))), None)
+    if multiplier:
+        for line in lines:
+            m = re.match(r"^\$\s?([0-9.]+)\s*/\s*month:\s*(\d+x)\b\s*(.*)$", line,
+                         re.IGNORECASE)
+            if m and m.group(2).casefold() == multiplier.casefold():
+                readings += _price_readings(subject, field, f"${m.group(1)}/month")
+                if field == "offering.subscription.usage_allowance":
+                    readings.append(Reading(subject=subject,
+                                            value=f"{m.group(2)} {m.group(3)}".strip()))
+
+    tables: list[list[list[str]]] = []
+    current: list[list[str]] = []
+    for line in [*lines, ""]:
+        if "|" in line:
+            current.append([cell.strip() for cell in line.split("|")])
+        elif current:
+            tables.append(current)
+            current = []
+    for table in tables:
+        columns = [j for j, cell in enumerate(table[0]) if normalise_name(cell) in aliases]
+        for row in table[1:]:
+            label = normalise_name(row[0])
+            cells = [row[j] for j in columns if j < len(row)]
+            if label == "price":
+                for cell in cells:
+                    readings += _price_readings(subject, field, cell)
+            elif label == "supported models" and field == "offering.subscription.models_covered":
+                readings += [Reading(subject=subject, value=_model_list(c)) for c in cells]
+            elif label in {"quota", "quota windows"} \
+                    and field == "offering.subscription.usage_allowance":
+                readings += [Reading(subject=subject, value=c) for c in cells]
+            if label in aliases:
+                readings += _price_readings(subject, field, " | ".join(row[1:]))
+                if field in {"offering.subscription.programmatic_or_agent_use",
+                             "offering.subscription.usage_allowance"}:
+                    readings += [Reading(subject=subject, value=c) for c in row[1:] if c]
+
+    # A help article about one plan ("What is the Enterprise plan?"): its sentences
+    # are that plan's wording.
+    title = next((m.group(1) for line in lines[:3]
+                  if (m := re.match(r"^What is the (.+?)\?$", line))), None)
+    if title and normalise_name(title) in aliases:
+        if field in {"offering.subscription.programmatic_or_agent_use",
+                     "offering.subscription.usage_allowance"}:
+            readings += [Reading(subject=subject, value=sentence) for line in lines
+                         for sentence in re.split(r"(?<=[.!?])\s+", line) if sentence]
+        if field == "offering.subscription.billing_period":
+            # Only what the plan itself is billed by: a sentence about its seat,
+            # plan or subscription ("Billed monthly in arrears" for usage is not).
+            for line in lines:
+                for sentence in re.split(r"(?<=[.!?])\s+|\s*\|\s*", line):
+                    text_ = sentence.casefold()
+                    if not re.search(r"\b(?:seats?|plans?|subscriptions?|priced)\b", text_):
+                        continue
+                    for word, period in (("billed annually", "annual"),
+                                         ("billed monthly", "monthly")):
+                        if word in text_:
+                            readings.append(Reading(subject=subject, value=period))
+
+    if field == "offering.subscription.models_covered":
+        for i, line in enumerate(lines):
+            if m := re.match(r"^All plans support (.+?)\.?$", line):
+                readings.append(Reading(subject=subject, value=m.group(1)))
+            if re.match(r"^#+\s*Models$", line):
+                listed = []
+                for later in lines[i + 1:]:
+                    if later.startswith("#"):
+                        break
+                    listed.append(later)
+                readings.append(Reading(subject=subject, value=", ".join(listed)))
+    return readings
+
+
+#: A card heading that carries its own price: "Moderato — ¥99/month".
+_PRICED_HEADING = re.compile(r"^\S.*?\s[—–-]\s*[$¥]\s?[0-9]")
+
+
+def _card_heading(line: str, aliases: set[str]) -> bool:
+    """A plan card's heading: the plan's name alone (markdown marks allowed), or its
+    name followed by a dash and a price."""
+    if normalise_name(line.lstrip("#")) in aliases:
+        return True
+    if _PRICED_HEADING.match(line):
+        name = re.split(r"\s[—–-]\s", line, maxsplit=1)[0]
+        return normalise_name(name) in aliases
+    return False
+
+
+def _card_lines(lines: list[str], aliases: set[str]) -> list[str]:
+    """The lines of the plan's card after its price, up to the next card.
+
+    The next card starts at a markdown heading, a priced heading, or a short line
+    (three words or fewer, no amount) that a price follows within four lines.
+    """
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        if not _card_heading(line, aliases):
+            continue
+        priced = bool(_PRICED_HEADING.match(line))
+        taken = 0
+        for j in range(i + 1, min(len(lines), i + 40)):
+            later = lines[j]
+            has_amount = bool(re.search(r"[$¥]\s?[0-9]", later))
+            if not priced:
+                priced = has_amount  # the card's price, a heading line included
+                continue
+            if (later.startswith("#") or _PRICED_HEADING.match(later)
+                    or re.match(r"(?i)compare\b", later) or taken >= 15):
+                break
+            taken += 1
+            short = len(later.split()) <= 3 and not has_amount and not re.search(r"[0-9]", later)
+            # A short line with a bare price close after it is the next card's name;
+            # a priced heading ("Allegretto — ¥199/month") ends the card itself.
+            upcoming = next((n for n in lines[j + 1:j + 5] if re.search(r"[$¥]\s?[0-9]", n)), None)
+            if short and upcoming is not None and not _PRICED_HEADING.match(upcoming):
+                break
+            out.append(re.sub(r"^[-*•]\s+", "", later))
+    return out
+
+
+def _sentences(line: str) -> list[str]:
+    return [s for s in re.split(r"(?<=[.!?])\s+", line.strip()) if s]
+
+
+def _plan_scope(claim: Claim, lines: list[str], *, articles: bool = True,
+                tiers_only: bool = False) -> list[str]:
+    """Sentences and clauses that speak for the claim's plan.
+
+    * every sentence of a help article titled "What is the <plan>?", unless
+      ``articles`` is false (an article about a plan family also speaks for each
+      of its tiers, so a tier's own number must come from a clause naming it);
+    * a clause naming a distinctive alias (two words or more, such as "Max 5x" or
+      "Pro $100"; a clause is split at ", while" and ";");
+    * a sentence naming a one-word alias followed by "plan" or "plans" ("With Pro
+      and Max plans, ...");
+    * a sentence about "each plan", "every plan" or "all plans".
+
+    ``tiers_only`` keeps only clauses naming a tier: a distinctive alias that is
+    not a family name ("Team plan", "Max plan"), which sibling tiers share. It is
+    what a tier's own number (a multiplier) is read from.
+    """
+    aliases = {normalise_name(name) for name in claim.names}
+    distinctive = {a for a in aliases if len(a.split()) >= 2}
+    single = aliases - distinctive
+    if tiers_only:
+        articles, single = False, set()
+        distinctive = {a for a in distinctive if not re.search(r" plans?$", a)}
+    title = next((m.group(1) for line in lines[:3]
+                  if (m := re.match(r"^What is the (.+?)\?$", line))), None)
+    if articles and title and normalise_name(title) in aliases:
+        return [s for line in lines for s in _sentences(line)]
+    scoped: list[str] = []
+    for line in lines:
+        for sentence in _sentences(line):
+            normal = normalise_name(sentence)
+            if not tiers_only and re.search(r"\b(?:each|every|all) (?:\w+ )?plans?\b", normal) or any(
+                re.search(rf"\b{re.escape(a)}\b.*\bplans?\b", normal) for a in single
+            ):
+                scoped.append(sentence)
+                continue
+            for clause in re.split(r",\s*while\s+|;\s+", sentence):
+                if any(re.search(rf"(?<![0-9a-z]){re.escape(a)}s?(?![0-9a-z])",
+                                 normalise_name(clause)) for a in distinctive):
+                    scoped.append(clause)
+    return scoped
+
+
+def _without_aliases(clause: str, names: Sequence[str]) -> str:
+    for name in sorted(names, key=len, reverse=True):
+        clause = re.sub(re.escape(name), " ", clause, flags=re.IGNORECASE)
+    return clause
+
+
+_TIMES = {"two": 2, "four": 4, "five": 5, "six": 6, "ten": 10, "fourteen": 14, "twenty": 20}
+_MULTIPLE = re.compile(
+    r"(?<![\w.])(\d+(?:\.\d+)?)\s*(?:[x×](?![a-z0-9])|times\b)|\b(two|four|five|six|ten|"
+    r"fourteen|twenty)\s+times\b", re.IGNORECASE)
+_BASE = re.compile(
+    r"(?:\bthan\b|\bvs\.?|^\s*(?=the\b))\s*(?:the\s+)?([A-Z][A-Za-z0-9$ ]*?)"
+    r"(?:'s\b|\s+plan\b|\s+limits?\b|\s*[.,;:*]|\s*$)")
+
+
+def _multiples(provider: str, clause: str) -> list[tuple[float, str | None]]:
+    """(multiplier, base plan id) for each "5x ... than Plus" or "five times the Pro
+    plan's" in ``clause``. The base plan id is the provider's plan whose ID is the
+    base's name: "AI Pro" is ``<provider>/subscription/ai-pro``."""
+    out = []
+    for m in _MULTIPLE.finditer(clause):
+        number = float(m.group(1)) if m.group(1) else float(_TIMES[m.group(2).casefold()])
+        tail = clause[m.end():]
+        tail = re.sub(r"^\s*(?:(?:more|higher)\s+)?(?:usage\s+)?(?:limits\s+)?", " ", tail,
+                      flags=re.IGNORECASE)
+        base = _BASE.search(tail)
+        plan = (f"{provider}/subscription/{normalise_name(base.group(1)).replace(' ', '-')}"
+                if base else None)
+        out.append((number, plan))
+    return out
+
+
+#: A five-hour allowance window, as providers write it.
+_FIVE_HOURS = re.compile(r"\b(?:five|5)[- ]hours?\b", re.IGNORECASE)
+_NOT_A_WINDOW = re.compile(r"\bno (?:five|5)[- ]hour|\bhours? per week\b", re.IGNORECASE)
+
+#: Words that name where a plan can be used (MODEL-200's surfaces).
+_SURFACE_WORDS = (
+    (re.compile(r"\bweb\b", re.IGNORECASE), "chat_app"),
+    (re.compile(r"\bdesktop\b", re.IGNORECASE), "desktop_app"),
+    (re.compile(r"\b(?:mobile|iOS|Android)\b", re.IGNORECASE), "mobile_app"),
+    (re.compile(r"\bClaude Code\b"), "coding_tool:claude-code"),
+    (re.compile(r"\bCodex\b.*\bCLI\b|\bCLI\b.*\bCodex\b"), "coding_tool:codex-cli"),
+)
+
+
+def _plan_facts(claim: Claim, text: str) -> list[Reading]:
+    """MODEL-200's plan facts, read from text scoped to the plan (MODEL-201)."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    aliases = {normalise_name(name) for name in claim.names}
+    subject, field = claim.names[0], claim.field
+    provider = claim.subject.split("/", 1)[0]
+    readings: list[Reading] = []
+
+    if field == "offering.subscription.coverage_quote":
+        # The facet is the page's own wording, so any line, sentence, table cell or
+        # run of consecutive lines of the region is a candidate.
+        bare = [line.lstrip("#").strip() for line in lines]
+        candidates = [*bare, *(s for line in bare for s in _sentences(line)),
+                      *(c.strip() for line in bare if "|" in line for c in line.split("|"))]
+        candidates += ["\n".join(bare[i:i + n]) for n in range(2, 9)
+                       for i in range(len(bare) - n + 1)]
+        return [Reading(subject=subject, value=c) for c in dict.fromkeys(candidates) if c]
+
+    if field in {"offering.subscription.usage_allowance",
+                 "offering.subscription.programmatic_or_agent_use"}:
+        readings += [Reading(subject=subject, value=line) for line in _card_lines(lines, aliases)]
+
+    tables: list[list[list[str]]] = []
+    current: list[list[str]] = []
+    for line in [*lines, ""]:
+        if "|" in line:
+            current.append([cell.strip().rstrip("*") for cell in line.split("|")])
+        elif current:
+            tables.append(current)
+            current = []
+    columns_of = [
+        (table, [j for j, cell in enumerate(table[0]) if normalise_name(cell) in aliases])
+        for table in tables
+    ]
+
+    if field == "offering.subscription.families_covered":
+        families = default_registry().families()
+        for table, columns in columns_of:
+            for column in columns:
+                covered = []
+                for row in table[1:]:
+                    label = normalise_name(row[0])
+                    matched = [f.id for f in families
+                               if normalise_name(f.name) == label
+                               or normalise_name(f.name).endswith(" " + label)]
+                    cell = normalise_name(row[column]) if column < len(row) else ""
+                    if len(matched) == 1 and cell not in {"", "no", "usage credits", "n a"}:
+                        covered.append(matched[0])
+                if covered:
+                    readings.append(Reading(subject=subject, value=", ".join(covered)))
+        return readings
+
+    scope = _plan_scope(claim, lines)
+    if field == "offering.subscription.allowance.window":
+        quota = [row[j] for table, columns in columns_of for row in table[1:]
+                 if normalise_name(row[0]) in {"quota", "quota windows"}
+                 for j in columns if j < len(row)]
+        for piece in [*scope, *quota]:
+            if _FIVE_HOURS.search(piece) and not _NOT_A_WINDOW.search(piece):
+                readings.append(Reading(subject=subject, value="five hours"))
+                break
+    if field in {"offering.subscription.allowance.multiplier",
+                 "offering.subscription.allowance.relative_to"}:
+        tier = [f"{m.group(1)} {m.group(2)}" for line in lines
+                if (m := re.match(r"^\$\s?[0-9.]+\s*/\s*month:\s*(\d+x)\s*(.*)$", line,
+                                  re.IGNORECASE))
+                and any(m.group(1).casefold() in a.split() for a in aliases)]
+        own = _plan_scope(claim, lines, tiers_only=True)
+        for clause in [*(_without_aliases(c, claim.names) for c in own), *tier]:
+            for number, plan in _multiples(provider, clause):
+                if plan is None:
+                    continue  # a multiple of nothing named ("Max 5x and 20x plans")
+                value = plan if field.endswith("relative_to") else f"{number:g}"
+                readings.append(Reading(subject=subject, value=value))
+    if field == "offering.subscription.surfaces":
+        # Every surface the plan's text names: a surface it does not name is absent,
+        # so a claim missing one the page names is wrong, not partial.
+        found = sorted({surface for sentence in scope
+                        for word, surface in _SURFACE_WORDS if word.search(sentence)})
+        if found:
+            readings.append(Reading(subject=subject, value=", ".join(found)))
+    return readings
 
 
 class ModelPageExtractor:
@@ -1313,11 +1724,15 @@ class ClaudeCLICompletion:
 
 
 class LLMCache:
-    """Persistent reader replies keyed by source copy, cited region and facet.
+    """Persistent reader replies keyed by source copy, cited region, facet and the
+    names the prompt asks about.
 
-    ``namespace`` keeps one reader's replies from answering for another's. The
-    Claude reader has none, so the replies it cached before there were two
-    readers still hit.
+    The names are in the key because the prompt carries them: a reader answers
+    mostly for the named subject, and reads a row with no subject as that one, so
+    a reply for one plan or model must not answer for a sibling on the same page
+    (MODEL-201). ``strict-reader-v3`` keys therefore miss every v2 reply.
+
+    ``namespace`` keeps one reader's replies from answering for another's.
     """
 
     def __init__(self, root: str | Path | None = None, *, namespace: str | None = None) -> None:
@@ -1325,19 +1740,19 @@ class LLMCache:
         self.root = Path(root or configured or Path.home() / ".cache/modelspec/llm-reader")
         self.namespace = namespace
 
-    def _path(self, key: tuple[str, str, str]) -> Path:
+    def _path(self, key: tuple[str, ...]) -> Path:
         scope = () if self.namespace is None else (self.namespace,)
         digest = hashlib.sha256(
-            json.dumps(("strict-reader-v2", *scope, *key), ensure_ascii=False,
+            json.dumps(("strict-reader-v3", *scope, *key), ensure_ascii=False,
                        separators=(",", ":")).encode("utf-8")
         ).hexdigest()
         return self.root / digest[:2] / f"{digest}.json"
 
-    def get(self, key: tuple[str, str, str]) -> str | None:
+    def get(self, key: tuple[str, ...]) -> str | None:
         path = self._path(key)
         return path.read_text(encoding="utf-8") if path.is_file() else None
 
-    def put(self, key: tuple[str, str, str], reply: str) -> None:
+    def put(self, key: tuple[str, ...], reply: str) -> None:
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists():
@@ -1362,7 +1777,7 @@ class LLMExtractor:
         return bool(text.strip())
 
     def extract(self, claim: Claim, text: str, *,
-                cache_key: tuple[str, str, str] | None = None) -> list[Reading]:
+                cache_key: tuple[str, ...] | None = None) -> list[Reading]:
         prompt = LLM_PROMPT.format(label=claim.label or claim.field.replace("_", " "),
                                    names=", ".join(claim.names), text=text)
         reply = self.cache.get(cache_key) if self.cache is not None and cache_key else None
@@ -1593,9 +2008,13 @@ def _catalogue_model_aliases() -> Mapping[str, frozenset[str]]:
     return {alias: frozenset(ids) for alias, ids in aliases.items()}
 
 
-def _catalogue_model_id(published: str) -> str | None:
+def _catalogue_model_matches(published: str) -> frozenset[str]:
     label = re.sub(r"(?i)\s+model$", "", published.strip())
-    matches = _catalogue_model_aliases().get(normalise_name(label), frozenset())
+    return _catalogue_model_aliases().get(normalise_name(label), frozenset())
+
+
+def _catalogue_model_id(published: str) -> str | None:
+    matches = _catalogue_model_matches(published)
     return next(iter(matches)) if len(matches) == 1 else None
 
 
@@ -1630,6 +2049,10 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         q = parse_quantity(reading.value, reading.unit)
         if q is None:
             return Diff("value", expected, reading.value)
+        if claim.field in {"offering.subscription.price", "offering.subscription.price_cny"}:
+            # A list price is exact: $19.99 is not $20.
+            return None if Decimal(str(q.number)) == Decimal(str(value)) \
+                else Diff("value", expected, q.show())
         if numbers_agree(value, claim.unit, q):
             return None
         unit_differs = claim.unit is not None and claim.unit != q.unit
@@ -1642,12 +2065,18 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         }
         found_items = {item.casefold() for item in published_items}
         claimed_items = {str(v).strip().casefold() for v in value}
-        if claimed_items and all("/" in item for item in claimed_items):
-            found_items = {
-                canonical.casefold() if (canonical := _catalogue_model_id(item))
-                else normalise_name(re.sub(r"(?i)\s+model$", "", item))
-                for item in published_items
-            }
+        if claimed_items and all("/" in item for item in claimed_items) \
+                and claim.field != "offering.subscription.families_covered":
+            # models_covered holds catalogue IDs, so a published model the
+            # catalogue lacks cannot be claimed there; it is dropped. Anywhere
+            # else, and for an ambiguous label, the name is kept and must match.
+            found_items = set()
+            for item in published_items:
+                matches = _catalogue_model_matches(item)
+                if len(matches) == 1:
+                    found_items.add(next(iter(matches)).casefold())
+                elif matches or claim.field != "offering.subscription.models_covered":
+                    found_items.add(normalise_name(re.sub(r"(?i)\s+model$", "", item)))
         return None if found_items == claimed_items else Diff("value", expected, reading.value)
     expected_name = normalise_name(str(value))
     found_name = normalise_name(reading.value)
@@ -1900,7 +2329,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                         readings = extractor.extract(
                             claim,
                             text,
-                            cache_key=(source.snapshot_ref, region_id, claim.field),
+                            cache_key=(source.snapshot_ref, region_id, claim.field,
+                                       *claim.names),
                         )
                     else:
                         readings = extractor.extract(claim, text)

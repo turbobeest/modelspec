@@ -1,9 +1,10 @@
-# MODEL-173. Primary sources read 2026-09-28. These rendered Help Center pages
-# challenged plain HTTP during collection; modelspec verify decides quarantine.
-# MODEL-200 added the plan facts (surfaces, families_covered, coverage_quote,
-# allowance.*) from the facts and sources above only; nothing was re-read.
-# `unknown` means not yet researched (MODEL-201). Each new known fact enters
-# a snapshot once an independent second key verifies it.
+# MODEL-173 (read 2026-09-28), MODEL-200's plan facts, and MODEL-201
+# (read 2026-09-29).
+# Verbatim wording, surfaces and every null's reason:
+# docs/research/subscriptions/2026-09-29.md (scripts/model_201_collect.py).
+# Unknown means the retained copy does not show the value; not_disclosed
+# means the page was read and does not publish it.
+# ChatGPT Plus: GPT-5 Thinking Mini is also listed; it has no catalogue ID.
 - kind: subscription
   provider: openai
   plan: plus
@@ -30,12 +31,12 @@
   - id: openai/subscription/plus#offering.subscription.models_covered
     subject: {kind: offering, id: openai/subscription/plus}
     facet: offering.subscription.models_covered
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-openai-codex]
+    state: known
+    value: [openai/gpt-6-astra, openai/gpt-6-sol, openai/gpt-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra,
+      openai/gpt-5-6-luna]
     sources:
-    - source_id: model-173-openai-codex
-      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+    - source_id: model-201-openai-pricing
+      snapshot_ref: sha256:66190ff220d3e83e341fdee5d875fc06166966c2e3d70661615c7ee870aa9f6b
       cited_regions: [page]
   - id: openai/subscription/plus#offering.subscription.usage_allowance
     subject: {kind: offering, id: openai/subscription/plus}
@@ -91,6 +92,8 @@
     facet: offering.subscription.allowance.tokens
     state: unknown
     value: null
+# ChatGPT Pro 5x: GPT-5.6 Sol Pro and GPT-5 Thinking Mini are also listed; neither has
+#   a catalogue ID.
 - kind: subscription
   provider: openai
   plan: pro-5x
@@ -108,22 +111,21 @@
   - id: openai/subscription/pro-5x#offering.subscription.billing_period
     subject: {kind: offering, id: openai/subscription/pro-5x}
     facet: offering.subscription.billing_period
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-openai-pro]
+    state: known
+    value: monthly
     sources:
-    - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+    - source_id: model-201-openai-codex-pricing
+      snapshot_ref: sha256:9801cda32403ba3adfa7ec28ff34d45dab8b68228ae91945db7bc39b68f7fc56
       cited_regions: [page]
   - id: openai/subscription/pro-5x#offering.subscription.models_covered
     subject: {kind: offering, id: openai/subscription/pro-5x}
     facet: offering.subscription.models_covered
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-openai-codex]
+    state: known
+    value: [openai/gpt-6-astra, openai/gpt-6-sol, openai/gpt-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra,
+      openai/gpt-5-6-luna]
     sources:
-    - source_id: model-173-openai-codex
-      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+    - source_id: model-201-openai-pricing
+      snapshot_ref: sha256:66190ff220d3e83e341fdee5d875fc06166966c2e3d70661615c7ee870aa9f6b
       cited_regions: [page]
   - id: openai/subscription/pro-5x#offering.subscription.usage_allowance
     subject: {kind: offering, id: openai/subscription/pro-5x}
@@ -165,7 +167,7 @@
     value: openai/subscription/plus
     sources:
     - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      snapshot_ref: sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9
       cited_regions: [page]
   - id: openai/subscription/pro-5x#offering.subscription.allowance.multiplier
     subject: {kind: offering, id: openai/subscription/pro-5x}
@@ -174,7 +176,7 @@
     value: 5
     sources:
     - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      snapshot_ref: sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9
       cited_regions: [page]
   - id: openai/subscription/pro-5x#offering.subscription.allowance.window
     subject: {kind: offering, id: openai/subscription/pro-5x}
@@ -186,6 +188,8 @@
     facet: offering.subscription.allowance.tokens
     state: unknown
     value: null
+# ChatGPT Pro 20x: New sign-ups and upgrades paused since 2026-09-10; existing
+#   subscriptions renew. GPT-5.6 Sol Pro and GPT-5 Thinking Mini have no catalogue ID.
 - kind: subscription
   provider: openai
   plan: pro-20x
@@ -203,22 +207,21 @@
   - id: openai/subscription/pro-20x#offering.subscription.billing_period
     subject: {kind: offering, id: openai/subscription/pro-20x}
     facet: offering.subscription.billing_period
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-openai-pro]
+    state: known
+    value: monthly
     sources:
-    - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+    - source_id: model-201-openai-codex-pricing
+      snapshot_ref: sha256:9801cda32403ba3adfa7ec28ff34d45dab8b68228ae91945db7bc39b68f7fc56
       cited_regions: [page]
   - id: openai/subscription/pro-20x#offering.subscription.models_covered
     subject: {kind: offering, id: openai/subscription/pro-20x}
     facet: offering.subscription.models_covered
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-openai-codex]
+    state: known
+    value: [openai/gpt-6-astra, openai/gpt-6-sol, openai/gpt-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra,
+      openai/gpt-5-6-luna]
     sources:
-    - source_id: model-173-openai-codex
-      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+    - source_id: model-201-openai-pricing
+      snapshot_ref: sha256:66190ff220d3e83e341fdee5d875fc06166966c2e3d70661615c7ee870aa9f6b
       cited_regions: [page]
   - id: openai/subscription/pro-20x#offering.subscription.usage_allowance
     subject: {kind: offering, id: openai/subscription/pro-20x}
@@ -260,7 +263,7 @@
     value: openai/subscription/plus
     sources:
     - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      snapshot_ref: sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9
       cited_regions: [page]
   - id: openai/subscription/pro-20x#offering.subscription.allowance.multiplier
     subject: {kind: offering, id: openai/subscription/pro-20x}
@@ -269,7 +272,7 @@
     value: 20
     sources:
     - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      snapshot_ref: sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9
       cited_regions: [page]
   - id: openai/subscription/pro-20x#offering.subscription.allowance.window
     subject: {kind: offering, id: openai/subscription/pro-20x}
@@ -281,3 +284,162 @@
     facet: offering.subscription.allowance.tokens
     state: unknown
     value: null
+# ChatGPT Go: Models covered are the pricing page's Go column; GPT-5.6 Terra is
+#   'Limited access in Work and Codex on desktop'.
+- kind: subscription
+  provider: openai
+  plan: go
+  name: ChatGPT Go
+  facts:
+  - id: openai/subscription/go#offering.subscription.price
+    subject: {kind: offering, id: openai/subscription/go}
+    facet: offering.subscription.price
+    state: known
+    value: 8
+    sources:
+    - source_id: model-201-openai-codex-pricing
+      snapshot_ref: sha256:9801cda32403ba3adfa7ec28ff34d45dab8b68228ae91945db7bc39b68f7fc56
+      cited_regions: [page]
+  - id: openai/subscription/go#offering.subscription.billing_period
+    subject: {kind: offering, id: openai/subscription/go}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-openai-go
+      snapshot_ref: sha256:e1785024ee3907168bbce92247d0eafb3b34488541f1bf86157a7cae35d9bda5
+      cited_regions: [page]
+  - id: openai/subscription/go#offering.subscription.models_covered
+    subject: {kind: offering, id: openai/subscription/go}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [openai/gpt-5-6-luna, openai/gpt-5-6-terra]
+    sources:
+    - source_id: model-201-openai-pricing
+      snapshot_ref: sha256:66190ff220d3e83e341fdee5d875fc06166966c2e3d70661615c7ee870aa9f6b
+      cited_regions: [page]
+  - id: openai/subscription/go#offering.subscription.usage_allowance
+    subject: {kind: offering, id: openai/subscription/go}
+    facet: offering.subscription.usage_allowance
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-openai-go]
+    sources:
+    - source_id: model-201-openai-go
+      snapshot_ref: sha256:e1785024ee3907168bbce92247d0eafb3b34488541f1bf86157a7cae35d9bda5
+      cited_regions: [page]
+  - id: openai/subscription/go#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: openai/subscription/go}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Use Codex for lightweight coding tasks.
+    sources:
+    - source_id: model-201-openai-codex-pricing
+      snapshot_ref: sha256:9801cda32403ba3adfa7ec28ff34d45dab8b68228ae91945db7bc39b68f7fc56
+      cited_regions: [page]
+# ChatGPT Business (Standard seat): Per user; at least two seats. $20 per user per
+#   month billed annually.
+- kind: subscription
+  provider: openai
+  plan: business-standard
+  name: ChatGPT Business (Standard seat)
+  facts:
+  - id: openai/subscription/business-standard#offering.subscription.price
+    subject: {kind: offering, id: openai/subscription/business-standard}
+    facet: offering.subscription.price
+    state: known
+    value: 25
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+  - id: openai/subscription/business-standard#offering.subscription.billing_period
+    subject: {kind: offering, id: openai/subscription/business-standard}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+  - id: openai/subscription/business-standard#offering.subscription.models_covered
+    subject: {kind: offering, id: openai/subscription/business-standard}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-openai-business]
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+  - id: openai/subscription/business-standard#offering.subscription.usage_allowance
+    subject: {kind: offering, id: openai/subscription/business-standard}
+    facet: offering.subscription.usage_allowance
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-openai-business]
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+  - id: openai/subscription/business-standard#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: openai/subscription/business-standard}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: ChatGPT, ChatGPT Work, and Codex
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+# ChatGPT Business (Premium seat): Per user; $100 per user per month billed annually.
+- kind: subscription
+  provider: openai
+  plan: business-premium
+  name: ChatGPT Business (Premium seat)
+  facts:
+  - id: openai/subscription/business-premium#offering.subscription.price
+    subject: {kind: offering, id: openai/subscription/business-premium}
+    facet: offering.subscription.price
+    state: known
+    value: 125
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+  - id: openai/subscription/business-premium#offering.subscription.billing_period
+    subject: {kind: offering, id: openai/subscription/business-premium}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+  - id: openai/subscription/business-premium#offering.subscription.models_covered
+    subject: {kind: offering, id: openai/subscription/business-premium}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-openai-business]
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+  - id: openai/subscription/business-premium#offering.subscription.usage_allowance
+    subject: {kind: offering, id: openai/subscription/business-premium}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 5x more usage than Standard seats, no 5-hour usage limit
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]
+  - id: openai/subscription/business-premium#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: openai/subscription/business-premium}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: ChatGPT, ChatGPT Work, and Codex with higher usage limits
+    sources:
+    - source_id: model-201-openai-business
+      snapshot_ref: sha256:f25bcc5803ce6faddb6b0d6fdbd056bf7b887feb925c15f720e3b9b33445907a
+      cited_regions: [page]

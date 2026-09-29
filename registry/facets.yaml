@@ -40,6 +40,11 @@ units:
     definition: >-
       United States dollars charged for one billing period of a subscription
       offering, before taxes or temporary promotions.
+  - id: cny_per_billing_period
+    definition: >-
+      Chinese yuan (CNY) charged for one billing period of a subscription plan,
+      as the provider lists it, before taxes or promotions. Never converted to or
+      from another currency (MODEL-201).
   - id: usd_per_1m_tokens
     definition: >-
       United States dollars per 1,000,000 tokens, at the provider's list price
@@ -1018,6 +1023,19 @@ facets:
     tier: best_effort
     risk: capability
     permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.subscription.price_cny
+    label: Subscription price (CNY)
+    subject: offering
+    addressable: false
+    value_type: {kind: number}
+    unit: cny_per_billing_period
+    definition: >-
+      The list price in Chinese yuan for one billing period, for a plan whose
+      provider publishes no US dollar price. A record, never converted: the
+      plan's US dollar price stays not disclosed, so no decision reads it as one.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
   - id: offering.plan.price_monthly
     label: Plan price per month
     subject: offering

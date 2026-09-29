@@ -45,7 +45,10 @@ first. Deterministic extractors always run first:
   value in a region.
 
 Reader replies are cached outside the repository under
-`~/.cache/modelspec/llm-reader` by source-copy hash, cited region and facet.
+`~/.cache/modelspec/llm-reader` by source-copy hash, cited region, facet and the
+subject's published names. The names are in the key because the prompt carries
+them: a reader answers mostly for the named subject, so a reply cached for one
+plan or model must not answer for a sibling on the same page (MODEL-201).
 Mistral's replies are also keyed by its model and request shape, so neither
 reader answers for the other. Set `MODELSPEC_LLM_CACHE` to use another
 directory. A run stops before its 401st uncached call. Deterministic

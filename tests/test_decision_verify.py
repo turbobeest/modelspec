@@ -532,6 +532,266 @@ def test_subscription_page_extracts_supported_plan_facts(field, value, names, pa
     assert verify.compare(claim, readings) == []
 
 
+CHATGPT_MODELS = """Models
+GPT-6 Astra
+Plan: Go, Feature: GPT-6 Astra, No
+Plan: Plus, Feature: GPT-6 Astra, Yes
+Plan: Pro, Feature: GPT-6 Astra, Expanded
+GPT-5.6 Sol Pro
+Plan: Go, Feature: GPT-5.6 Sol Pro, No
+Plan: Plus, Feature: GPT-5.6 Sol Pro, No
+Plan: Pro, Feature: GPT-5.6 Sol Pro, Yes
+GPT-5.6 Terra
+Plan: Go, Feature: GPT-5.6 Terra, Limited access in Work and Codex on desktop
+Plan: Plus, Feature: GPT-5.6 Terra, Yes
+Plan: Pro, Feature: GPT-5.6 Terra, Unlimited*
+GPT-5 Thinking Mini
+Plan: Go, Feature: GPT-5 Thinking Mini, Yes
+Plan: Plus, Feature: GPT-5 Thinking Mini, Expanded
+Plan: Pro, Feature: GPT-5 Thinking Mini, Unlimited*
+GPT Instant total context window
+Plan: Plus, Feature: GPT Instant total context window, 54K
+Codex
+Plan: Plus, Feature: Codex, Yes
+"""
+
+
+def _chatgpt_models_claim(names, value):
+    return verify.Claim(
+        target=verify.TargetRef(kind="fact", id="openai/subscription/plan#models"),
+        subject="openai/subscription/plan",
+        names=names,
+        field="offering.subscription.models_covered",
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="model-201-openai-pricing",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+
+@pytest.mark.parametrize(
+    ("names", "value"),
+    [
+        (("ChatGPT Plus", "Plus"), ["openai/gpt-6-astra", "openai/gpt-5-6-terra"]),
+        (("ChatGPT Pro 20x", "Pro"), ["openai/gpt-6-astra", "openai/gpt-5-6-terra"]),
+        (("ChatGPT Go", "Go"), ["openai/gpt-5-6-terra"]),
+    ],
+)
+def test_subscription_page_reads_a_chatgpt_plan_column(names, value) -> None:
+    # GPT-5.6 Sol Pro and GPT-5 Thinking Mini have no catalogue ID: the facet
+    # holds catalogue IDs only, so they cannot be claimed and are not required.
+    claim = _chatgpt_models_claim(names, value)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, CHATGPT_MODELS)
+
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(
+    ("names", "value"),
+    [
+        # Go's GPT-6 Astra cell is "No".
+        (("ChatGPT Go", "Go"), ["openai/gpt-6-astra", "openai/gpt-5-6-terra"]),
+        # A catalogued model the column lists is missing from the claim.
+        (("ChatGPT Plus", "Plus"), ["openai/gpt-6-astra"]),
+    ],
+)
+def test_subscription_page_chatgpt_column_rejects_a_wrong_model_set(names, value) -> None:
+    claim = _chatgpt_models_claim(names, value)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, CHATGPT_MODELS)
+
+    assert [d.field for d in verify.compare(claim, readings)] == ["value"]
+
+
+TEAM_CARD = """Pricing varies by seat type and billing interval:
+Standard seats
+$25 per member per month, billed monthly
+$20 per member per month, billed annually
+Premium seats
+$125 per member per month, billed monthly
+$100 per member per month, billed annually
+"""
+MISTRAL_CARD = """Popular
+Pro
+Education plan
+Full access to Vibe for all-day coding and long-running tasks.
+$14.99
+/mo
+Excluding taxes
+"""
+ZAI_CARD = """## Max
+Max Usage
+Power use
+$117.6/month$168/month
+Subscribe
+- 14× Lite usage
+"""
+MINIMAX_TABLE = """| Plus | Max | Ultra
+Price | $22 /month | $55 /month | $132 /month
+Best for | Personal projects | Daily coding | Heavy Agent workflows
+"""
+GEMINI_TIERS = """Starting at:
+$99.99/ month
+$99.99/ month: 5x higher usage limits vs. AI Pro
+$199.99 / month: 20x higher usage limits vs. AI Pro
+"""
+SEAT_TABLE = """Seat type | Price per seat | Included access | Billing model
+Standard seat | Monthly plan: $25 per user per month Annual plan: $20 per user per month, billed annually | ChatGPT, ChatGPT Work, and Codex | Fixed per-user cost
+Premium seat | Monthly plan: $125 per user per month Annual plan: $100 per user per month, billed annually | ChatGPT, ChatGPT Work, and Codex with higher usage limits | Fixed per-user cost
+"""
+MODEL_LIST_TABLE = """| Pro
+Supported models | Only the following exact model versions are supported: Recommended models: qwen3.7-plus (vision), glm-5 , and MiniMax-M2.5 More models: qwen3-max-2026-01-23 , and glm-4.7 Models not listed above are not supported.
+Price | $ 50 /month
+"""
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "page"),
+    [
+        ("offering.subscription.price", 25, ("Standard seats",), TEAM_CARD),
+        ("offering.subscription.billing_period", "monthly", ("Standard seats",), TEAM_CARD),
+        ("offering.subscription.price", 125, ("Premium seats",), TEAM_CARD),
+        ("offering.subscription.price", 14.99, ("Pro",), MISTRAL_CARD),
+        ("offering.subscription.billing_period", "monthly", ("Pro",), MISTRAL_CARD),
+        ("offering.subscription.price", 168, ("Max",), ZAI_CARD),
+        ("offering.subscription.billing_period", "monthly", ("Max",), ZAI_CARD),
+        ("offering.subscription.price", 55, ("Max",), MINIMAX_TABLE),
+        ("offering.subscription.billing_period", "monthly", ("Ultra",), MINIMAX_TABLE),
+        ("offering.subscription.price", 199.99, ("Google AI Ultra 20x", "Ultra 20x"),
+         GEMINI_TIERS),
+        ("offering.subscription.usage_allowance", "5x higher usage limits vs. AI Pro",
+         ("Google AI Ultra 5x", "Ultra 5x"), GEMINI_TIERS),
+        ("offering.subscription.price", 125, ("Premium seat",), SEAT_TABLE),
+        ("offering.subscription.programmatic_or_agent_use",
+         "ChatGPT, ChatGPT Work, and Codex", ("Standard seat",), SEAT_TABLE),
+        ("offering.subscription.models_covered",
+         ["qwen/qwen3-7-plus", "zhipu/glm-5", "minimax/minimax-m2-5", "zhipu/glm-4-7"],
+         ("Pro",), MODEL_LIST_TABLE),
+        ("offering.subscription.models_covered", ["zhipu/glm-5-3", "zhipu/glm-5-3-flash"],
+         ("Lite",), "Supported Models\nAll plans support GLM-5.3, GLM-5.3-Flash.\n"),
+        ("offering.subscription.models_covered", ["xai/grok-4-6"], ("Business",),
+         "### Models\nImagine\nVoice\nGrok 4.6\n### Security & compliance\n"),
+    ],
+)
+def test_subscription_page_reads_plan_cards_and_tables(field, value, names, page) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"plan#{field}"),
+        subject="provider/subscription/plan",
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+PLAN_ARTICLE = """Skip to main content
+What is the Enterprise plan?
+Updated over
+Enterprise uses a single seat type, priced per user per month and billed annually.
+All usage is billed at API rates. There are no per-seat usage limits and no included token allowance.
+"""
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "page"),
+    [
+        ("offering.subscription.usage_allowance",
+         "There are no per-seat usage limits and no included token allowance.",
+         ("Claude Enterprise", "Enterprise plan"), PLAN_ARTICLE),
+        ("offering.subscription.billing_period", "annual",
+         ("Claude Enterprise", "Enterprise plan"), PLAN_ARTICLE),
+        ("offering.subscription.usage_allowance", "Up to 6,000 requests per 5 hours",
+         ("Pro",), "| Pro\nQuota | Up to 6,000 requests per 5 hours\n"),
+    ],
+)
+def test_subscription_page_reads_plan_articles_and_quota_rows(field, value, names, page) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"plan#{field}"),
+        subject="provider/subscription/plan",
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+def test_a_plan_article_does_not_speak_for_another_plan() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="plan#allowance"),
+        subject="provider/subscription/plan",
+        names=("Claude Team", "Team plan"),
+        field="offering.subscription.usage_allowance",
+        value="There are no per-seat usage limits and no included token allowance.",
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, PLAN_ARTICLE)
+
+    assert verify.compare(claim, readings) != []
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "page"),
+    [
+        # Another seat's price, and a seat's annual rate when a monthly one is published.
+        ("offering.subscription.price", 125, ("Standard seats",), TEAM_CARD),
+        ("offering.subscription.price", 20, ("Standard seats",), TEAM_CARD),
+        # Another tier's column and another tier's line.
+        ("offering.subscription.price", 22, ("Max",), MINIMAX_TABLE),
+        ("offering.subscription.price", 99.99, ("Google AI Ultra 20x", "Ultra 20x"),
+         GEMINI_TIERS),
+        # A price published only as billed annually is not a monthly plan.
+        ("offering.subscription.billing_period", "monthly", ("Pro",),
+         "Pro\nAdvanced answers\n$17\n/month when billed annually\n"),
+    ],
+)
+def test_subscription_page_plan_cards_reject_a_sibling_value(field, value, names, page) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"plan#{field}"),
+        subject="provider/subscription/plan",
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) != []
+
+
 @pytest.mark.parametrize(
     "page",
     [
@@ -1152,7 +1412,7 @@ def test_claude_reader_uses_the_requested_cli_and_unwraps_json(monkeypatch) -> N
     assert kwargs["stdin"] is subprocess.DEVNULL
 
 
-def test_llm_cache_key_is_copy_region_and_facet(tmp_path, store, regions) -> None:
+def test_llm_cache_key_is_copy_region_facet_and_names(tmp_path, store, regions) -> None:
     reply = json.dumps([{
         "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens",
         "quoted_sentence": "It accepts up to 400,000 tokens of context.",
@@ -1174,6 +1434,34 @@ def test_llm_cache_key_is_copy_region_and_facet(tmp_path, store, regions) -> Non
 
     assert first.outcome == second.outcome == "verified"
     assert len(llm.calls) == 2
+
+
+def test_sibling_claims_on_one_region_each_get_their_own_reading(tmp_path, store, regions) -> None:
+    # The prompt names the subject, and a reader answers mostly for it; a row with
+    # no subject is read as the named one. A reply cached for one sibling must not
+    # answer for another, or it can confirm a value the source never gave it.
+    replies = iter([
+        json.dumps([{"subject": None, "value": "400,000", "unit": "tokens",
+                     "quoted_sentence": "It accepts up to 400,000 tokens of context."}]),
+        json.dumps([]),
+    ])
+    seen: list[str] = []
+
+    def complete(prompt: str) -> str:
+        seen.append(prompt)
+        return next(replies)
+
+    extractor = verify.LLMExtractor(
+        complete, agent="claude-cli", model="claude-sonnet-5", model_family="anthropic",
+        cache=verify.LLMCache(tmp_path / "llm-cache"),
+    )
+    claim = _prose_claim(store)
+    sibling = verify.Claim(**{**claim.__dict__, "names": ("GPT-6 Luna",),
+                              "target": verify.TargetRef(kind="fact", id="luna#context")})
+
+    assert verify.verify(claim, regions, [extractor], today=TODAY).outcome == "verified"
+    assert verify.verify(sibling, regions, [extractor], today=TODAY).outcome == "mismatch"
+    assert len(seen) == 2 and "GPT-6 Luna" in seen[1]
 
 
 def test_claude_reader_stops_before_call_401(monkeypatch) -> None:
@@ -1286,3 +1574,262 @@ def test_an_effort_written_as_prose_is_read_as_its_level(store, regions, found, 
         "quoted_sentence": "It accepts up to 400,000 tokens of context.",
     }]))
     assert verify.verify(claim, regions, [reading.extractor], today=TODAY).outcome == outcome
+
+
+# --- MODEL-201: plan facts (surfaces, families, quotes, allowance, CNY price) ----
+
+CLAUDE_MODELS_TABLE = """Models and usage
+Features | Free | Pro | Max 5x | Max 20x
+Fable | No | Usage credits | 50% of weekly limits* | 50% of weekly limits*
+Opus | No | Yes | Yes | Yes
+Sonnet | Yes | Yes | Yes | Yes
+Haiku | Yes | Yes | Yes | Yes
+Context window | Up to 1M | Up to 1M | Up to 1M | Up to 1M
+"""
+CLAUDE_CODE_ARTICLE = """Use Claude Code with your Pro or Max plan
+With Pro and Max plans, you now have access to both Claude on the web, desktop, and mobile apps and Claude Code in your terminal with one unified subscription.
+Your Pro or Max plan also covers Claude Code in supported IDEs, including VS Code, Cursor and other VS Code forks.
+"""
+MAX_ARTICLE = """What is the Max plan?
+Max 5x includes five times the Pro plan's per-session usage allowance. This tier is ideal for frequent users.
+Max 20x includes 20 times the Pro plan's per-session usage allowance.
+Your session-based usage limit will reset every five hours.
+"""
+PRO_TIERS = """General FAQ
+Both Pro tiers include the same core capabilities. The main difference is usage allowance: Pro $100 unlocks 5x higher usage than Plus, while Pro $200 unlocks 20x usage than Plus.
+"""
+KIMI_PAGE = """Plan | Best for | Auto-renewing monthly | Auto-renewing annual
+Andante | Everyday use | ¥49/month | Better value annually
+Moderato | Productivity upgrade | ¥99/month | Better value annually
+Plan Benefits
+Andante — ¥49/month
+About 30 Agent uses
+Kimi Code available
+Moderato — ¥99/month
+Everything in Andante, plus:
+About 60 Agent uses
+Kimi Code available
+Kimi Code also has a separate limit of 5 hours per week, which applies only to Kimi Code.
+"""
+
+
+def _plan_claim(field, value, names, subject="provider/subscription/plan"):
+    return verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"{subject}#{field}"),
+        subject=subject,
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "subject", "page"),
+    [
+        ("offering.subscription.families_covered",
+         ["anthropic/claude-opus", "anthropic/claude-sonnet", "anthropic/claude-haiku"],
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_MODELS_TABLE),
+        ("offering.subscription.families_covered",
+         ["anthropic/claude-fable", "anthropic/claude-opus", "anthropic/claude-sonnet",
+          "anthropic/claude-haiku"],
+         ("Claude Max 5x", "Max 5x"), "anthropic/subscription/max-5x", CLAUDE_MODELS_TABLE),
+        ("offering.subscription.coverage_quote",
+         "Opus | No | Yes | Yes | Yes\nSonnet | Yes | Yes | Yes | Yes",
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_MODELS_TABLE),
+        ("offering.subscription.surfaces",
+         ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"],
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_CODE_ARTICLE),
+        ("offering.subscription.allowance.multiplier", 20,
+         ("Claude Max 20x", "Max 20x", "Max plan"), "anthropic/subscription/max-20x", MAX_ARTICLE),
+        ("offering.subscription.allowance.relative_to", "anthropic/subscription/pro",
+         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x", MAX_ARTICLE),
+        ("offering.subscription.allowance.window", "five hours",
+         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x", MAX_ARTICLE),
+        ("offering.subscription.allowance.multiplier", 20,
+         ("ChatGPT Pro 20x", "Pro $200", "Pro"), "openai/subscription/pro-20x", PRO_TIERS),
+        ("offering.subscription.allowance.relative_to", "openai/subscription/plus",
+         ("ChatGPT Pro 5x", "Pro $100", "Pro"), "openai/subscription/pro-5x", PRO_TIERS),
+        ("offering.subscription.allowance.multiplier", 20,
+         ("Google AI Ultra 20x", "Ultra 20x"), "google-gemini-api/subscription/ai-ultra-20x",
+         GEMINI_TIERS),
+        ("offering.subscription.allowance.relative_to", "google-gemini-api/subscription/ai-pro",
+         ("Google AI Ultra 5x", "Ultra 5x"), "google-gemini-api/subscription/ai-ultra-5x",
+         GEMINI_TIERS),
+        ("offering.subscription.allowance.window", "five hours", ("Lite",),
+         "zai/subscription/glm-coding-lite",
+         "Each plan is subject to both a 5-hour usage limit and a weekly usage limit.\n"),
+        ("offering.subscription.allowance.window", "five hours", ("Max",),
+         "minimax/subscription/token-max",
+         "| Plus | Max\nQuota windows | 5-hour rolling and weekly windows | 5-hour rolling and weekly windows\n"),
+        ("offering.subscription.price_cny", 99, ("Moderato",), "moonshot/subscription/moderato",
+         KIMI_PAGE),
+        ("offering.subscription.billing_period", "monthly", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.usage_allowance", "About 60 Agent uses", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.programmatic_or_agent_use", "Kimi Code available",
+         ("Moderato",), "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.usage_allowance", "More messages and web searches.", ("Pro",),
+         "mistral/subscription/pro",
+         MISTRAL_CARD + "More access and usage.\nMore messages and web searches.\nTeam\nSecure.\n$24.99\n"),
+    ],
+)
+def test_plan_facts_are_read_from_plan_scoped_text(field, value, names, subject, page) -> None:
+    claim = _plan_claim(field, value, names, subject)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "subject", "page"),
+    [
+        # Pro's Fable cell is "Usage credits": paid per use, not covered.
+        ("offering.subscription.families_covered",
+         ["anthropic/claude-fable", "anthropic/claude-opus", "anthropic/claude-sonnet",
+          "anthropic/claude-haiku"],
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_MODELS_TABLE),
+        # The sibling tier's multiplier, and a plan named in its own alias.
+        ("offering.subscription.allowance.multiplier", 20,
+         ("ChatGPT Pro 5x", "Pro $100", "Pro"), "openai/subscription/pro-5x", PRO_TIERS),
+        ("offering.subscription.allowance.multiplier", 5,
+         ("Claude Max 20x", "Max 20x", "Max plan"), "anthropic/subscription/max-20x", MAX_ARTICLE),
+        # "no 5-hour usage limit" and "5 hours per week" are not a five-hour window.
+        ("offering.subscription.allowance.window", "five hours", ("Premium seat", "Premium"),
+         "openai/subscription/business-premium",
+         "Premium includes 5x more usage than Standard seats, no 5-hour usage limit.\n"),
+        ("offering.subscription.allowance.window", "five hours", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        # A yuan amount is not a dollar price.
+        ("offering.subscription.price", 99, ("Moderato",), "moonshot/subscription/moderato",
+         KIMI_PAGE),
+        # A quote that is not on the page.
+        ("offering.subscription.coverage_quote", "Opus | Yes | Yes | Yes | Yes",
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_MODELS_TABLE),
+        # The IDE sentence names Cursor, but not the web, desktop or mobile apps.
+        ("offering.subscription.surfaces", ["coding_tool:claude-code"],
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro",
+         "Your Pro or Max plan also covers Claude Code in supported IDEs.\n"
+         "With Pro and Max plans you get Claude on the web.\n"),
+    ],
+)
+def test_plan_facts_reject_what_the_page_does_not_say(field, value, names, subject, page) -> None:
+    claim = _plan_claim(field, value, names, subject)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) != []
+
+
+# Counterexamples from MODEL-201's independent review, on real page wording.
+TEAM_ARTICLE = """What is the Team plan?
+Standard seats: Team plan Standard seats include 1.25x the Pro plan's per-session usage allowance and have a weekly usage limit that applies across all models.
+Premium seats: Team plan Premium seats include 6.25x the Pro plan's per-session usage allowance and have a weekly usage limit that applies across all models.
+"""
+BUSINESS_INTRO = """ChatGPT Business - Overview
+Introducing Premium seats for ChatGPT Business. Premium seats cost $100 per user per month when billed annually, or $125 per user per month when billed monthly. Premium includes 5x more usage than Standard seats, no 5-hour usage limit.
+"""
+ENTERPRISE_ARTICLE = """What is the Enterprise plan?
+Enterprise uses a single seat type, priced per user per month and billed annually.
+Usage billing | Credits purchased upfront | Billed monthly in arrears
+"""
+XAI_CARD = """SuperGrok Plus
+$100/month
+Go further with significantly higher usage.
+Everything in SuperGrok, plus:
+Early access to new features
+Compare features across plans
+Free
+SuperGrok Heavy
+Grok Build
+Grok Bot
+"""
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "subject", "page"),
+    [
+        ("offering.subscription.allowance.multiplier", 20,
+         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x",
+         MAX_ARTICLE + "We do not offer standard discounted pricing any of our paid plans, "
+         "including Max 5x and 20x plans.\n"),
+        ("offering.subscription.allowance.multiplier", 20,
+         ("ChatGPT Pro 5x", "Pro $100", "Pro"), "openai/subscription/pro-5x",
+         "We're temporarily pausing new sign-ups and upgrades to the ChatGPT Pro $200 plan (Pro 20X).\n"),
+        ("offering.subscription.allowance.multiplier", 6.25,
+         ("Claude Team (Standard seat)", "Standard seats", "Team plan", "Team"),
+         "anthropic/subscription/team-standard", TEAM_ARTICLE),
+        ("offering.subscription.allowance.multiplier", 1.25,
+         ("Claude Team (Premium seat)", "Premium seats", "Team plan", "Team"),
+         "anthropic/subscription/team-premium", TEAM_ARTICLE),
+        ("offering.subscription.billing_period", "monthly",
+         ("Claude Enterprise", "Enterprise plan"), "anthropic/subscription/enterprise",
+         ENTERPRISE_ARTICLE),
+        ("offering.subscription.billing_period", "annual", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.billing_period", "annual", ("Standard seats",),
+         "anthropic/subscription/team-standard", TEAM_CARD),
+        ("offering.subscription.price", 100, ("ChatGPT Business (Standard seat)", "Standard seat"),
+         "openai/subscription/business-standard", BUSINESS_INTRO),
+        ("offering.subscription.price", 99.99, ("Google AI Pro", "AI Pro"),
+         "google-gemini-api/subscription/ai-pro", GEMINI_TIERS),
+        ("offering.subscription.price", 20, ("Google AI Pro", "AI Pro"),
+         "google-gemini-api/subscription/ai-pro", "Google AI Pro\n$19.99/ month\n"),
+        ("offering.subscription.programmatic_or_agent_use", "Grok Build",
+         ("SuperGrok Plus",), "xai/subscription/supergrok-plus", XAI_CARD),
+    ],
+)
+def test_review_counterexamples_do_not_verify(field, value, names, subject, page) -> None:
+    claim = _plan_claim(field, value, names, subject)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) != []
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "subject", "page"),
+    [
+        ("offering.subscription.allowance.multiplier", 1.25,
+         ("Claude Team (Standard seat)", "Standard seats", "Team plan", "Team"),
+         "anthropic/subscription/team-standard", TEAM_ARTICLE),
+        ("offering.subscription.billing_period", "annual",
+         ("Claude Enterprise", "Enterprise plan"), "anthropic/subscription/enterprise",
+         ENTERPRISE_ARTICLE),
+        ("offering.subscription.billing_period", "monthly", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.surfaces",
+         ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"],
+         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x",
+         CLAUDE_CODE_ARTICLE),
+    ],
+)
+def test_review_fixes_keep_the_true_value(field, value, names, subject, page) -> None:
+    claim = _plan_claim(field, value, names, subject)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+def test_a_subscription_price_must_match_exactly() -> None:
+    claim = _plan_claim("offering.subscription.price", 20, ("Google AI Pro",))
+    assert verify.compare(claim, [verify.Reading("Google AI Pro", "$19.99/ month")]) != []
+
+
+def test_unknown_model_names_are_dropped_only_for_models_covered() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="m#base"), subject="lab/m",
+        names=("M",), field="origin.base_models", value=["openai/gpt-6-sol"],
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(source_id="s", snapshot_ref="sha256:" + "0" * 64,
+                                  cited_regions=["page"]),),
+    )
+    assert verify.compare(claim, [verify.Reading("M", "GPT-6 Sol, Not A Catalogued Model")]) != []

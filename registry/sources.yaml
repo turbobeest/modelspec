@@ -4366,3 +4366,129 @@ sources:
   cited_regions:
   - id: page
     locator: {kind: page, value: ''}
+- id: model-201-anthropic-max-plan
+  url: https://support.claude.com/en/articles/11049741-what-is-the-max-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-anthropic-team-plan
+  url: https://support.claude.com/en/articles/9266767-what-is-the-team-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-anthropic-enterprise-plan
+  url: https://support.claude.com/en/articles/9797531-what-is-the-enterprise-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-openai-pricing
+  url: https://chatgpt.com/pricing/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-openai-go
+  url: https://help.openai.com/en/articles/11989085-what-is-chatgpt-go
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-openai-codex-pricing
+  url: https://learn.chatgpt.com/docs/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-openai-business
+  url: https://help.openai.com/en/articles/8792828-chatgpt-business-overview
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-gemini-subscriptions
+  url: https://gemini.google/subscriptions/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-grok-supergrok
+  url: https://grok.com/supergrok
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-xai-business
+  url: https://x.ai/grok/business
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-mistral-pricing
+  url: https://mistral.ai/pricing/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-zai-subscribe
+  url: https://z.ai/subscribe
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-zai-devpack
+  url: https://docs.z.ai/devpack/overview
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-minimax-token-plan
+  url: https://platform.minimax.io/docs/token-plan/intro
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-alibaba-coding-plan
+  url: https://www.alibabacloud.com/help/en/model-studio/coding-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-anthropic-pro-plan
+  url: https://support.claude.com/en/articles/8325606-what-is-the-pro-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-anthropic-claude-code-team
+  url: https://support.claude.com/en/articles/11845131-use-claude-code-with-your-team-or-enterprise-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-kimi-membership
+  url: https://www.kimi.com/en/help/membership/membership-pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}

@@ -337,10 +337,31 @@ export function sanitizeBoardState(
   const activeMusts = new Set(Object.entries(selections).flatMap(([id, choice]) =>
     choice.mode === "must" || choice.mode === "both" ? [id] : [],
   ));
+  // A held id the snapshot no longer lists (a plan split or withdrawn since the
+  // estate was saved) is dropped: the engine refuses an id outside its vocabulary.
+  // A kind the vocabulary lists nothing for (an older vocabulary) is kept as is:
+  // it cannot say an id is gone, and dropping it would lose the saved estate.
+  const listed = {
+    providers: new Set(vocabulary.estate.providers),
+    plans: new Set(vocabulary.estate.plans.map((plan) => plan.id)),
+    hardware: new Set(vocabulary.estate.devices),
+  };
+  const kept = (kind: keyof typeof listed, id: string) =>
+    listed[kind].size === 0 || listed[kind].has(id);
+  const estate = {
+    providers: state.estate.providers.filter((id) => kept("providers", id)),
+    plans: state.estate.plans.filter((id) => kept("plans", id)),
+    hardware: state.estate.hardware.filter((id) => kept("hardware", id)),
+  };
+  for (const kind of ["providers", "plans", "hardware"] as const) {
+    for (const id of state.estate[kind]) {
+      if (!kept(kind, id)) notes.push(`${id} is not in this snapshot, so it is not used.`);
+    }
+  }
   return {
     selections: selections as SanitizedBoardSelections,
     mustOrder: [...new Set(state.mustOrder.filter((id) => activeMusts.has(id)))],
-    estate: state.estate,
+    estate,
     ...(state.canvas ? { canvas: state.canvas } : {}),
     notes: [...new Set(notes)],
   };

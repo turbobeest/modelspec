@@ -51,7 +51,7 @@ import "./decide.css";
 import { mapDecisionToViewModel } from "./adapter/view-model";
 import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
-import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
+import { FacetBoard, readEstate, writeEstate } from "./facet-board/FacetBoard";
 import {
   boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, hasEstate,
   allocateBoardWeights, nextMustOrder, legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys,
@@ -627,6 +627,12 @@ export function DesignedApp({
       { selections: {}, mustOrder: [], estate },
       vocabulary,
     );
+    if (emptyBoard.notes.length) {
+      // A saved estate that names ids this snapshot no longer lists.
+      setEstate(emptyBoard.estate);
+      writeEstate(emptyBoard.estate);
+      setLegacyNotes(emptyBoard.notes);
+    }
     const initialBase = boardToSpec({ ...base, conds: [] }, vocabulary, emptyBoard.selections);
     setBoardBaseSpec({ ...base, conds: [] });
     setSpec((current) => (current === baseSpec ? initialBase : current));

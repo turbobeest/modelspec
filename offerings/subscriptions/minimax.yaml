@@ -1,0 +1,218 @@
+# MODEL-201. Primary sources read 2026-09-29.
+# Verbatim wording, surfaces and every null's reason:
+# docs/research/subscriptions/2026-09-29.md (scripts/model_201_collect.py).
+# Unknown means the retained copy does not show the value; not_disclosed
+# means the page was read and does not publish it.
+# MiniMax Token Plan Plus: The Token Plan replaced MiniMax's Coding Plan. Coverage
+#   names families ('M3 / M2.7'), not model IDs.
+- kind: subscription
+  provider: minimax
+  plan: token-plus
+  name: MiniMax Token Plan Plus
+  facts:
+  - id: minimax/subscription/token-plus#offering.subscription.price
+    subject: {kind: offering, id: minimax/subscription/token-plus}
+    facet: offering.subscription.price
+    state: known
+    value: 22
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-plus#offering.subscription.billing_period
+    subject: {kind: offering, id: minimax/subscription/token-plus}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-plus#offering.subscription.models_covered
+    subject: {kind: offering, id: minimax/subscription/token-plus}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-minimax-token-plan]
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-plus#offering.subscription.usage_allowance
+    subject: {kind: offering, id: minimax/subscription/token-plus}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 5-hour rolling and weekly windows
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-plus#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: minimax/subscription/token-plus}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: OpenClaw, Claude Code, Cursor, TRAE, Hermes Agent
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-plus#offering.subscription.coverage_quote
+    subject: {kind: offering, id: minimax/subscription/token-plus}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: Available model coverage includes the full MiniMax lineup (M3 / M2.7 / image / speech).
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-plus#offering.subscription.allowance.window
+    subject: {kind: offering, id: minimax/subscription/token-plus}
+    facet: offering.subscription.allowance.window
+    state: known
+    value: five hours
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+# MiniMax Token Plan Max: The Token Plan replaced MiniMax's Coding Plan. Coverage
+#   names families ('M3 / M2.7'), not model IDs.
+- kind: subscription
+  provider: minimax
+  plan: token-max
+  name: MiniMax Token Plan Max
+  facts:
+  - id: minimax/subscription/token-max#offering.subscription.price
+    subject: {kind: offering, id: minimax/subscription/token-max}
+    facet: offering.subscription.price
+    state: known
+    value: 55
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-max#offering.subscription.billing_period
+    subject: {kind: offering, id: minimax/subscription/token-max}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-max#offering.subscription.models_covered
+    subject: {kind: offering, id: minimax/subscription/token-max}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-minimax-token-plan]
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-max#offering.subscription.usage_allowance
+    subject: {kind: offering, id: minimax/subscription/token-max}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 5-hour rolling and weekly windows
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-max#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: minimax/subscription/token-max}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: OpenClaw, Claude Code, Cursor, TRAE, Hermes Agent
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-max#offering.subscription.coverage_quote
+    subject: {kind: offering, id: minimax/subscription/token-max}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: Available model coverage includes the full MiniMax lineup (M3 / M2.7 / image / speech).
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-max#offering.subscription.allowance.window
+    subject: {kind: offering, id: minimax/subscription/token-max}
+    facet: offering.subscription.allowance.window
+    state: known
+    value: five hours
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+# MiniMax Token Plan Ultra: The Token Plan replaced MiniMax's Coding Plan. Coverage
+#   names families ('M3 / M2.7'), not model IDs.
+- kind: subscription
+  provider: minimax
+  plan: token-ultra
+  name: MiniMax Token Plan Ultra
+  facts:
+  - id: minimax/subscription/token-ultra#offering.subscription.price
+    subject: {kind: offering, id: minimax/subscription/token-ultra}
+    facet: offering.subscription.price
+    state: known
+    value: 132
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-ultra#offering.subscription.billing_period
+    subject: {kind: offering, id: minimax/subscription/token-ultra}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-ultra#offering.subscription.models_covered
+    subject: {kind: offering, id: minimax/subscription/token-ultra}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-minimax-token-plan]
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-ultra#offering.subscription.usage_allowance
+    subject: {kind: offering, id: minimax/subscription/token-ultra}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 5-hour rolling and weekly windows
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-ultra#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: minimax/subscription/token-ultra}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: OpenClaw, Claude Code, Cursor, TRAE, Hermes Agent
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-ultra#offering.subscription.coverage_quote
+    subject: {kind: offering, id: minimax/subscription/token-ultra}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: Available model coverage includes the full MiniMax lineup (M3 / M2.7 / image / speech).
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]
+  - id: minimax/subscription/token-ultra#offering.subscription.allowance.window
+    subject: {kind: offering, id: minimax/subscription/token-ultra}
+    facet: offering.subscription.allowance.window
+    state: known
+    value: five hours
+    sources:
+    - source_id: model-201-minimax-token-plan
+      snapshot_ref: sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa
+      cited_regions: [page]

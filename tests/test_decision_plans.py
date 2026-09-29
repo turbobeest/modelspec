@@ -317,9 +317,10 @@ def test_own_hardware_ranks_self_hosting_only(sourced) -> None:
 # ── the plan records ───────────────────────────────────────────────────────
 
 
-def test_repository_plans_carry_the_new_facts_from_sourced_text_only() -> None:
+def test_repository_plans_carry_sourced_plan_facts() -> None:
     from decision.model import load_subscription_offerings
     from decision.registry import default
+    from decision.sources import load_sources
 
     plans = {
         plan.id: {fact.facet: fact for fact in plan.facts}
@@ -328,21 +329,21 @@ def test_repository_plans_carry_the_new_facts_from_sourced_text_only() -> None:
     }
     surfaces = plans[MAX]["offering.subscription.surfaces"]
     assert surfaces.value == ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"]
-    assert surfaces.sources == plans[MAX]["offering.subscription.programmatic_or_agent_use"].sources
     assert plans[MAX]["offering.subscription.allowance.multiplier"].value == 20
     assert plans[MAX]["offering.subscription.allowance.relative_to"].value == PRO
+    assert plans[MAX]["offering.subscription.allowance.window"].value == "five hours"
+    # MODEL-201: Max covers Fable within its limits; on Pro, Fable is paid per use.
+    assert "anthropic/claude-fable" in plans[MAX]["offering.subscription.families_covered"].value
+    assert "anthropic/claude-fable" not in plans[PRO]["offering.subscription.families_covered"].value
+    registered = load_sources(ROOT / "registry" / "sources.yaml")
     for plan in plans.values():
-        # Nothing new was researched: family coverage and tokens wait for MODEL-201.
-        for facet in ("families_covered", "coverage_quote", "allowance.tokens",
-                      "allowance.window"):
-            assert plan["offering.subscription." + facet].state == "unknown"
-        # Every known new fact cites a source an existing fact of the plan already cites.
-        cited = {s.source_id for f in plan.values() if not f.facet.startswith(
-            ("offering.subscription.surfaces", "offering.subscription.allowance."))
-            for s in f.sources}
+        # A token allowance is only ever a published number, and no page gives one.
+        tokens = plan.get("offering.subscription.allowance.tokens")
+        assert tokens is None or tokens.state == "unknown"
         for fact in plan.values():
             if fact.state == "known":
-                assert {s.source_id for s in fact.sources} <= cited, fact.id
+                assert fact.sources, fact.id
+                assert {s.source_id for s in fact.sources} <= set(registered), fact.id
 
 
 def test_a_family_resolves_only_within_its_prefix() -> None:

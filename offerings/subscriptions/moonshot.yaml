@@ -1,0 +1,257 @@
+# MODEL-201. Primary sources read 2026-09-29.
+# Verbatim wording, surfaces and every null's reason:
+# docs/research/subscriptions/2026-09-29.md (scripts/model_201_collect.py).
+# Unknown means the retained copy does not show the value; not_disclosed
+# means the page was read and does not publish it.
+# Kimi Andante: Priced in CNY only; the US dollar price is not published, and the CNY
+#   price is never converted.
+- kind: subscription
+  provider: moonshot
+  plan: andante
+  name: Kimi Andante
+  facts:
+  - id: moonshot/subscription/andante#offering.subscription.price
+    subject: {kind: offering, id: moonshot/subscription/andante}
+    facet: offering.subscription.price
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-kimi-membership]
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/andante#offering.subscription.billing_period
+    subject: {kind: offering, id: moonshot/subscription/andante}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/andante#offering.subscription.models_covered
+    subject: {kind: offering, id: moonshot/subscription/andante}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-kimi-membership]
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/andante#offering.subscription.usage_allowance
+    subject: {kind: offering, id: moonshot/subscription/andante}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: About 30 Agent uses
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/andante#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: moonshot/subscription/andante}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Kimi Code available
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/andante#offering.subscription.price_cny
+    subject: {kind: offering, id: moonshot/subscription/andante}
+    facet: offering.subscription.price_cny
+    state: known
+    value: 49
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+# Kimi Moderato: Priced in CNY only; the US dollar price is not published, and the CNY
+#   price is never converted.
+- kind: subscription
+  provider: moonshot
+  plan: moderato
+  name: Kimi Moderato
+  facts:
+  - id: moonshot/subscription/moderato#offering.subscription.price
+    subject: {kind: offering, id: moonshot/subscription/moderato}
+    facet: offering.subscription.price
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-kimi-membership]
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/moderato#offering.subscription.billing_period
+    subject: {kind: offering, id: moonshot/subscription/moderato}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/moderato#offering.subscription.models_covered
+    subject: {kind: offering, id: moonshot/subscription/moderato}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-kimi-membership]
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/moderato#offering.subscription.usage_allowance
+    subject: {kind: offering, id: moonshot/subscription/moderato}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: About 60 Agent uses
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/moderato#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: moonshot/subscription/moderato}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Kimi Code available
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/moderato#offering.subscription.price_cny
+    subject: {kind: offering, id: moonshot/subscription/moderato}
+    facet: offering.subscription.price_cny
+    state: known
+    value: 99
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+# Kimi Allegretto: Priced in CNY only; the US dollar price is not published, and the
+#   CNY price is never converted.
+- kind: subscription
+  provider: moonshot
+  plan: allegretto
+  name: Kimi Allegretto
+  facts:
+  - id: moonshot/subscription/allegretto#offering.subscription.price
+    subject: {kind: offering, id: moonshot/subscription/allegretto}
+    facet: offering.subscription.price
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-kimi-membership]
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegretto#offering.subscription.billing_period
+    subject: {kind: offering, id: moonshot/subscription/allegretto}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegretto#offering.subscription.models_covered
+    subject: {kind: offering, id: moonshot/subscription/allegretto}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-kimi-membership]
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegretto#offering.subscription.usage_allowance
+    subject: {kind: offering, id: moonshot/subscription/allegretto}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: About 150 Agent uses
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegretto#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: moonshot/subscription/allegretto}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Kimi Code available
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegretto#offering.subscription.price_cny
+    subject: {kind: offering, id: moonshot/subscription/allegretto}
+    facet: offering.subscription.price_cny
+    state: known
+    value: 199
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+# Kimi Allegro: Priced in CNY only; the US dollar price is not published, and the CNY
+#   price is never converted.
+- kind: subscription
+  provider: moonshot
+  plan: allegro
+  name: Kimi Allegro
+  facts:
+  - id: moonshot/subscription/allegro#offering.subscription.price
+    subject: {kind: offering, id: moonshot/subscription/allegro}
+    facet: offering.subscription.price
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-kimi-membership]
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegro#offering.subscription.billing_period
+    subject: {kind: offering, id: moonshot/subscription/allegro}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegro#offering.subscription.models_covered
+    subject: {kind: offering, id: moonshot/subscription/allegro}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-kimi-membership]
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegro#offering.subscription.usage_allowance
+    subject: {kind: offering, id: moonshot/subscription/allegro}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: About 360 Agent uses
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegro#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: moonshot/subscription/allegro}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Kimi Code available
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
+  - id: moonshot/subscription/allegro#offering.subscription.price_cny
+    subject: {kind: offering, id: moonshot/subscription/allegro}
+    facet: offering.subscription.price_cny
+    state: known
+    value: 699
+    sources:
+    - source_id: model-201-kimi-membership
+      snapshot_ref: sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9
+      cited_regions: [page]
