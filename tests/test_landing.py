@@ -45,7 +45,7 @@ def test_landing_figures_are_derived_from_the_snapshot(data: landing.LandingData
 def test_landing_copy_uses_the_computed_figures(data: landing.LandingData) -> None:
     page = landing.render(data, variant="live")
     tied_others = len(data.tie) - 1
-    assert f"tell {tied_others} of these models apart" in page
+    assert f"tell {tied_others} models apart" in page
     assert f"costs {data.ratio:.1f}× less" in page
     assert f"${data.monthly_gap:,.0f} a month apart" in page
     assert data.leader.name in page
@@ -126,8 +126,14 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     directory = tmp_path_factory.mktemp("landing-browser")
     live = directory / "live.html"
     holding = directory / "holding.html"
+    method_page = directory / "method.html"
     live.write_text(landing.render(changed, variant="live"), encoding="utf-8")
     holding.write_text(landing.render(changed, variant="holding"), encoding="utf-8")
+    from pipeline import method
+    method_page.write_text(
+        method.page(changed, method.SigningState(("ed25519-test",), "ed25519-test")),
+        encoding="utf-8",
+    )
     assembled = directory / "assembled"
     (assembled / "decide").mkdir(parents=True)
     shutil.copyfile(
@@ -137,7 +143,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     shutil.copytree(ROOT / "web" / "dist" / "assets", assembled / "assets")
     try:
         completed = subprocess.run(
-            ["node", str(browser_script), str(live), str(holding), str(assembled)],
+            ["node", str(browser_script), str(live), str(holding), str(method_page), str(assembled)],
             cwd=ROOT,
             check=True,
             capture_output=True,
@@ -163,7 +169,8 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     "check",
     [
         "altered_data", "challenge", "motion", "responsive", "holding",
-        "forwarding", "assembled_decide", "forwarded_state_ranks",
+        "forwarding", "assembled_decide", "assembled_decide_mobile", "forwarded_state_ranks",
+        "method_responsive",
     ],
 )
 def test_landing_behaviour_in_browser(

@@ -12,16 +12,117 @@ import {
   realVocabulary,
   routeFetch,
   sentSpecs,
+  rankingCalls,
+  rankingSpecs,
   smallVocabulary,
 } from "./vocab-fixtures";
-import { VOCABULARY_URL, vocabularySchema } from "../vocabulary";
-import { decodeBoardState } from "../facet-board/model";
+import { VOCABULARY_URL, realBaseSpec, vocabularySchema } from "../vocabulary";
+import { decodeBoardState, encodeBoardSpec } from "../facet-board/model";
+import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 
 const fixture = decisionSchema.parse(fixtureJson);
 const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
+
+it("sanitizes every unavailable selection in an old namespaced board permalink", async () => {
+  const unavailableFacet = refinementVocabulary.facets.find((facet) => facet.id === "model.context_window")!;
+  const vocabulary = {
+    ...refinementVocabulary,
+    facets: refinementVocabulary.facets.map((facet) =>
+      facet.id === unavailableFacet.id ? { ...facet, known: 0 } : facet,
+    ),
+    refinements: refinementVocabulary.refinements?.filter((row) => row.id !== "python"),
+  };
+  const base = { ...realBaseSpec(vocabulary), domain: "retired_domain", conds: [] };
+  const permalink = encodeBoardSpec(base, "task$", {
+    selections: {
+      [unavailableFacet.id]: { mode: "must", op: ">=", value: 200000 },
+      "capability.retired_domain": { mode: "prefer", weight: 0.7 },
+      "refinement.python": { mode: "prefer", weight: 0.3, weightKey: "software_engineering.python" },
+    },
+    mustOrder: [unavailableFacet.id],
+    estate: { providers: [], plans: [], hardware: [] },
+  });
+  const fetch = routeFetch({
+    vocabulary: () => json(vocabulary),
+    decide: (init) => json(decisionFor(init)),
+  });
+  vi.stubGlobal("fetch", fetch);
+  history.replaceState(null, "", `/decide/${permalink}`);
+
+  render(<App />);
+
+  const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
+  expect(note).toHaveTextContent(unavailableFacet.label);
+  expect(note).toHaveTextContent("retired domain capability");
+  expect(note).toHaveTextContent("python refinement");
+  expect(note).not.toHaveTextContent("capability.retired_domain");
+  expect(note).not.toHaveTextContent("refinement.python");
+  await waitFor(() => expect(sentSpecs(fetch).length).toBeGreaterThan(0));
+  const request = sentSpecs(fetch).at(-1)!;
+  expect(request.where).not.toContain("model.context_window >= 200000");
+  expect(request.optimize.weights).not.toHaveProperty("retired_domain");
+  expect(request.optimize.weights).not.toHaveProperty("software_engineering.python");
+  expect(request.capabilities?.retired_domain).toBeUndefined();
+});
+
+it("opens a composer-era permalink as a populated board with migration notes", async () => {
+  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
+  history.replaceState(null, "", `/decide/?theme=dark&layout=table${LEGACY_PERMALINKS.budgetCoding}`);
+  render(<App />);
+  await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." });
+  expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Table first" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Light mode" })).toBeInTheDocument();
+  expect(await screen.findByRole("note", { name: "Notes from your old decision link" })).toHaveTextContent(
+    "The board does not interpret free text.",
+  );
+  fireEvent.click(screen.getByRole("button", { name: /^Size of work/ }));
+  const context = document.querySelector<HTMLElement>('[data-facet="model.context_window"]');
+  if (!context) throw new Error("legacy context facet did not render");
+  expect(within(context).getByLabelText("Must")).toBeChecked();
+  expect(within(context).getByLabelText("Threshold")).toHaveValue(200000);
+});
+
+it("applies visible legacy controls and drops the unsupported parts named in the migration note", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
+  history.replaceState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
+
+  render(<App />);
+
+  const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
+  expect(note).toHaveTextContent("single-benchmark floor, so it's not applied");
+  expect(note).toHaveTextContent("soft(0.2)");
+  await waitFor(() => expect(rankingSpecs(fetch).length).toBeGreaterThan(0));
+  const request = rankingSpecs(fetch).at(-1)!;
+  expect(request.where).toContain("offering.region in {EU}");
+  expect(request.where).not.toContain("swe_bench_pro >= 50 @independent");
+  expect(request.where.every((condition: string) => !condition.includes("soft("))).toBe(true);
+});
+
+it("migrates a composer-era permalink navigated to after vocabulary loads", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." });
+  const requestsBeforeNavigation = sentSpecs(fetch).length;
+
+  history.pushState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+  const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
+  expect(note).toHaveTextContent("single-benchmark floor, so it's not applied");
+  expect(note).toHaveTextContent("soft(0.2)");
+  await waitFor(() => {
+    const navigatedRequests = sentSpecs(fetch).slice(requestsBeforeNavigation);
+    expect(navigatedRequests.some((request) => request.where.includes("offering.region in {EU}"))).toBe(true);
+    expect(navigatedRequests.every((request) => !request.where.includes("swe_bench_pro >= 50 @independent"))).toBe(true);
+    expect(navigatedRequests.every((request) => request.where.every((condition: string) => !condition.includes("soft(")))).toBe(true);
+  });
+});
 
 /** Keep the legacy full fixture consistent with the objective a UI test sends. */
 function decisionFor(init: RequestInit | undefined, decision = fixture) {
@@ -67,7 +168,7 @@ function decisionFor(init: RequestInit | undefined, decision = fixture) {
 beforeEach(() => history.replaceState(null, "", "/decide/"));
 afterEach(() => vi.unstubAllGlobals());
 
-it("folds unsupported refinement weights into the parent without losing board state", async () => {
+it("folds invalid refinement weights into the parent without losing board state", async () => {
   let unsupportedRequests = 0;
   const fetch = routeFetch({
     vocabulary: () => json(refinementVocabulary),
@@ -75,13 +176,13 @@ it("folds unsupported refinement weights into the parent without losing board st
       const sent = JSON.parse(String(init?.body));
       if ("software_engineering/python" in sent.optimize.weights) {
         unsupportedRequests += 1;
-        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+        return json({ error: { code: "invalid_spec", message: "Unknown refinement objective.", issues: [] } }, 400);
       }
       return json(decisionFor(init));
     },
   });
   vi.stubGlobal("fetch", fetch);
-  const app = render(<DesignedApp demo={false} board />);
+  const app = render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
   const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
   fireEvent.click(within(software).getByLabelText("Prefer"));
@@ -100,7 +201,7 @@ it("folds unsupported refinement weights into the parent without losing board st
     .toEqual({ mode: "prefer", weight: 0.25 });
   fireEvent.click(within(beforeFallbackShare).getByRole("button", { name: "Close Share or act" }));
 
-  expect(await within(python).findByText("Ranking by Python is coming — shown by general software engineering for now")).toBeInTheDocument();
+  expect(await within(python).findByText("Ranked by general software engineering: Python isn't ranked separately today.")).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByText("Checking…")).not.toBeInTheDocument());
   const requests = sentSpecs(fetch);
   expect(requests.some((body) => body.optimize.weights["software_engineering/python"] > 0)).toBe(true);
@@ -125,12 +226,74 @@ it("folds unsupported refinement weights into the parent without losing board st
   app.unmount();
   const shared = new URL(permalink!);
   history.replaceState(null, "", shared.pathname + shared.search + shared.hash);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
   const restoredSoftware = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
   fireEvent.click(within(restoredSoftware).getByRole("button", { name: "Refine" }));
   const restoredPython = within(restoredSoftware).getByText("Python").closest<HTMLElement>(".refinement-row")!;
   expect(within(restoredPython).getByLabelText("Prefer")).toBeChecked();
+});
+
+it("does not retry an invalid spec that carried no refinement weights", async () => {
+  let decisionRequests = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: () => {
+      decisionRequests += 1;
+      return json({ error: { code: "invalid_spec", message: "Invalid plain spec.", issues: [] } }, 400);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+
+  expect(await screen.findByText("Decision unavailable (invalid_spec).")).toBeInTheDocument();
+  expect(decisionRequests).toBe(1);
+});
+
+it("does not retry the legacy refinement code on a spec that carried no refinement weights", async () => {
+  let decisionRequests = 0;
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: () => {
+      decisionRequests += 1;
+      return json({ error: { code: "refinement_not_rankable_yet", message: "Refinements are not ranked yet.", issues: [] } }, 400);
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+
+  expect(await screen.findByText("Decision unavailable (refinement_not_rankable_yet).")).toBeInTheDocument();
+  expect(decisionRequests).toBe(1);
+});
+
+it("tries the refinement fold-back only once", async () => {
+  let rejectedRefinement = false;
+  const fetch = routeFetch({
+    vocabulary: () => json(refinementVocabulary),
+    decide: (init) => {
+      const sent = JSON.parse(String(init?.body));
+      if ("software_engineering/python" in sent.optimize.weights) rejectedRefinement = true;
+      if (rejectedRefinement)
+        return json({ error: { code: "invalid_spec", message: "Still invalid after folding.", issues: [] } }, 400);
+      return json(decisionFor(init));
+    },
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+  await screen.findByLabelText("Facet board answer");
+  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(software).getByLabelText("Prefer"));
+  fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
+  const callsBeforeRefinement = sentSpecs(fetch).length;
+  const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
+  fireEvent.click(within(python).getByLabelText("Prefer"));
+
+  expect(await screen.findByText("Decision unavailable (invalid_spec).")).toBeInTheDocument();
+  const attempts = sentSpecs(fetch).slice(callsBeforeRefinement)
+    .filter((body) => body.explain === "summary");
+  expect(attempts).toHaveLength(2);
+  expect(attempts[0].optimize.weights).toHaveProperty("software_engineering/python");
+  expect(attempts[1].optimize.weights).not.toHaveProperty("software_engineering/python");
 });
 
 it("lets a newer board request win when an in-flight folded retry is aborted", async () => {
@@ -155,7 +318,7 @@ it("lets a newer board request win when an in-flight folded retry is aborted", a
     },
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
   const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
   fireEvent.click(within(software).getByLabelText("Prefer"));
@@ -191,18 +354,10 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   render(<App />);
 
   await screen.findByText("Coding agent on a budget");
-  const task = screen.getByLabelText("Describe your task");
-  fireEvent.change(task, {
-    target: { value: "Refactor a large Rust codebase, precision matters" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: /Find models/ }));
-
-  expect(screen.getByText("Reading your task…")).toBeInTheDocument();
-  expect(await screen.findByText("Read from your task:")).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Coding agent on a budget"));
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
-  expect(screen.getByText("Shortlist")).toBeInTheDocument();
   const why = screen.getByRole("region", { name: "Why this model" });
   // Names come from the cards in the vocabulary, never from the slug.
   expect(why).toHaveTextContent("Delta 4.7");
@@ -214,7 +369,9 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(document.body).not.toHaveTextContent(/Gamma Max 902|\bAlpha\b/);
   expect(screen.queryByText(/fictional/i)).not.toBeInTheDocument();
 
-  const sent = sentSpecs(fetch).find((body) => body.explain === "full");
+  await waitFor(() => expect(rankingSpecs(fetch).filter((body) => body.explain === "full").length).toBeGreaterThan(1));
+  const sent = rankingSpecs(fetch).filter((body) => body.explain === "full").at(-1);
+  if (!sent) throw new Error("template decision did not send a full request");
   expect(sent).not.toHaveProperty("task");
   expect(sent.where).toContain("model.class = text-generator");
   expect(sent.where).toContain("model.context_window >= 200000");
@@ -240,6 +397,48 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   );
 });
 
+it("keeps ticket IDs and future promises out of every applied template surface", async () => {
+  const allTemplatesVocabulary = {
+    ...realVocabulary,
+    templates: realVocabulary.templates?.map((template) => ({
+      ...template,
+      available: true,
+      unavailable_reason: null,
+    })),
+  };
+  const fetch = routeFetch({
+    vocabulary: () => json(allTemplatesVocabulary),
+    decide: (init) => json(decisionFor(init)),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<App />);
+  await screen.findByText("Coding agent on a budget");
+
+  for (const template of allTemplatesVocabulary.templates ?? []) {
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(template.name) }));
+    const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
+    const point = canvas.querySelector<HTMLButtonElement>(".point");
+    if (point) {
+      fireEvent.pointerEnter(point);
+      expect(within(canvas).getByRole("tooltip")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
+      fireEvent.click(point);
+    }
+    expect(screen.getByRole("region", { name: "Why this model" })).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
+    expect(screen.getByLabelText("Facet board answer").closest(".board-answer")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
+    expect(document.querySelector(".facet-board")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
+    fireEvent.click(screen.getByRole("button", { name: "ⓘ Templates" }));
+  }
+});
+
+function plotCostAgainstCapability(canvas: HTMLElement) {
+  fireEvent.change(within(canvas).getByLabelText("X axis"), {
+    target: { value: "facet:offering.cost_per_task" },
+  });
+  fireEvent.change(within(canvas).getByLabelText("Y axis"), {
+    target: { value: "capability:software_engineering" },
+  });
+}
+
 it("does not render the Next-questions panel in the facet-board preview", async () => {
   const fetch = routeFetch({ decide: (init) => {
     const decision = decisionFor(init);
@@ -262,7 +461,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
     });
   } });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
   expect(screen.queryByText("Next questions, most narrowing first")).not.toBeInTheDocument();
   expect(screen.getByText("Narrowing, in the order you set conditions")).toBeInTheDocument();
@@ -277,7 +476,27 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(within(answer).getAllByText("Lab Inc. · via cloud").length).toBeGreaterThan(0);
   expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
   expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
-  expect(within(answer).getByText("Not ranked — set a Prefer to rank these")).toBeInTheDocument();
+  expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
+  expect(screen.getByLabelText("Why this model")).toHaveTextContent("Select a model to inspect");
+  const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
+  plotCostAgainstCapability(canvas);
+  await waitFor(() => expect(canvas.querySelector(".point")).not.toBeNull());
+  const point = canvas.querySelector<HTMLButtonElement>(".point");
+  if (!point) throw new Error("unranked canvas did not render a model point");
+  fireEvent.pointerEnter(point);
+  expect(within(canvas).getByRole("tooltip")).not.toHaveTextContent(/#\d/);
+  fireEvent.pointerLeave(point);
+  fireEvent.focus(point);
+  expect(within(canvas).getByRole("tooltip")).not.toHaveTextContent(/#\d/);
+  fireEvent.click(point);
+  const why = screen.getByRole("region", { name: "Why this model" });
+  expect(why).not.toHaveTextContent(/#\d/);
+  expect(within(why).queryByText("Tipping point")).not.toBeInTheDocument();
+  const whyNot = within(why).getByLabelText("Why not");
+  const comparison = within(whyNot).getAllByRole("option").find((option) => option.getAttribute("value"));
+  if (!comparison) throw new Error("Why not has no model option");
+  fireEvent.change(whyNot, { target: { value: comparison.getAttribute("value") } });
+  expect(why).not.toHaveTextContent(/#\d/);
   const modelNames = within(answer).getAllByRole("listitem").map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
@@ -304,29 +523,73 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   await waitFor(() => expect(sentSpecs(fetch).some((body) =>
     body.where.includes("model.context_window >= 529096"),
   )).toBe(true));
-  expect(within(answer).getByText("Not ranked — set a Prefer to rank these")).toBeInTheDocument();
+  expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 });
 
-it("renders every model from the live empty-board decision alphabetically", async () => {
+it("renders the qualifying models from the live empty-board decision alphabetically", async () => {
   const fetch = routeFetch({
     vocabulary: () => json(realVocabulary),
     decide: () => json(liveEmptyBoard),
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
 
   const answer = (await screen.findByLabelText("Facet board answer"))
     .closest<HTMLElement>(".board-answer")!;
-  fireEvent.click(within(answer).getByRole("button", { name: "Show all 32" }));
+  fireEvent.click(within(answer).getByRole("button", { name: "Show all 22" }));
   const rankedAnswer = answer.querySelector<HTMLElement>(".board-ranked-answer")!;
   const modelNames = within(rankedAnswer).getAllByRole("listitem").map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
 
-  expect(modelNames).toHaveLength(32);
+  expect(modelNames).toHaveLength(22);
   expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
   expect(within(answer).queryByText(/no capability data|no evidence for/i)).not.toBeInTheDocument();
+  const tableRows = screen.getByLabelText("Decision table").querySelectorAll("tbody tr");
+  expect(within(screen.getByLabelText("Decision table")).queryByRole("columnheader", { name: /#/ }))
+    .not.toBeInTheDocument();
+  expect(tableRows[0]?.querySelector("td")).toHaveTextContent("Claude Fable 5");
+  const providers = [...tableRows].map((row) => row.children[1]?.textContent ?? "");
+  const firstUnavailable = providers.indexOf("Provider not available");
+  expect(firstUnavailable).toBeGreaterThan(0);
+  expect(providers.slice(firstUnavailable).every((provider) => provider === "Provider not available"))
+    .toBe(true);
+
+  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  fireEvent.click(within(capability).getByLabelText("Prefer"));
+  expect(await within(screen.getByLabelText("Decision table")).findByRole("columnheader", { name: /#/ }))
+    .toBeInTheDocument();
+
+  const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
+  const collapsed = within(canvas).queryByText(/\d+ not plotted/);
+  if (collapsed) {
+    expect(collapsed).toHaveTextContent("show");
+    fireEvent.click(within(collapsed).getByRole("button", { name: "show" }));
+    expect(within(canvas).getByText(/Not plotted:/)).toBeInTheDocument();
+  }
+});
+
+it("plots and tabulates domain estimates while the board is unranked", async () => {
+  const fetch = routeFetch({
+    vocabulary: () => json(realVocabulary),
+    decide: () => json(liveSwePrefer),
+  });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+
+  const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
+  plotCostAgainstCapability(canvas);
+  await waitFor(() => expect(canvas.querySelectorAll(".point")).toHaveLength(10));
+  const first = liveSwePrefer.results[0].estimates?.[0];
+  if (!first) throw new Error("live capability fixture has no estimate");
+  const modelName = realVocabulary.models[liveSwePrefer.results[0].offering.model]?.display_name ??
+    liveSwePrefer.results[0].offering.model;
+  const modelRow = [...screen.getByLabelText("Decision table").querySelectorAll("tbody tr")]
+    .find((row) => row.textContent?.includes(modelName));
+  expect(modelRow).toHaveTextContent(first.value.toFixed(2));
+  expect(modelRow).toHaveTextContent("±");
+  expect(modelRow?.children[3]).not.toHaveTextContent("not available in this snapshot");
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {
@@ -338,7 +601,7 @@ it("keeps capability-unknown models outside the ranked board answer", async () =
       : json(liveEmptyBoard),
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
 
   const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
@@ -405,7 +668,7 @@ it("lists only qualifying providers as alternatives on the board", async () => {
     decide: () => json(decision),
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
   fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
 
@@ -425,7 +688,7 @@ it("shows model-grained funnel and board counts from the live budget decision", 
     decide: () => json(liveBudgetCoding),
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
   fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
 
@@ -466,7 +729,7 @@ it("shows model-grained funnel and board counts from the live budget decision", 
 it("never requests the estate twice for the same settled key", async () => {
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
 
   fireEvent.change(screen.getByLabelText("Add provider"), {
@@ -537,7 +800,7 @@ it("reissues an estate request aborted by a vocabulary replacement", async () =>
     },
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
 
   fireEvent.change(screen.getByLabelText("Add provider"), {
@@ -583,7 +846,7 @@ it("reissues an estate request aborted by a newer main decision", async () => {
     },
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
 
   fireEvent.change(screen.getByLabelText("Add provider"), {
@@ -607,7 +870,7 @@ it("shows a retry when the estate request fails", async () => {
     },
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
   fireEvent.change(screen.getByLabelText("Add provider"), {
     target: { value: Object.keys(smallVocabulary.providers)[0] },
@@ -620,7 +883,7 @@ it("shows a retry when the estate request fails", async () => {
 it("labels capability intervals with their ranking basis and units", async () => {
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
 
   const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
@@ -635,49 +898,6 @@ it("labels capability intervals with their ranking basis and units", async () =>
   expect(screen.getAllByLabelText("Delta 4.7 capability interval").length).toBeGreaterThan(0);
 });
 
-it("switches the ranking benchmark in one click from the rank-by control", async () => {
-  const vocabulary = {
-    ...smallVocabulary,
-    benchmarks: [
-      ...smallVocabulary.benchmarks,
-      { ...smallVocabulary.benchmarks[0], id: "quality_pro", name: "Quality Pro", models: 3 },
-    ],
-  };
-  const fetch = routeFetch({
-    vocabulary: () => json(vocabulary),
-    decide: (init) => json(decisionFor(init)),
-  });
-  vi.stubGlobal("fetch", fetch);
-  render(<App />);
-  await screen.findByText("Coding agent on a budget");
-  fireEvent.change(screen.getByLabelText("Describe your task"), {
-    target: { value: "Refactor a large Rust codebase, precision matters" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: /Find models/ }));
-  await screen.findByRole("region", { name: "Trade-off canvas" });
-  expect(
-    screen.getByText(/Software engineering capability: estimated from 1 benchmarks; Quality Bench is preselected for Measured by/),
-  ).toBeInTheDocument();
-
-  const control = screen.getByRole("group", { name: "Measurement basis" });
-  expect(
-    within(control).getByRole("button", { name: /Software engineering capability/ }),
-  ).toHaveAttribute("aria-pressed", "true");
-  expect(within(control).getByRole("button", { name: /Quality Bench 4 models/ })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-  fireEvent.click(within(control).getByRole("button", { name: /Quality Pro 3 models/ }));
-
-  await waitFor(() => {
-    const full = sentSpecs(fetch).filter((body) => body.explain === "full");
-    const last = full[full.length - 1];
-    expect(Object.keys(last.optimize.weights)).toContain("quality_pro");
-    expect(last.where.some((c: string) => c.startsWith("quality_pro >="))).toBe(false);
-    expect(last.where.some((c: string) => c.startsWith("quality >="))).toBe(false);
-  });
-});
-
 it("shows no stale designed result after a hosted error", async () => {
   let calls = 0;
   const fetch = routeFetch({
@@ -689,11 +909,10 @@ it("shows no stale designed result after a hosted error", async () => {
   vi.stubGlobal("fetch", fetch);
   render(<App />);
   await screen.findByText("Coding agent on a budget");
-  fireEvent.click(screen.getByText("start from constraints"));
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Run decision" }));
+  fireEvent.click(screen.getByText("Coding agent on a budget"));
 
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Try again"));
   expect(
@@ -701,20 +920,22 @@ it("shows no stale designed result after a hosted error", async () => {
   ).not.toBeInTheDocument();
 });
 
-it("keeps the fictional backend only behind demo=1", () => {
-  const fetch = vi.fn();
+it("treats the legacy demo flag as the public board", async () => {
+  const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
   history.replaceState(null, "", "/decide/?demo=1");
   render(<App />);
-  expect(screen.getByText("Fictional sample data")).toBeInTheDocument();
-  expect(fetch).not.toHaveBeenCalled();
+  expect(await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeInTheDocument();
+  expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
+  expect(fetch).toHaveBeenCalled();
 });
 
 it("renders unavailable snapshot facets instead of hiding them", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
   await screen.findByText("Coding agent on a budget");
-  fireEvent.click(screen.getByText("start from constraints"));
+  const table = await screen.findByRole("region", { name: "Decision table" });
+  fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
   expect(within(detail).getAllByText("not available in this snapshot").length).toBeGreaterThan(0);
 });
@@ -766,30 +987,25 @@ it("renders capability intervals, probability of best and top-three stability", 
   vi.stubGlobal("fetch", routeFetch({ decide: () => json(estimated) }));
   render(<App />);
   await screen.findByText("Coding agent on a budget");
-  fireEvent.click(screen.getByText("start from constraints"));
 
+  const table = await screen.findByRole("region", { name: "Decision table" });
+  fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
   expect(detail).toHaveTextContent("P(best) 62%");
   expect(detail).toHaveTextContent("Top-3 stability 91%");
   expect(detail).toHaveTextContent("Not separable: intervals overlap.");
   expect(detail).toHaveTextContent("Proxy evidence only.");
-  expect(detail).toHaveTextContent("Top drivers");
-  expect(detail).toHaveTextContent("Quality Bench · 72% influence · direct · 2026-08-01");
-  expect(within(detail).getByRole("link", { name: "Source ↗" })).toHaveAttribute(
-    "href",
-    "https://board.example.org/results",
-  );
 });
 
 it("renders the full decision as four models without machine condition syntax", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
   await screen.findByText("Coding agent on a budget");
-  fireEvent.click(screen.getByText("start from constraints"));
 
   const table = await screen.findByRole("region", { name: "Decision table" });
   expect(within(table).getAllByRole("row")).toHaveLength(5);
   expect(screen.getByText("4 models · 8 offerings")).toBeInTheDocument();
+  fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   expect(screen.getAllByText("Type: Text generator").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Has a provider").length).toBeGreaterThan(0);
   expect(screen.getByText("No model is one condition away.")).toBeInTheDocument();
@@ -825,18 +1041,14 @@ it("on a 409 to the summary, reloads once, retries the summary, then asks for fu
   vi.stubGlobal("fetch", fetch);
   render(<App />);
   await screen.findByText("Coding agent on a budget");
-  fireEvent.click(screen.getByText("start from constraints"));
 
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   const sent = (explain: string) =>
-    fetch.mock.calls
-      .filter(
-        ([url, init]) =>
-          url !== VOCABULARY_URL && JSON.parse(String(init?.body)).explain === explain,
-      )
+    rankingCalls(fetch)
+      .filter(([, init]) => JSON.parse(String(init?.body)).explain === explain)
       .map(([, init]) => new Headers(init?.headers).get("x-modelspec-snapshot"));
   await waitFor(() => expect(sent("full")).toEqual([fresh.snapshot]));
   expect(sent("summary")).toEqual([smallVocabulary.snapshot, fresh.snapshot]);
@@ -869,26 +1081,29 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
     decide: (init) => {
       const sent = new Headers(init?.headers).get("x-modelspec-snapshot");
       const explain = JSON.parse(String(init?.body)).explain;
-      if (explain === "full" || sent !== fresh.snapshot) return changed(sent);
+      const ranking = Object.hasOwn(
+        JSON.parse(String(init?.body)).optimize.weights ?? {},
+        "-offering.cost_per_task",
+      );
+      if ((explain === "full" && ranking) || sent !== fresh.snapshot) return changed(sent);
       return json(decisionFor(init));
     },
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
   await screen.findByText("Coding agent on a budget");
-  fireEvent.click(screen.getByText("start from constraints"));
 
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
   await waitFor(() =>
-    expect(sentSpecs(fetch).filter((spec) => spec.explain === "full")).toHaveLength(1),
+    expect(rankingSpecs(fetch).filter((spec) => spec.explain === "full")).toHaveLength(1),
   );
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(vocabularyLoads).toBe(2);
 });
 
-it("keeps the production vocabulary unchanged when a retried summary fails", async () => {
+it("keeps the reloaded board vocabulary visible when a retried summary fails", async () => {
   const fresh = {
     ...smallVocabulary,
     snapshot: "snap_retry_fails",
@@ -910,10 +1125,9 @@ it("keeps the production vocabulary unchanged when a retried summary fails", asy
   vi.stubGlobal("fetch", fetch);
   render(<App />);
   await screen.findByText("Coding agent on a budget");
-  fireEvent.click(screen.getByText("start from constraints"));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("retry failed");
-  expect(screen.queryByText("Fresh vocabulary marker")).not.toBeInTheDocument();
+  expect(screen.getByText("Fresh vocabulary marker")).toBeInTheDocument();
   expect(vocabularyLoads).toBe(2);
   expect(decisionRequests).toBe(2);
 });
@@ -940,7 +1154,7 @@ it("folds a rejected refinement with the vocabulary installed after a snapshot c
     },
   });
   vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp demo={false} board />);
+  render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
   const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
   fireEvent.click(within(software).getByLabelText("Prefer"));

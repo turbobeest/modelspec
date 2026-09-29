@@ -1,7 +1,9 @@
-import type { Cond, FacetValue, Spec } from "../engine/types";
+import type { BoardWeight, Cond, FacetValue, Spec } from "../engine/types";
 import type { DecisionSpec } from "../adapter/contract";
 import { contractCondition, toDecisionSpec } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
+import { isCanvasAxisId } from "../components/canvas-axis";
+import type { CanvasAxisId } from "../components/canvas-axis";
 import type { VocabFacet, VocabRefinement, Vocabulary } from "../vocabulary";
 import { z } from "zod";
 
@@ -15,6 +17,10 @@ export interface FacetSelection {
   reason?: string;
 }
 export type BoardSelections = Record<string, FacetSelection>;
+declare const sanitizedBoardSelections: unique symbol;
+export type SanitizedBoardSelections = BoardSelections & {
+  readonly [sanitizedBoardSelections]: true;
+};
 export const refinementSelectionId = (id: string): string => `refinement.${id}`;
 export interface BoardTemplateState {
   selections: BoardSelections;
@@ -22,7 +28,17 @@ export interface BoardTemplateState {
   taskTokens?: { input: number; output: number };
 }
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
-export interface BoardUrlState { selections: BoardSelections; mustOrder: string[]; estate: Estate }
+export interface BoardUrlState {
+  selections: BoardSelections;
+  mustOrder: string[];
+  estate: Estate;
+  canvas?: { x: CanvasAxisId; y: CanvasAxisId };
+}
+export interface SanitizedBoardState extends Omit<BoardUrlState, "selections"> {
+  selections: SanitizedBoardSelections;
+  notes: string[];
+}
+export interface LegacyBoardState extends SanitizedBoardState {}
 
 const UNRANKED_OBJECTIVE = { "-offering.cost_per_task": 1 };
 
@@ -43,16 +59,11 @@ const boardUrlSchema = z.object({
   estate: z.object({
     providers: z.array(z.string()), plans: z.array(z.string()), hardware: z.array(z.string()),
   }),
+  canvas: z.object({
+    x: z.string().refine(isCanvasAxisId),
+    y: z.string().refine(isCanvasAxisId),
+  }).optional(),
 });
-
-const PREVIEW_HOSTS = new Set([
-  "internal.modelspec-7np.pages.dev",
-  "localhost",
-  "127.0.0.1",
-]);
-
-/** Fail-safe runtime launch gate: unknown and empty hosts always get production. */
-export const showsFacetBoard = (hostname: string): boolean => PREVIEW_HOSTS.has(hostname);
 
 const GROUPS: Readonly<Record<string, string>> = {
   "model.class": "What it does",
@@ -100,9 +111,7 @@ export const GROUP_ORDER = [
 export const facetGroup = (id: string): string =>
   id.startsWith("capability.") ? "What it's good at" : (GROUPS[id] ?? "Other");
 
-export const supportsPreference = (id: string): boolean =>
-  id.startsWith("capability.") || id === "offering.cost_per_task" ||
-  id === "offering.speed.time_to_first_token" || id === "offering.speed.throughput";
+export const supportsPreference = (facet: VocabFacet): boolean => facet.preference !== null;
 
 export function defaultFacetValue(facet: VocabFacet): FacetValue {
   if (facet.value_type === "boolean") return true;
@@ -249,7 +258,7 @@ export function templateToBoard(
 export function boardToSpec(
   base: Spec,
   vocabulary: Vocabulary,
-  selections: BoardSelections,
+  selections: SanitizedBoardSelections,
   mustOrder: readonly string[] = Object.keys(selections),
 ): Spec {
   const grouped = groupFacets(vocabulary);
@@ -273,6 +282,7 @@ export function boardToSpec(
     id.startsWith("capability.") && selections[id].mode !== "off",
   )?.slice("capability.".length);
   const domain = selectedDomain ? vocabulary.domains.find((item) => item.id === selectedDomain) : undefined;
+  const currentDomain = vocabulary.domains.find((item) => item.id === base.domain);
   return {
     ...base,
     task: "",
@@ -282,11 +292,64 @@ export function boardToSpec(
       domain: domain.id,
       basis: "estimate" as const,
       bench: domain.default_benchmark ?? domain.benchmarks[0] ?? base.bench,
-    } : { domain: undefined, basis: undefined }),
+    } : { domain: currentDomain?.id, basis: base.basis }),
   };
 }
 
-export function boardWeights(vocabulary: Vocabulary, selections: BoardSelections): Record<string, number> {
+/** Admit board state into the app only when every active control is editable now. */
+export function sanitizeBoardState(
+  state: BoardUrlState,
+  vocabulary: Vocabulary,
+  priorNotes: readonly string[] = [],
+): SanitizedBoardState {
+  const editableFacets = new Set(
+    vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
+  );
+  const editableDomains = new Set(
+    vocabulary.domains.filter((domain) => domain.estimate_models > 0)
+      .map((domain) => `capability.${domain.id}`),
+  );
+  const editableRefinements = new Set(
+    (vocabulary.refinements ?? [])
+      .filter((row) => row.evidence_state === "live" || row.evidence_state === "thin")
+      .map((row) => refinementSelectionId(row.id)),
+  );
+  const editable = new Set([...editableFacets, ...editableDomains, ...editableRefinements]);
+  const labels = new Map<string, string>([
+    ...vocabulary.facets.map((facet) => [facet.id, facet.label] as const),
+    ...vocabulary.domains.map((domain) => [`capability.${domain.id}`, domain.name] as const),
+    ...(vocabulary.refinements ?? []).map((row) => [refinementSelectionId(row.id), row.name] as const),
+  ]);
+  const selections: BoardSelections = {};
+  const notes = [...priorNotes];
+  const fallbackLabel = (id: string): string => {
+    const [namespace, ...parts] = id.split(".");
+    const readable = parts.join(" ").replaceAll("_", " ").trim();
+    if (namespace === "capability") return readable ? `${readable} capability` : "old capability setting";
+    if (namespace === "refinement") return readable ? `${readable} refinement` : "old refinement setting";
+    return "old decision setting";
+  };
+  for (const [id, choice] of Object.entries(state.selections)) {
+    if (choice.mode === "off") continue;
+    if (editable.has(id)) selections[id] = choice;
+    else notes.push(`${labels.get(id) ?? fallbackLabel(id)} is not editable in this snapshot, so it is not applied.`);
+  }
+  const activeMusts = new Set(Object.entries(selections).flatMap(([id, choice]) =>
+    choice.mode === "must" || choice.mode === "both" ? [id] : [],
+  ));
+  return {
+    selections: selections as SanitizedBoardSelections,
+    mustOrder: [...new Set(state.mustOrder.filter((id) => activeMusts.has(id)))],
+    estate: state.estate,
+    ...(state.canvas ? { canvas: state.canvas } : {}),
+    notes: [...new Set(notes)],
+  };
+}
+
+export function boardWeights(
+  vocabulary: Vocabulary,
+  selections: BoardSelections,
+): Record<string, BoardWeight> {
   return allocateBoardWeights(vocabulary, selections).weights;
 }
 
@@ -297,7 +360,7 @@ export interface RefinementAllocation {
 
 export interface BoardAllocation {
   selections: BoardSelections;
-  weights: Record<string, number>;
+  weights: Record<string, BoardWeight>;
   refinements: Record<string, RefinementAllocation>;
   general: Record<string, number>;
 }
@@ -306,20 +369,33 @@ const stableWeight = (weight: number): number => Math.round(weight * 1e12) / 1e1
 
 /** Resolve every refinement share once for state, controls, display and requests. */
 export function allocateBoardWeights(
-  vocabulary: Pick<Vocabulary, "refinements">,
+  vocabulary: Pick<Vocabulary, "refinements"> & { facets?: VocabFacet[] },
   selections: BoardSelections,
 ): BoardAllocation {
   const normalized = { ...selections };
-  const weights = Object.fromEntries(Object.entries(selections).flatMap(([facetId, choice]) => {
+  const entries = Object.entries(selections).flatMap<[string, BoardWeight]>(([facetId, choice]) => {
     if (facetId.startsWith("refinement.")) return [];
-    if ((choice.mode !== "prefer" && choice.mode !== "both") || !supportsPreference(facetId)) return [];
+    const preference = facetId.startsWith("capability.")
+      ? { kind: "continuous" as const }
+      : vocabulary.facets?.find((row) => row.id === facetId)?.preference;
+    if (
+      (choice.mode !== "prefer" && choice.mode !== "both") ||
+      preference === null || preference === undefined
+    ) return [];
     const id = choice.weightKey ?? (facetId.startsWith("capability.")
       ? facetId.slice("capability.".length)
       : facetId === "offering.cost_per_task" ? "-offering.cost_per_task"
       : facetId === "offering.speed.time_to_first_token" ? "-offering.speed.time_to_first_token"
       : facetId);
-    return [[id, choice.weight ?? 0.5]];
-  }));
+    const weight = choice.weight ?? 0.5;
+    if (preference.kind === "value") {
+      const preferred = choice.value;
+      if (typeof preferred !== "string" && typeof preferred !== "boolean") return [];
+      return [[id, { prefer: preferred, weight }]];
+    }
+    return [[id, weight]];
+  });
+  const weights: Record<string, BoardWeight> = Object.fromEntries(entries);
   const allocations: Record<string, RefinementAllocation> = {};
   const general: Record<string, number> = {};
   const refinementsByParent = new Map<string, VocabRefinement[]>();
@@ -381,11 +457,17 @@ export function foldRefinementWeights(spec: Spec, vocabulary: Vocabulary): Spec 
   const refinementsByKey = new Map(
     (vocabulary.refinements ?? []).map((row) => [row.weight_key, row]),
   );
-  const weights: Record<string, number> = {};
+  const weights: Record<string, BoardWeight> = {};
   for (const [key, weight] of Object.entries(spec.boardWeights)) {
     const refinement = refinementsByKey.get(key);
     if (!refinement) weights[key] = weight;
-    else weights[refinement.parent_domain] = (weights[refinement.parent_domain] ?? 0) + weight;
+    else {
+      const parent = weights[refinement.parent_domain];
+      if (typeof weight !== "number" || (parent !== undefined && typeof parent !== "number")) {
+        throw new Error(`Refinement ${key} must have a continuous weight.`);
+      }
+      weights[refinement.parent_domain] = (parent ?? 0) + weight;
+    }
   }
   return { ...spec, boardWeights: weights };
 }
@@ -393,7 +475,9 @@ export function foldRefinementWeights(spec: Spec, vocabulary: Vocabulary): Spec 
 export function toBoardDecisionSpec(spec: Spec, explain: "none" | "summary" | "full"): DecisionSpec {
   const contract = toDecisionSpec(spec, explain);
   const positiveWeights = Object.fromEntries(
-    Object.entries(spec.boardWeights ?? {}).filter(([, weight]) => weight > 0),
+    Object.entries(spec.boardWeights ?? {}).filter(([, term]) =>
+      typeof term === "number" ? term > 0 : term.weight > 0,
+    ),
   );
   return spec.boardWeights !== undefined
     ? { ...contract, optimize: { weights: Object.keys(positiveWeights).length > 0 ? positiveWeights : UNRANKED_OBJECTIVE } }
@@ -401,11 +485,14 @@ export function toBoardDecisionSpec(spec: Spec, explain: "none" | "summary" | "f
 }
 
 export function boardHasPreference(spec: Spec): boolean {
-  return spec.boardWeights !== undefined && Object.values(spec.boardWeights).some((weight) => weight > 0);
+  return spec.boardWeights !== undefined && Object.values(spec.boardWeights).some((term) =>
+    typeof term === "number" ? term > 0 : term.weight > 0,
+  );
 }
 
 export function encodeBoardSpec(spec: Spec, axis: Axis, board: BoardUrlState): string {
-  const { boardWeights: _previewWeights, ...productionSpec } = spec;
+  const productionSpec = { ...spec };
+  delete productionSpec.boardWeights;
   return "#s=" + btoa(encodeURIComponent(JSON.stringify({ ...productionSpec, x: axis, board })));
 }
 
@@ -416,6 +503,131 @@ export function decodeBoardState(hash: string): BoardUrlState | null {
   } catch {
     return null;
   }
+}
+
+const LEGACY_CLASS: Readonly<Record<string, string>> = {
+  llm: "text-generator",
+  embed: "vectoriser",
+  rerank: "orderer",
+  vision: "analyser",
+  speech: "transcriber",
+  decision: "decider",
+};
+
+function legacyConditionSelection(condition: Cond): { facetId: string; selection: FacetSelection } | null {
+  if (condition.soft) return null;
+  switch (condition.f) {
+    case "type":
+      return { facetId: "model.class", selection: { mode: "must", op: "=", value: LEGACY_CLASS[condition.v] } };
+    case "active":
+      return { facetId: "model.lifecycle", selection: { mode: "must", op: "=", value: "active" } };
+    case "ctx":
+      return { facetId: "model.context_window", selection: { mode: "must", op: ">=", value: condition.min } };
+    case "open":
+      return { facetId: "model.weights_openness", selection: { mode: "must", op: condition.v ? "=" : "!=", value: "open_weights" } };
+    case "commercial":
+      return { facetId: "licence.commercial_use", selection: { mode: "must", op: "in", value: ["permitted", "permitted_with_conditions"] } };
+    case "task$":
+      return { facetId: "offering.cost_per_task", selection: { mode: "must", op: "<=", value: condition.max } };
+    case "in$":
+      return { facetId: "offering.price.input", selection: { mode: "must", op: "<=", value: condition.max } };
+    case "resid":
+      return { facetId: "offering.region", selection: { mode: "must", op: "in", value: [condition.v] } };
+    case "ret0":
+      return { facetId: "offering.data.zero_retention", selection: { mode: "must", op: "=", value: true } };
+    case "ttft":
+      return { facetId: "offering.speed.time_to_first_token", selection: { mode: "must", op: "<=", value: condition.max } };
+    case "tps":
+      return { facetId: "offering.speed.throughput", selection: { mode: "must", op: ">=", value: condition.min } };
+    case "origin":
+      return { facetId: "origin.lab_jurisdiction", selection: { mode: "must", op: "not in", value: condition.ex } };
+    case "facet":
+      return { facetId: condition.facet, selection: { mode: "must", op: condition.op, value: condition.value } };
+    case "bench":
+    case "rel":
+      return null;
+  }
+}
+
+/** Translate a permalink written by the retired composer into visible board state. */
+export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Estate): LegacyBoardState {
+  const knownFacets = new Set([
+    ...vocabulary.facets.map((facet) => facet.id),
+    ...vocabulary.domains.map((domain) => `capability.${domain.id}`),
+  ]);
+  const editableFacets = new Set([
+    ...vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
+    ...vocabulary.domains.filter((domain) => domain.estimate_models > 0).map((domain) => `capability.${domain.id}`),
+  ]);
+  const facetLabels = new Map([
+    ...vocabulary.facets.map((facet) => [facet.id, facet.label] as const),
+    ...vocabulary.domains.map((domain) => [`capability.${domain.id}`, domain.name] as const),
+  ]);
+  const selections: BoardSelections = {};
+  const mustOrder: string[] = [];
+  const notes: string[] = [];
+  for (const condition of spec.conds) {
+    const mapped = legacyConditionSelection(condition);
+    if (mapped && editableFacets.has(mapped.facetId)) {
+      selections[mapped.facetId] = mapped.selection;
+      mustOrder.push(mapped.facetId);
+      continue;
+    }
+    if (mapped && knownFacets.has(mapped.facetId)) {
+      notes.push(`Your old link also selected ${facetLabels.get(mapped.facetId) ?? mapped.facetId}; the board doesn't track it in this snapshot, so it's not applied.`);
+      continue;
+    }
+    if (condition.soft)
+      notes.push(`Your old link also asked for ${contractCondition(condition)}; the board can't express that, so it's not applied.`);
+    else if (condition.f === "bench")
+      notes.push(`Your old link also asked for ${contractCondition(condition)}; the board can't express that single-benchmark floor, so it's not applied.`);
+    else if (condition.f === "rel")
+      notes.push(`Your old link also asked for ${contractCondition(condition)}; the board can't express that relative-model condition, so it's not applied.`);
+    else
+      notes.push(`Your old link also asked for ${contractCondition(condition)}; the board can't express that condition, so it's not applied.`);
+  }
+  const addPreference = (facetId: string, weightKey: string, weight: number) => {
+    if (weight <= 0 || !knownFacets.has(facetId)) return false;
+    if (!editableFacets.has(facetId)) {
+      notes.push(`Your old link also ranked on ${facetLabels.get(facetId) ?? facetId}; the board doesn't track it in this snapshot, so it's not applied.`);
+      return false;
+    }
+    const current = selections[facetId];
+    selections[facetId] = {
+      ...current,
+      mode: current?.mode === "must" ? "both" : "prefer",
+      weight,
+      weightKey,
+    };
+    return true;
+  };
+  if (spec.w.cap > 0) {
+    const facetId = spec.domain ? `capability.${spec.domain}` : null;
+    if (!facetId || !knownFacets.has(facetId))
+      notes.push(`Your old link also ranked on ${spec.bench}; the board can't express that without a capability domain, so it's not applied.`);
+    else {
+      const added = addPreference(facetId, spec.domain ?? spec.bench, spec.w.cap);
+      if (added && spec.basis === "benchmark")
+        notes.push(`Your old link ranked on ${spec.bench}; the board applies the visible ${spec.domain?.replaceAll("_", " ")} capability estimate instead.`);
+    }
+  }
+  addPreference("offering.cost_per_task", "-offering.cost_per_task", spec.w.cost);
+  if (!addPreference("offering.speed.throughput", "offering.speed.throughput", spec.w.speed) && spec.w.speed > 0)
+    notes.push("Your old link also preferred throughput; the board can't express that on this snapshot, so it's not applied.");
+  if (spec.task?.trim())
+    notes.push("The old task description remains in this link for provenance. The board does not interpret free text.");
+  if (spec.bar !== undefined)
+    notes.push("Your old link also set a shortlist threshold; the board can't express that, so it's not applied.");
+  return sanitizeBoardState(
+    { selections, mustOrder: [...new Set(mustOrder)], estate },
+    vocabulary,
+    notes,
+  );
+}
+
+/** Keep only legacy values that the board either displays or needs to reconstruct visible controls. */
+export function legacyBoardBaseSpec(spec: Spec): Spec {
+  return { ...spec, task: "", conds: [], bar: undefined };
 }
 
 export function estateSpec(spec: Spec, providers: string[]): Spec {
@@ -430,7 +642,7 @@ export function groupFacets(vocabulary: Vocabulary) {
   const capabilityFacets: VocabFacet[] = vocabulary.domains.map((domain) => ({
     id: `capability.${domain.id}`,
     label: domain.name,
-    definition: `Capability estimate from ${domain.benchmarks.length} benchmarks.`,
+    definition: `Capability estimate from ${domain.estimate_benchmarks?.length ?? domain.benchmarks.length} benchmarks.`,
     subject: "model",
     value_type: "number",
     unit: null,
@@ -441,6 +653,11 @@ export function groupFacets(vocabulary: Vocabulary) {
     known: domain.estimate_models,
     of: vocabulary.coverage?.models ?? Math.max(...vocabulary.facets.filter((facet) => facet.subject === "model").map((facet) => facet.of), 0),
     range: { min: 0, max: 1 },
+    preference: {
+      kind: "continuous",
+      directions: ["max", "min"],
+      threshold: "where",
+    },
   }));
   const all = [...capabilityFacets, ...vocabulary.facets];
   const tracked = all.filter((facet) => facet.known > 0);

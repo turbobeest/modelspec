@@ -1,0 +1,611 @@
+html {
+  scroll-behavior: smooth;
+}
+body {
+  background: #0b1426;
+  color: #eef2f7;
+}
+.site-head {
+  height: 72px;
+  padding: 0 64px 0 72px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.site-head .mark {
+  width: 34px;
+}
+.site-head .wordmark {
+  font-size: 21px;
+  color: #eef2f7;
+  text-decoration: none;
+}
+.site-head nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.site-head nav > a {
+  font-size: 15px;
+  color: #b9c4d6;
+  text-decoration: none;
+}
+.site-head [aria-current] {
+  color: #fff;
+  border-bottom: 2px solid #f2c94c;
+  padding-bottom: 3px;
+}
+.site-head .button {
+  color: #0b1426;
+}
+.method-hero {
+  padding: 72px 64px 72px 72px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 560px;
+  gap: 64px;
+}
+.method-hero h1 {
+  margin: 0;
+  font-size: clamp(68px, 7.8vw, 112px);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+}
+.method-hero > div > p {
+  max-width: 640px;
+  font-size: 23px;
+  line-height: 1.45;
+  color: #c7d1e0;
+}
+.method-hero > div > p:last-child {
+  font-size: 17px;
+  color: #8795ad;
+  border-top: 2px solid #3fb68b;
+  padding-top: 16px;
+}
+.method-hero nav {
+  background: #060c18;
+  border: 1px solid #1d2c48;
+  border-radius: 8px;
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  margin-left: 0;
+}
+.method-hero nav a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid #1d2c48;
+  text-decoration: none;
+}
+.method-hero nav b {
+  font-size: 18px;
+  color: #eef2f7;
+}
+.method-hero nav span {
+  text-align: right;
+  color: #5aa9ec;
+}
+.flow {
+  padding: 0 64px 96px 72px;
+}
+.flow h2 {
+  font-size: 28px;
+}
+.flow ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+}
+.flow a {
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #0e1a30;
+  border: 1px solid #1d2c48;
+  border-top: 3px solid #5aa9ec;
+  border-radius: 6px;
+  padding: 18px;
+  text-decoration: none;
+}
+.flow b {
+  font-size: 21px;
+  color: #fff;
+}
+.flow span {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #b9c4d6;
+}
+.method-section {
+  padding: 104px 64px 104px 72px;
+  border-top: 4px solid #3fb68b;
+  display: grid;
+  grid-template-columns: 460px minmax(0, 1fr);
+  gap: 72px;
+}
+.method-section .intro > code,
+.dont > code {
+  color: #f2c94c;
+}
+.method-section h2,
+.dont h2,
+.public-data h2 {
+  font-size: 56px;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  margin: 18px 0 22px;
+}
+.method-section .intro p {
+  font-size: 20px;
+  line-height: 1.5;
+  color: #c7d1e0;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.content h3 {
+  font-size: 22px;
+  margin: 0;
+}
+.content p {
+  font-size: 17px;
+  line-height: 1.55;
+  margin: 0;
+}
+.light,
+.public-data {
+  background: #eef2f7;
+  color: #0b1426;
+  background-image:
+    linear-gradient(#dfe5ee 1px, transparent 1px),
+    linear-gradient(90deg, #dfe5ee 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.light .intro > code {
+  color: #1f7a57;
+}
+.light .intro p,
+.light .content p {
+  color: #243149;
+}
+.yellow {
+  background: #f2c94c;
+  color: #0b1426;
+}
+.yellow .intro > code {
+  color: #3a3212;
+}
+.yellow .intro p {
+  color: #3a3212;
+}
+.code-list {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 0 16px;
+}
+.code-list > * {
+  border-top: 1px solid #1d2c48;
+  padding: 12px 0;
+}
+.code-list code {
+  color: #5aa9ec;
+}
+.callouts,
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px 32px;
+}
+.callouts article {
+  background: #0e1a30;
+  border-left: 3px solid #3fb68b;
+  padding: 20px;
+}
+.rule-grid article {
+  border-top: 2px solid currentColor;
+  padding-top: 12px;
+}
+.setting-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.setting-grid article {
+  background: #fff;
+  border-top: 6px solid #5aa9ec;
+  border-radius: 8px;
+  padding: 22px;
+}
+.setting-grid article:nth-child(2) {
+  background: #0b1426;
+  color: #eef2f7;
+  border-color: #3fb68b;
+}
+.checks {
+  border-top: 1px solid currentColor;
+  padding-top: 18px;
+}
+.checks > p {
+  font-size: 15px;
+  opacity: 0.7;
+}
+.checks ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.checks li {
+  display: grid;
+  grid-template-columns: minmax(220px, 470px) 1fr;
+  gap: 16px;
+  padding: 5px 0;
+}
+.checks a {
+  color: #5aa9ec;
+  overflow-wrap: anywhere;
+}
+.checks span {
+  opacity: 0.7;
+}
+.tie-plot {
+  width: 100%;
+  height: auto;
+}
+.tie-plot rect {
+  fill: #0e1a30;
+}
+.tie-plot line:not(.leader-line) {
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.tie-plot .axis-y {
+  stroke: #f2c94c !important;
+  stroke-width: 2 !important;
+}
+.tie-plot .axis-x {
+  stroke: #3fb68b !important;
+  stroke-width: 3 !important;
+}
+.tie-plot .leader-line {
+  stroke: #f2c94c;
+  stroke-dasharray: 5 5;
+}
+.tie-plot text {
+  fill: #eef2f7;
+  font-size: 15px;
+}
+.tie-plot .leader-label {
+  fill: #f2c94c;
+  font-size: 13px;
+}
+.tie-plot .status,
+.tie-plot .axis-label {
+  font-size: 13px;
+}
+.content figure {
+  margin: 0;
+}
+.content figcaption {
+  font-size: 17px;
+  line-height: 1.45;
+  margin-top: 12px;
+}
+.content > pre,
+.terminal {
+  background: #060c18;
+  color: #c7d1e0;
+  padding: 20px 22px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.terminal span {
+  font-size: 13px;
+  color: #8795ad;
+}
+.terminal b {
+  color: #3fb68b;
+}
+.key {
+  background: #fff;
+  border-left: 4px solid #f2c94c;
+  padding: 18px 22px;
+}
+.key code {
+  display: inline-block;
+  margin-right: 10px;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 18px 20px 18px 0;
+  border-top: 1px solid #1d2c48;
+  line-height: 1.5;
+}
+aside {
+  background: #0e1a30;
+  border-left: 3px solid #f2c94c;
+  padding: 20px;
+}
+.light aside {
+  background: #fff;
+}
+.yellow blockquote {
+  font-size: 46px;
+  line-height: 1.05;
+  font-weight: 650;
+  margin: 0;
+  padding-left: 28px;
+  border-left: 6px solid #0b1426;
+}
+.yellow blockquote footer {
+  font-size: 16px;
+  margin-top: 16px;
+}
+.assertions {
+  list-style: none;
+  background: #0b1426;
+  color: #eef2f7;
+  padding: 18px 22px;
+}
+.assertions li {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #1d2c48;
+  padding: 5px;
+}
+.assertions b {
+  color: #3fb68b;
+}
+.dont {
+  padding: 104px 64px 104px 72px;
+}
+.dont h2 {
+  font-size: 72px;
+}
+.dont > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.dont article {
+  background: #0e1a30;
+  border: 1px solid #1d2c48;
+  border-top: 3px solid #f2c94c;
+  border-radius: 6px;
+  padding: 24px;
+}
+.dont article h3 {
+  font-size: 24px;
+}
+.dont article p {
+  font-size: 17px;
+  line-height: 1.55;
+  color: #c7d1e0;
+}
+.public-data {
+  padding: 88px 64px 88px 72px;
+  border-top: 4px solid #3fb68b;
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 72px;
+}
+.public-data ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.public-data li {
+  display: grid;
+  grid-template-columns: minmax(300px, 500px) 1fr;
+  gap: 20px;
+  padding: 16px 0;
+  border-top: 1px solid #c9d2df;
+}
+.public-data a {
+  color: #0b1426;
+  overflow-wrap: anywhere;
+}
+.public-data .button {
+  display: inline-block;
+  background: #0b1426;
+  color: #f2c94c;
+  padding: 16px 24px;
+  text-decoration: none;
+}
+.site-foot {
+  padding: 36px 64px 36px 72px;
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  border-top: 4px solid #3fb68b;
+  color: #8795ad;
+}
+.site-foot a {
+  color: #8795ad;
+}
+.foot-detail {
+  margin-left: auto;
+}
+@media (max-width: 899px) {
+  body {
+    overflow-x: hidden;
+  }
+  .axis {
+    left: 8px;
+  }
+  .site-head {
+    height: auto;
+    padding: 14px 16px 14px 24px;
+  }
+  .site-head .mark {
+    width: 30px;
+  }
+  .site-head nav > a:not(.primary) {
+    display: none;
+  }
+  .site-head nav {
+    gap: 8px;
+  }
+  .method-hero {
+    padding: 44px 16px 40px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+  .method-hero h1 {
+    font-size: 58px;
+  }
+  .method-hero > div > p {
+    font-size: 17px;
+  }
+  .method-hero nav {
+    padding: 14px;
+  }
+  .method-hero nav a {
+    grid-template-columns: minmax(0, 1fr) 74px;
+    gap: 8px;
+  }
+  .method-hero nav b {
+    font-size: 15px;
+  }
+  .method-hero nav span {
+    font-size: 13px;
+  }
+  .flow {
+    padding: 0 16px 40px 24px;
+  }
+  .flow ol {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .flow a {
+    padding: 12px;
+  }
+  .flow b {
+    font-size: 17px;
+  }
+  .flow span {
+    font-size: 13px;
+  }
+  .method-section {
+    padding: 40px 16px 40px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .method-section h2,
+  .public-data h2 {
+    font-size: 36px;
+  }
+  .method-section .intro p {
+    font-size: 16px;
+  }
+  .content {
+    gap: 18px;
+  }
+  .content p {
+    font-size: 15px;
+  }
+  .callouts,
+  .rule-grid,
+  .setting-grid {
+    grid-template-columns: 1fr;
+  }
+  .code-list {
+    grid-template-columns: 1fr;
+  }
+  .code-list span {
+    padding-top: 0;
+  }
+  .checks li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tie-plot {
+    min-width: 0;
+  }
+  .content figure {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .content > pre {
+    font-size: 13px;
+  }
+  .yellow blockquote {
+    font-size: 31px;
+  }
+  .assertions {
+    padding: 12px;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
+    display: block;
+  }
+  thead {
+    display: none;
+  }
+  tr {
+    padding: 10px 0;
+    border-top: 1px solid #1d2c48;
+  }
+  th,
+  td {
+    border: 0;
+    padding: 4px 0;
+  }
+  .dont {
+    padding: 40px 16px 40px 24px;
+  }
+  .dont h2 {
+    font-size: 42px;
+  }
+  .dont > div {
+    grid-template-columns: 1fr;
+  }
+  .public-data {
+    padding: 40px 16px 40px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .public-data li {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .site-foot {
+    padding: 28px 16px 28px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .foot-detail {
+    margin-left: 0;
+    width: 100%;
+  }
+}

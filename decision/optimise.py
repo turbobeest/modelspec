@@ -12,7 +12,7 @@ from datetime import date
 from math import isclose, isfinite
 from typing import TYPE_CHECKING, Literal
 
-from decision.contract import EvidenceQualifiers, Objective, Tolerance
+from decision.contract import EvidenceQualifiers, Objective, Preference, Tolerance
 
 if TYPE_CHECKING:
     from decision.snapshot import CapabilityEstimateValue, EvidenceValue, SnapshotIndex
@@ -79,6 +79,8 @@ class DimensionContribution:
     sources: tuple[str, ...] = ()
     evidence: tuple[EvidenceValue, ...] = ()
     estimate: CapabilityEstimateValue | None = None
+    preference_status: Literal["satisfied", "not_satisfied", "unknown"] | None = None
+    preferred_value: bool | int | float | date | str | None = None
 
 
 @dataclass(frozen=True)
@@ -131,15 +133,21 @@ def _number(value: object) -> float | None:
     return float(value) if isfinite(value) else None
 
 
-def _dimensions(objective: Objective) -> list[tuple[str, float, Tolerance | None]]:
+def _dimensions(
+    objective: Objective,
+) -> list[tuple[str, float, Tolerance | None, Preference | None]]:
     if objective.weights is not None:
-        return [(key, weight, None) for key, weight in sorted(objective.weights.items())]
+        return [
+            (key, term.weight if isinstance(term, Preference) else term, None,
+             term if isinstance(term, Preference) else None)
+            for key, term in sorted(objective.weights.items())
+        ]
     if objective.pareto is not None:
-        return [(key, 1, None) for key in sorted(objective.pareto)]
+        return [(key, 1, None, None) for key in sorted(objective.pareto)]
     if objective.lexicographic is not None:
-        return [(step.max or f"-{step.min}", 1, step.within)
+        return [(step.max or f"-{step.min}", 1, step.within, None)
                 for step in objective.lexicographic]
-    return [(objective.max or f"-{objective.min}", 1, None)]
+    return [(objective.max or f"-{objective.min}", 1, None, None)]
 
 
 def _adjusted(row: OptimisedResult, i: int) -> float:
@@ -149,7 +157,7 @@ def _adjusted(row: OptimisedResult, i: int) -> float:
 
 
 def _lex_order(rows: list[OptimisedResult],
-               dimensions: list[tuple[str, float, Tolerance | None]],
+               dimensions: list[tuple[str, float, Tolerance | None, Preference | None]],
                depth: int = 0) -> list[OptimisedResult]:
     if depth == len(dimensions):
         return sorted(rows, key=lambda row: row.candidate_id)
@@ -245,8 +253,10 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
     dimensions = _dimensions(objective)
     selectors = evidence_selectors or {}
     estimate_lookup = getattr(snapshot, "capability_estimate", None)
-    for signed, _, _ in dimensions:
+    for signed, _, _, preference in dimensions:
         facet = signed.removeprefix("-")
+        if preference is not None:
+            continue
         if facet not in domains or facet in selectors:
             continue
         if estimate_lookup is None or not any(
@@ -258,10 +268,38 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
             )
     cids = sorted(set(candidates))
     contributions: dict[str, list[DimensionContribution]] = {cid: [] for cid in cids}
-    for signed, weight, _ in dimensions:
+    for signed, weight, _, preference in dimensions:
         if not isfinite(weight):
             raise ValueError("weights must be finite")
         facet = signed.removeprefix("-")
+        if preference is not None:
+            norm = Normalisation(0.0, 1.0, "max")
+            for cid in cids:
+                fact = snapshot.fact(cid, facet)
+                if fact.state == "known":
+                    satisfied = fact.value == preference.prefer
+                    raw_value = 1.0 if satisfied else 0.0
+                    status: Literal["satisfied", "not_satisfied", "unknown"] = (
+                        "satisfied" if satisfied else "not_satisfied"
+                    )
+                    sources = fact.sources
+                else:
+                    raw_value = None
+                    status = "unknown"
+                    sources = ()
+                contributions[cid].append(DimensionContribution(
+                    signed,
+                    raw_value,
+                    0.0 if status == "unknown" else raw_value,
+                    weight,
+                    norm,
+                    sources,
+                    (),
+                    None,
+                    status,
+                    preference.prefer,
+                ))
+            continue
         readings = {
             cid: _read(snapshot, cid, facet, selectors.get(facet), domains) for cid in cids
         }
@@ -286,10 +324,15 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
         penalty = sum(p for _, p in parts)
         values = contributions[cid]
         unknown = any(c.value is None for c in values)
+        preference_unknown = any(c.preference_status == "unknown" for c in values)
         scalar = objective.lexicographic is None and objective.pareto is None
         score = sum(c.value * c.weight for c in values) - penalty if not unknown else None
+        warnings = (
+            (("missing_objective_value",) if unknown else ())
+            + (("unknown_preference_value",) if preference_unknown else ())
+        )
         row = OptimisedResult(cid, tuple(values), score if scalar else None, penalty, parts,
-                              ("missing_objective_value",) if unknown else ())
+                              warnings)
         (missing if unknown else complete).append(row)
     missing_ids = tuple(row.candidate_id for row in missing)
     unknown = {row.candidate_id: tuple(c.dimension.removeprefix("-")

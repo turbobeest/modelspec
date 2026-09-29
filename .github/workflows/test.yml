@@ -60,10 +60,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install the landing browser and build the app on its pytest shard
-        # The landing browser test serves the built decide app at /decide/.
+      - name: Install the browser and build the app on the Chromium pytest shard
+        # test_landing.py serves the built decide app at /decide/, and
+        # test_social_cards.py renders cards in Chromium. They share a shard's
+        # install; every other shard builds the site without rendering cards.
         run: |
-          if grep -qx 'tests/test_landing.py' shard-files.txt; then
+          if grep -qxE 'tests/test_(landing|social_cards)\.py' shard-files.txt; then
             cd web
             npm ci
             npm run build
@@ -118,6 +120,11 @@ jobs:
             "ruff==0.16.6" \
             "mypy==2.3.1" \
             -e ".[dev]"
+      - name: Validate GitHub Actions workflows
+        run: >-
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
+          -shellcheck= -color
+
       - name: Run timing tests serially
         # Wall-clock bounds run alone. Parallel load made a 6 ms load take 211 ms.
         run: python -m pytest -q -p no:xdist -m perf
@@ -162,7 +169,11 @@ jobs:
           export PATH="$venv/bin:$PATH"
           cd "$(mktemp -d)"
           export MODELSPEC_CACHE="$PWD/cache"
-          modelspec --help
+          modelspec --help > modelspec-help.txt
+          cat modelspec-help.txt
+          decide="$(grep -n -m1 'decide' modelspec-help.txt | cut -d: -f1)"
+          rank="$(grep -n -m1 'rank' modelspec-help.txt | cut -d: -f1)"
+          test "$decide" -lt "$rank"
           modelspec decide --help
           modelspec verify --help >/dev/null
           if modelspec verify accuracy --profile pr --config /nonexistent \

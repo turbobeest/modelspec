@@ -120,6 +120,7 @@ def test_head_links_every_icon_and_the_social_card():
         assert tag in head
     social = brand.social_meta("ModelSpec")
     assert '<meta property="og:image" content="https://modelspec.dev/og-card.png">' in social
+    assert '<meta property="og:image:alt" content="ModelSpec">' in social
     assert '<meta name="twitter:card" content="summary_large_image">' in social
 
 
@@ -127,7 +128,7 @@ def test_the_decide_page_head_links_the_icons_and_the_social_card():
     html = (ROOT / "web" / "decide.html").read_text(encoding="utf-8")
     for href in ("/favicon.ico", "/icon.svg", "/apple-touch-icon.png", "/site.webmanifest"):
         assert f'href="{href}"' in html, href
-    assert 'property="og:image" content="https://modelspec.dev/og-card.png"' in html
+    assert 'property="og:image" content="https://modelspec.dev/og-card-decide.png"' in html
     assert 'property="og:image:width" content="1200"' in html
     assert 'name="twitter:card" content="summary_large_image"' in html
     assert 'property="og:url" content="https://modelspec.dev/decide/"' in html

@@ -73,3 +73,21 @@ export const sentSpecs = (fetch: ReturnType<typeof routeFetch>) =>
   fetch.mock.calls
     .filter(([url]) => url === DECIDE_ENDPOINT)
     .map(([, init]) => JSON.parse(String((init as RequestInit).body)));
+
+/** Board ranking calls only: a canvas plot request is a full request with no summary twin. */
+export const rankingCalls = (fetch: ReturnType<typeof routeFetch>) => {
+  const calls = fetch.mock.calls.filter(([url]) => url === DECIDE_ENDPOINT);
+  const key = (init: unknown) =>
+    JSON.stringify({ ...JSON.parse(String((init as RequestInit).body)), explain: undefined });
+  const summaries = new Set(
+    calls
+      .filter(([, init]) => JSON.parse(String((init as RequestInit).body)).explain === "summary")
+      .map(([, init]) => key(init)),
+  );
+  return calls.filter(([, init]) =>
+    JSON.parse(String((init as RequestInit).body)).explain !== "full" || summaries.has(key(init)),
+  );
+};
+
+export const rankingSpecs = (fetch: ReturnType<typeof routeFetch>) =>
+  rankingCalls(fetch).map(([, init]) => JSON.parse(String((init as RequestInit).body)));

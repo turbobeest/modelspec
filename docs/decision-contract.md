@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **1.10**
+Contract version: **2.0**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -36,6 +36,7 @@ task_type: refactor
 capabilities:
   software_engineering: required
   formal_verification: preferred
+exclude_benchmarks: [swe_bench_pro]
 task_tokens: { input: 60000, output: 6000 }
 where:
   - offering.price.input in [0.50, 3.00]
@@ -50,7 +51,10 @@ where:
     value: false
     unknown: fail
 optimize:
-  weights: { software_engineering: 0.6, -offering.price.output: 0.3, offering.speed.throughput: 0.1 }
+  weights:
+    software_engineering: 0.5
+    -offering.price.output: 0.2
+    model.weights_openness: { prefer: open_weights, weight: 0.3 }
 unknowns: default
 explain: summary
 limit: 20
@@ -65,6 +69,7 @@ save_as: acme-rust-refactor
 | `task` | string | none | Free text for the decision model. **Not yet in slice 1:** a spec that sets it is refused. Send `task_type` and `capabilities`. |
 | `task_type` | closed set, below | none | What kind of task this is. |
 | `capabilities` | map of domain ID to `required` or `preferred` | none | The capabilities the task needs. |
+| `exclude_benchmarks` | list of benchmark IDs | `[]` | Verified evidence from these benchmarks cannot filter, answer an objective or contribute to a capability estimate. Unknown IDs are refused. |
 | `task_tokens` | `{input, output}`, whole numbers ≥ 0 | `{input: 40000, output: 4000}` | Tokens one task takes. Prices `offering.cost_per_task`; see below. |
 | `where` | list of conditions | `[]` | Conditions, ANDed, applied in order. The order sets the order of the elimination funnel. |
 | `optimize` | objective | required | Exactly one objective form. |
@@ -74,6 +79,29 @@ save_as: acme-rust-refactor
 | `save_as` | lowercase slug | none | A name to save the spec under. Saved specs and alerts arrive in a later slice. |
 
 A spec with a field not named here is refused. Nothing is silently ignored.
+
+### Excluding benchmarks
+
+`exclude_benchmarks` lets the person asking distrust one or more registered
+benchmarks for one decision. The engine treats the list as a set, sorts it for
+the canonical spec hash, and removes those evidence rows before it filters,
+optimises or explains. It then refits the capability estimates from the
+snapshot's remaining verified evidence. No fixed replacement weights or
+benchmark list are used.
+
+An omitted field and `exclude_benchmarks: []` have the same canonical JSON and
+produce byte-identical decisions. A non-empty list must contain benchmark IDs
+from the loaded snapshot. An unknown ID returns `invalid_spec` at the field's
+list position.
+
+The loaded snapshot caches a refit by its content hash and the sorted excluded
+set. The first request for a set pays the full deterministic fit. Later
+requests reuse it. This keeps warm Worker requests within the one-second
+budget at the cost of retaining up to 16 fits per loaded snapshot; the least
+recently used set is evicted when a seventeenth arrives. On 2026-09-28, the
+current lineup took 2.24 seconds for the first refit and 90.20 ms cached warm
+p95 over 20 requests on the shared development Mac. The Worker test gates
+cached warm p95 below one second.
 
 **`task_type`** is one of `new_feature`, `bug_fix`, `refactor`,
 `test_writing`, `docs`, `migration`, `performance`, `security_fix`, `review`,
@@ -277,6 +305,37 @@ In `weights` and `pareto`, a leading `-` on a facet means lower is better.
 Weights are positive; a facet may appear once. `pareto` needs at least two
 dimensions.
 
+Number facets use a positive number as their weight and retain feasible-set
+continuous normalisation. Boolean and enum facets use a value preference:
+
+```yaml
+optimize:
+  weights:
+    model.weights_openness: { prefer: open_weights, weight: 0.3 }
+    offering.data.zero_retention: { prefer: true, weight: 0.2 }
+```
+
+A value preference contributes 1 when the fact equals `prefer`, and 0 when it
+does not. An unknown fact also contributes 0, remains in `results`, and adds
+`unknown_preference_value` to the result's `warnings`. Its contribution sets
+`preference_status` to `unknown`; known facts use `satisfied` or
+`not_satisfied`. The contribution's `preferred_value` repeats the requested
+value. A value preference cannot use a leading minus sign. A plain numeric
+weight on a boolean or enum facet is refused because it does not name the
+preferred value.
+
+A scale facet can be Must and Prefer at once by naming it in both places. Put
+the threshold in `where` and its continuous weight in `optimize.weights`:
+
+```yaml
+where: [offering.cost_per_task <= 0.25]
+optimize:
+  weights: {-offering.cost_per_task: 0.4, software_engineering: 0.6}
+```
+
+The `where` condition remains a gate and never adds points. The weight ranks
+only the candidates that pass the gate.
+
 An evidence objective can carry the same qualifiers as an evidence condition:
 
 ```yaml
@@ -304,8 +363,9 @@ A `lexicographic` objective has at least two steps. Each step is one of `max` or
 `{ absolute: 0.25 }`). The last step has nothing after it, so it takes no
 `within`.
 
-An objective must name an ordered facet. A `bool`, `enum` or `string` facet
-cannot be maximised, windowed or compared with `<`.
+The `max`, `min`, `lexicographic` and `pareto` forms must name ordered facets.
+A `bool`, `enum` or `string` facet cannot be maximised, windowed or compared
+with `<`; boolean and enum facets are usable only as value terms in `weights`.
 
 ## The canonical spec hash
 
@@ -329,7 +389,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "1.10",
+  "contract_version": "2.0",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -393,10 +453,11 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"1.10"`. |
+| `contract_version` | `"2.0"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
+| `benchmark_exclusions` | Present for `summary` and `full` decisions with a non-empty `exclude_benchmarks` set. `benchmarks` lists the removed IDs. Each `estimate_changes` row names a result `model` and `domain`, the `before` and `after` estimate and interval, and the sourced `removed_drivers`. An estimate is null when the remaining evidence cannot fit it. |
 | `spec_hash` | The canonical spec hash. |
 | `explain` | The explanation level used. |
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
@@ -441,7 +502,7 @@ never listed as a candidate or in `may_qualify`.
 | `p_best` | The probability this result is best among the feasible models for a single-domain objective. Null for other objective forms. |
 | `top3_stability` | The share of deterministic posterior resamples in which the result stays in the top three. Null for other objective forms. |
 | `soft_penalty` | The total penalty from violated soft conditions. |
-| `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. |
+| `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. A boolean or enum term also carries `preferred_value` and `preference_status`. |
 | `warnings` | Codes about this result. |
 
 **An evidence item** carries `benchmark`, `version`, `sub_category`, `value`,
@@ -476,8 +537,8 @@ the estimate as proxy-only.
 | `explain` | Populated |
 |---|---|
 | `none` | `results` without `contributions`; `may_qualify`. For high-rate automated calls. |
-| `summary` | Adds `contributions`, the `funnel`, `constraint_costs` and `tipping_points`. |
-| `full` | Adds `eliminated.models`, `eliminated.model_groups`, `top` candidates with their relevant values, `chart`, `number_origins` and the `sources` they cite. |
+| `summary` | Adds `contributions`, the `funnel`, `constraint_costs`, `tipping_points` and, when requested, `benchmark_exclusions`. |
+| `full` | Adds `eliminated.models`, `eliminated.model_groups`, `top` candidates with their relevant values, `chart`, `number_origins`, the `sources` they cite and, when requested, `benchmark_exclusions`. |
 
 The fields are always present. At a lower level, the lists it does not populate
 are empty.
@@ -647,10 +708,14 @@ it instead of carrying its own list of facets or benchmarks. Built by
   admits), the `range` of those values, and its `domains` with `directness`.
 - `domains`: every registered domain with a listed benchmark. Each row emits
   `id`, `name`, `proxy_only`, `default_basis`, `estimate_models`,
-  `direct_models`, `default_benchmark` and `benchmarks`. `default_basis` is
+  `estimate_benchmarks`, `direct_models`, `default_benchmark` and `benchmarks`.
+  `default_basis` is
   `capability_estimate`; `estimate_models` counts distinct lineup models with
-  a stored estimate, and `direct_models` counts distinct lineup models with
-  verified direct evidence. `default_benchmark` is only the preselected
+  a stored estimate. `estimate_benchmarks` lists the benchmark drivers that
+  contribute to stored lineup estimates for the domain. It can differ from
+  `benchmarks`, which is the explicit measured-by drill-down. `direct_models`
+  counts distinct lineup models with verified direct evidence.
+  `default_benchmark` is only the preselected
   explicit "Measured by" drill-down and is null when the registry preference
   has no verified lineup evidence. It does not select the default ranking
   basis. `benchmarks` puts that verified registry preference first, then
@@ -658,6 +723,9 @@ it instead of carrying its own list of facets or benchmarks. Built by
 - `providers`: every registered provider's display name by ID
   (`registry/providers.yaml`), so a client shows "Anthropic API", not
   `anthropic`.
+- `models`: every snapshot model by ID, with `display_name`, `lab`, `lab_name`,
+  and optional `class`. The class is the snapshot's `model.class` fact and may
+  be null when that fact is unknown.
 - `templates`: the eight partial decision specs from `registry/templates.yaml`.
   Each row has `id`, `name`, `purpose`, reasoned `where` Musts, reasoned
   `weights` Prefers, optional non-default `task_tokens`, `needs`, `teaches`,
@@ -694,8 +762,10 @@ Decided now, so that later slices do not widen anything:
 
 - `estimates`, `p_best` and `top3_stability` are **nullable from 1.0**. Version
   1.7 fills them without a major bump.
-- Every list and object in a decision is **always present**. Explanation
-  levels decide what is populated, not what is present.
+- Every list and object defined before 1.12 is **always present**. Explanation
+  levels decide what is populated, not what is present. The optional 1.12
+  `benchmark_exclusions` object is absent unless a non-empty exclusion set is
+  explained.
 - `warnings` (on the decision and on each result) are **an open set of
   lowercase codes**. Clients must accept codes they do not know. A new code is
   not a widening.
@@ -709,6 +779,25 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.0 — MODEL-172 (major):** `optimize.weights` values widen from a number
+  to a number or a value preference (`{prefer, weight}`). A 1.x client that
+  read every weight of a spec or echoed spec as a number must handle the new
+  form, so by the versioning rule above this is a major bump. Nothing else
+  about the decision's existing fields changed. `optimize.weights` accepts
+  value preferences for boolean and enum facets. A match contributes 1, a mismatch or unknown
+  contributes 0, and an unknown adds `unknown_preference_value`. Contributions
+  add the optional `preferred_value` and `preference_status` fields. The facet
+  vocabulary reports whether a facet uses continuous, value-match, or no
+  preference scoring. Scale thresholds use the existing `where` plus weight
+  form, so Must remains a gate and never adds points.
+- **1.12 (MODEL-171):** A spec adds `exclude_benchmarks`. The engine removes
+  those evidence rows from conditions and objectives, refits capability
+  estimates from the remaining verified evidence, and reports the before and
+  after intervals with the removed drivers in `benchmark_exclusions`. An
+  omitted or empty set retains the prior canonical spec and decision bytes.
+- **1.11 — MODEL-168:** Vocabulary domain rows add the optional
+  `estimate_benchmarks` list, and vocabulary model rows add the optional
+  `class` field. Both additions are compatible.
 - **1.10 — MODEL-182:** A decision adds `signature_verified`. The CLI verifies
   the snapshot against its pinned Ed25519 key set. The Worker can continue to
   verify the HMAC signature with its private key.

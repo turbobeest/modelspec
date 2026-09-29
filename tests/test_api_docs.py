@@ -205,6 +205,23 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
         "/v1/decide": decide.MAX_BODY_BYTES,
         "/v1/compare": decide.MAX_BODY_BYTES,
         "/v1/policy-check": policy.MAX_BODY_BYTES,
+        "/v1/signals": generator.signals.MAX_BODY_BYTES,
+    }
+
+
+def test_signal_operations_are_documented_as_authenticated_automation(
+        spec: dict[str, Any]) -> None:
+    intake = spec["paths"]["/v1/signals"]["post"]
+    pending = spec["paths"]["/v1/signals/pending"]["get"]
+    acknowledge = spec["paths"]["/v1/signals/ack"]["post"]
+    assert intake["security"] == [{"signalHmac": []}]
+    assert pending["security"] == acknowledge["security"] == [{"signalReadKey": []}]
+    assert {intake["x-modelspec-probe"], pending["x-modelspec-probe"],
+            acknowledge["x-modelspec-probe"]} == {"skip"}
+    signal = spec["components"]["schemas"]["ReleaseSignal"]
+    assert signal["additionalProperties"] is False
+    assert set(signal["required"]) == {
+        "model_name", "provider", "first_seen_url", "timestamp", "confidence", "signal_id",
     }
 
 

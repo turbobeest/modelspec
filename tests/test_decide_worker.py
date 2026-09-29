@@ -66,6 +66,12 @@ def snapshot_bytes() -> bytes:
             facts=[
                 fact("model", "lab/" + name, "model.context_window", context),
                 fact("model", "lab/" + name, "model.max_output_tokens", output),
+                fact(
+                    "model",
+                    "lab/" + name,
+                    "model.weights_openness",
+                    "open_weights" if name == "a" else "closed_weights",
+                ),
             ],
         )
         for name, context, output in [("a", 128_000, 8_000), ("b", 64_000, 16_000)]
@@ -126,6 +132,109 @@ def test_worker_decision_is_byte_identical_to_modelspect_decide(
     assert body["explain"] == level
 
 
+def test_worker_and_cli_agree_on_a_value_preference(
+    tmp_path: Path, service, snapshot_bytes: bytes, snapshot,
+) -> None:
+    payload = {
+        "spec_version": 1,
+        "where": ["model.max_output_tokens >= 8000"],
+        "optimize": {"weights": {
+            "model.max_output_tokens": 0.2,
+            "model.weights_openness": {"prefer": "open_weights", "weight": 0.8},
+        }},
+        "explain": "summary",
+        "limit": 2,
+    }
+    snapshot_path = tmp_path / "snapshot.json.gz"
+    snapshot_path.write_bytes(snapshot_bytes)
+    spec_path = tmp_path / "prefer.yaml"
+    spec_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    cli = CliRunner().invoke(
+        cli_mod.app,
+        ["decide", str(spec_path), "--snapshot-file", str(snapshot_path), "--json"],
+        env={"MODELSPEC_SNAPSHOT_KEY": KEY.decode()},
+    )
+    status, body = service.decide(payload, snapshot)
+
+    assert cli.exit_code == 0, cli.output
+    assert status == 200
+    assert [row["offering"]["model"] for row in body["results"]] == ["lab/a", "lab/b"]
+    assert service.serialise(body) == cli.stdout.encode("utf-8")
+
+
+def test_worker_and_cli_agree_on_a_boolean_preference(
+    tmp_path: Path, service,
+) -> None:
+    def sold(provider: str, value, *, state: str = "known"):
+        oid = f"{provider}/lab/m/global/standard"
+        return offering("lab/m", provider, facts=[
+            fact("offering", oid, "offering.price.input", 1.0, source="src-pricing"),
+            fact("offering", oid, "offering.data.zero_retention", value, state=state),
+        ])
+
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/m")],
+            offerings=[
+                sold("p-false", False),
+                sold("p-true", True),
+                sold("p-unknown", None, state="unknown"),
+            ],
+            evidence=[],
+            sources=SOURCES,
+        ),
+        gate=False,
+        as_of=date(2026, 9, 25),
+    )
+    raw = built.to_bytes(key=KEY)
+    snapshot = load_snapshot_bytes(raw, key=KEY, source="boolean preference snapshot")
+    payload = {
+        "spec_version": 1,
+        "optimize": {"weights": {
+            "offering.data.zero_retention": {"prefer": True, "weight": 1},
+        }},
+        "explain": "summary",
+    }
+    snapshot_path = tmp_path / "snapshot.json.gz"
+    snapshot_path.write_bytes(raw)
+    spec_path = tmp_path / "boolean.yaml"
+    spec_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    cli = CliRunner().invoke(
+        cli_mod.app,
+        ["decide", str(spec_path), "--snapshot-file", str(snapshot_path), "--json"],
+        env={"MODELSPEC_SNAPSHOT_KEY": KEY.decode()},
+    )
+    status, body = service.decide(payload, snapshot)
+
+    assert cli.exit_code == 0, cli.output
+    assert status == 200
+    assert [row["offering"]["provider"] for row in body["results"]][0] == "p-true"
+    values = {
+        row["offering"]["provider"]: row["contributions"][0]["value"]
+        for row in body["results"]
+    }
+    assert values == {"p-true": 1, "p-false": 0, "p-unknown": 0}
+    unknown = next(r for r in body["results"] if r["offering"]["provider"] == "p-unknown")
+    assert unknown["warnings"] == ["unknown_preference_value"]
+    assert service.serialise(body) == cli.stdout.encode("utf-8")
+
+
+def test_value_preference_with_evidence_qualifier_is_a_400(service, snapshot) -> None:
+    payload = _payload() | {"optimize": {"weights": {
+        "model.weights_openness @independent": {"prefer": "open_weights", "weight": 1},
+    }}}
+
+    status, body = service.decide(payload, snapshot)
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_spec"
+    [issue] = body["error"]["issues"]
+    assert issue["field"] == "model.weights_openness"
+    assert issue["reason"] == "evidence qualifiers are only valid on evidence facets"
+
+
 def test_every_recall_contract_spec_has_worker_cli_parity(
     tmp_path: Path, service, snapshot_bytes: bytes, snapshot
 ) -> None:
@@ -180,6 +289,45 @@ def test_invalid_specs_name_every_contract_issue(service, snapshot) -> None:
     assert body["error"]["code"] == "invalid_spec"
     assert body["snapshot"] == snapshot.snapshot_id
     assert body["error"]["issues"][0]["path"] == "unknown"
+
+
+def test_unknown_preference_facet_is_a_clean_bad_request(service, snapshot) -> None:
+    payload = _payload() | {
+        "optimize": {
+            "weights": {"model.not_a_facet": {"prefer": True, "weight": 1.0}}
+        }
+    }
+
+    status, body = service.decide(payload, snapshot)
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_spec"
+    assert body["error"]["issues"] == [
+        {
+            "path": "optimize.weights",
+            "field": "model.not_a_facet",
+            "condition": None,
+            "reason": "unknown facet 'model.not_a_facet': not in registry/facets.yaml",
+        }
+    ]
+
+
+def test_unknown_excluded_benchmark_is_a_clean_400(service, snapshot) -> None:
+    status, body = service.decide(
+        _payload() | {"exclude_benchmarks": ["made_up_benchmark"]},
+        snapshot,
+    )
+
+    assert status == 400
+    assert body["error"]["code"] == "invalid_spec"
+    assert body["error"]["issues"] == [
+        {
+            "path": "exclude_benchmarks[0]",
+            "condition": None,
+            "field": "made_up_benchmark",
+            "reason": "unknown benchmark ID in this snapshot",
+        }
+    ]
 
 
 def test_a_requested_snapshot_must_be_the_loaded_snapshot(service, snapshot) -> None:
@@ -302,6 +450,30 @@ def test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget(service
         f"(load {load_ms:.2f} ms, decision and serialization {decision_ms:.2f} ms)"
     )
 
+    excluded_payload = payload | {"exclude_benchmarks": ["swe_bench_pro"]}
+    excluded_start = perf_counter()
+    excluded_status, excluded_body = service.decide(excluded_payload, loaded)
+    service.serialise(excluded_body)
+    excluded_ms = (perf_counter() - excluded_start) * 1_000
+    assert excluded_status == 200
+    assert excluded_body["benchmark_exclusions"]["benchmarks"] == ["swe_bench_pro"]
+    assert excluded_ms < 10_000, (
+        f"lineup-scale benchmark exclusion and refit took {excluded_ms:.2f} ms"
+    )
+
+    warm_samples = []
+    for _ in range(20):
+        warm_start = perf_counter()
+        status, body = service.decide(excluded_payload, loaded)
+        service.serialise(body)
+        warm_samples.append((perf_counter() - warm_start) * 1_000)
+        assert status == 200
+    warm_p95 = sorted(warm_samples)[int(len(warm_samples) * 0.95) - 1]
+    print(f"benchmark exclusion cold {excluded_ms:.2f} ms; cached warm p95 {warm_p95:.2f} ms")
+    assert warm_p95 < COLD_DOMAIN_DECISION_BUDGET_MS, (
+        f"cached lineup-scale benchmark exclusion p95 was {warm_p95:.2f} ms"
+    )
+
 
 def test_vendor_copies_the_shared_decision_engine_and_registry(tmp_path: Path) -> None:
     spec = importlib.util.spec_from_file_location(
@@ -313,8 +485,10 @@ def test_vendor_copies_the_shared_decision_engine_and_registry(tmp_path: Path) -
 
     required = {
         Path("api/classes.py"),
+        Path("decision/capability.py"),
         Path("decision/contract.py"),
         Path("decision/engine.py"),
+        Path("decision/explain.py"),
         Path("decision/snapshot.py"),
         Path("registry/facets.yaml"),
         Path("registry/domains.yaml"),

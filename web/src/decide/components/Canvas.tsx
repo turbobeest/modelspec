@@ -8,6 +8,7 @@ import {
   reason,
 } from "../adapter";
 import type { AdapterDecision, Cond, Spec, Row } from "../adapter";
+import { selectedModelTypes } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
 import { useVocab } from "../vocabulary/context";
 import { placeLabels } from "./labels";
@@ -22,6 +23,7 @@ export function Canvas({
   onSelect,
   onRelax,
   compact,
+  boardRanked,
 }: {
   decision: AdapterDecision;
   spec: Spec;
@@ -33,10 +35,12 @@ export function Canvas({
   onSelect: (id: string) => void;
   onRelax: (index: number) => void;
   compact: boolean;
+  boardRanked: boolean;
 }) {
   const vocab = useVocab();
   const plot = useRef<HTMLDivElement>(null),
     [hover, setHover] = useState<Row | null>(null),
+    [showMissing, setShowMissing] = useState(false),
     [plotWidth, setPlotWidth] = useState(800),
     drag = useRef<"x" | "y" | null>(null);
   useEffect(() => {
@@ -51,7 +55,7 @@ export function Canvas({
   const e = decision.explanation,
     ax = axisDefs[axis],
     bd = decision.benchmarks[spec.bench],
-    pd = plotDomain(e.inScope, spec, axis, bd);
+    pd = plotDomain(decision.canvas_rows, spec, axis, bd);
   const xc = spec.conds.find((c) => c.f === axis),
     yc = spec.conds.find((c) => c.f === "bench" && c.b === spec.bench);
   const xp = pd.xv == null ? (ax.low ? 0.985 : 0.015) : pd.fx(pd.xv),
@@ -178,12 +182,24 @@ export function Canvas({
     for (let v = Math.ceil(pd.x0 / step) * step; v <= pd.x1; v += step)
       xTicks.push(v);
   }
-  const missing = e.inScope.filter((r) => ax.get(r) === null || r.cap === null);
+  const missing = decision.canvas_rows.filter((r) => ax.get(r) === null || r.cap === null);
+  const classExcluded = decision.canvas_class_excluded;
+  const decisionModelsExcluded = classExcluded.filter((row) => row.m.type === "decision");
+  const allMissing = [...classExcluded, ...missing];
+  const hasTypeFilter = selectedModelTypes(spec) !== null;
   return (
     <section className="panel canvas-panel" aria-label="Trade-off canvas">
       <div className="panel-heading">
         <span className="eyebrow">Trade-off canvas</span>
-        <small>Every point is a model, via its best qualifying offering</small>
+        <small>
+          Every point is a model, via its best qualifying offering
+          {!hasTypeFilter ? "; defaults to text generators" : ""}
+        </small>
+        {!hasTypeFilter && decisionModelsExcluded.length > 0 && (
+          <small className="canvas-class-caption">
+            Showing text generators; {decisionModelsExcluded.length} decision {decisionModelsExcluded.length === 1 ? "model" : "models"} not plotted. Set Model type to include {decisionModelsExcluded.length === 1 ? "it" : "them"}.
+          </small>
+        )}
       </div>
       <div className="axis-selects">
         <label>
@@ -503,7 +519,7 @@ export function Canvas({
                 {status(hover)}
                 {reason(hover)
                   ? ": " + reason(hover)
-                  : " · #" + hover.rank + " on your weights"}
+                  : boardRanked ? " · #" + hover.rank + " on your weights" : ""}
               </span>
             </div>
           )}
@@ -589,15 +605,16 @@ export function Canvas({
           Interval
         </span>
       </div>
-      {missing.length > 0 && (
+      {allMissing.length > 0 && (
         <small className="not-plotted">
-          Not plotted:{" "}
-          {missing
+          {allMissing.length > 5 && !showMissing
+            ? <>{allMissing.length} not plotted · <button className="text-button" onClick={() => setShowMissing(true)}>show</button></>
+            : <>Not plotted:{" "}{allMissing
             .map(
               (r) =>
-                `${r.m.name} (${r.cap === null ? "no " + vocab.basisName(spec) : "no " + ax.label.toLowerCase()})`,
+                `${r.m.name} (${classExcluded.includes(r) ? "different model type" : r.cap === null ? "no " + vocab.basisName(spec) : "no " + ax.label.toLowerCase()})`,
             )
-            .join(", ")}
+            .join(", ")}{allMissing.length > 5 && <> · <button className="text-button" onClick={() => setShowMissing(false)}>hide</button></>}</>}
         </small>
       )}
     </section>

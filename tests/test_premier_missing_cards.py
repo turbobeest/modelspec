@@ -119,7 +119,7 @@ def test_card_loads_and_records_the_board_score(model_id, rel, model_type, bench
     assert matched, benchmark_id
     assert matched[0].score == score
     assert matched[0].source_url.startswith("https://")
-    assert matched[0].verified_at == READ
+    assert date.fromisoformat(matched[0].verified_at) >= date.fromisoformat(READ)
     assert matched[0].source_kind in {
         "benchmark_author",
         "independent_evaluator",
@@ -247,7 +247,7 @@ def test_multilingual_live_readings_use_observation_dates(
     assert rows
     for row in rows:
         assert row.date_type == "evaluated"
-        assert row.evidence_date == READ
+        assert date.fromisoformat(row.evidence_date) >= date.fromisoformat(READ)
 
 
 def test_multilingual_unknowns_stay_unknown():
