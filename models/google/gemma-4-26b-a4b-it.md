@@ -713,6 +713,7 @@ benchmarks:
       snapshot_ref: sha256:39583bb153c2d06652ef7e4886b645abb7ea53fe3b7bb6c8aaeccef4055705cb
       cited_regions:
       - rows
+    measured_by: independent_evaluator
 deployment:
   api_only: false
   local_inference: true

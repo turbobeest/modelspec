@@ -702,6 +702,7 @@ benchmarks:
       snapshot_ref: sha256:6edcebedc5883fade268c96cf827cebf7e4d850529a482825a5afa1264bb1628
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_elo_coding
     model_id_as_evaluated: gemini-2.5-flash
     score: 1423.43
@@ -726,6 +727,7 @@ benchmarks:
       snapshot_ref: sha256:2193da2be6b25678f25bfd34b1e6a6fda0ad3583dab485911d8a61f247dbadcc
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemini-2.5-flash
     score: 1409.69
@@ -775,6 +777,7 @@ benchmarks:
       snapshot_ref: sha256:da249e40e0397ffcd8dd5f738c4c91f9a389869f8ae9e26c425a1187f04c7118
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: gemini-2.5-flash
     score: 1419.52
@@ -798,6 +801,7 @@ benchmarks:
       snapshot_ref: sha256:5a69c3a3a5f23cf6bfd2b0ecae495ec9731f62df889f4147793616588a2d4f8b
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: gemini-2.5-flash
     score: 1405.78
@@ -820,6 +824,7 @@ benchmarks:
       snapshot_ref: sha256:41e622d3837a9ab1577d975e3c57ae92db367c09f45606ed1870a32a4591335a
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: gemini-2.5-flash
     score: 1395.92
@@ -843,6 +848,7 @@ benchmarks:
       snapshot_ref: sha256:4ca49a5b7efede8e577057d10266b363a837e56331ac79f7540f7da349a3eee5
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: gemini-2.5-flash
     score: 1400.34
@@ -866,6 +872,7 @@ benchmarks:
       snapshot_ref: sha256:6bcc35b68ac189cda1a204de4fab84c84fcd9d853dc2c3265e68366133d9093b
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: gemini-2.5-flash
     score: 1403.26
@@ -889,6 +896,7 @@ benchmarks:
       snapshot_ref: sha256:76f93ba07e2611ee096faf4210eb6b965b5b113b375cb5edec5f224be61fc346
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: gemini-2.5-flash
     score: 1423.28
@@ -912,6 +920,7 @@ benchmarks:
       snapshot_ref: sha256:ebf8116274f3815b353511b1829bd763a0817e2a0c5d3669072ebd5571271745
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: gemini-2.5-flash
     score: 1417.79
@@ -935,6 +944,7 @@ benchmarks:
       snapshot_ref: sha256:3c7de94587c842e12c134292a7df52a9faafb46f877d184d8f235d5c1d466737
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: gemini-2.5-flash
     score: 1400.17
@@ -958,6 +968,7 @@ benchmarks:
       snapshot_ref: sha256:47f41bf8222f55644ca4a36db5ad4178546c5d3e2982bcda2dc08798f9776a65
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: gemini-2.5-flash
     score: 1426.64
@@ -982,6 +993,7 @@ benchmarks:
       snapshot_ref: sha256:31163709a3917ed23ec956a2589a6a5ad30924817977652909218ecbbf9a8d0e
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: gemini-2.5-flash
     score: 1426.59
@@ -1006,6 +1018,7 @@ benchmarks:
       snapshot_ref: sha256:6aec9d4dd9fc82958ffeceea56c977de5d8204f6c62ad5113657b828f9bc55da
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: gemini-2.5-flash
     score: 1399.28
@@ -1030,6 +1043,7 @@ benchmarks:
       snapshot_ref: sha256:ba565a81fbb65e9d13c80776fda09aabedc819d64793b355a5a5fe836212472e
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: gemini-2.5-flash
     score: 1430.49
@@ -1054,6 +1068,7 @@ benchmarks:
       snapshot_ref: sha256:dff891db693196c263ad841fcb75cf135a4529936b386a76fc324e6b66bb2d2e
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: gemini-2.5-flash
     score: 1402.96
@@ -1078,6 +1093,7 @@ benchmarks:
       snapshot_ref: sha256:451771d6d03dfcdc902ebbb505ce47bfc614e33bde751b42f3be31d89d416086
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: gemini-2.5-flash
     score: 1215.04
@@ -1101,6 +1117,7 @@ benchmarks:
       snapshot_ref: sha256:9da6b0bec36701b281c5b1b1e49bed1a536c78908b3d186f41a551360cb584c4
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Gemini 2.5 Flash
     score: 548.84
@@ -1123,6 +1140,7 @@ benchmarks:
       snapshot_ref: sha256:94074584ec83e973b31884f48956a6bc43e36a33d47dc3feaa7c52adf23a9c12
       cited_regions:
       - rows
+    measured_by: benchmark_author
   - benchmark_id: hle
     model_id_as_evaluated: Gemini 2.5 Flash (April 2025)
     score: 12.08
@@ -1144,6 +1162,7 @@ benchmarks:
       snapshot_ref: sha256:ed8318afc3b822d4f773ca68e50554d1e6104feee3439ef5b9b84952803a46e6
       cited_regions:
       - rows
+    measured_by: independent_evaluator
   - benchmark_id: aime_2025
     model_id_as_evaluated: Gemini 2.5 Flash (Thinking)
     score: 70.83
