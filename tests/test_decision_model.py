@@ -603,10 +603,12 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
     from decision.registry import default
 
     root = Path(__file__).resolve().parents[1] / "offerings" / "subscriptions"
+    vendors = {vendor.id for vendor in default().vendors()}  # MODEL-205 pins its own
     loaded = [
         subscription
         for path in sorted(root.glob("*.yaml"))
         for subscription in load_subscription_offerings(path, registry=default())
+        if subscription.provider not in vendors
     ]
 
     assert [subscription.id for subscription in loaded] == [

@@ -192,3 +192,54 @@ def test_the_vocabulary_names_vendors_apart_from_providers(snapshot) -> None:
     plan = next(p for p in vocabulary["estate"]["plans"] if p["id"] == CURSOR_PRO)
     assert plan["provider"] == "cursor"
     assert plan["surfaces"] == ["coding_tool:cursor", "coding_tool:cursor-agent"]
+
+
+# ── the repository's vendor plans ──────────────────────────────────────────
+
+
+def _repository_plans():
+    from decision.model import load_subscription_offerings
+
+    vendors = {v.id for v in default().vendors()}
+    return {plan.id: {fact.facet: fact for fact in plan.facts}
+            for path in sorted((ROOT / "offerings" / "subscriptions").glob("*.yaml"))
+            for plan in load_subscription_offerings(path, registry=default())
+            if plan.provider in vendors}
+
+
+def test_the_repository_records_each_vendors_plans_through_its_own_tool() -> None:
+    plans = _repository_plans()
+
+    assert sorted(plans) == [
+        "cursor/subscription/pro", "cursor/subscription/pro-plus",
+        "cursor/subscription/teams-premium", "cursor/subscription/teams-standard",
+        "cursor/subscription/ultra",
+        "github-copilot/subscription/business", "github-copilot/subscription/enterprise",
+        "github-copilot/subscription/max", "github-copilot/subscription/pro",
+        "github-copilot/subscription/pro-plus",
+        "perplexity/subscription/max", "perplexity/subscription/pro",
+    ]
+    tool = {"cursor": ["coding_tool:cursor"], "github-copilot": ["coding_tool:copilot-cli"],
+            "perplexity": ["chat_app"]}
+    for plan_id, facts in plans.items():
+        assert facts["offering.subscription.surfaces"].value == tool[plan_id.split("/")[0]]
+        for fact in facts.values():
+            assert fact.state != "known" or fact.sources, fact.id
+    pro = plans["cursor/subscription/pro"]
+    assert pro["offering.subscription.price"].value == 20
+    assert "anthropic/claude-opus-5-5" in pro["offering.subscription.models_covered"].value
+    premium = plans["cursor/subscription/teams-premium"]
+    assert premium["offering.subscription.allowance.relative_to"].value == (
+        "cursor/subscription/teams-standard")
+    assert premium["offering.subscription.allowance.multiplier"].value == 5
+    copilot_pro = plans["github-copilot/subscription/pro"]["offering.subscription.models_covered"]
+    assert "anthropic/claude-sonnet-4-6" in copilot_pro.value
+    assert "anthropic/claude-opus-5-5" not in copilot_pro.value  # "Not included" on Pro
+    # The page gives only a monthly equivalent of an annual price.
+    assert plans["perplexity/subscription/pro"]["offering.subscription.price"].state == "unknown"
+
+
+def test_no_repository_offering_is_sold_by_a_vendor() -> None:
+    vendors = {v.id for v in default().vendors()}
+
+    assert not [p for p in (ROOT / "offerings").iterdir() if p.name in vendors]
