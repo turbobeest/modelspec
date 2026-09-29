@@ -149,6 +149,7 @@ def _raw_interval(
     value: float,
     evidence: tuple[EvidenceValue, ...],
     estimate: CapabilityEstimateValue | None,
+    measured: tuple[float, float] | None = None,
 ) -> tuple[float, float]:
     if estimate is not None:
         return estimate.low, estimate.high
@@ -157,6 +158,8 @@ def _raw_interval(
         and evidence[0].interval is not None
     ):
         return evidence[0].interval
+    if measured is not None:
+        return measured
     return value, value
 
 
@@ -238,21 +241,24 @@ def _read(snapshot: SnapshotIndex, cid: str, facet: str,
               tuple[str, ...],
               tuple[EvidenceValue, ...],
               CapabilityEstimateValue | None,
+              tuple[float, float] | None,
           ]:
+    """The value, its sources, evidence, estimate and a measured fact's interval."""
     if is_refinement_key(facet):
         nested = snapshot.refinement_estimate(cid, facet)
         if nested is None:
-            return None, (), (), None
-        return nested.estimate.value, (), (), nested.estimate
+            return None, (), (), None, None
+        return nested.estimate.value, (), (), nested.estimate, None
     if facet in domains and selector is None:
         estimate = snapshot.capability_estimate(cid, facet)
-        return (None, (), (), None) if estimate is None else (estimate.value, (), (), estimate)
+        return ((None, (), (), None, None) if estimate is None
+                else (estimate.value, (), (), estimate, None))
     if selector is None:
         fact = snapshot.fact(cid, facet)
         value = _number(fact.value) if fact.state == "known" else None
-        return value, fact.sources, (), None
+        return value, fact.sources, (), None, fact.interval if value is not None else None
     if selector.direct and not snapshot.direct_for(selector.benchmark_id, selector.domains):
-        return None, (), (), None
+        return None, (), (), None, None
     evidence = snapshot.evidence(
         cid, selector.benchmark_id,
         measured_by=set(selector.measured_by) if selector.measured_by is not None else None,
@@ -263,9 +269,9 @@ def _read(snapshot: SnapshotIndex, cid: str, facet: str,
                and e.subcategory == selector.subcategory]
     # Multiple measurements need a resolver decision, not an implicit max or average.
     if len(matches) != 1:
-        return None, (), (), None
+        return None, (), (), None, None
     item = matches[0]
-    return float(item.value), tuple(item.source_ids), (item,), None
+    return float(item.value), tuple(item.source_ids), (item,), None, None
 
 
 def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Objective, *,
@@ -350,6 +356,7 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                     value,
                     readings[cid][2],
                     readings[cid][3],
+                    readings[cid][4],
                 )
                 transformed = sorted((
                     _normalise(raw_low, norm),

@@ -3472,8 +3472,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.8'
-          default: '2.8'
+          const: '2.9'
+          default: '2.9'
           title: Contract Version
           type: string
         decision_id:
@@ -5722,7 +5722,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.8'
+          - '2.9'
         endpoint:
           type: string
           enum:
@@ -5774,7 +5774,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.8'
+          - '2.9'
         endpoint:
           type: string
           enum:
@@ -5799,7 +5799,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.8'
+          - '2.9'
         endpoint:
           type: string
           enum:
@@ -5853,7 +5853,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.8'
+          - '2.9'
         endpoint:
           type: string
           enum:
@@ -6193,7 +6193,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.8'
+          - '2.9'
         endpoint:
           type: string
           enum:

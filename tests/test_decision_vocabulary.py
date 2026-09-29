@@ -179,8 +179,10 @@ def test_template_availability_matches_every_engine_answer(snapshot, vocabulary)
 def test_a_template_whose_candidates_only_may_qualify_names_the_missing_facet(vocabulary):
     fastest = by_id(vocabulary["templates"])["high-volume-fastest"]
     assert fastest["available"] is False
+    # MODEL-212 gave the Fastest tiers a capability term, which this lineup also
+    # lacks; the reason names the facet most candidates are missing.
     assert fastest["unavailable_reason"] == (
-        "No offering has a known Output throughput yet — 4 offerings may qualify once it "
+        "No model has a known Capability estimate yet — 4 models may qualify once it "
         "is published"
     )
 

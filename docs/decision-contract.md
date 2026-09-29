@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.8**
+Contract version: **2.9**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -590,7 +590,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.8",
+  "contract_version": "2.9",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -726,7 +726,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.8"`. |
+| `contract_version` | `"2.9"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1128,7 +1128,14 @@ it instead of carrying its own list of facets or benchmarks. Built by
   `registry/facets.yaml` gives one (`value_labels`), so a client shows
   "Permitted with conditions", not `permitted_with_conditions`. A client offers
   nothing with `known: 0`. `offering.cost_per_task` is counted and ranged at
-  `default_task_tokens`.
+  `default_task_tokens`. A facet whose lineup values ModelSpec measured adds
+  `measurement` (MODEL-212): `measured_by` (`["ModelSpec"]`), `methods` (each
+  `id` and `url`), `workloads`, `measured` (how many of the `known` values are
+  measurements), `min_n` (the smallest sample behind any of them) and
+  `window` (`start` and `end`, UTC). A client that shows a measured number
+  names who measured it, the method and the sample. A facet with no measured
+  value has no `measurement` key. Each measured value's median, IQR and 95%
+  interval are in the fact's record, which a decision's `top` facts reference.
 - `benchmarks`: every benchmark with verified evidence in the snapshot, with
   `id`, `name`, `unit`, `higher_is_better`, `models` (lineup models with a
   verified row), `independent_models` (those with a row that `@independent`
@@ -1234,6 +1241,14 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.9 — MODEL-212:** A vocabulary facet adds `measurement` when ModelSpec
+  measured any of its lineup values, so a client can say who measured a speed
+  and how. A measured fact carries its method, workload, sample size, median,
+  IQR and the 95% interval of the median in its record, and that interval
+  enters the answer bands like a published benchmark interval, so two
+  offerings whose speeds cannot be told apart are not separated by speed.
+  Additive: no decision field changes. See
+  [`docs/method/speed-measurement.md`](method/speed-measurement.md).
 - **2.8 — MODEL-204:** The vocabulary adds `template_categories` and
   `template_tiers`, and each template adds `category`, `tier`, `tradeoff` and
   `canvas`, so a client draws templates as a category-by-tier grid and sets the

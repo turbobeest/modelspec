@@ -255,6 +255,63 @@ def _check_target(verification: Verification | None, kind: str, id: str, value: 
         raise ValueError("verification target or value_hash does not match this record")
 
 
+#: A first-party measurement stops deciding anything this many days after its
+#: sampling window closes (docs/method/speed-measurement.md, "Staleness").
+MEASUREMENT_STALE_AFTER_DAYS = 30
+
+
+class MeasurementWindow(Record):
+    start: AwareDatetime
+    end: AwareDatetime
+
+
+class Measurement(Record):
+    """How ModelSpec measured a fact's value (ADR 0004, MODEL-212).
+
+    ``value`` is the median. ``iqr`` is the spread one request sees;
+    ``interval`` is the 95% distribution-free interval of the median, the
+    uncertainty a ranking must respect. ``provenance: fixture`` marks a number
+    replayed from recorded test streams: the published snapshot refuses it.
+    """
+
+    measured_by: Literal["ModelSpec"]
+    method: Text
+    method_url: HttpUrl
+    workload: Text
+    #: The reasoning effort the offering was pinned at, and the median
+    #: reasoning tokens its counted requests reported.
+    effort: Text
+    reasoning_tokens: float = Field(ge=0)
+    provenance: Literal["live", "fixture"]
+    run_id: Text
+    vantage: Text
+    n: int = Field(ge=1, strict=True)
+    time_slots: int = Field(ge=1, strict=True)
+    days: int = Field(ge=1, strict=True)
+    failure_rate: float = Field(ge=0, le=1)
+    median: float
+    iqr: tuple[float, float]
+    interval: tuple[float, float]
+    window: MeasurementWindow
+
+    @model_validator(mode="after")
+    def ordered(self) -> Self:
+        numbers = (self.median, *self.iqr, *self.interval)
+        if not all(math.isfinite(x) for x in numbers):
+            raise ValueError("measurement numbers must be finite")
+        if not (self.iqr[0] <= self.median <= self.iqr[1]):
+            raise ValueError("the median must lie inside its IQR")
+        if not (self.interval[0] <= self.median <= self.interval[1]):
+            raise ValueError("the median must lie inside its interval")
+        if self.window.start > self.window.end:
+            raise ValueError("the measurement window ends before it starts")
+        return self
+
+    def stale(self, as_of: datetime.date) -> bool:
+        age = as_of - self.window.end.date()
+        return age > datetime.timedelta(days=MEASUREMENT_STALE_AFTER_DAYS)
+
+
 class Fact(Record):
     id: Text
     subject: SubjectRef
@@ -264,6 +321,7 @@ class Fact(Record):
     sources: list[SourceRef] = Field(default_factory=list)
     checked_sources: list[Text] = Field(default_factory=list)
     derivation: dict[str, JsonValue] | None = None
+    measurement: Measurement | None = None
     verification: Verification | None = None
 
     @model_validator(mode="after")
@@ -282,6 +340,11 @@ class Fact(Record):
             _check_value(self.value, facet, _registry(info))
         elif self.value is not None:
             raise ValueError("only a known fact may have a value")
+        if self.measurement is not None:
+            if self.state != "known" or self.value != self.measurement.median:
+                raise ValueError("a measured fact is known and its value is the median")
+            if "modelspec_measurement" not in facet.permitted_source_kinds:
+                raise ValueError(f"facet {self.facet} does not admit a ModelSpec measurement")
         _check_target(self.verification, "fact", self.id, self.value)
         return self
 

@@ -52,7 +52,12 @@ from typing import Any, Literal, Protocol, runtime_checkable
 import yaml
 
 from decision.excluded import ExcludedSources, excluded_sources
-from decision.model import evidence_verification_value, value_hash, verification_counts
+from decision.model import (
+    Measurement,
+    evidence_verification_value,
+    value_hash,
+    verification_counts,
+)
 
 FORMAT = "modelspec.decision-snapshot"
 FORMAT_VERSION = 1
@@ -123,6 +128,16 @@ class FactValue:
     value: Any = None
     sources: tuple[str, ...] = ()
     record_id: str | None = field(default=None, compare=False)
+    #: The fact's ``measurement`` block when ModelSpec measured it (MODEL-212).
+    measurement: Mapping[str, Any] | None = field(default=None, compare=False)
+
+    @property
+    def interval(self) -> tuple[float, float] | None:
+        """The 95% interval of a measured median, or ``None``."""
+        if self.measurement is None:
+            return None
+        low, high = self.measurement["interval"]
+        return float(low), float(high)
 
 
 UNKNOWN = FactValue("unknown")
@@ -545,8 +560,11 @@ class Snapshot:
 
 
 class _Compiler:
-    def __init__(self, inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | None):
+    def __init__(self, inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | None,
+                 as_of: date | None = None, allow_fixture_measurements: bool = False):
         self.inputs = inputs
+        self.as_of = as_of
+        self.allow_fixture_measurements = allow_fixture_measurements
         self.registry = registry
         self.guard = guard
         self.sources = {str(k): str(v) for k, v in inputs.sources.items()}
@@ -559,6 +577,8 @@ class _Compiler:
         self.subjects: dict[str, dict[str, Any]] = {}
         #: subject id -> facet -> [state, value, source ids]
         self.facts: dict[str, dict[str, list[Any]]] = {}
+        #: subject id -> facet -> the admitted fact's measurement block.
+        self.measurements: dict[str, dict[str, dict[str, Any]]] = {}
         self.facet_subject: dict[str, str] = {}
         self.evidence: dict[str, list[list[Any]]] = {}
         self.records: dict[str, dict[str, Any]] = {}
@@ -677,14 +697,33 @@ class _Compiler:
                 self.rejected[(sid, facet_id)] = ("unknown", tuple(
                     self.sources.get(s, s) for s in source_ids))
                 continue
-            reason = self._admit(
-                "fact", f.get("id"), f.get("verification"), f.get("value"), source_ids
+            measurement = self._measurement(sid, facet_id, f.get("measurement"))
+            reason = (
+                "stale_measurement"
+                if measurement is not None and self.as_of is not None
+                and measurement.stale(self.as_of)
+                else self._admit(
+                    "fact", f.get("id"), f.get("verification"), f.get("value"), source_ids)
             )
             if reason is not None:
                 self._reject((sid, facet_id), reason, source_ids)
                 continue
             self.fact_records.setdefault(sid, {})[facet_id] = self._retain("fact", f)
+            if measurement is not None:
+                self.measurements.setdefault(sid, {})[facet_id] = measurement.model_dump(
+                    mode="json")
             row[facet_id] = [state, f.get("value") if state == "known" else None, source_ids]
+
+    def _measurement(self, sid: str, facet_id: str, raw: Any) -> Measurement | None:
+        """A fact's measurement, checked before anything else: a fixture number is a bug."""
+        if raw is None:
+            return None
+        measurement = Measurement.model_validate(_as_dict(raw))
+        if measurement.provenance == "fixture" and not self.allow_fixture_measurements:
+            raise SnapshotBuildError(
+                f"{sid}: {facet_id} is a fixture measurement ({measurement.run_id}); "
+                "fixture numbers never enter a published snapshot")
+        return measurement
 
     def add_model(self, raw: Any) -> None:
         m = _as_dict(raw)
@@ -771,6 +810,11 @@ class _Compiler:
                 col["state"].append(state)
                 col["value"].append(value)
                 col["sources"].append(sources)
+        # A measured facet adds a parallel column; an unmeasured one keeps its bytes.
+        for facet_id, col in columns.items():
+            measured = [self.measurements.get(ids[r], {}).get(facet_id) for r in col["row"]]
+            if any(m is not None for m in measured):
+                col["measurement"] = measured
         return {
             "candidates": [{"id": sid, **self.subjects[sid]} for sid in ids],
             "facets": columns,
@@ -864,7 +908,6 @@ class _Compiler:
             from decision.capability import (
                 BenchmarkSpec,
                 CapabilityObservation,
-                Directness,
                 fit_capabilities,
             )
 
@@ -988,7 +1031,8 @@ def default_registry() -> Any:
 
 def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
                    premier: Iterable[str] | None = None, as_of: date | None = None,
-                   guard: ExcludedSources | None = None, gate: bool = True) -> Snapshot:
+                   guard: ExcludedSources | None = None, gate: bool = True,
+                   allow_fixture_measurements: bool = False) -> Snapshot:
     """Compile ``inputs``. With ``premier``, the lineup is the premier set.
 
     With ``premier`` and ``gate`` (the default), the completeness gate runs
@@ -996,9 +1040,11 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
     audit that must run while facts are still missing (MODEL-146).
     ``registry`` validates facet IDs and names the guaranteed facets; the gate
     requires it. ``guard`` drops excluded sources and scans the output;
-    ``build_from_repo`` always passes it.
+    ``build_from_repo`` always passes it. ``allow_fixture_measurements`` lets a
+    test compile fixture speed numbers; ``build_from_repo`` never passes it.
+    A measurement older than its staleness limit at ``as_of`` stays out.
     """
-    c = _Compiler(inputs, registry, guard)
+    c = _Compiler(inputs, registry, guard, as_of, allow_fixture_measurements)
     for m in inputs.models:
         c.add_model(m)
     for o in inputs.offerings:
@@ -1449,11 +1495,13 @@ class LoadedSnapshot:
             local = [c["id"] for c in section["candidates"]]
             for facet_id, col in section["facets"].items():
                 target = facts.setdefault(facet_id, {})
-                for r, state, value, srcs in zip(col["row"], col["state"], col["value"],
-                                                 col["sources"]):
+                measured = col.get("measurement") or [None] * len(col["row"])
+                for r, state, value, srcs, measurement in zip(
+                        col["row"], col["state"], col["value"], col["sources"], measured):
                     target[self._row[local[r]]] = FactValue(
                         state, value, tuple(srcs),
-                        content.get("fact_records", {}).get(local[r], {}).get(facet_id))
+                        content.get("fact_records", {}).get(local[r], {}).get(facet_id),
+                        measurement)
         # An offering is its model as sold: it answers its model's facets.
         subjects = content.get("facet_subjects") or {}
         for facet_id, by_row in facts.items():
@@ -1563,7 +1611,7 @@ class LoadedSnapshot:
             failing &= ~indeterminate
         return Bitset3(passing, failing, unknown)
 
-    def _hardware_indeterminate(self, fits: "_FacetBitsets | None", op: str, arg: Any) -> int:
+    def _hardware_indeterminate(self, fits: _FacetBitsets | None, op: str, arg: Any) -> int:
         """Rows whose fit on a named device is unknown and could still satisfy ``op``.
 
         A device a row fits counts as passing, one it is indeterminate on as
@@ -1573,7 +1621,7 @@ class LoadedSnapshot:
         values = [arg] if op == "contains" else list(arg)
         refused = self._facet_bits.get("model.hardware_fit_indeterminate")
 
-        def bits(column: "_FacetBitsets | None", value: Any) -> int:
+        def bits(column: _FacetBitsets | None, value: Any) -> int:
             return 0 if column is None else column.passing("contains", value) or 0
 
         if op != "contains_all":

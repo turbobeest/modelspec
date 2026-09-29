@@ -316,7 +316,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "2.8",
+      contract_version: "2.9",
       by_model: [],
       blend: [],
       truncated: { offerings: 0, models: 0 },

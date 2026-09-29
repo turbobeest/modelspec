@@ -1,0 +1,13 @@
+# FIXTURE timing for dry runs. These are invented numbers, not measurements:
+# they give each pilot offering a distinct speed so tests can check that a
+# Fastest template ranks from measured throughput. Nothing here is published.
+anthropic/anthropic/claude-opus-5-5/global/standard: {ttft_ms: 1400, tokens_per_s: 55}
+anthropic/anthropic/claude-sonnet-5-5/global/standard: {ttft_ms: 900, tokens_per_s: 80}
+openai/openai/gpt-6-sol/global/standard: {ttft_ms: 700, tokens_per_s: 120}
+openai/openai/gpt-5-6-sol/global/standard: {ttft_ms: 1100, tokens_per_s: 70}
+google-gemini-api/google/gemini-3-8-flash/global/standard: {ttft_ms: 450, tokens_per_s: 210}
+google-gemini-api/google/gemini-3-1-pro-preview/global/standard: {ttft_ms: 1600, tokens_per_s: 95}
+xai/xai/grok-4-7/global/standard: {ttft_ms: 800, tokens_per_s: 100}
+deepseek/deepseek/deepseek-v4-pro/global/standard: {ttft_ms: 1900, tokens_per_s: 40}
+deepseek/deepseek/deepseek-flash/global/standard: {ttft_ms: 600, tokens_per_s: 140}
+zai/zhipu/glm-5-3/global/standard: {ttft_ms: 1000, tokens_per_s: 75}
