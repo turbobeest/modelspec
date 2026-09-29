@@ -28,7 +28,7 @@
     `${data.models.length} language models, by coding ability and cost per task.`,
     `The top estimate: ${leader.name}, at ${money(leader.cost)} a task. The one you would probably pick.`,
     `The evidence can't tell ${tiedOthers} of the other ${data.models.length - 1} apart from it. Each bar is the range the evidence allows.`,
-    `${cheapest.name} is in that tie at ${money(cheapest.cost)} a task: ${data.ratio.toFixed(1)}× less, for a difference the evidence can't measure.`,
+    `${cheapest.name} is in that tie at ${money(cheapest.cost)} a task: ${data.ratio.toFixed(1)}× less, for a difference in ability the evidence can't confirm.`,
   ];
   let stage = matchMedia("(prefers-reduced-motion: reduce)").matches ? 3 : 0;
   const x = (cost) =>

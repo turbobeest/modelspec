@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import parse_qsl
 
+from decision.bands import BAND_PROBABILITY
 from decision.computed import COST_PER_TASK, with_computed
 from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
 from decision.engine import decide
@@ -34,10 +35,37 @@ FIRST_RUN = (
     "modelspec snapshot fetch",
     "modelspec decide --template budget-coding",
 )
-TITLE = "ModelSpec — your model is a guess"
-DESCRIPTION = ("See which AI models the evidence can't tell apart, what each one really "
-               "costs, and hand the choice to your agents. Sourced evidence; nobody pays "
+EYEBROW = "Your model is a guess."
+HEADLINE = "Routers guess per request. ModelSpec decides, and shows its work."
+TITLE = "ModelSpec — decides which AI model, and shows its work"
+DESCRIPTION = ("Decide which AI model your job needs, and see why: your requirements, every "
+               "benchmark, real cost and the uncertainty, from sourced evidence. Nobody pays "
                "to rank higher.")
+GH = "https://github.com/turbobeest/modelspec/blob/main/"
+#: Each element of an analysis of alternatives, what ModelSpec does for it,
+#: and where to check it. Every row is a live capability; the proof is the
+#: method page, the contract or the published terms.
+ANALYSIS = (
+    ("Requirements", "Must conditions are hard gates. A model that fails one is "
+     "excluded, and stays on the board as excluded.", "/method/#must-prefer"),
+    ("Weighted criteria", "Prefer weights order the models that passed. They never "
+     "remove one.", "/method/#must-prefer"),
+    ("Alternatives screened, with reasons", "Every candidate is ranked, excluded with "
+     "the reason, or listed as may qualify with the fact that's missing.",
+     "/method/#unknown"),
+    ("Measures of effectiveness", "Ability per domain, estimated from every admitted "
+     "benchmark, with who measured each result.", "/method/#estimate"),
+    ("Uncertainty", "A range on every estimate, and bands that say when the evidence "
+     "can't separate the top models.", "/method/#ties"),
+    ("Sensitivity", "Tipping points, near misses, and which condition to relax when "
+     "nothing qualifies.", GH + "docs/decision-contract.md#the-decision"),
+    ("Cost", "Cost per task at your token counts, plan break-even, and what you "
+     "already pay for.", GH + "docs/decision-contract.md#access-and-plans-model-200"),
+    ("Audit trail", "A signed snapshot, a spec hash and a decision ID. Keep the "
+     "spec, the snapshot and the CLI version, and the same answer comes back next quarter.", "/method/#reproducible"),
+    ("Independence", "No referral fees, no paid placement. The commitment is "
+     "published, and checkable as data.", "/legal/neutrality/"),
+)
 ASSET_DIR = "landing-assets"
 DATA_ID = "landing-data"
 DECIDE_PATH = "/decide/"
@@ -110,6 +138,11 @@ class LandingData:
     routes: tuple[TemplateRoute, ...]
     template_count: int
     axes: PlotAxes
+    #: /decide's ``bands.band_probability``: the P(score >= the leader's) that
+    #: puts a model in the leader's band.
+    band_probability: float = BAND_PROBABILITY
+    #: The cheapest tied model's ``p_beats_leader``; None when it is the leader.
+    cheapest_p: float | None = None
 
     @property
     def leader(self) -> PlotModel:
@@ -259,6 +292,7 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
             cost=computed.value,
         ))
 
+    cheapest_p = next(entry.p_beats_leader for entry in bands.best if entry.model == cheapest.id)
     leader_monthly = leader.cost * MONTHLY_TASKS
     cheapest_monthly = cheapest.cost * MONTHLY_TASKS
     return LandingData(
@@ -281,6 +315,8 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
         routes=tuple(routes),
         template_count=template_count,
         axes=_plot_axes(rows),
+        band_probability=bands.band_probability,
+        cheapest_p=cheapest_p,
     )
 
 
@@ -372,6 +408,22 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
         '<h3>Every number has a source.</h3><p>Which benchmark, which date, who ran it. '
         'When the board opens, each one is a click away.</p>'
     )
+    if cheapest.id == leader.id:
+        receipt_why = (f"On coding alone, {html.escape(leader.name)} has the top estimate, and "
+                       "it is also the cheapest of the models the evidence can't separate from it.")
+    elif data.cheapest_p is None:
+        receipt_why = (f"On coding alone, the evidence can't say {html.escape(leader.name)} is "
+                       f"better than {html.escape(cheapest.name)}.")
+    else:
+        receipt_why = (f"On coding alone, the evidence gives {html.escape(cheapest.name)} a "
+                       f"{data.cheapest_p:.0%} chance of scoring at least as well as "
+                       f"{html.escape(leader.name)}. At {data.band_probability:.0%} or more, the evidence "
+                       "can't separate two models, so the board lists both as best for coding.")
+    analysis = "".join(
+        f'<li><b>{html.escape(element)}</b><span>{html.escape(what)}</span>'
+        f'<a href="{html.escape(proof)}">Check it</a></li>'
+        for element, what, proof in ANALYSIS
+    )
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{TITLE}</title>
@@ -379,27 +431,37 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <meta property="og:description" content="{DESCRIPTION}">
 {robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
 <body><div class="axis" aria-hidden="true"></div>
-<header>{_logo()}<span class="wordmark"><b>Model</b>Spec</span><nav><a href="#receipt">What it costs you</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
-<main><section class="hero"><div class="hero-copy"><h1>Your model is a guess.</h1>
+<header>{_logo()}<span class="wordmark"><b>Model</b>Spec</span><nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
+<main><section class="hero"><div class="hero-copy"><p class="eyebrow">{EYEBROW}</p><h1>{HEADLINE}</h1>
 <p class="fud"><span class="desktop-only">{social_cards.landing_tie_line(data)} Benchmarks disagree, leaderboards reshuffle, and nothing in your stack will ever tell you that you chose wrong.</span><span class="mobile-only">{social_cards.landing_tie_line(data)} Nothing in your stack will tell you.</span></p>
-<p class="close">ModelSpec shows you the model your job needs, from sourced evidence. Nobody pays to rank higher. When one model wins, we say so. When it's a tie, we hand you the cheapest.</p>
+<p class="close">ModelSpec picks the model your job needs from <a href="/method/#must-prefer">your requirements</a>, <a href="/method/#estimate">every admitted benchmark</a> and <a href="{GH}docs/decision-contract.md#cost-per-task">real cost</a>, and <a href="/method/">shows how it got there</a>. When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
 <div class="actions">{board}<a class="button secondary" href="#agents">Give it to your agents</a></div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>
 <svg id="plot" viewBox="0 0 680 560" role="img" aria-label="{html.escape(cheapest.name)} is in the tie at {_money(cheapest.cost, 3)} a task: {data.ratio:.1f}× less."></svg>
 <figcaption id="plot-caption"></figcaption></figure></section>
 <section class="receipt" id="receipt"><div><h2><span class="desktop-only">Same job. </span>Tied on the evidence. {_money(data.monthly_gap)} a month apart.</h2>
-<p>{html.escape(leader.name)} and {html.escape(cheapest.name)} both qualify for a budget coding agent, and their coding estimates overlap. The evidence can't say one is better. At {data.monthly_tasks:,} tasks a month, one costs {_money(data.leader_monthly)}. The other costs {_money(data.cheapest_monthly)}.</p>
+<p>{receipt_why} At {data.monthly_tasks:,} tasks a month, {html.escape(leader.name)} costs {_money(data.leader_monthly)}. {html.escape(cheapest.name)} costs {_money(data.cheapest_monthly)}.</p>
 <p class="note">Published prices, {date_label} snapshot. Your token counts change the numbers, and the board does the arithmetic in the open.</p></div>
 <div class="paper"><b>One month of coding tasks</b><span>{data.monthly_tasks:,} tasks · {task_label}</span><hr>
 <div><span>{html.escape(leader.name)}</span><span>{_money(data.leader_monthly, 2)}</span></div><small>{_money(leader.cost, 3)} × {data.monthly_tasks:,}</small>
 <div><span>{html.escape(cheapest.name)}</span><span>{_money(data.cheapest_monthly, 2)}</span></div><small>{_money(cheapest.cost, 3)} × {data.monthly_tasks:,}</small><hr>
 <div><b>Difference</b><b>{_money(data.monthly_gap, 2)}</b></div><div class="green"><span>Evidence separates them?</span><span>No</span></div></div></section>
+<section class="routers" id="routers"><div class="routers-head"><p class="kicker">How ModelSpec compares to a router</p><h2>Different job, different layer. Use both.</h2><p>A router answers one question per request. ModelSpec answers the question before it: which models are worth routing to at all, and why.</p></div>
+<table><thead><tr><th scope="col"><span class="visually-hidden">Compared on</span></th><th scope="col">A router</th><th scope="col">ModelSpec</th></tr></thead><tbody>
+<tr><th scope="row">The question</th><td>Which model for this request?</td><td>Which models belong on the list, and why?</td></tr>
+<tr><th scope="row">When it runs</th><td>On each request, as it happens.</td><td>When you choose or review a model, or once per task for an agent.</td></tr>
+<tr><th scope="row">Where it sits</th><td>In your request path.</td><td>Outside it. <a href="/method/#dont">Your tokens go to the provider directly, and no prompts are kept.</a></td></tr>
+<tr><th scope="row">What you get back</th><td>A call routed to one model.</td><td>A decision: the models that qualify, the ones screened out and why, how sure the evidence is, and <a href="{GH}docs/decision-contract.md#the-decision">what would change the answer</a>.</td></tr>
+</tbody></table>
+<p class="routers-close">Decide what's worth routing to. Then let your router choose among those, request by request.</p></section>
+<section class="teams" id="teams"><div><p class="kicker">For teams and buyers</p><h2>An analysis of alternatives, for every model choice.</h2><p>When someone asks why you're on that model, the answer is a record, not a hunch: requirements, criteria, the alternatives and why each fell away, the evidence, its uncertainty and the cost. Each part links to how it works.</p></div>
+<ol class="analysis">{analysis}</ol></section>
 <section class="agents" id="agents"><div><h2>Your agents pick a model thousands of times a day.</h2>
-<p><span class="desktop-only">Most pick the same expensive one every time, because someone hard-coded it last quarter. Give them the board as a command. One offline call per task picks the model that fits that task, explains why, and gives the same answer every time for the same facts.</span><span class="mobile-only">Give them the board as a command. One offline call per task, explained, and the same answer every time for the same facts.</span></p>
+<p><span class="desktop-only">Most pick the same expensive one every time, because someone hard-coded it last quarter. Give them the board as a command. One offline call per task picks the model that fits that task, explains why, and gives <a href="/method/#reproducible">the same answer every time for the same facts</a>.</span><span class="mobile-only">Give them the board as a command. One offline call per task, explained, and the same answer every time for the same facts.</span></p>
 <div class="install-row">{install}<a href="{guide_href}">Read the agent guide</a></div><p class="note">Also as an API, and as an MCP server your agent platform can call.</p></div>
 <div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>{len(data.routes)} of {data.template_count} templates · the others' top result has no published price</span></div></div></div></section>
 <section class="challenge" id="pick-a-model"><h2>Think you know the best coding model?</h2><form id="pick-form"><label for="model-pick"><span class="desktop-only">Put your pick on the board. See exactly where it lands, and why.</span><span class="mobile-only">Put your pick on the board and see where it lands.</span></label><div><select id="model-pick">{options}</select><button type="submit">Check my pick</button></div><output id="pick-result" aria-live="polite">Choose a model to compare with the top estimate.</output></form></section>
-<section class="trust"><div>{trust_source}<a href="/method/">How we decide</a></div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p></div></section></main>
+<section class="trust"><div>{trust_source}<a href="/method/">How we decide</a></div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p><a href="/method/#unknown">How unknowns work</a></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p><a href="/legal/neutrality/">Read the commitment</a></div></section></main>
 <footer><span>© Sparks and Sawdust LLC</span>{graph_link}<a href="/method/">How we decide</a><a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>
 <div class="sticky">{board_compact}<a class="button secondary" href="#agents">Agents</a></div>
 <script id="{DATA_ID}" type="application/json">{payload}</script><script src="/{ASSET_DIR}/landing.js" defer></script></body></html>\n'''

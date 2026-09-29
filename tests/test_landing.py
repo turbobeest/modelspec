@@ -260,3 +260,111 @@ def test_the_landing_head_carries_the_current_headline(data: landing.LandingData
         assert f'<meta name="description" content="{landing.DESCRIPTION}">' in page
         assert f'<meta property="og:title" content="{landing.TITLE}">' in page
         assert "usually a tie" not in page
+
+
+def test_the_headline_figures_come_from_the_engine(data: landing.LandingData) -> None:
+    """Recompute the hero's tie from /decide's own answer and find it on the page."""
+    registry = default()
+    snapshot = build_from_repo(ROOT, premier=None, as_of=date.today(), gate=False)
+    loaded = load_built_snapshot(snapshot, source="landing headline test")
+    answer = decide(parse_spec(landing.TIE_SPEC, facets=registry.facet), loaded,
+                    facets=registry.facet)
+    bands = answer.bands
+    assert bands is not None and bands.leader is not None
+    best = {entry.model: entry for entry in bands.best}
+    cheapest = min(bands.best, key=lambda entry: (entry.cost_per_task,
+                                                   -entry.estimates[0].value, entry.model))
+    leader = best[bands.leader]
+    ratio = round(leader.cost_per_task / cheapest.cost_per_task, 1)
+
+    assert {model.id for model in data.tie} == set(best)
+    assert data.leader_id == bands.leader
+    assert data.cheapest_id == cheapest.model
+    assert data.ratio == ratio
+    assert data.band_probability == bands.band_probability
+    assert data.cheapest_p == cheapest.p_beats_leader
+
+    page = landing.render(data, variant="live")
+    assert f"<h1>{landing.HEADLINE}</h1>" in page
+    assert f'<p class="eyebrow">{landing.EYEBROW}</p>' in page
+    hero = page[page.index('<section class="hero">'):page.index('<section class="receipt"')]
+    from pipeline import social_cards
+
+    assert social_cards.landing_tie_line(data) in hero
+    assert f"can't tell {len(best) - 1} " in hero
+    assert f"costs {ratio:.1f}× less" in hero
+    if cheapest.p_beats_leader is not None:
+        assert f"a {cheapest.p_beats_leader:.0%} chance of scoring at least as well" in page
+        assert f"At {bands.band_probability:.0%} or more" in page
+
+
+def test_the_positioning_copy_types_no_numbers(data: landing.LandingData) -> None:
+    """Numbers on the landing come from the engine; the new sections carry none."""
+    import html
+    import re
+
+    page = landing.render(data, variant="live")
+    routers = page[page.index('<section class="routers"'):page.index('<section class="teams"')]
+    teams = page[page.index('<section class="teams"'):page.index('<section class="agents"')]
+    text = html.unescape(re.sub(r"<[^>]+>", " ", routers + teams))
+    assert re.search(r"\d", text) is None, text
+    assert re.search(r"\d", landing.HEADLINE + landing.EYEBROW) is None
+
+
+def test_every_analysis_row_links_to_a_proof_that_exists(data: landing.LandingData) -> None:
+    import re
+
+    from pipeline import method
+
+    method_page = method.page(data, method.SigningState((), None))
+    method_ids = set(re.findall(r'id="([^"]+)"', method_page))
+
+    def github_anchors(rel: str) -> set[str]:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        headings = re.findall(r"^#+ (.+)$", text, flags=re.M)
+        return {re.sub(r"[^\w\- ]", "", heading.strip().lower()).replace(" ", "-")
+                for heading in headings}
+
+    assert len(landing.ANALYSIS) >= 9
+    for element, _, proof in landing.ANALYSIS:
+        path, _, anchor = proof.partition("#")
+        if path.startswith(landing.GH):
+            rel = path.removeprefix(landing.GH)
+            assert (ROOT / rel).is_file(), proof
+            assert anchor in github_anchors(rel), proof
+        elif path == "/method/":
+            assert anchor in method_ids, proof
+        else:
+            assert path == "/legal/neutrality/", proof
+            assert (ROOT / "docs" / "legal" / "neutrality.md").is_file()
+    page = landing.render(data, variant="live")
+    for element, _, proof in landing.ANALYSIS:
+        assert f'<b>{element}</b>' in page
+        assert f'href="{proof}"' in page
+
+
+def test_the_positioning_does_not_overclaim(data: landing.LandingData) -> None:
+    from decision.excluded import REMOVED_TEXT
+    from pipeline import method
+    from pipeline.build import llms_txt
+    from pipeline.export import Build
+
+    llms = llms_txt(site="ModelSpec", base="https://modelspec.dev",
+                    build=Build(commit="0" * 40, built_at="2026-09-29T00:00:00+00:00",
+                                as_of=date(2026, 9, 29)))
+    from pipeline import agent_ready, social_cards
+    from pipeline.load import load_benchmarks, load_models
+
+    build = Build(commit="0" * 40, built_at="2026-09-29T00:00:00+00:00", as_of=date(2026, 9, 29))
+    card = social_cards.landing_card(data)
+    pages = (landing.render(data, variant="live"), landing.render(data, variant="holding"),
+             method.page(data, method.SigningState((), None)), llms,
+             card.alt + card.headline, agent_ready.skill_markdown(),
+             agent_ready.modelspec_landing_markdown(load_models(ROOT), load_benchmarks(ROOT), build))
+    for page in pages:
+        lowered = page.lower()
+        for phrase in ("dod", "-grade", "compliant with", "complies with", "certified"):
+            assert phrase not in lowered, phrase
+        assert REMOVED_TEXT.search(page) is None
+    assert "an analysis of alternatives" in pages[0].lower()
+    assert "an analysis of alternatives" in llms.lower()

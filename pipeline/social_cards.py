@@ -37,6 +37,8 @@ class SocialCard:
     alt: str
     headline: str
     content: str
+    #: ``long`` sets a two-sentence headline smaller so it keeps its lines.
+    headline_class: str = ""
 
 
 @dataclass(frozen=True)
@@ -52,8 +54,12 @@ class CardRegistration:
 
 def landing_tie_line(data: LandingData) -> str:
     """The landing card's data sentence, shared with its HTML assertion."""
+    others = len(data.tie) - 1
+    if others == 0:
+        return "On coding, the evidence separates the top model from every other."
+    models = "model" if others == 1 else "models"
     return (
-        f"The evidence can't tell {len(data.tie) - 1} models apart from the top one. "
+        f"On coding, the evidence can't tell {others} {models} apart from the top one. "
         f"The cheapest costs {data.ratio:.1f}× less."
     )
 
@@ -154,12 +160,15 @@ def _landing_plot(data: LandingData) -> str:
 
 def landing_card(data: LandingData) -> SocialCard:
     """Create the landing card from the same computed data as the page."""
+    from pipeline.landing import HEADLINE
+
     tie_line = landing_tie_line(data)
     return SocialCard(
         filename=LANDING_IMAGE,
-        alt=f"ModelSpec: Your model is a guess. {tie_line}",
-        headline="Your model is a guess.",
+        alt=f"ModelSpec. {HEADLINE} {tie_line}",
+        headline=html.escape(HEADLINE),
         content=f'<p class="tie-line">{html.escape(tie_line)}</p>{_landing_plot(data)}',
+        headline_class="long",
     )
 
 
@@ -216,7 +225,7 @@ def _pricing_factory(data: LandingData | None) -> SocialCard:
 
 
 CARD_REGISTRY = (
-    CardRegistration(page="/", title="ModelSpec — your model is a guess",
+    CardRegistration(page="/", title="ModelSpec — decides which AI model, and shows its work",
                      filename=LANDING_IMAGE,
                      factory=_landing_factory),
     CardRegistration(
@@ -271,14 +280,14 @@ body{{background:#0B1426;color:#EEF2F7;font-family:Instrument,Arial,sans-serif;p
 body:before{{content:"";position:absolute;left:42px;top:0;bottom:0;width:3px;background:#F2C94C}}
 body:after{{content:"";position:absolute;left:0;right:0;bottom:38px;height:5px;background:#3FB68B}}
 .brand{{display:flex;align-items:center;gap:17px;font:650 27px Instrument;letter-spacing:-.5px;position:relative;z-index:2;width:max-content}}.brand svg{{width:52px;height:52px}}.brand span{{font-weight:400}}
-h1{{font-size:64px;line-height:78px;letter-spacing:-2.7px;margin:68px 0 22px;width:620px;max-height:240px;overflow:hidden;overflow-wrap:anywhere;position:relative;z-index:1}}.tie-line{{font:22px/1.45 JetBrains,monospace;color:#C7D1E0;width:590px;max-height:104px;overflow:hidden;overflow-wrap:anywhere;margin:0;position:relative;z-index:1}}
+h1{{font-size:64px;line-height:78px;letter-spacing:-2.7px;margin:68px 0 22px;width:620px;max-height:240px;overflow:hidden;overflow-wrap:anywhere;position:relative;z-index:1}}h1.long{{font-size:48px;line-height:58px;letter-spacing:-1.8px;margin:40px 0 20px;width:600px;max-height:232px}}.tie-line{{font:22px/1.45 JetBrains,monospace;color:#C7D1E0;width:590px;max-height:104px;overflow:hidden;overflow-wrap:anywhere;margin:0;position:relative;z-index:1}}
 .plot{{position:absolute;right:56px;bottom:67px;width:420px;height:270px;color:#8491A5;font:13px JetBrains}}
 .plot svg{{position:absolute;inset:0}}.plot .y-axis{{stroke:#F2C94C;stroke-width:2}}.plot .x-axis{{stroke:#3FB68B;stroke-width:4}}.plot .callout-leader{{stroke:#3FB68B;stroke-width:1.5}}.plot span{{position:absolute;right:406px;top:73px;width:34px;height:126px;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}}.plot b{{position:absolute;right:8px;bottom:2px;font-weight:400}}
 .plot em{{position:absolute;width:190px;height:72px;display:flex;align-items:center;padding:0 6px;background:transparent;color:#EEF2F7;font:600 14px/1.15 Instrument;font-style:normal;overflow:hidden;overflow-wrap:anywhere;text-shadow:-2px -2px 2px #0B1426,2px -2px 2px #0B1426,-2px 2px 2px #0B1426,2px 2px 2px #0B1426,0 0 5px #0B1426}}
 .facets{{position:absolute;right:78px;top:182px;width:335px;margin:0;padding:0;list-style:none;font:24px JetBrains}}
 .facets li{{display:flex;align-items:center;gap:18px;border-bottom:1px solid #2A3B5C;padding:20px 5px}}.facets i{{width:22px;height:22px;border:2px solid #5AA9EC;border-radius:3px}}.facets li:nth-child(2) i{{background:#F2C94C;border-color:#F2C94C}}.facets li:nth-child(3) i{{background:#3FB68B;border-color:#3FB68B}}
 .pricing-rate{{position:absolute;right:78px;top:322px;width:420px;border-left:3px solid #5AA9EC;padding:10px 0 10px 24px}}.pricing-rate span{{display:block;color:#8491A5;font:18px JetBrains;margin-bottom:8px}}.pricing-rate strong{{display:block;color:#EEF2F7;font:600 30px Instrument}}
-</style></head><body><div class="brand" data-content-block>{mark}<b>Model<span>Spec</span></b></div><h1 data-content-block>{card.headline}</h1>{card.content.replace('class="tie-line"', 'class="tie-line" data-content-block').replace('class="plot"', 'class="plot" data-content-block').replace('class="facets"', 'class="facets" data-content-block')}</body></html>'''
+</style></head><body><div class="brand" data-content-block>{mark}<b>Model<span>Spec</span></b></div><h1 class="{card.headline_class}" data-content-block>{card.headline}</h1>{card.content.replace('class="tie-line"', 'class="tie-line" data-content-block').replace('class="plot"', 'class="plot" data-content-block').replace('class="facets"', 'class="facets" data-content-block')}</body></html>'''
 
 
 def _render_jobs(jobs: list[dict[str, str]]) -> list[dict[str, object]]:

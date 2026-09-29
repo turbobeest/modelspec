@@ -100,7 +100,7 @@ def test_landing_card_html_uses_exactly_the_page_figures(card_data: landing.Land
     assert tie_line in page
     card_text = html.unescape(re.sub(r"<[^>]+>", "", card_html))
     assert tie_line in card_text
-    assert "The evidence can't tell 2 models apart from the top one." in card_text
+    assert "On coding, the evidence can't tell 2 models apart from the top one." in card_text
     assert "The cheapest costs 9.0× less." in card_text
 
 
