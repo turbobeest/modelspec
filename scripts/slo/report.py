@@ -300,14 +300,18 @@ def check_facts_verified(lineup: Lineup, authored: Mapping[str, Sequence[str]],
 def check_fact_age(subjects: Iterable[str], fact_records: Mapping[str, Mapping[str, str]],
                    record: Callable[[str], Mapping[str, Any]], as_of: date, max_age_days: int,
                    facet_filter: Callable[[str], bool], label: str) -> Check:
-    """The oldest winning verification of each subject's matching facts."""
+    """The oldest winning verification of each subject's matching facts.
+
+    A subject with no verified matching fact is a finding: it was not re-read.
+    """
     findings, measured = [], 0
     for sid in sorted(subjects):
         days = [(_verified_on(record(rid)), facet)
                 for facet, rid in (fact_records.get(sid) or {}).items() if facet_filter(facet)]
-        if not days:
-            continue
         measured += 1
+        if not days:
+            findings.append(Finding(sid, f"no verified {label} facts"))
+            continue
         stale = [(d, f) for d, f in days if d is None or (as_of - d).days > max_age_days]
         if stale:
             oldest = min((d for d, _ in stale if d is not None), default=None)
@@ -328,7 +332,7 @@ def check_plans(subscriptions: Sequence[Mapping[str, Any]],
     unverified = tuple(Finding(sid, f"{facet}: {reason}")
                        for (sid, facet), reason in rejected.items()
                        if "/subscription/" in sid and reason != "unknown")
-    return Check(max(age.measured, len(ids)), age.findings + unverified)
+    return Check(age.measured, age.findings + unverified)
 
 
 def check_speed(lineup: Lineup, fact_records: Mapping[str, Mapping[str, str]],

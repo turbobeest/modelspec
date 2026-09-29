@@ -22,10 +22,12 @@ from scripts.slo.report import (
     Result,
     Target,
     WatchedWorkflow,
+    check_fact_age,
     check_facts_verified,
     check_lab_feeds,
     check_live_reading_age,
     check_new_model_cards,
+    check_plans,
     check_workflows,
     load_config,
     measure,
@@ -181,6 +183,19 @@ def test_a_stated_unknown_is_honest_but_a_quarantined_fact_is_not() -> None:
     assert check.measured == 2
     assert check.findings == (Finding("p/acme/m1/global/standard",
                                       "offering.price.input: quarantined (mismatch)"),)
+
+
+def test_a_subject_with_no_verified_fact_in_scope_is_a_finding_not_a_skip() -> None:
+    records = {"r1": {"verification": {"date": "2026-09-28"}}}
+    fact_records = {"plan/a": {"offering.subscription.price": "r1"}, "plan/b": {}}
+    check = check_plans([{"id": "plan/a"}, {"id": "plan/b"}], fact_records,
+                        records.__getitem__, rejected={}, as_of=AS_OF, max_age_days=7)
+    assert check.measured == 2
+    assert check.findings == (Finding("plan/b", "no verified plan facts"),)
+    prices = check_fact_age(["o/1"], {"o/1": {"offering.data.retention": "r1"}},
+                            records.__getitem__, AS_OF, 7,
+                            lambda f: f.startswith("offering.price."), "price")
+    assert settle(TARGET, prices).status == "breach"
 
 
 def test_every_lineup_lab_needs_a_release_feed() -> None:
