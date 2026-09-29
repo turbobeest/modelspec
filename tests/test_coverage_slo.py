@@ -28,6 +28,7 @@ from scripts.slo.report import (
     check_live_reading_age,
     check_new_model_cards,
     check_plans,
+    check_refresh_prs,
     check_workflows,
     load_config,
     measure,
@@ -60,7 +61,7 @@ def test_every_target_is_written_down_with_its_threshold_and_state() -> None:
     for t in CONFIG.targets:
         threshold, in_force = table[t.id]
         assert in_force.startswith("yes" if t.in_force else "no"), t.id
-        for key in ("max_age_days", "min_benchmarks"):
+        for key in ("max_age_days", "min_benchmarks", "max_open_days"):
             if key in t.params:
                 assert str(t.params[key]) in threshold, (t.id, key)
 
@@ -237,10 +238,80 @@ def test_an_unreadable_models_dev_is_an_error(tmp_path: Path) -> None:
     assert settle(TARGET, check).errors == ("models.dev could not be read: ConnectError: boom",)
 
 
+# ── refresh pull requests (MODEL-232) ──────────────────────────────────────
+
+
+REFRESH = "data/weekly-leaderboard-refresh"
+
+
+def _pr(number: int, days_ago: float, *, state: str = "open", merged: bool = False) -> dict:
+    created = NOW - timedelta(days=days_ago)
+    closed = None if state == "open" else (created + timedelta(minutes=19)).isoformat()
+    return {"number": number, "state": state, "html_url": f"https://example.test/pull/{number}",
+            "created_at": created.isoformat().replace("+00:00", "Z"), "closed_at": closed,
+            "merged_at": closed if merged else None}
+
+
+def _refresh(*prs: dict) -> Check:
+    return check_refresh_prs({REFRESH: list(prs)}, [REFRESH], NOW, 3)
+
+
+def test_a_refresh_pr_open_past_the_limit_is_a_breach() -> None:
+    check = _refresh(_pr(401, 4))
+    assert check.measured == 1
+    assert check.findings == (Finding(
+        REFRESH, "#401 opened 2026-09-25, still open; 4 days without merging, limit 3: "
+                 "https://example.test/pull/401"),)
+
+
+def test_a_refresh_closed_unmerged_is_a_breach_once_past_the_limit() -> None:
+    assert _refresh(_pr(337, 2, state="closed")).findings == ()
+    [finding] = _refresh(_pr(337, 3.5, state="closed")).findings
+    assert "#337 opened 2026-09-25, closed unmerged on 2026-09-25" in finding.detail
+
+
+def test_only_the_newest_refresh_pr_counts() -> None:
+    assert _refresh(_pr(337, 10, state="closed"), _pr(402, 1)).findings == ()
+    assert _refresh(_pr(337, 10, state="closed"),
+                    _pr(402, 5, state="closed", merged=True)).findings == ()
+
+
+def test_a_branch_with_no_refresh_pr_is_measured_and_met() -> None:
+    check = _refresh()
+    assert (check.measured, check.findings, check.errors) == (1, (), ())
+
+
+def test_unreadable_refresh_prs_are_an_error_not_a_pass() -> None:
+    check = check_refresh_prs({REFRESH: "CalledProcessError: 403"}, [REFRESH], NOW, 3)
+    assert settle(CONFIG.target("refresh-pr-merged"), check).status == "error"
+
+
+def test_the_refresh_pr_fetch_reads_each_branch_once() -> None:
+    from scripts.slo.report import fetch_refresh_prs
+
+    calls = []
+
+    def gh(args, stdin=None):
+        calls.append(args)
+        return json.dumps([_pr(401, 4)])
+
+    got = fetch_refresh_prs([REFRESH], gh)
+    assert calls == [["api", "repos/turbobeest/modelspec/pulls?state=all&head=turbobeest:"
+                             f"{REFRESH}&sort=created&direction=desc&per_page=5"]]
+    assert got[REFRESH][0]["number"] == 401
+
+
+def test_the_weekly_refresh_branch_is_watched() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "leaderboard-refresh.yml").read_text()
+    for branch in CONFIG.target("refresh-pr-merged").params["branches"]:
+        assert f"branch: {branch}" in workflow
+
+
 # ── end to end: a staged breach through measure, render and the alert plan ──
 
 
-def _measured(tmp_path: Path, staged: dict | None = None) -> Report:
+def _measured(tmp_path: Path, staged: dict | None = None,
+              refresh_prs: dict | None = None) -> Report:
     audit = audit_build(
         SnapshotInputs(models=[{"id": "acme/m1", "lifecycle": "active", "facts": []}]),
         registry=default_registry(), premier=["acme/m1"], as_of=AS_OF, guard=None)
@@ -251,6 +322,8 @@ def _measured(tmp_path: Path, staged: dict | None = None) -> Report:
         models_dev=(None, "offline"),
         runs={w.file: [_run("success", 1)] for w in CONFIG.workflows},
         models_dir=tmp_path,
+        refresh_prs=refresh_prs or {
+            b: [] for b in CONFIG.target("refresh-pr-merged").params["branches"]},
         extra_findings=staged or {},
     )
     return measure(inputs, CONFIG, as_of=AS_OF, now=NOW)
@@ -272,6 +345,15 @@ def test_measure_states_every_breach_and_round_trips_through_json(tmp_path: Path
     page = (tmp_path / "out" / "index.html").read_text(encoding="utf-8")
     assert "noindex" in page and "staged-breach" in page
     assert "X-Robots-Tag: noindex" in (tmp_path / "out" / "_headers").read_text()
+
+
+def test_a_stale_refresh_pr_opens_a_coverage_issue(tmp_path: Path) -> None:
+    report = _measured(tmp_path, refresh_prs={REFRESH: [_pr(337, 4, state="closed")]})
+    [result] = [r for r in report.results if r.target == "refresh-pr-merged"]
+    assert result.status == "breach"
+    assert [(a.kind, a.target, a.title) for a in
+            alerts.plan(report, CONFIG, [], NOW, only=["refresh-pr-merged"])] == [
+        ("create", "refresh-pr-merged", "Coverage SLO breach: refresh-pr-merged")]
 
 
 # ── alerts: one issue per target, updated in place ─────────────────────────

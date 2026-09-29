@@ -6,8 +6,8 @@ name: Coverage report
 # fail this job; a report that cannot be written does.
 #
 # Cost: one job, about four minutes (the snapshot build reads every card), and
-# about a dozen REST calls: one per watched workflow, one issue listing, and
-# one per issue change.
+# about a dozen REST calls: one per watched workflow, one per refresh branch
+# (MODEL-232), one issue listing, and one per issue change.
 
 on:
   schedule:
@@ -24,6 +24,8 @@ permissions:
   contents: read
   issues: write
   actions: read
+  # refresh-pr-merged lists the refresh branches' pull requests (MODEL-232).
+  pull-requests: read
 
 concurrency:
   group: coverage-slo
