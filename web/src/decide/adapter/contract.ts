@@ -76,6 +76,11 @@ const contributionSchema = z
     normalisation: nullableString,
     evidence: z.array(evidenceItemSchema),
     formula: nullableString.optional(),
+    preferred_value: scalar.nullable().optional(),
+    preference_status: z
+      .enum(["satisfied", "not_satisfied", "unknown"])
+      .nullable()
+      .optional(),
   })
   .strict();
 
@@ -210,6 +215,7 @@ export const decisionSchema = z
       "1.10",
       "1.11",
       "1.12",
+      "2.0",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -351,7 +357,15 @@ export const decisionSchema = z
 const objectiveSchema = z.union([
   z.object({ max: facetId }).strict(),
   z.object({ min: facetId }).strict(),
-  z.object({ weights: z.record(objectiveId, z.number().positive()) }).strict(),
+  z.object({
+    weights: z.record(
+      objectiveId,
+      z.union([
+        z.number().positive(),
+        z.object({ prefer: scalar, weight: z.number().positive() }).strict(),
+      ]),
+    ),
+  }).strict(),
   z.object({ pareto: z.array(facetId).min(2) }).strict(),
   z
     .object({

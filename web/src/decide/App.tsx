@@ -206,7 +206,7 @@ export function DesignedApp({
   }, [estateRequest, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
   const decision = liveDecision,
     e = decision?.explanation,
-    boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => weight > 0),
+    boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => (typeof weight === "number" ? weight : weight.weight) > 0),
     selectedId = selected || (boardIsRanked ? e?.shortlist.top?.m.id || e?.may[0]?.m.id : null) || null,
     row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),

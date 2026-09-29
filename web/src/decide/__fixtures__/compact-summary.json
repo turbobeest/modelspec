@@ -23,7 +23,7 @@
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "1.12",
+  "contract_version": "2.0",
   "decision_id": "dec_18b812054b953e2d9d3d1465",
   "snapshot": "snap_0ba2c5bb156ee46b",
   "signature_verified": false,
@@ -89,7 +89,9 @@
           "value": 0.0,
           "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
           "evidence": [],
-          "formula": "(3 USD per 1M input tokens × 40,000 input tokens + 12 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.168 USD per task"
+          "formula": "(3 USD per 1M input tokens × 40,000 input tokens + 12 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.168 USD per task",
+          "preferred_value": null,
+          "preference_status": null
         },
         {
           "raw_value": 92.0,
@@ -127,7 +129,9 @@
               "recency_weight": null
             }
           ],
-          "formula": null
+          "formula": null,
+          "preferred_value": null,
+          "preference_status": null
         }
       ],
       "warnings": []
@@ -190,7 +194,9 @@
           "value": 0.5,
           "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
           "evidence": [],
-          "formula": "(2 USD per 1M input tokens × 40,000 input tokens + 8 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.112 USD per task"
+          "formula": "(2 USD per 1M input tokens × 40,000 input tokens + 8 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.112 USD per task",
+          "preferred_value": null,
+          "preference_status": null
         },
         {
           "raw_value": 88.0,
@@ -228,7 +234,9 @@
               "recency_weight": null
             }
           ],
-          "formula": null
+          "formula": null,
+          "preferred_value": null,
+          "preference_status": null
         }
       ],
       "warnings": []
@@ -291,7 +299,9 @@
           "value": 1.0,
           "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
           "evidence": [],
-          "formula": "(1 USD per 1M input tokens × 40,000 input tokens + 4 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.056 USD per task"
+          "formula": "(1 USD per 1M input tokens × 40,000 input tokens + 4 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.056 USD per task",
+          "preferred_value": null,
+          "preference_status": null
         },
         {
           "raw_value": 72.0,
@@ -329,7 +339,9 @@
               "recency_weight": null
             }
           ],
-          "formula": null
+          "formula": null,
+          "preferred_value": null,
+          "preference_status": null
         }
       ],
       "warnings": []

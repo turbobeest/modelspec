@@ -195,6 +195,19 @@ def _facet_row(facet: Any, snapshot: Any, subjects: Iterable[str], unit_definiti
         "unit_definition": unit_definition,
         "operators": list(OPERATORS[kind]),
         "objective": kind == "number",
+        "preference": (
+            {"kind": "continuous", "directions": ["max", "min"], "threshold": "where"}
+            if kind == "number"
+            else {
+                "kind": "value",
+                "term": {
+                    "prefer": "boolean value" if kind == "boolean" else "enum value",
+                    "weight": "positive number",
+                },
+            }
+            if kind in ("boolean", "enum")
+            else None
+        ),
         "risk": facet.risk,
         "computed_by": facet.computed_by,
         "known": len(values),

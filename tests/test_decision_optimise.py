@@ -57,6 +57,87 @@ def test_weights_normalise_only_feasible_set_and_record_contributions():
     assert result.results[0].contributions[1].normalisation.maximum == 20
 
 
+def test_value_preference_reorders_without_excluding_and_flags_unknown() -> None:
+    result = run(
+        {
+            "a-closed": {"model.weights_openness": "closed_weights"},
+            "b-unknown": {},
+            "z-open": {"model.weights_openness": "open_weights"},
+        },
+        {"weights": {
+            "model.weights_openness": {"prefer": "open_weights", "weight": 0.4},
+        }},
+    )
+
+    assert ids(result) == ["z-open", "a-closed", "b-unknown"]
+    assert result.status == "answered"
+    assert result.missing == ()
+    assert [row.score for row in result.results] == [0.4, 0.0, 0.0]
+    assert result.results[0].contributions[0].preference_status == "satisfied"
+    assert result.results[1].contributions[0].preference_status == "not_satisfied"
+    assert result.results[2].contributions[0].preference_status == "unknown"
+    assert result.results[2].warnings == ("unknown_preference_value",)
+
+
+def test_boolean_preference_scores_true_as_one_false_as_zero_unknown_as_zero_with_warning() -> None:
+    result = run(
+        {
+            "a-false": {"offering.data.zero_retention": False},
+            "b-unknown": {},
+            "z-true": {"offering.data.zero_retention": True},
+        },
+        {"weights": {
+            "offering.data.zero_retention": {"prefer": True, "weight": 0.5},
+        }},
+    )
+
+    assert ids(result) == ["z-true", "a-false", "b-unknown"]
+    assert result.status == "answered"
+    assert [row.score for row in result.results] == [0.5, 0.0, 0.0]
+    parts = [row.contributions[0] for row in result.results]
+    assert [p.value for p in parts] == [1.0, 0.0, 0.0]
+    assert [p.preference_status for p in parts] == [
+        "satisfied", "not_satisfied", "unknown",
+    ]
+    assert all(p.preferred_value is True for p in parts)
+    assert [row.warnings for row in result.results] == [
+        (), (), ("unknown_preference_value",),
+    ]
+
+
+def test_boolean_preference_for_false_favours_false() -> None:
+    result = run(
+        {
+            "a-true": {"offering.data.zero_retention": True},
+            "z-false": {"offering.data.zero_retention": False},
+        },
+        {"weights": {
+            "offering.data.zero_retention": {"prefer": False, "weight": 1},
+        }},
+    )
+
+    assert ids(result) == ["z-false", "a-true"]
+    assert [row.contributions[0].value for row in result.results] == [1.0, 0.0]
+
+
+def test_unknown_preference_warning_survives_a_missing_scale_value() -> None:
+    result = run(
+        {
+            "a-complete": {"x": 1, "model.weights_openness": "open_weights"},
+            "b-unknown": {},
+        },
+        {"weights": {
+            "x": 0.6,
+            "model.weights_openness": {"prefer": "open_weights", "weight": 0.4},
+        }},
+    )
+
+    assert result.results[1].warnings == (
+        "missing_objective_value",
+        "unknown_preference_value",
+    )
+
+
 def test_lexicographic_tolerance_is_anchored_not_pairwise_chained():
     rows = {"a": {"speed": 100, "cost": 30}, "b": {"speed": 96, "cost": 20},
             "c": {"speed": 92, "cost": 10}, "missing": {"speed": 1000}}
