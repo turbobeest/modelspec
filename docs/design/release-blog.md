@@ -471,9 +471,22 @@ on the internal preview either. Reviewers see a draft with
 `python -m pipeline.blog preview <slug> --out <dir>`, and the PR's CI uploads
 that preview as a build artifact.
 
-**Holding mode.** `pipeline/holding.py` is an allowlist, so `/blog/` is dark
-in holding mode until Jamie names it there. The retained snapshots under
-`/api/**` are copied in either mode, as all of `/api/**` is.
+**The `/blog/` switch.** modelspec.dev has run with `SITE_MODE=live` since
+2026-09-25, so holding mode does not hide anything. Two rules apply instead:
+
+- `/blog/` ships only published posts, and drafts never render (above).
+- The whole section sits behind a switch, the GitHub Actions repository
+  variable `BLOG_ENABLED`. `deploy-sites.yml` passes it to `pipeline.build`,
+  and `pipeline/blog.py` writes the section's pages only when the value is
+  exactly `true`. An unset, empty or any other value writes no `/blog/` page,
+  no feed entry, no sitemap entry and no nav link, so a missing variable fails
+  closed the way `SITE_MODE` does. Turning it on is Jamie's call. A test
+  builds the site with the variable unset and asserts that no `blog/` path
+  exists in `dist/`.
+
+The retained snapshots under `/api/decision/snapshots/` are not behind the
+switch. They are data. The Worker's `POST /v1/compare` reads them, and all of
+`/api/**` is published in every mode.
 
 ### 4.3 Prose and the placeholder rule
 
@@ -528,6 +541,8 @@ the error. Nothing is silently replaced.
 ### 4.6 Tests (ticket 2)
 
 - A draft post produces no file in `dist/`.
+- With `BLOG_ENABLED` unset, empty or `false`, the build writes no `blog/`
+  path, feed, sitemap entry or nav link.
 - A published post renders every section in §3, with the footer fields.
 - A digit in `commentary.md` outside a placeholder fails the build.
 - A refused tone word fails the build.
@@ -680,8 +695,9 @@ account credentials.
 ## 8. Open questions for Jamie
 
 1. **CODEOWNERS on `blog/`** (§4.5): a repository-settings change, so yours.
-2. **`/blog/` in holding mode** (§4.2): whether posts go live before the site
-   leaves holding mode. The design keeps them dark until you name the path.
+2. **`BLOG_ENABLED`** (§4.2): when to turn the `/blog/` section on. Until
+   you set the variable to `true`, no blog page is built. Once it is on,
+   `/blog/` shows only published posts, and drafts never render.
 3. **Early access** (standard §4.3): the standard allows pre-release access
    only under disclosure and without conditions on content or timing. Whether
    ModelSpec accepts any is your call.
