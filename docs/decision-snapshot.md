@@ -31,6 +31,13 @@ What never enters:
 
 Retired models and their offerings go to the `archive` section.
 `content.excluded` counts what was kept out, by reason.
+`content.held_back` (MODEL-224) gives the same counts per kept subject,
+`{subject_id: {reason: count}}`, so one model's held-back readings can be told
+apart from the snapshot-wide total. It is additive: it widens no field, and it
+is present exactly when `excluded` is non-empty, so a snapshot with nothing
+held back keeps its bytes. `LoadedSnapshot.held_back(cid)` returns a subject's
+counts, `{}` when it has none, and `None` for a snapshot built before the key,
+whose per-subject counts cannot be recovered.
 
 ## The completeness gate
 
@@ -51,7 +58,7 @@ Gzipped canonical JSON (sorted keys, no whitespace, gzip `mtime=0`):
  "signature": {"alg": "hmac-sha256", "value": "<hex>"} | null,
  "signatures": [{"alg": "ed25519", "key_id": "<id>", "value": "<base64>"}],
  "content": {"as_of", "facet_subjects", "lineup", "archive", "subscriptions",
-             "benchmark_domains", "sources", "excluded"}}
+             "benchmark_domains", "sources", "excluded", "held_back"}}
 ```
 
 `content_hash` is SHA-256 over the canonical `content`; the ID is its first 16

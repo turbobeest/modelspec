@@ -1,0 +1,1482 @@
+{
+  "$defs": {
+    "AccuracyRef": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "const": "pr",
+          "title": "Profile",
+          "type": "string"
+        },
+        "snapshot": {
+          "title": "Snapshot",
+          "type": "string"
+        },
+        "status": {
+          "const": "pass",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot",
+        "profile",
+        "status"
+      ],
+      "title": "AccuracyRef",
+      "type": "object"
+    },
+    "Cited": {
+      "additionalProperties": false,
+      "description": "One number and where it came from.",
+      "properties": {
+        "computed": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed"
+        },
+        "decision_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision Id"
+        },
+        "high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "High"
+        },
+        "low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Low"
+        },
+        "read_date": {
+          "format": "date",
+          "title": "Read Date",
+          "type": "string"
+        },
+        "record_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Id"
+        },
+        "records": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "read_date"
+      ],
+      "title": "Cited",
+      "type": "object"
+    },
+    "ClaimRow": {
+      "additionalProperties": false,
+      "properties": {
+        "benchmark": {
+          "title": "Benchmark",
+          "type": "string"
+        },
+        "claim": {
+          "$ref": "#/$defs/Cited"
+        },
+        "limitations": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Limitations"
+        },
+        "readings": {
+          "items": {
+            "$ref": "#/$defs/Reading"
+          },
+          "title": "Readings",
+          "type": "array"
+        },
+        "setup": {
+          "$ref": "#/$defs/Setup"
+        },
+        "status": {
+          "enum": [
+            "read",
+            "no_independent_reading_yet"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "benchmark",
+        "claim",
+        "setup",
+        "status"
+      ],
+      "title": "ClaimRow",
+      "type": "object"
+    },
+    "ClaimsVsEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "claims": {
+          "items": {
+            "$ref": "#/$defs/ClaimRow"
+          },
+          "title": "Claims",
+          "type": "array"
+        },
+        "unreported": {
+          "items": {
+            "$ref": "#/$defs/Unreported"
+          },
+          "title": "Unreported",
+          "type": "array"
+        }
+      },
+      "title": "ClaimsVsEvidence",
+      "type": "object"
+    },
+    "Cost": {
+      "additionalProperties": false,
+      "properties": {
+        "offerings": {
+          "items": {
+            "$ref": "#/$defs/OfferingCost"
+          },
+          "title": "Offerings",
+          "type": "array"
+        },
+        "plans": {
+          "items": {
+            "$ref": "#/$defs/PlanCoverage"
+          },
+          "title": "Plans",
+          "type": "array"
+        }
+      },
+      "title": "Cost",
+      "type": "object"
+    },
+    "DecisionRef": {
+      "additionalProperties": false,
+      "description": "One ``decide()`` call the post relies on. Re-running ``spec`` against\n``snapshot_id`` reproduces ``decision_id``.",
+      "properties": {
+        "decision_id": {
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "purpose": {
+          "title": "Purpose",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "spec": {
+          "additionalProperties": true,
+          "title": "Spec",
+          "type": "object"
+        },
+        "spec_hash": {
+          "title": "Spec Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "purpose",
+        "spec",
+        "spec_hash",
+        "decision_id",
+        "snapshot_id"
+      ],
+      "title": "DecisionRef",
+      "type": "object"
+    },
+    "Disclosures": {
+      "additionalProperties": false,
+      "properties": {
+        "early_access": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Early Access"
+        },
+        "neutrality": {
+          "title": "Neutrality",
+          "type": "string"
+        },
+        "supplier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supplier"
+        }
+      },
+      "required": [
+        "supplier",
+        "early_access",
+        "neutrality"
+      ],
+      "title": "Disclosures",
+      "type": "object"
+    },
+    "DomainStanding": {
+      "additionalProperties": false,
+      "properties": {
+        "band": {
+          "anyOf": [
+            {
+              "enum": [
+                "best",
+                "rest",
+                "thin"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Band"
+        },
+        "band_size": {
+          "$ref": "#/$defs/Cited"
+        },
+        "decision": {
+          "title": "Decision",
+          "type": "string"
+        },
+        "domain": {
+          "$ref": "#/$defs/Named"
+        },
+        "drivers": {
+          "items": {
+            "$ref": "#/$defs/Driver"
+          },
+          "title": "Drivers",
+          "type": "array"
+        },
+        "estimate": {
+          "$ref": "#/$defs/Cited"
+        },
+        "leaders": {
+          "items": {
+            "$ref": "#/$defs/Leader"
+          },
+          "title": "Leaders",
+          "type": "array"
+        },
+        "p_best": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ranked_models": {
+          "$ref": "#/$defs/Cited"
+        },
+        "top3_stability": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "domain",
+        "estimate",
+        "decision",
+        "rank",
+        "band",
+        "band_size",
+        "ranked_models",
+        "p_best",
+        "top3_stability"
+      ],
+      "title": "DomainStanding",
+      "type": "object"
+    },
+    "Driver": {
+      "additionalProperties": false,
+      "description": "A record the estimate was fitted from (``capability.drivers``).",
+      "properties": {
+        "benchmark": {
+          "title": "Benchmark",
+          "type": "string"
+        },
+        "record_id": {
+          "title": "Record Id",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Version"
+        }
+      },
+      "required": [
+        "record_id",
+        "benchmark",
+        "version"
+      ],
+      "title": "Driver",
+      "type": "object"
+    },
+    "GeneratedFrom": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "$ref": "#/$defs/AccuracyRef"
+        },
+        "after": {
+          "$ref": "#/$defs/SnapshotRef"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SnapshotRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "generator": {
+          "$ref": "#/$defs/GeneratorRef"
+        }
+      },
+      "required": [
+        "after",
+        "before",
+        "accuracy",
+        "generator"
+      ],
+      "title": "GeneratedFrom",
+      "type": "object"
+    },
+    "GeneratorRef": {
+      "additionalProperties": false,
+      "properties": {
+        "package": {
+          "const": "release_blog",
+          "default": "release_blog",
+          "title": "Package",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "title": "GeneratorRef",
+      "type": "object"
+    },
+    "HardwareFit": {
+      "additionalProperties": false,
+      "properties": {
+        "fits": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fits"
+        },
+        "fits_record": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fits Record"
+        },
+        "indeterminate": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Indeterminate"
+        },
+        "indeterminate_record": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Indeterminate Record"
+        },
+        "weights_openness": {
+          "title": "Weights Openness",
+          "type": "string"
+        }
+      },
+      "required": [
+        "weights_openness",
+        "fits",
+        "fits_record",
+        "indeterminate",
+        "indeterminate_record"
+      ],
+      "title": "HardwareFit",
+      "type": "object"
+    },
+    "Headline": {
+      "additionalProperties": false,
+      "properties": {
+        "rule": {
+          "title": "Rule",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "rule"
+      ],
+      "title": "Headline",
+      "type": "object"
+    },
+    "Leader": {
+      "additionalProperties": false,
+      "properties": {
+        "estimate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "p_best": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "model",
+        "estimate",
+        "p_best"
+      ],
+      "title": "Leader",
+      "type": "object"
+    },
+    "ModelRef": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "title": "Class",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "provider",
+        "class"
+      ],
+      "title": "ModelRef",
+      "type": "object"
+    },
+    "Named": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Named",
+      "type": "object"
+    },
+    "NotYetMeasured": {
+      "additionalProperties": false,
+      "properties": {
+        "claims_without_reading": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Claims Without Reading",
+          "type": "array"
+        },
+        "domains_without_estimate": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains Without Estimate",
+          "type": "array"
+        },
+        "held_back": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/Cited"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Held Back"
+        },
+        "speed": {
+          "items": {
+            "$ref": "#/$defs/Speed"
+          },
+          "title": "Speed",
+          "type": "array"
+        },
+        "unknown_facets": {
+          "items": {
+            "$ref": "#/$defs/UnknownFacet"
+          },
+          "title": "Unknown Facets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "held_back"
+      ],
+      "title": "NotYetMeasured",
+      "type": "object"
+    },
+    "OfferingCost": {
+      "additionalProperties": false,
+      "properties": {
+        "cost_per_task": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offering": {
+          "title": "Offering",
+          "type": "string"
+        },
+        "price_input": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "price_output": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "region": {
+          "title": "Region",
+          "type": "string"
+        },
+        "task": {
+          "$ref": "#/$defs/TaskSize"
+        },
+        "tier": {
+          "title": "Tier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "offering",
+        "provider",
+        "region",
+        "tier",
+        "task",
+        "cost_per_task",
+        "price_input",
+        "price_output"
+      ],
+      "title": "OfferingCost",
+      "type": "object"
+    },
+    "PlanCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "break_even": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "covers": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "const": "unknown",
+              "type": "string"
+            }
+          ],
+          "title": "Covers"
+        },
+        "monthly": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plan": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "id",
+              "provider",
+              "name"
+            ]
+          },
+          "title": "Plan",
+          "type": "object"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        },
+        "quote_record": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote Record"
+        },
+        "rule": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule"
+        },
+        "surface": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Surface"
+        }
+      },
+      "required": [
+        "plan",
+        "covers",
+        "monthly",
+        "break_even"
+      ],
+      "title": "PlanCoverage",
+      "type": "object"
+    },
+    "Reading": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_within_interval": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claim Within Interval"
+        },
+        "comparability": {
+          "enum": [
+            "same_setup",
+            "different_setup",
+            "not_comparable"
+          ],
+          "title": "Comparability",
+          "type": "string"
+        },
+        "difference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "differs_in": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Differs In",
+          "type": "array"
+        },
+        "limitations": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Limitations"
+        },
+        "measured_by": {
+          "title": "Measured By",
+          "type": "string"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "quality_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Quality Flags",
+          "type": "array"
+        },
+        "setup": {
+          "$ref": "#/$defs/Setup"
+        },
+        "value": {
+          "$ref": "#/$defs/Cited"
+        }
+      },
+      "required": [
+        "value",
+        "measured_by",
+        "setup",
+        "comparability"
+      ],
+      "title": "Reading",
+      "type": "object"
+    },
+    "Recheck": {
+      "additionalProperties": false,
+      "properties": {
+        "first_published": {
+          "format": "date",
+          "title": "First Published",
+          "type": "string"
+        },
+        "schedule": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Schedule",
+          "type": "array"
+        }
+      },
+      "required": [
+        "first_published",
+        "schedule"
+      ],
+      "title": "Recheck",
+      "type": "object"
+    },
+    "Setup": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "effort": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effort"
+        },
+        "harness": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Harness"
+        },
+        "subcategory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subcategory"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "title": "Setup",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "As Of"
+        },
+        "content_hash": {
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "key_id": {
+          "title": "Key Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "title": "Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "content_hash",
+        "as_of",
+        "key_id"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    },
+    "Speed": {
+      "additionalProperties": false,
+      "properties": {
+        "offering": {
+          "title": "Offering",
+          "type": "string"
+        },
+        "throughput": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "const": "unknown",
+              "type": "string"
+            }
+          ],
+          "title": "Throughput"
+        },
+        "time_to_first_token": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cited"
+            },
+            {
+              "const": "unknown",
+              "type": "string"
+            }
+          ],
+          "title": "Time To First Token"
+        }
+      },
+      "required": [
+        "offering",
+        "time_to_first_token",
+        "throughput"
+      ],
+      "title": "Speed",
+      "type": "object"
+    },
+    "TaskSize": {
+      "additionalProperties": false,
+      "description": "The task a cost is for: a spec input, not a finding.",
+      "properties": {
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "integer"
+        },
+        "output": {
+          "title": "Output",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "input",
+        "output",
+        "basis"
+      ],
+      "title": "TaskSize",
+      "type": "object"
+    },
+    "TemplateChange": {
+      "additionalProperties": false,
+      "properties": {
+        "band_after": {
+          "anyOf": [
+            {
+              "enum": [
+                "best",
+                "rest",
+                "thin"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Band After"
+        },
+        "band_before": {
+          "anyOf": [
+            {
+              "enum": [
+                "best",
+                "rest",
+                "thin"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Band Before"
+        },
+        "compare_counts": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Cited"
+          },
+          "title": "Compare Counts",
+          "type": "object"
+        },
+        "decisions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "before",
+              "after"
+            ]
+          },
+          "title": "Decisions",
+          "type": "object"
+        },
+        "displaced": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Displaced",
+          "type": "array"
+        },
+        "model_in_best": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "propertyNames": {
+            "enum": [
+              "before",
+              "after"
+            ]
+          },
+          "title": "Model In Best",
+          "type": "object"
+        },
+        "template": {
+          "$ref": "#/$defs/TemplateRef"
+        },
+        "top_after": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Top After",
+          "type": "array"
+        },
+        "top_before": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Top Before",
+          "type": "array"
+        }
+      },
+      "required": [
+        "template",
+        "decisions",
+        "band_before",
+        "band_after",
+        "model_in_best",
+        "top_before",
+        "top_after",
+        "displaced",
+        "compare_counts"
+      ],
+      "title": "TemplateChange",
+      "type": "object"
+    },
+    "TemplateChanges": {
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/TemplateChange"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
+        "unavailable": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unavailable"
+        }
+      },
+      "title": "TemplateChanges",
+      "type": "object"
+    },
+    "TemplateRef": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "tier": {
+          "title": "Tier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "tier",
+        "name"
+      ],
+      "title": "TemplateRef",
+      "type": "object"
+    },
+    "UnknownFacet": {
+      "additionalProperties": false,
+      "properties": {
+        "facet": {
+          "title": "Facet",
+          "type": "string"
+        },
+        "subjects": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Subjects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "facet",
+        "subjects"
+      ],
+      "title": "UnknownFacet",
+      "type": "object"
+    },
+    "Unreported": {
+      "additionalProperties": false,
+      "properties": {
+        "benchmark": {
+          "title": "Benchmark",
+          "type": "string"
+        },
+        "measured_by": {
+          "title": "Measured By",
+          "type": "string"
+        },
+        "reading": {
+          "$ref": "#/$defs/Cited"
+        },
+        "setup": {
+          "$ref": "#/$defs/Setup"
+        }
+      },
+      "required": [
+        "benchmark",
+        "reading",
+        "measured_by",
+        "setup"
+      ],
+      "title": "Unreported",
+      "type": "object"
+    }
+  },
+  "$id": "https://modelspec.dev/schemas/release-breakdown-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "changes_since_r1": {
+      "anyOf": [
+        {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Changes Since R1"
+    },
+    "claims_vs_evidence": {
+      "$ref": "#/$defs/ClaimsVsEvidence"
+    },
+    "cost": {
+      "$ref": "#/$defs/Cost"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/DecisionRef"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "disclosures": {
+      "$ref": "#/$defs/Disclosures"
+    },
+    "generated_from": {
+      "$ref": "#/$defs/GeneratedFrom"
+    },
+    "hardware": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HardwareFit"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "headline": {
+      "$ref": "#/$defs/Headline"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelRef"
+    },
+    "not_yet_measured": {
+      "$ref": "#/$defs/NotYetMeasured"
+    },
+    "recheck": {
+      "$ref": "#/$defs/Recheck"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "release-breakdown/1",
+      "default": "release-breakdown/1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sources": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Sources",
+      "type": "object"
+    },
+    "standing": {
+      "items": {
+        "$ref": "#/$defs/DomainStanding"
+      },
+      "title": "Standing",
+      "type": "array"
+    },
+    "template_changes": {
+      "$ref": "#/$defs/TemplateChanges"
+    }
+  },
+  "required": [
+    "model",
+    "revision",
+    "headline",
+    "generated_from",
+    "decisions",
+    "claims_vs_evidence",
+    "standing",
+    "template_changes",
+    "cost",
+    "hardware",
+    "not_yet_measured",
+    "recheck",
+    "disclosures",
+    "sources"
+  ],
+  "title": "Breakdown",
+  "type": "object"
+}
