@@ -12,6 +12,10 @@ data_fidelity:
   # The most values the nightly draws to find sample_size it can assess. When no
   # nightly reader can read a value from its changed source, it draws another.
   max_values_drawn: 48
+  # A value no nightly reader can find is undetermined, never a pass. More than
+  # this share of undetermined draws fails the layer. The 2026-09-29 re-run drew
+  # 6 undetermined in 18 (33%).
+  max_undetermined_share: 0.6
 
 reference:
   top_k: 5

@@ -470,26 +470,46 @@ def test_a_value_no_reader_finds_in_a_changed_source_is_requeued_not_quarantined
     claim, result, queue, log = _fidelity(tmp_path, "Model: Model\nrelease: soon")
 
     assert result.status == "pass"
-    assert result.details[0]["outcome"] == "unreadable"
-    assert result.counts["unreadable"] == 1
+    assert result.details[0]["outcome"] == "undetermined"
+    assert result.details[0]["reason"] == "source_changed"
+    assert result.counts["undetermined"] == 1
+    assert result.counts["verified"] == 0
     assert log.latest() == {}
     assert queue.recrawl_requests() == []
     assert queue.pending(changed_only=True) == ([], [claim.target])
 
 
-def test_a_value_no_reader_finds_in_the_bytes_it_was_verified_against_is_unchanged(
+def test_a_value_no_reader_finds_in_its_unchanged_source_is_undetermined_not_passed(
     tmp_path: Path,
 ) -> None:
     claim, result, queue, log = _fidelity(
         tmp_path,
         "Model: Model\nrelease: soon",
-        {("fact", "lab/model#model.context_window"): "unchanged"},
+        {("fact", "lab/model#model.context_window"): "source_unchanged"},
     )
 
-    assert result.status == "pass"
-    assert result.details[0]["outcome"] == "unchanged"
+    assert result.details[0]["outcome"] == "undetermined"
+    assert result.details[0]["reason"] == "source_unchanged"
+    assert result.counts["verified"] == 0
     assert log.latest() == {}
     assert queue.pending() == ([], [])
+
+
+def test_fidelity_fails_when_too_many_draws_are_undetermined() -> None:
+    config = accuracy.load_config(Path("accuracy.yaml")).data_fidelity
+    counts = dict.fromkeys(accuracy.FIDELITY_OUTCOMES, 0)
+
+    ok = {**counts, "verified": 12, "undetermined": 6}
+    too_many = {**counts, "verified": 12, "undetermined": 20}
+    short = {**counts, "verified": 3, "undetermined": 3}
+
+    assert accuracy.fidelity_verdict(ok, drawn=18, wanted=12, config=config)[0] == "pass"
+    status, summary, share = accuracy.fidelity_verdict(
+        too_many, drawn=32, wanted=12, config=config
+    )
+    assert (status, round(share, 3)) == ("fail", 0.625)
+    assert "20 of 32 draws (62%) were undetermined" in summary
+    assert accuracy.fidelity_verdict(short, drawn=6, wanted=12, config=config)[0] == "fail"
 
 
 def test_a_nightly_reader_that_cannot_reread_its_own_verified_bytes_fails(

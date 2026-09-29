@@ -50,6 +50,7 @@ class DataFidelityConfig:
     random_seed: str
     max_firecrawl_credits: int
     max_values_drawn: int
+    max_undetermined_share: float
 
 
 @dataclass(frozen=True)
@@ -149,6 +150,7 @@ def load_config(path: str | Path = DEFAULT_CONFIG) -> AccuracyConfig:
             str(fidelity["random_seed"]),
             int(fidelity["max_firecrawl_credits"]),
             int(fidelity["max_values_drawn"]),
+            float(fidelity["max_undetermined_share"]),
         ),
         ReferenceConfig(
             int(reference["top_k"]),
@@ -169,6 +171,8 @@ def load_config(path: str | Path = DEFAULT_CONFIG) -> AccuracyConfig:
         raise ValueError("data_fidelity.max_firecrawl_credits must be between 0 and 10")
     if config.data_fidelity.max_values_drawn < config.data_fidelity.sample_size:
         raise ValueError("data_fidelity.max_values_drawn must be at least sample_size")
+    if not 0 <= config.data_fidelity.max_undetermined_share < 1:
+        raise ValueError("data_fidelity.max_undetermined_share must be in [0, 1)")
     if config.reference.top_k < 1 or config.reference.minimum_common_models < 2:
         raise ValueError("reference top_k must be positive and minimum_common_models at least 2")
     return config
@@ -709,19 +713,19 @@ def _verified_claims(root: Path) -> list[tuple[Any, str]]:
 
 
 #: What the nightly can say about one re-read value. ``verified``, ``mismatch`` and
-#: ``unreachable`` are ``decision.verify``'s. The other two cover a re-read in
-#: which no nightly reader found the value at all:
+#: ``unreachable`` are ``decision.verify``'s. ``undetermined`` is a re-read in which
+#: no nightly reader found the value at all. It is never a pass: finding nothing
+#: says nothing about the value either way. Its reason is one of
 #:
-#: - ``unchanged``: the value was verified by a method the nightly cannot perform
-#:   (a retained-source proof, an LLM read, a derived recompute), and the source
-#:   returned the very bytes that verification read.
-#: - ``unreadable``: the source has changed since. Finding nothing is not evidence
-#:   the value is wrong, so the value is re-queued for re-collection, not logged
-#:   as a mismatch that would quarantine it.
-FIDELITY_OUTCOMES = ("verified", "unchanged", "mismatch", "unreachable", "unreadable")
+#: - ``source_unchanged``: the source returned the very bytes the value was
+#:   verified against, by a method the nightly cannot perform (a retained-source
+#:   proof, an LLM read, a derived recompute);
+#: - ``source_changed``: the source has changed since. The value is re-queued for
+#:   re-collection, not logged as a mismatch that would quarantine it.
+FIDELITY_OUTCOMES = ("verified", "mismatch", "unreachable", "undetermined")
 _FIDELITY_FAILURES = ("mismatch", "unreachable")
-_ASSESSED = ("verified", "unchanged", "mismatch", "unreachable")
-Unread = Literal["unchanged", "unreadable", "mismatch"]
+_ASSESSED = ("verified", "mismatch", "unreachable")
+Unread = Literal["source_unchanged", "source_changed", "mismatch"]
 
 
 def _oll_projection(url: str, raw: bytes) -> bytes:
@@ -766,8 +770,8 @@ def verify_fidelity_sample(
 ) -> LayerResult:
     """Re-read sampled claims and route failures through MODEL-140's recrawl queue.
 
-    ``unread`` says what a claim is when no reader finds its value: ``unchanged``,
-    ``unreadable`` (the default) or ``mismatch``.
+    ``unread`` says what a claim is when no reader finds its value: ``undetermined``
+    because its source is unchanged or changed (the default), or a ``mismatch``.
     """
     from decision.verify import ref_str, verify
 
@@ -777,15 +781,19 @@ def verify_fidelity_sample(
     counts = dict.fromkeys(FIDELITY_OUTCOMES, 0)
     for claim in claims:
         result = verify(claim, regions, extractors, today=today)
-        outcome = result.outcome
+        outcome, undetermined = result.outcome, None
         if _read_nothing(result):
-            outcome = unread.get((claim.target.kind, claim.target.id), "unreadable")
+            undetermined = unread.get((claim.target.kind, claim.target.id), "source_changed")
+            if undetermined == "mismatch":
+                outcome, undetermined = "mismatch", None
+            else:
+                outcome = "undetermined"
         counts[outcome] += 1
         if outcome in ("verified", *_FIDELITY_FAILURES) and result.verification is not None:
             log.append(result.verification)
         if outcome in _FIDELITY_FAILURES:
             queue.checked(result, at=now)
-        elif outcome == "unreadable":
+        elif undetermined == "source_changed":
             queue.requeue([claim.target], at=now)
         details.append(
             {
@@ -793,7 +801,7 @@ def verify_fidelity_sample(
                 "category": claim_category(claim),
                 "outcome": outcome,
                 "diff": [row.to_dict() for row in result.diffs],
-                "reason": result.reason,
+                "reason": undetermined or result.reason,
                 "source_urls": sorted(
                     {
                         source_urls[source.source_id]
@@ -803,7 +811,7 @@ def verify_fidelity_sample(
                 ),
                 "read_date": today.isoformat(),
                 "verifier": result.verification.verifier.model_dump()
-                if result.verification is not None and outcome != "unreadable"
+                if result.verification is not None and outcome != "undetermined"
                 else None,
             }
         )
@@ -830,9 +838,10 @@ def _current_copies(
 ) -> tuple[list[Any], dict[tuple[str, str], Unread]]:
     """Fetch each claim's sources with plain HTTP and pin the claim to the new copies.
 
-    A projected copy is rebuilt from the fetch. A claim whose every source returned
-    the bytes it was verified against is ``unchanged`` when unread, unless a nightly
-    reader performed that verification: then reading nothing is a ``mismatch``.
+    A projected copy is rebuilt from the fetch. When no reader finds a claim's value
+    in the very bytes it was verified against, that is a ``mismatch`` if a nightly
+    reader performed the verification (the reader regressed), and otherwise
+    undetermined with ``source_unchanged``.
     """
     from decision.sources import recheck
 
@@ -877,11 +886,34 @@ def _current_copies(
         )
         same_bytes = all(refs.get(s.source_id) == s.snapshot_ref for s in claim.sources)
         unread[(claim.target.kind, claim.target.id)] = (
-            ("mismatch" if method in nightly_methods else "unchanged")
+            ("mismatch" if method in nightly_methods else "source_unchanged")
             if same_bytes
-            else "unreadable"
+            else "source_changed"
         )
     return current, unread
+
+
+def fidelity_verdict(
+    counts: Mapping[str, int], *, drawn: int, wanted: int, config: DataFidelityConfig
+) -> tuple[Status, str, float]:
+    """Fail on a value that did not verify, on fewer than N assessed values, and on
+    more undetermined draws than ``max_undetermined_share``."""
+    assessed = sum(counts[name] for name in _ASSESSED)
+    failed = sum(counts[name] for name in _FIDELITY_FAILURES)
+    share = counts["undetermined"] / drawn if drawn else 0.0
+    summary = (
+        f"Re-read {assessed} verified values from current source copies; "
+        f"{failed} did not verify. {counts['undetermined']} of {drawn} draws "
+        f"({share:.0%}) were undetermined: no nightly reader found the value."
+    )
+    status: Status = "fail" if failed else "pass"
+    if assessed < wanted:
+        status = "fail"
+        summary += f" Only {assessed} of {wanted} values could be assessed."
+    if share > config.max_undetermined_share:
+        status = "fail"
+        summary += f" That is above the {config.max_undetermined_share:.0%} limit."
+    return status, summary, share
 
 
 def data_fidelity(
@@ -897,9 +929,11 @@ def data_fidelity(
 
     Every selected source gets a plain HTTP attempt, including sources normally
     marked rendered. Firecrawl use is therefore zero and cannot exceed the
-    configured ten-credit ceiling. Values no nightly reader can read from a changed
-    source are replaced by further draws, up to ``max_values_drawn``; if fewer than
-    N values can be assessed the layer fails rather than silently reducing N.
+    configured ten-credit ceiling. An undetermined value (no nightly reader found
+    it) is replaced by a further draw, up to ``max_values_drawn``. The layer fails
+    rather than silently reducing N when fewer than N values can be assessed, and
+    fails when more than ``max_undetermined_share`` of the draws were undetermined:
+    a harness that can read nothing must not pass.
     """
     from decision.excluded import excluded_sources
     from decision.sources import CopyStore, Fetcher
@@ -977,21 +1011,8 @@ def data_fidelity(
             for name, count in result.counts.items():
                 counts[name] += count
             sample.extend(result.details)
+    status, summary, share = fidelity_verdict(counts, drawn=drawn, wanted=wanted, config=config)
     assessed = sum(counts[name] for name in _ASSESSED)
-    failed = sum(counts[name] for name in _FIDELITY_FAILURES)
-    summary = (
-        f"Re-read {assessed} verified values from current source copies; "
-        f"{failed} did not verify."
-    )
-    if counts["unreadable"]:
-        summary += (
-            f" {counts['unreadable']} more had a changed source no nightly reader can "
-            "read, and were re-queued."
-        )
-    status: Status = "fail" if failed else "pass"
-    if assessed < wanted:
-        status = "fail"
-        summary += f" Only {assessed} of {wanted} values could be assessed in {drawn} draws."
     return LayerResult(
         "data_fidelity",
         status,
@@ -1005,6 +1026,12 @@ def data_fidelity(
             "actual_sample_size": assessed,
             "values_drawn": drawn,
             "max_values_drawn": config.max_values_drawn,
+            "undetermined_share": round(share, 4),
+            "max_undetermined_share": config.max_undetermined_share,
+            "undetermined_reasons": {
+                reason: sum(row["reason"] == reason for row in sample)
+                for reason in ("source_unchanged", "source_changed")
+            },
             "plain_http_sources": len(fetched_sources),
             "firecrawl_credits_used": 0,
             "firecrawl_credit_limit": config.max_firecrawl_credits,
