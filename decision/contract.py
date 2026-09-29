@@ -30,6 +30,7 @@ from pydantic import (
     ConfigDict,
     Discriminator,
     Field,
+    StringConstraints,
     Tag,
     ValidationError,
     WithJsonSchema,
@@ -37,7 +38,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "2.2"
+CONTRACT_VERSION = "2.3"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -995,6 +996,35 @@ class TaskTokens(_Strict):
 DEFAULT_TASK_TOKENS = TaskTokens(input=40000, output=4000)
 
 
+MAX_ESTATE_IDS = 64
+EstateId = Annotated[str, StringConstraints(min_length=1, max_length=120)]
+
+
+def _canonical_ids(value: list[str]) -> list[str]:
+    return sorted(set(value))
+
+
+class Estate(_Strict):
+    """What the caller holds, sent with the spec and never stored. Added in 2.3.
+
+    ``providers`` are provider IDs the caller has a key for, ``plans`` are
+    subscription plan IDs, ``devices`` are hardware SKU IDs. ``exhausted`` lists
+    providers or plans that cannot be used right now; an exhausted provider
+    takes its key and its plans with it.
+    """
+
+    providers: list[EstateId] = Field(
+        default_factory=list, max_length=MAX_ESTATE_IDS, exclude_if=lambda value: not value)
+    plans: list[EstateId] = Field(
+        default_factory=list, max_length=MAX_ESTATE_IDS, exclude_if=lambda value: not value)
+    devices: list[EstateId] = Field(
+        default_factory=list, max_length=MAX_ESTATE_IDS, exclude_if=lambda value: not value)
+    exhausted: list[EstateId] = Field(
+        default_factory=list, max_length=MAX_ESTATE_IDS, exclude_if=lambda value: not value)
+
+    _sorted = field_validator("providers", "plans", "devices", "exhausted")(_canonical_ids)
+
+
 class Spec(_Strict):
     """A request for a decision."""
 
@@ -1017,6 +1047,8 @@ class Spec(_Strict):
     explain: Explain = "summary"
     limit: int = Field(default=20, ge=1, le=500)
     save_as: SaveAs | None = None
+    #: What the caller holds. Added in 2.3.
+    estate: Estate | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @field_validator("exclude_benchmarks")
     @classmethod
@@ -1337,6 +1369,62 @@ class Relaxation(_Strict):
     admits: int = Field(ge=1)
 
 
+EstateKind = Literal["provider", "plan", "device"]
+CostBasis = Literal["list_price", "plan_included", "owned_hardware"]
+
+
+class EstateHold(_Strict):
+    kind: EstateKind
+    id: EstateId
+
+
+class EstateMark(_Strict):
+    """How the estate reaches one row, and what one more task costs the caller."""
+
+    via: EstateHold
+    cost_basis: CostBasis
+    marginal_cost_per_task_usd: float | None = Field(default=None, ge=0)
+
+
+class EstateResult(_Strict):
+    rank: int = Field(ge=1)
+    offering: OfferingRef
+    estate: EstateMark
+    soft_penalty: float = Field(default=0.0, ge=0)
+    warnings: list[Code] = Field(default_factory=list)
+
+
+class EstateGap(_Strict):
+    """Why the two answers differ, or that they do not."""
+
+    same_answer: bool
+    #: Models the unrestricted ranking puts above the estate's leader, plus any
+    #: member of a tied unrestricted answer, that the estate cannot reach, best first.
+    unreachable_models: list[ModelId] = Field(default_factory=list)
+    summary: str
+
+
+class GainItem(_Strict):
+    """One hold the caller does not have whose addition would change the answer."""
+
+    add: EstateHold
+    status: Status
+    leader: ModelId | None = None
+    answer: Answer | None = None
+
+
+class WithEstate(_Strict):
+    """The same question answered from what the caller holds. Added in 2.3."""
+
+    status: Status
+    answer: Answer | None = None
+    results: list[EstateResult] = Field(default_factory=list)
+    may_qualify: list[MayQualify] = Field(default_factory=list)
+    truncated: Truncated = Field(default_factory=Truncated)
+    gap: EstateGap
+    gain: list[GainItem] = Field(default_factory=list)
+
+
 class Decision(_Strict):
     """The engine's answer to one spec against one snapshot."""
 
@@ -1350,7 +1438,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.2"] = CONTRACT_VERSION
+    contract_version: Literal["2.3"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1374,6 +1462,8 @@ class Decision(_Strict):
     warnings: list[Code] = Field(default_factory=list)
     #: Active models the snapshot leaves out of the lineup. Added in 1.2.
     out_of_lineup: int = Field(default=0, ge=0)
+    #: The same answer from what the spec's ``estate`` holds. Added in 2.3.
+    with_estate: WithEstate | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def _status_agrees(self) -> Decision:
@@ -1400,6 +1490,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Truncated, TieBreakers, SeparatedAnswer, TiedAnswer,
     ModelEliminationGroup, ConstraintCost, TippingPoint,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
+    Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
 )
 
 

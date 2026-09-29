@@ -22,6 +22,10 @@ list of facets or benchmarks of its own:
   and lab (``lab``, ``lab_name``) its card gives. A name the card does not
   give is ``null``; a client shows the ID, never a name made from the slug.
 * ``providers``: every registered provider's display name, by ID.
+* ``estate``: the IDs a spec's ``estate`` block accepts (MODEL-179):
+  ``providers`` (every registered provider ID), ``plans`` (each subscription
+  plan in the snapshot: ``id``, ``provider``, ``name``) and ``devices`` (every
+  hardware SKU ID).
 * ``coverage``: what the lineup holds, so a client can say what an empty
   answer was measured against without writing it per question. ``models`` is
   the lineup size and ``verified`` how many of those have at least one verified
@@ -453,6 +457,18 @@ def _template_rows(snapshot: Any, registry: Any) -> list[dict[str, Any]]:
     return rows
 
 
+def _estate_ids(snapshot: Any, registry: Any) -> dict[str, Any]:
+    fits = registry.allowed_values(registry.facet("model.fits_hardware")) or frozenset()
+    return {
+        "providers": sorted(p.id for p in registry.providers()),
+        "plans": [
+            {"id": plan["id"], "provider": plan["provider"], "name": plan["name"]}
+            for plan in sorted(snapshot.subscription_offerings(), key=lambda p: p["id"])
+        ],
+        "devices": sorted(fits),
+    }
+
+
 def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | None = None,
                      registry: Any = None, cards: Mapping[str, Mapping[str, Any]] | None = None,
                      enforce_frontier_coverage: bool = False,
@@ -534,6 +550,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "refinements": refinements,
         "models": _model_rows(view, cards or {}),
         "providers": {p.id: p.name for p in registry.providers()},
+        "estate": _estate_ids(snapshot, registry),
         "coverage": coverage,
         "templates": _template_rows(snapshot, registry),
     }

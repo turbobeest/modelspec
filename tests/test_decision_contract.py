@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.2"
+    assert c.CONTRACT_VERSION == "2.3"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -761,6 +761,11 @@ def _samples() -> list:
         tie_breakers=tie_breakers,
         deterministic_order=[result.offering.model, "openai/gpt-6-sol"],
     )
+    estate_hold = c.EstateHold(kind="plan", id="anthropic/subscription/pro")
+    estate_mark = c.EstateMark(via=estate_hold, cost_basis="plan_included",
+                               marginal_cost_per_task_usd=0)
+    estate_result = c.EstateResult(rank=1, offering=result.offering, estate=estate_mark)
+    estate_gap = c.EstateGap(same_answer=True, summary="What you hold reaches the answer.")
     return [
         spec,
         spec.optimize,
@@ -824,6 +829,16 @@ def _samples() -> list:
         c.NumberOrigin(path="/results/0/rank", basis="ordinal"),
         c.CitedSource(id="src-board", url="https://board.example.org/results",
                       date=date(2026, 9, 20)),
+        c.Estate(providers=["anthropic"], plans=["anthropic/subscription/pro"],
+                 devices=["apple_m3_max"], exhausted=["anthropic/subscription/pro"]),
+        estate_hold,
+        estate_mark,
+        estate_result,
+        estate_gap,
+        c.GainItem(add=estate_hold, status="answered", leader=result.offering.model,
+                   answer=separated_answer),
+        c.WithEstate(status="answered", answer=separated_answer, results=[estate_result],
+                     gap=estate_gap, gain=[c.GainItem(add=estate_hold, status="answered")]),
         c.Relaxation(condition="offering.price.input <= 0.2",
                      relaxed="offering.price.input <= 0.75", facet="offering.price.input",
                      value=0.75, unit="usd_per_1m_tokens", admits=2),

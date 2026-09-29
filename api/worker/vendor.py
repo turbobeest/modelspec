@@ -53,6 +53,7 @@ SOURCES = {
     Path("decision/compare.py"): Path("decision/compare.py"),
     Path("decision/contract.py"): Path("decision/contract.py"),
     Path("decision/engine.py"): Path("decision/engine.py"),
+    Path("decision/estate.py"): Path("decision/estate.py"),
     Path("decision/excluded.py"): Path("decision/excluded.py"),
     Path("decision/explain.py"): Path("decision/explain.py"),
     Path("decision/filter.py"): Path("decision/filter.py"),

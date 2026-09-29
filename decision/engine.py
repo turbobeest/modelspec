@@ -7,6 +7,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import replace
 from math import inf, isfinite, sqrt
 
+from decision import estate as estate_module
 from decision.computed import with_computed
 from decision.contract import (
     DEFAULT_TASK_TOKENS,
@@ -110,6 +111,8 @@ def validate(
         ]
         if issues:
             raise SpecError(issues)
+    if spec.estate is not None:
+        estate_module.check(spec.estate, snapshot)
     snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
     if spec.explain in ("summary", "full"):
         snapshot.require_explanation_records()
@@ -346,7 +349,55 @@ def decide(
 
     ``comparison`` retains named facts for every returned candidate in the
     intermediate Decision. Ordinary full decisions still cap ``top`` at 20.
+
+    A spec with an ``estate`` (MODEL-179) is answered twice: the unrestricted
+    decision is computed as if the estate were absent, and ``with_estate``
+    carries the same question over what the estate holds.
     """
+    if spec.estate is None:
+        return _decide(
+            spec, snapshot, facets=facets, profiles=profiles,
+            evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
+            comparison=comparison,
+        )
+    estate_module.check(spec.estate, snapshot)
+    question = spec.model_copy(update={"estate": None})
+    capture: dict = {}
+    decision = _decide(
+        question, snapshot, facets=facets, profiles=profiles,
+        evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
+        comparison=comparison, _capture=capture, _identity=spec,
+    )
+
+    def run(reach, limit):
+        trial = question.model_copy(update={"explain": "none", "limit": limit})
+        seen: dict = {}
+        answered = _decide(
+            trial, snapshot, facets=facets, profiles=profiles,
+            evidence_selectors=evidence_selectors, _reach=reach, _capture=seen,
+        )
+        return estate_module.Ran(answered, seen["models"], seen["rows"], seen["computed"])
+
+    unrestricted = estate_module.Ran(
+        decision, capture["models"], capture["rows"], capture["computed"])
+    decision.with_estate = estate_module.with_estate(
+        spec.estate, snapshot, unrestricted, run, spec.limit)
+    return decision
+
+
+def _decide(
+    spec: Spec,
+    snapshot: ExplanationIndex,
+    *,
+    facets: FacetLookup | None = None,
+    profiles: Mapping[str, InventoryProfile] | None = None,
+    evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
+    _filter_trace: Callable[[FilterResult], None] | None = None,
+    comparison: bool = False,
+    _reach=None,
+    _capture: dict | None = None,
+    _identity: Spec | None = None,
+) -> Decision:
     resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
     if spec.exclude_benchmarks:
         from decision.capability import excluding_benchmarks
@@ -354,7 +405,10 @@ def decide(
         snapshot = excluding_benchmarks(snapshot, spec.exclude_benchmarks)
     # Computed facets (offering.cost_per_task) depend on the spec, so the
     # remaining stages use the same per-decision view validation prepared for.
-    snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
+    snapshot = with_computed(
+        snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS,
+        None if _reach is None else _reach.marginal,
+    )
     domains = frozenset(snapshot.domain_ids())
     requested = frozenset(spec.capabilities or {})
     selectors = dict(evidence_selectors or {})
@@ -368,13 +422,14 @@ def decide(
                     name, resolved.objective_qualifiers.get(name), domains=requested
                 ),
             )
-    filtered = apply(resolved, snapshot)
+    filtered = apply(resolved, snapshot, _reach)
     if _filter_trace is not None:
         _filter_trace(filtered)
     ordered, objective_unknown = split_missing(
         run_optimise(snapshot, filtered, spec, selectors, domains)
     )
     digest = spec_hash(spec)
+    identity = digest if _identity is None else spec_hash(_identity)
     objective_domains = [name.removeprefix("-") for name in names
                          if name.removeprefix("-") in domains]
     shown_domains = sorted(requested | set(objective_domains))
@@ -409,6 +464,11 @@ def decide(
         )
 
     returned_rows = ordered.results[: spec.limit]
+    if _capture is not None:
+        _capture["models"] = list(dict.fromkeys(
+            snapshot.model_of(row.candidate_id) for row in ordered.results))
+        _capture["rows"] = [row.candidate_id for row in returned_rows]
+        _capture["computed"] = snapshot
     omitted_rows = ordered.results[spec.limit :]
     returned_models = {
         snapshot.model_of(row.candidate_id) for row in returned_rows
@@ -470,15 +530,15 @@ def decide(
     relax, relax_to = [], []
     if ordered.status == "no_feasible":
         # Never the class or a requested domain: that would change the question.
-        if not filtered.feasible:
+        if not filtered.feasible and _reach is None:
             relax = fewest(resolved, snapshot, requested)
             relax_to = smallest_changes(resolved, snapshot, requested)
         if not relax:
             relax = [ordered.reason or "no candidates in the snapshot"]
     decision = Decision(
         decision_id="dec_"
-        + hashlib.sha256((digest + snapshot.snapshot_id).encode()).hexdigest()[:24],
-        spec_hash=digest,
+        + hashlib.sha256((identity + snapshot.snapshot_id).encode()).hexdigest()[:24],
+        spec_hash=identity,
         snapshot=snapshot.snapshot_id,
         signature_verified=getattr(snapshot, "signature_verified", False),
         explain=spec.explain,

@@ -339,7 +339,8 @@ def decide(
             old_path = candidate if explicit_path else resolve_decision_generation(compare_to)
             old_index = (load_snapshot(old_path, include_archive=True) if explicit_path else
                          load_snapshot(old_path, key=None, include_archive=True))
-            comparison_spec = spec.model_copy(update={"snapshot": "latest", "explain": "full"})
+            comparison_spec = spec.model_copy(
+                update={"snapshot": "latest", "explain": "full", "estate": None})
             old_result = run_decision(
                 comparison_spec, old_index, facets=facets, comparison=True
             )

@@ -14,6 +14,7 @@ records and the formula behind it.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -50,9 +51,12 @@ def _number(value: float) -> str:
 class ComputedFacets:
     """A snapshot index that also answers the computed facets for one spec."""
 
-    def __init__(self, base: Any, task_tokens: TaskTokens) -> None:
+    def __init__(
+        self, base: Any, task_tokens: TaskTokens, marginal: Mapping[str, str] | None = None,
+    ) -> None:
         self._base = base
         self.task_tokens = task_tokens
+        self._marginal = marginal or {}
         self._values: dict[str, Computed | None] = {}
         self._column: _FacetBitsets | None = None
 
@@ -64,6 +68,8 @@ class ComputedFacets:
         or when ``facet_id`` is not computed."""
         if facet_id != COST_PER_TASK:
             return None
+        if cid in self._marginal:
+            return Computed(0.0, (), (), self._marginal[cid])
         if cid not in self._values:
             self._values[cid] = self._cost_per_task(cid)
         return self._values[cid]
@@ -118,8 +124,15 @@ class ComputedFacets:
         return Bitset3(passing, column.known & ~passing, everyone & ~column.known)
 
 
-def with_computed(snapshot: Any, task_tokens: TaskTokens) -> ComputedFacets:
-    """``snapshot``, answering the computed facets at ``task_tokens``."""
+def with_computed(
+    snapshot: Any, task_tokens: TaskTokens, marginal: Mapping[str, str] | None = None,
+) -> ComputedFacets:
+    """``snapshot``, answering the computed facets at ``task_tokens``.
+
+    ``marginal`` maps a row the caller already pays for (an estate plan or
+    device, MODEL-179) to the reason one more task costs nothing; that row's
+    ``offering.cost_per_task`` is 0 instead of its list price.
+    """
     if isinstance(snapshot, ComputedFacets):
         snapshot = snapshot._base
-    return ComputedFacets(snapshot, task_tokens)
+    return ComputedFacets(snapshot, task_tokens, marginal)
