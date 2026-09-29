@@ -161,8 +161,15 @@ it.each(Object.entries(FIXTURES))("never names a route \"API\" (%s)", (_, [json,
     estateRouteView(ctx, estate.marks.get(offeringKey(result.offering))!, result, result.offering)));
   for (const view of views) {
     expect(view.name).toMatch(/ · pay per use$| · monthly plan$|^Run it yourself$/);
-    if (view.kind !== "plan") expect(view.name).not.toMatch(/\bAPI\b/);
+    expect(view.name).not.toMatch(/\bAPI\b/);
   }
+});
+
+it("names the catalogue's \"Team API\" plan without the word", () => {
+  expect(summary(ownSoftwareJson, SONNET, "own_software")).toEqual([
+    ["Anthropic · pay per use", "$0.132 per task"],
+    ["Team · monthly plan", "price not published"],
+  ]);
 });
 
 it("drops API from a provider's display name, and only that word", () => {

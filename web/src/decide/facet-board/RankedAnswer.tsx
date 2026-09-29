@@ -6,7 +6,7 @@ import type { VocabPlan, Vocabulary } from "../vocabulary";
 import { boardHasPreference } from "./model";
 import { TieAwareAnswer } from "./TieAwareAnswer";
 import {
-  cheapestMetered, COST_HEADING, estateRouteView, mayQualifyNote, modelRoutes, offeringKey, payee, providerName,
+  cheapestMetered, COST_HEADING, estateRouteView, mayQualifyNote, modelRoutes, offeringKey, payee, planName, providerName,
 } from "./routes";
 import type { AccessAnswer, HeldEstate, RouteView } from "./routes";
 
@@ -78,6 +78,8 @@ export function RankedAnswer({
       })
     : modelRoutes(routeContext, resultsFor(model), access);
   const costHeading = marks ? "Costs you" : COST_HEADING[access];
+  // Without a route, only a per-task heading may show the row's per-task cost.
+  const perTaskColumn = !marks && (access === "any" || access === "coding_tool" || access === "own_software");
   const [expanded, setExpanded] = useState(false);
   const ranked = boardHasPreference(spec);
   const capability = vocabulary.domains.find((domain) =>
@@ -167,7 +169,7 @@ export function RankedAnswer({
               return !hasEvidence && parentName && <small key={refinement.id}>no {refinement.name} evidence — estimated from general {sentenceCase(parentName)}</small>;
             })}
           </div>
-          <div className="board-ranked-cost"><small>{costHeading}</small><span>{routes[0] ? routes[0].column ?? routes[0].figure : money(row.cost)}</span></div>
+          <div className="board-ranked-cost"><small>{costHeading}</small><span>{routes[0] ? routes[0].column ?? routes[0].figure : perTaskColumn ? money(row.cost) : "—"}</span></div>
           {capability && <div className="board-capability">
             {row.cap === null
               ? <small>no evidence for {capability.name}</small>
@@ -181,7 +183,7 @@ export function RankedAnswer({
           </div>}
           {(routes.length > 0 || excluded.length > 0) && <ul className="board-routes" aria-label={`Routes to ${row.m.name}`}>
             {routes.map((route) => <Route key={route.key} route={route} />)}
-            {excluded.map((plan) => <li className="board-route route-excluded" key={plan.id}><small>Your {plan.name} doesn't cover this</small></li>)}
+            {excluded.map((plan) => <li className="board-route route-excluded" key={plan.id}><small>Your {planName(plan.name)} doesn't cover this</small></li>)}
           </ul>}
         </li>;
       })}
@@ -194,14 +196,13 @@ export function RankedAnswer({
       <ul>
         {may.map((row) => {
           const note = mayNote(`${row.m.lab}/${row.m.id}`);
-          const priced = !marks && (access === "any" || access === "coding_tool" || access === "own_software");
           const via = row.best.o.provider === "Provider not available" ? null : payee(row.best.o.provider);
           return <li key={row.best.o.id}>
             <div className="board-ranked-copy">
               <strong>{row.m.name}</strong>
               <small>{row.m.labName}{via && via !== row.m.labName ? ` · via ${via}` : ""}</small>
             </div>
-            <div className="board-ranked-cost"><small>{priced ? "Cost per task" : costHeading}</small><span>{priced ? money(row.cost) : "—"}</span></div>
+            <div className="board-ranked-cost"><small>{perTaskColumn ? "Cost per task" : costHeading}</small><span>{perTaskColumn ? money(row.cost) : "—"}</span></div>
             {note && <p className="board-may-note">{note}</p>}
           </li>;
         })}

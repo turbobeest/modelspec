@@ -103,6 +103,9 @@ export function planRecord(ctx: RouteContext, id: string): VocabPlan | undefined
   return ctx.vocabulary.estate.plans.find((plan) => plan.id === id);
 }
 
+/** A plan as the board names it: its own name, never with "API" in it. */
+export const planName = (name: string): string => payee(name);
+
 function planExplain(surfaces: readonly string[] | null | undefined): string {
   if (!surfaces) return "A flat fee each month. Where it works isn't verified yet.";
   const ownSoftware = surfaces.includes("api");
@@ -118,7 +121,7 @@ function plansNotForOwnSoftware(ctx: RouteContext, provider: string): VocabPlan[
 
 function payPerUseExplain(ctx: RouteContext, offering: OfferingRef): string {
   const provider = offering.provider ?? "";
-  const excluded = plansNotForOwnSoftware(ctx, provider).map((plan) => plan.name);
+  const excluded = plansNotForOwnSoftware(ctx, provider).map((plan) => planName(plan.name));
   const base = `Billed per call by ${providerName(ctx, provider)}: what your software, or a tool using your own key, pays for ${modelName(ctx, offering.model)}.`;
   return excluded.length ? `${base} Not covered by ${joinWords(excluded, "or")}.` : base;
 }
@@ -138,7 +141,7 @@ function breakEvenNote(route: PlanRoute): string {
   const allowance = route.allowance?.tokens != null
     ? `its allowance is ${route.allowance.tokens.toLocaleString("en-US")} tokens${route.allowance.window ? ` per ${route.allowance.window.replaceAll("_", " ")}` : ""}`
     : "not published";
-  return `${route.name} costs less than pay per use above ~${approx(tasks)} tasks a month, if its allowance covers your volume (${allowance}).`;
+  return `${planName(route.name)} costs less than pay per use above ~${approx(tasks)} tasks a month, if its allowance covers your volume (${allowance}).`;
 }
 
 export function planRouteView(ctx: RouteContext, route: PlanRoute, access: AccessAnswer): RouteView {
@@ -147,7 +150,7 @@ export function planRouteView(ctx: RouteContext, route: PlanRoute, access: Acces
   return {
     key: `plan:${route.plan}`,
     kind: "plan",
-    name: `${route.name} · ${period}`,
+    name: `${planName(route.name)} · ${period}`,
     explain: planExplain(record?.surfaces),
     figure: route.price_monthly_usd == null
       ? "price not published"
@@ -243,7 +246,7 @@ export function estateRouteView(ctx: RouteContext, mark: EstateMark, result: Res
     return {
       key: `plan:${via.id}`,
       kind: "plan",
-      name: `${record?.name ?? via.id} · monthly plan`,
+      name: `${planName(record?.name ?? via.id)} · monthly plan`,
       explain: planExplain(record?.surfaces) + quote,
       figure: "included in your plan",
       column,
@@ -300,7 +303,7 @@ export function mayQualifyNote(ctx: RouteContext, row: MayQualify, held: HeldEst
     const who = providerName(ctx, provider);
     const heldPlans = held.plans.map((id) => planRecord(ctx, id))
       .filter((plan): plan is VocabPlan => plan?.provider === provider)
-      .map((plan) => plan.name);
+      .map((plan) => planName(plan.name));
     const subject = heldPlans.length ? `Your ${joinWords(heldPlans, "or")}` : `A monthly plan from ${who}`;
     const gaps = [coverage ? "coverage" : null, surfaces ? "where its plans work" : null]
       .filter((gap): gap is string => gap !== null);
@@ -321,7 +324,7 @@ export function plansExcludingOwnSoftware(ctx: RouteContext, decision: Decision,
 }
 
 export function ownSoftwareNote(plan: VocabPlan): string {
-  return `Your ${plan.name} doesn't cover this: it works in ${surfacePhrase(plan.surfaces ?? [])}, not your own software.`;
+  return `Your ${planName(plan.name)} doesn't cover this: it works in ${surfacePhrase(plan.surfaces ?? [])}, not your own software.`;
 }
 
 export const offeringKey = (ref: OfferingRef): string =>
