@@ -695,6 +695,7 @@ benchmarks:
     configuration: Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools.
       Family comparison columns for other Gemma sizes and Gemma 3 were not taken.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: Gemma 4 31B IT
     score: 84.3
@@ -708,6 +709,7 @@ benchmarks:
     configuration: Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools.
       Family comparison columns for other Gemma sizes and Gemma 3 were not taken.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: mmlu_pro
     model_id_as_evaluated: Gemma 4 31B IT
     score: 85.2
@@ -721,6 +723,7 @@ benchmarks:
     configuration: Instruction-tuned Gemma 4 31B; AIME 2026 reported with no tools.
       Family comparison columns for other Gemma sizes and Gemma 3 were not taken.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: gemma-4-31b-it_minimal
     score: 75.76
@@ -759,6 +762,7 @@ benchmarks:
       read 2026-09-24. Run started 2026-08-27T19:30:07.000Z; effort default; highest-effort
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 0.97 points.
     limitations: Epoch AI data, CC BY 4.0.
+    measured_by: independent_evaluator
 deployment:
   api_only: false
   local_inference: true

@@ -712,6 +712,7 @@ benchmarks:
       votes, rank 125.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1455.79
@@ -728,6 +729,7 @@ benchmarks:
       votes, rank 136.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1436.26
@@ -744,6 +746,7 @@ benchmarks:
       votes, rank 124.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1415.75
@@ -759,6 +762,7 @@ benchmarks:
       max-effort rule). Rating 1415.75 [1393.66, 1437.85], 658 votes, rank 119.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1401.92
@@ -775,6 +779,7 @@ benchmarks:
       votes, rank 96.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1416.41
@@ -791,6 +796,7 @@ benchmarks:
       votes, rank 103.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1415.29
@@ -807,6 +813,7 @@ benchmarks:
       votes, rank 129.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1431.03
@@ -823,6 +830,7 @@ benchmarks:
       votes, rank 130.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1446.13
@@ -839,6 +847,7 @@ benchmarks:
       votes, rank 89.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1400.91
@@ -855,6 +864,7 @@ benchmarks:
       votes, rank 125.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1446.69
@@ -872,6 +882,7 @@ benchmarks:
       votes, rank 103.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1422.48
@@ -889,6 +900,7 @@ benchmarks:
       votes, rank 129.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1417.6
@@ -906,6 +918,7 @@ benchmarks:
       votes, rank 117.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1426.71
@@ -923,6 +936,7 @@ benchmarks:
       votes, rank 136.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1407.36
@@ -940,6 +954,7 @@ benchmarks:
       votes, rank 100.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: aime_2025
     model_id_as_evaluated: DeepSeek-v3.1 (Think)
     score: 90.83
@@ -955,6 +970,7 @@ benchmarks:
       model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
+    measured_by: independent_evaluator
 deployment:
   api_only: false
   local_inference: true

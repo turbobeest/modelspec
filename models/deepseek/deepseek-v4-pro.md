@@ -682,6 +682,7 @@ benchmarks:
       not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page
       and was not attached to live_code_bench.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: mmlu_pro
     model_id_as_evaluated: DeepSeek-V4-Pro (max)
     score: 87.5
@@ -721,6 +722,7 @@ benchmarks:
       not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page
       and was not attached to live_code_bench.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: deepseek-v4-pro
     score: 1457.34
@@ -729,7 +731,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -743,9 +745,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      snapshot_ref: sha256:bea7ea9d7344aeccaed159b64f2f3aa97e84231d3723b02f9d4a5672b6b889b8
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: deepseek-v4-pro
     score: 1501.5
@@ -754,7 +757,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -768,9 +771,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      snapshot_ref: sha256:da249e40e0397ffcd8dd5f738c4c91f9a389869f8ae9e26c425a1187f04c7118
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: deepseek-v4-pro
     score: 1479.8
@@ -779,7 +783,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -793,9 +797,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      snapshot_ref: sha256:5a69c3a3a5f23cf6bfd2b0ecae495ec9731f62df889f4147793616588a2d4f8b
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: deepseek-v4-pro
     score: 1444.63
@@ -804,7 +809,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
       2026-09-13; style control. Highest-effort row for the product (effort: default; MODEL-123
@@ -817,9 +822,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      snapshot_ref: sha256:41e622d3837a9ab1577d975e3c57ae92db367c09f45606ed1870a32a4591335a
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: deepseek-v4-pro
     score: 1443.95
@@ -828,7 +834,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -842,9 +848,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      snapshot_ref: sha256:4ca49a5b7efede8e577057d10266b363a837e56331ac79f7540f7da349a3eee5
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: deepseek-v4-pro
     score: 1452.55
@@ -853,7 +860,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -867,9 +874,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      snapshot_ref: sha256:6bcc35b68ac189cda1a204de4fab84c84fcd9d853dc2c3265e68366133d9093b
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: deepseek-v4-pro
     score: 1475.19
@@ -878,7 +886,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -892,9 +900,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      snapshot_ref: sha256:76f93ba07e2611ee096faf4210eb6b965b5b113b375cb5edec5f224be61fc346
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: deepseek-v4-pro
     score: 1481.35
@@ -903,7 +912,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -917,9 +926,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      snapshot_ref: sha256:ebf8116274f3815b353511b1829bd763a0817e2a0c5d3669072ebd5571271745
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: deepseek-v4-pro
     score: 1471.54
@@ -928,7 +938,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -942,9 +952,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      snapshot_ref: sha256:3c7de94587c842e12c134292a7df52a9faafb46f877d184d8f235d5c1d466737
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: deepseek-v4-pro
     score: 1444.72
@@ -953,7 +964,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -967,9 +978,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      snapshot_ref: sha256:47f41bf8222f55644ca4a36db5ad4178546c5d3e2982bcda2dc08798f9776a65
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: deepseek-v4-pro
     score: 1476.7
@@ -978,7 +990,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
       revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
@@ -993,9 +1005,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      snapshot_ref: sha256:31163709a3917ed23ec956a2589a6a5ad30924817977652909218ecbbf9a8d0e
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: deepseek-v4-pro
     score: 1473.18
@@ -1004,7 +1017,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
       1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
@@ -1019,9 +1032,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      snapshot_ref: sha256:6aec9d4dd9fc82958ffeceea56c977de5d8204f6c62ad5113657b828f9bc55da
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: deepseek-v4-pro
     score: 1460.69
@@ -1030,7 +1044,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
       latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
@@ -1045,9 +1059,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      snapshot_ref: sha256:ba565a81fbb65e9d13c80776fda09aabedc819d64793b355a5a5fe836212472e
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: deepseek-v4-pro
     score: 1480.7
@@ -1056,7 +1071,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
@@ -1071,9 +1086,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      snapshot_ref: sha256:dff891db693196c263ad841fcb75cf135a4529936b386a76fc324e6b66bb2d2e
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: deepseek-v4-pro
     score: 1450.89
@@ -1082,7 +1098,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
@@ -1097,9 +1113,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      snapshot_ref: sha256:451771d6d03dfcdc902ebbb505ce47bfc614e33bde751b42f3be31d89d416086
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_webdev
     model_id_as_evaluated: deepseek-v4-pro
     score: 1445.47
@@ -1108,7 +1125,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: default;
@@ -1121,9 +1138,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:1342f43f483667f8e4313a1fb517522e1f18aa1b09d4812f8d3163c4ff30b9bc
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: deepseek-v4-pro_max
     score: 89.65
@@ -1132,7 +1150,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-06-16'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: GPQA Diamond (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
       read 2026-09-24. Run started 2026-06-16T20:16:55.000Z; effort max; highest-effort run
@@ -1144,9 +1162,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      snapshot_ref: sha256:39583bb153c2d06652ef7e4886b645abb7ea53fe3b7bb6c8aaeccef4055705cb
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: deepseek-v4-pro_max
     score: 45.26
@@ -1155,7 +1174,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-06-17'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
       read 2026-09-24. Run started 2026-06-17T02:30:14.000Z; effort max; highest-effort run
@@ -1167,9 +1186,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      snapshot_ref: sha256:cae4d7f40f600006a0cbd47a4ced7d916a96f50953b9a454830dd46b20aa4c1a
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: deepseek-v4-pro_max
     score: 46.99
@@ -1178,7 +1198,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-27'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
       prompt
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
@@ -1191,9 +1211,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      snapshot_ref: sha256:33e4a89c307a2e5d6941be7ad13770315c4eff899ed69e92490cd697bdb5a584
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: swe_bench_verified
     model_id_as_evaluated: deepseek-v4-pro_max
     score: 77.64
@@ -1202,7 +1223,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-06-18'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: SWE-bench Verified (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (swe_bench_verified.csv),
       read 2026-09-24. Run started 2026-06-18T17:43:54.039Z; effort max; highest-effort run
@@ -1213,89 +1234,89 @@ benchmarks:
     effort: max
     harness: null
     sources:
-    - source_id: model-143-evidence-epoch-swe-bench-verified-csv
-      snapshot_ref: sha256:1b11e51afaab550c3cd39ceb4c28da4cbdd79208bf381dea2407a758cb8276b3
+    - source_id: model-160-epoch-swe-bench-verified-csv
+      snapshot_ref: sha256:b6f26a6b1de09762a56e4ae4de985d4b7aa8588bdf6035fdd7a206c164f6bbb4
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: frontiercode_v1_1
     model_id_as_evaluated: DeepSeek V4 Pro
     score: 17.6
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-26'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-26'
+    verified_at: '2026-09-29'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
     configuration: Board row as copied in Epoch AI's benchmark data (frontiercode_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort none; the highest-effort
       row for the model (MODEL-123 max-effort rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
-    id: deepseek/deepseek-v4-pro#frontiercode_v1_1#f974f4f74c25
+    id: deepseek/deepseek-v4-pro#frontiercode_v1_1#889510703080
     measured_by: benchmark_author
     effort: null
-    harness: null
+    harness: unregistered
     sources:
     - source_id: model-160-frontiercode
-      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      snapshot_ref: sha256:cd845eb12dc06498f07c3729c9725cf61ad153cacb7580918f8b955e443b4add
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Deepseek V4 Pro
     score: 3284.52
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
     configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort unknown; the highest-effort
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
-    id: deepseek/deepseek-v4-pro#vending_bench_2#d0ccc210af57
+    id: deepseek/deepseek-v4-pro#vending_bench_2#494cf422cb5e
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
     - source_id: model-160-vending-bench-2
-      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      snapshot_ref: sha256:94074584ec83e973b31884f48956a6bc43e36a33d47dc3feaa7c52adf23a9c12
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: aime_2026
     model_id_as_evaluated: DeepSeek-v4-Pro (Max)
     score: 96.67
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: AIME 2026, MathArena final-answer table
     configuration: MathArena competition table read 2026-09-26; the table states no run
       date, so the reading is dated by the observation. Effort max; highest-effort row
       for the model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
-    id: deepseek/deepseek-v4-pro#aime_2026#762af5769a5d
+    id: deepseek/deepseek-v4-pro#aime_2026#4ac540f4e251
     measured_by: independent_evaluator
     effort: max
     harness: null
     sources:
-    - source_id: model-161-matharena-aime-2026
-      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
-      cited_regions:
-      - rows
-    - source_id: model-161-matharena-aime-2026-quality
-      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+    - source_id: model-160-matharena-aime-2026
+      snapshot_ref: sha256:82521ecfb14888fcf11b8fe08e9aa67eb588467d241b6778ecd538ae6d382b5e
       cited_regions:
       - rows
     quality_flags:
     - deprecated
     - contamination_warning
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_english
     model_id_as_evaluated: deepseek-v4-pro
     score: 1466.79
@@ -1304,8 +1325,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1466.79 [1461.57,
       1472.01], 23890 votes, rank 57. Observed 2026-09-27.
@@ -1315,7 +1336,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      snapshot_ref: sha256:cee57baa7239c5aa2091dcb5db0b4c2ac22cec732b235d66c0cda2ee55bdcb44
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_english#dbcc2cd8efd9
@@ -1327,8 +1348,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1493.30 [1481.45,
       1505.14], 2859 votes, rank 67. Observed 2026-09-27.
@@ -1338,7 +1359,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      snapshot_ref: sha256:9bf00fc37e8a997735f423949aba6ffc5551990b6f835297d3fed2b364abe02b
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_chinese#0d83a1bcfc4b
@@ -1350,8 +1371,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / japanese, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1462.21 [1437.94,
       1486.48], 691 votes, rank 22. Observed 2026-09-27.
@@ -1361,7 +1382,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:378ee68fcc262e62231ba63141c81baffe954e5edb48ca7f0d21726b0417dadb
+      snapshot_ref: sha256:13b68c219a1ec549a9336846ddacaf97471f6323c09e4f45a73eab7a0857a9ca
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_japanese#79705f0e7843
@@ -1373,8 +1394,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / korean, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1418.01 [1398.63,
       1437.38], 1069 votes, rank 49. Observed 2026-09-27.
@@ -1384,7 +1405,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:d02642dc7233db6fed665cc6abdf94d487b7d4d64a2d6bb7c33ff0bea0f8755c
+      snapshot_ref: sha256:96706e685de18541b6ad515db22607a7840bad8bc902a30a8a38f949cd409c08
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_korean#718f818d82a0
@@ -1396,8 +1417,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1457.01 [1448.43,
       1465.60], 5695 votes, rank 56. Observed 2026-09-27.
@@ -1407,7 +1428,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      snapshot_ref: sha256:eb77af068077fa90a9514ad454b6a65f061a176f0d68897132e1526f3be743dd
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_russian#b9bb34d6dd9f
@@ -1419,8 +1440,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / spanish, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1454.23 [1438.59,
       1469.88], 1690 votes, rank 53. Observed 2026-09-27.
@@ -1430,7 +1451,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:53285f933382c2e23254c68a5e01a25705206262f3000e8f5954e40597697cc1
+      snapshot_ref: sha256:e56e27431afb859f3376e3d5609785906e24647b4c0c65a324b7995944b9573b
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_spanish#43fbb5a4191f
@@ -1442,8 +1463,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / german, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.70 [1447.73,
       1487.68], 955 votes, rank 42. Observed 2026-09-27.
@@ -1453,7 +1474,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:5bc7f8c29190254b708e3b1b9c9130570cb30292791a5ac70d6baf464245a845
+      snapshot_ref: sha256:098d6730e0b426da68eee86ddfd97bb03c3b1048e178378de1ec3924fa209c6d
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_german#a71904394306
@@ -1465,8 +1486,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1484.30 [1469.29,
       1499.31], 2118 votes, rank 45. Observed 2026-09-27.
@@ -1476,7 +1497,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      snapshot_ref: sha256:c6c9f83eb7147bedac479a445a3803aad09d613643414d3cd5035dbde46d6f2f
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_french#cdf321bfff92
@@ -1488,8 +1509,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / polish, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.43 [1449.05,
       1485.82], 1084 votes, rank 41. Observed 2026-09-27.
@@ -1499,7 +1520,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:c24dd604059a7b6a389b724e9819f1da9b856a619642c7b69e5124f146a92635
+      snapshot_ref: sha256:a99daf2dc2fbf9b06de90a127cc1408c7a19e4fa45a1a4d538b668211c4b5892
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_polish#30a19ee53063
@@ -1511,8 +1532,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
       1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1491.76 [1486.38,
@@ -1523,7 +1544,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      snapshot_ref: sha256:4eaa9890dce0719aa263af890c9f2a7bb1a3198e291d84dbf8c1371d4f150c52
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_industry_software_it_services#bcc3ebdb7b45
@@ -1535,8 +1556,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
       split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1433.68 [1426.88,
@@ -1547,7 +1568,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      snapshot_ref: sha256:df0d5e7c4d4ce1f683618242c0786eafd164d98b3b49dbaa6e699476bec94ccf
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_industry_entertainment_sports_media#283ad52c7508
@@ -1559,8 +1580,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1460.32 [1448.83,
       1471.81], 2997 votes, rank 59. Observed 2026-09-27.
@@ -1570,7 +1591,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      snapshot_ref: sha256:b0f3ee924239a7a9a1e60676935d0c83091f29517b8acb95e07868e370822e82
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_industry_mathematical#b926d6825a42
@@ -1582,8 +1603,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1454.79 [1451.60,
       1457.97], 54066 votes, rank 50. Observed 2026-09-27.
@@ -1593,7 +1614,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-factuality
-      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      snapshot_ref: sha256:ece0fd0afe2b42a38bce698a6be5329044b5503f5edb7f43473c19394b38fc28
       cited_regions:
       - rows
     id: deepseek/deepseek-v4-pro#arena_sc_factuality#ef8c5406fdb9

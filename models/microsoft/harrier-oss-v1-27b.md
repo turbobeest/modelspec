@@ -706,6 +706,7 @@ benchmarks:
       The card''s text calls the benchmark Multilingual MTEB v2. Row harrier-oss-v1-27b:
       74.3. Dated by the Hub commit of the card, 2026-03-30.'
     limitations: The provider's own figure, not the leaderboard's reading.
+    measured_by: provider_self_report
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

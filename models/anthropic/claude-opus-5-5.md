@@ -683,6 +683,7 @@ benchmarks:
       Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
       thinking at max effort, default sampling, averaged over five trials.'
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: swe_bench_multilingual
     model_id_as_evaluated: Claude Opus 5.5
     score: 93.9
@@ -697,6 +698,7 @@ benchmarks:
       Opus 5.5 column only; competitor columns not taken. Standard configuration: adaptive
       thinking at max effort, default sampling, averaged over five trials.'
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: swe_bench_multimodal
     model_id_as_evaluated: Claude Opus 5.5
     score: 61.4
@@ -736,6 +738,7 @@ benchmarks:
       4.0 is reported at xhigh effort (the card''s note); launch page gives SE ±2.6
       pts.'
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: terminal_bench_science
     model_id_as_evaluated: Claude Opus 5.5
     score: 58.7
@@ -774,6 +777,7 @@ benchmarks:
       thinking at max effort, default sampling, averaged over five trials. No-tools
       row.'
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: hle_tools
     model_id_as_evaluated: Claude Opus 5.5
     score: 67.7
