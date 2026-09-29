@@ -60,10 +60,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install the landing browser and build the app on its pytest shard
-        # The landing browser test serves the built decide app at /decide/.
+      - name: Install the browser and build the app on the Chromium pytest shard
+        # test_landing.py serves the built decide app at /decide/, and
+        # test_social_cards.py renders cards in Chromium. They share a shard's
+        # install; every other shard builds the site without rendering cards.
         run: |
-          if grep -qx 'tests/test_landing.py' shard-files.txt; then
+          if grep -qxE 'tests/test_(landing|social_cards)\.py' shard-files.txt; then
             cd web
             npm ci
             npm run build
