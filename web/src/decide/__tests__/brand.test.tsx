@@ -5,12 +5,13 @@ import App from "../App";
 beforeEach(() => history.replaceState(null, "", "/decide/?demo=1"));
 
 function headerMark(container: HTMLElement) {
-  const mark = container.querySelector(".global-header .brand svg");
+  const mark = container.querySelector(".global-header .lockup svg.mark");
   if (!mark) throw new Error("no mark in the header");
   return mark;
 }
 
 it("renders the 2a mark in the header, with the package's ids and colours", () => {
+  history.replaceState(null, "", "/decide/?demo=1&theme=light");
   const { container } = render(<App />);
   const mark = headerMark(container);
   expect(mark.getAttribute("viewBox")).toBe("0 0 40 40");
@@ -27,13 +28,12 @@ it("renders the 2a mark in the header, with the package's ids and colours", () =
   expect(mark.querySelector("#dots")?.getAttribute("stroke")).toBe("#0B1426");
   expect(mark.querySelectorAll("#dots circle")).toHaveLength(5);
   expect(mark.querySelector("metadata")).toBeNull();
-  expect(container.querySelector(".global-header .brand")).toHaveTextContent(
+  expect(container.querySelector(".global-header .lockup .wordmark")).toHaveTextContent(
     "ModelSpec",
   );
 });
 
 it("uses the transparent mark in dark mode, where the tile matches the page", () => {
-  history.replaceState(null, "", "/decide/?demo=1&theme=dark");
   const { container } = render(<App />);
   const mark = headerMark(container);
   expect(mark.querySelector("#tile")?.getAttribute("fill")).toBe("none");

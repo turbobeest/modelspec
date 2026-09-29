@@ -56,7 +56,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from pipeline import brand, landing, social_cards
+from pipeline import brand, landing, landing_chrome, social_cards
 
 MODE_ENV = "SITE_MODE"
 LIVE = "live"
@@ -93,13 +93,16 @@ HEADERS = (
 
 ROBOTS = "User-agent: *\nAllow: /\n"
 
+# Dark whatever the visitor's colour scheme, like every ModelSpec page (MODEL-213).
 _STYLE = (
-    ":root{--bg:#fafaf8;--fg:#1b1b19;--mute:#6b6b66}"
-    "@media (prefers-color-scheme:dark){:root{--bg:#141413;--fg:#ecebe6;--mute:#9a9992}}\n"
-    "body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);"
-    "color:var(--fg);font:16px/1.5 system-ui,-apple-system,sans-serif;padding:0 16px}\n"
-    "main{max-width:32rem;text-align:center}h1{font-size:1.75rem;margin:0 0 .5rem}"
-    "p{margin:.25rem 0;color:var(--mute)}a{color:inherit}.l{margin-top:2rem;font-size:.85rem}"
+    ":root{color-scheme:dark;--bg:#0b1426;--fg:#eef2f7;--mute:#c7d1e0}\n"
+    "body{margin:0;min-height:100vh;display:grid;grid-template-rows:auto 1fr;background:var(--bg);"
+    "color:var(--fg);font:16px/1.5 system-ui,-apple-system,sans-serif}\n"
+    "header{padding:16px 24px}"
+    "main{max-width:32rem;justify-self:center;align-self:center;text-align:center;padding:0 16px 72px}"
+    "h1{font-size:1.75rem;margin:0 0 .5rem}"
+    "p{margin:.25rem 0;color:var(--mute)}a{color:inherit}.l{margin-top:2rem;font-size:.85rem}\n"
+    + landing_chrome.LOCKUP_CSS
 )
 
 
@@ -121,7 +124,7 @@ def dark_page(site: str) -> str:
         f'<meta name="robots" content="noindex"><title>{site}</title>\n'
         + brand.head_links() + brand.social_meta(site) +
         f"<style>{_STYLE}</style></head>\n"
-        f"<body><main><h1>{site}</h1><p>{line}</p>{footer}"
+        f"<body><header>{landing_chrome.lockup()}</header><main><h1>{site}</h1><p>{line}</p>{footer}"
         f'<p class="l">© {OPERATOR}</p></main></body></html>\n'
     )
 

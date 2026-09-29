@@ -526,7 +526,7 @@ def main(argv: list[str] | None = None) -> int:
         _inject(wizard, ms / "downselect/index.html",
                 "<!-- catalogue-freshness -->", freshness)
         page = ms / "downselect/index.html"
-        page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav("ModelSpec", r.MS_NAV),
+        page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav(r.MS_NAV),
                                       "web3d/downselect.v2.html"), encoding="utf-8")
         ms_paths.append("/downselect/")
 
@@ -584,7 +584,7 @@ def main(argv: list[str] | None = None) -> int:
             "fields": _schema_field_count(ModelCard),
         }, freshness=freshness), encoding="utf-8")
         landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
-                                         r.site_nav("ModelSpec", r.MS_NAV),
+                                         r.site_nav(r.MS_NAV),
                                          "site/holding/index.html"), encoding="utf-8")
         from pipeline.social_profiles import add_same_as
         landing.write_text(

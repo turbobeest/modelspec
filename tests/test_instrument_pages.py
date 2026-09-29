@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from pipeline import build as builder  # noqa: E402
+from pipeline import landing_chrome  # noqa: E402
 from pipeline import render as r  # noqa: E402
 from pipeline.export import Build  # noqa: E402
 from pipeline.load import Benchmark, Catalogue  # noqa: E402
@@ -254,10 +255,10 @@ def test_the_generated_shell_and_the_static_pages_share_one_nav() -> None:
     build = Build(commit="abc", built_at="2026-09-18T00:00:00Z", as_of=date(2026, 9, 18))
     page = r.shell(title="t", description="d", canonical="https://x/", body="",
                    build=build, site="ModelSpec", nav_links=r.MS_NAV)
-    assert r.site_nav("ModelSpec", r.MS_NAV) in page
+    assert r.site_nav(r.MS_NAV) in page
     filled = builder.with_site_nav(f"<body>{r.NAV_PLACEHOLDER}</body>",
-                                   r.site_nav("ModelSpec", r.MS_NAV), "landing")
-    assert filled == ('<body><nav><a class="brand" href="/">ModelSpec</a><div class="links">'
+                                   r.site_nav(r.MS_NAV), "landing")
+    assert filled == (f'<body><nav>{landing_chrome.lockup()}<div class="links">'
                       '<a href="/decide/">Decide</a><a href="/method/">How we decide</a>'
                       '<a href="/graph/">Graph</a>'
                       '<a href="/models/">Models</a><a href="/providers/">Providers</a>'

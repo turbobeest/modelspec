@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pipeline import brand
+from pipeline import brand, landing_chrome
 from pipeline import worker_flags
 from pipeline.export import Build
 
@@ -64,17 +64,6 @@ def _social_meta() -> str:
     from pipeline import social_cards
 
     return social_cards.social_meta_for_page("/pricing/")
-
-
-def _logo() -> str:
-    return ('<svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" '
-            'height="40" rx="3" fill="#0B1426" stroke="#2a3b5c"/><line x1="6.5" y1="3" '
-            'x2="6.5" y2="37.5" stroke="#F2C94C" stroke-width=".9"/><line x1="3" y1="34" '
-            'x2="37" y2="34" stroke="#3FB68B" stroke-width="2.2"/><path d="M11 29 16 11 '
-            '21 23 26 11 31 29" fill="none" stroke="#fff" stroke-width="1.5" '
-            'stroke-linecap="round"/><g fill="#5AA9EC"><circle cx="11" cy="29" r="1.9"/>'
-            '<circle cx="16" cy="11" r="1.9"/><circle cx="21" cy="23" r="1.9"/>'
-            '<circle cx="26" cy="11" r="1.9"/><circle cx="31" cy="29" r="1.9"/></g></svg>')
 
 
 def _buy_form(price_id: str, kind: str) -> str:
@@ -207,8 +196,8 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title><meta name="description" content="{description}">
 <link rel="canonical" href="{base.rstrip('/')}/pricing/">{brand.head_links()}{_social_meta()}
-<link rel="stylesheet" href="/{ASSET_DIR}/pricing.css"></head><body><div class="axis" aria-hidden="true"></div>
-<header>{_logo()}<a class="wordmark" href="/"><b>Model</b>Spec</a><nav><a href="/#agents">For agents</a><a class="current" href="/pricing/" aria-current="page">Pricing</a><a class="button" href="/decide/">Open the board</a></nav><a class="button mobile-board" href="/decide/">Open the board</a></header>
+<link rel="stylesheet" href="/{ASSET_DIR}/pricing.css">{landing_chrome.lockup_style()}</head><body><div class="axis" aria-hidden="true"></div>
+<header>{landing_chrome.lockup()}<nav><a href="/#agents">For agents</a><a class="current" href="/pricing/" aria-current="page">Pricing</a><a class="button" href="/decide/">Open the board</a></nav><a class="button mobile-board" href="/decide/">Open the board</a></header>
 <main><section class="hero" id="pricing"><div><h1>{hero_heading}</h1><p>{hero_copy}</p></div><div class="rate-card"><span>One decision for an agent</span>{hero_rate}<p>{hero_detail}</p></div></section>
 <section class="buy-grid"><div class="card buy-card"><h2>{buy_heading}</h2><p>{buy_copy}</p><table class="price-table" role="table"><caption>Monthly plans · allowance resets each invoice</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Plan</th><th scope="col" role="columnheader">Allowance</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{plan_rows}</tbody></table><table class="price-table" role="table"><caption>Packs · one-off, last {expiry} days</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pack</th><th scope="col" role="columnheader">Rate</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{pack_rows}</tbody></table><p class="small">{buy_note}</p></div>
 {agents_panel}</section>

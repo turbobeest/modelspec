@@ -22,6 +22,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from pipeline import landing_chrome
 from pipeline.export import Build, models_reporting
 from pipeline.load import Benchmark, Catalogue, Model
 from schema.applicability import FIELD_RULES
@@ -60,7 +61,7 @@ unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304
 U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 """
 
-CSS = FONT_FACES + """
+CSS = FONT_FACES + landing_chrome.LOCKUP_CSS + """
 :root{--ground:#07080a;--surface:#0d1014;--raise:#13171d;--line:#1a1f26;--rule:#13171d;
 --ink:#e6eaf0;--body:#c3cad4;--mute:#9aa4b2;--dim:#767f8d;
 --good:#4ade80;--warn:#f5b342;--bad:#f87171;--off:#767f8d;--alias:#a78bfa;
@@ -79,9 +80,7 @@ a:hover{border-bottom-color:var(--accent)}
 .wrap{max-width:1220px;margin:0 auto;padding:0 24px}
 nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;
 border-bottom:1px solid var(--line);margin-bottom:26px;flex-wrap:wrap;gap:12px}
-nav .brand{font-family:var(--sans);font-weight:700;font-size:16px;
-letter-spacing:-.02em;color:var(--ink);border-bottom:0}
-nav .brand:hover{color:var(--accent)}
+nav .lockup{font-family:var(--sans);color:var(--ink);border-bottom:0}
 nav .links{display:flex;gap:20px;font-size:12px;letter-spacing:.06em;flex-wrap:wrap}
 nav .links a{color:var(--dim);border-bottom:0;text-transform:uppercase}
 nav .links a:hover{color:var(--accent)}
@@ -701,9 +700,9 @@ def esc(value: Any) -> str:
 NAV_PLACEHOLDER = "<!-- site-nav -->"
 
 
-def site_nav(site: str, nav_links: Iterable[tuple[str, str]]) -> str:
+def site_nav(nav_links: Iterable[tuple[str, str]]) -> str:
     links = "".join(f'<a href="{esc(h)}">{esc(t)}</a>' for t, h in nav_links)
-    return f'<nav><a class="brand" href="/">{esc(site)}</a><div class="links">{links}</div></nav>'
+    return f'<nav>{landing_chrome.lockup()}<div class="links">{links}</div></nav>'
 
 
 def shell(*, title: str, description: str, canonical: str | None, body: str, build: Build,
@@ -730,7 +729,7 @@ def shell(*, title: str, description: str, canonical: str | None, body: str, bui
 {FONTS}
 <style>{CSS}</style></head>
 <body><div class="wrap">
-{site_nav(site, nav_links)}
+{site_nav(nav_links)}
 <main class="page">
 {body}
 </main>

@@ -23,8 +23,8 @@ PACKAGE = ROOT / "brand" / "2a"
 SOCIAL_CARD = ROOT / "brand" / "og-card-2a.png"
 SITE = "https://modelspec.dev"
 TILE = "#0B1426"
-#: The decide page's light background (`--bg` in web/src/decide/decide.css).
-BACKGROUND = "#FAF9F8"
+#: The decide page's default dark background (`--bg` in web/src/decide/decide.css).
+BACKGROUND = TILE
 
 FAVICON_SIZES = (16, 32, 48)
 #: Served name -> source file, copied byte for byte.
