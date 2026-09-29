@@ -13,7 +13,6 @@ from typing import Any, NamedTuple, Protocol
 from decision import contract
 from decision.compare import compare as compare_decisions
 from decision.engine import decide as run_decision
-from decision.registry import default as default_registry
 from decision.registry import facet
 from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
 
@@ -318,34 +317,6 @@ def decide(payload: Any, snapshot, *,
     """
     if expected_snapshot and expected_snapshot != snapshot.snapshot_id:
         return snapshot_changed(expected_snapshot, snapshot)
-    if isinstance(payload, dict):
-        optimize = payload.get("optimize")
-        weights = optimize.get("weights") if isinstance(optimize, dict) else None
-        if isinstance(weights, dict):
-            for signed_key in weights:
-                key = str(signed_key).removeprefix("-")
-                if "/" not in key:
-                    continue
-                try:
-                    refinement = default_registry().refinement_by_weight_key(key)
-                except KeyError:
-                    continue
-                message = (
-                    "refinement weights are not rankable yet (MODEL-190); remove "
-                    f"`{key}` or use the parent domain `{refinement.parent_domain}`"
-                )
-                return error_response(
-                    "invalid_spec",
-                    message,
-                    status=HTTP_BAD_REQUEST,
-                    snapshot_id=snapshot.snapshot_id,
-                    issues=[{
-                        "path": f"optimize.weights.{key}",
-                        "condition": None,
-                        "field": "optimize.weights",
-                        "reason": message,
-                    }],
-                )
     facets = _facets(snapshot)
     try:
         spec = contract.parse_spec(payload, facets=facets)

@@ -38,12 +38,16 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "2.3"
+CONTRACT_VERSION = "2.4"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
 FACET_PATTERN = r"^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$"
 SIGNED_FACET_PATTERN = r"^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$"
+#: A refinement's weight key, ``<parent domain or any>/<refinement>`` (MODEL-190).
+REFINEMENT_KEY_PATTERN = r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_]*$"
+#: A weights key: a signed facet ID, or a signed refinement key. Added in 2.4.
+WEIGHT_KEY_PATTERN = r"^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$"
 MODEL_PATTERN = r"^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$"
 HARNESS_PATTERN = r"^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$"
 EFFORT_PATTERN = r"^[a-z0-9_-]+$"
@@ -72,6 +76,13 @@ def _matching(pattern: str, what: str) -> Any:
 FacetId = _matching(FACET_PATTERN, "a facet ID is lowercase, dotted")
 SignedFacetId = _matching(SIGNED_FACET_PATTERN,
                           "a facet ID is lowercase, dotted, with an optional leading - to minimise")
+WeightKey = _matching(WEIGHT_KEY_PATTERN,
+                      "a weights key is a facet ID, or a refinement key such as "
+                      "software_engineering/rust, with an optional leading - to minimise")
+RefinementKey = _matching(
+    REFINEMENT_KEY_PATTERN,
+    "a refinement key is <domain>/<refinement>, e.g. software_engineering/rust",
+)
 ModelId = _matching(MODEL_PATTERN, "a model ID is lab/model")
 HarnessId = _matching(HARNESS_PATTERN, "a harness ID is name@major.minor, e.g. claude-code@2.1")
 Effort = _matching(EFFORT_PATTERN, "an effort is a lowercase word")
@@ -826,7 +837,8 @@ class Objective(_Strict):
     max: FacetId | None = None
     min: FacetId | None = None
     lexicographic: list[LexStep] | None = None
-    weights: dict[SignedFacetId, float | Preference] | None = None
+    #: A key may name a refinement, ``<domain>/<refinement>`` (2.4, MODEL-190).
+    weights: dict[WeightKey, float | Preference] | None = None
     pareto: list[SignedFacetId] | None = None
     qualifiers: dict[FacetId, EvidenceQualifiers] = Field(default_factory=dict)
 
@@ -1117,6 +1129,22 @@ class Estimate(_Strict):
     effort: Effort | None = None
 
 
+class RefinementEstimate(_Strict):
+    """A refinement estimate nested in its parent domain. Added in 2.4 (MODEL-190).
+
+    ``evidence_count`` 0 means no refinement evidence: the value is the
+    parent's estimate and the interval is wider by the refinement's spread.
+    """
+
+    key: RefinementKey
+    #: The parent domain, or ``any`` for a cross-domain refinement.
+    domain: FacetId
+    refinement: FacetId
+    value: float
+    interval: tuple[float, float]
+    evidence_count: int = Field(ge=0)
+
+
 class BenchmarkEstimateChange(_Strict):
     """How one model's domain estimate changed after removing evidence. Added in 1.12."""
 
@@ -1148,6 +1176,8 @@ class Contribution(_Strict):
     #: The requested value and its match state for a boolean or enum Prefer. Added in 2.0.
     preferred_value: Scalar | None = None
     preference_status: PreferenceStatus | None = None
+    #: The refinement of ``dimension`` this contribution weighs. Added in 2.4.
+    refinement: FacetId | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class Result(_Strict):
@@ -1157,6 +1187,10 @@ class Result(_Strict):
     effort: Effort | None = None
     evidence: list[DomainEvidence] = Field(default_factory=list)
     estimates: list[Estimate] | None = None
+    #: One per refinement key in ``optimize.weights``. Added in 2.4 (MODEL-190).
+    refinement_estimates: list[RefinementEstimate] | None = Field(
+        default=None, exclude_if=lambda value: value is None,
+    )
     p_best: float | None = Field(default=None, ge=0, le=1)
     top3_stability: float | None = Field(default=None, ge=0, le=1)
     soft_penalty: float = Field(default=0.0, ge=0)
@@ -1283,12 +1317,24 @@ class TiedAnswer(_Strict):
 Answer = Annotated[SeparatedAnswer | TiedAnswer, Field(discriminator="kind")]
 
 
+class RefinementGain(_Strict):
+    """``gain`` for one refinement dimension. Added in 2.4 (MODEL-190)."""
+
+    dimension: SignedFacetId
+    refinement: FacetId
+    gain: float
+
+
 class ConstraintCost(_Strict):
     units: dict[str, str | None] = Field(default_factory=dict)
     records: list[str] = Field(default_factory=list)
     condition: str
     admits: int = Field(ge=0)
     gain: dict[SignedFacetId, float] = Field(default_factory=dict)
+    #: Gains on refinement dimensions, which ``gain`` cannot key. Added in 2.4.
+    refinement_gains: list[RefinementGain] = Field(
+        default_factory=list, exclude_if=lambda value: not value,
+    )
 
 
 class TippingPoint(_Strict):
@@ -1296,6 +1342,8 @@ class TippingPoint(_Strict):
     dimension: SignedFacetId | None = None
     threshold: float | None = None
     new_top: ModelId | None = None
+    #: The refinement of ``dimension`` whose weight tips. Added in 2.4.
+    refinement: FacetId | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class NearMiss(_Strict):
@@ -1438,7 +1486,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.3"] = CONTRACT_VERSION
+    contract_version: Literal["2.4"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1579,6 +1627,28 @@ def _issues(exc: ValidationError) -> list[Issue]:
 FacetLookup = Callable[[str], Any]
 
 
+def _refinement_key_issues(key: str, term: Any, facets: FacetLookup) -> list[Issue]:
+    """A refinement key names a domain (or ``any``) and takes a numeric weight.
+
+    Whether the refinement is registered and rankable depends on the snapshot's
+    evidence, so the engine checks that (``decision.engine.validate``).
+    """
+    parent = key.split("/", 1)[0]
+    issues = []
+    if parent != "any":
+        try:
+            info = facets(parent)
+        except KeyError:
+            info = None
+        if getattr(getattr(info, "parameter", None), "name", None) != "domain":
+            issues.append(Issue(None, key, f"refinement parent {parent!r} is not a domain",
+                                "optimize.weights"))
+    if isinstance(term, Preference):
+        issues.append(Issue(None, key, "a refinement takes a numeric weight, not a preference",
+                            "optimize.weights"))
+    return issues
+
+
 def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
     """Every facet a spec names must be registered, and ordered where it is ordered."""
     issues: list[Issue] = []
@@ -1668,6 +1738,9 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
     if objective.weights is not None:
         for signed, term in objective.weights.items():
             facet_id = _base(signed)
+            if "/" in facet_id:
+                issues.extend(_refinement_key_issues(facet_id, term, facets))
+                continue
             try:
                 info = facets(facet_id)
             except KeyError:

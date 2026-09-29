@@ -172,6 +172,40 @@ class CapabilityDriverValue:
 
 
 @dataclass(frozen=True)
+class RefinementEstimateValue:
+    """A nested refinement estimate and how many tagged measurements moved it."""
+
+    estimate: CapabilityEstimateValue
+    #: 0 means no refinement evidence: the parent estimate, widened.
+    evidence_count: int
+
+
+def refinement_fallback_value(base: Any, prior_sd: float) -> RefinementEstimateValue:
+    from decision.capability import refinement_fallback
+
+    fallback = refinement_fallback(base, prior_sd)
+    return RefinementEstimateValue(
+        CapabilityEstimateValue(fallback.value, fallback.low, fallback.high, fallback.sd), 0
+    )
+
+
+def _drivers(raw: Mapping[str, Mapping[str, Any]] | None,
+             ) -> dict[tuple[str, str], tuple[CapabilityDriverValue, ...]]:
+    return {
+        (model_id, key): tuple(
+            CapabilityDriverValue(
+                record_id=row[0], benchmark_id=row[1], version=row[2],
+                loading=float(row[3]), weight=float(row[4]),
+                recency_weight=float(row[5]),
+            )
+            for row in rows
+        )
+        for model_id, keyed in (raw or {}).items()
+        for key, rows in keyed.items()
+    }
+
+
+@dataclass(frozen=True)
 class Bitset3:
     """Three disjoint bitsets over ``candidates()``: bit ``i`` is candidate ``i``."""
 
@@ -266,6 +300,9 @@ class SnapshotInputs:
     benchmark_domains: Mapping[str, Sequence[Sequence[str]]] = field(default_factory=dict)
     #: Benchmark measurement metadata used by the build-time capability fit.
     benchmark_metadata: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: Benchmark ID -> ((refinement ID, directness), ...), from the benchmark
+    #: pages (MODEL-189). IDs are registered in ``registry/refinements.yaml``.
+    benchmark_refinements: Mapping[str, Sequence[Sequence[str]]] = field(default_factory=dict)
     #: The verification log. The latest verification of a target wins, over an
     #: inline one too.
     verifications: Sequence[Any] = ()
@@ -741,6 +778,40 @@ class _Compiler:
                 r[0], r[8] or "", r[3], canonical_json(r))) for sid in ids if sid in self.evidence},
         }
 
+    def refinements(self) -> dict[str, dict[str, Any]]:
+        """Each registered refinement's classes and benchmark tags, by weight key.
+
+        Empty without tags, so a snapshot built without refinement data keeps
+        its content. With tags, every registered refinement is listed, so the
+        engine can tell a refinement nothing measures from an unknown key.
+        """
+        if not self.inputs.benchmark_refinements:
+            return {}
+        registry = self.registry if self.registry is not None else default_registry()
+        by_id: dict[str, list[Any]] = {}
+        out: dict[str, dict[str, Any]] = {}
+        for refinement in sorted(registry.refinements(), key=lambda r: r.weight_key):
+            by_id.setdefault(refinement.id, []).append(refinement)
+            out[refinement.weight_key] = {
+                "eligible_classes": sorted(refinement.eligible_classes),
+                "benchmarks": [],
+            }
+        for bench, tags in sorted(self.inputs.benchmark_refinements.items()):
+            if self.guard is not None and self.guard.benchmark(bench):
+                continue
+            for refinement_id, directness in tags:
+                if str(directness) not in ("direct", "proxy"):
+                    raise SnapshotBuildError(
+                        f"{bench}: invalid refinement directness {directness!r}"
+                    )
+                if refinement_id not in by_id:
+                    raise SnapshotBuildError(f"{bench}: unregistered refinement {refinement_id!r}")
+                for refinement in by_id[refinement_id]:
+                    out[refinement.weight_key]["benchmarks"].append([str(bench), str(directness)])
+        for row in out.values():
+            row["benchmarks"].sort()
+        return out
+
     def content(self, as_of: date | None, premier: Iterable[str] | None = None) -> dict[str, Any]:
         """The snapshot content. With ``premier``, the lineup is the premier set.
 
@@ -783,6 +854,11 @@ class _Compiler:
             if self.guard is not None and self.guard.benchmark(bench):
                 continue
             domains[str(bench)] = sorted([str(d), str(k)] for d, k in tags)
+        refinements = self.refinements()
+        refinement_tags: dict[str, list[tuple[str, str]]] = {}
+        for key, row in refinements.items():
+            for bench, directness in row["benchmarks"]:
+                refinement_tags.setdefault(bench, []).append((key, directness))
         capability: dict[str, Any] = {}
         if self.inputs.benchmark_metadata and as_of is not None:
             from decision.capability import (
@@ -809,7 +885,7 @@ class _Compiler:
                             )
                         tag_rows.append((str(domain_id), directness))
                     tags = tuple(tag_rows)
-                    if evidence_date is None or not tags:
+                    if evidence_date is None or not (tags or row[0] in refinement_tags):
                         continue
                     observations.append(CapabilityObservation(
                         model_id=model_id,
@@ -821,6 +897,7 @@ class _Compiler:
                         record_id=row[10],
                         version=row[1],
                         domains=tags,
+                        refinements=tuple(refinement_tags.get(row[0], ())),
                     ))
             specs = {
                 benchmark: BenchmarkSpec(
@@ -844,6 +921,7 @@ class _Compiler:
             "out_of_lineup": out_of_lineup,
             "benchmark_domains": domains,
             "capability": capability,
+            **({"refinements": refinements} if refinements else {}),
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
             "record_table": _pack_records({r: self.records[r] for r in record_ids}),
@@ -1015,11 +1093,17 @@ def collect_repo(root: Path) -> SnapshotInputs:
         for source_id, source in load_sources(root / "registry" / "sources.yaml").items()
     }
     domains = {}
+    refinements = {}
     metadata = {}
     for b in load_benchmarks(root):
         tags = b.front.get("domains") or []
         if tags:
             domains[b.benchmark_id] = tuple((str(t["id"]), str(t["directness"])) for t in tags)
+        refinement_tags = b.front.get("refinements") or []
+        if refinement_tags:
+            refinements[b.benchmark_id] = tuple(
+                (str(t["id"]), str(t["directness"])) for t in refinement_tags
+            )
         metric = b.front.get("metric") or {}
         dataset = b.front.get("dataset") or {}
         metadata[b.benchmark_id] = {
@@ -1036,6 +1120,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
     return SnapshotInputs(models=models, offerings=offerings, subscriptions=subscriptions,
                           evidence=evidence, sources=sources,
                           benchmark_domains=domains, benchmark_metadata=metadata,
+                          benchmark_refinements=refinements,
                           verifications=verifications)
 
 
@@ -1403,18 +1488,21 @@ class LoadedSnapshot:
             for model_id, domains in (capability.get("estimates") or {}).items()
             for domain_id, row in domains.items()
         }
-        self._capability_drivers = {
-            (model_id, domain_id): tuple(
-                CapabilityDriverValue(
-                    record_id=row[0], benchmark_id=row[1], version=row[2],
-                    loading=float(row[3]), weight=float(row[4]),
-                    recency_weight=float(row[5]),
-                )
-                for row in rows
-            )
-            for model_id, domains in (capability.get("drivers") or {}).items()
-            for domain_id, rows in domains.items()
+        self._capability_drivers = _drivers(capability.get("drivers"))
+        # Refinements (MODEL-190): stored estimates exist only where a model
+        # has refinement evidence; everyone else falls back at read time.
+        self._refinements: Mapping[str, Mapping[str, Any]] = content.get("refinements") or {}
+        self._refinement_prior_sd = {
+            key: float(value)
+            for key, value in (capability.get("refinement_prior_sd") or {}).items()
         }
+        self._refinement_estimates = {
+            (model_id, key): (CapabilityEstimateValue(*map(float, row[:4])), int(row[4]))
+            for model_id, keys in (capability.get("refinement_estimates") or {}).items()
+            for key, row in keys.items()
+        }
+        self._refinement_drivers = _drivers(capability.get("refinement_drivers"))
+        self._fitted_models = frozenset(model for model, _ in self._capability_estimates)
         self.capability_method = capability.get("method")
         self.capability_items = capability.get("items") or {}
         self.capability_source_offsets = capability.get("source_offsets") or {}
@@ -1602,6 +1690,44 @@ class LoadedSnapshot:
         self._check(cid)
         model_id = self._meta[cid]["model"]
         return self._capability_drivers.get((model_id, domain_id), ())
+
+    def refinement_keys(self) -> tuple[str, ...]:
+        """Every registered refinement's weight key, when the snapshot carries them."""
+        return tuple(self._refinements)
+
+    def refinement_benchmarks(self, key: str) -> tuple[tuple[str, str], ...]:
+        """The (benchmark, directness) tags of one refinement."""
+        return tuple((b, d) for b, d in self._refinements[key]["benchmarks"])
+
+    def refinement_eligible_classes(self, key: str) -> tuple[str, ...]:
+        return tuple(self._refinements[key]["eligible_classes"])
+
+    def refinement_eligible(self, cid: str, key: str) -> bool:
+        classes = self.refinement_eligible_classes(key)
+        return self.fact(self.model_of(cid), "model.class").value in classes
+
+    def refinement_estimate(self, cid: str, key: str) -> RefinementEstimateValue | None:
+        """The nested estimate, or the parent estimate widened when unmeasured."""
+        from decision.capability import ANY_PARENT, population_prior, refinement_parent
+
+        if key not in self._refinements or not self.refinement_eligible(cid, key):
+            return None
+        stored = self._refinement_estimates.get((self.model_of(cid), key))
+        if stored is not None:
+            return RefinementEstimateValue(stored[0], stored[1])
+        prior_sd = self._refinement_prior_sd.get(key)
+        if prior_sd is None:
+            return None
+        parent = refinement_parent(key)
+        if parent == ANY_PARENT:
+            base = population_prior() if self.model_of(cid) in self._fitted_models else None
+        else:
+            base = self.capability_estimate(cid, parent)
+        return None if base is None else refinement_fallback_value(base, prior_sd)
+
+    def refinement_drivers(self, cid: str, key: str) -> Sequence[CapabilityDriverValue]:
+        self._check(cid)
+        return self._refinement_drivers.get((self.model_of(cid), key), ())
 
     def evidence_record(self, cid: str, record_id: str) -> EvidenceValue | None:
         """Return retained model evidence by record ID in constant time."""

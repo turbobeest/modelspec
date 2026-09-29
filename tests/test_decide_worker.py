@@ -330,9 +330,10 @@ def test_unknown_excluded_benchmark_is_a_clean_400(service, snapshot) -> None:
     ]
 
 
-def test_refinement_weights_are_rejected_until_the_refinement_estimator_lands(
+def test_a_refinement_weight_the_snapshot_cannot_rank_is_an_invalid_spec(
     service, snapshot
 ) -> None:
+    """Refinements rank since MODEL-190, but only those the snapshot carries."""
     payload = _payload() | {
         "optimize": {
             "weights": {
@@ -345,25 +346,12 @@ def test_refinement_weights_are_rejected_until_the_refinement_estimator_lands(
     status, body = service.decide(payload, snapshot)
 
     assert status == 400
-    assert body["contract_version"] == "2.3"
-    assert body["error"] == {
-        "code": "invalid_spec",
-        "message": (
-            "refinement weights are not rankable yet (MODEL-190); remove "
-            "`software_engineering/python` or use the parent domain "
-            "`software_engineering`"
-        ),
-        "issues": [{
-            "path": "optimize.weights.software_engineering/python",
-            "condition": None,
-            "field": "optimize.weights",
-            "reason": (
-                "refinement weights are not rankable yet (MODEL-190); remove "
-                "`software_engineering/python` or use the parent domain "
-                "`software_engineering`"
-            ),
-        }],
-    }
+    assert body["contract_version"] == "2.4"
+    assert body["error"]["code"] == "invalid_spec"
+    [issue] = body["error"]["issues"]
+    assert issue["field"] == "software_engineering/python"
+    assert issue["path"] == "optimize.weights"
+    assert "not a registered refinement in this snapshot" in issue["reason"]
 
 
 def test_a_requested_snapshot_must_be_the_loaded_snapshot(service, snapshot) -> None:

@@ -10,6 +10,7 @@ from decision.contract import (
     Estimate,
     EvidenceItem,
 )
+from decision.refinements import is_refinement_key, split_dimension
 from decision.registry import UNREGISTERED
 from decision.registry import facet as registry_facet
 
@@ -190,13 +191,31 @@ def domain_evidence(snapshot, cid, domains, benchmarks=None):
     return groups
 
 
+def _estimate_drivers(snapshot, cid, dimension):
+    """(drivers, their tags, requested domain) behind one estimate dimension.
+
+    A refinement estimate moved by refinement evidence is driven by it; an
+    unmeasured one is the parent's estimate, so the parent's drivers.
+    """
+    parent, refinement = split_dimension(dimension)
+    own = snapshot.refinement_drivers(cid, dimension) if refinement else ()
+    if own:
+        tags = {}
+        for benchmark, directness in snapshot.refinement_benchmarks(dimension):
+            tags.setdefault(benchmark, []).append((dimension, directness))
+        return own, tags, dimension, parent
+    return (snapshot.capability_drivers(cid, parent), snapshot.benchmark_domain_tags(),
+            parent, parent)
+
+
 def estimate_evidence(snapshot, cid, domain):
     """The tagged measurements that drove one stored capability estimate."""
     from dataclasses import replace
 
     items = []
     model_id = snapshot.model_of(cid)
-    for driver in snapshot.capability_drivers(cid, domain):
+    drivers, tags, tag, domain = _estimate_drivers(snapshot, cid, domain)
+    for driver in drivers:
         lookup = getattr(snapshot, "evidence_record", None)
         row = lookup(model_id, driver.record_id) if lookup is not None else next((
             row
@@ -209,12 +228,10 @@ def estimate_evidence(snapshot, cid, domain):
             raise ExplanationError(
                 f"{driver.record_id}: capability driver is not retained evidence"
             )
-        directness = dict(
-            snapshot.benchmark_domain_tags().get(driver.benchmark_id, ())
-        ).get(domain)
+        directness = dict(tags.get(driver.benchmark_id, ())).get(tag)
         if directness is None:
             raise ExplanationError(
-                f"{driver.record_id}: capability driver is not tagged for {domain}"
+                f"{driver.record_id}: capability driver is not tagged for {tag}"
             )
         items.append(evidence_item(
             snapshot,
@@ -234,6 +251,8 @@ def part_provenance(snapshot, cid, part):
         for rid in records:
             checked_record(snapshot, rid)
         return records, part.evidence[0].unit, None
+    if part.estimate is not None and is_refinement_key(part.dimension):
+        return _refinement_provenance(snapshot, cid, part.dimension.removeprefix("-"))
     if part.estimate is not None:
         domain = part.dimension.removeprefix("-")
         records = [driver.record_id for driver in snapshot.capability_drivers(
@@ -256,6 +275,22 @@ def part_provenance(snapshot, cid, part):
     if part.raw_value is not None:
         return fact_provenance(snapshot, cid, part.dimension.removeprefix("-"))
     return [], None, None
+
+
+def _refinement_provenance(snapshot, cid, key):
+    parent, refinement = split_dimension(key)
+    drivers, _tags, _tag, _domain = _estimate_drivers(snapshot, cid, key)
+    records = [driver.record_id for driver in drivers]
+    for rid in records:
+        checked_record(snapshot, rid)
+    label = refinement.replace("_", " ")
+    if snapshot.refinement_estimate(cid, key).evidence_count:
+        proxy = {d for _, d in snapshot.refinement_benchmarks(key)} == {"proxy"}
+        formula = (f"{parent} estimate plus a partially pooled "
+                   f"{'proxy-only ' if proxy else ''}{label} adjustment")
+    else:
+        formula = f"no {label} evidence: the {parent} estimate, with a wider interval"
+    return records, "latent capability", formula
 
 
 def _items(groups, ids):
@@ -284,9 +319,11 @@ def contributions(snapshot, cid, parts, evidence):
                     snapshot, e.benchmark_id)}
                 items = _items(domain_evidence(snapshot, cid, domains), set(records))
         norm = part.normalisation
+        dimension, refinement = split_dimension(part.dimension)
         out.append(
             Contribution(
-                dimension=part.dimension,
+                dimension=dimension,
+                refinement=refinement,
                 weight=part.weight,
                 value=part.value,
                 raw_value=part.raw_value,
@@ -392,7 +429,8 @@ def explain(
             description=(
                 f"{point.direction} weight past threshold; other weights and normalisation fixed"
             ),
-            dimension=point.dimension,
+            dimension=split_dimension(point.dimension)[0],
+            refinement=split_dimension(point.dimension)[1],
             threshold=point.threshold,
             new_top=snapshot.model_of(point.new_top),
         )
@@ -435,6 +473,7 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
         ModelEliminationGroup,
         NearMiss,
         OfferingElimination,
+        RefinementGain,
         render_condition,
     )
     from decision.engine import offering_ref, run_optimise
@@ -488,7 +527,12 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             ConstraintCost(
                 condition=text,
                 admits=len(set(relaxed.feasible) - set(filtered.feasible)),
-                gain=gains,
+                gain={d: g for d, g in gains.items() if not is_refinement_key(d)},
+                refinement_gains=[
+                    RefinementGain(dimension=parent, refinement=refinement, gain=g)
+                    for d, g in gains.items() if is_refinement_key(d)
+                    for parent, refinement in [split_dimension(d)]
+                ],
                 units=units,
                 records=sorted(records),
             )
@@ -660,6 +704,13 @@ def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
         )
 
 
+def dimension_label(part):
+    """A contribution's or tipping point's dimension, with its refinement."""
+    if part.dimension is None or part.refinement is None:
+        return part.dimension
+    return f"{part.dimension}/{part.refinement}"
+
+
 def top_contributions(decision):
     """Each top candidate with its contributions, from ``results`` when ranked."""
     ranked = {r.offering.model_dump_json(): r.contributions for r in decision.results}
@@ -682,20 +733,22 @@ def contribution_chart(decision):
         'role="img" aria-label="Objective contributions in original units">'
     ]
     maxima = {
-        c.dimension: max(
-            abs(other.raw_value) for _, other in rows if other.dimension == c.dimension
+        dimension_label(c): max(
+            abs(other.raw_value) for _, other in rows
+            if dimension_label(other) == dimension_label(c)
         )
         for _, c in rows
     }
     for i, (model, c) in enumerate(rows):
-        width = 300 * abs(c.raw_value) / (maxima[c.dimension] or 1)
+        width = 300 * abs(c.raw_value) / (maxima[dimension_label(c)] or 1)
         reported = (
             " · Lab-reported"
             if any(e.measured_by == "provider_self_report" for e in c.evidence)
             else ""
         )
         label = escape(
-            f"{model}{reported} · {c.dimension}: {c.raw_value:g} {c.unit or 'unit not recorded'}"
+            f"{model}{reported} · {dimension_label(c)}: {c.raw_value:g} "
+            f"{c.unit or 'unit not recorded'}"
         )
         parts += [
             f'<text x="8" y="{i * 55 + 18}">{label}</text>',
@@ -783,7 +836,7 @@ def number_origins(decision, snapshot):
                 raise ExplanationError(f"{path}: value differs from retained record")
         elif key == "distance":
             basis = "distance from snapshot value to spec condition boundary, in original units"
-        elif "/gain/" in path:
+        elif "/gain/" in path or "/refinement_gains/" in path:
             basis = "best relaxed raw objective value minus best current raw value"
         elif key == "threshold":
             basis = "optimise weight crossing with other weights and normalisation fixed"
@@ -877,7 +930,7 @@ def render_html(decision, snapshot):
         out = []
         for c in contributions:
             out.append(
-                f"<p>{esc(c.dimension)}: {quantity(c.raw_value, c.unit)}; "
+                f"<p>{esc(dimension_label(c))}: {quantity(c.raw_value, c.unit)}; "
                 f"normalised value {quantity(c.value, 'dimensionless')}; "
                 f"weight {quantity(c.weight, 'dimensionless')}. "
                 + (f"Computed: {esc(c.formula)}. " if c.formula else "")
@@ -967,12 +1020,14 @@ def render_html(decision, snapshot):
     out.append("</section><section><h2>Constraint costs</h2>")
     for cost in decision.constraint_costs:
         out.append(f"<p>Relax {esc(cost.condition)}: admits {cost.admits} candidates.</p>")
-        for dimension, gain in cost.gain.items():
+        gains = [*cost.gain.items(),
+                 *((f"{g.dimension}/{g.refinement}", g.gain) for g in cost.refinement_gains)]
+        for dimension, gain in gains:
             out.append(
                 f"<p>{esc(dimension)}: relaxed minus current = "
                 f"{quantity(gain, cost.units.get(dimension))}. {links(cost.records)}</p>"
             )
-        if not cost.gain:
+        if not gains:
             out.append("<p>No comparable objective values.</p>")
     out.append("</section><section><h2>Near misses</h2>")
     for miss in decision.near_misses:
@@ -1000,7 +1055,8 @@ def render_html(decision, snapshot):
     out.append("</section><section><h2>Tipping points</h2>")
     for point in decision.tipping_points:
         out.append(
-            f"<p>{esc(point.dimension)}: {quantity(point.threshold, 'dimensionless weight')}; "
+            f"<p>{esc(dimension_label(point))}: "
+            f"{quantity(point.threshold, 'dimensionless weight')}; "
             f"{esc(point.description)}; new top {esc(point.new_top)}.</p>"
         )
     out.append("</section>")

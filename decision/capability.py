@@ -11,6 +11,12 @@ the registry tags carried into the snapshot builder. Missing cells add no
 likelihood term. Old evidence loses precision, provider self-reports get a
 learned offset, and a learned proxy loading keeps proxy tags weaker than direct
 tags. The build stores posterior means, intervals, and explanation drivers.
+
+A refinement (MODEL-190) nests in its parent domain. Its estimate starts from
+the domain estimate, read without the refinement's own benchmarks, and adds a
+partially pooled adjustment learned from every benchmark tagged to it. With
+no refinement evidence the adjustment is zero and only its prior spread
+remains, so the model keeps its domain value with a wider interval.
 """
 
 from __future__ import annotations
@@ -20,7 +26,7 @@ import math
 import random
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any, Literal, cast
 
@@ -41,6 +47,14 @@ _MIN_ITEM_MODELS = 2
 _DOMAIN_PRIOR_PRECISION = 0.25
 _PROJECTION_PROXY_LOADING = 0.35
 _EXCLUSION_CACHE_SIZE = 16
+# The between-model spread of a refinement adjustment. A refinement's own
+# estimate is pooled with this default, weighted as this many models, and
+# clamped so thin evidence can neither remove nor dominate the widening.
+_REFINEMENT_PRIOR_SD = 0.5
+_REFINEMENT_POOL_MODELS = 3.0
+_REFINEMENT_SD_BOUNDS = (0.25, 1.0)
+#: The parent of a cross-domain refinement: it nests in the population prior.
+ANY_PARENT = "any"
 
 
 @dataclass(frozen=True)
@@ -61,6 +75,8 @@ class CapabilityObservation:
     record_id: str
     version: str | None
     domains: tuple[tuple[str, Directness], ...]
+    #: Refinement weight keys (``domain/refinement``) the benchmark is tagged to.
+    refinements: tuple[tuple[str, Directness], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -69,6 +85,35 @@ class CapabilityEstimate:
     low: float
     high: float
     sd: float
+
+
+@dataclass(frozen=True)
+class RefinementEstimate:
+    value: float
+    low: float
+    high: float
+    sd: float
+    #: Refinement-tagged measurements behind the adjustment; 0 is the fallback.
+    evidence_count: int
+
+
+def _interval(mean: float, sd: float) -> tuple[float, float, float, float]:
+    return mean, mean - _INTERVAL_Z * sd, mean + _INTERVAL_Z * sd, sd
+
+
+def refinement_parent(key: str) -> str:
+    return key.split("/", 1)[0]
+
+
+def population_prior() -> CapabilityEstimate:
+    """What the projection knows of a model with no tagged evidence at all."""
+    return CapabilityEstimate(*_interval(0.0, math.sqrt(1 / _DOMAIN_PRIOR_PRECISION)))
+
+
+def refinement_fallback(base: Any, prior_sd: float) -> RefinementEstimate:
+    """The parent estimate with the adjustment's prior spread added, no evidence."""
+    sd = math.sqrt(base.sd**2 + prior_sd**2)
+    return RefinementEstimate(*_interval(base.value, sd), evidence_count=0)
 
 
 @dataclass(frozen=True)
@@ -157,6 +202,11 @@ class CapabilityFit:
     directness: DirectnessFit
     drivers: dict[tuple[str, str], tuple[EstimateDriver, ...]]
     domain_estimates: dict[tuple[str, str], CapabilityEstimate] = field(default_factory=dict)
+    refinement_prior_sd: dict[str, float] = field(default_factory=dict)
+    refinement_estimates: dict[tuple[str, str], RefinementEstimate] = field(default_factory=dict)
+    refinement_drivers: dict[tuple[str, str], tuple[EstimateDriver, ...]] = field(
+        default_factory=dict
+    )
 
     def estimate(self, model_id: str, domain: str) -> CapabilityEstimate | None:
         domain_estimate = self.domain_estimates.get((model_id, domain))
@@ -178,6 +228,25 @@ class CapabilityFit:
 
     def explain(self, model_id: str, domain: str, *, limit: int = 8) -> tuple[EstimateDriver, ...]:
         return self.drivers.get((model_id, domain), ())[:limit]
+
+    def refinement_estimate(self, model_id: str, key: str) -> RefinementEstimate | None:
+        """The nested estimate for ``key``, or the widened parent estimate without evidence."""
+        stored = self.refinement_estimates.get((model_id, key))
+        if stored is not None:
+            return stored
+        prior_sd = self.refinement_prior_sd.get(key)
+        if prior_sd is None:
+            return None
+        parent = refinement_parent(key)
+        if parent == ANY_PARENT:
+            base = population_prior() if model_id in self.models else None
+        else:
+            base = self.estimate(model_id, parent)
+        return None if base is None else refinement_fallback(base, prior_sd)
+
+    def explain_refinement(self, model_id: str, key: str, *,
+                           limit: int = 8) -> tuple[EstimateDriver, ...]:
+        return self.refinement_drivers.get((model_id, key), ())[:limit]
 
     def predict(self, model_id: str, benchmark_id: str, version: str | None = None) -> float | None:
         item = _find_item(self.items, benchmark_id, version)
@@ -220,7 +289,7 @@ class CapabilityFit:
                 estimates[model_id] = by_domain
             if by_driver:
                 driver_rows[model_id] = by_driver
-        return {
+        payload: dict[str, object] = {
             "method": "hierarchical-bifactor-irt",
             "as_of": self.as_of.isoformat(),
             "directness": {
@@ -251,6 +320,32 @@ class CapabilityFit:
             },
             "estimates": estimates,
             "drivers": driver_rows,
+        }
+        if self.refinement_prior_sd:
+            payload.update(self._refinement_payload(keep))
+        return payload
+
+    def _refinement_payload(self, keep: set[str]) -> dict[str, object]:
+        estimates: dict[str, dict[str, list[float]]] = {}
+        drivers: dict[str, dict[str, list[list[object]]]] = {}
+        for (model_id, key), estimate in sorted(self.refinement_estimates.items()):
+            if model_id not in keep:
+                continue
+            estimates.setdefault(model_id, {})[key] = [
+                _round(estimate.value), _round(estimate.low), _round(estimate.high),
+                _round(estimate.sd), estimate.evidence_count,
+            ]
+            drivers.setdefault(model_id, {})[key] = [
+                [row.record_id, row.benchmark_id, row.version,
+                 _round(row.loading), _round(row.weight), _round(row.recency_weight)]
+                for row in self.explain_refinement(model_id, key)
+            ]
+        return {
+            "refinement_prior_sd": {
+                key: _round(value) for key, value in sorted(self.refinement_prior_sd.items())
+            },
+            "refinement_estimates": estimates,
+            "refinement_drivers": drivers,
         }
 
 
@@ -445,27 +540,11 @@ def _domain_estimates(
             for row in rows
             if domain in dict(items[row.item_id].domains)
         ]
-        by_item: dict[str, list[_Prepared]] = defaultdict(list)
-        for row in domain_rows:
-            by_item[row.item_id].append(row)
-
         scores: dict[str, list[tuple[_Prepared, float, float]]] = defaultdict(list)
-        for item_id, item_rows in sorted(by_item.items()):
-            targets = [row.target for row in item_rows]
-            center = sum(targets) / len(targets)
-            spread = math.sqrt(
-                sum((value - center) ** 2 for value in targets)
-                / max(1, len(targets) - 1)
-            ) or 1.0
-            for row, value in zip(item_rows, targets):
-                z_score = (value - center) / spread
-                directness_loading = (
-                    1.0
-                    if dict(items[item_id].domains)[domain] == "direct"
-                    else _PROJECTION_PROXY_LOADING
-                )
-                precision = directness_loading**2 * row.recency_weight
-                scores[row.observation.model_id].append((row, z_score, precision))
+        for row, z_score in _item_zscores(domain_rows):
+            directness_loading = _projection_loading(items[row.item_id].domains, domain)
+            precision = directness_loading**2 * row.recency_weight
+            scores[row.observation.model_id].append((row, z_score, precision))
 
         for model_id, model_rows in sorted(scores.items()):
             precision = _DOMAIN_PRIOR_PRECISION + sum(
@@ -479,24 +558,134 @@ def _domain_estimates(
                 mean + _INTERVAL_Z * sd,
                 sd,
             )
-            total = sum(weight for _, _, weight in model_rows) or 1.0
-            driver_rows = [
-                EstimateDriver(
-                    row.observation.record_id,
-                    row.observation.benchmark_id,
-                    row.observation.version,
-                    1.0
-                    if dict(items[row.item_id].domains)[domain] == "direct"
-                    else _PROJECTION_PROXY_LOADING,
-                    weight / total,
-                    row.recency_weight,
-                )
-                for row, _, weight in model_rows
-            ]
-            driver_rows.sort(key=lambda driver: (-driver.weight, driver.record_id))
-            drivers[(model_id, domain)] = tuple(driver_rows)
+            drivers[(model_id, domain)] = _projection_drivers(
+                model_rows,
+                lambda row, domain=domain: _projection_loading(items[row.item_id].domains, domain),
+            )
 
     return estimates, drivers
+
+
+def _item_zscores(rows: Sequence[_Prepared]) -> list[tuple[_Prepared, float]]:
+    """Each row's standardised score within its item, items in ID order."""
+    by_item: dict[str, list[_Prepared]] = defaultdict(list)
+    for row in rows:
+        by_item[row.item_id].append(row)
+    out = []
+    for _item_id, item_rows in sorted(by_item.items()):
+        targets = [row.target for row in item_rows]
+        center = sum(targets) / len(targets)
+        spread = math.sqrt(
+            sum((value - center) ** 2 for value in targets)
+            / max(1, len(targets) - 1)
+        ) or 1.0
+        out.extend((row, (value - center) / spread) for row, value in zip(item_rows, targets))
+    return out
+
+
+def _projection_loading(tags: Sequence[tuple[str, Directness]], tag: str) -> float:
+    return 1.0 if dict(tags)[tag] == "direct" else _PROJECTION_PROXY_LOADING
+
+
+def _projection_drivers(
+    model_rows: Sequence[tuple[_Prepared, float, float]], loading: Any,
+) -> tuple[EstimateDriver, ...]:
+    total = sum(weight for _, _, weight in model_rows) or 1.0
+    driver_rows = [
+        EstimateDriver(
+            row.observation.record_id,
+            row.observation.benchmark_id,
+            row.observation.version,
+            loading(row),
+            weight / total,
+            row.recency_weight,
+        )
+        for row, _, weight in model_rows
+    ]
+    driver_rows.sort(key=lambda driver: (-driver.weight, driver.record_id))
+    return tuple(driver_rows)
+
+
+def _refinement_estimates(
+    items: Mapping[str, ItemFit],
+    rows: Sequence[_Prepared],
+    observations: Sequence[CapabilityObservation],
+    benchmark_specs: Mapping[str, BenchmarkSpec],
+    as_of: date,
+) -> tuple[
+    dict[str, float],
+    dict[tuple[str, str], RefinementEstimate],
+    dict[tuple[str, str], tuple[EstimateDriver, ...]],
+]:
+    """Nest each refinement in its parent: a domain prior plus pooled evidence.
+
+    The prior is the parent's projection over its benchmarks *not* tagged to
+    the refinement, so no measurement counts twice, widened by the
+    refinement's between-model spread. That spread is estimated by method of
+    moments across models with refinement evidence and pooled toward
+    ``_REFINEMENT_PRIOR_SD``; with no evidence a model keeps the prior.
+    """
+    keys = sorted({key for row in observations for key, _ in row.refinements})
+    if not keys:
+        return {}, {}, {}
+    tagged = [replace(row, domains=row.refinements) for row in observations if row.refinements]
+    refinement_items, refinement_rows = _prepare(tagged, benchmark_specs, as_of)
+    zscores = _item_zscores(refinement_rows)
+    domain_zscores = _item_zscores(rows)
+
+    prior_sd: dict[str, float] = {}
+    estimates: dict[tuple[str, str], RefinementEstimate] = {}
+    drivers: dict[tuple[str, str], tuple[EstimateDriver, ...]] = {}
+    for key in keys:
+        parent = refinement_parent(key)
+        own = {row.benchmark_id for row in observations if key in dict(row.refinements)}
+        base_scores: dict[str, list[tuple[float, float]]] = defaultdict(list)
+        if parent != ANY_PARENT:
+            for row, z_score in domain_zscores:
+                tags = items[row.item_id].domains
+                if parent in dict(tags) and row.observation.benchmark_id not in own:
+                    weight = _projection_loading(tags, parent) ** 2 * row.recency_weight
+                    base_scores[row.observation.model_id].append((z_score, weight))
+        scores: dict[str, list[tuple[_Prepared, float, float]]] = defaultdict(list)
+        for row, z_score in zscores:
+            tags = refinement_items[row.item_id].domains
+            if key in dict(tags):
+                weight = _projection_loading(tags, key) ** 2 * row.recency_weight
+                scores[row.observation.model_id].append((row, z_score, weight))
+
+        def base(model_id: str) -> tuple[float, float]:
+            parts = base_scores.get(model_id, ())
+            precision = _DOMAIN_PRIOR_PRECISION + sum(weight for _, weight in parts)
+            return sum(weight * z for z, weight in parts) / precision, 1 / precision
+
+        deviations = []
+        for model_id, model_rows in sorted(scores.items()):
+            precision = sum(weight for _, _, weight in model_rows)
+            mean = sum(weight * z for _, z, weight in model_rows) / precision
+            base_mean, base_variance = base(model_id)
+            deviations.append((mean - base_mean) ** 2 - 1 / precision - base_variance)
+        observed = max(0.0, sum(deviations) / len(deviations)) if deviations else 0.0
+        pooled = (len(deviations) * observed + _REFINEMENT_POOL_MODELS * _REFINEMENT_PRIOR_SD**2) \
+            / (len(deviations) + _REFINEMENT_POOL_MODELS)
+        low, high = _REFINEMENT_SD_BOUNDS
+        prior_sd[key] = min(high, max(low, math.sqrt(pooled)))
+
+        for model_id, model_rows in sorted(scores.items()):
+            base_mean, base_variance = base(model_id)
+            prior_variance = base_variance + prior_sd[key] ** 2
+            precision = 1 / prior_variance + sum(weight for _, _, weight in model_rows)
+            mean = (base_mean / prior_variance
+                    + sum(weight * z for _, z, weight in model_rows)) / precision
+            estimates[(model_id, key)] = RefinementEstimate(
+                *_interval(mean, math.sqrt(1 / precision)), evidence_count=len(model_rows)
+            )
+            drivers[(model_id, key)] = _projection_drivers(
+                model_rows,
+                lambda row, key=key: _projection_loading(
+                    refinement_items[row.item_id].domains, key
+                ),
+            )
+    return prior_sd, estimates, drivers
 
 
 def fit_capabilities(
@@ -694,6 +883,9 @@ def fit_capabilities(
 
     domain_estimates, domain_drivers = _domain_estimates(items, rows)
     drivers.update(domain_drivers)
+    refinement_prior_sd, refinement_estimates, refinement_drivers = _refinement_estimates(
+        items, rows, rows_in, benchmark_specs, as_of
+    )
 
     return CapabilityFit(
         as_of=as_of,
@@ -704,6 +896,9 @@ def fit_capabilities(
         directness=DirectnessFit(proxy_loading=proxy),
         drivers=drivers,
         domain_estimates=domain_estimates,
+        refinement_prior_sd=refinement_prior_sd,
+        refinement_estimates=refinement_estimates,
+        refinement_drivers=refinement_drivers,
     )
 
 
@@ -766,6 +961,30 @@ class BenchmarkExclusionView:
             for row in self._fit.explain(self.model_of(cid), domain_id)
         )
 
+    def refinement_estimate(self, cid: str, key: str) -> Any:
+        from decision.snapshot import CapabilityEstimateValue, RefinementEstimateValue
+
+        if key not in self._base.refinement_keys() or not self._base.refinement_eligible(cid, key):
+            return None
+        estimate = self._fit.refinement_estimate(self.model_of(cid), key)
+        if estimate is None:
+            return None
+        return RefinementEstimateValue(
+            CapabilityEstimateValue(estimate.value, estimate.low, estimate.high, estimate.sd),
+            estimate.evidence_count,
+        )
+
+    def refinement_drivers(self, cid: str, key: str) -> Sequence[Any]:
+        from decision.snapshot import CapabilityDriverValue
+
+        return tuple(
+            CapabilityDriverValue(
+                row.record_id, row.benchmark_id, row.version,
+                row.loading, row.weight, row.recency_weight,
+            )
+            for row in self._fit.explain_refinement(self.model_of(cid), key)
+        )
+
     def evidence_record(self, cid: str, record_id: str) -> Any:
         row = self._base.evidence_record(cid, record_id)
         if row is not None and row.benchmark_id in self._excluded:
@@ -801,6 +1020,10 @@ def excluding_benchmarks(snapshot: Any, benchmark_ids: Iterable[str]) -> Benchma
     fit = cache.get(excluded)
     if fit is None:
         tags = snapshot.benchmark_domain_tags()
+        refinement_tags: dict[str, list[tuple[str, Directness]]] = defaultdict(list)
+        for key in snapshot.refinement_keys():
+            for benchmark_id, directness in snapshot.refinement_benchmarks(key):
+                refinement_tags[benchmark_id].append((key, cast(Directness, directness)))
         observations = []
         for model_id, row in snapshot.corpus_evidence():
             if row.benchmark_id in excluded or row.date is None:
@@ -809,7 +1032,7 @@ def excluding_benchmarks(snapshot: Any, benchmark_ids: Iterable[str]) -> Benchma
                 (domain_id, cast(Directness, directness))
                 for domain_id, directness in tags.get(row.benchmark_id, ())
             )
-            if not domains:
+            if not domains and row.benchmark_id not in refinement_tags:
                 continue
             observations.append(CapabilityObservation(
                 model_id=model_id,
@@ -821,6 +1044,7 @@ def excluding_benchmarks(snapshot: Any, benchmark_ids: Iterable[str]) -> Benchma
                 record_id=str(row.record_id or ""),
                 version=row.version,
                 domains=domains,
+                refinements=tuple(refinement_tags.get(row.benchmark_id, ())),
             ))
         specs = {}
         for item in snapshot.capability_items.values():

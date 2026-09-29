@@ -35,7 +35,7 @@ are the Worker's declared Python dependencies.
 
 The JSON body is a Spec from [`decision-contract.md`](decision-contract.md).
 `spec_version` is the integer `1`; the current compatible contract release is
-`2.3`.
+`2.4`.
 
 ```http
 POST /v1/decide
@@ -119,7 +119,7 @@ shown indented here for reading.
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "2.3",
+  "contract_version": "2.4",
   "decision_id": "dec_0123456789abcdef01234567",
   "snapshot": "snap_0123456789abcdef",
   "spec_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -216,7 +216,7 @@ confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 
 ```json
 {
-  "contract_version": "2.3",
+  "contract_version": "2.4",
   "endpoint": "decide",
   "snapshot": "snap_new0123456789ab",
   "error": {
@@ -254,7 +254,7 @@ The Worker echoes the exact requesting origin from that list and handles its
 |---|---|---|---|
 | 200 | none | A Decision, including `no_feasible`. | Read `status`, `results`, `may_qualify`, and `relax`. |
 | 400 | `invalid_request` | The body is not valid JSON. | Send one JSON object as the request body. |
-| 400 | `invalid_spec` | The body is not a valid decision Spec. This includes an `optimize.weights` key for a refinement before MODEL-190 adds refinement estimates. | Apply every item in `error.issues`; unknown fields are not ignored. For a refinement weight, remove the named key or use its parent domain. |
+| 400 | `invalid_spec` | The body is not a valid decision Spec. This includes an `optimize.weights` refinement key whose vocabulary `evidence_state` is `not_measured` or `no_benchmark`, or that the snapshot does not register. | Apply every item in `error.issues`; unknown fields are not ignored. For a refinement weight, remove the named key or use its parent domain. |
 | 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from the internal preview origin or make a server-side request. |
 | 409 | `snapshot_changed` | `X-ModelSpec-Snapshot` names another Snapshot than the one answering. | Reload `/api/decision/vocabulary.json`, rebuild the Spec from it, and retry once with its `snapshot`. |
 | 409 | `snapshot_not_loaded` | The Spec pinned a different Snapshot. | Send `latest`, use the response's loaded Snapshot ID, or retry after the requested Snapshot is deployed. |

@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.3**
+Contract version: **2.4**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -364,6 +364,31 @@ A `lexicographic` objective has at least two steps. Each step is one of `max` or
 `{ absolute: 0.25 }`). The last step has nothing after it, so it takes no
 `within`.
 
+### Refinement weights
+
+A `weights` key can name a refinement: `<domain>/<refinement>`, the
+`weight_key` the vocabulary publishes (MODEL-190).
+
+```yaml
+optimize:
+  weights: {software_engineering: 0.3, software_engineering/rust: 0.3, -offering.cost_per_task: 0.4}
+```
+
+A refinement estimate nests in its parent domain. It is the domain estimate,
+read without the refinement's own benchmarks, plus a partially pooled
+adjustment learned from every benchmark tagged to the refinement. A model with
+no refinement evidence keeps its domain value with a wider interval, and stays
+in `results`: it is never dropped for missing refinement evidence. A
+cross-domain refinement (parent `any`) nests in the population prior instead.
+
+A refinement weight is a positive number, never a value preference. The engine
+accepts it only when the vocabulary's `evidence_state` for that refinement is
+`live` or `thin`. A `not_measured` or `no_benchmark` refinement, or a key the
+snapshot does not register, is refused with `invalid_spec`, naming the state
+and the parent domain to rank on instead. A refinement is unknown only when its
+parent is; `may_qualify[].unknown` then names the parent. The tie rules of the
+`answer` block apply unchanged.
+
 The `max`, `min`, `lexicographic` and `pareto` forms must name ordered facets.
 A `bool`, `enum` or `string` facet cannot be maximised, windowed or compared
 with `<`; boolean and enum facets are usable only as value terms in `weights`.
@@ -447,7 +472,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.3",
+  "contract_version": "2.4",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -523,7 +548,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.3"`. |
+| `contract_version` | `"2.4"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -536,8 +561,8 @@ same canonical representation it had in 1.0.
 | `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
 | `eliminated` | Candidates that failed a condition or were Pareto-dominated. The `funnel` reports each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. A qualifying candidate omitted by `limit` is never an elimination. |
 | `truncated` | Qualifying candidates omitted only because of `limit`. `offerings` counts omitted offering rows. `models` counts models with no row in `results`; a model with one returned offering and another omitted offering is not counted as an omitted model. Both counts are always present and are zero when the complete qualifying result set was returned. |
-| `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. |
-| `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. |
+| `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. Gains on refinement dimensions are in `refinement_gains`, each a `dimension`, `refinement` and `gain`; absent when there are none (2.4). |
+| `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. A refinement weight's point also names its `refinement` (2.4). |
 | `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. |
 | `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
 | `warnings` | Codes about the decision as a whole. |
@@ -601,10 +626,11 @@ of them.
 | `effort` | The effort setting the evidence and estimate apply to, or null. |
 | `evidence` | For each requested `domain`, the verified evidence `items`. |
 | `estimates` | Capability estimates per `domain`, each a `value` and an 80% `interval` `[low, high]`, with the `harness` and `effort` they apply to. Null when the snapshot has no fitted estimate. |
+| `refinement_estimates` | One per refinement key in `optimize.weights`, absent otherwise: the `key`, its parent `domain` (or `any`), the `refinement`, a `value` and an 80% `interval`, and `evidence_count`, the refinement-tagged measurements behind the adjustment. `evidence_count` 0 means no refinement evidence: the value is the parent's estimate and the interval is wider. Added in 2.4. |
 | `p_best` | The probability this model is best among the feasible models. For a weighted objective, the engine resamples each capability posterior, applies the objective's affine transform and weights, and keeps exact facets fixed. Null when the objective has no capability posterior. |
 | `top3_stability` | The share of those deterministic posterior resamples in which the model stays in the top three. Null when `p_best` is null. |
 | `soft_penalty` | The total penalty from violated soft conditions. |
-| `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. A boolean or enum term also carries `preferred_value` and `preference_status`. |
+| `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. A boolean or enum term also carries `preferred_value` and `preference_status`. A refinement term's `dimension` is its signed parent domain, and `refinement` names the refinement (2.4). |
 | `warnings` | Codes about this result. |
 
 **An evidence item** carries `benchmark`, `version`, `sub_category`, `value`,
@@ -893,6 +919,13 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.4 — MODEL-190:** `optimize.weights` accepts refinement keys
+  (`software_engineering/rust`) for refinements the vocabulary marks `live` or
+  `thin`, and ranks them on a nested estimate. Results add optional
+  `refinement_estimates`; contributions and tipping points add an optional
+  `refinement` beside their parent-domain `dimension`; constraint costs add
+  optional `refinement_gains`. No closed field widens: `dimension` still
+  carries a facet ID, and an unrankable refinement is still `invalid_spec`.
 - **2.3 — MODEL-179:** A spec adds the optional `estate` (`providers`, `plans`,
   `devices`, `exhausted`) and a decision adds `with_estate`, the same question
   answered from what the caller holds, with a `gap` to the unrestricted answer

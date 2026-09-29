@@ -388,8 +388,8 @@ paths:
               schema:
                 type: string
         '400':
-          description: The body is not a contract-v1 spec. This includes refinement weights, which remain
-            unavailable until MODEL-190.
+          description: The body is not a valid decision spec. This includes a refinement weight whose
+            evidence_state is not live or thin.
           content:
             application/json:
               schema:
@@ -3109,6 +3109,11 @@ components:
               type: number
           title: Gain
           type: object
+        refinement_gains:
+          items:
+            $ref: '#/components/schemas/DecisionRefinementGain'
+          title: Refinement Gains
+          type: array
       required:
       - condition
       - admits
@@ -3188,6 +3193,13 @@ components:
           - type: 'null'
           default: null
           title: Preference Status
+        refinement:
+          anyOf:
+          - pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Refinement
       required:
       - dimension
       title: Contribution
@@ -3228,8 +3240,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.3'
-          default: '2.3'
+          const: '2.4'
+          default: '2.4'
           title: Contract Version
           type: string
         decision_id:
@@ -4296,7 +4308,7 @@ components:
         weights:
           anyOf:
           - patternProperties:
-              ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$:
+              ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$:
                 anyOf:
                 - type: number
                 - $ref: '#/components/schemas/DecisionPreference'
@@ -4452,6 +4464,72 @@ components:
       - provider
       title: ProfileOffering
       type: object
+    DecisionRefinementEstimate:
+      additionalProperties: false
+      description: 'A refinement estimate nested in its parent domain. Added in 2.4 (MODEL-190).
+
+
+        ``evidence_count`` 0 means no refinement evidence: the value is the
+
+        parent''s estimate and the interval is wider by the refinement''s spread.'
+      properties:
+        key:
+          pattern: ^[a-z][a-z0-9_]*/[a-z][a-z0-9_]*$
+          title: Key
+          type: string
+        domain:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Domain
+          type: string
+        refinement:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Refinement
+          type: string
+        value:
+          title: Value
+          type: number
+        interval:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - type: number
+          - type: number
+          title: Interval
+          type: array
+        evidence_count:
+          minimum: 0
+          title: Evidence Count
+          type: integer
+      required:
+      - key
+      - domain
+      - refinement
+      - value
+      - interval
+      - evidence_count
+      title: RefinementEstimate
+      type: object
+    DecisionRefinementGain:
+      additionalProperties: false
+      description: '``gain`` for one refinement dimension. Added in 2.4 (MODEL-190).'
+      properties:
+        dimension:
+          pattern: ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Dimension
+          type: string
+        refinement:
+          pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+          title: Refinement
+          type: string
+        gain:
+          title: Gain
+          type: number
+      required:
+      - dimension
+      - refinement
+      - gain
+      title: RefinementGain
+      type: object
     DecisionRelaxation:
       additionalProperties: false
       description: 'The smallest change to one numeric cap or floor that admits a model. Added in 1.5.
@@ -4529,6 +4607,14 @@ components:
           - type: 'null'
           default: null
           title: Estimates
+        refinement_estimates:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/DecisionRefinementEstimate'
+            type: array
+          - type: 'null'
+          default: null
+          title: Refinement Estimates
         p_best:
           anyOf:
           - maximum: 1
@@ -4911,6 +4997,13 @@ components:
           - type: 'null'
           default: null
           title: New Top
+        refinement:
+          anyOf:
+          - pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Refinement
       required:
       - description
       title: TippingPoint
@@ -5065,7 +5158,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.3'
+          - '2.4'
         endpoint:
           type: string
           enum:
@@ -5117,7 +5210,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.3'
+          - '2.4'
         endpoint:
           type: string
           enum:
@@ -5142,7 +5235,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.3'
+          - '2.4'
         endpoint:
           type: string
           enum:
@@ -5196,7 +5289,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.3'
+          - '2.4'
         endpoint:
           type: string
           enum:
@@ -5536,7 +5629,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.3'
+          - '2.4'
         endpoint:
           type: string
           enum:

@@ -18,6 +18,7 @@ from decision.contract import (
     Issue,
     MayQualify,
     OfferingRef,
+    RefinementEstimate,
     Result,
     SeparatedAnswer,
     Spec,
@@ -29,6 +30,9 @@ from decision.contract import (
 )
 from decision.filter import FilterResult, apply
 from decision.optimise import EvidenceSelector, OptimisedResult, optimise
+from decision.refinements import RANKABLE, is_refinement_key, split_dimension
+from decision.refinements import evidence_state as refinement_evidence_state
+from decision.refinements import lineup as refinement_lineup
 from decision.relax import fewest, smallest_changes
 from decision.resolve import Resolved, resolve
 from decision.snapshot import ExplanationIndex
@@ -68,8 +72,12 @@ def split_missing(ordered):
     """
     missing = set(ordered.missing)
     ranked = tuple(row for row in ordered.results if row.candidate_id not in missing)
+    # A refinement is unknown when its parent is: report the parent's facet ID.
     return replace(ordered, results=ranked), {
-        cid: list(ordered.unknown.get(cid, ())) for cid in ordered.missing}
+        cid: list(dict.fromkeys(
+            split_dimension(name)[0] for name in ordered.unknown.get(cid, ())
+        ))
+        for cid in ordered.missing}
 
 
 def run_optimise(snapshot, filtered, spec, selectors, domains):
@@ -85,6 +93,40 @@ def run_optimise(snapshot, filtered, spec, selectors, domains):
         evidence_selectors=selectors,
         domains=domains,
     )
+
+
+def refinement_keys(spec: Spec) -> list[str]:
+    """The refinement keys in ``optimize.weights``, unsigned, in spec order."""
+    return [key.removeprefix("-") for key in spec.optimize.weights or ()
+            if is_refinement_key(key)]
+
+
+def _check_refinements(spec: Spec, snapshot) -> None:
+    """Refuse a refinement key the vocabulary would not offer as rankable."""
+    keys = refinement_keys(spec)
+    if not keys:
+        return
+    known = set(snapshot.refinement_keys())
+    candidates = refinement_lineup(snapshot)
+    issues = []
+    for key in keys:
+        if key not in known:
+            reason = f"{key} is not a registered refinement in this snapshot"
+        else:
+            state, measured, of_models = refinement_evidence_state(
+                snapshot, candidates, snapshot.refinement_benchmarks(key),
+                snapshot.refinement_eligible_classes(key),
+            )
+            if state in RANKABLE:
+                continue
+            reason = (
+                f"{key} is not rankable: evidence_state {state} "
+                f"(measured on {measured} of {of_models} models); rank on "
+                f"{split_dimension(key)[0]} instead"
+            )
+        issues.append(Issue(None, key, reason, "optimize.weights"))
+    if issues:
+        raise SpecError(issues)
 
 
 def validate(
@@ -116,7 +158,9 @@ def validate(
     snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
     if spec.explain in ("summary", "full"):
         snapshot.require_explanation_records()
-    return resolve(spec, facets=facets, profiles=profiles)
+    resolved = resolve(spec, facets=facets, profiles=profiles)
+    _check_refinements(spec, snapshot)
+    return resolved
 
 
 def _overlaps_raw_evidence(row, others, snapshot) -> bool:
@@ -335,6 +379,20 @@ def _score_distribution(row: OptimisedResult):
     )
 
 
+def _refinement_estimate(key: str, found) -> RefinementEstimate | None:
+    if found is None:
+        return None
+    parent, refinement = split_dimension(key)
+    return RefinementEstimate(
+        key=key,
+        domain=parent,
+        refinement=refinement,
+        value=found.estimate.value,
+        interval=(found.estimate.low, found.estimate.high),
+        evidence_count=found.evidence_count,
+    )
+
+
 def decide(
     spec: Spec,
     snapshot: ExplanationIndex,
@@ -415,6 +473,8 @@ def _decide(
     names = _objective_names(spec)
     for signed in names:
         name = signed.removeprefix("-")
+        if is_refinement_key(name):
+            continue
         if resolved.facets(name).subject == "evidence" and name not in domains:
             selectors.setdefault(
                 name,
@@ -433,6 +493,7 @@ def _decide(
     objective_domains = [name.removeprefix("-") for name in names
                          if name.removeprefix("-") in domains]
     shown_domains = sorted(requested | set(objective_domains))
+    shown_refinements = refinement_keys(spec)
     proxy_only_domains = {
         domain
         for domain in shown_domains
@@ -443,6 +504,10 @@ def _decide(
             if tagged_domain == domain
         }
         == {"proxy"}
+    }
+    proxy_only_refinements = {
+        key for key in shown_refinements
+        if {directness for _, directness in snapshot.refinement_benchmarks(key)} == {"proxy"}
     }
     probability_domain = (
         objective_domains[0] if len(objective_domains) == 1 and len(names) == 1 else None
@@ -492,10 +557,18 @@ def _decide(
             for domain, estimate in stored_estimates
             if estimate is not None
         ]
+        nested = [
+            _refinement_estimate(key, snapshot.refinement_estimate(row.candidate_id, key))
+            for key in shown_refinements
+        ]
+        nested = [estimate for estimate in nested if estimate is not None]
         warnings = list(row.warnings)
         if row.candidate_id in filtered.deprecated:
             warnings.append("deprecated")
-        if any(estimate.domain in proxy_only_domains for estimate in estimates):
+        if any(estimate.domain in proxy_only_domains for estimate in estimates) or any(
+            estimate.key in proxy_only_refinements and estimate.evidence_count
+            for estimate in nested
+        ):
             warnings.append("proxy_evidence_only")
         current = model_estimates.get(model_id)
         if current is not None and any(
@@ -522,6 +595,7 @@ def _decide(
             rank=i + 1,
             offering=offering_ref(snapshot, row.candidate_id),
             estimates=estimates or None,
+            refinement_estimates=nested or None,
             p_best=p_best,
             top3_stability=top3,
             soft_penalty=row.soft_penalty,
