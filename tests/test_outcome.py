@@ -257,7 +257,7 @@ def test_rejected_text_is_never_echoed(args: tuple[str, str, str], field: str) -
 
 def test_an_uncatalogued_model_is_refused_and_other_names_nothing(home: Path) -> None:
     _invoke("enable", "--yes")
-    refused = _invoke("record", "dec_0123456789abcdef01234567", "--adopted", f"{CUSTOMER}/private-ft",
+    refused = _invoke("record", VALID["decision_id"], "--adopted", f"{CUSTOMER}/private-ft",
                       "--result", "success")
     assert refused.exit_code == 1
     assert "--adopted other" in refused.output

@@ -62,7 +62,8 @@ SNAPSHOT_PATTERN = r"^snap_[0-9a-f]{16}$"
 PROVIDER_PATTERN = r"^[a-z0-9][a-z0-9_-]{0,63}$"
 CONTRACT_VERSION_PATTERN = r"^[0-9]{1,3}\.[0-9]{1,3}$"
 #: A public release: no ``+local`` segment, which can carry a hostname or a git hash.
-CLI_VERSION_PATTERN = r"^[0-9]{1,4}(\.[0-9]{1,4}){1,3}((a|b|rc)[0-9]{1,4})?(\.post[0-9]{1,4})?(\.dev[0-9]{1,4})?$"
+CLI_VERSION_PATTERN = (r"^[0-9]{1,4}(\.[0-9]{1,4}){1,3}((a|b|rc)[0-9]{1,4})?"
+                       r"(\.post[0-9]{1,4})?(\.dev[0-9]{1,4})?$")
 #: Minute precision, UTC. Enough to order records; no finer.
 RECORDED_AT_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z$"
 
@@ -202,7 +203,8 @@ class DecisionStub(_Strict):
     def _bound(self) -> DecisionStub:
         # The ID is a hash of the other two, so a hand-made stub cannot pair
         # a real ID with made-up fields.
-        digest = hashlib.sha256((self.spec_hash + self.snapshot).encode()).hexdigest()
+        identity = f"{self.spec_hash}{self.snapshot}"
+        digest = hashlib.sha256(identity.encode()).hexdigest()
         if self.decision_id != "dec_" + digest[:24]:
             raise ValueError("decision_id does not match spec_hash and snapshot")
         return self
@@ -213,7 +215,7 @@ _DECISION_ID = TypeAdapter(DecisionId)
 
 def check_decision_id(value: str) -> str:
     """Validate a decision ID; the error never echoes it."""
-    return _DECISION_ID.validate_python(value)
+    return str(_DECISION_ID.validate_python(value))
 
 
 # ── where things live ─────────────────────────────────────────────────────
