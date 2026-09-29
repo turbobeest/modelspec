@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modelspec.dev/schemas/router-config-v1.schema.json",
+  "title": "ModelSpec router config v1",
+  "description": "`modelspec decide --emit-router-config json` (MODEL-208): the models a decision puts on a router's allow-list, with their routes and why. Configuration only; it carries no credential.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "format_version", "audit", "bands", "models"],
+  "properties": {
+    "format": {"const": "modelspec.router-config"},
+    "format_version": {"const": "1.0"},
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generated_by", "decision_id", "spec_hash", "snapshot", "contract_version",
+                   "signature_verified"],
+      "properties": {
+        "generated_by": {"type": "string"},
+        "decision_id": {"type": "string", "pattern": "^dec_[a-z0-9]+$"},
+        "spec_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "snapshot": {"type": "string", "minLength": 1},
+        "contract_version": {"type": "string"},
+        "signature_verified": {"type": "boolean"},
+        "regenerate": {"type": "string"}
+      }
+    },
+    "bands": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["included", "basis", "band_probability", "thin_interval_width", "leader"],
+      "properties": {
+        "included": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["best", "rest", "thin"]},
+          "prefixItems": [{"const": "best"}]
+        },
+        "basis": {"type": "string"},
+        "band_probability": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "thin_interval_width": {"type": "number", "exclusiveMinimum": 0},
+        "leader": {"type": ["string", "null"]}
+      }
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["model", "band", "thin", "p_best", "p_beats_leader", "score",
+                     "score_interval", "routes", "reasons"],
+        "properties": {
+          "model": {"type": "string", "minLength": 1},
+          "band": {"enum": ["best", "rest", "thin"]},
+          "thin": {"type": "boolean"},
+          "p_best": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "p_beats_leader": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "score": {"type": "number"},
+          "score_interval": {
+            "type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}
+          },
+          "routes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["offering_id", "provider", "region", "tier", "rank", "cost_per_task",
+                           "provider_model_id"],
+              "properties": {
+                "offering_id": {"type": "string"},
+                "provider": {"type": ["string", "null"]},
+                "region": {"type": ["string", "null"]},
+                "tier": {"type": ["string", "null"]},
+                "rank": {"type": ["integer", "null"], "minimum": 1},
+                "cost_per_task": {"type": ["number", "null"]},
+                "provider_model_id": {
+                  "description": "The provider's own model ID. Null: the snapshot does not publish it yet.",
+                  "type": ["string", "null"]
+                }
+              }
+            }
+          },
+          "reasons": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

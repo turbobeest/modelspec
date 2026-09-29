@@ -106,3 +106,21 @@ NO_ACCESS_SPECS = [
     {"spec_version": 1, "optimize": {"max": CONTEXT}, "explain": "none",
      "estate": {"plans": [MAX], "exhausted": [MAX], "providers": ["anthropic"]}},
 ]
+
+
+# ── MODEL-205: a subscription-only vendor ──────────────────────────────────
+
+CURSOR_PRO = "cursor/subscription/pro"
+#: Cursor Pro covers a Claude model and another lab's model; Cursor sells neither
+#: pay-per-use, so the plan reaches each model's own row.
+CURSOR_COVERS = [OPUS, "other/huge"]
+
+
+def vendor_inputs() -> SnapshotInputs:
+    """``inputs()`` plus Cursor Pro, a plan whose seller is subscription-only."""
+    base = inputs()
+    cursor = _plan("cursor", "pro", price=20, covered=CURSOR_COVERS,
+                   surfaces=["coding_tool:cursor", "coding_tool:cursor-agent"])
+    cursor["name"] = "Cursor Pro"
+    return SnapshotInputs(models=base.models, offerings=base.offerings, sources=base.sources,
+                          subscriptions=[*base.subscriptions, cursor])

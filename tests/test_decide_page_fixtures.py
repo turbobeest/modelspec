@@ -115,16 +115,21 @@ PLAN_SPECS = {
     # No access ("Doesn't matter"): every route, the cheapest named per model.
     "plans-any-full": (None, {"plans": ["anthropic/subscription/max-20x"],
                               "devices": ["apple_m3_max"]}, True),
+    # MODEL-205: a Cursor Pro holder in a coding tool. Cursor sells no
+    # pay-per-use, so its plan reaches each covered model's own row.
+    "plans-vendor-coding-full": ("coding_tool", {"plans": ["cursor/subscription/pro"]},
+                                 "vendor"),
 }
 
 
 @pytest.mark.parametrize("name", sorted(PLAN_SPECS))
 def test_the_plan_page_fixtures_are_the_engines_answer(name):
-    from tests.plan_records import CONTEXT, inputs
+    from tests.plan_records import CONTEXT, inputs, vendor_inputs
 
     access, estate, max_coverage = PLAN_SPECS[name]
+    records = vendor_inputs() if max_coverage == "vendor" else inputs(max_coverage=max_coverage)
     snapshot = load_built_snapshot(
-        build_snapshot(inputs(max_coverage=max_coverage), as_of=date(2026, 9, 29)),
+        build_snapshot(records, as_of=date(2026, 9, 29)),
         include_archive=True, source="plan page fixture build")
     spec = {"spec_version": 1, "optimize": {"max": CONTEXT}, "explain": "full", "estate": estate}
     if access is not None:
@@ -134,6 +139,27 @@ def test_the_plan_page_fixtures_are_the_engines_answer(name):
     assert body["with_estate"] is not None
     path = WEB / f"{name}.json"
     fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+    if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
+        path.write_text(fresh, encoding="utf-8")
+    assert path.read_text(encoding="utf-8") == fresh, (
+        f"{path.name} is stale; regenerate with "
+        "MODELSPEC_WRITE_FIXTURES=1 pytest tests/test_decide_page_fixtures.py"
+    )
+
+
+def test_the_vendor_vocabulary_fixture_is_the_builders_output():
+    """MODEL-205: the page parses a real vocabulary carrying ``vendors``
+    (``vendor-vocabulary.test.ts``), so a schema that refused the field fails there."""
+    from decision.vocabulary import build_vocabulary
+    from tests.plan_records import vendor_inputs
+
+    snapshot = load_built_snapshot(
+        build_snapshot(vendor_inputs(), as_of=date(2026, 9, 29)),
+        include_archive=True, source="vendor vocabulary fixture build")
+    vocabulary = build_vocabulary(snapshot)
+    assert vocabulary["vendors"]["cursor"] == "Cursor"
+    path = WEB / "vocabulary-vendors.json"
+    fresh = json.dumps(vocabulary, indent=2, ensure_ascii=False) + "\n"
     if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
         path.write_text(fresh, encoding="utf-8")
     assert path.read_text(encoding="utf-8") == fresh, (

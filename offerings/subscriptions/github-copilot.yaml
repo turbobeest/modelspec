@@ -1,0 +1,481 @@
+# MODEL-205. Primary sources read 2026-09-29; github-copilot is a subscription-only vendor
+# (registry/providers.yaml, subscription_vendors): it sells these plans and nothing
+# pay-per-use. Omissions and every null's reason:
+# docs/research/subscriptions/2026-09-29-vendors.md (scripts/model_205_collect.py).
+# unknown: not stated in the form the facet holds, or not researched this round.
+# GitHub Copilot Pro: Free for some users (verified teachers, maintainers of popular open source projects).
+- kind: subscription
+  provider: github-copilot
+  plan: pro
+  name: GitHub Copilot Pro
+  facts:
+  - id: github-copilot/subscription/pro#offering.subscription.price
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.price
+    state: known
+    value: 10
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro#offering.subscription.billing_period
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro#offering.subscription.models_covered
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [anthropic/claude-haiku-4-5-20251001, anthropic/claude-sonnet-4-6, anthropic/claude-sonnet-5,
+      anthropic/claude-sonnet-5-5, google/gemini-3-5-flash, google/gemini-3-6-flash, google/gemini-3-7-flash,
+      google/gemini-3-8-flash, moonshot/kimi-k2-7-code, moonshot/kimi-k3, openai/gpt-5-3-codex, openai/gpt-5-4,
+      openai/gpt-5-4-mini, openai/gpt-5-6-luna, openai/gpt-5-6-terra, openai/gpt-5-mini, openai/gpt-6-luna,
+      xai/grok-4-5, xai/grok-4-6, xai/grok-4-7]
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro#offering.subscription.usage_allowance
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 1,500 total monthly AI credits (1,000 base, 500 flex allotment)
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: All plans include Copilot CLI and Copilot app.
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro#offering.subscription.surfaces
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:copilot-cli']
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro#offering.subscription.families_covered
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro#offering.subscription.coverage_quote
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro#offering.subscription.allowance.window
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: github-copilot/subscription/pro}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
+- kind: subscription
+  provider: github-copilot
+  plan: pro-plus
+  name: GitHub Copilot Pro+
+  facts:
+  - id: github-copilot/subscription/pro-plus#offering.subscription.price
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.price
+    state: known
+    value: 39
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro-plus#offering.subscription.billing_period
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro-plus#offering.subscription.models_covered
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [anthropic/claude-fable-5, anthropic/claude-fable-5-1, anthropic/claude-haiku-4-5-20251001,
+      anthropic/claude-opus-4-7, anthropic/claude-opus-4-8, anthropic/claude-opus-5, anthropic/claude-opus-5-5,
+      anthropic/claude-sonnet-4-6, anthropic/claude-sonnet-5, anthropic/claude-sonnet-5-5, google/gemini-3-5-flash,
+      google/gemini-3-6-flash, google/gemini-3-7-flash, google/gemini-3-8-flash, moonshot/kimi-k2-7-code,
+      moonshot/kimi-k3, openai/gpt-5-3-codex, openai/gpt-5-4, openai/gpt-5-4-mini, openai/gpt-5-4-nano,
+      openai/gpt-5-5, openai/gpt-5-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra, openai/gpt-5-mini,
+      openai/gpt-6-astra, openai/gpt-6-luna, openai/gpt-6-sol, xai/grok-4-5, xai/grok-4-6, xai/grok-4-7]
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro-plus#offering.subscription.usage_allowance
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 7,000 total monthly AI credits (3,900 base, 3,100 flex allotment)
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro-plus#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: All plans include Copilot CLI and Copilot app.
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro-plus#offering.subscription.surfaces
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:copilot-cli']
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/pro-plus#offering.subscription.families_covered
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro-plus#offering.subscription.coverage_quote
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro-plus#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro-plus#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro-plus#offering.subscription.allowance.window
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/pro-plus#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: github-copilot/subscription/pro-plus}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
+- kind: subscription
+  provider: github-copilot
+  plan: max
+  name: GitHub Copilot Max
+  facts:
+  - id: github-copilot/subscription/max#offering.subscription.price
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.price
+    state: known
+    value: 100
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/max#offering.subscription.billing_period
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/max#offering.subscription.models_covered
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [anthropic/claude-fable-5, anthropic/claude-fable-5-1, anthropic/claude-haiku-4-5-20251001,
+      anthropic/claude-opus-4-7, anthropic/claude-opus-4-8, anthropic/claude-opus-5, anthropic/claude-opus-5-5,
+      anthropic/claude-sonnet-5, anthropic/claude-sonnet-5-5, google/gemini-3-5-flash, google/gemini-3-6-flash,
+      google/gemini-3-7-flash, google/gemini-3-8-flash, moonshot/kimi-k2-7-code, moonshot/kimi-k3, openai/gpt-5-3-codex,
+      openai/gpt-5-4, openai/gpt-5-4-mini, openai/gpt-5-4-nano, openai/gpt-5-5, openai/gpt-5-6-luna, openai/gpt-5-6-sol,
+      openai/gpt-5-6-terra, openai/gpt-5-mini, openai/gpt-6-astra, openai/gpt-6-luna, openai/gpt-6-sol,
+      xai/grok-4-5, xai/grok-4-6, xai/grok-4-7]
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/max#offering.subscription.usage_allowance
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 20,000 total monthly AI credits (10,000 base, 10,000 flex allotment)
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/max#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: All plans include Copilot CLI and Copilot app.
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/max#offering.subscription.surfaces
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:copilot-cli']
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/max#offering.subscription.families_covered
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/max#offering.subscription.coverage_quote
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/max#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/max#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/max#offering.subscription.allowance.window
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/max#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: github-copilot/subscription/max}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
+# GitHub Copilot Business: Per granted seat.
+- kind: subscription
+  provider: github-copilot
+  plan: business
+  name: GitHub Copilot Business
+  facts:
+  - id: github-copilot/subscription/business#offering.subscription.price
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.price
+    state: known
+    value: 19
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/business#offering.subscription.billing_period
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/business#offering.subscription.models_covered
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [anthropic/claude-fable-5, anthropic/claude-fable-5-1, anthropic/claude-haiku-4-5-20251001,
+      anthropic/claude-opus-4-7, anthropic/claude-opus-4-8, anthropic/claude-opus-5, anthropic/claude-opus-5-5,
+      anthropic/claude-sonnet-5, anthropic/claude-sonnet-5-5, google/gemini-3-5-flash, google/gemini-3-6-flash,
+      google/gemini-3-7-flash, google/gemini-3-8-flash, moonshot/kimi-k2-7-code, moonshot/kimi-k3, openai/gpt-5-3-codex,
+      openai/gpt-5-4, openai/gpt-5-4-mini, openai/gpt-5-5, openai/gpt-5-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra,
+      openai/gpt-5-mini, openai/gpt-6-astra, openai/gpt-6-luna, openai/gpt-6-sol, xai/grok-4-5, xai/grok-4-6,
+      xai/grok-4-7]
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/business#offering.subscription.usage_allowance
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 1,900 GitHub AI Credits per user per month
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/business#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: All plans include Copilot CLI and Copilot app.
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/business#offering.subscription.surfaces
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:copilot-cli']
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/business#offering.subscription.families_covered
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/business#offering.subscription.coverage_quote
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/business#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/business#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/business#offering.subscription.allowance.window
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/business#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: github-copilot/subscription/business}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
+# GitHub Copilot Enterprise: Per granted seat; requires GitHub Enterprise Cloud.
+- kind: subscription
+  provider: github-copilot
+  plan: enterprise
+  name: GitHub Copilot Enterprise
+  facts:
+  - id: github-copilot/subscription/enterprise#offering.subscription.price
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.price
+    state: known
+    value: 39
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/enterprise#offering.subscription.billing_period
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/enterprise#offering.subscription.models_covered
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [anthropic/claude-fable-5, anthropic/claude-fable-5-1, anthropic/claude-haiku-4-5-20251001,
+      anthropic/claude-opus-4-7, anthropic/claude-opus-4-8, anthropic/claude-opus-5, anthropic/claude-opus-5-5,
+      anthropic/claude-sonnet-5, anthropic/claude-sonnet-5-5, google/gemini-3-5-flash, google/gemini-3-6-flash,
+      google/gemini-3-7-flash, google/gemini-3-8-flash, moonshot/kimi-k2-7-code, moonshot/kimi-k3, openai/gpt-5-3-codex,
+      openai/gpt-5-4, openai/gpt-5-4-mini, openai/gpt-5-5, openai/gpt-5-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra,
+      openai/gpt-5-mini, openai/gpt-6-astra, openai/gpt-6-luna, openai/gpt-6-sol, xai/grok-4-5, xai/grok-4-6,
+      xai/grok-4-7]
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/enterprise#offering.subscription.usage_allowance
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 3,900 GitHub AI Credits per user per month
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/enterprise#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: All plans include Copilot CLI and Copilot app.
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/enterprise#offering.subscription.surfaces
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:copilot-cli']
+    sources:
+    - source_id: model-205-github-copilot-plans
+      snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
+      cited_regions: [page]
+  - id: github-copilot/subscription/enterprise#offering.subscription.families_covered
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/enterprise#offering.subscription.coverage_quote
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/enterprise#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/enterprise#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/enterprise#offering.subscription.allowance.window
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: github-copilot/subscription/enterprise#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: github-copilot/subscription/enterprise}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null

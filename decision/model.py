@@ -504,7 +504,8 @@ class SubscriptionOffering(Record):
 
     @model_validator(mode="after")
     def valid_subscription(self, info: ValidationInfo) -> Self:
-        _registered(info, "provider", self.provider)
+        # A provider or a subscription-only vendor (MODEL-205) may sell a plan.
+        _registered(info, "plan_owner", self.provider)
         _check_facts(self.facts, "offering", self.id)
         facets = {fact.facet for fact in self.facts}
         if not self.REQUIRED_FACETS <= facets <= self.REQUIRED_FACETS | self.PLAN_FACETS:
