@@ -114,10 +114,11 @@ def social_meta(title: str, *, path: str = "/", image_name: str = "og-card.png",
 
 #: What ModelSpec is, for agents: the outcome first, the category as the proof.
 POSITIONING = (
-    "ModelSpec decides which AI model a job needs, and shows its work: your "
-    "requirements as Must conditions, your priorities as Prefer weights, ability "
-    "estimated from every admitted benchmark, cost per task, how sure the evidence "
-    "is, and the models screened out, with the reason for each. It is an analysis "
+    "ModelSpec decides which AI model a job needs, justifies that decision, and "
+    "shows its work: your requirements as Must conditions, your priorities as "
+    "Prefer weights, ability estimated from every admitted benchmark, cost per "
+    "task, how sure the evidence is, and the models screened out, with the reason "
+    "for each. It is an analysis "
     "of alternatives for AI models. It does not route or proxy requests: use it to "
     "decide which models are worth routing to, then let a router choose among them "
     "per request."

@@ -36,8 +36,8 @@ FIRST_RUN = (
     "modelspec decide --template budget-coding",
 )
 EYEBROW = "Your model is a guess."
-HEADLINE = "Routers guess per request. ModelSpec decides, and shows its work."
-TITLE = "ModelSpec — decides which AI model, and shows its work"
+HEADLINE = "Model routers only guess. ModelSpec justifies the model decision and shows its work."
+TITLE = "ModelSpec — justifies the model decision and shows its work"
 DESCRIPTION = ("Decide which AI model your job needs, and see why: your requirements, every "
                "benchmark, real cost and the uncertainty, from sourced evidence. Nobody pays "
                "to rank higher.")

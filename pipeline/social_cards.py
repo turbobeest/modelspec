@@ -225,7 +225,7 @@ def _pricing_factory(data: LandingData | None) -> SocialCard:
 
 
 CARD_REGISTRY = (
-    CardRegistration(page="/", title="ModelSpec — decides which AI model, and shows its work",
+    CardRegistration(page="/", title="ModelSpec — justifies the model decision and shows its work",
                      filename=LANDING_IMAGE,
                      factory=_landing_factory),
     CardRegistration(
