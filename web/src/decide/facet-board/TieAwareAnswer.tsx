@@ -16,50 +16,23 @@ const TIE_BREAKERS: { key: TieBreakerKey; label: string }[] = [
 const rowModel = (row: Row) => `${row.m.lab}/${row.m.id}`;
 const capitalise = (text: string) => text.charAt(0).toLocaleUpperCase() + text.slice(1);
 
-function independentMeasurements(decision: AdapterDecision, model: string): number {
-  return decision.results
-    .filter((result) => result.offering.model === model)
-    .flatMap((result) => result.evidence.flatMap((group) => group.items))
-    .filter((item) => item.measured_by === "independent").length;
-}
-
-function deciding(key: TieBreakerKey, row: Row | undefined, decision: AdapterDecision, model: string): string | null {
+function deciding(key: TieBreakerKey, row: Row | undefined): string | null {
   if (key === "cheapest") return row?.cost == null ? null : `${money(row.cost)} per task`;
   if (key === "fastest") return row?.tps == null ? null : `${Math.round(row.tps)} tokens/s`;
   if (key === "open_weights") return "the only open-weights model in the group";
-  const count = independentMeasurements(decision, model);
-  return count > 0 ? `${count} independent ${count === 1 ? "measurement" : "measurements"}` : null;
+  return null;
 }
 
-export function TieAwareAnswer({
-  answer,
-  decision,
-  capabilityName,
-}: {
-  answer: Answer;
-  decision: AdapterDecision;
-  capabilityName?: string;
-}) {
+export function TieAwareAnswer({ answer, decision }: { answer: Answer; decision: AdapterDecision }) {
   const headingId = useId();
   const rows = decision.explanation.feasible;
   const byModel = new Map(rows.map((row) => [rowModel(row), row]));
   const nameOf = (model: string) => byModel.get(model)?.m.name ?? model;
 
   if (answer.kind === "separated") {
-    const leader = byModel.get(answer.leader);
-    const next = rows
-      .filter((row) => rowModel(row) !== answer.leader && row.cap !== null)
-      .sort((left, right) => (right.cap ?? 0) - (left.cap ?? 0))[0];
-    const interval = (row: Row) => {
-      const radius = row.capR?.ci ?? 0;
-      return `${row.cap!.toFixed(1)} (80% interval ${(row.cap! - radius).toFixed(1)}–${(row.cap! + radius).toFixed(1)})`;
-    };
     return <section className="board-tie-answer" aria-labelledby={headingId}>
-      <h3 id={headingId}>Clear winner: {nameOf(answer.leader)}</h3>
+      <h2 id={headingId}>Clear winner: {nameOf(answer.leader)}</h2>
       <p>No other model's score interval overlaps its.</p>
-      {leader?.cap != null && next && <p className="board-tie-gap">
-        {capabilityName ? `${capitalise(capabilityName)}, estimated` : "Capability estimate"}: {interval(leader)}, against {interval(next)} for {next.m.name}, the next model.
-      </p>}
     </section>;
   }
 
@@ -72,7 +45,7 @@ export function TieAwareAnswer({
   });
 
   return <section className="board-tie-answer" aria-labelledby={headingId}>
-    <h3 id={headingId}>These {members.length} fit. The evidence can't separate them.</h3>
+    <h2 id={headingId}>These {members.length} fit. The evidence can't separate them.</h2>
     <p className="board-tie-note">Listed alphabetically, in no order of merit.</p>
     <ul className="board-tie-group">
       {members.map(({ model, row }) => {
@@ -86,10 +59,10 @@ export function TieAwareAnswer({
     </ul>
     {picks.length > 0
       ? <>
-        <h4>What breaks the tie</h4>
+        <h3>What breaks the tie</h3>
         <ul className="board-tie-breakers">
           {picks.map(({ key, label, model }) => {
-            const value = deciding(key, byModel.get(model), decision, model);
+            const value = deciding(key, byModel.get(model));
             return <li key={key}>
               <span>{capitalise(label)}</span>
               <strong>{nameOf(model)}</strong>

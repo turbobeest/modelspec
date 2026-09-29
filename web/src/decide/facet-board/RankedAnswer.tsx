@@ -67,6 +67,8 @@ export function RankedAnswer({
     const max = values.length ? Math.max(...values) : 1;
     return { min, span: Math.max(max - min, Number.EPSILON) };
   }, [rows]);
+  const tied = new Set(ranked && decision.answer?.kind === "tied" ? decision.answer.members : []);
+  const showsTied = visible.some((row) => tied.has(`${row.m.lab}/${row.m.id}`));
   const warnedModels = new Set(
     decision.results
       .filter((result) => result.warnings.includes("not_separable"))
@@ -77,7 +79,7 @@ export function RankedAnswer({
   );
 
   return <section className="panel board-ranked-answer">
-    {ranked && decision.answer && <TieAwareAnswer answer={decision.answer} decision={decision} capabilityName={capability?.name} />}
+    {ranked && decision.answer && <TieAwareAnswer answer={decision.answer} decision={decision} />}
     {!ranked && <p className="board-unranked">{rows.length} qualify — set a Prefer to rank them</p>}
     {ranked && !decision.answer && inseparable.length > 0 && <p className="board-inseparable">
       The evidence can't separate {inseparable.map((row) => row.m.name).join(", ")}.
@@ -87,6 +89,7 @@ export function RankedAnswer({
       <span />
       <small>{capability.name}, estimated · 80% interval</small>
     </div>}
+    {showsTied && <p className="board-tie-caption">Order within the tied group is by tie-breaker, not merit.</p>}
     <ol>
       {visible.map((row) => {
         const value = row.cap ?? extent.min;
@@ -98,7 +101,7 @@ export function RankedAnswer({
           .map((offering) => offering.o.provider))];
         return <li className={capability ? "" : "without-capability"} key={`${row.m.lab}/${row.m.id}`}>
           <div className="board-ranked-copy">
-            <strong>{row.m.name}</strong>
+            <strong>{row.m.name}{tied.has(`${row.m.lab}/${row.m.id}`) && <span className="board-tie-tag">tied</span>}</strong>
             <small>{row.m.labName} · via {row.best.o.provider}</small>
             {otherProviders.length > 0 && <small>also via {otherProviders.join(", ")}</small>}
             {activeRefinements.map((refinement) => {
@@ -127,7 +130,7 @@ export function RankedAnswer({
       {expanded ? "Show fewer" : `Show all ${rows.length}`}
     </button>}
     {may.length > 0 && <section className="board-may-qualify">
-      <h3>May qualify — no {capability?.name} evidence ({may.length})</h3>
+      <h2>May qualify — no {capability?.name} evidence ({may.length})</h2>
       <ul>
         {may.map((row) => <li key={row.best.o.id}>
           <div className="board-ranked-copy">

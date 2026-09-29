@@ -62,14 +62,66 @@ describe("tie-aware answer on the board", () => {
     expect(block).not.toHaveTextContent(/#\s?1|\bbest\b|\bwinner\b|\btop pick\b/i);
   });
 
-  it("names a clear winner with the evidence gap", () => {
+  it("names a clear winner and says only what the contract supports", () => {
     show(separatedJson);
-    const heading = screen.getByRole("heading", { name: "Clear winner: Alpha" });
-    const block = heading.closest("section")!;
+    const block = screen.getByRole("heading", { name: "Clear winner: Alpha" }).closest("section")!;
     expect(block).toHaveTextContent("No other model's score interval overlaps its.");
-    expect(block).toHaveTextContent("against");
-    expect(block).toHaveTextContent("for Gamma, the next model.");
+    expect(block.textContent).not.toMatch(/\d/);
+    expect(block).not.toHaveTextContent(/interval \d|against|next model/);
     expect(within(block).queryByText("What breaks the tie")).not.toBeInTheDocument();
+  });
+
+  it("renders no interval numbers for a clear winner with no fitted estimate", () => {
+    const unfitted = { ...separatedJson, results: separatedJson.results.map((result) => ({ ...result, estimates: null })) };
+    show(unfitted);
+    const block = screen.getByRole("heading", { name: "Clear winner: Alpha" }).closest("section")!;
+    expect(block.textContent).not.toMatch(/\d/);
+  });
+
+  it("names a clear winner under a cost-weighted objective without a capability gap", () => {
+    const costWeighted: Spec = { ...ranked, boardWeights: { software_engineering: 0.5, "-offering.cost_per_task": 0.5 } };
+    show(separatedJson, costWeighted);
+    const block = screen.getByRole("heading", { name: "Clear winner: Alpha" }).closest("section")!;
+    expect(block).toHaveTextContent("No other model's score interval overlaps its.");
+    expect(block.textContent).not.toMatch(/\d/);
+  });
+
+  it("names the most independently measured model with no count", () => {
+    const named = { ...tiedJson, answer: {
+      ...tiedJson.answer,
+      tie_breakers: { cheapest: null, open_weights: null, fastest: null, most_independently_measured: "lab/alpha" },
+    } };
+    show(named);
+    const block = screen.getByRole("heading", { name: /can't separate/ }).closest("section")!;
+    const [, breakers] = within(block).getAllByRole("list");
+    const [item] = within(breakers).getAllByRole("listitem");
+    expect(item).toHaveTextContent("Most independently measured");
+    expect(item).toHaveTextContent("Alpha");
+    expect(item.textContent).not.toMatch(/\d/);
+  });
+
+  it("marks tied members in the ranked list and says their order is not merit", () => {
+    show(tiedJson);
+    expect(screen.getByText("Order within the tied group is by tie-breaker, not merit.")).toBeInTheDocument();
+    const list = screen.getAllByRole("list").find((candidate) => candidate.tagName === "OL")!;
+    const rows = within(list).getAllByRole("listitem");
+    const tagged = rows.filter((row) => within(row).queryByText("tied"));
+    expect(tagged.map((row) => row.querySelector("strong")?.textContent?.replace("tied", ""))).toEqual(["Alpha", "Gamma"]);
+    expect(rows.length).toBeGreaterThan(tagged.length - 1);
+  });
+
+  it("marks nothing as tied after a clear winner", () => {
+    show(separatedJson);
+    expect(screen.queryByText("tied")).not.toBeInTheDocument();
+    expect(screen.queryByText(/not merit/)).not.toBeInTheDocument();
+  });
+
+  it("never skips a heading level", () => {
+    show(tiedJson);
+    const levels = screen.getAllByRole("heading").map((heading) => Number(heading.tagName.slice(1)));
+    expect(levels[0]).toBe(2);
+    levels.forEach((level, index) => { if (index > 0) expect(level - levels[index - 1]).toBeLessThanOrEqual(1); });
+    expect(levels).toContain(3);
   });
 
   it("has no answer block while the board is unranked", () => {
