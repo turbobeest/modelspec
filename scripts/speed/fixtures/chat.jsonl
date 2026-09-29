@@ -1,0 +1,36 @@
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"role\": \"assistant\", \"content\": \"\"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"Water reaches a city \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"through a chain of \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"stages, and each one \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"can fail in its \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"own way. Water reaches \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"a city through a \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"chain of stages, and \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"each one can fail \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"in its own way. \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"Water reaches a city \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"through a chain of \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"stages, and each one \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"can fail in its \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"own way. Water reaches \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"a city through a \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"chain of stages, and \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"each one can fail \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"in its own way. \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"Water reaches a city \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"through a chain of \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"stages, and each one \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"can fail in its \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"own way. Water reaches \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"a city through a \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"chain of stages, and \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"each one can fail \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"in its own way. \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"Water reaches a city \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"through a chain of \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"stages, and each one \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"can fail in its \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {\"content\": \"own way. Water reaches \"}, \"finish_reason\": null}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [{\"index\": 0, \"delta\": {}, \"finish_reason\": \"length\"}]}"}
+{"data": "{\"id\": \"chatcmpl-fixture\", \"object\": \"chat.completion.chunk\", \"choices\": [], \"usage\": {\"prompt_tokens\": 150, \"completion_tokens\": 256, \"total_tokens\": 406, \"prompt_tokens_details\": {\"cached_tokens\": 0}, \"completion_tokens_details\": {\"reasoning_tokens\": 0}}}"}
+{"data": "[DONE]"}

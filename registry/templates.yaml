@@ -139,8 +139,8 @@ templates:
     category: coding
     tier: fastest
     name: Coding, fastest
-    tradeoff: Output speed first; coding strength second.
-    purpose: Find an active coding model whose offering streams output fastest, with coding strength as the second term.
+    tradeoff: The fastest of the strong; coding strength weighs three times speed, so only a strong model wins on speed.
+    purpose: Find an active coding model whose offering streams output fastest; coding strength weighs more than speed.
     where:
       - condition: model.class = text-generator
         reason: Coding work needs a model that generates text and code.
@@ -148,11 +148,11 @@ templates:
         reason: An active model is still supported by its lab or provider.
     weights:
       offering.speed.throughput:
-        weight: 0.6
-        reason: Prefer the offering that produces output tokens fastest.
+        weight: 0.25
+        reason: Among offerings of similar coding strength, prefer the one that produces output tokens fastest.
       software_engineering:
-        weight: 0.4
-        reason: Keep coding strength so a fast but weak model does not win on speed alone.
+        weight: 0.75
+        reason: Weigh coding strength above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212).
     needs:
       classes: [text-generator]
       domains: [software_engineering]
@@ -258,8 +258,8 @@ templates:
     category: writing
     tier: fastest
     name: Writing, fastest
-    tradeoff: Output speed first; writing quality second.
-    purpose: Find an active text model whose offering streams output fastest, with writing quality as the second term.
+    tradeoff: The fastest of the strong; writing quality weighs three times speed, so only a strong model wins on speed.
+    purpose: Find an active text model whose offering streams output fastest; writing quality weighs more than speed.
     where:
       - condition: model.class = text-generator
         reason: Writing needs a model that generates text.
@@ -267,11 +267,11 @@ templates:
         reason: An active model is still supported by its lab or provider.
     weights:
       offering.speed.throughput:
-        weight: 0.6
-        reason: Prefer the offering that produces output tokens fastest.
+        weight: 0.25
+        reason: Among offerings of similar writing quality, prefer the one that produces output tokens fastest.
       writing:
-        weight: 0.4
-        reason: Keep writing quality so a fast but weak model does not win on speed alone.
+        weight: 0.75
+        reason: Weigh writing quality above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212).
     needs:
       classes: [text-generator]
       domains: [writing]
@@ -378,8 +378,8 @@ templates:
     category: maths-reasoning
     tier: fastest
     name: Maths and reasoning, fastest
-    tradeoff: Output speed first; maths second.
-    purpose: Find an active text model whose offering streams output fastest, with maths as the second term.
+    tradeoff: The fastest of the strong; maths strength weighs three times speed, so only a strong model wins on speed.
+    purpose: Find an active text model whose offering streams output fastest; maths weighs more than speed.
     where:
       - condition: model.class = text-generator
         reason: The answer must be generated as text.
@@ -387,11 +387,11 @@ templates:
         reason: An active model is still supported by its lab or provider.
     weights:
       offering.speed.throughput:
-        weight: 0.6
-        reason: Prefer the offering that produces output tokens fastest.
+        weight: 0.25
+        reason: Among offerings of similar maths strength, prefer the one that produces output tokens fastest.
       maths:
-        weight: 0.4
-        reason: Keep maths strength so a fast but weak model does not win on speed alone.
+        weight: 0.75
+        reason: Weigh maths strength above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212).
     needs:
       classes: [text-generator]
       domains: [maths]
@@ -504,8 +504,8 @@ templates:
     category: documents
     tier: fastest
     name: Long documents, fastest
-    tradeoff: Million-token context; output speed first.
-    purpose: Find a million-token text model whose offering streams its analysis fastest.
+    tradeoff: Million-token context; the fastest of the strong, by short-prompt speed.
+    purpose: Find a million-token text model whose offering streams its analysis fastest; writing quality weighs more than speed.
     where:
       - condition: model.class = text-generator
         reason: The result must be generated as text.
@@ -513,11 +513,11 @@ templates:
         reason: The model must accept a million-token document in one request.
     weights:
       offering.speed.throughput:
-        weight: 0.6
-        reason: Prefer the offering that produces output tokens fastest.
+        weight: 0.25
+        reason: Among offerings of similar writing quality, prefer the one that produces output tokens fastest.
       writing:
-        weight: 0.4
-        reason: Keep writing quality so a fast but weak model does not win on speed alone.
+        weight: 0.75
+        reason: Weigh writing quality above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212).
     needs:
       classes: [text-generator]
       domains: [writing]
@@ -620,18 +620,18 @@ templates:
     category: retrieval
     tier: fastest
     name: Retrieval embeddings, fastest
-    tradeoff: Fastest hosted embedding; retrieval second.
-    purpose: Find the hosted embedding model with the fastest offering, with retrieval quality as the second term.
+    tradeoff: Fastest hosted embedding among the strong; retrieval quality weighs three times speed.
+    purpose: Find the hosted embedding model with the fastest offering; retrieval quality weighs more than speed.
     where:
       - condition: model.class = vectoriser
         reason: Retrieval embeddings require the model class that emits vectors.
     weights:
       offering.speed.throughput:
-        weight: 0.6
-        reason: Prefer the offering that processes tokens fastest.
+        weight: 0.25
+        reason: Among offerings of similar retrieval quality, prefer the one that produces output tokens fastest.
       retrieval:
-        weight: 0.4
-        reason: Keep retrieval quality so a fast but poor embedder does not win on speed alone.
+        weight: 0.75
+        reason: Weigh retrieval quality above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212).
     needs:
       classes: [vectoriser]
       domains: [retrieval]
@@ -737,8 +737,8 @@ templates:
     category: assistant
     tier: fastest
     name: General assistant, fastest
-    tradeoff: Output speed first; response quality second.
-    purpose: Find an active assistant whose offering streams output fastest, with response quality as the second term.
+    tradeoff: The fastest of the strong; response quality weighs three times speed, so only a strong model wins on speed.
+    purpose: Find an active assistant whose offering streams output fastest; response quality weighs more than speed.
     where:
       - condition: model.class = text-generator
         reason: A conversational assistant needs a text-generating model.
@@ -746,11 +746,11 @@ templates:
         reason: An active model is still supported by its lab or provider.
     weights:
       offering.speed.throughput:
-        weight: 0.6
-        reason: Prefer the offering that produces output tokens fastest.
+        weight: 0.25
+        reason: Among offerings of similar response quality, prefer the one that produces output tokens fastest.
       chat_preference:
-        weight: 0.4
-        reason: Keep response quality so a fast but weak model does not win on speed alone.
+        weight: 0.75
+        reason: Weigh response quality above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212).
     needs:
       classes: [text-generator]
       domains: [chat_preference]
@@ -857,22 +857,25 @@ templates:
     category: high-volume
     tier: fastest
     name: High volume, fastest
-    tradeoff: Short requests at scale; output speed first.
-    purpose: Find a text model for many short requests whose offering streams output fastest.
+    tradeoff: Short requests at scale; the fastest of the strong, cost counts.
+    purpose: Find a text model for many short requests whose offering streams output fastest among strong, affordable models.
     where:
       - condition: model.class = text-generator
         reason: The workload needs generated text responses.
     weights:
+      chat_preference:
+        weight: 0.75
+        reason: Weigh response quality three times speed and cost together, so a fast, cheap but weak model cannot win (MODEL-212).
       offering.speed.throughput:
-        weight: 0.6
-        reason: Prefer the offering that produces output tokens fastest.
+        weight: 0.15
+        reason: Among offerings of similar quality, prefer the one that produces output tokens fastest.
       -offering.cost_per_task:
-        weight: 0.4
-        reason: At volume, keep cost as the second term.
+        weight: 0.1
+        reason: At volume, cost still counts.
     task_tokens: {input: 2000, output: 500}
     needs:
       classes: [text-generator]
-      domains: []
+      domains: [chat_preference]
     canvas: {x: "facet:offering.speed.throughput", y: "facet:offering.cost_per_task"}
     teaches: Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.
 

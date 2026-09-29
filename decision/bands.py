@@ -80,12 +80,14 @@ def p_at_least(challenger: Distribution, leader: Distribution) -> float:
 
 
 def published_variance(row: OptimisedResult) -> float:
-    """Score variance from the source-published intervals of measured objective terms."""
+    """Score variance from the published intervals of measured objective terms.
+
+    A benchmark row's source interval and a ModelSpec measurement's interval of
+    the median both count; a term with no interval has zero width and adds none.
+    """
     variance = 0.0
     for contribution in row.contributions:
-        if (contribution.estimate is None and len(contribution.evidence) == 1
-                and contribution.evidence[0].interval is not None
-                and contribution.interval is not None):
+        if contribution.estimate is None and contribution.interval is not None:
             low, high = contribution.interval
             variance += (contribution.weight * (high - low) / (2 * PUBLISHED_INTERVAL_Z)) ** 2
     return variance

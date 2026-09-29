@@ -472,6 +472,7 @@ export const decisionSchema = z
       "2.6",
       "2.7",
       "2.8",
+      "2.9",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),

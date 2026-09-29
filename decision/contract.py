@@ -41,7 +41,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.8"
+CONTRACT_VERSION = "2.9"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1756,7 +1756,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.8"] = CONTRACT_VERSION
+    contract_version: Literal["2.9"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.

@@ -10,7 +10,10 @@ list of facets or benchmarks of its own:
   that type admits, whether it can be an objective, and how much of the
   snapshot's lineup knows it (``known`` of ``of``), with the values or the
   range it takes there. A facet no lineup candidate knows is listed with
-  ``known: 0``; a client should not offer it.
+  ``known: 0``; a client should not offer it. A facet whose lineup values
+  ModelSpec measured adds ``measurement``: who measured, the method and its
+  URL, the workloads, how many values, the smallest sample and the window
+  (MODEL-212). An unmeasured facet has no ``measurement`` key.
 * ``benchmarks``: every benchmark with verified evidence in the snapshot, with
   its name, unit, domains and directness, how many lineup models have a
   verified row (``models``), how many have one not reported by their own lab
@@ -187,10 +190,13 @@ def _facet_row(facet: Any, snapshot: Any, subjects: Iterable[str], unit_definiti
     kind = facet.value_type.kind
     subjects = list(subjects)
     values: list[Any] = []
+    measured: list[Mapping[str, Any]] = []
     for cid in subjects:
         fact = snapshot.fact(cid, facet.id)
         if fact.state == "known" and fact.value is not None:
             values.append(fact.value)
+            if fact.measurement is not None:
+                measured.append(fact.measurement)
     row: dict[str, Any] = {
         "id": facet.id,
         "label": facet.label or facet.id,
@@ -225,6 +231,8 @@ def _facet_row(facet: Any, snapshot: Any, subjects: Iterable[str], unit_definiti
     elif kind == "date":
         dates = sorted(str(v) for v in values)
         row["range"] = {"min": dates[0], "max": dates[-1]} if dates else None
+    if measured:
+        row["measurement"] = _measurement_summary(measured)
     if kind == "number":
         literals = sorted({v for v in values if v in _LITERALS})
         if literals:
@@ -239,6 +247,20 @@ def _facet_row(facet: Any, snapshot: Any, subjects: Iterable[str], unit_definiti
                 else {})}
             for v in sorted(counts, key=lambda v: (str(type(v)), str(v)))]
     return row
+
+
+def _measurement_summary(blocks: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """Who measured a facet's lineup values, by which method, and how thinly (MODEL-212)."""
+    methods = sorted({(b["method"], str(b["method_url"])) for b in blocks})
+    return {
+        "measured_by": sorted({b["measured_by"] for b in blocks}),
+        "methods": [{"id": m, "url": url} for m, url in methods],
+        "workloads": sorted({b["workload"] for b in blocks}),
+        "measured": len(blocks),
+        "min_n": min(b["n"] for b in blocks),
+        "window": {"start": min(b["window"]["start"] for b in blocks),
+                   "end": max(b["window"]["end"] for b in blocks)},
+    }
 
 
 def _benchmark_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mapping[str, Any]],

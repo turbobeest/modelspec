@@ -1,0 +1,127 @@
+Below is a small Python module that tracks stock in a warehouse. Read it, then write a complete pytest test module for it. Cover every public function and method, every error branch, and the rounding rules. Use fixtures where they help, give every test a descriptive name, and include the full file contents. Do not explain the tests; write only code, and do not stop early.
+
+```python
+"""Warehouse stock ledger."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import date
+from decimal import ROUND_HALF_EVEN, Decimal
+
+
+class StockError(ValueError):
+    """Raised when a movement would leave the ledger inconsistent."""
+
+
+@dataclass(frozen=True)
+class Item:
+    sku: str
+    name: str
+    unit_cost: Decimal
+    reorder_level: int = 0
+
+    def __post_init__(self) -> None:
+        if not self.sku or not self.sku.isalnum():
+            raise StockError(f"invalid SKU {self.sku!r}")
+        if self.unit_cost < 0:
+            raise StockError("unit cost cannot be negative")
+        if self.reorder_level < 0:
+            raise StockError("reorder level cannot be negative")
+
+
+@dataclass(frozen=True)
+class Movement:
+    sku: str
+    quantity: int
+    on: date
+    reason: str
+
+    @property
+    def is_receipt(self) -> bool:
+        return self.quantity > 0
+
+
+@dataclass
+class Ledger:
+    items: dict[str, Item] = field(default_factory=dict)
+    movements: list[Movement] = field(default_factory=list)
+
+    def add_item(self, item: Item) -> None:
+        if item.sku in self.items:
+            raise StockError(f"duplicate SKU {item.sku}")
+        self.items[item.sku] = item
+
+    def on_hand(self, sku: str, *, as_of: date | None = None) -> int:
+        self._require(sku)
+        return sum(
+            m.quantity
+            for m in self.movements
+            if m.sku == sku and (as_of is None or m.on <= as_of)
+        )
+
+    def receive(self, sku: str, quantity: int, on: date, reason: str = "receipt") -> None:
+        self._require(sku)
+        if quantity <= 0:
+            raise StockError("a receipt must add stock")
+        self.movements.append(Movement(sku, quantity, on, reason))
+
+    def issue(self, sku: str, quantity: int, on: date, reason: str = "issue") -> None:
+        self._require(sku)
+        if quantity <= 0:
+            raise StockError("an issue must remove stock")
+        if self.on_hand(sku, as_of=on) < quantity:
+            raise StockError(f"not enough {sku} on {on.isoformat()}")
+        self.movements.append(Movement(sku, -quantity, on, reason))
+
+    def transfer_out(self, sku: str, quantity: int, on: date, to: "Ledger") -> None:
+        self.issue(sku, quantity, on, reason=f"transfer to {id(to)}")
+        if sku not in to.items:
+            to.add_item(self.items[sku])
+        to.receive(sku, quantity, on, reason=f"transfer from {id(self)}")
+
+    def value(self, *, as_of: date | None = None) -> Decimal:
+        total = sum(
+            (self.items[sku].unit_cost * self.on_hand(sku, as_of=as_of) for sku in self.items),
+            Decimal("0"),
+        )
+        return total.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+
+    def below_reorder(self) -> list[str]:
+        return sorted(
+            sku for sku, item in self.items.items() if self.on_hand(sku) < item.reorder_level
+        )
+
+    def history(self, sku: str) -> list[tuple[date, int, int]]:
+        """Each movement for ``sku`` in date order, with the running balance."""
+        self._require(sku)
+        balance = 0
+        rows = []
+        for m in sorted((m for m in self.movements if m.sku == sku), key=lambda m: m.on):
+            balance += m.quantity
+            rows.append((m.on, m.quantity, balance))
+        return rows
+
+    def _require(self, sku: str) -> None:
+        if sku not in self.items:
+            raise StockError(f"unknown SKU {sku}")
+
+
+def average_daily_issue(ledger: Ledger, sku: str, start: date, end: date) -> Decimal:
+    if end < start:
+        raise StockError("the period ends before it starts")
+    days = (end - start).days + 1
+    issued = -sum(
+        m.quantity
+        for m in ledger.movements
+        if m.sku == sku and not m.is_receipt and start <= m.on <= end
+    )
+    return (Decimal(issued) / days).quantize(Decimal("0.001"), rounding=ROUND_HALF_EVEN)
+
+
+def days_of_cover(ledger: Ledger, sku: str, start: date, end: date) -> int | None:
+    rate = average_daily_issue(ledger, sku, start, end)
+    if rate == 0:
+        return None
+    return int(Decimal(ledger.on_hand(sku, as_of=end)) / rate)
+```

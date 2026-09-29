@@ -57,6 +57,18 @@ const facetSchema = z.object({
   values: z
     .array(z.object({ value: scalar, count: z.number().int(), label: z.string().optional() }))
     .optional(),
+  /** 2.9 (MODEL-212): who measured the lineup's values, how, and how thinly. */
+  measurement: z
+    .object({
+      measured_by: z.array(z.string()),
+      methods: z.array(z.object({ id: z.string(), url: z.string() }).strict()),
+      workloads: z.array(z.string()),
+      measured: z.number().int().positive(),
+      min_n: z.number().int().positive(),
+      window: z.object({ start: z.string(), end: z.string() }).strict(),
+    })
+    .strict()
+    .optional(),
 });
 const benchmarkSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9_]*$/),
