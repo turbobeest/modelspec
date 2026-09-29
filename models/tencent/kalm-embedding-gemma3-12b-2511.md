@@ -675,22 +675,23 @@ benchmarks:
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: MTEB(Multilingual, v2), mean over tasks
     configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
       The JSON states no snapshot date, so the reading is dated by the observation.
     limitations: The leaderboard reports this model as 73% zero-shot on the benchmark's tasks.
-    id: tencent/kalm-embedding-gemma3-12b-2511#mteb_multilingual_v2#f6a9ca9aec9d
+    id: tencent/kalm-embedding-gemma3-12b-2511#mteb_multilingual_v2#16b26eded55e
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
     - source_id: model-143-evidence-mteb-multilingual-v2-json
-      snapshot_ref: sha256:32f83871582a5ba431612365fb9728de9fb9d516c1c969ed188f4184c74de485
+      snapshot_ref: sha256:777a386241c32131f7fa6275f3d92fae55175e12dfa1bce64022bafd3efd9d44
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
 deployment:
   api_only: false
   local_inference: true

@@ -704,7 +704,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -712,6 +712,13 @@ benchmarks:
       votes, rank 125.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_elo_style_control#3b78cb8124fc
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:bea7ea9d7344aeccaed159b64f2f3aa97e84231d3723b02f9d4a5672b6b889b8
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1455.79
@@ -720,7 +727,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -728,6 +735,13 @@ benchmarks:
       votes, rank 136.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_coding#f4d574508e37
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:da249e40e0397ffcd8dd5f738c4c91f9a389869f8ae9e26c425a1187f04c7118
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1436.26
@@ -736,7 +750,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -744,6 +758,13 @@ benchmarks:
       votes, rank 124.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_hard_prompts#33f39ee8c80c
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:5a69c3a3a5f23cf6bfd2b0ecae495ec9731f62df889f4147793616588a2d4f8b
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1415.75
@@ -752,13 +773,20 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
       2026-09-13; style control. Highest-effort row for the product (effort: thinking; MODEL-123
       max-effort rule). Rating 1415.75 [1393.66, 1437.85], 658 votes, rank 119.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_math#944adebb5d90
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:41e622d3837a9ab1577d975e3c57ae92db367c09f45606ed1870a32a4591335a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1401.92
@@ -767,7 +795,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -775,6 +803,13 @@ benchmarks:
       votes, rank 96.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_creative_writing#a864b6225c16
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4ca49a5b7efede8e577057d10266b363a837e56331ac79f7540f7da349a3eee5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1416.41
@@ -783,7 +818,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -791,6 +826,13 @@ benchmarks:
       votes, rank 103.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_instruction_following#086ff094caff
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:6bcc35b68ac189cda1a204de4fab84c84fcd9d853dc2c3265e68366133d9093b
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1415.29
@@ -799,7 +841,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -807,6 +849,13 @@ benchmarks:
       votes, rank 129.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_multi_turn#94a53d4328a1
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:76f93ba07e2611ee096faf4210eb6b965b5b113b375cb5edec5f224be61fc346
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1431.03
@@ -815,7 +864,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -823,6 +872,13 @@ benchmarks:
       votes, rank 130.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_expert#fabc3700150f
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:ebf8116274f3815b353511b1829bd763a0817e2a0c5d3669072ebd5571271745
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1446.13
@@ -831,7 +887,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -839,6 +895,13 @@ benchmarks:
       votes, rank 89.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_longer_query#11b956ec3a7c
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3c7de94587c842e12c134292a7df52a9faafb46f877d184d8f235d5c1d466737
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1400.91
@@ -847,7 +910,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -855,6 +918,13 @@ benchmarks:
       votes, rank 125.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_non_english#ab53500cabd5
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:47f41bf8222f55644ca4a36db5ad4178546c5d3e2982bcda2dc08798f9776a65
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1446.69
@@ -863,7 +933,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
       revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
@@ -872,6 +942,13 @@ benchmarks:
       votes, rank 103.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_medicine#8022ae85cca7
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:31163709a3917ed23ec956a2589a6a5ad30924817977652909218ecbbf9a8d0e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1422.48
@@ -880,7 +957,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
       1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
@@ -889,6 +966,13 @@ benchmarks:
       votes, rank 129.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_legal#d8188d4fb977
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:6aec9d4dd9fc82958ffeceea56c977de5d8204f6c62ad5113657b828f9bc55da
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1417.6
@@ -897,7 +981,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
       latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
@@ -906,6 +990,13 @@ benchmarks:
       votes, rank 117.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_business#b52897d5a124
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:ba565a81fbb65e9d13c80776fda09aabedc819d64793b355a5a5fe836212472e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1426.71
@@ -914,7 +1005,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
@@ -923,6 +1014,13 @@ benchmarks:
       votes, rank 136.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_science#967982fe8560
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:dff891db693196c263ad841fcb75cf135a4529936b386a76fc324e6b66bb2d2e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: deepseek-v3.1-thinking
     score: 1407.36
@@ -931,7 +1029,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
@@ -940,6 +1038,13 @@ benchmarks:
       votes, rank 100.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: deepseek/deepseek-v3-1#arena_sc_writing#27104d722efa
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:451771d6d03dfcdc902ebbb505ce47bfc614e33bde751b42f3be31d89d416086
+      cited_regions:
+      - rows
   - benchmark_id: aime_2025
     model_id_as_evaluated: DeepSeek-v3.1 (Think)
     score: 90.83

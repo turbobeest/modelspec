@@ -794,7 +794,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Text Arena overall, raw (not style-controlled)
     configuration: LMArena's official leaderboard dataset, split latest, subset `text`
       (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
@@ -808,13 +808,14 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:b2143e53db27d7506c982ed4a7fe246289fd9ba5d181149507f0ee86bae47c18
+      snapshot_ref: sha256:6edcebedc5883fade268c96cf827cebf7e4d850529a482825a5afa1264bb1628
       cited_regions:
       - rows
     interval:
     - 1432.08
     - 1455.37
     n: 2693
+    observed_at: '2026-09-29'
   - benchmark_id: arena_elo_coding
     model_id_as_evaluated: gpt-6-astra-max
     score: 1488.58
@@ -823,7 +824,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Text Arena coding category, raw (not style-controlled)
     configuration: LMArena's official leaderboard dataset, split latest, subset `text`
       (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
@@ -838,9 +839,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text
-      snapshot_ref: sha256:acfd5444c3981590ac4a3e5589d1f54950660ce053f740f44a755d508540045b
+      snapshot_ref: sha256:2193da2be6b25678f25bfd34b1e6a6fda0ad3583dab485911d8a61f247dbadcc
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gpt-6-astra-max
     score: 1479.77
@@ -849,7 +851,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -863,9 +865,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      snapshot_ref: sha256:bea7ea9d7344aeccaed159b64f2f3aa97e84231d3723b02f9d4a5672b6b889b8
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: gpt-6-astra-max
     score: 1542.88
@@ -874,7 +877,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -888,9 +891,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      snapshot_ref: sha256:da249e40e0397ffcd8dd5f738c4c91f9a389869f8ae9e26c425a1187f04c7118
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: gpt-6-astra-max
     score: 1497.05
@@ -899,7 +903,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -913,9 +917,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      snapshot_ref: sha256:5a69c3a3a5f23cf6bfd2b0ecae495ec9731f62df889f4147793616588a2d4f8b
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: gpt-6-astra-max
     score: 1460.72
@@ -924,7 +929,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -938,9 +943,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      snapshot_ref: sha256:4ca49a5b7efede8e577057d10266b363a837e56331ac79f7540f7da349a3eee5
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: gpt-6-astra-max
     score: 1460.95
@@ -949,7 +955,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -963,9 +969,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      snapshot_ref: sha256:6bcc35b68ac189cda1a204de4fab84c84fcd9d853dc2c3265e68366133d9093b
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: gpt-6-astra-max
     score: 1499.35
@@ -974,7 +981,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -988,9 +995,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      snapshot_ref: sha256:76f93ba07e2611ee096faf4210eb6b965b5b113b375cb5edec5f224be61fc346
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: gpt-6-astra-max
     score: 1472.21
@@ -999,7 +1007,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -1013,9 +1021,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      snapshot_ref: sha256:ebf8116274f3815b353511b1829bd763a0817e2a0c5d3669072ebd5571271745
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: gpt-6-astra-max
     score: 1481.11
@@ -1024,7 +1033,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -1038,9 +1047,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      snapshot_ref: sha256:3c7de94587c842e12c134292a7df52a9faafb46f877d184d8f235d5c1d466737
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: gpt-6-astra-max
     score: 1460.02
@@ -1049,7 +1059,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -1063,9 +1073,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      snapshot_ref: sha256:47f41bf8222f55644ca4a36db5ad4178546c5d3e2982bcda2dc08798f9776a65
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: gpt-6-astra-max
     score: 1496.16
@@ -1074,7 +1085,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
       revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
@@ -1089,9 +1100,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      snapshot_ref: sha256:31163709a3917ed23ec956a2589a6a5ad30924817977652909218ecbbf9a8d0e
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: gpt-6-astra-max
     score: 1510.23
@@ -1100,7 +1112,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
       1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
@@ -1115,9 +1127,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      snapshot_ref: sha256:6aec9d4dd9fc82958ffeceea56c977de5d8204f6c62ad5113657b828f9bc55da
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: gpt-6-astra-max
     score: 1478.56
@@ -1126,7 +1139,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
       latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
@@ -1141,9 +1154,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      snapshot_ref: sha256:ba565a81fbb65e9d13c80776fda09aabedc819d64793b355a5a5fe836212472e
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: gpt-6-astra-max
     score: 1497.62
@@ -1152,7 +1166,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
@@ -1167,9 +1181,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      snapshot_ref: sha256:dff891db693196c263ad841fcb75cf135a4529936b386a76fc324e6b66bb2d2e
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: gpt-6-astra-max
     score: 1478.06
@@ -1178,7 +1193,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
@@ -1193,9 +1208,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      snapshot_ref: sha256:451771d6d03dfcdc902ebbb505ce47bfc614e33bde751b42f3be31d89d416086
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: gpt-6-astra-max
     score: 1284.0
@@ -1204,7 +1220,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -1218,9 +1234,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
+      snapshot_ref: sha256:9da6b0bec36701b281c5b1b1e49bed1a536c78908b3d186f41a551360cb584c4
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_webdev
     model_id_as_evaluated: gpt-6-astra-max
     score: 1792.18
@@ -1229,7 +1246,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: max;
@@ -1242,9 +1259,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:1342f43f483667f8e4313a1fb517522e1f18aa1b09d4812f8d3163c4ff30b9bc
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: gpt-6-astra_max
     score: 95.77
@@ -1253,7 +1271,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-30'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: GPQA Diamond (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
       read 2026-09-24. Run started 2026-08-30T14:57:43.000Z; effort max; highest-effort run
@@ -1265,9 +1283,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      snapshot_ref: sha256:39583bb153c2d06652ef7e4886b645abb7ea53fe3b7bb6c8aaeccef4055705cb
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: gpt-6-astra_max
     score: 93.68
@@ -1276,7 +1295,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-30'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
       read 2026-09-24. Run started 2026-08-30T14:57:43.000Z; effort max; highest-effort run
@@ -1288,9 +1307,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      snapshot_ref: sha256:cae4d7f40f600006a0cbd47a4ced7d916a96f50953b9a454830dd46b20aa4c1a
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: gpt-6-astra_max
     score: 75.6
@@ -1299,7 +1319,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-30'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
       prompt
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
@@ -1312,81 +1332,85 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      snapshot_ref: sha256:33e4a89c307a2e5d6941be7ad13770315c4eff899ed69e92490cd697bdb5a584
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: frontiercode_v1_1
     model_id_as_evaluated: GPT-6 Astra
     score: 53.3
     unit: percent
     source_url: https://cognition.com/frontiercode
     source_kind: benchmark_author
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: FrontierCode 1.1, main score (Mean@5)
     configuration: Board row as copied in Epoch AI's benchmark data (frontiercode_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort max; the highest-effort
       row for the model (MODEL-123 max-effort rule). Harness codex.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
-    id: openai/gpt-6-astra#frontiercode_v1_1#12053c454376
+    id: openai/gpt-6-astra#frontiercode_v1_1#064e5294e670
     measured_by: benchmark_author
     effort: max
     harness: null
     sources:
     - source_id: model-160-frontiercode
-      snapshot_ref: sha256:15fcd95ba12a8dc8c69096acfcef38a31e6834f37d9c4b84df1d7ea4bed87e1f
+      snapshot_ref: sha256:cd845eb12dc06498f07c3729c9725cf61ad153cacb7580918f8b955e443b4add
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: GPT-6 Astra
     score: 15514.7
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
     configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort unknown; the highest-effort
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
-    id: openai/gpt-6-astra#vending_bench_2#ab3f5bb164d4
+    id: openai/gpt-6-astra#vending_bench_2#921b381cca37
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
     - source_id: model-160-vending-bench-2
-      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      snapshot_ref: sha256:94074584ec83e973b31884f48956a6bc43e36a33d47dc3feaa7c52adf23a9c12
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: deepswe_v1_1
     model_id_as_evaluated: gpt-6-astra (max)
     score: 73.23
     unit: percent
     source_url: https://deepswe.datacurve.ai/
     source_kind: benchmark_author
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: DeepSWE v1.1, pass@1, mini-swe-agent
     configuration: Board row as copied in Epoch AI's benchmark data (deepswe_external.csv, https://epoch.ai/data/benchmark_data.zip),
       read 2026-09-24. Effort max; the highest-effort row for the model (MODEL-123 max-effort
       rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
-    id: openai/gpt-6-astra#deepswe_v1_1#173e4bcae4c1
+    id: openai/gpt-6-astra#deepswe_v1_1#5ab74314761e
     measured_by: benchmark_author
     effort: max
     harness: unregistered
     sources:
     - source_id: model-160-deepswe-v1-1
-      snapshot_ref: sha256:7fcc641eb55d3cfbc8429ea1ef26448ef44bb66772190ee69f8464958c0a79dc
+      snapshot_ref: sha256:33c505b573a474e601643fe1e1295b91b10e3ef62dfeab167a3851226358c972
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: GPT-6 Astra
     score: 58.18
@@ -1395,7 +1419,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-03'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Terminal-Bench 4.0
     configuration: 'tbench.ai leaderboard row read 2026-09-24: agent Codex (OpenAI), reasoning
       effort max, 330 trials, accuracy 58.18 ± 2.79 (95% CI). The board''s row date is the evidence
@@ -1407,32 +1431,34 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-143-evidence-terminal-bench-4-0-json
-      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      snapshot_ref: sha256:54a544aecba2370f872f3de73138e023be87b34f380f98174992e3556e0be7b4
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: hle
     model_id_as_evaluated: GPT 6 Astra
     score: 54.8
     unit: percent
     source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
     source_kind: independent_evaluator
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
     configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2026-09-09T18:59:21.000Z;
       effort default; ±1.94 (95% CI).
     limitations: 'Potential contamination warning: This model was evaluated after the public
       release of HLE, allowing model builder access to the prompts and solutions.'
-    id: openai/gpt-6-astra#hle#db4d9ccdc6ff
+    id: openai/gpt-6-astra#hle#a8cfb0bd338e
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
     - source_id: model-143-evidence-scale-hle-json
-      snapshot_ref: sha256:c7e558ff927cc7aae1ec9d39ba22de7b5db667674ea408c772002222c11818bd
+      snapshot_ref: sha256:ed69749324d707d71cd52ecfd30482b055235387a614e3d1003638c23d35e300
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_english
     model_id_as_evaluated: gpt-6-astra-max
     score: 1496.29
@@ -1441,8 +1467,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1496.29 [1478.70,
       1513.89], 1139 votes, rank 10. Observed 2026-09-27.
@@ -1452,7 +1478,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      snapshot_ref: sha256:cee57baa7239c5aa2091dcb5db0b4c2ac22cec732b235d66c0cda2ee55bdcb44
       cited_regions:
       - rows
     id: openai/gpt-6-astra#arena_sc_english#420d74b2af6f
@@ -1464,8 +1490,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1446.50 [1412.90,
       1480.11], 329 votes, rank 74. Observed 2026-09-27.
@@ -1475,7 +1501,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      snapshot_ref: sha256:eb77af068077fa90a9514ad454b6a65f061a176f0d68897132e1526f3be743dd
       cited_regions:
       - rows
     id: openai/gpt-6-astra#arena_sc_russian#ac1014010c56
@@ -1487,8 +1513,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: vision_style_control / ocr, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1299.13 [1278.50,
       1319.75], 894 votes, rank 16. Observed 2026-09-27.
@@ -1498,7 +1524,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:1370bca68e20f410db1d74c3c5cc4deade992317d0334c3516f50b66938da114
+      snapshot_ref: sha256:72ff33856df7c05e7611f78bd6f0a13fc422694ad107f25e00c11b10edb14422
       cited_regions:
       - rows
     id: openai/gpt-6-astra#arena_sc_vision_ocr#c5826833ae79
@@ -1510,8 +1536,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: vision_style_control / diagram, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1318.00 [1284.13,
       1351.86], 324 votes, rank 12. Observed 2026-09-27.
@@ -1521,7 +1547,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:947bbb0cc1b11be394d53298f60b967420a1837ea2cccf9a2972bc6bd013c6bb
+      snapshot_ref: sha256:f70ad4aae81aa8b6cca27735001f45704e13f64af12ad93244cd19ca60d98085
       cited_regions:
       - rows
     id: openai/gpt-6-astra#arena_sc_vision_diagram#0f4a3ff625cb
@@ -1533,8 +1559,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: document / overall, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.52 [1453.26,
       1481.79], 1621 votes, rank 16. Observed 2026-09-27.
@@ -1544,7 +1570,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-document
-      snapshot_ref: sha256:ca71d77b360678771f5300146465c8e6298970b38f4dac38a224686a0af59f4d
+      snapshot_ref: sha256:050705ac3c2e5ba81aacf700b87f5144dd7b0ec9f7f12168be5086b1c11be958
       cited_regions:
       - rows
     id: openai/gpt-6-astra#arena_sc_document#92aad4004cce
@@ -1556,8 +1582,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
       1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1518.11 [1499.46,
@@ -1568,7 +1594,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      snapshot_ref: sha256:4eaa9890dce0719aa263af890c9f2a7bb1a3198e291d84dbf8c1371d4f150c52
       cited_regions:
       - rows
     id: openai/gpt-6-astra#arena_sc_industry_software_it_services#a1509fd86656
@@ -1580,8 +1606,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
       split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1469.47 [1446.04,
@@ -1592,7 +1618,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      snapshot_ref: sha256:df0d5e7c4d4ce1f683618242c0786eafd164d98b3b49dbaa6e699476bec94ccf
       cited_regions:
       - rows
     id: openai/gpt-6-astra#arena_sc_industry_entertainment_sports_media#6f827c75b462
@@ -1604,8 +1630,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1465.76 [1455.66,
       1475.86], 2585 votes, rank 33. Observed 2026-09-27.
@@ -1615,7 +1641,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-factuality
-      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      snapshot_ref: sha256:ece0fd0afe2b42a38bce698a6be5329044b5503f5edb7f43473c19394b38fc28
       cited_regions:
       - rows
     id: openai/gpt-6-astra#arena_sc_factuality#baad24620635

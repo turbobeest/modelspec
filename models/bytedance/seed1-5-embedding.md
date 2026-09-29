@@ -677,36 +677,44 @@ benchmarks:
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-29'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: MTEB(eng, v2), mean over tasks
     configuration: MTEB leaderboard backend JSON, benchmarkName MTEB(eng, v2), read
       2026-09-24. Score is meanTask times 100. The JSON has no per-row run date, so
       this date is the day the board was read.
     limitations: Mean over the benchmark's tasks. Not a single-task score.
-    id: bytedance/seed1-5-embedding#mteb_eng_v2#4057685854b3
+    id: bytedance/seed1-5-embedding#mteb_eng_v2#a61ba53a0d4c
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-mteb-eng-v2-json
-      snapshot_ref: sha256:3df976fb608b2a60aa58b6744e4d1135492fdd330ef18722af2dfeeef23a3c75
+    - source_id: model-160-mteb-eng-v2
+      snapshot_ref: sha256:83fde6c5b95636a9b2d753d8c18dd3d7118c619795dccee1b402dbe9189c37c8
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: mteb_v2_retrieval
     model_id_as_evaluated: ByteDance-Seed/Seed1.5-Embedding
     score: 67.45
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-29'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: MTEB(eng, v2), Retrieval task type
     configuration: Same JSON read, field scoresByTaskType.Retrieval times 100. Dated
       by the day the board was read.
     limitations: ''
+    observed_at: '2026-09-29'
+    id: bytedance/seed1-5-embedding#mteb_v2_retrieval#e1565e8e5650
+    sources:
+    - source_id: model-160-mteb-eng-v2
+      snapshot_ref: sha256:83fde6c5b95636a9b2d753d8c18dd3d7118c619795dccee1b402dbe9189c37c8
+      cited_regions:
+      - rows
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

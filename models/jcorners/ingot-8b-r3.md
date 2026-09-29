@@ -675,45 +675,47 @@ benchmarks:
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-29'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: MTEB(eng, v2), mean over tasks
     configuration: MTEB leaderboard backend JSON, benchmarkName MTEB(eng, v2), read
       2026-09-24. Score is meanTask times 100. The JSON has no per-row run date, so
       this date is the day the board was read.
     limitations: Mean over the benchmark's tasks. Not a single-task score.
-    id: jcorners/ingot-8b-r3#mteb_eng_v2#4bebfdf26d62
+    id: jcorners/ingot-8b-r3#mteb_eng_v2#f43037e44757
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-mteb-eng-v2-json
-      snapshot_ref: sha256:ac7d438631091bcea50b96c0f2e3e83741ad7903e14a2e051bae8d7e7260c583
+    - source_id: model-160-mteb-eng-v2
+      snapshot_ref: sha256:83fde6c5b95636a9b2d753d8c18dd3d7118c619795dccee1b402dbe9189c37c8
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: mteb_v2_retrieval
     model_id_as_evaluated: jcorners/ingot-8b-r3
     score: 70.0
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-29'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: MTEB(eng, v2), Retrieval task type
     configuration: Same JSON read, field scoresByTaskType.Retrieval times 100. Dated
       by the day the board was read.
     limitations: ''
-    id: jcorners/ingot-8b-r3#mteb_v2_retrieval#5e3354975702
+    id: jcorners/ingot-8b-r3#mteb_v2_retrieval#3641e2d61318
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
-    - source_id: model-143-evidence-mteb-eng-v2-json
-      snapshot_ref: sha256:ac7d438631091bcea50b96c0f2e3e83741ad7903e14a2e051bae8d7e7260c583
+    - source_id: model-160-mteb-eng-v2
+      snapshot_ref: sha256:83fde6c5b95636a9b2d753d8c18dd3d7118c619795dccee1b402dbe9189c37c8
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
