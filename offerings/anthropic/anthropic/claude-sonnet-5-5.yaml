@@ -143,3 +143,18 @@
     checked_sources:
     - anthropic-pricing
     - model-s55-anthropic-claude-sonnet-5-5
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-pricing
+    - model-s55-anthropic-attestations-rendered
+    - model-s55-anthropic-claude-sonnet-5-5
+    - model-s55-anthropic-pricing-rendered
+    - model-s55-anthropic-retention-rendered
+    - model-s55-anthropic-training-rendered
+    - model-s55-anthropic-zdr-rendered

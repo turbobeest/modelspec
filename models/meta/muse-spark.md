@@ -2213,10 +2213,52 @@ facts:
     snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
     cited_regions:
     - audit
+- id: meta/muse-spark#model.fits_hardware
+  subject:
+    kind: model
+    id: meta/muse-spark
+  facet: model.fits_hardware
+  value: []
+  state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: closed_weights
+      parameters_total: null
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'false'
+      model_snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
+  sources:
+  - source_id: model-143-meta-muse-spark
+    snapshot_ref: sha256:804c2c88e8424231fcf3e8406d4e3707a8166f1622b6ce70805e9f9b6593424a
+    cited_regions:
+    - model-spec
+  - source_id: model-143-meta-release-index
+    snapshot_ref: sha256:bcde843202fd01598bfc74c3adeb5b59df1713f0e4c07784728e5c941691895a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-model-api
+    snapshot_ref: sha256:e6306b281f9b3d01d0c83c4c662af0dc8613f1e67138906f112cb24fbea30d2a
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-company
+    snapshot_ref: sha256:fcf8283f72c1376dc97cd49a2776df3b6c7608b6f76844ac86c67fa89f497e3f
+    cited_regions:
+    - audit
+  - source_id: model-143-meta-sec
+    snapshot_ref: sha256:7627db9dbf44d398db1726ca661ff7222dcbd76bc768ddec13815ab9b9fbd07e
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: manual
 card_created: '2026-04-08'
-card_updated: '2026-09-18'
+card_updated: '2026-09-28'
 ---
 
 

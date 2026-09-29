@@ -143,3 +143,14 @@
     checked_sources:
     - zai-pricing
     - model-143-zai-glm-5-3-guide
+  - id: zai/zhipu/glm-5-3/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: zai/zhipu/glm-5-3/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - model-143-zai-glm-5-3-guide
+    - zai-pricing
+    - zai-privacy

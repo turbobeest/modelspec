@@ -1118,10 +1118,40 @@ facts:
     snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
     cited_regions:
     - audit
+- id: qwen/qwen3-8-max-0902#model.fits_hardware
+  subject:
+    kind: model
+    id: qwen/qwen3-8-max-0902
+  facet: model.fits_hardware
+  value: []
+  state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: closed_weights
+      parameters_total: null
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'false'
+      model_snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
+  sources:
+  - source_id: model-143-qwen-qwen3-8-max-0902
+    snapshot_ref: sha256:7aa0a8d418fe63dfd5e0f17e708d2138125c4a9e14a57bda5cbd380d8ca0adc9
+    cited_regions:
+    - model-spec
+  - source_id: model-143-alibaba-modelstudio-terms
+    snapshot_ref: sha256:48240aba988a496fc4fa379e64b65b83bb0f676f68094f6048db793eddcb1a26
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: Grok 4.7
 card_created: '2026-09-24'
-card_updated: '2026-09-24'
+card_updated: '2026-09-28'
 ---
 
 # Qwen3.8 Max 0902

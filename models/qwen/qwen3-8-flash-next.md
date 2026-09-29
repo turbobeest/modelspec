@@ -1217,6 +1217,51 @@ facts:
   - model-143-alibaba-modelstudio-terms
   - model-143-qwen3-8-flash-next-license
   - model-143-hf-metadata-qwen-qwen3-8-flash-next
+- id: qwen/qwen3-8-flash-next#model.fits_hardware
+  subject:
+    kind: model
+    id: qwen/qwen3-8-flash-next
+  facet: model.fits_hardware
+  value:
+  - amd_instinct_mi250x
+  - amd_instinct_mi300x
+  - amd_instinct_mi325x
+  - amd_instinct_mi355x
+  - amd_ryzen_ai_max_plus_395
+  - apple_m2_ultra
+  - apple_m3_max
+  - apple_m3_ultra
+  - apple_m4_max
+  - apple_m5_max
+  - google_tpu7x
+  - intel_gaudi_3
+  - nvidia_b200
+  - nvidia_b300
+  - nvidia_dgx_spark
+  - nvidia_gb200_superchip
+  - nvidia_h200_sxm
+  - nvidia_jetson_t5000
+  - nvidia_rubin_gpu
+  state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 179999981459
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
+  sources:
+  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-input
+    snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
+    cited_regions:
+    - rows
 - id: qwen/qwen3-8-flash-next#model.parameters_total
   subject:
     kind: model
@@ -1225,30 +1270,42 @@ facts:
   value: 179999981459
   state: known
   sources:
-  - source_id: model-161-qwen3-8-flash-next-rtx-4090-fit
-    snapshot_ref: sha256:9258c7fa8ac271f31491b9558b066f6cda2a344b38e7560abc3cb103a72a16e0
+  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-input
+    snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
     cited_regions:
     - rows
-- id: qwen/qwen3-8-flash-next#model.fits_hardware
+- id: qwen/qwen3-8-flash-next#model.hardware_fit_indeterminate
   subject:
     kind: model
     id: qwen/qwen3-8-flash-next
-  facet: model.fits_hardware
-  value: []
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
   state: known
   sources:
-  - source_id: model-161-qwen3-8-flash-next-rtx-4090-fit
-    snapshot_ref: sha256:9258c7fa8ac271f31491b9558b066f6cda2a344b38e7560abc3cb103a72a16e0
+  - source_id: model-174-qwen-qwen3-8-flash-next-hardware-input
+    snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
     cited_regions:
     - rows
-  - source_id: model-161-nvidia-rtx-4090-memory
-    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
-    cited_regions:
-    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 179999981459
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:c8af63cc33130939aeb9f0d54717f2c4ba98b84b0f894276413e63bea8e57e2e
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: modelspec
 card_created: '2026-09-10'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 # Qwen3.8-Flash-Next
