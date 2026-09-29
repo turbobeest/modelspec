@@ -34,6 +34,11 @@ const energyFacet = {
   unit_definition: null,
   operators: ["<=", ">="] as ("<=" | ">=")[],
   objective: true,
+  preference: {
+    kind: "continuous" as const,
+    directions: ["max", "min"] as ["max", "min"],
+    threshold: "where" as const,
+  },
   risk: "capability" as const,
   computed_by: null,
   known: 3,
