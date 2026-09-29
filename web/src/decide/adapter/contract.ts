@@ -93,7 +93,7 @@ const contributionSchema = z
       .enum(["satisfied", "not_satisfied", "unknown"])
       .nullable()
       .optional(),
-    refinement: facetId.optional(),
+    refinement: facetId.nullish(),
   })
   .strict();
 
@@ -111,7 +111,7 @@ const resultSchema = z
       z.object({ domain: facetId, items: z.array(evidenceItemSchema) }).strict(),
     ),
     estimates: z.array(estimateSchema).nullable(),
-    refinement_estimates: z.array(refinementEstimateSchema).optional(),
+    refinement_estimates: z.array(refinementEstimateSchema).nullish(),
     p_best: z.number().min(0).max(1).nullable(),
     top3_stability: z.number().min(0).max(1).nullable(),
     soft_penalty: z.number().nonnegative(),
@@ -257,6 +257,8 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
+    // MODEL-179 estate answer; the board renders it in MODEL-202. Parsed opaquely until then.
+    with_estate: z.unknown().nullish(),
     benchmark_exclusions: z
       .object({
         benchmarks: z.array(facetId),
@@ -273,7 +275,7 @@ export const decisionSchema = z
         ),
       })
       .strict()
-      .optional(),
+      .nullish(),
     contract_version: z.enum([
       "1.1",
       "1.2",
@@ -418,7 +420,7 @@ export const decisionSchema = z
           dimension: facetId.nullable(),
           threshold: z.number().finite().nullable(),
           new_top: modelId.nullable(),
-          refinement: facetId.optional(),
+          refinement: facetId.nullish(),
         })
         .strict(),
     ),
