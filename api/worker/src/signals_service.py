@@ -1,4 +1,10 @@
-"""Authenticated release-signal storage for the Cloudflare Worker (MODEL-113)."""
+"""Authenticated release-signal storage for the Cloudflare Worker (MODEL-113).
+
+Two intakes feed one pending queue. `intake` takes Grok Bot's HMAC-signed
+`release-signal` v1. `discovered` takes the primary-source watcher's
+`release-discovery` v1 (MODEL-216) under the repository read key. Processing,
+acknowledgement and re-checks do not care which intake a row came through.
+"""
 
 from __future__ import annotations
 
@@ -13,7 +19,16 @@ from urllib.parse import urlsplit
 from release_signals.contract import SIGNAL_ID, ReleaseSignal, SignalError
 
 SCHEMA_VERSION = "1"
+#: The pending queue's own version. 2 since MODEL-216: a queued row can now be a
+#: `release-discovery` v1, whose `first_seen_url` is not on X. That widens the
+#: rows' range, so under MODEL-59 the queue took a major. Its only consumer is
+#: this repository's `release-signals.yml`.
+PENDING_SCHEMA_VERSION = "2"
 PENDING_PREFIX = "release-signals/v1/pending/"
+#: One permanent key per discovery the watcher ever filed. The watcher re-posts
+#: every uncatalogued discovery on every run; this is what makes that a no-op
+#: after the first, including once the pending row is acknowledged and gone.
+DISCOVERED_PREFIX = "release-signals/v1/discovered/"
 AUDIT_PREFIX = "release-signals/v1/audit/"
 RECHECK_PREFIX = "release-signals/v1/recheck/"
 MAX_AGE = timedelta(hours=24)
@@ -151,6 +166,52 @@ async def intake(
     })
 
 
+async def discovered(
+    *,
+    raw: bytes,
+    authorization: str | None,
+    read_key: str | None,
+    kv: Any,
+    now: datetime | None = None,
+) -> Outcome:
+    """Queue one watcher discovery, once, as the same pending work Grok Bot's are."""
+    if not _authorised(authorization, read_key):
+        return _error(401, "unauthorised", "a valid signals read key is required")
+    if kv is None:
+        return _error(503, "store_unavailable", "the release-signal store is not bound")
+    if len(raw) > MAX_BODY_BYTES:
+        return _error(413, "payload_too_large", f"the body must be at most {MAX_BODY_BYTES} bytes")
+    try:
+        signal = ReleaseSignal.parse(json.loads(raw), discovered=True)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return _error(400, "invalid_signal", f"the body is not valid JSON: {exc}")
+    except SignalError as exc:
+        return _error(400, "invalid_signal", str(exc))
+    observed = (now or datetime.now(UTC)).astimezone(UTC)
+    if observed - signal.instant > MAX_AGE or signal.instant - observed > MAX_FUTURE_SKEW:
+        return _error(400, "stale_signal", "timestamp is outside the accepted intake window")
+
+    marker = DISCOVERED_PREFIX + signal.signal_id
+    if await kv.get(marker) is not None:
+        return Outcome(200, {
+            "schema_version": SCHEMA_VERSION,
+            "endpoint": "signals.discovered",
+            "status": "duplicate",
+            "signal_id": signal.signal_id,
+        })
+    await kv.put(
+        PENDING_PREFIX + signal.signal_id,
+        json.dumps(signal.to_dict(), separators=(",", ":"), sort_keys=True),
+    )
+    await kv.put(marker, signal.timestamp)
+    return Outcome(202, {
+        "schema_version": SCHEMA_VERSION,
+        "endpoint": "signals.discovered",
+        "status": "accepted",
+        "signal_id": signal.signal_id,
+    })
+
+
 async def _keys(kv: Any, prefix: str) -> list[str]:
     names = []
     options = {"prefix": prefix}
@@ -201,7 +262,7 @@ async def pending(
         if raw:
             rechecks.append(json.loads(str(raw)))
     return Outcome(200, {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": PENDING_SCHEMA_VERSION,
         "endpoint": "signals.pending",
         "signals": sorted(signals, key=lambda row: (row["timestamp"], row["signal_id"])),
         "rechecks": rechecks,

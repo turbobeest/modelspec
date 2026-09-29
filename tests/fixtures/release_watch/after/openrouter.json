@@ -1,0 +1,9 @@
+{"data": [
+ {"id": "acme/acme-two.2", "created": 1790700000},
+ {"id": "acme/acme-two.2:free", "created": 1790700000},
+ {"id": "~acme/acme-latest", "created": 1790700000},
+ {"id": "acme/acme-one-1", "created": 1790600000},
+ {"id": "acme/acme-one-1-mini", "created": 1785000000},
+ {"id": "other-lab/other-6", "created": 1790700000},
+ {"id": "other-lab/other-5", "created": 1785000000}
+]}

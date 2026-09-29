@@ -1,4 +1,11 @@
-"""Version 1 of the Grok Bot release-signal contract."""
+"""Version 1 of the release-signal contracts.
+
+Two senders share one queue. Grok Bot posts `release-signal` v1: an X post is
+the discovery URL. The primary-source watcher (MODEL-216) posts
+`release-discovery` v1: the same six fields, a `watch:` signal ID, and the
+lab or provider page that listed the model. The ID prefix alone says which
+contract a queued row belongs to, so neither sender can pose as the other.
+"""
 
 from __future__ import annotations
 
@@ -25,6 +32,10 @@ RFC3339_DATE_TIME = re.compile(
     r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$"
 )
 X_HOSTS = frozenset({"x.com", "www.x.com", "twitter.com", "www.twitter.com"})
+#: Signal-only hosts. A watcher discovery never points at them.
+SIGNAL_ONLY_HOSTS = frozenset({"x.com", "twitter.com", "t.co"})
+#: Every watcher discovery ID starts with this, and no Grok Bot ID may.
+WATCH_PREFIX = "watch:"
 
 
 class SignalError(ValueError):
@@ -48,7 +59,8 @@ class ReleaseSignal:
     signal_id: str
 
     @classmethod
-    def parse(cls, value: Mapping[str, Any]) -> ReleaseSignal:
+    def parse(cls, value: Mapping[str, Any], *, discovered: bool = False) -> ReleaseSignal:
+        """Parse `release-signal` v1, or `release-discovery` v1 when `discovered`."""
         if not isinstance(value, Mapping):
             raise SignalError("the signal must be a JSON object")
         unknown = set(value) - set(FIELDS)
@@ -65,7 +77,9 @@ class ReleaseSignal:
         provider = _text(value["provider"], "provider")
         first_seen_url = _text(value["first_seen_url"], "first_seen_url")
         parsed_url = urlsplit(first_seen_url)
-        if (
+        if discovered:
+            _require_discovery_url(first_seen_url)
+        elif (
             parsed_url.scheme != "https"
             or parsed_url.netloc not in X_HOSTS
             or not parsed_url.path.startswith("/")
@@ -91,6 +105,11 @@ class ReleaseSignal:
         signal_id = _text(value["signal_id"], "signal_id")
         if not SIGNAL_ID.fullmatch(signal_id):
             raise SignalError("signal_id contains unsupported characters")
+        if signal_id.startswith(WATCH_PREFIX) != discovered:
+            raise SignalError(
+                f"signal_id must start with {WATCH_PREFIX!r}" if discovered
+                else f"signal_id {WATCH_PREFIX!r} is reserved for the release watcher"
+            )
         return cls(
             model_name=model_name,
             provider=provider,
@@ -98,6 +117,14 @@ class ReleaseSignal:
             timestamp=timestamp,
             confidence=float(confidence),
             signal_id=signal_id,
+        )
+
+    @classmethod
+    def from_queue(cls, value: Mapping[str, Any]) -> ReleaseSignal:
+        """Parse a queued row under whichever contract its signal ID names."""
+        signal_id = value.get("signal_id") if isinstance(value, Mapping) else None
+        return cls.parse(
+            value, discovered=isinstance(signal_id, str) and signal_id.startswith(WATCH_PREFIX)
         )
 
     @classmethod
@@ -130,6 +157,21 @@ def _text(value: Any, field: str) -> str:
     ):
         raise SignalError(f"{field} must be a non-empty string of at most 300 characters")
     return value
+
+
+def _require_discovery_url(url: str) -> None:
+    # Imported here: `decision` is vendored into the Worker beside this module,
+    # and a discovery is the only path that needs it.
+    from decision.excluded import excluded_sources
+
+    parsed = urlsplit(url)
+    host = (parsed.hostname or "").casefold().removeprefix("www.")
+    if parsed.scheme != "https" or not host or not parsed.path.startswith("/"):
+        raise SignalError("first_seen_url must be an https URL")
+    if any(host == blocked or host.endswith(f".{blocked}") for blocked in SIGNAL_ONLY_HOSTS):
+        raise SignalError("a discovery cannot point at X; X posts are Grok Bot signals")
+    if excluded_sources().url(url):
+        raise SignalError("first_seen_url is an excluded source")
 
 
 def _normalise_utc_designator(value: str) -> str:

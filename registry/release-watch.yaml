@@ -1,0 +1,197 @@
+# Primary sources the release watcher reads (MODEL-216). See docs/release-watch.md.
+#
+# Rules every entry obeys, and tests/test_release_watch.py enforces:
+# - A source is a trigger, never evidence. Nothing read here reaches a card.
+# - The excluded publishers in decision/excluded.py are never sources.
+# - X is Grok Bot's channel; it is never a watched source.
+# - Plain HTTPS GET with the user agent below, no key, no account, no Firecrawl.
+#   robots.txt is read before every source on every run.
+# - `provider` (or each value of `providers`) resolves to exactly one catalogue
+#   lab, so the pipeline's identity step can place what the watcher files.
+# - Order matters: when two sources list one model, the first one files it.
+#   The labs' own pages come first.
+#
+# Page sources are read as text and matched against `pattern`. A match must
+# contain a digit unless `require_digit` is false, so doc slugs like
+# `claude-code` never count. `exclude` drops the slugs that still get through.
+# Noise present when the baseline was taken is in the baseline; `exclude` is
+# for noise that arrives later.
+user_agent: ModelSpec-Release-Watch/1.0 (+https://modelspec.dev)
+# OpenRouter and Hugging Face rows carry a creation time. Only rows created in
+# this window can be new, so a listing window that shifts cannot resurrect old
+# models as discoveries.
+recent_days: 30
+# Repackagings of a model, not a release of one.
+variant_exclude: '(gguf|awq|gptq|(^|[-_.])(fp8|fp4|nvfp4|mxfp4|int4|int8|w4a16|w8a8|w4a4|bnb|mlx|exl2|onnx|4bit|8bit)([-_.]|$)|lora|adapter|eagle3?$)'
+page_exclude: '(system-card|\.(png|jpe?g|svg|webp|gif|pdf|js|css|html?|md)$|docs|guide|overview|readme|pricing|changelog|release-notes|localhost|staging)'
+
+sources:
+# ── the labs' own model pages ────────────────────────────────────────────────
+- id: anthropic-models
+  kind: page
+  url: https://platform.claude.com/docs/en/models/overview
+  provider: anthropic
+  pattern: 'claude-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  # `-v1` is the Bedrock spelling of an ID the page also lists bare.
+  exclude: '(-v\d+$|^claude-(api|code|in|on|platform|prompting)-)'
+  confidence: 0.9
+- id: google-gemini-models
+  kind: page
+  url: https://ai.google.dev/gemini-api/docs/models
+  provider: google
+  pattern: '(?:gemini|gemma|imagen|veo|lyria)-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  exclude: '(-models$|-api$)'
+  confidence: 0.9
+- id: openai-models
+  kind: page
+  url: https://developers.openai.com/api/docs/models
+  provider: openai
+  pattern: '(?:gpt|o[1-9]|sora|whisper|dall-e|codex|text-embedding|omni-moderation|tts|computer-use)-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  exclude: '(ambassadors|community|sdk|plugin|header|locali[sz]ation|app-server|for-oss)'
+  confidence: 0.9
+- id: mistral-models
+  kind: page
+  url: https://docs.mistral.ai/models
+  provider: mistral
+  pattern: '(?:mistral|magistral|codestral|devstral|ministral|pixtral|voxtral|mixtral|open-mistral|open-mixtral)-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  exclude: '(interpreter|-js$|-python$)'
+  confidence: 0.9
+- id: xai-models
+  kind: page
+  url: https://docs.x.ai/developers/models
+  provider: xai
+  pattern: 'grok-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  confidence: 0.9
+- id: deepseek-models
+  kind: page
+  url: https://api-docs.deepseek.com/quick_start/pricing
+  provider: deepseek
+  pattern: 'deepseek-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  exclude: '(harness|github|social|agent|integration)'
+  confidence: 0.9
+- id: cohere-models
+  kind: page
+  url: https://docs.cohere.com/docs/models
+  provider: cohere
+  pattern: '(?:command|embed|rerank|aya|c4ai)-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  exclude: '(technical-report|-hf$)'
+  confidence: 0.9
+- id: voyage-models
+  kind: page
+  url: https://docs.voyageai.com/docs/embeddings
+  provider: voyage
+  pattern: 'voyage-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  exclude: '(-ai$|-ai-|api|test|package|embedding-model|rank-1|instruction-tuned)'
+  confidence: 0.9
+
+# ── Hugging Face org feeds for open-weights labs ─────────────────────────────
+# The public models API, newest first, 100 rows. No token.
+- {id: hf-qwen, kind: huggingface, org: Qwen, provider: Alibaba / Qwen Team, confidence: 0.7}
+- {id: hf-meta-llama, kind: huggingface, org: meta-llama, provider: meta, confidence: 0.7}
+- {id: hf-mistralai, kind: huggingface, org: mistralai, provider: mistral, confidence: 0.7}
+- {id: hf-deepseek-ai, kind: huggingface, org: deepseek-ai, provider: deepseek, confidence: 0.7}
+- {id: hf-google, kind: huggingface, org: google, provider: google, confidence: 0.7}
+- {id: hf-microsoft, kind: huggingface, org: microsoft, provider: microsoft, confidence: 0.7}
+- {id: hf-nvidia, kind: huggingface, org: nvidia, provider: nvidia, confidence: 0.7}
+- {id: hf-allenai, kind: huggingface, org: allenai, provider: allen-ai, confidence: 0.7}
+- {id: hf-ibm-granite, kind: huggingface, org: ibm-granite, provider: ibm, confidence: 0.7}
+- {id: hf-coherelabs, kind: huggingface, org: CohereLabs, provider: cohere, confidence: 0.7}
+- {id: hf-zai-org, kind: huggingface, org: zai-org, provider: zhipu, confidence: 0.7}
+- {id: hf-moonshotai, kind: huggingface, org: moonshotai, provider: moonshot, confidence: 0.7}
+- {id: hf-minimaxai, kind: huggingface, org: MiniMaxAI, provider: minimax, confidence: 0.7}
+- {id: hf-openai, kind: huggingface, org: openai, provider: openai, confidence: 0.7}
+- {id: hf-stepfun-ai, kind: huggingface, org: stepfun-ai, provider: stepfun, confidence: 0.7}
+- {id: hf-tencent, kind: huggingface, org: tencent, provider: tencent, confidence: 0.7}
+- {id: hf-bytedance-seed, kind: huggingface, org: ByteDance-Seed, provider: bytedance, confidence: 0.7}
+- {id: hf-liquidai, kind: huggingface, org: LiquidAI, provider: liquid, confidence: 0.7}
+- {id: hf-xiaomimimo, kind: huggingface, org: XiaomiMiMo, provider: xiaomi, confidence: 0.7}
+- {id: hf-black-forest-labs, kind: huggingface, org: black-forest-labs, provider: black-forest-labs, confidence: 0.7}
+- {id: hf-stabilityai, kind: huggingface, org: stabilityai, provider: stability, confidence: 0.7}
+# Every other carded lab with its own org (MODEL-215's coverage audit). Each
+# org is the one its cards already cite. `models/cerebras/` is not here: its
+# cards are other labs' models as Cerebras serves them, not a lab of its own.
+- {id: hf-01-ai, kind: huggingface, org: 01-ai, provider: 01-ai, confidence: 0.7}
+- {id: hf-agnes-ai, kind: huggingface, org: Agnes-AI, provider: agnes-ai, confidence: 0.7}
+- {id: hf-ai21labs, kind: huggingface, org: ai21labs, provider: ai21, confidence: 0.7}
+- {id: hf-ai9stars, kind: huggingface, org: ai9stars, provider: ai9stars, confidence: 0.7}
+- {id: hf-annamodels, kind: huggingface, org: annamodels, provider: annamodels, confidence: 0.7}
+- {id: hf-baai, kind: huggingface, org: BAAI, provider: baai, confidence: 0.7}
+- {id: hf-baichuan-inc, kind: huggingface, org: baichuan-inc, provider: baichuan, confidence: 0.7}
+- {id: hf-codefuse-ai, kind: huggingface, org: codefuse-ai, provider: codefuse, confidence: 0.7}
+- {id: hf-deepcogito, kind: huggingface, org: deepcogito, provider: deepcogito, confidence: 0.7}
+- {id: hf-essentialai, kind: huggingface, org: EssentialAI, provider: essentialai, confidence: 0.7}
+- {id: hf-ifm, kind: huggingface, org: IFM, provider: ifm, confidence: 0.7}
+- {id: hf-infgrad, kind: huggingface, org: infgrad, provider: infgrad, confidence: 0.7}
+- {id: hf-intfloat, kind: huggingface, org: intfloat, provider: intfloat, confidence: 0.7}
+- {id: hf-jcorners, kind: huggingface, org: JCorners, provider: jcorners, confidence: 0.7}
+- {id: hf-jinaai, kind: huggingface, org: jinaai, provider: jina, confidence: 0.7}
+- {id: hf-kakaobrain, kind: huggingface, org: kakaobrain, provider: kakao, confidence: 0.7}
+- {id: hf-kingsoft-llm, kind: huggingface, org: Kingsoft-LLM, provider: kingsoft, confidence: 0.7}
+- {id: hf-lgai-exaone, kind: huggingface, org: LGAI-EXAONE, provider: lgai-exaone, confidence: 0.7}
+- {id: hf-vikhyatk, kind: huggingface, org: vikhyatk, provider: moondream, confidence: 0.7}
+- {id: hf-motif-technologies, kind: huggingface, org: Motif-Technologies, provider: motif, confidence: 0.7}
+- {id: hf-nanbeige, kind: huggingface, org: Nanbeige, provider: nanbeige, confidence: 0.7}
+- {id: hf-naver-hyperclovax, kind: huggingface, org: naver-hyperclovax, provider: naver, confidence: 0.7}
+- {id: hf-nex-agi, kind: huggingface, org: nex-agi, provider: nex-agi, confidence: 0.7}
+- {id: hf-nomic-ai, kind: huggingface, org: nomic-ai, provider: nomic, confidence: 0.7}
+- {id: hf-openbmb, kind: huggingface, org: openbmb, provider: openbmb, confidence: 0.7}
+- {id: hf-openchat, kind: huggingface, org: openchat, provider: openchat, confidence: 0.7}
+- {id: hf-primeintellect, kind: huggingface, org: PrimeIntellect, provider: primeintellect, confidence: 0.7}
+- {id: hf-prism-ml, kind: huggingface, org: prism-ml, provider: prism-ml, confidence: 0.7}
+- {id: hf-querit, kind: huggingface, org: Querit, provider: querit, confidence: 0.7}
+- {id: hf-rwkv, kind: huggingface, org: RWKV, provider: rwkv, confidence: 0.7}
+- {id: hf-salesforce, kind: huggingface, org: Salesforce, provider: salesforce, confidence: 0.7}
+- {id: hf-samsungsds-research, kind: huggingface, org: SamsungSDS-Research, provider: samsung, confidence: 0.7}
+- {id: hf-sarvamai, kind: huggingface, org: sarvamai, provider: sarvam, confidence: 0.7}
+- {id: hf-sentence-transformers, kind: huggingface, org: sentence-transformers, provider: sentence-transformers, confidence: 0.7}
+- {id: hf-servicenow-ai, kind: huggingface, org: ServiceNow-AI, provider: servicenow, confidence: 0.7}
+- {id: hf-skt, kind: huggingface, org: skt, provider: skt, confidence: 0.7}
+- {id: hf-skywork, kind: huggingface, org: Skywork, provider: skywork, confidence: 0.7}
+- {id: hf-snowflake, kind: huggingface, org: Snowflake, provider: snowflake, confidence: 0.7}
+- {id: hf-swiss-ai, kind: huggingface, org: swiss-ai, provider: swiss-ai, confidence: 0.7}
+- {id: hf-teknium, kind: huggingface, org: teknium, provider: teknium, confidence: 0.7}
+- {id: hf-tiiuae, kind: huggingface, org: tiiuae, provider: tii, confidence: 0.7}
+- {id: hf-togethercomputer, kind: huggingface, org: togethercomputer, provider: together, confidence: 0.7}
+- {id: hf-trillionlabs, kind: huggingface, org: trillionlabs, provider: trillionlabs, confidence: 0.7}
+- {id: hf-unsloth, kind: huggingface, org: unsloth, provider: unsloth, confidence: 0.7}
+
+# ── a provider's public model list ───────────────────────────────────────────
+# https://openrouter.ai/api/v1/models answers without a key. Only the prefixes
+# mapped here are read; an unmapped prefix is not a catalogue lab.
+- id: openrouter
+  kind: openrouter
+  url: https://openrouter.ai/api/v1/models
+  confidence: 0.8
+  max_new: 15
+  providers:
+    anthropic: anthropic
+    openai: openai
+    google: google
+    x-ai: xai
+    mistralai: mistral
+    deepseek: deepseek
+    qwen: Alibaba / Qwen Team
+    meta-llama: meta
+    z-ai: zhipu
+    moonshotai: moonshot
+    minimax: minimax
+    nvidia: nvidia
+    cohere: cohere
+    amazon: amazon
+    microsoft: microsoft
+    ibm-granite: ibm
+    tencent: tencent
+    baidu: baidu
+    bytedance-seed: bytedance
+    xiaomi: xiaomi
+    stepfun: stepfun
+    liquid: liquid
+    perplexity: perplexity
+    inclusionai: inclusionai
+    inception: inception
+    upstage: upstage
+    rekaai: reka
+    nousresearch: nous-research
+    thinkingmachines: thinkingmachines
+    meituan: meituan
+    typesafe: typesafe
