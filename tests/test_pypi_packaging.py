@@ -14,7 +14,7 @@ def test_distribution_metadata_and_console_command() -> None:
     project = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())["project"]
 
     assert project["name"] == "modelspec-dev"
-    assert project["version"] == "0.1.1"
+    assert project["version"] == "0.2.0"
     assert project["readme"] == "README.md"
     assert project["license"] == "MIT"
     assert project["scripts"] == {"modelspec": "cli.modelspec.cli:app"}

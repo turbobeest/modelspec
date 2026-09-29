@@ -1,6 +1,6 @@
 [project]
 name = "modelspec-dev"
-version = "0.1.1"
+version = "0.2.0"
 description = "A sourced model decision engine with an offline command-line interface"
 readme = "README.md"
 license = "MIT"
