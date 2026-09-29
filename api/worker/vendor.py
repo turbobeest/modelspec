@@ -14,7 +14,8 @@ there before a deploy would be deleted. Both locations are on `sys.path` in the
 isolate.
 
 The ranker and decision engine are copied byte for byte. Registry YAML is copied
-beside the decision package because it is the decision vocabulary at runtime.
+beside the decision package because it is the decision vocabulary at runtime,
+and so are the `hardware/` device files, whose names are the device IDs.
 
 * `api/ranking/engine.py` — the profiles, benchmark ranges, normalisation and
   the floors.
@@ -83,6 +84,14 @@ SOURCES = {
     Path("registry/refinements.yaml"): Path("registry/refinements.yaml"),
     Path("registry/sources.yaml"): Path("registry/sources.yaml"),
     Path("registry/templates.yaml"): Path("registry/templates.yaml"),
+    # The device IDs `estate.devices` is checked against are these files' stems
+    # (registry `values_from: hardware`). Without them the isolate knew no device
+    # and refused every one the page offers (MODEL-203).
+    **{
+        Path("hardware") / path.name: Path("hardware") / path.name
+        for path in sorted((REPO_ROOT / "hardware").glob("*.yaml"))
+        if not path.name.startswith("_")
+    },
 }
 
 GENERATED_ROOTS = {target.parts[0] for target in SOURCES.values()}
@@ -140,7 +149,9 @@ def check_imports_are_stdlib_only(bundle: Path) -> list[str]:
         import decision.registry
         import pipeline.ranking  # noqa: F401 - imported for its side effects
 
-        decision.registry.default()
+        registry = decision.registry.default()
+        if not registry.allowed_values(registry.facet("model.fits_hardware")):
+            return ["hardware/ (no device IDs reached the bundle)"]
     finally:
         sys.path.remove(str(bundle))
     # Importing left `__pycache__` beside the sources. Remove it so generated

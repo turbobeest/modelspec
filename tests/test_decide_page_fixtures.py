@@ -18,52 +18,15 @@ from pathlib import Path
 
 import pytest
 
-from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
-from tests.snapshot_records import SOURCES, evidence, fact, model, offering
+from decision.snapshot import build_snapshot, load_built_snapshot
+from tests.snapshot_records import TIED_INTERVALS, build_lineup_snapshot
 
 REPO = Path(__file__).resolve().parents[1]
 WEB = REPO / "web" / "src" / "decide" / "__fixtures__"
 
-# model, context, openness, quality, price in, price out, throughput, ttft, retention
-LINEUP = [
-    ("lab/alpha", 200_000, "closed_weights", 92.0, 3.0, 12.0, 95, 420, 0),
-    ("lab/beta", 128_000, "open_weights", 72.0, 1.0, 4.0, 55, 780, 30),
-    ("lab/gamma", 256_000, "open_weights", 88.0, 2.0, 8.0, 80, 510, 30),
-    ("lab/delta", 64_000, "closed_weights", 36.0, 0.5, 2.0, 30, 1200, 30),
-]
-
-
-# Measurement intervals that make alpha and gamma overlap, so the engine answers "tied".
-TIED_INTERVALS = {"lab/alpha": [86.0, 98.0], "lab/gamma": [82.0, 94.0]}
-
-
 def _snapshot(intervals=None):
-    intervals = intervals or {}
-    models, offerings, rows = [], [], []
-    for mid, context, openness, quality, price_in, price_out, tps, ttft, days in LINEUP:
-        models.append(model(mid, facts=[
-            fact("model", mid, "model.class", "text-generator"),
-            fact("model", mid, "model.lifecycle", "active"),
-            fact("model", mid, "model.context_window", context),
-            fact("model", mid, "model.weights_openness", openness),
-            fact("model", mid, "licence.user_cap", "unbounded"),
-        ]))
-        oid = f"cloud/{mid}/global/standard"
-        offerings.append(offering(mid, "cloud", facts=[
-            fact("offering", oid, "offering.price.input", price_in, source="src-pricing"),
-            fact("offering", oid, "offering.price.output", price_out, source="src-pricing"),
-            fact("offering", oid, "offering.speed.throughput", tps),
-            fact("offering", oid, "offering.speed.time_to_first_token", ttft),
-            fact("offering", oid, "offering.data.retention", days),
-        ]))
-        rows.append(evidence(mid, "quality", quality, interval=intervals.get(mid)))
-    built = build_snapshot(
-        SnapshotInputs(models=models, offerings=offerings, evidence=rows, sources=SOURCES,
-                       benchmark_domains={"quality": [("software_engineering", "direct")]}),
-        gate=False,
-        as_of=date(2026, 9, 25),
-    )
-    return load_built_snapshot(built, include_archive=True, source="page fixture build")
+    return load_built_snapshot(build_lineup_snapshot(intervals), include_archive=True,
+                               source="page fixture build")
 
 
 def _service():

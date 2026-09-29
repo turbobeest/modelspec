@@ -44,6 +44,7 @@ api/worker/src/pipeline/
 api/worker/src/release_signals/
 api/worker/src/registry/
 api/worker/src/schema/
+api/worker/src/hardware/
 # Wrangler's local state and cache, written by `wrangler dev`.
 .wrangler/
 
@@ -52,3 +53,4 @@ api/worker/src/schema/
 
 # Local implementation screenshots and visual QA evidence.
 .artifacts/
+web/src/decide/__corpus__/
