@@ -23,6 +23,7 @@ from pipeline import brand  # noqa: E402
 from pipeline import build as builder  # noqa: E402
 from pipeline import holding  # noqa: E402
 from pipeline import legal  # noqa: E402
+from pipeline import live  # noqa: E402
 from pipeline import landing  # noqa: E402
 from pipeline import social_cards  # noqa: E402
 from pipeline.load import load_models  # noqa: E402
@@ -39,7 +40,15 @@ def trees(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
     assert builder.main(["--out", str(out / "dist"), "--root", str(ROOT)]) == 0
     assert holding.main(["build", "--src", str(out / "dist"),
                          "--out", str(out / "dist-holding")]) == 0
-    return {"real": out / "dist", "holding": out / "dist-holding"}
+    # The decide app is a Vite build CI makes in web/; a stand-in is enough here.
+    web = out / "web"
+    (web / "assets").mkdir(parents=True)
+    (web / "decide.html").write_text("<!doctype html><title>Decide</title>", encoding="utf-8")
+    (web / "assets" / "decide-x.js").write_text("", encoding="utf-8")
+    (web / "assets" / "main-x.js").write_text("", encoding="utf-8")
+    assert live.main(["build", "--src", str(out / "dist"), "--web", str(web),
+                      "--out", str(out / "dist-live")]) == 0
+    return {"real": out / "dist", "holding": out / "dist-holding", "live": out / "dist-live"}
 
 
 def _files(tree: Path) -> dict[str, bytes]:
@@ -229,7 +238,10 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
     assert files == ["_redirects"]
     assert (bg / "_redirects").read_text(encoding="utf-8") == builder.BENCHGRAPH_REDIRECTS
     assert "in preparation" not in (ms / "index.html").read_text(encoding="utf-8")
-    assert "X-Robots-Tag" not in (ms / "_headers").read_text(encoding="utf-8")
+    headers = (ms / "_headers").read_text(encoding="utf-8")
+    assert "X-Robots-Tag" not in headers
+    assert '</llms.txt>; rel="describedby"' in headers
+    assert 'Content-Type: application/linkset+json' in headers
     assert "Sitemap:" in (ms / "robots.txt").read_text(encoding="utf-8")
 
 
@@ -281,3 +293,74 @@ def test_benchgraph_holding_rejects_anything_but_the_redirect(tmp_path):
     shutil.rmtree(real)
     with pytest.raises(FileNotFoundError):
         holding.build(src, tmp_path / "out-missing")
+
+
+# ── the live tree (MODEL-214) ────────────────────────────────────────────────
+
+def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(trees):
+    ms = trees["live"] / "modelspec"
+    for rel in live.DISCOVERY:
+        assert (ms / rel).is_file(), rel
+    assert live.dead_links(ms) == []
+    llms = (ms / "llms.txt").read_text(encoding="utf-8")
+    for url in ("https://modelspec.dev/llms-full.txt", "https://modelspec.dev/auth.md",
+                "https://modelspec.dev/.well-known/mcp.json"):
+        assert url in llms
+    assert 'type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
+    for page in live.PAGES:
+        assert live.resolves(ms, page), page
+
+
+def test_the_live_tree_is_an_allowlist(trees):
+    ms = trees["live"] / "modelspec"
+    for gone in ("m", "p", "b", "models", "providers", "benchmarks", "downselect",
+                 "_worker.js", "_routes.json", "functions", "instrument.css",
+                 "assets/main-x.js"):
+        assert not (ms / gone).exists(), gone
+    assert (ms / "assets" / "decide-x.js").is_file()
+    assert (ms / "decide" / "index.html").read_bytes() == (ms / "404.html").read_bytes()
+    assert _files(trees["live"] / "benchgraph") == _files(trees["real"] / "benchgraph")
+    for rel in ("api", "legal"):
+        assert _files(ms / rel) == _files(trees["real"] / "modelspec" / rel), rel
+    assert "Sitemap: https://modelspec.dev/sitemap.xml" in (ms / "robots.txt").read_text(encoding="utf-8")
+    headers = (ms / "_headers").read_text(encoding="utf-8")
+    assert "X-Robots-Tag" not in headers
+    assert '</llms.txt>; rel="describedby"' in headers
+    assert 'Content-Type: application/linkset+json' in headers
+    assert "/api/*\n  Access-Control-Allow-Origin: *\n" in headers
+
+
+def test_dead_links_names_a_discovery_file_the_tree_lacks(tmp_path):
+    (tmp_path / "index.html").write_text(
+        '<link rel="alternate" type="text/markdown" href="/index.md">'
+        '<a href="/models/">Models</a><a href="//cdn.example/x">cdn</a>'
+        '<code>https://modelspec.dev/api/</code>', encoding="utf-8")
+    (tmp_path / "llms.txt").write_text(
+        "- https://modelspec.dev/decide/\n- https://modelspec.dev/auth.md\n", encoding="utf-8")
+    (tmp_path / "_headers").write_text('/*\n  Link: </sitemap.xml>; rel="sitemap"\n',
+                                       encoding="utf-8")
+    (tmp_path / "decide").mkdir()
+    (tmp_path / "decide" / "index.html").write_text("", encoding="utf-8")
+    dead = live.dead_links(tmp_path)
+    assert "llms.txt: /auth.md" in dead
+    assert "llms.txt: /decide/" not in dead
+    assert "index.md: missing" in dead
+    assert "index.html: /index.md" in dead
+    # MODEL-214: the legal pages' nav still named the retired v1 catalogue.
+    assert "index.html: /models/" in dead
+    assert not [line for line in dead if "cdn.example" in line or line == "index.html: /api/"]
+    assert "method/index.html: missing" in dead
+    assert "_headers: /sitemap.xml" in dead
+
+
+def test_smoke_reports_each_discovery_path_that_is_not_200():
+    def fetch(url):
+        return (404, b"") if url.endswith("/llms.txt") else (200, b"ok")
+    assert live.smoke("https://modelspec.dev", fetch) == ["/llms.txt: 404"]
+
+
+def test_the_workflow_assembles_live_with_the_module_and_smokes_discovery():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "python -m pipeline.live build --src dist-v1 --web web/dist --out dist" in text
+    assert "python -m pipeline.live smoke --origin https://modelspec.dev" in text
+    assert "python -m pipeline.live smoke --origin https://internal.modelspec-7np.pages.dev" in text

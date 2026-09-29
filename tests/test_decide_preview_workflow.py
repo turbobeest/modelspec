@@ -1,5 +1,6 @@
 """The live and internal Pages artifacts are the same decide composition."""
 
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -8,10 +9,11 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pipeline import brand, social_cards  # noqa: E402
+from pipeline import brand, live as live_site, social_cards  # noqa: E402
 
 
-WORKFLOW = Path(__file__).resolve().parents[1] / '.github/workflows/deploy-sites.yml'
+ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW = ROOT / '.github/workflows/deploy-sites.yml'
 DECIDE = Path(__file__).resolve().parents[1] / 'web' / 'decide.html'
 
 
@@ -29,6 +31,14 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/index.html': b'<link rel="canonical" href="https://modelspec.dev/">landing',
         'dist/modelspec/api/index.json': b'{"live":true}',
         'dist/modelspec/.well-known/api-catalog': b'catalog',
+        'dist/modelspec/.well-known/mcp.json': b'{}',
+        'dist/modelspec/.well-known/agent-skills/index.json': b'{}',
+        'dist/modelspec/.well-known/agent-skills/modelspec/SKILL.md': b'skill',
+        'dist/modelspec/llms.txt': b'- https://modelspec.dev/llms-full.txt\n',
+        'dist/modelspec/llms-full.txt': b'digest',
+        'dist/modelspec/index.md': b'# ModelSpec',
+        'dist/modelspec/auth.md': b'# Auth.md',
+        'dist/modelspec/_headers': b'/*\n  Link: </llms.txt>; rel="describedby"\n',
         'dist/modelspec/legal/terms/index.html': b'terms',
         'dist/modelspec/legal/privacy/index.html': b'privacy',
         'dist/modelspec/legal/neutrality/index.html': b'neutrality',
@@ -51,7 +61,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist-holding/modelspec/api/index.json': b'{"live":true}',
         'dist-holding/modelspec/legal/terms/index.html': b'terms',
         'web/dist/index.html': b'old graph app, do not replace the site',
-        'web/dist/decide.html': DECIDE.read_bytes(),
+        # As Vite writes it: the source entry becomes the hashed bundle.
+        'web/dist/decide.html': DECIDE.read_bytes().replace(b'/src/decide/main.tsx', b'/assets/decide-abc.js'),
         'web/dist/assets/decide-abc.js': b'decide bundle',
         'web/dist/assets/decide-abc.css': b'decide styles',
         'web/dist/assets/main-old.js': b'old graph bundle, harmless but unreachable',
@@ -68,7 +79,8 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     holding = files(tmp_path / 'dist-holding')
     step = next(step for step in workflow()['jobs']['build']['steps']
                 if step.get('name') == 'Assemble the live and internal decide sites')
-    subprocess.run(['bash', '-e', '-c', step['run']], cwd=tmp_path, check=True)
+    env = {**os.environ, 'PYTHONPATH': str(ROOT)}
+    subprocess.run(['bash', '-e', '-c', step['run']], cwd=tmp_path, check=True, env=env)
     assert files(tmp_path / 'dist-holding') == holding
     assert files(tmp_path / 'dist-internal') == files(tmp_path / 'dist')
     live = files(tmp_path / 'dist')
@@ -84,6 +96,9 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert '<link rel="canonical" href="https://modelspec.dev/decide/" />' in decide
     assert 'noindex' not in index.lower()
     assert 'x-robots-tag' not in headers.lower()
+    assert headers.startswith('/*\n  Link: </llms.txt>; rel="describedby"\n')
+    for name in ('llms.txt', 'llms-full.txt', 'index.md', 'auth.md'):
+        assert live[f'modelspec/{name}'] == fixture[f'dist/modelspec/{name}'], name
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
     assert live['modelspec/legal/terms/index.html'] == b'terms'
     assert live['modelspec/pricing/index.html'] == b'v1 pricing'
@@ -107,16 +122,14 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
 
 def test_live_workflow_keeps_api_legal_graph_and_pricing():
     text = WORKFLOW.read_text(encoding='utf-8')
-    assert 'cp -a dist-v1/modelspec/api dist/modelspec/api' in text
-    assert 'cp -a dist-v1/modelspec/legal dist/modelspec/legal' in text
+    assert 'python -m pipeline.live build --src dist-v1 --web web/dist --out dist' in text
+    for kept in ('api', 'legal', 'graph', 'pricing', 'pricing-assets', '.well-known'):
+        assert kept in live_site.KEEP_DIRS, kept
     assert 'cmp -s' not in text  # compare full trees, not one representative file
     assert 'diff -r dist dist-internal' in text
-    assert 'cp -a dist-v1/modelspec/graph dist/modelspec/graph' in text
     assert 'test -s dist/modelspec/graph/index.html' in text
     assert 'test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d \' \')" = 2' in text
     assert 'test ! -e dist/modelspec/graph/vendor/README.md' in text
-    assert 'cp -a dist-v1/modelspec/pricing dist/modelspec/pricing' in text
-    assert 'cp -a dist-v1/modelspec/pricing-assets dist/modelspec/pricing-assets' in text
     for old_path in ('downselect', 'models', 'providers', 'benchmarks'):
         assert f'test -s dist/modelspec/{old_path}' not in text
         assert f'test ! -e dist/modelspec/{old_path}' in text
@@ -167,13 +180,12 @@ def test_live_mode_deploys_the_composed_dist_and_internal_deploys_its_identical_
 
 
 def test_the_live_composition_copies_exactly_the_brand_icon_set():
-    step = next(step for step in workflow()['jobs']['build']['steps']
-                if step.get('name') == 'Assemble the live and internal decide sites')
-    assert f"for icon in {' '.join(brand.FILES)} $(python -m pipeline.social_cards filenames); do" in step['run']
+    assert set(brand.FILES) <= set(live_site.KEEP_FILES)
     checks = next(step for step in workflow()['jobs']['build']['steps']
                   if step.get('name') == 'Check the pages we promise actually exist')
     for name in brand.FILES:
         assert f'test -s dist/modelspec/{name}' in checks['run'], name
+    assert 'for card in $(python -m pipeline.social_cards filenames); do test -s dist/modelspec/$card; done' in checks['run']
 
 
 def test_the_deploy_build_renders_the_social_cards():

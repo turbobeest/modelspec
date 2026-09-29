@@ -365,8 +365,13 @@ def test_built_llms_full_under_cap(dist: Path) -> None:
     assert match is not None
     assert int(match.group(1)) == len(data)
     assert "## " in text
-    assert "https://modelspec.dev/m/" in text
-    assert "https://modelspec.dev/b/" in text
+    # The v1 /m/ and /b/ pages are published in neither mode; the JSON is.
+    assert "https://modelspec.dev/m/" not in text
+    assert "https://modelspec.dev/b/" not in text
+    for path in re.findall(r"^json: https://modelspec\.dev(/api/\S+)$", text, re.M):
+        assert (dist / "modelspec" / path.lstrip("/")).is_file(), path
+    assert "json: https://modelspec.dev/api/models/" in text
+    assert "json: https://modelspec.dev/api/benchmarks/" in text
     assert not (dist / "benchgraph" / "llms-full.txt").exists()
 
 
