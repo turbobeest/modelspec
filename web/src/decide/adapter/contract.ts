@@ -390,7 +390,7 @@ export const decisionSchema = z
               model: modelId,
               domain: facetId,
               before: estimateSchema.nullable(),
-              after: estimateSchema.nullable(),
+              after: estimateSchema,
               removed_drivers: z.array(evidenceItemSchema),
             })
             .strict(),
