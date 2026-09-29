@@ -288,7 +288,10 @@ def test_the_headline_figures_come_from_the_engine(data: landing.LandingData) ->
     assert f"<h1>{landing.HEADLINE}</h1>" in page
     assert f'<p class="eyebrow">{landing.EYEBROW}</p>' in page
     hero = page[page.index('<section class="hero">'):page.index('<section class="receipt"')]
-    assert f"can't tell {len(best) - 1} models apart from the top one" in hero
+    from pipeline import social_cards
+
+    assert social_cards.landing_tie_line(data) in hero
+    assert f"can't tell {len(best) - 1} " in hero
     assert f"costs {ratio:.1f}× less" in hero
     if cheapest.p_beats_leader is not None:
         assert f"a {cheapest.p_beats_leader:.0%} chance of scoring at least as well" in page
@@ -349,8 +352,15 @@ def test_the_positioning_does_not_overclaim(data: landing.LandingData) -> None:
     llms = llms_txt(site="ModelSpec", base="https://modelspec.dev",
                     build=Build(commit="0" * 40, built_at="2026-09-29T00:00:00+00:00",
                                 as_of=date(2026, 9, 29)))
+    from pipeline import agent_ready, social_cards
+    from pipeline.load import load_benchmarks, load_models
+
+    build = Build(commit="0" * 40, built_at="2026-09-29T00:00:00+00:00", as_of=date(2026, 9, 29))
+    card = social_cards.landing_card(data)
     pages = (landing.render(data, variant="live"), landing.render(data, variant="holding"),
-             method.page(data, method.SigningState((), None)), llms)
+             method.page(data, method.SigningState((), None)), llms,
+             card.alt + card.headline, agent_ready.skill_markdown(),
+             agent_ready.modelspec_landing_markdown(load_models(ROOT), load_benchmarks(ROOT), build))
     for page in pages:
         lowered = page.lower()
         for phrase in ("dod", "-grade", "compliant with", "complies with", "certified"):

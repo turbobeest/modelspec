@@ -60,9 +60,9 @@ ANALYSIS = (
     ("Sensitivity", "Tipping points, near misses, and which condition to relax when "
      "nothing qualifies.", GH + "docs/decision-contract.md#the-decision"),
     ("Cost", "Cost per task at your token counts, plan break-even, and what you "
-     "already pay for.", GH + "docs/decision-contract.md#cost-per-task"),
-    ("Audit trail", "A signed snapshot, a spec hash and a decision ID. Pin the "
-     "spec and the snapshot, and you get the same answer next quarter.", "/method/#reproducible"),
+     "already pay for.", GH + "docs/decision-contract.md#access-and-plans-model-200"),
+    ("Audit trail", "A signed snapshot, a spec hash and a decision ID. Keep the "
+     "spec, the snapshot and the CLI version, and the same answer comes back next quarter.", "/method/#reproducible"),
     ("Independence", "No referral fees, no paid placement. The commitment is "
      "published, and checkable as data.", "/legal/neutrality/"),
 )
@@ -409,8 +409,8 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
         'When the board opens, each one is a click away.</p>'
     )
     if cheapest.id == leader.id:
-        receipt_why = (f"On coding alone, the evidence puts {html.escape(leader.name)} ahead, "
-                       "and it is also the cheapest model it can't separate from the top.")
+        receipt_why = (f"On coding alone, {html.escape(leader.name)} has the top estimate, and "
+                       "it is also the cheapest of the models the evidence can't separate from it.")
     elif data.cheapest_p is None:
         receipt_why = (f"On coding alone, the evidence can't say {html.escape(leader.name)} is "
                        f"better than {html.escape(cheapest.name)}.")
@@ -434,7 +434,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <header>{_logo()}<span class="wordmark"><b>Model</b>Spec</span><nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><p class="eyebrow">{EYEBROW}</p><h1>{HEADLINE}</h1>
 <p class="fud"><span class="desktop-only">{social_cards.landing_tie_line(data)} Benchmarks disagree, leaderboards reshuffle, and nothing in your stack will ever tell you that you chose wrong.</span><span class="mobile-only">{social_cards.landing_tie_line(data)} Nothing in your stack will tell you.</span></p>
-<p class="close">ModelSpec picks the model your job needs from <a href="/method/#must-prefer">your requirements</a>, <a href="/method/#estimate">every benchmark</a> and <a href="{GH}docs/decision-contract.md#cost-per-task">real cost</a>, and <a href="/method/">shows how it got there</a>. When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
+<p class="close">ModelSpec picks the model your job needs from <a href="/method/#must-prefer">your requirements</a>, <a href="/method/#estimate">every admitted benchmark</a> and <a href="{GH}docs/decision-contract.md#cost-per-task">real cost</a>, and <a href="/method/">shows how it got there</a>. When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
 <div class="actions">{board}<a class="button secondary" href="#agents">Give it to your agents</a></div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>
 <svg id="plot" viewBox="0 0 680 560" role="img" aria-label="{html.escape(cheapest.name)} is in the tie at {_money(cheapest.cost, 3)} a task: {data.ratio:.1f}× less."></svg>
@@ -451,7 +451,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <tr><th scope="row">The question</th><td>Which model for this request?</td><td>Which models belong on the list, and why?</td></tr>
 <tr><th scope="row">When it runs</th><td>On each request, as it happens.</td><td>When you choose or review a model, or once per task for an agent.</td></tr>
 <tr><th scope="row">Where it sits</th><td>In your request path.</td><td>Outside it. <a href="/method/#dont">Your tokens go to the provider directly, and no prompts are kept.</a></td></tr>
-<tr><th scope="row">What you get back</th><td>A model's response.</td><td>A decision: the models that qualify, the ones screened out and why, how sure the evidence is, and <a href="/method/">what would change the answer</a>.</td></tr>
+<tr><th scope="row">What you get back</th><td>A call routed to one model.</td><td>A decision: the models that qualify, the ones screened out and why, how sure the evidence is, and <a href="{GH}docs/decision-contract.md#the-decision">what would change the answer</a>.</td></tr>
 </tbody></table>
 <p class="routers-close">Decide what's worth routing to. Then let your router choose among those, request by request.</p></section>
 <section class="teams" id="teams"><div><p class="kicker">For teams and buyers</p><h2>An analysis of alternatives, for every model choice.</h2><p>When someone asks why you're on that model, the answer is a record, not a hunch: requirements, criteria, the alternatives and why each fell away, the evidence, its uncertainty and the cost. Each part links to how it works.</p></div>
