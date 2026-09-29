@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from decision.contract import parse_spec
+from decision.excluded import REMOVED_HOSTS
 from decision.engine import decide
 from decision.model import evidence_verification_value
 from decision.registry import default as default_registry
@@ -382,9 +383,9 @@ def test_a_signal_only_source_in_the_snapshot_is_refused(tmp_path) -> None:
 
 def test_excluded_sources_are_refused() -> None:
     with pytest.raises(BreakdownError, match="excluded source"):
-        guard_output({"s": "https://artificialanalysis.ai/models/x"}, "")
+        guard_output({"s": f"https://{REMOVED_HOSTS[0]}/models/x"}, "")
     with pytest.raises(BreakdownError, match="excluded source text"):
-        guard_output({}, '{"note": "per Artificial Analysis"}')
+        guard_output({}, json.dumps({"note": "per " + REMOVED_HOSTS[1].split(".")[0]}))
 
 
 def test_a_model_with_nothing_admitted_gets_no_breakdown(tmp_path, capsys) -> None:
@@ -513,3 +514,60 @@ def test_held_back_is_unknown_for_a_snapshot_that_predates_it(pair) -> None:
                           "content": content}, include_archive=False,
                          signature_verified=False)
     assert old.held_back(NEW) is None
+
+
+# ── follow-ups: whole band, class applicability, names and scale ───────────
+
+
+def test_the_leading_band_is_listed_whole(breakdown) -> None:
+    for row in breakdown.standing:
+        assert len(row.leaders) == min(row.band_size.value, 10)
+
+
+def test_domains_split_unknown_from_inapplicable(breakdown) -> None:
+    g = breakdown.not_yet_measured
+    inapplicable = {x.domain: x.reason for x in g.domains_inapplicable}
+    assert set(inapplicable) == {"retrieval"}
+    assert "vision_documents" in g.domains_without_estimate  # the class takes images
+    assert "retrieval" not in g.domains_without_estimate
+    assert g.domains_not_offered == []
+
+
+def test_applicability_follows_the_class_only() -> None:
+    from release_blog.applicability import inapplicable_reason, not_offered_reason
+
+    assert inapplicable_reason("vision_documents", "text-generator") is None
+    assert inapplicable_reason("vision_documents", "forecaster") == (
+        "this class takes no image input")
+    assert inapplicable_reason("maths", "vectoriser") == "this class writes no open text"
+    assert inapplicable_reason("retrieval", "vectoriser") is None
+    assert inapplicable_reason("maths", "unregistered-class") is None
+    assert not_offered_reason("vision_documents", ["text"]) == (
+        "its verified input modalities do not include images")
+    assert not_offered_reason("vision_documents", ["text", "image"]) is None
+
+
+def test_display_names_come_from_the_snapshots_own_vocabulary(pair) -> None:
+    _, after, before = pair
+    vocabulary = json.dumps({"snapshot": after.snapshot_id, "models": {
+        NEW: {"display_name": "Alpha 2.5"}, "lab/beta": {"display_name": "Beta 1"}}}).encode()
+    b = build_breakdown(model_id=NEW, after=after, before=before,
+                        accuracy={**ACCURACY, "snapshot": after.snapshot_id},
+                        vocabulary=vocabulary)
+    assert b.model.name == "Alpha 2.5"
+    assert b.names["lab/beta"] == "Beta 1"
+    assert b.generated_from.vocabulary.snapshot == after.snapshot_id
+    assert "Beta 1 (`lab/beta`)" in render(b)[0]
+    wrong = json.dumps({"snapshot": "snap_other", "models": {}}).encode()
+    with pytest.raises(BreakdownError, match="vocabulary is for"):
+        build_breakdown(model_id=NEW, after=after, before=before,
+                        accuracy={**ACCURACY, "snapshot": after.snapshot_id},
+                        vocabulary=wrong)
+
+
+def test_each_estimate_comes_with_the_class_spread(breakdown) -> None:
+    se = next(r for r in breakdown.standing if r.domain.id == "software_engineering")
+    assert se.spread.models.value == 3.0
+    assert se.spread.low.value <= se.estimate.value <= se.spread.high.value
+    assert se.spread.median.computed == "capability.spread"
+    assert "estimates run from" in render(breakdown)[0]

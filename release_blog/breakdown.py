@@ -8,6 +8,8 @@ Every number it returns is a ``Cited``. The same inputs give the same bytes
 
 from __future__ import annotations
 
+import hashlib
+import statistics
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import date, timedelta
@@ -23,6 +25,7 @@ from decision.registry import default as default_registry
 from decision.snapshot import EvidenceValue, LoadedSnapshot, canonical_json
 from decision.templates import load_templates
 from release_blog import VERSION, wording
+from release_blog.applicability import inapplicable_reason, not_offered_reason
 from release_blog.gates import (
     CLAIM,
     INDEPENDENT,
@@ -40,6 +43,7 @@ from release_blog.model import (
     Cost,
     DecisionRef,
     Disclosures,
+    DomainGap,
     DomainStanding,
     Driver,
     GeneratedFrom,
@@ -56,17 +60,21 @@ from release_blog.model import (
     Setup,
     SnapshotRef,
     Speed,
+    Spread,
     TaskSize,
     TemplateChange,
     TemplateChanges,
     TemplateRef,
     UnknownFacet,
     Unreported,
+    VocabularyRef,
 )
 from release_blog.standing import domain_spec
 from schema.suppliers import supplier_for
 
 RECHECK_DAYS = (1, 7, 30)
+#: The most of a best band a post lists; a larger band says how many are shown.
+LEADERS_MAX = 10
 SPEED_FACETS = ("offering.speed.time_to_first_token", "offering.speed.throughput")
 ESTIMATE_UNIT = "capability estimate"
 BACKFILL = (
@@ -215,6 +223,20 @@ class _Compiler:
                              records=[d.record_id for d in drivers], low=found.low,
                              high=found.high)
 
+    def _spread(self, domain_id: str, model_class: str) -> Spread:
+        models = sorted({self.after.model_of(cid) for cid in self.after.candidates()})
+        values = [found.value for mid in models
+                  if self.after.fact(mid, "model.class").value == model_class
+                  and (found := self.after.capability_estimate(mid, domain_id)) is not None]
+
+        def cited(value: float, unit: str) -> Cited:
+            return self.computed(value, unit, "capability.spread")
+
+        return Spread(models=cited(len(values), "models"),
+                      low=cited(min(values), ESTIMATE_UNIT),
+                      median=cited(statistics.median(values), ESTIMATE_UNIT),
+                      high=cited(max(values), ESTIMATE_UNIT))
+
     def standing(self, model_class: str) -> list[DomainStanding]:
         out = []
         for domain in self.registry.domains():
@@ -231,10 +253,11 @@ class _Compiler:
                 Leader(model=entry.model, estimate=self._estimate(entry.model, domain.id),
                        p_best=(None if entry.p_best is None else self.computed(
                            entry.p_best, "probability", "decision.p_best", decision_id=did)))
-                for entry in best[:3]
+                for entry in best[:LEADERS_MAX]
             ]
             out.append(DomainStanding(
-                domain=Named(id=domain.id, name=domain.name), estimate=estimate, decision=did,
+                domain=Named(id=domain.id, name=domain.name), estimate=estimate,
+                spread=self._spread(domain.id, model_class), decision=did,
                 rank=(None if result is None or result.model_rank is None else self.computed(
                     result.model_rank, "place", "decision.model_rank", decision_id=did)),
                 band=_band_of(decision, self.model_id),
@@ -397,7 +420,7 @@ class _Compiler:
                                   else None))
 
     def gaps(self, standings: Sequence[DomainStanding], claims: ClaimsVsEvidence,
-             ) -> NotYetMeasured:
+             model_class: str) -> NotYetMeasured:
         offerings = self._offerings()
         unknown = []
         for facet in sorted(self.registry.facets(), key=lambda f: f.id):
@@ -416,6 +439,21 @@ class _Compiler:
                 break
             held.update(counts)
         estimated = {row.domain.id for row in standings}
+        modalities = self.after.fact(self.model_id, "model.input_modalities")
+        unknown_domains, inapplicable, not_offered = [], [], []
+        for domain in self.registry.domains():
+            if domain.id in estimated:
+                continue
+            reason = inapplicable_reason(domain.id, model_class)
+            offered = (None if modalities.state != "known"
+                       else not_offered_reason(domain.id, modalities.value))
+            if reason is not None:
+                inapplicable.append(DomainGap(domain=domain.id, reason=reason))
+            elif offered is not None:
+                not_offered.append(DomainGap(domain=domain.id, reason=offered,
+                                             record_id=modalities.record_id))
+            else:
+                unknown_domains.append(domain.id)
         speed = [
             Speed(offering=cid, **{
                 facet.rsplit(".", 1)[1]: self._fact(cid, facet) or "unknown"
@@ -427,11 +465,43 @@ class _Compiler:
             held_back=None if held is None else {
                 reason: self.computed(count, "records", "snapshot.held_back")
                 for reason, count in sorted(held.items())},
-            domains_without_estimate=[d.id for d in self.registry.domains()
-                                      if d.id not in estimated],
+            domains_without_estimate=unknown_domains,
+            domains_inapplicable=inapplicable,
+            domains_not_offered=not_offered,
             claims_without_reading=sorted({row.benchmark for row in claims.claims
                                            if row.status == "no_independent_reading_yet"}),
             speed=speed)
+
+
+def _names(raw: bytes | None, after: LoadedSnapshot) -> tuple[dict[str, str],
+                                                             VocabularyRef | None]:
+    """Display names from the vocabulary published beside ``after``.
+
+    Names are labels, never figures. The vocabulary must name ``after`` as its
+    snapshot, and its hash is recorded so the output stays reproducible.
+    """
+    if raw is None:
+        return {}, None
+    import json
+
+    body = json.loads(raw)
+    if body.get("snapshot") != after.snapshot_id:
+        raise BreakdownError(f"the vocabulary is for {body.get('snapshot')!r}, "
+                             f"not {after.snapshot_id!r}")
+    names = {mid: str(row["display_name"]) for mid, row in (body.get("models") or {}).items()
+             if isinstance(row, Mapping) and row.get("display_name")}
+    return names, VocabularyRef(snapshot=after.snapshot_id,
+                                sha256=hashlib.sha256(raw).hexdigest())
+
+
+def _mentioned(model_id: str, standings: Sequence[DomainStanding],
+               changes: TemplateChanges) -> set[str]:
+    out = {model_id}
+    for row in standings:
+        out.update(leader.model for leader in row.leaders)
+    for change in changes.changes:
+        out.update(change.top_before + change.top_after + change.displaced)
+    return out
 
 
 def _snapshot_ref(snapshot: LoadedSnapshot) -> SnapshotRef:
@@ -476,9 +546,12 @@ def build_breakdown(
     name: str | None = None,
     first_published: date | None = None,
     early_access: str | None = None,
+    vocabulary: bytes | None = None,
 ) -> Breakdown:
     """The breakdown of ``model_id`` in ``after``, compared with ``before``."""
     registry = registry or default_registry()
+    names, vocabulary_ref = _names(vocabulary, after)
+    name = name or names.get(model_id)
     if accuracy.get("snapshot") != after.snapshot_id or accuracy.get("status") != "pass":
         raise BreakdownError("the accuracy report does not pass for the after snapshot")
     if revision > 1 and first_revision is None:
@@ -498,7 +571,7 @@ def build_breakdown(
     claims = c.claims([row.domain.id for row in standings])
     template_changes, listed = c.templates()
     cost = c.cost(listed, model_class)
-    gaps = c.gaps(standings, claims)
+    gaps = c.gaps(standings, claims, model_class)
     published = first_published or (first_revision.recheck.first_published
                                     if first_revision else c.as_of)
     title = wording.headline(
@@ -522,7 +595,7 @@ def build_breakdown(
             after=_snapshot_ref(after),
             before=None if before is None else _snapshot_ref(before),
             accuracy=AccuracyRef(snapshot=after.snapshot_id, profile="pr", status="pass"),
-            generator=GeneratorRef(version=VERSION)),
+            generator=GeneratorRef(version=VERSION), vocabulary=vocabulary_ref),
         "decisions": sorted(c.decisions.values(), key=lambda d: (d.purpose, d.snapshot_id)),
         "claims_vs_evidence": claims,
         "standing": standings,
@@ -537,6 +610,9 @@ def build_breakdown(
             supplier=None if supplier is None else f"{supplier.relationship} {supplier.rule}",
             early_access=early_access, neutrality=neutrality_commitment()["pledge"]),
         "sources": dict(sorted(c.sources.items())),
+        "names": {mid: names[mid] for mid in sorted(_mentioned(model_id, standings,
+                                                                template_changes))
+                  if mid in names},
     }
     breakdown = Breakdown(**body)
     if first_revision is not None:

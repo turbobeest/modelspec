@@ -299,6 +299,37 @@
       "title": "Disclosures",
       "type": "object"
     },
+    "DomainGap": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "record_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Id"
+        }
+      },
+      "required": [
+        "domain",
+        "reason"
+      ],
+      "title": "DomainGap",
+      "type": "object"
+    },
     "DomainStanding": {
       "additionalProperties": false,
       "properties": {
@@ -368,6 +399,9 @@
         "ranked_models": {
           "$ref": "#/$defs/Cited"
         },
+        "spread": {
+          "$ref": "#/$defs/Spread"
+        },
         "top3_stability": {
           "anyOf": [
             {
@@ -382,6 +416,7 @@
       "required": [
         "domain",
         "estimate",
+        "spread",
         "decision",
         "rank",
         "band",
@@ -446,6 +481,17 @@
         },
         "generator": {
           "$ref": "#/$defs/GeneratorRef"
+        },
+        "vocabulary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VocabularyRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -657,6 +703,20 @@
             "type": "string"
           },
           "title": "Claims Without Reading",
+          "type": "array"
+        },
+        "domains_inapplicable": {
+          "items": {
+            "$ref": "#/$defs/DomainGap"
+          },
+          "title": "Domains Inapplicable",
+          "type": "array"
+        },
+        "domains_not_offered": {
+          "items": {
+            "$ref": "#/$defs/DomainGap"
+          },
+          "title": "Domains Not Offered",
           "type": "array"
         },
         "domains_without_estimate": {
@@ -1135,6 +1195,32 @@
       "title": "Speed",
       "type": "object"
     },
+    "Spread": {
+      "additionalProperties": false,
+      "description": "The estimates of every model of the same class in the domain, for scale.",
+      "properties": {
+        "high": {
+          "$ref": "#/$defs/Cited"
+        },
+        "low": {
+          "$ref": "#/$defs/Cited"
+        },
+        "median": {
+          "$ref": "#/$defs/Cited"
+        },
+        "models": {
+          "$ref": "#/$defs/Cited"
+        }
+      },
+      "required": [
+        "models",
+        "low",
+        "median",
+        "high"
+      ],
+      "title": "Spread",
+      "type": "object"
+    },
     "TaskSize": {
       "additionalProperties": false,
       "description": "The task a cost is for: a spec input, not a finding.",
@@ -1370,6 +1456,26 @@
       ],
       "title": "Unreported",
       "type": "object"
+    },
+    "VocabularyRef": {
+      "additionalProperties": false,
+      "description": "The published decision vocabulary display names came from.",
+      "properties": {
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "snapshot": {
+          "title": "Snapshot",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot",
+        "sha256"
+      ],
+      "title": "VocabularyRef",
+      "type": "object"
     }
   },
   "$id": "https://modelspec.dev/schemas/release-breakdown-v1.schema.json",
@@ -1426,6 +1532,13 @@
     },
     "model": {
       "$ref": "#/$defs/ModelRef"
+    },
+    "names": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Names",
+      "type": "object"
     },
     "not_yet_measured": {
       "$ref": "#/$defs/NotYetMeasured"

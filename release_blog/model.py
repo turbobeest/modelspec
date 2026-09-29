@@ -85,11 +85,19 @@ class GeneratorRef(_Strict):
     version: str
 
 
+class VocabularyRef(_Strict):
+    """The published decision vocabulary display names came from."""
+
+    snapshot: str
+    sha256: str
+
+
 class GeneratedFrom(_Strict):
     after: SnapshotRef
     before: SnapshotRef | None
     accuracy: AccuracyRef
     generator: GeneratorRef
+    vocabulary: VocabularyRef | None = None
 
 
 class DecisionRef(_Strict):
@@ -175,9 +183,20 @@ class Driver(_Strict):
     version: str | None
 
 
+class Spread(_Strict):
+    """The estimates of every model of the same class in the domain, for scale."""
+
+    models: Cited
+    low: Cited
+    median: Cited
+    high: Cited
+
+
 class DomainStanding(_Strict):
     domain: Named
     estimate: Cited
+    #: Where the class's estimates sit, so a reader can place ``estimate``.
+    spread: Spread
     decision: str
     #: The model's place among ranked models (``Result.model_rank``); null when unranked.
     rank: Cited | None
@@ -188,6 +207,7 @@ class DomainStanding(_Strict):
     ranked_models: Cited
     p_best: Cited | None
     top3_stability: Cited | None
+    #: The ``best`` band, ordered by P(best), at most ``LEADERS_MAX`` of it.
     leaders: list[Leader] = Field(default_factory=list)
     drivers: list[Driver] = Field(default_factory=list)
 
@@ -276,6 +296,13 @@ class UnknownFacet(_Strict):
     subjects: list[str]
 
 
+class DomainGap(_Strict):
+    domain: str
+    reason: str
+    #: The verified fact the reason rests on, for ``not_offered``.
+    record_id: str | None = None
+
+
 class Speed(_Strict):
     offering: str
     time_to_first_token: Cited | Literal["unknown"]
@@ -287,7 +314,12 @@ class NotYetMeasured(_Strict):
     #: Reason -> count of this model's rows the snapshot refused; null when the
     #: snapshot predates ``content.held_back``.
     held_back: dict[str, Cited] | None
+    #: Domains the class can be measured on, not measured yet: unknown.
     domains_without_estimate: list[str] = Field(default_factory=list)
+    #: Domains the class cannot be measured on (MODEL-97): not a gap.
+    domains_inapplicable: list[DomainGap] = Field(default_factory=list)
+    #: Domains a verified fact about this model rules out.
+    domains_not_offered: list[DomainGap] = Field(default_factory=list)
     claims_without_reading: list[str] = Field(default_factory=list)
     speed: list[Speed] = Field(default_factory=list)
 
@@ -325,6 +357,8 @@ class Breakdown(_Strict):
     recheck: Recheck
     disclosures: Disclosures
     sources: dict[str, str]
+    #: Display names by model ID, from the vocabulary; empty without one.
+    names: dict[str, str] = Field(default_factory=dict)
     changes_since_r1: list[dict[str, Any]] | None = None
 
 

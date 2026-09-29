@@ -148,6 +148,12 @@ def _code(text: str) -> str:
     return f"`{text}`"
 
 
+def _who(b: Breakdown, model_id: str) -> str:
+    """A model by display name with its ID, or by ID alone when no name is known."""
+    name = b.names.get(model_id)
+    return f"{name} ({_code(model_id)})" if name else _code(model_id)
+
+
 def _cell(text: str | None) -> str:
     return (text or "—").replace("|", "\\|").replace("\n", " ")
 
@@ -291,9 +297,10 @@ def standing_chart(b: Breakdown) -> str | None:
             body.append(f'<text class="t" x="16" y="{y + 10}">{escape(name)}</text>')
             y += 30
         colour = "s1" if own else "muted"
-        tip = (f"{model}: {est.value:.2f} (interval {est.low:.2f} to {est.high:.2f})")
+        tip = (f"{b.names.get(model, model)}: {est.value:.2f} "
+               f"(interval {est.low:.2f} to {est.high:.2f})")
         body.append(f'<text class="{"v" if own else ""}" x="24" y="{y + 4}">'
-                    f"{escape(model)}</text>")
+                    f"{escape(b.names.get(model, model))}</text>")
         body.append(f'<line x1="{x(est.low or est.value):.1f}" y1="{y}" '
                     f'x2="{x(est.high or est.value):.1f}" y2="{y}" class="k-{colour}" '
                     f'stroke-width="2" stroke-linecap="round"><title>{escape(tip)}</title></line>')
@@ -408,7 +415,10 @@ def _standing(b: Breakdown, n: Footnotes, chart: bool) -> list[str]:
                "admitted benchmark reading, never from one benchmark. Intervals are "
                "eighty-percent intervals. P(best) is the share of draws from the fitted "
                "model in which a model scores highest in that domain: a statement about "
-               "the evidence, not a forecast.")
+               "the evidence, not a forecast. Estimates are on the capability model's own "
+               "scale, not a benchmark's percentage: a number means something only beside "
+               "the estimates of other models, so each domain gives the spread across "
+               "models of the same class.")
     for s in b.standing:
         others = rank = ranked = None
         if s.band == "best" and s.band_size.value > 1:
@@ -432,13 +442,21 @@ def _standing(b: Breakdown, n: Footnotes, chart: bool) -> list[str]:
             detail += f", with P(best) {_fmt(n, s.p_best)}"
         if s.top3_stability is not None:
             detail += f" and top-three stability {_fmt(n, s.top3_stability)}"
-        out.append(f"**{s.domain.name}.** {sentence} {detail}. It rests on "
+        spread = (f"Across the {_fmt(n, s.spread.models)} {b.model.class_.replace('-', ' ')} "
+                  f"models with an estimate here, estimates run from {_fmt(n, s.spread.low)} "
+                  f"to {_fmt(n, s.spread.high)}, with a median of {_fmt(n, s.spread.median)}.")
+        out.append(f"**{s.domain.name}.** {sentence} {detail}. {spread} It rests on "
                    f"{', '.join(_code(d.benchmark) for d in s.drivers) or 'no named record'} "
                    f"(decision {_code(s.decision)}).")
-        out.append(_table(["Leading-band model", "Estimate", "P(best)"], [
-            [_code(leader.model) + (" (this model)" if leader.model == b.model.id else ""),
-             _estimate(n, leader.estimate), _fmt(n, leader.p_best)]
-            for leader in s.leaders]))
+        if s.leaders:
+            if len(s.leaders) < s.band_size.value:
+                out.append("The leading band is larger than the table: it shows the ten "
+                           "models with the highest P(best).")
+            out.append(_table(["Leading-band model", "Estimate", "P(best)"], [
+                [_who(b, leader.model) + (" (this model)" if leader.model == b.model.id
+                                          else ""),
+                 _estimate(n, leader.estimate), _fmt(n, leader.p_best)]
+                for leader in s.leaders]))
     if chart:
         out.append("![Capability estimates, with intervals](charts/standing.svg)")
     out.append("### Decision templates it changes")
@@ -452,7 +470,7 @@ def _standing(b: Breakdown, n: Footnotes, chart: bool) -> list[str]:
                            "Left the leading band"], [
             [f"{c.template.name} ({_code(c.template.id)})", c.template.tier,
              BAND_WORDS[c.band_before], BAND_WORDS[c.band_after],
-             ", ".join(_code(m) for m in c.displaced) or "none"]
+             ", ".join(_who(b, m) for m in c.displaced) or "none"]
             for c in ordered]))
     return out
 
@@ -549,6 +567,13 @@ def _gaps(b: Breakdown, n: Footnotes) -> list[str]:
     if g.domains_without_estimate:
         items.append("Domains with no estimate yet: "
                      + ", ".join(_code(x) for x in g.domains_without_estimate) + ".")
+    if g.domains_not_offered:
+        items.append("Domains a verified fact rules out, so not a gap: " + "; ".join(
+            f"{_code(x.domain)}, because {x.reason} (fact {_code(x.record_id or '')})"
+            for x in g.domains_not_offered) + ".")
+    if g.domains_inapplicable:
+        items.append("Domains this class cannot be measured on, so not a gap: " + "; ".join(
+            f"{_code(x.domain)}, because {x.reason}" for x in g.domains_inapplicable) + ".")
     if g.unknown_facets:
         items.append("Guaranteed facts still unknown: " + ", ".join(
             f"{_code(u.facet)} ({', '.join(_code(s) for s in u.subjects)})"
@@ -637,7 +662,7 @@ def render(b: Breakdown) -> tuple[str, dict[str, str]]:
             f"- {_code(c['pointer'])}" for c in b.changes_since_r1))
     post = "\n\n".join(body) + "\n\n" + n.block() + "\n"
     # Names are labels, not figures: the model's own and the plans'.
-    names = [b.model.name, *(p.plan["name"] for p in b.cost.plans)]
+    names = [b.model.name, *b.names.values(), *(p.plan["name"] for p in b.cost.plans)]
     stray = untraced_numbers(post, allowed=names)
     if stray:
         raise ValueError(f"numbers without a footnote in the post: {stray}")

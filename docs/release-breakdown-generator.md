@@ -86,8 +86,21 @@ site. Publishing a post is ticket 2's `pipeline/blog.py`, which renders only
    `subscriptions` precedent. It is present whenever anything was held back,
    so a reader can tell "none of this model's" from "snapshot predates the
    key" (see [`decision-snapshot.md`](decision-snapshot.md)).
-5. **The display name** comes from `--name`: the snapshot holds IDs, not
-   display names, and the generator reads nothing but the snapshots.
+5. **Display names** come from `--vocabulary`, the decision vocabulary
+   published beside S1 (`/api/decision/vocabulary.json`), or `--name`. The
+   snapshot holds IDs only. Names are labels, never figures; the vocabulary
+   must name S1 as its snapshot and its SHA-256 is recorded in
+   `generated_from.vocabulary`, so the output stays reproducible.
+7. **Inapplicable is not unknown (MODEL-97).** A domain the model's class
+   cannot be measured on (`release_blog/applicability.py`, derived only from
+   what the class consumes and emits in `api/classes.py`) is listed apart
+   from domains not yet measured, and is not a gap. A domain a verified
+   `model.input_modalities` rules out (vision for a text-only model) is a
+   third list, citing that fact.
+8. **Scale.** Each domain gives the spread of estimates across models of the
+   same class (count, low, median, high, all cited), because an estimate on
+   the capability model's scale means nothing alone. The leading band is
+   listed whole, up to ten models.
 6. **Plans** use a `coding_tool` decision for break-even, the only access the
    contract computes it for. Every tracked plan is listed: covering, not
    covering, or coverage not yet verified.

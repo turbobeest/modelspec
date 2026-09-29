@@ -1,7 +1,8 @@
 """``python -m release_blog``: write a breakdown, render it, or both.
 
     python -m release_blog breakdown --model M --after S1 [--before S0] \\
-        --accuracy report.json [--revision N --first-revision r1.json] --out breakdown.json
+        --accuracy report.json [--vocabulary vocabulary.json] \\
+        [--revision N --first-revision r1.json] --out breakdown.json
     python -m release_blog render --breakdown breakdown.json --out post.md
     python -m release_blog draft  (breakdown's arguments) --out-dir DIR
         # DIR/breakdown.json, DIR/post.md and DIR/charts/*.svg
@@ -35,7 +36,8 @@ def _build(args: argparse.Namespace) -> Breakdown:
         model_id=args.model, after=after, before=before,
         accuracy=accuracy(args.accuracy, after.snapshot_id), revision=args.revision,
         first_revision=first, name=args.name, first_published=args.first_published,
-        early_access=args.early_access)
+        early_access=args.early_access,
+        vocabulary=None if args.vocabulary is None else args.vocabulary.read_bytes())
 
 
 def _inputs(parser: argparse.ArgumentParser) -> None:
@@ -51,6 +53,8 @@ def _inputs(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--name", help="the model's display name (default: its ID)")
     parser.add_argument("--first-published", type=date.fromisoformat,
                         help="r1's publication date (default: S1's as_of)")
+    parser.add_argument("--vocabulary", type=Path,
+                        help="S1's published decision vocabulary, for display names")
     parser.add_argument("--early-access",
                         help="the post.yaml early_access statement, when there is one")
 
