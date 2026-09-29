@@ -3,6 +3,7 @@
 
     python scripts/release_watch.py               # dry run: print what it would file
     python scripts/release_watch.py --post        # file to $SIGNALS_ORIGIN/v1/signals/discovered
+    python scripts/release_watch.py --issues      # queue off: one GitHub issue per discovery
     python scripts/release_watch.py --rebaseline  # re-take every source's baseline
     python scripts/release_watch.py --rebaseline --source hf-qwen
 
@@ -16,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from collections.abc import Sequence
@@ -99,6 +101,74 @@ def post_discoveries(
     return outcomes
 
 
+ISSUE_LABEL = "release-discovery"
+ISSUE_ID = re.compile(r"`(watch:[A-Za-z0-9._:-]+)`")
+
+
+def file_issues(
+    signals: Sequence[ReleaseSignal], *, repository: str, token: str,
+    client: httpx.Client | None = None,
+) -> list[dict]:
+    """While the signal queue is off, file each discovery as one GitHub issue.
+
+    One listing of every issue this label ever carried, open or closed, is the
+    dedup set, as the Worker's markers are for the queue. 201 is new, 200 is
+    filed before; a failed listing or create fails every row it touches.
+    """
+    client = client or httpx.Client(timeout=30)
+    api = f"https://api.github.com/repos/{repository}/issues"
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    filed: set[str] = set()
+    url: str | None = f"{api}?labels={ISSUE_LABEL}&state=all&per_page=100"
+    try:
+        while url:
+            response = client.get(url, headers=headers)
+            response.raise_for_status()
+            for issue in response.json():
+                filed.update(ISSUE_ID.findall(issue.get("title") or ""))
+            url = response.links.get("next", {}).get("url")
+    except httpx.HTTPError as exc:
+        detail = f"listing {ISSUE_LABEL} issues: {type(exc).__name__}: {exc}"
+        return [
+            {"signal_id": signal.signal_id, "status": 0, "ok": False, "filed": False,
+             "detail": detail}
+            for signal in signals
+        ]
+    outcomes = []
+    for signal in signals:
+        if signal.signal_id in filed:
+            outcomes.append({"signal_id": signal.signal_id, "status": 200, "ok": True,
+                             "filed": False, "detail": ""})
+            continue
+        try:
+            response = client.post(api, headers=headers, json={
+                "title": f"release discovery: {signal.model_name} ({signal.provider}) "
+                         f"`{signal.signal_id}`",
+                "body": _issue_body(signal),
+                "labels": [ISSUE_LABEL, "new-model"],
+            })
+            status, detail = response.status_code, response.text[:300]
+        except httpx.HTTPError as exc:
+            status, detail = 0, f"{type(exc).__name__}: {exc}"
+        outcomes.append({"signal_id": signal.signal_id, "status": status,
+                         "ok": status == 201, "filed": status == 201,
+                         "detail": "" if status == 201 else detail})
+    return outcomes
+
+
+def _issue_body(signal: ReleaseSignal) -> str:
+    return (
+        f"The release watcher (MODEL-216) saw **{signal.model_name}** listed at "
+        f"{signal.first_seen_url}. It matches no catalogue alias for "
+        f"`{signal.provider}`.\n\n"
+        "This is a trigger, not evidence: nothing here may be copied to a card. "
+        "The release-signal queue is off (`SIGNALS_ENABLED`), so the watcher files "
+        "an issue instead. With the queue on, this would be a pending signal and "
+        "`release-signals.yml` would draft the card.\n\n"
+        f"```json\n{json.dumps(signal.to_dict(), indent=2)}\n```\n"
+    )
+
+
 def report(runs: Sequence[SourceRun], signals: Sequence[ReleaseSignal],
            posted: Sequence[dict] | None, now: datetime) -> dict:
     return {
@@ -125,7 +195,7 @@ def failures(result: dict) -> list[str]:
         for row in result["sources"] if row["status"] != "ok"
     ]
     lines.extend(
-        f"- signal endpoint refused `{row['signal_id']}`: HTTP {row['status']} {row['detail']}"
+        f"- filing refused `{row['signal_id']}`: HTTP {row['status']} {row['detail']}"
         for row in result["posted"] or [] if not row["ok"]
     )
     return lines
@@ -191,12 +261,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--post", action="store_true",
         help="file discoveries; needs SIGNALS_ORIGIN and MODELSPEC_SIGNALS_READ_KEY",
     )
+    parser.add_argument(
+        "--issues", action="store_true",
+        help="file discoveries as GitHub issues; needs GITHUB_REPOSITORY and GH_TOKEN",
+    )
     parser.add_argument("--rebaseline", action="store_true")
     parser.add_argument("--source", action="append", default=[],
                         help="with --rebaseline, limit to this source ID (repeatable)")
     args = parser.parse_args(argv)
     now = datetime.now(UTC).replace(microsecond=0)
 
+    if args.post and args.issues:
+        parser.error("--post and --issues are two sinks for one run; pick one")
     if args.rebaseline:
         return rebaseline(args.registry, args.baseline, args.source, now)
 
@@ -213,6 +289,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not origin or not read_key:
             parser.error("--post needs SIGNALS_ORIGIN and MODELSPEC_SIGNALS_READ_KEY")
         posted = post_discoveries(signals, origin=origin, read_key=read_key)
+    elif args.issues:
+        repository = os.environ.get("GITHUB_REPOSITORY", "")
+        token = os.environ.get("GH_TOKEN", "")
+        if not repository or not token:
+            parser.error("--issues needs GITHUB_REPOSITORY and GH_TOKEN")
+        posted = file_issues(signals, repository=repository, token=token)
     result = report(runs, signals, posted, now)
     if args.report:
         args.report.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

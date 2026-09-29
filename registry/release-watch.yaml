@@ -2,7 +2,7 @@
 #
 # Rules every entry obeys, and tests/test_release_watch.py enforces:
 # - A source is a trigger, never evidence. Nothing read here reaches a card.
-# - Artificial Analysis and Zapier are never sources (decision/excluded.py).
+# - The excluded publishers in decision/excluded.py are never sources.
 # - X is Grok Bot's channel; it is never a watched source.
 # - Plain HTTPS GET with the user agent below, no key, no account, no Firecrawl.
 #   robots.txt is read before every source on every run.
@@ -76,6 +76,13 @@ sources:
   pattern: '(?:command|embed|rerank|aya|c4ai)-[a-z0-9][a-z0-9.-]*[a-z0-9]'
   exclude: '(technical-report|-hf$)'
   confidence: 0.9
+- id: voyage-models
+  kind: page
+  url: https://docs.voyageai.com/docs/embeddings
+  provider: voyage
+  pattern: 'voyage-[a-z0-9][a-z0-9.-]*[a-z0-9]'
+  exclude: '(-ai$|-ai-|api|test|package|embedding-model|rank-1|instruction-tuned)'
+  confidence: 0.9
 
 # ── Hugging Face org feeds for open-weights labs ─────────────────────────────
 # The public models API, newest first, 100 rows. No token.
@@ -100,6 +107,53 @@ sources:
 - {id: hf-xiaomimimo, kind: huggingface, org: XiaomiMiMo, provider: xiaomi, confidence: 0.7}
 - {id: hf-black-forest-labs, kind: huggingface, org: black-forest-labs, provider: black-forest-labs, confidence: 0.7}
 - {id: hf-stabilityai, kind: huggingface, org: stabilityai, provider: stability, confidence: 0.7}
+# Every other carded lab with its own org (MODEL-215's coverage audit). Each
+# org is the one its cards already cite. `models/cerebras/` is not here: its
+# cards are other labs' models as Cerebras serves them, not a lab of its own.
+- {id: hf-01-ai, kind: huggingface, org: 01-ai, provider: 01-ai, confidence: 0.7}
+- {id: hf-agnes-ai, kind: huggingface, org: Agnes-AI, provider: agnes-ai, confidence: 0.7}
+- {id: hf-ai21labs, kind: huggingface, org: ai21labs, provider: ai21, confidence: 0.7}
+- {id: hf-ai9stars, kind: huggingface, org: ai9stars, provider: ai9stars, confidence: 0.7}
+- {id: hf-annamodels, kind: huggingface, org: annamodels, provider: annamodels, confidence: 0.7}
+- {id: hf-baai, kind: huggingface, org: BAAI, provider: baai, confidence: 0.7}
+- {id: hf-baichuan-inc, kind: huggingface, org: baichuan-inc, provider: baichuan, confidence: 0.7}
+- {id: hf-codefuse-ai, kind: huggingface, org: codefuse-ai, provider: codefuse, confidence: 0.7}
+- {id: hf-deepcogito, kind: huggingface, org: deepcogito, provider: deepcogito, confidence: 0.7}
+- {id: hf-essentialai, kind: huggingface, org: EssentialAI, provider: essentialai, confidence: 0.7}
+- {id: hf-ifm, kind: huggingface, org: IFM, provider: ifm, confidence: 0.7}
+- {id: hf-infgrad, kind: huggingface, org: infgrad, provider: infgrad, confidence: 0.7}
+- {id: hf-intfloat, kind: huggingface, org: intfloat, provider: intfloat, confidence: 0.7}
+- {id: hf-jcorners, kind: huggingface, org: JCorners, provider: jcorners, confidence: 0.7}
+- {id: hf-jinaai, kind: huggingface, org: jinaai, provider: jina, confidence: 0.7}
+- {id: hf-kakaobrain, kind: huggingface, org: kakaobrain, provider: kakao, confidence: 0.7}
+- {id: hf-kingsoft-llm, kind: huggingface, org: Kingsoft-LLM, provider: kingsoft, confidence: 0.7}
+- {id: hf-lgai-exaone, kind: huggingface, org: LGAI-EXAONE, provider: lgai-exaone, confidence: 0.7}
+- {id: hf-vikhyatk, kind: huggingface, org: vikhyatk, provider: moondream, confidence: 0.7}
+- {id: hf-motif-technologies, kind: huggingface, org: Motif-Technologies, provider: motif, confidence: 0.7}
+- {id: hf-nanbeige, kind: huggingface, org: Nanbeige, provider: nanbeige, confidence: 0.7}
+- {id: hf-naver-hyperclovax, kind: huggingface, org: naver-hyperclovax, provider: naver, confidence: 0.7}
+- {id: hf-nex-agi, kind: huggingface, org: nex-agi, provider: nex-agi, confidence: 0.7}
+- {id: hf-nomic-ai, kind: huggingface, org: nomic-ai, provider: nomic, confidence: 0.7}
+- {id: hf-openbmb, kind: huggingface, org: openbmb, provider: openbmb, confidence: 0.7}
+- {id: hf-openchat, kind: huggingface, org: openchat, provider: openchat, confidence: 0.7}
+- {id: hf-primeintellect, kind: huggingface, org: PrimeIntellect, provider: primeintellect, confidence: 0.7}
+- {id: hf-prism-ml, kind: huggingface, org: prism-ml, provider: prism-ml, confidence: 0.7}
+- {id: hf-querit, kind: huggingface, org: Querit, provider: querit, confidence: 0.7}
+- {id: hf-rwkv, kind: huggingface, org: RWKV, provider: rwkv, confidence: 0.7}
+- {id: hf-salesforce, kind: huggingface, org: Salesforce, provider: salesforce, confidence: 0.7}
+- {id: hf-samsungsds-research, kind: huggingface, org: SamsungSDS-Research, provider: samsung, confidence: 0.7}
+- {id: hf-sarvamai, kind: huggingface, org: sarvamai, provider: sarvam, confidence: 0.7}
+- {id: hf-sentence-transformers, kind: huggingface, org: sentence-transformers, provider: sentence-transformers, confidence: 0.7}
+- {id: hf-servicenow-ai, kind: huggingface, org: ServiceNow-AI, provider: servicenow, confidence: 0.7}
+- {id: hf-skt, kind: huggingface, org: skt, provider: skt, confidence: 0.7}
+- {id: hf-skywork, kind: huggingface, org: Skywork, provider: skywork, confidence: 0.7}
+- {id: hf-snowflake, kind: huggingface, org: Snowflake, provider: snowflake, confidence: 0.7}
+- {id: hf-swiss-ai, kind: huggingface, org: swiss-ai, provider: swiss-ai, confidence: 0.7}
+- {id: hf-teknium, kind: huggingface, org: teknium, provider: teknium, confidence: 0.7}
+- {id: hf-tiiuae, kind: huggingface, org: tiiuae, provider: tii, confidence: 0.7}
+- {id: hf-togethercomputer, kind: huggingface, org: togethercomputer, provider: together, confidence: 0.7}
+- {id: hf-trillionlabs, kind: huggingface, org: trillionlabs, provider: trillionlabs, confidence: 0.7}
+- {id: hf-unsloth, kind: huggingface, org: unsloth, provider: unsloth, confidence: 0.7}
 
 # ── a provider's public model list ───────────────────────────────────────────
 # https://openrouter.ai/api/v1/models answers without a key. Only the prefixes
@@ -140,3 +194,4 @@ sources:
     nousresearch: nous-research
     thinkingmachines: thinkingmachines
     meituan: meituan
+    typesafe: typesafe

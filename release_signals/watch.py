@@ -133,6 +133,11 @@ def _check_source(source: Source) -> None:
         raise RegistryError(f"{source.id}: a Hugging Face source needs a provider")
     if source.kind == "openrouter" and not source.providers:
         raise RegistryError(f"{source.id}: an OpenRouter source needs its provider map")
+    for rule in (source.pattern, source.exclude):
+        try:
+            re.compile(rule)
+        except re.error as exc:
+            raise RegistryError(f"{source.id}: {rule!r} is not a regular expression: {exc}")
     if not 0 <= source.confidence <= 1:
         raise RegistryError(f"{source.id}: confidence must be from 0 through 1")
 
@@ -233,12 +238,12 @@ def _instant(value: object) -> datetime | None:
 # ── one run ──────────────────────────────────────────────────────────────────
 
 def allowed_by_robots(url: str, user_agent: str, fetch: Fetch) -> bool:
-    """RFC 9309: a missing robots.txt allows; 401/403 or a server error disallows."""
+    """RFC 9309 §2.3.1: any 4xx is "unavailable" and allows; a 5xx disallows."""
     parts = urlsplit(url)
     robots = f"{parts.scheme}://{parts.netloc}/robots.txt"
     response = fetch(robots)
     parser = RobotFileParser(robots)
-    if response.status in (401, 403) or response.status >= 500:
+    if response.status >= 500:
         return False
     if response.status >= 400:
         return True

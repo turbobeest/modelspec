@@ -15,9 +15,11 @@ import pytest
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
+from decision.excluded import REMOVED_HOSTS
 from release_signals.contract import ReleaseSignal, SignalError
 from release_signals.watch import (
     Response,
+    _normalise,
     discoveries,
     extract,
     load_baseline,
@@ -278,7 +280,7 @@ def test_a_page_that_stops_yielding_ids_is_an_outage_not_a_quiet_day(world) -> N
 
 
 @pytest.mark.parametrize(("robots", "status"), [
-    (403, "robots_disallowed"), (503, "robots_disallowed"), (404, "ok"),
+    (503, "robots_disallowed"), (403, "ok"), (401, "ok"), (404, "ok"),
 ])
 def test_robots_rules_are_read_before_every_source(world, robots: int, status: str) -> None:
     registry, baseline, catalogue = world
@@ -336,7 +338,57 @@ def test_a_refused_post_is_an_alert() -> None:
     assert seen[0].headers["authorization"] == "Bearer read"
     assert posted[0]["ok"] is False
     assert release_watch.failures(result)[0].startswith(
-        "- signal endpoint refused `watch:acme:acme-two-2`: HTTP 404"
+        "- filing refused `watch:acme:acme-two-2`: HTTP 404"
+    )
+
+
+def test_with_the_queue_off_each_discovery_is_one_issue_ever() -> None:
+    discoveries_ = [
+        ReleaseSignal.parse(_discovery(), discovered=True),
+        ReleaseSignal.parse(_discovery(
+            model_name="Acme-Vision-3", signal_id="watch:acme:acme-vision-3",
+            first_seen_url="https://huggingface.co/acme-lab/Acme-Vision-3",
+        ), discovered=True),
+    ]
+    created: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":
+            assert request.url.params["state"] == "all"
+            assert request.url.params["labels"] == "release-discovery"
+            # Closed long ago, still never filed again.
+            return httpx.Response(200, json=[{
+                "title": "release discovery: acme-two-2 (acme) `watch:acme:acme-two-2`",
+                "state": "closed",
+            }])
+        created.append(json.loads(request.content))
+        return httpx.Response(201, json={"number": 7})
+
+    outcomes = release_watch.file_issues(
+        discoveries_, repository="owner/repo", token="t",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    assert [(row["signal_id"], row["ok"], row["filed"]) for row in outcomes] == [
+        ("watch:acme:acme-two-2", True, False),
+        ("watch:acme:acme-vision-3", True, True),
+    ]
+    assert created[0]["labels"] == ["release-discovery", "new-model"]
+    assert created[0]["title"].endswith("`watch:acme:acme-vision-3`")
+    assert "trigger, not evidence" in created[0]["body"]
+
+
+def test_a_failed_issue_listing_is_an_alert_not_a_flood() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET", "nothing may be created without the dedup set"
+        return httpx.Response(502)
+
+    outcomes = release_watch.file_issues(
+        [ReleaseSignal.parse(_discovery(), discovered=True)], repository="owner/repo",
+        token="t", client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    assert release_watch.failures({"sources": [], "posted": outcomes})[0].startswith(
+        "- filing refused `watch:acme:acme-two-2`: HTTP 0 listing release-discovery issues"
     )
 
 
@@ -362,7 +414,7 @@ def _discovery(**changes: object) -> dict[str, object]:
 @pytest.mark.parametrize("changes", [
     {"first_seen_url": "https://x.com/acme/status/1"},
     {"first_seen_url": "https://t.co/abc"},
-    {"first_seen_url": "https://artificialanalysis.ai/models/acme-two-2"},
+    {"first_seen_url": f"https://{REMOVED_HOSTS[0]}/models/acme-two-2"},
     {"first_seen_url": "http://docs.acme.example/models"},
     {"signal_id": "grok-20260929-1"},
 ])
@@ -372,7 +424,7 @@ def test_a_discovery_outside_its_contract_is_refused_by_parser_and_schema(
     validator = Draft202012Validator(DISCOVERY_SCHEMA, format_checker=FormatChecker())
     with pytest.raises(SignalError):
         ReleaseSignal.parse(_discovery(**changes), discovered=True)
-    if "artificialanalysis" not in str(changes):
+    if REMOVED_HOSTS[0] not in str(changes):
         assert list(validator.iter_errors(_discovery(**changes)))
 
 
@@ -424,19 +476,35 @@ def test_the_registry_has_a_baseline_and_a_catalogue_lab_for_every_source() -> N
     kinds = {source.kind for source in registry.sources}
     assert kinds == {"page", "huggingface", "openrouter"}
 
+    # Every carded lab is watched from at least one primary source (MODEL-215's
+    # coverage audit). A new lab directory without a source fails here.
+    # `cerebras` holds other labs' models as Cerebras serves them.
+    watched = {
+        lab
+        for source in registry.sources
+        for provider in ({source.provider} if source.provider else set(source.providers.values()))
+        for lab in catalogue.labs[_normalise(provider)]
+    }
+    carded = {path.name for path in (ROOT / "models").iterdir() if path.is_dir()}
+    assert carded - watched == {"cerebras"}
+
 
 def test_the_workflow_alerts_on_outage_and_holds_no_pr_credential() -> None:
     text = (ROOT / ".github" / "workflows" / "release-watch.yml").read_text(encoding="utf-8")
     workflow = yaml.safe_load(text)
     job = workflow["jobs"]["watch"]
 
-    assert job["if"] == "vars.SIGNALS_ENABLED == 'true'"
+    # It runs whether or not the queue is on; the switch picks the sink.
+    assert "if" not in job
+    assert 'sink=--post' in text and 'sink=--issues' in text
+    assert 'python scripts/release_watch.py "$sink"' in text
     assert job["timeout-minutes"] <= 10
     # The read key it already holds is the only secret: no PR token, no
     # Firecrawl key, nothing Jamie has to create for it.
     assert set(re.findall(r"secrets\.(\w+)", text)) == {"MODELSPEC_SIGNALS_READ_KEY"}
-    assert "scripts/release_watch.py --post" in text
     alert = next(step for step in job["steps"] if step.get("name") == "Raise the outage alert")
-    assert alert["if"] == "steps.watch.outputs.status != '0'"
+    # A crash before the report, or any failed step, still alerts.
+    assert alert["if"] == "${{ !cancelled() && (failure() || steps.watch.outputs.status != '0') }}"
+    assert "before writing a report" in text
     assert "gh issue create --label release-watch" in alert["run"]
     assert alert["run"].rstrip().endswith("exit 1")

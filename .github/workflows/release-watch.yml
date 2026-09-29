@@ -2,13 +2,17 @@ name: Watch primary sources for releases
 
 # MODEL-216. Reads the labs' model pages, Hugging Face org feeds and
 # OpenRouter's public model list, diffs them against
-# registry/release-watch-baseline.json, and files each new model to
-# POST /v1/signals/discovered. release-signals.yml then processes it exactly as
-# it processes a Grok Bot signal. See docs/release-watch.md.
+# registry/release-watch-baseline.json, and files each new model.
 #
-# Every 6 hours, so a model a lab lists reaches the queue within 6 hours, well
-# inside the 24-hour promise. One Linux job of about a minute; plain HTTP only,
-# no Firecrawl credit is ever spent here.
+# With the release-signal queue on (vars.SIGNALS_ENABLED), a discovery goes to
+# POST /v1/signals/discovered and release-signals.yml processes it exactly as
+# it processes a Grok Bot signal. With the queue off, and Grok Bot with it,
+# this is the only release feed, so each discovery becomes one GitHub issue
+# instead. See docs/release-watch.md.
+#
+# Every 6 hours, so a model a lab lists is filed within 6 hours, well inside
+# the 24-hour promise. One Linux job of about a minute; plain HTTP only, no
+# Firecrawl credit is ever spent here.
 on:
   schedule:
     - cron: '41 */6 * * *'
@@ -25,20 +29,19 @@ concurrency:
 jobs:
   watch:
     name: Diff watched sources and file discoveries
-    # The same switch as release-signals.yml: nothing is filed while the queue
-    # it feeds is not being drained.
-    if: vars.SIGNALS_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       PYTHONPATH: ${{ github.workspace }}
+      SIGNALS_ENABLED: ${{ vars.SIGNALS_ENABLED }}
       SIGNALS_ORIGIN: https://api.modelspec.dev
       MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
+      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Refuse a missing read key
+      - name: Refuse a missing read key while the queue is on
         run: |
-          if [ -z "$MODELSPEC_SIGNALS_READ_KEY" ]; then
-            echo "::error::MODELSPEC_SIGNALS_READ_KEY is required."
+          if [ "$SIGNALS_ENABLED" = true ] && [ -z "$MODELSPEC_SIGNALS_READ_KEY" ]; then
+            echo "::error::MODELSPEC_SIGNALS_READ_KEY is required while SIGNALS_ENABLED is true."
             exit 1
           fi
 
@@ -57,22 +60,36 @@ jobs:
       - name: Diff every source and file what is new
         id: watch
         run: |
+          if [ "$SIGNALS_ENABLED" = true ]; then
+            sink=--post
+          else
+            sink=--issues
+            gh label create release-discovery --color 0E8A16 \
+              --description "Release watcher discovery while the signal queue is off (MODEL-216)" --force
+          fi
           set +e
-          python scripts/release_watch.py --post \
+          python scripts/release_watch.py "$sink" \
             --report "$RUNNER_TEMP/watch.json" \
             --summary "$RUNNER_TEMP/watch.md"
           status=$?
           set -e
+          if [ ! -s "$RUNNER_TEMP/watch.md" ]; then
+            printf '## Release watch\n\nrelease_watch.py exited %s before writing a report. See the run log.\n' \
+              "$status" > "$RUNNER_TEMP/watch.md"
+          fi
           cat "$RUNNER_TEMP/watch.md" >> "$GITHUB_STEP_SUMMARY"
           echo "status=$status" >> "$GITHUB_OUTPUT"
 
       # A source outage is an alert, never a quiet skip: one open issue carries
-      # every outage until someone closes it, and this run goes red too.
+      # every outage until someone closes it, and this run goes red too. Any
+      # failed step alerts as well, so a crash cannot pass for a quiet day.
       - name: Raise the outage alert
-        if: steps.watch.outputs.status != '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
+        if: ${{ !cancelled() && (failure() || steps.watch.outputs.status != '0') }}
         run: |
+          if [ ! -s "$RUNNER_TEMP/watch.md" ]; then
+            printf '## Release watch\n\nThe run failed before writing a report. See %s.\n' \
+              "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/watch.md"
+          fi
           gh label create release-watch --color B60205 \
             --description "Release watcher source outage (MODEL-216)" --force
           open="$(gh issue list --label release-watch --state open --json number --jq '.[0].number // empty')"
