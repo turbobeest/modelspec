@@ -893,6 +893,13 @@ class _Compiler:
         for sid, counts in self.excluded.items():
             if sid is None or sid in kept or sid in subscription_ids:
                 excluded.update(counts)
+        # The same counts per kept subject (MODEL-224), so one model's
+        # held-back readings can be told apart from the snapshot-wide total.
+        held_back = {
+            sid: dict(sorted(counts.items()))
+            for sid, counts in sorted(self.excluded.items())
+            if sid is not None and sid in kept
+        }
         domains = {}
         for bench, tags in sorted(self.inputs.benchmark_domains.items()):
             if self.guard is not None and self.guard.benchmark(bench):
@@ -967,6 +974,10 @@ class _Compiler:
             **({"refinements": refinements} if refinements else {}),
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
+            # Present whenever anything was held back, even when none of it
+            # belongs to a kept subject, so a reader can tell "none of this
+            # model's" from a snapshot that predates the key.
+            **({"held_back": held_back} if excluded else {}),
             "record_table": _pack_records({r: self.records[r] for r in record_ids}),
             "fact_records": {
                 sid: rows
@@ -1494,6 +1505,12 @@ class LoadedSnapshot:
         self.signature_key_id = signature_key_id
         self.as_of = _date(content.get("as_of"))
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
+        #: Per kept subject, the ``excluded`` counts (MODEL-224); ``None`` when
+        #: the snapshot predates the key and held anything back.
+        self._held_back: dict[str, dict[str, int]] | None = (
+            content["held_back"] if "held_back" in content
+            else None if self.excluded else {}
+        )
         #: Active models the build left out because they are not in the premier set.
         self.out_of_lineup: int = int(content.get("out_of_lineup") or 0)
         self._subscription_offerings = tuple(
@@ -1503,7 +1520,10 @@ class LoadedSnapshot:
                 "plan": row["plan"],
                 "name": row["name"],
                 "facts": {
-                    facet_id: FactValue(state, value, tuple(sources))
+                    facet_id: FactValue(
+                        state, value, tuple(sources),
+                        content.get("fact_records", {}).get(row["id"], {}).get(facet_id),
+                    )
                     for facet_id, (state, value, sources) in row.get("facts", {}).items()
                 },
             }
@@ -1828,6 +1848,17 @@ class LoadedSnapshot:
         """Refuse explanations from a snapshot built before provenance retention."""
         if self.explanation_rebuild_required is not None:
             raise SnapshotError(self.explanation_rebuild_required)
+
+    def held_back(self, cid: str) -> dict[str, int] | None:
+        """Why ``cid``'s own records stayed out, by reason, or ``None`` when unknown.
+
+        ``None`` means the snapshot predates ``content.held_back`` and held
+        something back, so a subject's share cannot be recovered. A subject
+        with nothing held back gets ``{}``.
+        """
+        if self._held_back is None:
+            return None
+        return dict(self._held_back.get(cid, {}))
 
     def kind(self, cid: str) -> Literal["model", "offering"]:
         self._check(cid)

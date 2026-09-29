@@ -12,7 +12,6 @@ import subprocess
 import tempfile
 import textwrap
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from datetime import date
 from html import escape
 from pathlib import Path
@@ -20,12 +19,12 @@ from typing import Any
 
 from api.ranking.engine import neutrality_commitment
 from decision.computed import COST_PER_TASK, with_computed
-from decision.contract import DEFAULT_TASK_TOKENS, Compare, Objective, Result, Spec
-from decision.engine import decide
-from decision.registry import Domain
-from decision.registry import default as default_registry
+from decision.contract import DEFAULT_TASK_TOKENS, Result
 from decision.snapshot import LoadedSnapshot, load_snapshot
-from decision.vocabulary import build_vocabulary
+from release_blog.gates import PR_ACCURACY_LAYERS  # noqa: F401  (re-exported)
+from release_blog.gates import accuracy as _accuracy
+from release_blog.standing import Standing
+from release_blog.standing import standings as _standings
 from schema.suppliers import supplier_for
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -41,52 +40,6 @@ PLATFORM_SIZES: dict[str, tuple[int, int]] = {
     "instagram_story": (1080, 1920),
     "tiktok_cover": (1080, 1920),
 }
-
-PR_ACCURACY_LAYERS = frozenset(
-    {"deterministic_correctness", "freshness", "golden_answers", "output_parity"}
-)
-
-
-@dataclass(frozen=True)
-class Standing:
-    snapshot: LoadedSnapshot
-    domain: Domain
-    benchmark: str
-    higher_is_better: bool
-    ordered_models: tuple[str, ...]
-    results: Mapping[str, Any]
-    decision: Any
-
-    def rank(self, model_id: str) -> int | None:
-        try:
-            return self.ordered_models.index(model_id) + 1
-        except ValueError:
-            return None
-
-
-def _accuracy(path: Path, snapshot_id: str) -> dict[str, Any]:
-    try:
-        report = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        raise ValueError(f"could not read accuracy report {path}: {exc}") from exc
-    if not isinstance(report, dict):
-        raise ValueError(f"accuracy report {path} is not a JSON object")
-    if report.get("status") != "pass":
-        raise ValueError("accuracy report did not pass")
-    if report.get("snapshot") != snapshot_id:
-        raise ValueError(f"accuracy report covers {report.get('snapshot')!r}, not {snapshot_id!r}")
-    if report.get("profile") != "pr":
-        raise ValueError("accuracy report must use the pr profile")
-    layers = report.get("layers")
-    if not isinstance(layers, list) or any(not isinstance(row, Mapping) for row in layers):
-        raise ValueError("accuracy report must contain the exact pr layers")
-    names = [str(row.get("name", "")) for row in layers]
-    if len(names) != len(PR_ACCURACY_LAYERS) or set(names) != PR_ACCURACY_LAYERS:
-        raise ValueError("accuracy report must contain the exact pr layers")
-    failed = [row.get("name", "unnamed") for row in layers if row.get("status") != "pass"]
-    if failed:
-        raise ValueError("accuracy report did not pass layers: " + ", ".join(failed))
-    return dict(report)
 
 
 def _load_signed(path: Path, key: bytes | str | None) -> LoadedSnapshot:
@@ -108,48 +61,6 @@ def _target_class(snapshot: LoadedSnapshot, model_id: str) -> str:
     if found.state != "known" or not isinstance(found.value, str):
         raise ValueError(f"{model_id}: model.class is unknown")
     return found.value
-
-
-def _standings(snapshot: LoadedSnapshot, model_class: str) -> list[Standing]:
-    registry = default_registry()
-    vocabulary = build_vocabulary(snapshot, registry=registry)
-    domain_rows = {row["id"]: row for row in vocabulary["domains"]}
-    benchmark_rows = {row["id"]: row for row in vocabulary["benchmarks"]}
-    rows: list[Standing] = []
-    for domain in registry.domains():
-        published = domain_rows.get(domain.id)
-        if published is None or not published["benchmarks"]:
-            continue
-        benchmark = published["default_benchmark"] or published["benchmarks"][0]
-        higher_is_better = bool(benchmark_rows[benchmark]["higher_is_better"])
-        spec = Spec(
-            spec_version=1,
-            capabilities={domain.id: "required"},
-            where=[Compare(facet="model.class", op="=", value=model_class)],
-            optimize=Objective(**({"max": benchmark} if higher_is_better else {"min": benchmark})),
-            explain="full",
-            limit=500,
-        )
-        answer = decide(spec, snapshot, facets=registry.facet)
-        ordered: list[str] = []
-        results: dict[str, Any] = {}
-        for result in answer.results:
-            model_id = result.offering.model
-            if model_id not in results:
-                ordered.append(model_id)
-                results[model_id] = result
-        rows.append(
-            Standing(
-                snapshot,
-                domain,
-                benchmark,
-                higher_is_better,
-                tuple(ordered),
-                results,
-                answer,
-            )
-        )
-    return rows
 
 
 def _record_date(snapshot: LoadedSnapshot, record_id: str | None) -> str | None:
