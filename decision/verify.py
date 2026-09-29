@@ -804,6 +804,7 @@ class SubscriptionPageExtractor:
     def extract(self, claim: Claim, text: str) -> list[Reading]:
         if not claim.field.startswith("offering.subscription."):
             raise ExtractorError("not a subscription claim")
+        text = _content_block(text)
         readings = self._page_layouts(claim, text)
         for more in (_plan_cards(claim, text), _plan_facts(claim, text),
                      _vendor_layouts(claim, text)):
@@ -1103,6 +1104,32 @@ def _model_list(cell: str) -> str:
     return ", ".join(items)
 
 
+#: A line that is page chrome, not plan content: a help centre's skip link, search
+#: box and "Updated" stamp (MODEL-240).
+_CHROME_LINE = re.compile(
+    r"(?i)^(?:skip to (?:main )?content|search|updated (?:this|last) \w+|updated .+ ago)$")
+#: A help centre's footer: nothing after it belongs to the article.
+_FOOTER_LINE = re.compile(r"(?i)^(?:did this answer your question\??|related articles)$")
+
+
+def _content_block(text: str) -> str:
+    """The region without page chrome, so no reader offers a skip link or footer as
+    a plan's value. A reader that finds nothing then says so, instead of reporting
+    the page's first line as the value it found (MODEL-240)."""
+    kept = []
+    for line in text.splitlines():
+        if _FOOTER_LINE.match(line.strip()):
+            break
+        if not _CHROME_LINE.match(line.strip()):
+            kept.append(line)
+    return "\n".join(kept)
+
+
+#: "Premium seats: Team plan Premium seats include 6.25x the Pro plan's per-session
+#: usage allowance and have a weekly usage limit…": what a labelled plan includes.
+_INCLUDES = re.compile(r"\binclude[sd]?\s+(.+?)(?:\s+and\s+|[.;]?$)", re.IGNORECASE)
+
+
 def _plan_cards(claim: Claim, text: str) -> list[Reading]:
     """Plan facts from generic plan-page layouts (MODEL-201).
 
@@ -1183,6 +1210,13 @@ def _plan_cards(claim: Claim, text: str) -> list[Reading]:
                      "offering.subscription.usage_allowance"}:
             readings += [Reading(subject=subject, value=sentence) for line in lines
                          for sentence in re.split(r"(?<=[.!?])\s+", line) if sentence]
+        if field == "offering.subscription.usage_allowance":
+            # A line labelled with this plan ("Premium seats: …") states its allowance.
+            for line in lines:
+                label, sep, statement = line.partition(":")
+                if sep and normalise_name(label) in aliases \
+                        and (m := _INCLUDES.search(statement)):
+                    readings.append(Reading(subject=subject, value=m.group(1)))
         if field == "offering.subscription.billing_period":
             # Only what the plan itself is billed by: a sentence about its seat,
             # plan or subscription ("Billed monthly in arrears" for usage is not).
