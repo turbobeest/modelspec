@@ -61,6 +61,7 @@ from decision.contract import (
 )
 from decision.engine import decide
 from decision.filter import _INDEPENDENT as INDEPENDENT_MEASURERS
+from decision.refinements import evidence_state as refinement_evidence_state
 from decision.templates import load_templates
 
 VOCABULARY_VERSION = 1
@@ -277,14 +278,6 @@ def _benchmark_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappin
 
 def _refinement_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mapping[str, Any]],
                      registry: Any) -> list[dict[str, Any]]:
-    candidates_by_model: dict[str, list[str]] = {}
-    for candidate in lineup:
-        candidates_by_model.setdefault(snapshot.model_of(candidate), []).append(candidate)
-    class_by_model = {
-        model_id: snapshot.fact(model_id, "model.class").value
-        for model_id in candidates_by_model
-    }
-
     tags_by_refinement: dict[str, list[dict[str, str]]] = {}
     for benchmark_id, page in pages.items():
         raw_tags = page.get("refinements") if isinstance(page, Mapping) else None
@@ -302,36 +295,16 @@ def _refinement_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappi
 
     rows = []
     for refinement in registry.refinements():
-        eligible_models = {
-            model_id
-            for model_id, class_id in class_by_model.items()
-            if class_id in refinement.eligible_classes
-        }
         benchmark_tags = sorted(
             tags_by_refinement.get(refinement.id, []),
             key=lambda tag: (tag["id"], tag["directness"]),
         )
-        measured: set[str] = set()
-        direct: set[str] = set()
-        for tag in benchmark_tags:
-            for model_id in eligible_models:
-                candidates = candidates_by_model[model_id]
-                if any(
-                    evidence.verified
-                    for candidate in candidates
-                    for evidence in snapshot.evidence(candidate, tag["id"])
-                ):
-                    measured.add(model_id)
-                    if tag["directness"] == "direct":
-                        direct.add(model_id)
-        if len(direct) >= 3:
-            evidence_state = "live"
-        elif measured:
-            evidence_state = "thin"
-        elif benchmark_tags:
-            evidence_state = "not_measured"
-        else:
-            evidence_state = "no_benchmark"
+        evidence_state, measured, of_models = refinement_evidence_state(
+            snapshot,
+            lineup,
+            [(tag["id"], tag["directness"]) for tag in benchmark_tags],
+            refinement.eligible_classes,
+        )
         rows.append({
             "id": refinement.id,
             "parent_domain": refinement.parent_domain,
@@ -339,8 +312,8 @@ def _refinement_rows(snapshot: Any, lineup: list[str], pages: Mapping[str, Mappi
             "name": refinement.name,
             "definition": refinement.definition,
             "evidence_state": evidence_state,
-            "measured_models": len(measured),
-            "of_models": len(eligible_models),
+            "measured_models": measured,
+            "of_models": of_models,
             "benchmarks": benchmark_tags,
             "weight_key": refinement.weight_key,
         })

@@ -13,6 +13,7 @@ from math import isclose, isfinite
 from typing import TYPE_CHECKING, Literal
 
 from decision.contract import EvidenceQualifiers, Objective, Preference, Tolerance
+from decision.refinements import is_refinement_key
 
 if TYPE_CHECKING:
     from decision.snapshot import CapabilityEstimateValue, EvidenceValue, SnapshotIndex
@@ -238,6 +239,11 @@ def _read(snapshot: SnapshotIndex, cid: str, facet: str,
               tuple[EvidenceValue, ...],
               CapabilityEstimateValue | None,
           ]:
+    if is_refinement_key(facet):
+        nested = snapshot.refinement_estimate(cid, facet)
+        if nested is None:
+            return None, (), (), None
+        return nested.estimate.value, (), (), nested.estimate
     if facet in domains and selector is None:
         estimate = snapshot.capability_estimate(cid, facet)
         return (None, (), (), None) if estimate is None else (estimate.value, (), (), estimate)

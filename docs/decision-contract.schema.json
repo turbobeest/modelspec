@@ -438,6 +438,13 @@
           "title": "Records",
           "type": "array"
         },
+        "refinement_gains": {
+          "items": {
+            "$ref": "#/$defs/RefinementGain"
+          },
+          "title": "Refinement Gains",
+          "type": "array"
+        },
         "units": {
           "additionalProperties": {
             "anyOf": [
@@ -560,6 +567,19 @@
           "title": "Records",
           "type": "array"
         },
+        "refinement": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Refinement"
+        },
         "unit": {
           "anyOf": [
             {
@@ -664,8 +684,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.3",
-          "default": "2.3",
+          "const": "2.4",
+          "default": "2.4",
           "title": "Contract Version",
           "type": "string"
         },
@@ -2392,7 +2412,7 @@
           "anyOf": [
             {
               "patternProperties": {
-                "^-?[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$": {
+                "^-?[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$": {
                   "anyOf": [
                     {
                       "type": "number"
@@ -2648,6 +2668,87 @@
       "title": "ProfileOffering",
       "type": "object"
     },
+    "RefinementEstimate": {
+      "additionalProperties": false,
+      "description": "A refinement estimate nested in its parent domain. Added in 2.4 (MODEL-190).\n\n``evidence_count`` 0 means no refinement evidence: the value is the\nparent's estimate and the interval is wider by the refinement's spread.",
+      "properties": {
+        "domain": {
+          "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+          "title": "Domain",
+          "type": "string"
+        },
+        "evidence_count": {
+          "minimum": 0,
+          "title": "Evidence Count",
+          "type": "integer"
+        },
+        "interval": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Interval",
+          "type": "array"
+        },
+        "key": {
+          "pattern": "^[a-z][a-z0-9_]*/[a-z][a-z0-9_]*$",
+          "title": "Key",
+          "type": "string"
+        },
+        "refinement": {
+          "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+          "title": "Refinement",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "key",
+        "domain",
+        "refinement",
+        "value",
+        "interval",
+        "evidence_count"
+      ],
+      "title": "RefinementEstimate",
+      "type": "object"
+    },
+    "RefinementGain": {
+      "additionalProperties": false,
+      "description": "``gain`` for one refinement dimension. Added in 2.4 (MODEL-190).",
+      "properties": {
+        "dimension": {
+          "pattern": "^-?[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+          "title": "Dimension",
+          "type": "string"
+        },
+        "gain": {
+          "title": "Gain",
+          "type": "number"
+        },
+        "refinement": {
+          "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+          "title": "Refinement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dimension",
+        "refinement",
+        "gain"
+      ],
+      "title": "RefinementGain",
+      "type": "object"
+    },
     "Relaxation": {
       "additionalProperties": false,
       "description": "The smallest change to one numeric cap or floor that admits a model. Added in 1.5.\n\n``condition`` is the spec's condition; ``relaxed`` is the same facet and\ndirection at ``value``, in ``unit``, the nearest value any excluded\ncandidate has; ``admits`` counts the models that then qualify.",
@@ -2775,6 +2876,21 @@
           "minimum": 1,
           "title": "Rank",
           "type": "integer"
+        },
+        "refinement_estimates": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/RefinementEstimate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Refinement Estimates"
         },
         "soft_penalty": {
           "default": 0.0,
@@ -3361,6 +3477,19 @@
           "default": null,
           "title": "New Top"
         },
+        "refinement": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Refinement"
+        },
         "threshold": {
           "anyOf": [
             {
@@ -3625,5 +3754,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.3"
+  "x-contract-version": "2.4"
 }

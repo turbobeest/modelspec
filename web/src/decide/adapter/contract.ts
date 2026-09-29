@@ -65,6 +65,18 @@ const estimateSchema = z
   })
   .strict();
 
+// 2.4 (MODEL-190): a refinement estimate nested in its parent domain.
+const refinementEstimateSchema = z
+  .object({
+    key: z.string().regex(/^[a-z][a-z0-9_]*\/[a-z][a-z0-9_]*$/),
+    domain: facetId,
+    refinement: facetId,
+    value: z.number().finite(),
+    interval: z.tuple([z.number().finite(), z.number().finite()]),
+    evidence_count: z.number().int().nonnegative(),
+  })
+  .strict();
+
 const contributionSchema = z
   .object({
     raw_value: z.number().finite().nullable().optional(),
@@ -81,6 +93,7 @@ const contributionSchema = z
       .enum(["satisfied", "not_satisfied", "unknown"])
       .nullable()
       .optional(),
+    refinement: facetId.optional(),
   })
   .strict();
 
@@ -94,6 +107,7 @@ const resultSchema = z
       z.object({ domain: facetId, items: z.array(evidenceItemSchema) }).strict(),
     ),
     estimates: z.array(estimateSchema).nullable(),
+    refinement_estimates: z.array(refinementEstimateSchema).optional(),
     p_best: z.number().min(0).max(1).nullable(),
     top3_stability: z.number().min(0).max(1).nullable(),
     soft_penalty: z.number().nonnegative(),
@@ -250,6 +264,7 @@ export const decisionSchema = z
       "2.1",
       "2.2",
       "2.3",
+      "2.4",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -356,6 +371,13 @@ export const decisionSchema = z
           condition: z.string(),
           admits: z.number().int().nonnegative(),
           gain: z.record(facetId, z.number().finite()),
+          refinement_gains: z
+            .array(
+              z
+                .object({ dimension: facetId, refinement: facetId, gain: z.number().finite() })
+                .strict(),
+            )
+            .optional(),
         })
         .strict(),
     ),
@@ -366,6 +388,7 @@ export const decisionSchema = z
           dimension: facetId.nullable(),
           threshold: z.number().finite().nullable(),
           new_top: modelId.nullable(),
+          refinement: facetId.optional(),
         })
         .strict(),
     ),
