@@ -3,6 +3,7 @@ import { money } from "../adapter";
 import type { AdapterDecision, Spec } from "../adapter";
 import type { Vocabulary } from "../vocabulary";
 import { boardHasPreference } from "./model";
+import { TieAwareAnswer } from "./TieAwareAnswer";
 
 const COLLAPSED_COUNT = 8;
 
@@ -76,8 +77,9 @@ export function RankedAnswer({
   );
 
   return <section className="panel board-ranked-answer">
+    {ranked && decision.answer && <TieAwareAnswer answer={decision.answer} decision={decision} capabilityName={capability?.name} />}
     {!ranked && <p className="board-unranked">{rows.length} qualify — set a Prefer to rank them</p>}
-    {ranked && inseparable.length > 0 && <p className="board-inseparable">
+    {ranked && !decision.answer && inseparable.length > 0 && <p className="board-inseparable">
       The evidence can't separate {inseparable.map((row) => row.m.name).join(", ")}.
     </p>}
     {capability && <div className="board-ranked-columns" aria-hidden="true">
