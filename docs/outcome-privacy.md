@@ -34,10 +34,12 @@ modelspec outcome disable --delete   # also delete every record
 ## What is on disk
 
 Everything lives under `~/.modelspec/`, or under `$MODELSPEC_HOME` if you set
-it. Each write sets the directory to mode `0700` and the file to mode `0600`,
-tightening them if they already existed with looser modes. A write refuses to
-follow a symlink at the file's path. `export --out` also writes its file with
-mode `0600`.
+it. The CLI creates a missing directory with mode `0700`, and it leaves an
+existing directory's mode alone, because `MODELSPEC_HOME` may point at a
+directory the CLI does not own. Every file is written with mode `0600`, and an
+existing looser file is tightened. A write never follows a symlink at a file's
+path or at the stubs directory. `export --out` also writes its file with mode
+`0600`.
 
 | file | when it exists | what it holds |
 | --- | --- | --- |
@@ -95,10 +97,11 @@ and did the task succeed?". Specifically:
   must be in the cached ModelSpec catalogue. Otherwise `record` refuses it and
   tells you to pass `--adopted other`, which records the word `other` and never
   the name. This matters because a private fine-tune's name can identify a
-  customer. The only exception is a model in the best band of a decision stub
-  that `decide` wrote on this machine. A `--decision` file cannot vouch for a
-  model in this way, because anyone can write one. `cli_version` drops any
-  `+local` segment, which can carry a hostname or a git hash.
+  customer. The catalogue is the vocabulary that `snapshot fetch` cached.
+  Nothing else can vouch for a model: not a decision stub, and not a
+  `--decision` file. `decide --snapshot-file` accepts a private snapshot, and
+  a stub made from one could list any name. `cli_version` drops any `+local`
+  segment, which can carry a hostname or a git hash.
 - **Not the spec.** Only its hash is recorded, and that is the same hash
   `decide` already prints. The hash is unsalted, so someone who can guess
   your whole spec can confirm the guess by hashing it. A spec can name the
@@ -119,7 +122,10 @@ it. A line that someone edited by hand to add a field is skipped and counted.
 It is never passed through.
 
 If a later CLI bumps the consent version, recording stops. The records and
-stubs you already have stay on disk until you run `disable --delete`.
+stubs you already have stay on disk. `disable` deletes the stubs, and
+`disable --delete` deletes the records too. `disable` deletes only regular files
+named like a stub (`dec_<24 hex>.json`). If the stubs directory is a symlink, it
+deletes nothing there.
 
 ## What leaves your machine
 

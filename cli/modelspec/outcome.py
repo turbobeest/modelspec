@@ -48,6 +48,7 @@ STUB_LIMIT = 500
 OUTCOMES_FILENAME = "outcomes.jsonl"
 CONSENT_FILENAME = "outcomes-consent.json"
 STUB_DIRECTORY = "decision-stubs"
+STUB_NAME = re.compile(r"dec_[0-9a-f]{24}\.json(\.tmp)?")
 
 RESULTS = ("success", "partial", "failure")
 #: The adopted model when it is not in the ModelSpec catalogue. Its name is
@@ -243,10 +244,12 @@ def consent_text() -> str:
 
 
 def _private_dir(path: Path) -> None:
-    """Create ``path`` 0700, and tighten it if it already existed looser."""
+    """Create ``path`` 0700 if it is missing. An existing directory is left as
+    it is: ``MODELSPEC_HOME`` may point at a directory the CLI does not own.
+    The files inside are 0600 either way (``open_private``)."""
+    if path.is_symlink() and path != home():
+        raise OSError(f"{path} is a symlink; refusing to write through it")
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
-    home().chmod(0o700)
-    path.chmod(0o700)
 
 
 def open_private(path: Path, flags: int) -> int:
@@ -290,18 +293,28 @@ def disable(*, delete: bool) -> int:
     Returns how many records remain on disk.
     """
     consent_path().unlink(missing_ok=True)
-    stubs = stubs_path()
-    if stubs.is_dir():
-        for stub in stubs.iterdir():
-            stub.unlink(missing_ok=True)
-        try:
-            stubs.rmdir()
-        except OSError:
-            pass
     if delete:
         outcomes_path().unlink(missing_ok=True)
-        return 0
-    return sum(1 for _ in _lines())
+    _delete_stubs()
+    return 0 if delete else sum(1 for _ in _lines())
+
+
+def _delete_stubs() -> None:
+    """Delete the stubs this CLI wrote, and nothing else.
+
+    Only regular files named like a stub are removed, and never through a
+    symlinked directory, so a mistaken path cannot cost the user other files.
+    """
+    stubs = stubs_path()
+    if stubs.is_symlink() or not stubs.is_dir():
+        return
+    for entry in stubs.iterdir():
+        if STUB_NAME.fullmatch(entry.name) and entry.is_file() and not entry.is_symlink():
+            entry.unlink(missing_ok=True)
+    try:
+        stubs.rmdir()
+    except OSError:
+        pass
 
 
 # ── decision stubs ────────────────────────────────────────────────────────
@@ -335,8 +348,12 @@ def save_stub(stub: DecisionStub) -> None:
     if not enabled():
         return
     directory = stubs_path()
+    if directory.is_symlink():
+        return
     _write_private(directory / f"{stub.decision_id}.json", stub.model_dump_json() + "\n")
-    stubs = sorted(directory.glob("*.json"), key=lambda path: path.stat().st_mtime)
+    stubs = sorted((path for path in directory.iterdir() if STUB_NAME.fullmatch(path.name)
+                    and path.is_file() and not path.is_symlink()),
+                   key=lambda path: path.stat().st_mtime)
     for old in stubs[:-STUB_LIMIT]:
         old.unlink(missing_ok=True)
 

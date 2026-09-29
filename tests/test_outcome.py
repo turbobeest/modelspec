@@ -204,14 +204,14 @@ def test_latency_and_cost_are_coarsened_to_three_figures(home: Path) -> None:
     assert (record["latency_ms"], record["cost_usd"]) == (48200, 1230.0)
 
 
-def test_loose_permissions_are_tightened_and_symlinks_refused(tmp_path: Path, home: Path) -> None:
+def test_loose_files_are_tightened_and_symlinks_refused(tmp_path: Path, home: Path) -> None:
     home.mkdir(mode=0o755)
     (home / "outcomes.jsonl").write_text("")
     (home / "outcomes.jsonl").chmod(0o644)
     _invoke("enable", "--yes")
     assert _invoke("record", VALID["decision_id"], "--adopted", "other",
                    "--result", "success").exit_code == 0
-    assert home.stat().st_mode & 0o777 == 0o700
+    assert home.stat().st_mode & 0o777 == 0o755  # not the CLI's directory to change
     assert (home / "outcomes.jsonl").stat().st_mode & 0o777 == 0o600
 
     elsewhere = tmp_path / "elsewhere.jsonl"
@@ -413,3 +413,58 @@ def test_a_crafted_or_malformed_decision_file_is_refused(
         "record", decision["decision_id"], "--adopted", "lab/coder", "--result", "success",
         "--decision", str(decision_file), "--json").stderr
     assert not (home / "outcomes.jsonl").exists()
+
+
+def test_a_local_stub_cannot_vouch_for_an_uncatalogued_model(spec: Path, home: Path) -> None:
+    """A private snapshot passed to decide --snapshot-file could list any name."""
+    decision = json.loads(_decide(spec).stdout)
+    _invoke("enable", "--yes")
+    private = f"{CUSTOMER}/jane-private-finetune"
+    stub = {key: decision[key] for key in ("decision_id", "spec_hash", "snapshot",
+                                           "contract_version")}
+    stubs = home / "decision-stubs"
+    stubs.mkdir()
+    (stubs / f"{decision['decision_id']}.json").write_text(
+        json.dumps(stub | {"leader": private, "best": [private]}))
+    result = _invoke("record", decision["decision_id"], "--adopted", private,
+                     "--result", "success")
+    assert result.exit_code == 1
+    assert not (home / "outcomes.jsonl").exists()
+
+
+def test_disable_deletes_only_its_own_stubs(tmp_path: Path, home: Path) -> None:
+    _invoke("enable", "--yes")
+    _invoke("record", VALID["decision_id"], "--adopted", "other", "--result", "success")
+    precious = tmp_path / "precious"
+    precious.mkdir()
+    (precious / "notes.md").write_text("mine")
+    (precious / f"{VALID['decision_id']}.json").write_text("{}")
+    (home / "decision-stubs").symlink_to(precious)
+
+    assert _invoke("disable", "--delete").exit_code == 0
+    assert sorted(path.name for path in precious.iterdir()) == [
+        f"{VALID['decision_id']}.json", "notes.md"]
+    assert not (home / "outcomes.jsonl").exists()
+
+
+def test_disable_delete_removes_the_records_even_beside_a_stray_directory(home: Path) -> None:
+    _invoke("enable", "--yes")
+    _invoke("record", VALID["decision_id"], "--adopted", "other", "--result", "success")
+    (home / "decision-stubs" / "stray").mkdir(parents=True)
+    (home / "decision-stubs" / "stray.txt").write_text("not a stub")
+
+    result = _invoke("disable", "--delete")
+    assert result.exit_code == 0, result.output
+    assert not (home / "outcomes.jsonl").exists()
+    assert (home / "decision-stubs" / "stray.txt").exists()
+
+
+def test_modelspec_home_on_an_existing_directory_keeps_its_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir(mode=0o755)
+    monkeypatch.setenv("MODELSPEC_HOME", str(project))
+    assert _invoke("enable", "--yes").exit_code == 0
+    assert project.stat().st_mode & 0o777 == 0o755
+    assert (project / "outcomes-consent.json").stat().st_mode & 0o777 == 0o600

@@ -257,10 +257,10 @@ with `error.code` on stderr, for:
 - `invalid_adopted`: `--adopted` is not `lab/model`, `lab/model/provider`,
   `other` or `other/provider`.
 - `unknown_model` or `unknown_provider`: the model or provider is not in the
-  cached decision vocabulary, and the model is not in the best band of a stub
-  that `decide` wrote locally. (A `--decision` file cannot vouch for a model.)
-  The catalogue check keeps private names out of the log. Pass
-  `--adopted other` for a model ModelSpec does not list.
+  cached decision vocabulary. That vocabulary is the only catalogue, and
+  neither a stub nor a `--decision` file can vouch for a model. The check
+  keeps private names out of the log. Pass `--adopted other` for a model
+  ModelSpec does not list.
 - `invalid_decision` or `unreadable`: the `--decision` file is not a decision,
   names a different decision ID, or has a decision ID that is not the hash of
   its spec hash and snapshot.

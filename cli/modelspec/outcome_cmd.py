@@ -65,7 +65,12 @@ def enable(
         if not typer.confirm("Turn outcome recording on?", default=False):
             typer.echo("Outcome recording stays off. Nothing was written.")
             return
-    outcome.enable()
+    try:
+        outcome.enable()
+    except OSError as exc:
+        typer.echo(f"error: cannot write {outcome.consent_path()}: {exc.strerror or exc}",
+                   err=True)
+        raise typer.Exit(EXIT_ERROR) from None
     typer.echo(f"Outcome recording is on. Records go to {outcome.outcomes_path()}.")
 
 
@@ -74,7 +79,12 @@ def disable(
     delete: bool = typer.Option(False, "--delete", help="Also delete every record."),
 ) -> None:
     """Turn recording off. With --delete, also delete every record."""
-    remaining = outcome.disable(delete=delete)
+    try:
+        remaining = outcome.disable(delete=delete)
+    except OSError as exc:
+        typer.echo(f"error: recording is off, but a file could not be deleted: "
+                   f"{exc.strerror or exc}", err=True)
+        raise typer.Exit(EXIT_ERROR) from None
     typer.echo("Outcome recording is off. Decision stubs were deleted.")
     if delete:
         typer.echo(f"Every record was deleted from {outcome.outcomes_path()}.")
@@ -115,13 +125,12 @@ def _stub_from_file(path: Path, decision_id: str, as_json: bool) -> outcome.Deci
     return stub
 
 
-def _adopted(value: str, local: outcome.DecisionStub | None,
-             as_json: bool) -> tuple[str, str | None]:
-    """Parse --adopted and check it against the catalogue.
+def _adopted(value: str, as_json: bool) -> tuple[str, str | None]:
+    """Parse --adopted and check it against the cached vocabulary.
 
-    Only a stub ``decide`` wrote on this machine can vouch for a model the
-    cached vocabulary lacks; a ``--decision`` file cannot, or a hand-made file
-    would carry any ``lab/model`` string past the check.
+    The vocabulary is the only catalogue. A decision, a stub or a file never
+    vouches for a model: ``decide --snapshot-file`` accepts a private snapshot,
+    and a stub made from one could carry a private model's name past the check.
     """
     parts = value.split("/")
     if parts[0] == outcome.OTHER and len(parts) <= 2:
@@ -132,10 +141,7 @@ def _adopted(value: str, local: outcome.DecisionStub | None,
         _fail("record", "invalid_adopted",
               "--adopted is lab/model, lab/model/provider, other or other/provider", as_json)
     catalogue = _catalogue()
-    decided = set(local.best) | {local.leader} if local is not None else set()
-    if model != outcome.OTHER and model not in decided and (
-        catalogue is None or model not in catalogue[0]
-    ):
+    if model != outcome.OTHER and (catalogue is None or model not in catalogue[0]):
         hint = "" if catalogue is not None else " Run `modelspec snapshot fetch` first."
         _fail("record", "unknown_model",
               "--adopted names a model that is not in the ModelSpec catalogue; for a "
@@ -184,9 +190,9 @@ def record(
         outcome.check_decision_id(decision_id)
     except ValidationError as exc:
         _fail("record", "invalid_record", _validation_message(exc, "decision_id"), as_json)
-    local = outcome.load_stub(decision_id) if decision_file is None else None
-    stub = _stub_from_file(decision_file, decision_id, as_json) if decision_file else local
-    model, provider = _adopted(adopted, local, as_json)
+    stub = (_stub_from_file(decision_file, decision_id, as_json)
+            if decision_file is not None else outcome.load_stub(decision_id))
+    model, provider = _adopted(adopted, as_json)
     try:
         entry = outcome.build_record(
             decision_id=decision_id, stub=stub, adopted_model=model,
