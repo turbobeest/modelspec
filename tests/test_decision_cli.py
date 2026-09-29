@@ -70,7 +70,7 @@ def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
     ), gate=False, as_of=date(2026, 9, 27))
     vocabulary = {
         "vocabulary_version": 1,
-        "contract_version": "2.7",
+        "contract_version": "2.8",
         "snapshot": snapshot.snapshot_id,
         "task_types": ["new_feature", "bug_fix"],
         "facets": [
@@ -223,7 +223,7 @@ def test_json_reports_the_spec_hash_and_the_error_code(
     assert result.exit_code == 1
     payload = json.loads(result.stderr)
     assert payload["command"] == "decide"
-    assert payload["contract_version"] == "2.7"
+    assert payload["contract_version"] == "2.8"
     assert payload["spec_hash"].startswith("sha256:")
     assert payload["error"]["code"] == "snapshot_required"
 
@@ -543,7 +543,7 @@ def test_budget_template_matches_the_equivalent_hand_written_spec(tmp_path, monk
         "  - model.class = text-generator\n"
         "  - model.lifecycle = active\n"
         "  - model.context_window >= 200000\n"
-        "  - offering.cost_per_task <= 0.25\n"
+        "  - offering.cost_per_task <= 0.05\n"
         "optimize:\n"
         "  weights:\n"
         "    software_engineering: 0.6\n"

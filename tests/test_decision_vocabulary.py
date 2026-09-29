@@ -20,7 +20,7 @@ from decision.engine import decide
 from decision.registry import default as registry
 from decision.registry import facet as registry_facet
 from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
-from decision.templates import load_templates
+from decision.templates import load_catalogue, load_templates
 from decision.vocabulary import (
     VOCABULARY_VERSION,
     FrontierCoverageError,
@@ -133,41 +133,56 @@ def test_it_names_the_snapshot_and_the_contract(snapshot, vocabulary):
 
 
 def test_templates_are_published_with_the_pinned_shape(vocabulary):
+    catalogue = load_catalogue()
     templates = vocabulary["templates"]
-    assert [row["id"] for row in templates] == [
-        "budget-coding", "private-self-host", "regulated-data", "maths",
-        "retrieval-embeddings", "high-volume", "long-documents", "eu-data",
-    ]
-    assert set(templates[0]) == {
-        "id", "name", "purpose", "where", "weights", "needs", "teaches", "spec",
-        "available", "unavailable_reason",
+    assert [row["id"] for row in templates] == [row["id"] for row in catalogue["templates"]]
+    # The ids MODEL-178 published stay valid for `modelspec decide --template`.
+    assert {"budget-coding", "private-self-host", "regulated-data", "maths",
+            "retrieval-embeddings", "high-volume", "long-documents", "eu-data",
+            } <= {row["id"] for row in templates}
+    assert vocabulary["template_categories"] == catalogue["categories"]
+    assert vocabulary["template_tiers"] == catalogue["tiers"]
+    budget = by_id(templates)["budget-coding"]
+    assert set(budget) == {
+        "id", "category", "tier", "name", "tradeoff", "purpose", "where", "weights", "needs",
+        "canvas", "teaches", "spec", "available", "unavailable_reason",
     }
-    assert set(templates[5]) == set(templates[0]) | {"task_tokens"}
-    assert templates[0]["spec"] == {
+    assert set(by_id(templates)["high-volume"]) == set(budget) | {"task_tokens"}
+    assert (budget["category"], budget["tier"]) == ("coding", "budget")
+    assert budget["canvas"] == {
+        "x": "facet:offering.cost_per_task", "y": "capability:software_engineering"}
+    assert budget["spec"] == {
         "spec_version": 1,
         "where": [
             "model.class = text-generator",
             "model.lifecycle = active",
             "model.context_window >= 200000",
-            "offering.cost_per_task <= 0.25",
+            "offering.cost_per_task <= 0.05",
         ],
         "optimize": {"weights": {
             "software_engineering": 0.6,
             "-offering.cost_per_task": 0.4,
         }},
     }
-    assert templates[0]["available"] is True
-    assert templates[0]["unavailable_reason"] is None
 
 
 def test_template_availability_matches_every_engine_answer(snapshot, vocabulary):
+    """A template is a starting point only when the engine ranks something."""
     facets = lookup(snapshot)
     for template in vocabulary["templates"]:
         spec = parse_spec(template["spec"] | {"explain": "none"}, facets=facets)
         decision = decide(spec, snapshot, facets=facets)
-        answered = bool(decision.results or decision.may_qualify)
-        assert template["available"] is answered, template["id"]
-        assert (template["unavailable_reason"] is None) is answered, template["id"]
+        assert template["available"] is bool(decision.results), template["id"]
+        assert (template["unavailable_reason"] is None) is template["available"], template["id"]
+
+
+def test_a_template_whose_candidates_only_may_qualify_names_the_missing_facet(vocabulary):
+    fastest = by_id(vocabulary["templates"])["high-volume-fastest"]
+    assert fastest["available"] is False
+    assert fastest["unavailable_reason"] == (
+        "No offering has a known Output throughput yet — 4 offerings may qualify once it "
+        "is published"
+    )
 
 
 def test_unavailable_reason_comes_from_the_zeroing_funnel(snapshot, vocabulary):

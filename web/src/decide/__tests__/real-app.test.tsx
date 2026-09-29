@@ -26,6 +26,8 @@ const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
+/** The Coding row's Budget cell (MODEL-204): `budget-coding`. */
+const BUDGET_CODING = /^Coding · Budget:/;
 
 it("sanitizes every unavailable selection in an old namespaced board permalink", async () => {
   const unavailableFacet = refinementVocabulary.facets.find((facet) => facet.id === "model.context_window")!;
@@ -398,8 +400,8 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   vi.stubGlobal("fetch", fetch);
   render(<App />);
 
-  await screen.findByText("Coding agent on a budget");
-  fireEvent.click(screen.getByText("Coding agent on a budget"));
+  await screen.findByRole("button", { name: BUDGET_CODING });
+  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
@@ -407,9 +409,10 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   // Names come from the cards in the vocabulary, never from the slug.
   expect(why).toHaveTextContent("Delta 4.7");
   expect(why).toHaveTextContent("Lab Inc.");
-  expect(screen.getByRole("region", { name: "Trade-off canvas" })).toHaveTextContent(
-    "Beta-5.2",
-  );
+  // The template names its canvas (MODEL-204): cost per task against coding.
+  const templateCanvas = screen.getByRole("region", { name: "Trade-off canvas" });
+  expect(within(templateCanvas).getByLabelText("X axis")).toHaveValue("facet:offering.cost_per_task");
+  expect(within(templateCanvas).getByLabelText("Y axis")).toHaveValue("capability:software_engineering");
   expect(document.body).toHaveTextContent("lab/alpha");
   expect(document.body).not.toHaveTextContent(/Gamma Max 902|\bAlpha\b/);
   expect(screen.queryByText(/fictional/i)).not.toBeInTheDocument();
@@ -457,10 +460,14 @@ it("keeps ticket IDs and future promises out of every applied template surface",
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByText("Coding agent on a budget");
+  await screen.findByRole("button", { name: BUDGET_CODING });
 
+  const category = (id?: string) => allTemplatesVocabulary.template_categories?.find((row) => row.id === id)?.name;
+  const tier = (id?: string) => allTemplatesVocabulary.template_tiers?.find((row) => row.id === id)?.name;
   for (const template of allTemplatesVocabulary.templates ?? []) {
-    fireEvent.click(screen.getByRole("button", { name: new RegExp(template.name) }));
+    fireEvent.click(screen.getByRole("button", {
+      name: `${category(template.category)} · ${tier(template.tier)}: ${template.tradeoff}`,
+    }));
     const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
     const point = canvas.querySelector<HTMLButtonElement>(".point");
     if (point) {
@@ -471,9 +478,9 @@ it("keeps ticket IDs and future promises out of every applied template surface",
     expect(screen.getByRole("region", { name: "Why this model" })).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
     expect(screen.getByLabelText("Facet board answer").closest(".board-answer")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
     expect(document.querySelector(".facet-board")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
-    fireEvent.click(screen.getByRole("button", { name: "ⓘ Templates" }));
+    fireEvent.click(screen.getByRole("button", { name: /Start from a template/ }));
   }
-}, 20_000); // walks every template; took 5.2 s on a CI runner (deploy run for 8c815d00)
+}, 60_000); // walks every template; 8 took 5.2 s on a CI runner (deploy run for 8c815d00)
 
 function plotCostAgainstCapability(canvas: HTMLElement) {
   fireEvent.change(within(canvas).getByLabelText("X axis"), {
@@ -716,7 +723,7 @@ it("lists only qualifying providers as alternatives on the board", async () => {
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
+  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
 
   const answer = screen.getByLabelText("Facet board answer")
     .closest<HTMLElement>(".board-answer")!;
@@ -736,7 +743,7 @@ it("shows model-grained funnel and board counts from the live budget decision", 
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
+  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
 
   const narrowing = screen.getByText("Narrowing, in the order you set conditions")
     .closest<HTMLElement>(".narrowing")!;
@@ -895,7 +902,7 @@ it("reissues an estate request aborted by a newer main decision", async () => {
     target: { value: Object.keys(smallVocabulary.providers)[0] },
   });
   await waitFor(() => expect(estateRequests).toBe(1));
-  fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
+  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
 
   expect(await screen.findByText("0 models qualify · 3 may qualify")).toBeInTheDocument();
   expect(estateRequests).toBe(2);
@@ -950,11 +957,11 @@ it("shows no stale designed result after a hosted error", async () => {
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByText("Coding agent on a budget");
+  await screen.findByRole("button", { name: BUDGET_CODING });
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
-  fireEvent.click(screen.getByText("Coding agent on a budget"));
+  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
 
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Try again"));
   expect(
@@ -975,7 +982,7 @@ it("treats the legacy demo flag as the public board", async () => {
 it("renders unavailable snapshot facets instead of hiding them", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
-  await screen.findByText("Coding agent on a budget");
+  await screen.findByRole("button", { name: BUDGET_CODING });
   const table = await screen.findByRole("region", { name: "Decision table" });
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
@@ -1028,7 +1035,7 @@ it("renders capability intervals, probability of best and top-three stability", 
   };
   vi.stubGlobal("fetch", routeFetch({ decide: () => json(estimated) }));
   render(<App />);
-  await screen.findByText("Coding agent on a budget");
+  await screen.findByRole("button", { name: BUDGET_CODING });
 
   const table = await screen.findByRole("region", { name: "Decision table" });
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
@@ -1042,7 +1049,7 @@ it("renders capability intervals, probability of best and top-three stability", 
 it("renders the full decision as four models without machine condition syntax", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
-  await screen.findByText("Coding agent on a budget");
+  await screen.findByRole("button", { name: BUDGET_CODING });
 
   const table = await screen.findByRole("region", { name: "Decision table" });
   expect(within(table).getAllByRole("row")).toHaveLength(5);
@@ -1082,7 +1089,7 @@ it("on a 409 to the summary, reloads once, retries the summary, then asks for fu
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByText("Coding agent on a budget");
+  await screen.findByRole("button", { name: BUDGET_CODING });
 
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
@@ -1133,7 +1140,7 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByText("Coding agent on a budget");
+  await screen.findByRole("button", { name: BUDGET_CODING });
 
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
@@ -1166,7 +1173,7 @@ it("keeps the reloaded board vocabulary visible when a retried summary fails", a
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByText("Coding agent on a budget");
+  await screen.findByRole("button", { name: BUDGET_CODING });
 
   expect(await screen.findByRole("alert")).toHaveTextContent("retry failed");
   expect(screen.getByText("Fresh vocabulary marker")).toBeInTheDocument();

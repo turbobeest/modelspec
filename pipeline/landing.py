@@ -21,7 +21,7 @@ from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
 from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
-from decision.templates import load_templates
+from decision.templates import load_catalogue
 from pipeline import brand, landing_chrome
 from pipeline import social_cards
 from pipeline.load import load_models
@@ -269,14 +269,23 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
     tie = [model for model in rows if model.tied]
     cheapest = min(tie, key=lambda model: (model.cost, -model.estimate, model.id))
 
-    templates = load_templates(registry=registry)
+    catalogue = load_catalogue(registry=registry)
+    # One route per category (MODEL-204), its Balanced tier when that answers.
+    tier_order = ["balanced", *(tier["id"] for tier in catalogue["tiers"] if tier["id"] != "balanced")]
     routes: list[TemplateRoute] = []
     template_count = 0
-    for template in templates:
-        spec = parse_spec(template["spec"] | {"explain": "none", "limit": 1},
-                          facets=registry.facet)
-        answer = decide(spec, loaded, facets=registry.facet)
-        if not answer.results:
+    for category in catalogue["categories"]:
+        members = sorted(
+            (row for row in catalogue["templates"] if row["category"] == category["id"]),
+            key=lambda row: tier_order.index(row["tier"]),
+        )
+        for template in members:
+            spec = parse_spec(template["spec"] | {"explain": "none", "limit": 1},
+                              facets=registry.facet)
+            answer = decide(spec, loaded, facets=registry.facet)
+            if answer.results:
+                break
+        else:
             continue
         template_count += 1
         result = answer.results[0]

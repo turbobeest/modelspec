@@ -383,7 +383,7 @@ def test_marginal_cost_drives_a_cost_objective(snapshot) -> None:
 
 
 def test_the_contract_version_took_the_next_minor() -> None:
-    assert c.CONTRACT_VERSION == "2.7"
+    assert c.CONTRACT_VERSION == "2.8"
 
 
 def test_the_json_schema_publishes_the_estate_types() -> None:

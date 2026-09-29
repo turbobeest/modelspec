@@ -926,6 +926,7 @@ export function DesignedApp({
             notes={legacyNotes}
             onNotes={setLegacyNotes}
             refinementFallbackKeys={refinementFallbackKeys}
+            onCanvasAxes={setCanvasAxes}
             answer={decision ? <>
               <Field
                 decision={decision}

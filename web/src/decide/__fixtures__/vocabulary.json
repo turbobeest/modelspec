@@ -2072,7 +2072,10 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 18,
-      "estimate_benchmarks": ["gpqa_diamond", "hle"],
+      "estimate_benchmarks": [
+        "gpqa_diamond",
+        "hle"
+      ],
       "benchmarks": [
         "gpqa_diamond",
         "hle"
@@ -2086,7 +2089,10 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 17,
-      "estimate_benchmarks": ["frontiermath_tiers_1_3_v2", "hle"],
+      "estimate_benchmarks": [
+        "frontiermath_tiers_1_3_v2",
+        "hle"
+      ],
       "benchmarks": [
         "frontiermath_tiers_1_3_v2",
         "hle"
@@ -2100,12 +2106,59 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 0,
-      "estimate_benchmarks": ["gpqa_diamond", "hle"],
+      "estimate_benchmarks": [
+        "gpqa_diamond",
+        "hle"
+      ],
       "benchmarks": [
         "gpqa_diamond",
         "hle"
       ],
       "default_benchmark": null
+    },
+    {
+      "id": "legal",
+      "name": "Legal",
+      "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 18,
+      "estimate_benchmarks": [],
+      "direct_models": 0,
+      "default_benchmark": null,
+      "benchmarks": []
+    },
+    {
+      "id": "medical",
+      "name": "Medical",
+      "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 18,
+      "estimate_benchmarks": [],
+      "direct_models": 0,
+      "default_benchmark": null,
+      "benchmarks": []
+    },
+    {
+      "id": "finance",
+      "name": "Finance",
+      "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 18,
+      "estimate_benchmarks": [],
+      "direct_models": 8,
+      "default_benchmark": null,
+      "benchmarks": []
+    },
+    {
+      "id": "writing",
+      "name": "Writing",
+      "proxy_only": false,
+      "default_basis": "capability_estimate",
+      "estimate_models": 20,
+      "estimate_benchmarks": [],
+      "direct_models": 0,
+      "default_benchmark": null,
+      "benchmarks": []
     },
     {
       "id": "agentic_tool_use",
@@ -2114,7 +2167,9 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 18,
-      "estimate_benchmarks": ["terminal_bench_v4_0"],
+      "estimate_benchmarks": [
+        "terminal_bench_v4_0"
+      ],
       "benchmarks": [
         "terminal_bench_v4_0"
       ],
@@ -2127,7 +2182,9 @@
       "default_basis": "capability_estimate",
       "estimate_models": 12,
       "direct_models": 0,
-      "estimate_benchmarks": ["arena_sc_vision"],
+      "estimate_benchmarks": [
+        "arena_sc_vision"
+      ],
       "benchmarks": [
         "arena_sc_vision"
       ],
@@ -2140,7 +2197,9 @@
       "default_basis": "capability_estimate",
       "estimate_models": 18,
       "direct_models": 0,
-      "estimate_benchmarks": ["mteb_multilingual_v2"],
+      "estimate_benchmarks": [
+        "mteb_multilingual_v2"
+      ],
       "benchmarks": [
         "mteb_multilingual_v2"
       ],
@@ -2715,11 +2774,195 @@
       }
     ]
   },
+  "template_categories": [
+    {
+      "id": "coding",
+      "name": "Coding",
+      "kind": "use"
+    },
+    {
+      "id": "writing",
+      "name": "Writing",
+      "kind": "use"
+    },
+    {
+      "id": "maths-reasoning",
+      "name": "Maths and reasoning",
+      "kind": "use"
+    },
+    {
+      "id": "documents",
+      "name": "Long documents",
+      "kind": "use"
+    },
+    {
+      "id": "retrieval",
+      "name": "Retrieval and embeddings",
+      "kind": "use"
+    },
+    {
+      "id": "assistant",
+      "name": "General assistant",
+      "kind": "use"
+    },
+    {
+      "id": "high-volume",
+      "name": "High volume",
+      "kind": "constraint"
+    },
+    {
+      "id": "regulated",
+      "name": "Regulated data (HIPAA)",
+      "kind": "constraint"
+    },
+    {
+      "id": "regional",
+      "name": "EU-only data",
+      "kind": "constraint"
+    }
+  ],
+  "template_tiers": [
+    {
+      "id": "best",
+      "name": "Best available"
+    },
+    {
+      "id": "balanced",
+      "name": "Balanced"
+    },
+    {
+      "id": "budget",
+      "name": "Budget"
+    },
+    {
+      "id": "fastest",
+      "name": "Fastest"
+    },
+    {
+      "id": "private",
+      "name": "Private / self-hosted"
+    }
+  ],
   "templates": [
     {
+      "id": "coding-best",
+      "category": "coding",
+      "tier": "best",
+      "name": "Coding, best available",
+      "tradeoff": "Strongest coding evidence, cost no object.",
+      "purpose": "Find the active coding model with the strongest software-engineering evidence, whatever it costs.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "Coding work needs a model that generates text and code."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        }
+      ],
+      "weights": {
+        "software_engineering": {
+          "weight": 1.0,
+          "reason": "Rank only by the software-engineering capability estimate."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "software_engineering"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:software_engineering"
+      },
+      "teaches": "With no cost term, the ranking is capability alone; the canvas still shows what each candidate costs.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "software_engineering": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "coding-balanced",
+      "category": "coding",
+      "tier": "balanced",
+      "name": "Coding, balanced",
+      "tradeoff": "Coding strength first, cost as a real second term.",
+      "purpose": "Find an active coding model with room for a repository that balances coding strength against task cost.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "Coding work needs a model that generates text and code."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        },
+        {
+          "condition": "model.context_window >= 200000",
+          "reason": "A large repository needs room for code, tests, and instructions."
+        }
+      ],
+      "weights": {
+        "software_engineering": {
+          "weight": 0.7,
+          "reason": "Prefer stronger evidence on real software-engineering tasks."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.3,
+          "reason": "Among strong coders, prefer the cheaper task."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "software_engineering"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:software_engineering"
+      },
+      "teaches": "A 70/30 blend keeps capability in charge while letting a large price gap decide close calls.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active",
+          "model.context_window >= 200000"
+        ],
+        "optimize": {
+          "weights": {
+            "software_engineering": 0.7,
+            "-offering.cost_per_task": 0.3
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
       "id": "budget-coding",
+      "category": "coding",
+      "tier": "budget",
       "name": "Coding agent on a budget",
-      "purpose": "Find an active coding model with enough context while keeping one task under $0.25.",
+      "tradeoff": "At most $0.05 a task; coding still ranked.",
+      "purpose": "Find an active coding model with enough context while keeping one task at or under $0.05.",
       "where": [
         {
           "condition": "model.class = text-generator",
@@ -2734,7 +2977,7 @@
           "reason": "A large repository needs room for code, tests, and instructions."
         },
         {
-          "condition": "offering.cost_per_task <= 0.25",
+          "condition": "offering.cost_per_task <= 0.05",
           "reason": "The offering must stay within the per-task budget."
         }
       ],
@@ -2756,6 +2999,10 @@
           "software_engineering"
         ]
       },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:software_engineering"
+      },
       "teaches": "Use Must for non-negotiable context and budget limits, then Prefer to trade coding strength against cost.",
       "spec": {
         "spec_version": 1,
@@ -2763,7 +3010,7 @@
           "model.class = text-generator",
           "model.lifecycle = active",
           "model.context_window >= 200000",
-          "offering.cost_per_task <= 0.25"
+          "offering.cost_per_task <= 0.05"
         ],
         "optimize": {
           "weights": {
@@ -2776,31 +3023,30 @@
       "unavailable_reason": null
     },
     {
-      "id": "private-self-host",
-      "name": "Private assistant you host yourself",
-      "purpose": "Find a commercially usable open-weights assistant that you can operate yourself.",
+      "id": "coding-fastest",
+      "category": "coding",
+      "tier": "fastest",
+      "name": "Coding, fastest",
+      "tradeoff": "Output speed first; coding strength second.",
+      "purpose": "Find an active coding model whose offering streams output fastest, with coding strength as the second term.",
       "where": [
         {
           "condition": "model.class = text-generator",
-          "reason": "A conversational assistant needs a text-generating model."
+          "reason": "Coding work needs a model that generates text and code."
         },
         {
-          "condition": "model.weights_openness = open_weights",
-          "reason": "Self-hosting requires downloadable weights. Hardware fit isn't matched yet; this template doesn't filter on it."
-        },
-        {
-          "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",
-          "reason": "The licence must allow commercial use, including use with stated conditions."
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
         }
       ],
       "weights": {
-        "chat_preference": {
-          "weight": 0.7,
-          "reason": "Prefer assistants whose open-ended responses people rate more highly."
+        "offering.speed.throughput": {
+          "weight": 0.6,
+          "reason": "Prefer the offering that produces output tokens fastest."
         },
-        "-offering.cost_per_task": {
-          "weight": 0.3,
-          "reason": "Prefer lower task cost when the snapshot has an offering price."
+        "software_engineering": {
+          "weight": 0.4,
+          "reason": "Keep coding strength so a fast but weak model does not win on speed alone."
         }
       },
       "needs": {
@@ -2808,10 +3054,70 @@
           "text-generator"
         ],
         "domains": [
-          "chat_preference"
+          "software_engineering"
         ]
       },
-      "teaches": "Use Must for deployment and licence requirements, then Prefer to balance assistant quality and cost.",
+      "canvas": {
+        "x": "facet:offering.speed.throughput",
+        "y": "capability:software_engineering"
+      },
+      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "offering.speed.throughput": 0.6,
+            "software_engineering": 0.4
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering has a known Output throughput yet — 53 offerings may qualify once it is published"
+    },
+    {
+      "id": "coding-private",
+      "category": "coding",
+      "tier": "private",
+      "name": "Coding, self-hosted",
+      "tradeoff": "Open weights you run yourself; commercial licence.",
+      "purpose": "Find a commercially usable open-weights coding model that you can run on your own hardware.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "Coding work needs a model that generates text and code."
+        },
+        {
+          "condition": "model.weights_openness = open_weights",
+          "reason": "Self-hosting requires downloadable weights; add a model.fits_hardware Must for the device you own."
+        },
+        {
+          "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",
+          "reason": "The licence must allow commercial use, including use with stated conditions."
+        }
+      ],
+      "weights": {
+        "software_engineering": {
+          "weight": 1.0,
+          "reason": "Rank only by the software-engineering capability estimate among self-hostable models."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "software_engineering"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.parameters_total",
+        "y": "capability:software_engineering"
+      },
+      "teaches": "Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host.",
       "spec": {
         "spec_version": 1,
         "where": [
@@ -2821,69 +3127,299 @@
         ],
         "optimize": {
           "weights": {
-            "chat_preference": 0.7,
+            "software_engineering": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "writing-best",
+      "category": "writing",
+      "tier": "best",
+      "name": "Writing, best available",
+      "tradeoff": "Strongest writing evidence, cost no object.",
+      "purpose": "Find the active text model with the strongest evidence on long-form writing.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "Writing needs a model that generates text."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        }
+      ],
+      "weights": {
+        "writing": {
+          "weight": 1.0,
+          "reason": "Rank only by the writing capability estimate."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:writing"
+      },
+      "teaches": "One Must selects the class, one Prefer states what best means.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "writing": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "writing-balanced",
+      "category": "writing",
+      "tier": "balanced",
+      "name": "Writing, balanced",
+      "tradeoff": "Writing quality first, cost as a real second term.",
+      "purpose": "Find an active text model that balances writing quality against task cost.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "Writing needs a model that generates text."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        }
+      ],
+      "weights": {
+        "writing": {
+          "weight": 0.7,
+          "reason": "Prefer clear, high-quality writing."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.3,
+          "reason": "Among strong writers, prefer the cheaper task."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:writing"
+      },
+      "teaches": "A 70/30 blend keeps quality in charge while letting a large price gap decide close calls.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "writing": 0.7,
             "-offering.cost_per_task": 0.3
           }
         }
       },
-      "available": false,
-      "unavailable_reason": "No model passes: Commercial use — 0 of 1 model"
+      "available": true,
+      "unavailable_reason": null
     },
     {
-      "id": "regulated-data",
-      "name": "Regulated data",
-      "purpose": "Find an offering with the data-handling commitments needed for regulated workloads.",
+      "id": "writing-budget",
+      "category": "writing",
+      "tier": "budget",
+      "name": "Writing on a budget",
+      "tradeoff": "At most $0.08 a task; writing still ranked.",
+      "purpose": "Find an active text model that writes well while keeping one task at or under $0.08.",
       "where": [
         {
-          "condition": "offering.data.trains_on_customer_data = false",
-          "reason": "Customer prompts and outputs must not be available for model training."
+          "condition": "model.class = text-generator",
+          "reason": "Writing needs a model that generates text."
         },
         {
-          "condition": "offering.data.zero_retention = true",
-          "reason": "The provider must offer a mode that stores neither prompts nor outputs."
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
         },
         {
-          "condition": "offering.attestation.baa = true",
-          "reason": "The provider must offer a HIPAA business associate agreement for the service."
+          "condition": "offering.cost_per_task <= 0.08",
+          "reason": "The offering must stay within the per-task budget."
         }
       ],
       "weights": {
-        "chat_preference": {
-          "weight": 0.6,
-          "reason": "Prefer the stronger general assistant among compliant offerings."
+        "writing": {
+          "weight": 0.5,
+          "reason": "Prefer stronger writing among offerings inside the budget."
         },
         "-offering.cost_per_task": {
-          "weight": 0.4,
-          "reason": "Prefer the lower task cost after the compliance gates pass."
+          "weight": 0.5,
+          "reason": "Prefer the cheaper task among offerings inside the budget."
         }
       },
       "needs": {
-        "classes": [],
+        "classes": [
+          "text-generator"
+        ],
         "domains": [
-          "chat_preference"
+          "writing"
         ]
       },
-      "teaches": "Governance promises are Musts because a high score cannot compensate for a missing data commitment.",
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:writing"
+      },
+      "teaches": "The budget is a Must; inside it, cost and quality share the ranking equally.",
       "spec": {
         "spec_version": 1,
         "where": [
-          "offering.data.trains_on_customer_data = false",
-          "offering.data.zero_retention = true",
-          "offering.attestation.baa = true"
+          "model.class = text-generator",
+          "model.lifecycle = active",
+          "offering.cost_per_task <= 0.08"
         ],
         "optimize": {
           "weights": {
-            "chat_preference": 0.6,
-            "-offering.cost_per_task": 0.4
+            "writing": 0.5,
+            "-offering.cost_per_task": 0.5
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "writing-fastest",
+      "category": "writing",
+      "tier": "fastest",
+      "name": "Writing, fastest",
+      "tradeoff": "Output speed first; writing quality second.",
+      "purpose": "Find an active text model whose offering streams output fastest, with writing quality as the second term.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "Writing needs a model that generates text."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        }
+      ],
+      "weights": {
+        "offering.speed.throughput": {
+          "weight": 0.6,
+          "reason": "Prefer the offering that produces output tokens fastest."
+        },
+        "writing": {
+          "weight": 0.4,
+          "reason": "Keep writing quality so a fast but weak model does not win on speed alone."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.speed.throughput",
+        "y": "capability:writing"
+      },
+      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "offering.speed.throughput": 0.6,
+            "writing": 0.4
           }
         }
       },
       "available": false,
-      "unavailable_reason": "No offering passes: Trains on customer data — 0 of 4 offerings"
+      "unavailable_reason": "No offering has a known Output throughput yet — 53 offerings may qualify once it is published"
+    },
+    {
+      "id": "writing-private",
+      "category": "writing",
+      "tier": "private",
+      "name": "Writing, self-hosted",
+      "tradeoff": "Open weights you run yourself; commercial licence.",
+      "purpose": "Find a commercially usable open-weights writing model that you can run on your own hardware.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "Writing needs a model that generates text."
+        },
+        {
+          "condition": "model.weights_openness = open_weights",
+          "reason": "Self-hosting requires downloadable weights; add a model.fits_hardware Must for the device you own."
+        },
+        {
+          "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",
+          "reason": "The licence must allow commercial use, including use with stated conditions."
+        }
+      ],
+      "weights": {
+        "writing": {
+          "weight": 1.0,
+          "reason": "Rank only by the writing capability estimate among self-hostable models."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.parameters_total",
+        "y": "capability:writing"
+      },
+      "teaches": "Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.weights_openness = open_weights",
+          "licence.commercial_use in {permitted, permitted_with_conditions}"
+        ],
+        "optimize": {
+          "weights": {
+            "writing": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
     },
     {
       "id": "maths",
+      "category": "maths-reasoning",
+      "tier": "best",
       "name": "Maths and proofs",
+      "tradeoff": "Strongest maths evidence, cost no object.",
       "purpose": "Find a text model with the strongest evidence on mathematical problems and proofs.",
       "where": [
         {
@@ -2905,6 +3441,10 @@
           "maths"
         ]
       },
+      "canvas": {
+        "x": "capability:reasoning",
+        "y": "capability:maths"
+      },
       "teaches": "Use one Must to select the right model class and one Prefer to state what best means.",
       "spec": {
         "spec_version": 1,
@@ -2921,91 +3461,298 @@
       "unavailable_reason": null
     },
     {
-      "id": "retrieval-embeddings",
-      "name": "Retrieval embeddings",
-      "purpose": "Find an embedding model that ranks relevant documents well for retrieval.",
-      "where": [
-        {
-          "condition": "model.class = vectoriser",
-          "reason": "Retrieval embeddings require the model class that emits vectors."
-        }
-      ],
-      "weights": {
-        "retrieval": {
-          "weight": 1.0,
-          "reason": "Rank only by the retrieval capability estimate."
-        }
-      },
-      "needs": {
-        "classes": [
-          "vectoriser"
-        ],
-        "domains": [
-          "retrieval"
-        ]
-      },
-      "teaches": "Model class is a Must, while measured retrieval quality is a Prefer.",
-      "spec": {
-        "spec_version": 1,
-        "where": [
-          "model.class = vectoriser"
-        ],
-        "optimize": {
-          "weights": {
-            "retrieval": 1.0
-          }
-        }
-      },
-      "available": false,
-      "unavailable_reason": "No model passes: Model class — 0 of 3 models"
-    },
-    {
-      "id": "high-volume",
-      "name": "High volume, good enough",
-      "purpose": "Find a low-cost text model for many short assistant requests without ignoring response quality.",
+      "id": "maths-reasoning-balanced",
+      "category": "maths-reasoning",
+      "tier": "balanced",
+      "name": "Maths and reasoning, balanced",
+      "tradeoff": "Maths and reasoning together, with cost as a third term.",
+      "purpose": "Find an active text model strong on maths and multi-step reasoning without ignoring task cost.",
       "where": [
         {
           "condition": "model.class = text-generator",
-          "reason": "The workload needs generated text responses."
+          "reason": "The answer must be generated as text."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
         }
       ],
       "weights": {
-        "-offering.cost_per_task": {
-          "weight": 0.7,
-          "reason": "At high volume, small differences in task cost dominate total spend."
+        "maths": {
+          "weight": 0.4,
+          "reason": "Prefer stronger evidence on objectively checked maths."
         },
-        "chat_preference": {
+        "reasoning": {
           "weight": 0.3,
-          "reason": "Keep a quality signal so cheap but poor responses do not win by cost alone."
+          "reason": "Prefer stronger multi-step reasoning."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.3,
+          "reason": "Among strong reasoners, prefer the cheaper task."
         }
-      },
-      "task_tokens": {
-        "input": 2000,
-        "output": 500
       },
       "needs": {
         "classes": [
           "text-generator"
         ],
         "domains": [
-          "chat_preference"
+          "maths",
+          "reasoning"
         ]
       },
-      "teaches": "Keep the model class as a Must, then make cost the stronger Prefer without turning quality into a gate.",
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:maths"
+      },
+      "teaches": "Two capability Prefers can share the ranking with cost; each keeps its own share.",
       "spec": {
         "spec_version": 1,
         "where": [
-          "model.class = text-generator"
+          "model.class = text-generator",
+          "model.lifecycle = active"
         ],
         "optimize": {
           "weights": {
-            "-offering.cost_per_task": 0.7,
-            "chat_preference": 0.3
+            "maths": 0.4,
+            "reasoning": 0.3,
+            "-offering.cost_per_task": 0.3
           }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "maths-reasoning-budget",
+      "category": "maths-reasoning",
+      "tier": "budget",
+      "name": "Maths and reasoning on a budget",
+      "tradeoff": "At most $0.08 a task; maths still ranked.",
+      "purpose": "Find an active text model for maths and reasoning while keeping one task at or under $0.08.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The answer must be generated as text."
         },
-        "task_tokens": {
-          "input": 2000,
-          "output": 500
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        },
+        {
+          "condition": "offering.cost_per_task <= 0.08",
+          "reason": "The offering must stay within the per-task budget."
+        }
+      ],
+      "weights": {
+        "maths": {
+          "weight": 0.5,
+          "reason": "Prefer stronger maths among offerings inside the budget."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.5,
+          "reason": "Prefer the cheaper task among offerings inside the budget."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "maths"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:maths"
+      },
+      "teaches": "The budget is a Must; inside it, cost and maths share the ranking equally.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active",
+          "offering.cost_per_task <= 0.08"
+        ],
+        "optimize": {
+          "weights": {
+            "maths": 0.5,
+            "-offering.cost_per_task": 0.5
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "maths-reasoning-fastest",
+      "category": "maths-reasoning",
+      "tier": "fastest",
+      "name": "Maths and reasoning, fastest",
+      "tradeoff": "Output speed first; maths second.",
+      "purpose": "Find an active text model whose offering streams output fastest, with maths as the second term.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The answer must be generated as text."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        }
+      ],
+      "weights": {
+        "offering.speed.throughput": {
+          "weight": 0.6,
+          "reason": "Prefer the offering that produces output tokens fastest."
+        },
+        "maths": {
+          "weight": 0.4,
+          "reason": "Keep maths strength so a fast but weak model does not win on speed alone."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "maths"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.speed.throughput",
+        "y": "capability:maths"
+      },
+      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "offering.speed.throughput": 0.6,
+            "maths": 0.4
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering has a known Output throughput yet — 53 offerings may qualify once it is published"
+    },
+    {
+      "id": "maths-reasoning-private",
+      "category": "maths-reasoning",
+      "tier": "private",
+      "name": "Maths and reasoning, self-hosted",
+      "tradeoff": "Open weights you run yourself; commercial licence.",
+      "purpose": "Find a commercially usable open-weights model for maths and reasoning that you can run yourself.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The answer must be generated as text."
+        },
+        {
+          "condition": "model.weights_openness = open_weights",
+          "reason": "Self-hosting requires downloadable weights; add a model.fits_hardware Must for the device you own."
+        },
+        {
+          "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",
+          "reason": "The licence must allow commercial use, including use with stated conditions."
+        }
+      ],
+      "weights": {
+        "maths": {
+          "weight": 0.6,
+          "reason": "Prefer stronger maths among self-hostable models."
+        },
+        "reasoning": {
+          "weight": 0.4,
+          "reason": "Prefer stronger multi-step reasoning among self-hostable models."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "maths",
+          "reasoning"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.parameters_total",
+        "y": "capability:maths"
+      },
+      "teaches": "Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.weights_openness = open_weights",
+          "licence.commercial_use in {permitted, permitted_with_conditions}"
+        ],
+        "optimize": {
+          "weights": {
+            "maths": 0.6,
+            "reasoning": 0.4
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "documents-best",
+      "category": "documents",
+      "tier": "best",
+      "name": "Long documents, best available",
+      "tradeoff": "Million-token context; strongest analysis, cost no object.",
+      "purpose": "Find a text model that accepts million-token documents and writes the strongest analysis of them.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The result must be generated as text."
+        },
+        {
+          "condition": "model.context_window >= 1000000",
+          "reason": "The model must accept a million-token document in one request."
+        }
+      ],
+      "weights": {
+        "writing": {
+          "weight": 0.6,
+          "reason": "Prefer clear, high-quality long-form writing."
+        },
+        "reasoning": {
+          "weight": 0.4,
+          "reason": "Prefer stronger multi-step analysis of the document."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing",
+          "reasoning"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.context_window",
+        "y": "capability:writing"
+      },
+      "teaches": "Context capacity is a Must; with no cost term, only writing and reasoning rank.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.context_window >= 1000000"
+        ],
+        "optimize": {
+          "weights": {
+            "writing": 0.6,
+            "reasoning": 0.4
+          }
         }
       },
       "available": true,
@@ -3013,7 +3760,10 @@
     },
     {
       "id": "long-documents",
+      "category": "documents",
+      "tier": "balanced",
       "name": "Long documents",
+      "tradeoff": "Million-token context; quality first, cost as a tie-breaker.",
       "purpose": "Find a text model that can accept million-token documents and produce strong written analysis.",
       "where": [
         {
@@ -3048,6 +3798,10 @@
           "reasoning"
         ]
       },
+      "canvas": {
+        "x": "facet:model.context_window",
+        "y": "capability:writing"
+      },
       "teaches": "Context capacity is a Must; writing, reasoning, and cost remain trade-offs expressed as Prefers.",
       "spec": {
         "spec_version": 1,
@@ -3063,17 +3817,1193 @@
           }
         }
       },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "documents-budget",
+      "category": "documents",
+      "tier": "budget",
+      "name": "Long documents on a budget",
+      "tradeoff": "Room for a long document, cheapest task first.",
+      "purpose": "Find the cheapest text model that still takes a long document, with writing quality kept in the ranking.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The result must be generated as text."
+        },
+        {
+          "condition": "model.context_window >= 400000",
+          "reason": "The model must accept a long document in one request."
+        }
+      ],
+      "weights": {
+        "-offering.cost_per_task": {
+          "weight": 0.6,
+          "reason": "Prefer the cheaper task; long inputs make price differences large."
+        },
+        "writing": {
+          "weight": 0.4,
+          "reason": "Keep writing quality so the cheapest poor summary does not win on cost alone."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.context_window",
+        "y": "facet:offering.cost_per_task"
+      },
+      "teaches": "A lower context floor widens the field; cost leads the ranking and writing keeps it honest.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.context_window >= 400000"
+        ],
+        "optimize": {
+          "weights": {
+            "-offering.cost_per_task": 0.6,
+            "writing": 0.4
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "documents-fastest",
+      "category": "documents",
+      "tier": "fastest",
+      "name": "Long documents, fastest",
+      "tradeoff": "Million-token context; output speed first.",
+      "purpose": "Find a million-token text model whose offering streams its analysis fastest.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The result must be generated as text."
+        },
+        {
+          "condition": "model.context_window >= 1000000",
+          "reason": "The model must accept a million-token document in one request."
+        }
+      ],
+      "weights": {
+        "offering.speed.throughput": {
+          "weight": 0.6,
+          "reason": "Prefer the offering that produces output tokens fastest."
+        },
+        "writing": {
+          "weight": 0.4,
+          "reason": "Keep writing quality so a fast but weak model does not win on speed alone."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.speed.throughput",
+        "y": "capability:writing"
+      },
+      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.context_window >= 1000000"
+        ],
+        "optimize": {
+          "weights": {
+            "offering.speed.throughput": 0.6,
+            "writing": 0.4
+          }
+        }
+      },
       "available": false,
-      "unavailable_reason": "No model passes: Context window — 0 of 3 models"
+      "unavailable_reason": "No offering has a known Output throughput yet — 41 offerings may qualify once it is published"
+    },
+    {
+      "id": "documents-private",
+      "category": "documents",
+      "tier": "private",
+      "name": "Long documents, self-hosted",
+      "tradeoff": "Open weights with a long context; commercial licence.",
+      "purpose": "Find a commercially usable open-weights model with a long context that you can run yourself.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The result must be generated as text."
+        },
+        {
+          "condition": "model.weights_openness = open_weights",
+          "reason": "Self-hosting requires downloadable weights; add a model.fits_hardware Must for the device you own."
+        },
+        {
+          "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",
+          "reason": "The licence must allow commercial use, including use with stated conditions."
+        },
+        {
+          "condition": "model.context_window >= 128000",
+          "reason": "The model must accept a long document in one request."
+        }
+      ],
+      "weights": {
+        "writing": {
+          "weight": 0.6,
+          "reason": "Prefer clear, high-quality long-form writing among self-hostable models."
+        },
+        "model.context_window": {
+          "weight": 0.4,
+          "reason": "Prefer the longer context among self-hostable models."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.context_window",
+        "y": "capability:writing"
+      },
+      "teaches": "Self-hosting narrows the field, so the context floor is lower and longer context becomes a Prefer.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.weights_openness = open_weights",
+          "licence.commercial_use in {permitted, permitted_with_conditions}",
+          "model.context_window >= 128000"
+        ],
+        "optimize": {
+          "weights": {
+            "writing": 0.6,
+            "model.context_window": 0.4
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "retrieval-embeddings",
+      "category": "retrieval",
+      "tier": "best",
+      "name": "Retrieval embeddings",
+      "tradeoff": "Strongest retrieval evidence, cost no object.",
+      "purpose": "Find an embedding model that ranks relevant documents well for retrieval.",
+      "where": [
+        {
+          "condition": "model.class = vectoriser",
+          "reason": "Retrieval embeddings require the model class that emits vectors."
+        }
+      ],
+      "weights": {
+        "retrieval": {
+          "weight": 1.0,
+          "reason": "Rank only by the retrieval capability estimate."
+        }
+      },
+      "needs": {
+        "classes": [
+          "vectoriser"
+        ],
+        "domains": [
+          "retrieval"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.parameters_total",
+        "y": "capability:retrieval"
+      },
+      "teaches": "Model class is a Must, while measured retrieval quality is a Prefer.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = vectoriser"
+        ],
+        "optimize": {
+          "weights": {
+            "retrieval": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "retrieval-balanced",
+      "category": "retrieval",
+      "tier": "balanced",
+      "name": "Retrieval embeddings, balanced",
+      "tradeoff": "Retrieval quality first, cost as a real second term.",
+      "purpose": "Find an embedding model that balances retrieval quality against the cost of embedding a task.",
+      "where": [
+        {
+          "condition": "model.class = vectoriser",
+          "reason": "Retrieval embeddings require the model class that emits vectors."
+        }
+      ],
+      "weights": {
+        "retrieval": {
+          "weight": 0.7,
+          "reason": "Prefer stronger retrieval quality."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.3,
+          "reason": "Among strong embedders, prefer the cheaper task."
+        }
+      },
+      "needs": {
+        "classes": [
+          "vectoriser"
+        ],
+        "domains": [
+          "retrieval"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:retrieval"
+      },
+      "teaches": "When an embedder has no hosted price, it is ranked on retrieval alone and the page says the cost is unknown.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = vectoriser"
+        ],
+        "optimize": {
+          "weights": {
+            "retrieval": 0.7,
+            "-offering.cost_per_task": 0.3
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering has a known Cost per task yet — 6 offerings may qualify once it is published"
+    },
+    {
+      "id": "retrieval-budget",
+      "category": "retrieval",
+      "tier": "budget",
+      "name": "Retrieval embeddings on a budget",
+      "tradeoff": "Cheapest hosted embedding; retrieval still ranked.",
+      "purpose": "Find the cheapest hosted embedding model without ignoring retrieval quality.",
+      "where": [
+        {
+          "condition": "model.class = vectoriser",
+          "reason": "Retrieval embeddings require the model class that emits vectors."
+        }
+      ],
+      "weights": {
+        "-offering.cost_per_task": {
+          "weight": 0.6,
+          "reason": "Prefer the cheaper task; embedding a corpus is priced per token."
+        },
+        "retrieval": {
+          "weight": 0.4,
+          "reason": "Keep retrieval quality so a cheap but poor embedder does not win on cost alone."
+        }
+      },
+      "needs": {
+        "classes": [
+          "vectoriser"
+        ],
+        "domains": [
+          "retrieval"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:retrieval"
+      },
+      "teaches": "Cost leads, but a quality Prefer keeps the cheapest poor embedder from winning outright.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = vectoriser"
+        ],
+        "optimize": {
+          "weights": {
+            "-offering.cost_per_task": 0.6,
+            "retrieval": 0.4
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering has a known Cost per task yet — 6 offerings may qualify once it is published"
+    },
+    {
+      "id": "retrieval-fastest",
+      "category": "retrieval",
+      "tier": "fastest",
+      "name": "Retrieval embeddings, fastest",
+      "tradeoff": "Fastest hosted embedding; retrieval second.",
+      "purpose": "Find the hosted embedding model with the fastest offering, with retrieval quality as the second term.",
+      "where": [
+        {
+          "condition": "model.class = vectoriser",
+          "reason": "Retrieval embeddings require the model class that emits vectors."
+        }
+      ],
+      "weights": {
+        "offering.speed.throughput": {
+          "weight": 0.6,
+          "reason": "Prefer the offering that processes tokens fastest."
+        },
+        "retrieval": {
+          "weight": 0.4,
+          "reason": "Keep retrieval quality so a fast but poor embedder does not win on speed alone."
+        }
+      },
+      "needs": {
+        "classes": [
+          "vectoriser"
+        ],
+        "domains": [
+          "retrieval"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.speed.throughput",
+        "y": "capability:retrieval"
+      },
+      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = vectoriser"
+        ],
+        "optimize": {
+          "weights": {
+            "offering.speed.throughput": 0.6,
+            "retrieval": 0.4
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering has a known Output throughput yet — 6 offerings may qualify once it is published"
+    },
+    {
+      "id": "retrieval-private",
+      "category": "retrieval",
+      "tier": "private",
+      "name": "Retrieval embeddings, self-hosted",
+      "tradeoff": "Open weights you run yourself; commercial licence.",
+      "purpose": "Find a commercially usable open-weights embedding model that you can run yourself.",
+      "where": [
+        {
+          "condition": "model.class = vectoriser",
+          "reason": "Retrieval embeddings require the model class that emits vectors."
+        },
+        {
+          "condition": "model.weights_openness = open_weights",
+          "reason": "Self-hosting requires downloadable weights; add a model.fits_hardware Must for the device you own."
+        },
+        {
+          "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",
+          "reason": "The licence must allow commercial use, including use with stated conditions."
+        }
+      ],
+      "weights": {
+        "retrieval": {
+          "weight": 1.0,
+          "reason": "Rank only by retrieval quality among self-hostable embedders."
+        }
+      },
+      "needs": {
+        "classes": [
+          "vectoriser"
+        ],
+        "domains": [
+          "retrieval"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.parameters_total",
+        "y": "capability:retrieval"
+      },
+      "teaches": "Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = vectoriser",
+          "model.weights_openness = open_weights",
+          "licence.commercial_use in {permitted, permitted_with_conditions}"
+        ],
+        "optimize": {
+          "weights": {
+            "retrieval": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "assistant-best",
+      "category": "assistant",
+      "tier": "best",
+      "name": "General assistant, best available",
+      "tradeoff": "Most preferred responses, cost no object.",
+      "purpose": "Find the active assistant whose open-ended responses people rate most highly.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "A conversational assistant needs a text-generating model."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 1.0,
+          "reason": "Rank only by the chat-preference capability estimate."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "One Must selects the class, one Prefer states what best means.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "assistant-balanced",
+      "category": "assistant",
+      "tier": "balanced",
+      "name": "General assistant, balanced",
+      "tradeoff": "Response quality first, cost as a real second term.",
+      "purpose": "Find an active assistant that balances how people rate its responses against task cost.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "A conversational assistant needs a text-generating model."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.6,
+          "reason": "Prefer assistants whose open-ended responses people rate more highly."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.4,
+          "reason": "Among strong assistants, prefer the cheaper task."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "A 60/40 blend lets a large price gap overturn a small quality lead.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.6,
+            "-offering.cost_per_task": 0.4
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "assistant-budget",
+      "category": "assistant",
+      "tier": "budget",
+      "name": "General assistant on a budget",
+      "tradeoff": "At most $0.05 a task; quality still ranked.",
+      "purpose": "Find an active assistant that keeps one task at or under $0.05 without ignoring response quality.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "A conversational assistant needs a text-generating model."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        },
+        {
+          "condition": "offering.cost_per_task <= 0.05",
+          "reason": "The offering must stay within the per-task budget."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.5,
+          "reason": "Prefer stronger assistants among offerings inside the budget."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.5,
+          "reason": "Prefer the cheaper task among offerings inside the budget."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "The budget is a Must; inside it, cost and quality share the ranking equally.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active",
+          "offering.cost_per_task <= 0.05"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.5,
+            "-offering.cost_per_task": 0.5
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "assistant-fastest",
+      "category": "assistant",
+      "tier": "fastest",
+      "name": "General assistant, fastest",
+      "tradeoff": "Output speed first; response quality second.",
+      "purpose": "Find an active assistant whose offering streams output fastest, with response quality as the second term.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "A conversational assistant needs a text-generating model."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        }
+      ],
+      "weights": {
+        "offering.speed.throughput": {
+          "weight": 0.6,
+          "reason": "Prefer the offering that produces output tokens fastest."
+        },
+        "chat_preference": {
+          "weight": 0.4,
+          "reason": "Keep response quality so a fast but weak model does not win on speed alone."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.speed.throughput",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active"
+        ],
+        "optimize": {
+          "weights": {
+            "offering.speed.throughput": 0.6,
+            "chat_preference": 0.4
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering has a known Output throughput yet — 53 offerings may qualify once it is published"
+    },
+    {
+      "id": "private-self-host",
+      "category": "assistant",
+      "tier": "private",
+      "name": "Private assistant you host yourself",
+      "tradeoff": "Open weights you run yourself; commercial licence.",
+      "purpose": "Find a commercially usable open-weights assistant that you can operate yourself.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "A conversational assistant needs a text-generating model."
+        },
+        {
+          "condition": "model.weights_openness = open_weights",
+          "reason": "Self-hosting requires downloadable weights; add a model.fits_hardware Must for the device you own."
+        },
+        {
+          "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",
+          "reason": "The licence must allow commercial use, including use with stated conditions."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.7,
+          "reason": "Prefer assistants whose open-ended responses people rate more highly."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.3,
+          "reason": "Prefer lower task cost when the snapshot has an offering price."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:model.parameters_total",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "Use Must for deployment and licence requirements, then Prefer to balance assistant quality and cost.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.weights_openness = open_weights",
+          "licence.commercial_use in {permitted, permitted_with_conditions}"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.7,
+            "-offering.cost_per_task": 0.3
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "high-volume-best",
+      "category": "high-volume",
+      "tier": "best",
+      "name": "High volume, quality first",
+      "tradeoff": "Short requests at scale; quality leads, cost counts.",
+      "purpose": "Find a text model for many short assistant requests where response quality still leads the ranking.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The workload needs generated text responses."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.7,
+          "reason": "Prefer assistants whose responses people rate more highly."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.3,
+          "reason": "At volume, cost still matters as the second term."
+        }
+      },
+      "task_tokens": {
+        "input": 2000,
+        "output": 500
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "Short task tokens make the cost term reflect one small request, not one long agent run.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.7,
+            "-offering.cost_per_task": 0.3
+          }
+        },
+        "task_tokens": {
+          "input": 2000,
+          "output": 500
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "high-volume-balanced",
+      "category": "high-volume",
+      "tier": "balanced",
+      "name": "High volume, balanced",
+      "tradeoff": "Short requests at scale; quality and cost weighted equally.",
+      "purpose": "Find a text model for many short assistant requests that weighs quality and cost equally.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The workload needs generated text responses."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.5,
+          "reason": "Prefer assistants whose responses people rate more highly."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.5,
+          "reason": "At volume, cost carries as much weight as quality."
+        }
+      },
+      "task_tokens": {
+        "input": 2000,
+        "output": 500
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "An even split is the neutral starting point; move the weights once you know what a request is worth.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.5,
+            "-offering.cost_per_task": 0.5
+          }
+        },
+        "task_tokens": {
+          "input": 2000,
+          "output": 500
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "high-volume",
+      "category": "high-volume",
+      "tier": "budget",
+      "name": "High volume, good enough",
+      "tradeoff": "Short requests at scale; cheapest first, quality kept.",
+      "purpose": "Find a low-cost text model for many short assistant requests without ignoring response quality.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The workload needs generated text responses."
+        }
+      ],
+      "weights": {
+        "-offering.cost_per_task": {
+          "weight": 0.7,
+          "reason": "At high volume, small differences in task cost dominate total spend."
+        },
+        "chat_preference": {
+          "weight": 0.3,
+          "reason": "Keep a quality signal so cheap but poor responses do not win by cost alone."
+        }
+      },
+      "task_tokens": {
+        "input": 2000,
+        "output": 500
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "Keep the model class as a Must, then make cost the stronger Prefer without turning quality into a gate.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator"
+        ],
+        "optimize": {
+          "weights": {
+            "-offering.cost_per_task": 0.7,
+            "chat_preference": 0.3
+          }
+        },
+        "task_tokens": {
+          "input": 2000,
+          "output": 500
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "high-volume-fastest",
+      "category": "high-volume",
+      "tier": "fastest",
+      "name": "High volume, fastest",
+      "tradeoff": "Short requests at scale; output speed first.",
+      "purpose": "Find a text model for many short requests whose offering streams output fastest.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The workload needs generated text responses."
+        }
+      ],
+      "weights": {
+        "offering.speed.throughput": {
+          "weight": 0.6,
+          "reason": "Prefer the offering that produces output tokens fastest."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.4,
+          "reason": "At volume, keep cost as the second term."
+        }
+      },
+      "task_tokens": {
+        "input": 2000,
+        "output": 500
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": []
+      },
+      "canvas": {
+        "x": "facet:offering.speed.throughput",
+        "y": "facet:offering.cost_per_task"
+      },
+      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator"
+        ],
+        "optimize": {
+          "weights": {
+            "offering.speed.throughput": 0.6,
+            "-offering.cost_per_task": 0.4
+          }
+        },
+        "task_tokens": {
+          "input": 2000,
+          "output": 500
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering has a known Output throughput yet — 53 offerings may qualify once it is published"
+    },
+    {
+      "id": "regulated-best",
+      "category": "regulated",
+      "tier": "best",
+      "name": "Regulated data, best available",
+      "tradeoff": "HIPAA-ready offerings; strongest assistant, cost no object.",
+      "purpose": "Find the strongest assistant among offerings with the data-handling commitments regulated workloads need.",
+      "where": [
+        {
+          "condition": "offering.data.trains_on_customer_data = false",
+          "reason": "Customer prompts and outputs must not be available for model training."
+        },
+        {
+          "condition": "offering.data.zero_retention = true",
+          "reason": "The provider must offer a mode that stores neither prompts nor outputs."
+        },
+        {
+          "condition": "offering.attestation.baa = true",
+          "reason": "The provider must offer a HIPAA business associate agreement for the service."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 1.0,
+          "reason": "Rank only by assistant quality among compliant offerings."
+        }
+      },
+      "needs": {
+        "classes": [],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "Governance promises are Musts; with no cost term, quality alone ranks what passes.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "offering.data.trains_on_customer_data = false",
+          "offering.data.zero_retention = true",
+          "offering.attestation.baa = true"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "regulated-data",
+      "category": "regulated",
+      "tier": "balanced",
+      "name": "Regulated data",
+      "tradeoff": "HIPAA-ready offerings; quality first, cost second.",
+      "purpose": "Find an offering with the data-handling commitments needed for regulated workloads.",
+      "where": [
+        {
+          "condition": "offering.data.trains_on_customer_data = false",
+          "reason": "Customer prompts and outputs must not be available for model training."
+        },
+        {
+          "condition": "offering.data.zero_retention = true",
+          "reason": "The provider must offer a mode that stores neither prompts nor outputs."
+        },
+        {
+          "condition": "offering.attestation.baa = true",
+          "reason": "The provider must offer a HIPAA business associate agreement for the service."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.6,
+          "reason": "Prefer the stronger general assistant among compliant offerings."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.4,
+          "reason": "Prefer the lower task cost after the compliance gates pass."
+        }
+      },
+      "needs": {
+        "classes": [],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "Governance promises are Musts because a high score cannot compensate for a missing data commitment.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "offering.data.trains_on_customer_data = false",
+          "offering.data.zero_retention = true",
+          "offering.attestation.baa = true"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.6,
+            "-offering.cost_per_task": 0.4
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "regulated-budget",
+      "category": "regulated",
+      "tier": "budget",
+      "name": "Regulated data on a budget",
+      "tradeoff": "HIPAA-ready offerings; cheapest first, quality kept.",
+      "purpose": "Find the cheapest offering with the data-handling commitments regulated workloads need.",
+      "where": [
+        {
+          "condition": "offering.data.trains_on_customer_data = false",
+          "reason": "Customer prompts and outputs must not be available for model training."
+        },
+        {
+          "condition": "offering.data.zero_retention = true",
+          "reason": "The provider must offer a mode that stores neither prompts nor outputs."
+        },
+        {
+          "condition": "offering.attestation.baa = true",
+          "reason": "The provider must offer a HIPAA business associate agreement for the service."
+        }
+      ],
+      "weights": {
+        "-offering.cost_per_task": {
+          "weight": 0.7,
+          "reason": "Prefer the lower task cost after the compliance gates pass."
+        },
+        "chat_preference": {
+          "weight": 0.3,
+          "reason": "Keep a quality signal so a cheap but poor assistant does not win on cost alone."
+        }
+      },
+      "needs": {
+        "classes": [],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "The gates are the same as the other tiers; only the ranking moves toward cost.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "offering.data.trains_on_customer_data = false",
+          "offering.data.zero_retention = true",
+          "offering.attestation.baa = true"
+        ],
+        "optimize": {
+          "weights": {
+            "-offering.cost_per_task": 0.7,
+            "chat_preference": 0.3
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "regional-best",
+      "category": "regional",
+      "tier": "best",
+      "name": "EU-only data, best available",
+      "tradeoff": "Inference in the EU, no training; strongest assistant.",
+      "purpose": "Find the strongest assistant among offerings that run inference in an EU member state and do not train on customer data.",
+      "where": [
+        {
+          "condition": "offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}",
+          "reason": "Inference must run in one of the EU's 27 member-state ISO country codes (EU Publications Office Interinstitutional Style Guide, https://style-guide.europa.eu/en/content/-/isg/topic?identifier=annex-a5-list-countries-territories-currencies, checked 2026-09-27)."
+        },
+        {
+          "condition": "offering.data.trains_on_customer_data = false",
+          "reason": "Customer prompts and outputs must not be available for model training."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 1.0,
+          "reason": "Rank only by assistant quality among offerings that meet the data rules."
+        }
+      },
+      "needs": {
+        "classes": [],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "Residency and training policy are Musts; with no cost term, quality alone ranks what passes.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}",
+          "offering.data.trains_on_customer_data = false"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 1.0
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering passes: Inference region in the EU — 0 of 43 offerings"
     },
     {
       "id": "eu-data",
+      "category": "regional",
+      "tier": "balanced",
       "name": "EU-only data handling",
+      "tradeoff": "Inference in the EU, no training; quality first, cost second.",
       "purpose": "Find an offering that runs inference in an EU member state and does not train on customer data.",
       "where": [
         {
           "condition": "offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}",
-          "reason": "Inference must run in one of the EU's 27 member-state country codes."
+          "reason": "Inference must run in one of the EU's 27 member-state ISO country codes (EU Publications Office Interinstitutional Style Guide, https://style-guide.europa.eu/en/content/-/isg/topic?identifier=annex-a5-list-countries-territories-currencies, checked 2026-09-27)."
         },
         {
           "condition": "offering.data.trains_on_customer_data = false",
@@ -3096,6 +5026,10 @@
           "chat_preference"
         ]
       },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
       "teaches": "Residency and training policy are Musts; quality and cost only rank offerings that pass them.",
       "spec": {
         "spec_version": 1,
@@ -3111,7 +5045,61 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No offering passes: Inference region in the EU — 0 of 4 offerings"
+      "unavailable_reason": "No offering passes: Inference region in the EU — 0 of 43 offerings"
+    },
+    {
+      "id": "regional-budget",
+      "category": "regional",
+      "tier": "budget",
+      "name": "EU-only data on a budget",
+      "tradeoff": "Inference in the EU, no training; cheapest first.",
+      "purpose": "Find the cheapest offering that runs inference in an EU member state and does not train on customer data.",
+      "where": [
+        {
+          "condition": "offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}",
+          "reason": "Inference must run in one of the EU's 27 member-state ISO country codes (EU Publications Office Interinstitutional Style Guide, https://style-guide.europa.eu/en/content/-/isg/topic?identifier=annex-a5-list-countries-territories-currencies, checked 2026-09-27)."
+        },
+        {
+          "condition": "offering.data.trains_on_customer_data = false",
+          "reason": "Customer prompts and outputs must not be available for model training."
+        }
+      ],
+      "weights": {
+        "-offering.cost_per_task": {
+          "weight": 0.7,
+          "reason": "Prefer the lower task cost after the data-handling gates pass."
+        },
+        "chat_preference": {
+          "weight": 0.3,
+          "reason": "Keep a quality signal so a cheap but poor assistant does not win on cost alone."
+        }
+      },
+      "needs": {
+        "classes": [],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "canvas": {
+        "x": "facet:offering.cost_per_task",
+        "y": "capability:chat_preference"
+      },
+      "teaches": "The gates are the same as the other tiers; only the ranking moves toward cost.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}",
+          "offering.data.trains_on_customer_data = false"
+        ],
+        "optimize": {
+          "weights": {
+            "-offering.cost_per_task": 0.7,
+            "chat_preference": 0.3
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering passes: Inference region in the EU — 0 of 43 offerings"
     }
   ]
 }

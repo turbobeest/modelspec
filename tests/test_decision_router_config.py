@@ -43,6 +43,18 @@ TAGS = {"repo_work": [("software_engineering", "direct")],
         "preference_proxy": [("software_engineering", "proxy")]}
 
 
+BUDGET_CODING_SPEC = {
+    "spec_version": 1,
+    "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active",
+        "model.context_window >= 200000",
+        "offering.cost_per_task <= 0.25",
+    ],
+    "optimize": {"weights": {"software_engineering": 0.6, "-offering.cost_per_task": 0.4}},
+}
+
+
 def _schema(path: Path) -> jsonschema.Draft202012Validator:
     schema = json.loads(path.read_text(encoding="utf-8"))
     jsonschema.Draft202012Validator.check_schema(schema)
@@ -82,8 +94,14 @@ def budget_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     snapshot_bytes = built.to_bytes(key=None, ed25519_signer=signer)
     (generation / "snapshot.json.gz").write_bytes(snapshot_bytes)
     index = load_snapshot_bytes(snapshot_bytes, key=None, public_keys=public_keys)
+    vocabulary = build_vocabulary(index)
+    # The lineup's prices and bands are drawn for this spec. Pin it, so tuning the
+    # registry template's thresholds (MODEL-204 moved the cap to $0.05) cannot
+    # move a test about router output.
+    template = next(row for row in vocabulary["templates"] if row["id"] == "budget-coding")
+    template["spec"] = BUDGET_CODING_SPEC
     (generation / "vocabulary.json").write_text(
-        json.dumps(build_vocabulary(index), ensure_ascii=False), encoding="utf-8")
+        json.dumps(vocabulary, ensure_ascii=False), encoding="utf-8")
     (cache / "decision" / "current").write_text(built.snapshot_id + "\n", encoding="utf-8")
     monkeypatch.setenv("MODELSPEC_CACHE", str(cache))
     monkeypatch.setattr(decision_snapshot, "load_public_keys", lambda: public_keys)
@@ -234,7 +252,7 @@ def _row(model_id: str, provider: str | None) -> router_config.Listed:
 
 def test_a_model_with_no_provider_keeps_the_provider_restriction_for_the_rest() -> None:
     audit = {"decision_id": "dec_x", "spec_hash": "sha256:" + "0" * 64, "snapshot": "snap_x",
-             "contract_version": "2.7"}
+             "contract_version": contract.CONTRACT_VERSION}
 
     mixed = json.loads(router_config._openrouter(
         [_row("lab/hosted", "anthropic"), _row("lab/own", None)], audit, ["best"]))
