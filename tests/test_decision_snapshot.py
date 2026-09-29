@@ -209,11 +209,23 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
     index = load(path)
 
     subscriptions = {row["id"]: row for row in index.subscription_offerings()}
-    assert len(subscriptions) == 11
+    assert len(subscriptions) == 30
     facts = [fact for subscription in subscriptions.values()
              for fact in subscription["facts"].values()]
-    assert len(facts) == 55
-    assert sum(fact.state == "known" for fact in facts) == 39
+    assert len(facts) == 134
+    # 119 known facts are filed; 12 verbatim access and allowance strings on
+    # multi-plan pages await a second key (MODEL-201) and are left out.
+    assert sum(fact.state == "known" for fact in facts) == 107
+    assert subscriptions["anthropic/subscription/max-20x"]["facts"][
+        "offering.subscription.price"
+    ] == FactValue("known", 200, ("model-201-anthropic-max-plan",))
+    assert subscriptions["google-gemini-api/subscription/ai-ultra-20x"]["facts"][
+        "offering.subscription.price"
+    ] == FactValue("known", 199.99, ("model-201-gemini-subscriptions",))
+    assert subscriptions["openai/subscription/plus"]["facts"][
+        "offering.subscription.models_covered"
+    ].value == ["openai/gpt-6-astra", "openai/gpt-6-sol", "openai/gpt-6-luna",
+                "openai/gpt-5-6-sol", "openai/gpt-5-6-terra", "openai/gpt-5-6-luna"]
     assert subscriptions["anthropic/subscription/pro"]["facts"][
         "offering.subscription.price"
     ] == FactValue("known", 20, ("model-173-anthropic-consumer-pricing",))

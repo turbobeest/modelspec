@@ -332,6 +332,8 @@ def test_repository_plans_carry_the_new_facts_from_sourced_text_only() -> None:
     assert plans[MAX]["offering.subscription.allowance.multiplier"].value == 20
     assert plans[MAX]["offering.subscription.allowance.relative_to"].value == PRO
     for plan in plans.values():
+        if "offering.subscription.surfaces" not in plan:
+            continue  # MODEL-201's new plans state only what their pages give
         # Nothing new was researched: family coverage and tokens wait for MODEL-201.
         for facet in ("families_covered", "coverage_quote", "allowance.tokens",
                       "allowance.window"):

@@ -790,15 +790,21 @@ class SubscriptionPageExtractor:
 
     def accepts(self, text: str) -> bool:
         return bool(re.search(
-            r"(?i)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
+            r"(?im)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
             r"everything in .+?, plus|\bcodex\b|claude code|more usage than pro|"
-            r"google ai studio)",
+            r"google ai studio|\$\s?[0-9.]+\s*(?:/\s*(?:user/)?mo|per (?:member|user|seat))|"
+            r"^\$[0-9.]+$|^all plans support |^supported models \||^#+ models$)",
             text,
         ))
 
     def extract(self, claim: Claim, text: str) -> list[Reading]:
         if not claim.field.startswith("offering.subscription."):
             raise ExtractorError("not a subscription claim")
+        readings = self._page_layouts(claim, text)
+        return readings + [r for r in _plan_cards(claim, text) if r not in readings]
+
+    def _page_layouts(self, claim: Claim, text: str) -> list[Reading]:
+        """The layouts MODEL-173's pages use (plan cards keyed by a price line)."""
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         aliases = {normalise_name(name) for name in claim.names}
 
@@ -1010,6 +1016,19 @@ class SubscriptionPageExtractor:
                 return [Reading(subject=claim.names[0], value=claude.group(0))]
             return []
 
+        if claim.field == "offering.subscription.models_covered":
+            # ChatGPT's comparison rows: "Plan: Plus, Feature: GPT-6 Astra, Yes". Any
+            # cell but "No" lists the model for that plan ("Limited access in ...").
+            row = re.compile(r"^Plan: (.+?), Feature: (GPT-\d.*?), (.+)$")
+            listed = [
+                m.group(2) for line in lines
+                if (m := row.match(line)) and matches(m.group(1))
+                and normalise_name(m.group(3)) != "no"
+            ]
+            if listed:
+                return [Reading(subject=claim.names[0],
+                                value=", ".join(dict.fromkeys(listed)))]
+
         if claim.field != "offering.subscription.models_covered" or wanted is None:
             return []
 
@@ -1020,6 +1039,153 @@ class SubscriptionPageExtractor:
         ]
         models = list(dict.fromkeys(models))
         return [Reading(subject=wanted, value=", ".join(models))] if models else []
+
+
+#: A dollar amount; ``$ 50`` and ``$117.6`` included.
+_AMOUNT = re.compile(r"\$\s?([0-9][0-9,]*(?:\.[0-9]+)?)")
+_PLAN_LABEL = re.compile(r"(?i)(?:monthly|annual) plan:?\s*$")
+
+
+def _priced(text: str) -> list[tuple[str, str | None]]:
+    """Each dollar amount in ``text`` with the billing period its own words give.
+
+    An amount's words run to the next amount; a "Monthly plan:" or "Annual plan:"
+    label just before it belongs to it. "per month, billed annually" is annual.
+    """
+    found = list(_AMOUNT.finditer(text))
+    out = []
+    for i, m in enumerate(found):
+        end = found[i + 1].start() if i + 1 < len(found) else len(text)
+        words = _PLAN_LABEL.sub("", text[m.end():end])
+        label = _PLAN_LABEL.search(text[:m.start()])
+        words = (label.group(0) if label else "") + words
+        period = ("annual" if re.search(r"(?i)annual|/\s*y(?:ea)?r\b|per year", words)
+                  else "monthly" if re.search(r"(?i)month|/\s*(?:user/)?mo\b", words)
+                  else None)
+        out.append((m.group(1).replace(",", ""), period))
+    return out
+
+
+def _price_readings(subject: str, field: str, priced: list[tuple[str, str | None]]
+                    ) -> list[Reading]:
+    """Prices and periods for one plan. When the plan publishes a monthly price, its
+    annual rate is not read as the plan's price."""
+    if field == "offering.subscription.billing_period":
+        periods = dict.fromkeys(p for _, p in priced if p)
+        return [Reading(subject=subject, value=p) for p in periods]
+    if field != "offering.subscription.price":
+        return []
+    monthly = [a for a, p in priced if p == "monthly"]
+    return [Reading(subject=subject, value=a)
+            for a in (monthly or [a for a, _ in priced])]
+
+
+def _model_list(cell: str) -> str:
+    """A supported-models cell as a comma list: labels and qualifiers dropped."""
+    cell = re.sub(r"(?i)only the following exact model versions are supported:|"
+                  r"recommended models:|more models:|models not listed above are not "
+                  r"supported\.?|\(vision\)", ",", cell)
+    items = [i.strip() for i in re.split(r",|\band\b", cell) if i.strip()]
+    return ", ".join(items)
+
+
+def _plan_cards(claim: Claim, text: str) -> list[Reading]:
+    """Plan facts from generic plan-page layouts (MODEL-201).
+
+    * a card: a line that is exactly the plan's name (markdown heading marks
+      allowed), then within six lines its price line(s);
+    * a tier line: "$199.99 / month: 20x higher usage limits vs. AI Pro", the tier
+      named by its multiplier;
+    * a table whose header names the plan as a column, or whose row starts with it;
+    * a help article titled "What is the <plan>?", whose sentences are the plan's;
+    * "All plans support A, B." and a "### Models" list, which apply to every plan
+      on the page.
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    aliases = {normalise_name(name) for name in claim.names}
+    subject, field = claim.names[0], claim.field
+    readings: list[Reading] = []
+
+    def heading(line: str) -> bool:
+        return normalise_name(line.lstrip("#")) in aliases
+
+    for i, line in enumerate(lines):
+        if not heading(line):
+            continue
+        window: list[str] = []
+        for later in lines[i + 1:i + 7]:
+            if window and not ("$" in later or later.startswith("/")):
+                break
+            if "$" in later or (window and later.startswith("/")):
+                window.append(later)
+        readings += _price_readings(subject, field, _priced(" ".join(window)))
+
+    multiplier = next((m.group(1) for name in claim.names
+                       if (m := re.search(r"\b(\d+x)\b", name, re.IGNORECASE))), None)
+    if multiplier:
+        for line in lines:
+            m = re.match(r"^\$\s?([0-9.]+)\s*/\s*month:\s*(\d+x)\b\s*(.*)$", line,
+                         re.IGNORECASE)
+            if m and m.group(2).casefold() == multiplier.casefold():
+                readings += _price_readings(subject, field, [(m.group(1), "monthly")])
+                if field == "offering.subscription.usage_allowance":
+                    readings.append(Reading(subject=subject,
+                                            value=f"{m.group(2)} {m.group(3)}".strip()))
+
+    tables: list[list[list[str]]] = []
+    current: list[list[str]] = []
+    for line in [*lines, ""]:
+        if "|" in line:
+            current.append([cell.strip() for cell in line.split("|")])
+        elif current:
+            tables.append(current)
+            current = []
+    for table in tables:
+        columns = [j for j, cell in enumerate(table[0]) if normalise_name(cell) in aliases]
+        for row in table[1:]:
+            label = normalise_name(row[0])
+            cells = [row[j] for j in columns if j < len(row)]
+            if label == "price":
+                for cell in cells:
+                    readings += _price_readings(subject, field, _priced(cell))
+            elif label == "supported models" and field == "offering.subscription.models_covered":
+                readings += [Reading(subject=subject, value=_model_list(c)) for c in cells]
+            elif label in {"quota", "quota windows"} \
+                    and field == "offering.subscription.usage_allowance":
+                readings += [Reading(subject=subject, value=c) for c in cells]
+            if label in aliases:
+                readings += _price_readings(subject, field, _priced(" ".join(row[1:])))
+                if field in {"offering.subscription.programmatic_or_agent_use",
+                             "offering.subscription.usage_allowance"}:
+                    readings += [Reading(subject=subject, value=c) for c in row[1:] if c]
+
+    # A help article about one plan ("What is the Enterprise plan?"): its sentences
+    # are that plan's wording.
+    title = next((m.group(1) for line in lines[:3]
+                  if (m := re.match(r"^What is the (.+?)\?$", line))), None)
+    if title and normalise_name(title) in aliases:
+        if field in {"offering.subscription.programmatic_or_agent_use",
+                     "offering.subscription.usage_allowance"}:
+            readings += [Reading(subject=subject, value=sentence) for line in lines
+                         for sentence in re.split(r"(?<=[.!?])\s+", line) if sentence]
+        if field == "offering.subscription.billing_period":
+            for line in lines:
+                for word, period in (("billed annually", "annual"), ("billed monthly", "monthly")):
+                    if word in line.casefold():
+                        readings.append(Reading(subject=subject, value=period))
+
+    if field == "offering.subscription.models_covered":
+        for i, line in enumerate(lines):
+            if m := re.match(r"^All plans support (.+?)\.?$", line):
+                readings.append(Reading(subject=subject, value=m.group(1)))
+            if re.match(r"^#+\s*Models$", line):
+                listed = []
+                for later in lines[i + 1:]:
+                    if later.startswith("#"):
+                        break
+                    listed.append(later)
+                readings.append(Reading(subject=subject, value=", ".join(listed)))
+    return readings
 
 
 class ModelPageExtractor:
@@ -1593,9 +1759,13 @@ def _catalogue_model_aliases() -> Mapping[str, frozenset[str]]:
     return {alias: frozenset(ids) for alias, ids in aliases.items()}
 
 
-def _catalogue_model_id(published: str) -> str | None:
+def _catalogue_model_matches(published: str) -> frozenset[str]:
     label = re.sub(r"(?i)\s+model$", "", published.strip())
-    matches = _catalogue_model_aliases().get(normalise_name(label), frozenset())
+    return _catalogue_model_aliases().get(normalise_name(label), frozenset())
+
+
+def _catalogue_model_id(published: str) -> str | None:
+    matches = _catalogue_model_matches(published)
     return next(iter(matches)) if len(matches) == 1 else None
 
 
@@ -1643,11 +1813,16 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         found_items = {item.casefold() for item in published_items}
         claimed_items = {str(v).strip().casefold() for v in value}
         if claimed_items and all("/" in item for item in claimed_items):
-            found_items = {
-                canonical.casefold() if (canonical := _catalogue_model_id(item))
-                else normalise_name(re.sub(r"(?i)\s+model$", "", item))
-                for item in published_items
-            }
+            # The facet holds catalogue IDs, so a published model the catalogue
+            # lacks cannot be claimed; it is dropped. An ambiguous label is kept
+            # and fails the comparison.
+            found_items = set()
+            for item in published_items:
+                matches = _catalogue_model_matches(item)
+                if len(matches) == 1:
+                    found_items.add(next(iter(matches)).casefold())
+                elif matches:
+                    found_items.add(normalise_name(re.sub(r"(?i)\s+model$", "", item)))
         return None if found_items == claimed_items else Diff("value", expected, reading.value)
     expected_name = normalise_name(str(value))
     found_name = normalise_name(reading.value)

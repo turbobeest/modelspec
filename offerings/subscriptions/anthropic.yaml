@@ -1,9 +1,9 @@
-# MODEL-173. Primary sources read 2026-09-28. Unknown model-version coverage is
-# deliberate: the pricing table names model families, not exact model IDs.
-# MODEL-200 added the plan facts (surfaces, families_covered, coverage_quote,
-# allowance.*) from the facts and sources above only; nothing was re-read.
-# `unknown` means not yet researched (MODEL-201). Each new known fact enters
-# a snapshot once an independent second key verifies it.
+# MODEL-173 (read 2026-09-28), MODEL-200's plan facts, and MODEL-201
+# (read 2026-09-29).
+# Verbatim wording, surfaces and every null's reason:
+# docs/research/subscriptions/2026-09-29.md (scripts/model_201_collect.py).
+# Unknown means the retained copy does not show the value; not_disclosed
+# means the page was read and does not publish it.
 - kind: subscription
   provider: anthropic
   plan: pro
@@ -59,7 +59,7 @@
     subject: {kind: offering, id: anthropic/subscription/pro}
     facet: offering.subscription.surfaces
     state: known
-    value: [chat_app, coding_tool:claude-code, desktop_app, mobile_app]
+    value: [chat_app, 'coding_tool:claude-code', desktop_app, mobile_app]
     sources:
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
@@ -149,7 +149,7 @@
     subject: {kind: offering, id: anthropic/subscription/max-5x}
     facet: offering.subscription.surfaces
     state: known
-    value: [chat_app, coding_tool:claude-code, desktop_app, mobile_app]
+    value: [chat_app, 'coding_tool:claude-code', desktop_app, mobile_app]
     sources:
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
@@ -192,6 +192,8 @@
     facet: offering.subscription.allowance.tokens
     state: unknown
     value: null
+# Claude Max 20x: Price from the Max plan article; the pricing page says only 'From
+#   $100'.
 - kind: subscription
   provider: anthropic
   plan: max-20x
@@ -200,12 +202,11 @@
   - id: anthropic/subscription/max-20x#offering.subscription.price
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.price
-    state: not_disclosed
-    value: null
-    checked_sources: [model-173-anthropic-consumer-pricing]
+    state: known
+    value: 200
     sources:
-    - source_id: model-173-anthropic-consumer-pricing
-      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
+    - source_id: model-201-anthropic-max-plan
+      snapshot_ref: sha256:f7b1d12e92fa6e5cb36ca3d7746f7ed288fcec24388e2ceef1c160a380bd86cb
       cited_regions: [page]
   - id: anthropic/subscription/max-20x#offering.subscription.billing_period
     subject: {kind: offering, id: anthropic/subscription/max-20x}
@@ -248,7 +249,7 @@
     subject: {kind: offering, id: anthropic/subscription/max-20x}
     facet: offering.subscription.surfaces
     state: known
-    value: [chat_app, coding_tool:claude-code, desktop_app, mobile_app]
+    value: [chat_app, 'coding_tool:claude-code', desktop_app, mobile_app]
     sources:
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
@@ -291,3 +292,166 @@
     facet: offering.subscription.allowance.tokens
     state: unknown
     value: null
+# Claude Team (Standard seat): Per member; a Team plan needs at least two members. $20
+#   per member per month when billed annually.
+- kind: subscription
+  provider: anthropic
+  plan: team-standard
+  name: Claude Team (Standard seat)
+  facts:
+  - id: anthropic/subscription/team-standard#offering.subscription.price
+    subject: {kind: offering, id: anthropic/subscription/team-standard}
+    facet: offering.subscription.price
+    state: known
+    value: 25
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+  - id: anthropic/subscription/team-standard#offering.subscription.billing_period
+    subject: {kind: offering, id: anthropic/subscription/team-standard}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+  - id: anthropic/subscription/team-standard#offering.subscription.models_covered
+    subject: {kind: offering, id: anthropic/subscription/team-standard}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-anthropic-team-plan]
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+  - id: anthropic/subscription/team-standard#offering.subscription.usage_allowance
+    subject: {kind: offering, id: anthropic/subscription/team-standard}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 1.25x the Pro plan's per-session usage allowance
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+  - id: anthropic/subscription/team-standard#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: anthropic/subscription/team-standard}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Access to Claude Code to delegate coding tasks from concept to completion directly from your
+      terminal.
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+# Claude Team (Premium seat): Per member; $100 per member per month when billed
+#   annually.
+- kind: subscription
+  provider: anthropic
+  plan: team-premium
+  name: Claude Team (Premium seat)
+  facts:
+  - id: anthropic/subscription/team-premium#offering.subscription.price
+    subject: {kind: offering, id: anthropic/subscription/team-premium}
+    facet: offering.subscription.price
+    state: known
+    value: 125
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+  - id: anthropic/subscription/team-premium#offering.subscription.billing_period
+    subject: {kind: offering, id: anthropic/subscription/team-premium}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+  - id: anthropic/subscription/team-premium#offering.subscription.models_covered
+    subject: {kind: offering, id: anthropic/subscription/team-premium}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-anthropic-team-plan]
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+  - id: anthropic/subscription/team-premium#offering.subscription.usage_allowance
+    subject: {kind: offering, id: anthropic/subscription/team-premium}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 6.25x the Pro plan's per-session usage allowance
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+  - id: anthropic/subscription/team-premium#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: anthropic/subscription/team-premium}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Access to Claude Code to delegate coding tasks from concept to completion directly from your
+      terminal.
+    sources:
+    - source_id: model-201-anthropic-team-plan
+      snapshot_ref: sha256:88754473faef64796823131c86f30d6707e035c5338be7c8b11fbc692c92b920
+      cited_regions: [page]
+# Claude Enterprise: Seat fee covers access only; all usage is billed at standard API
+#   rates. The help article states no seat price.
+- kind: subscription
+  provider: anthropic
+  plan: enterprise
+  name: Claude Enterprise
+  facts:
+  - id: anthropic/subscription/enterprise#offering.subscription.price
+    subject: {kind: offering, id: anthropic/subscription/enterprise}
+    facet: offering.subscription.price
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-anthropic-enterprise-plan]
+    sources:
+    - source_id: model-201-anthropic-enterprise-plan
+      snapshot_ref: sha256:a7b332d9e3fdd81af82e70c9c24d06b270555d4376967577391a6fbd00527805
+      cited_regions: [page]
+  - id: anthropic/subscription/enterprise#offering.subscription.billing_period
+    subject: {kind: offering, id: anthropic/subscription/enterprise}
+    facet: offering.subscription.billing_period
+    state: known
+    value: annual
+    sources:
+    - source_id: model-201-anthropic-enterprise-plan
+      snapshot_ref: sha256:a7b332d9e3fdd81af82e70c9c24d06b270555d4376967577391a6fbd00527805
+      cited_regions: [page]
+  - id: anthropic/subscription/enterprise#offering.subscription.models_covered
+    subject: {kind: offering, id: anthropic/subscription/enterprise}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-anthropic-enterprise-plan]
+    sources:
+    - source_id: model-201-anthropic-enterprise-plan
+      snapshot_ref: sha256:a7b332d9e3fdd81af82e70c9c24d06b270555d4376967577391a6fbd00527805
+      cited_regions: [page]
+  - id: anthropic/subscription/enterprise#offering.subscription.usage_allowance
+    subject: {kind: offering, id: anthropic/subscription/enterprise}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: There are no per-seat usage limits and no included token allowance.
+    sources:
+    - source_id: model-201-anthropic-enterprise-plan
+      snapshot_ref: sha256:a7b332d9e3fdd81af82e70c9c24d06b270555d4376967577391a6fbd00527805
+      cited_regions: [page]
+  - id: anthropic/subscription/enterprise#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: anthropic/subscription/enterprise}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: The seat fee gives each user access to Claude on web, desktop, and mobile, plus Claude Code
+      and Cowork.
+    sources:
+    - source_id: model-201-anthropic-enterprise-plan
+      snapshot_ref: sha256:a7b332d9e3fdd81af82e70c9c24d06b270555d4376967577391a6fbd00527805
+      cited_regions: [page]

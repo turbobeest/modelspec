@@ -1,0 +1,59 @@
+# MODEL-201. Primary sources read 2026-09-29.
+# Verbatim wording, surfaces and every null's reason:
+# docs/research/subscriptions/2026-09-29.md (scripts/model_201_collect.py).
+# Unknown means the retained copy does not show the value; not_disclosed
+# means the page was read and does not publish it.
+# Coding Plan Pro: qwen3-max-2026-01-23 is also supported; it has no catalogue ID.
+#   Slots are limited.
+- kind: subscription
+  provider: alibaba-model-studio
+  plan: coding-pro
+  name: Coding Plan Pro
+  facts:
+  - id: alibaba-model-studio/subscription/coding-pro#offering.subscription.price
+    subject: {kind: offering, id: alibaba-model-studio/subscription/coding-pro}
+    facet: offering.subscription.price
+    state: known
+    value: 50
+    sources:
+    - source_id: model-201-alibaba-coding-plan
+      snapshot_ref: sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf
+      cited_regions: [page]
+  - id: alibaba-model-studio/subscription/coding-pro#offering.subscription.billing_period
+    subject: {kind: offering, id: alibaba-model-studio/subscription/coding-pro}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-alibaba-coding-plan
+      snapshot_ref: sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf
+      cited_regions: [page]
+  - id: alibaba-model-studio/subscription/coding-pro#offering.subscription.models_covered
+    subject: {kind: offering, id: alibaba-model-studio/subscription/coding-pro}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [qwen/qwen3-7-plus, qwen/qwen3-6-plus, moonshot/kimi-k2-5, zhipu/glm-5, minimax/minimax-m2-5,
+      qwen/qwen3-5-plus, qwen/qwen3-coder-next, qwen/qwen3-coder-plus, zhipu/glm-4-7]
+    sources:
+    - source_id: model-201-alibaba-coding-plan
+      snapshot_ref: sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf
+      cited_regions: [page]
+  - id: alibaba-model-studio/subscription/coding-pro#offering.subscription.usage_allowance
+    subject: {kind: offering, id: alibaba-model-studio/subscription/coding-pro}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: Up to 6,000 requests per 5 hours Up to 45,000 requests per week Up to 90,000 requests per month
+    sources:
+    - source_id: model-201-alibaba-coding-plan
+      snapshot_ref: sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf
+      cited_regions: [page]
+  - id: alibaba-model-studio/subscription/coding-pro#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: alibaba-model-studio/subscription/coding-pro}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: This plan is for interactive use in programming tools such as Claude Code, Qoder, Qoder CN,
+      and OpenClaw.
+    sources:
+    - source_id: model-201-alibaba-coding-plan
+      snapshot_ref: sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf
+      cited_regions: [page]

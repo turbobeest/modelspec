@@ -1,0 +1,111 @@
+# MODEL-201. Primary sources read 2026-09-29.
+# Verbatim wording, surfaces and every null's reason:
+# docs/research/subscriptions/2026-09-29.md (scripts/model_201_collect.py).
+# Unknown means the retained copy does not show the value; not_disclosed
+# means the page was read and does not publish it.
+# Mistral Pro: Le Chat is now presented as Vibe on the pricing page.
+- kind: subscription
+  provider: mistral
+  plan: pro
+  name: Mistral Pro
+  facts:
+  - id: mistral/subscription/pro#offering.subscription.price
+    subject: {kind: offering, id: mistral/subscription/pro}
+    facet: offering.subscription.price
+    state: known
+    value: 14.99
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+  - id: mistral/subscription/pro#offering.subscription.billing_period
+    subject: {kind: offering, id: mistral/subscription/pro}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+  - id: mistral/subscription/pro#offering.subscription.models_covered
+    subject: {kind: offering, id: mistral/subscription/pro}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-mistral-pricing]
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+  - id: mistral/subscription/pro#offering.subscription.usage_allowance
+    subject: {kind: offering, id: mistral/subscription/pro}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: More messages and web searches.
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+  - id: mistral/subscription/pro#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: mistral/subscription/pro}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: All-day coding in the CLI, IDE, or on web.
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+# Mistral Team: Per user.
+- kind: subscription
+  provider: mistral
+  plan: team
+  name: Mistral Team
+  facts:
+  - id: mistral/subscription/team#offering.subscription.price
+    subject: {kind: offering, id: mistral/subscription/team}
+    facet: offering.subscription.price
+    state: known
+    value: 24.99
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+  - id: mistral/subscription/team#offering.subscription.billing_period
+    subject: {kind: offering, id: mistral/subscription/team}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+  - id: mistral/subscription/team#offering.subscription.models_covered
+    subject: {kind: offering, id: mistral/subscription/team}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-mistral-pricing]
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+  - id: mistral/subscription/team#offering.subscription.usage_allowance
+    subject: {kind: offering, id: mistral/subscription/team}
+    facet: offering.subscription.usage_allowance
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-mistral-pricing]
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]
+  - id: mistral/subscription/team#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: mistral/subscription/team}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-mistral-pricing]
+    sources:
+    - source_id: model-201-mistral-pricing
+      snapshot_ref: sha256:8bf7fcab035a0c50f564ff5ce5c5b925912b335f880b5e8f80c695652a79f121
+      cited_regions: [page]

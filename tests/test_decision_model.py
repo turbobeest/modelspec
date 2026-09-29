@@ -605,21 +605,41 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
     ]
 
     assert [subscription.id for subscription in loaded] == [
+        "alibaba-model-studio/subscription/coding-pro",
         "anthropic/subscription/pro",
         "anthropic/subscription/max-5x",
         "anthropic/subscription/max-20x",
+        "anthropic/subscription/team-standard",
+        "anthropic/subscription/team-premium",
+        "anthropic/subscription/enterprise",
         "google-gemini-api/subscription/ai-plus",
         "google-gemini-api/subscription/ai-pro",
-        "google-gemini-api/subscription/ai-ultra",
+        "google-gemini-api/subscription/ai-ultra-5x",
+        "google-gemini-api/subscription/ai-ultra-20x",
+        "minimax/subscription/token-plus",
+        "minimax/subscription/token-max",
+        "minimax/subscription/token-ultra",
+        "mistral/subscription/pro",
+        "mistral/subscription/team",
         "openai/subscription/plus",
         "openai/subscription/pro-5x",
         "openai/subscription/pro-20x",
+        "openai/subscription/go",
+        "openai/subscription/business-standard",
+        "openai/subscription/business-premium",
         "xai/subscription/supergrok",
         "xai/subscription/supergrok-plus",
+        "xai/subscription/supergrok-lite",
+        "xai/subscription/supergrok-heavy",
+        "xai/subscription/business",
+        "zai/subscription/glm-coding-lite",
+        "zai/subscription/glm-coding-pro",
+        "zai/subscription/glm-coding-max",
     ]
     facts = [fact for subscription in loaded for fact in subscription.facts]
-    # MODEL-173's 55, plus MODEL-200's seven plan facts on each of 11 plans.
-    assert len(facts) == 55 + 7 * 11
+    # 30 plans with MODEL-173's five facets each, plus MODEL-200's seven plan
+    # facts on the ten of its 11 plans that remain (ai-ultra was split).
+    assert len(facts) == 5 * 30 + 7 * 10
     assert all(fact.sources for fact in facts if fact.state == "known")
     assert all(
         fact.value is None and (fact.checked_sources or fact.state == "unknown")
@@ -639,7 +659,7 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
     xai_programmatic = [
         fact
         for subscription in loaded
-        if subscription.provider == "xai"
+        if subscription.id in {"xai/subscription/supergrok", "xai/subscription/supergrok-plus"}
         for fact in subscription.facts
         if fact.facet == "offering.subscription.programmatic_or_agent_use"
     ]

@@ -1,9 +1,10 @@
-# MODEL-173. Primary sources read 2026-09-28. The pricing page names Grok 4.6,
-# which maps to catalogue model xai/grok-4-6.
-# MODEL-200 added the plan facts (surfaces, families_covered, coverage_quote,
-# allowance.*) from the facts and sources above only; nothing was re-read.
-# `unknown` means not yet researched (MODEL-201). Each new known fact enters
-# a snapshot once an independent second key verifies it.
+# MODEL-173 (read 2026-09-28), MODEL-200's plan facts, and MODEL-201
+# (read 2026-09-29).
+# Verbatim wording, surfaces and every null's reason:
+# docs/research/subscriptions/2026-09-29.md (scripts/model_201_collect.py).
+# Unknown means the retained copy does not show the value; not_disclosed
+# means the page was read and does not publish it.
+# SuperGrok: Re-read 2026-09-29: the plan card still names Grok 4.6, not 4.7.
 - kind: subscription
   provider: xai
   plan: supergrok
@@ -34,7 +35,7 @@
     value: [xai/grok-4-6]
     sources:
     - source_id: model-173-xai-consumer-pricing
-      snapshot_ref: sha256:3329cc8485fa3ff583280b157cf8852b2a17be663a028b1e2981751b88907510
+      snapshot_ref: sha256:6fa0677fdddfe3963d6134a243f72cb8949a7df8539b200353b2c65ba508df14
       cited_regions: [page]
   - id: xai/subscription/supergrok#offering.subscription.usage_allowance
     subject: {kind: offering, id: xai/subscription/supergrok}
@@ -92,6 +93,7 @@
     facet: offering.subscription.allowance.tokens
     state: unknown
     value: null
+# SuperGrok Plus: Re-read 2026-09-29: inherits SuperGrok's Grok 4.6.
 - kind: subscription
   provider: xai
   plan: supergrok-plus
@@ -122,7 +124,7 @@
     value: [xai/grok-4-6]
     sources:
     - source_id: model-173-xai-consumer-pricing
-      snapshot_ref: sha256:3329cc8485fa3ff583280b157cf8852b2a17be663a028b1e2981751b88907510
+      snapshot_ref: sha256:6fa0677fdddfe3963d6134a243f72cb8949a7df8539b200353b2c65ba508df14
       cited_regions: [page]
   - id: xai/subscription/supergrok-plus#offering.subscription.usage_allowance
     subject: {kind: offering, id: xai/subscription/supergrok-plus}
@@ -180,3 +182,149 @@
     facet: offering.subscription.allowance.tokens
     state: unknown
     value: null
+# SuperGrok Lite: Prices on grok.com/supergrok are drawn as digit animations; no copy
+#   shows them, so price and period are unknown, not undisclosed.
+- kind: subscription
+  provider: xai
+  plan: supergrok-lite
+  name: SuperGrok Lite
+  facts:
+  - id: xai/subscription/supergrok-lite#offering.subscription.price
+    subject: {kind: offering, id: xai/subscription/supergrok-lite}
+    facet: offering.subscription.price
+    state: unknown
+    value: null
+    checked_sources: [model-201-grok-supergrok]
+  - id: xai/subscription/supergrok-lite#offering.subscription.billing_period
+    subject: {kind: offering, id: xai/subscription/supergrok-lite}
+    facet: offering.subscription.billing_period
+    state: unknown
+    value: null
+    checked_sources: [model-201-grok-supergrok]
+  - id: xai/subscription/supergrok-lite#offering.subscription.models_covered
+    subject: {kind: offering, id: xai/subscription/supergrok-lite}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-grok-supergrok]
+    sources:
+    - source_id: model-201-grok-supergrok
+      snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-lite#offering.subscription.usage_allowance
+    subject: {kind: offering, id: xai/subscription/supergrok-lite}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 2x longer conversations in Chat
+    sources:
+    - source_id: model-201-grok-supergrok
+      snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-lite#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: xai/subscription/supergrok-lite}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-grok-supergrok]
+    sources:
+    - source_id: model-201-grok-supergrok
+      snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
+      cited_regions: [page]
+# SuperGrok Heavy: Price drawn as a digit animation, as for Lite. Includes X Premium+.
+- kind: subscription
+  provider: xai
+  plan: supergrok-heavy
+  name: SuperGrok Heavy
+  facts:
+  - id: xai/subscription/supergrok-heavy#offering.subscription.price
+    subject: {kind: offering, id: xai/subscription/supergrok-heavy}
+    facet: offering.subscription.price
+    state: unknown
+    value: null
+    checked_sources: [model-201-grok-supergrok]
+  - id: xai/subscription/supergrok-heavy#offering.subscription.billing_period
+    subject: {kind: offering, id: xai/subscription/supergrok-heavy}
+    facet: offering.subscription.billing_period
+    state: unknown
+    value: null
+    checked_sources: [model-201-grok-supergrok]
+  - id: xai/subscription/supergrok-heavy#offering.subscription.models_covered
+    subject: {kind: offering, id: xai/subscription/supergrok-heavy}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-grok-supergrok]
+    sources:
+    - source_id: model-201-grok-supergrok
+      snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-heavy#offering.subscription.usage_allowance
+    subject: {kind: offering, id: xai/subscription/supergrok-heavy}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: Highest usage at the fastest speed
+    sources:
+    - source_id: model-201-grok-supergrok
+      snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-heavy#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: xai/subscription/supergrok-heavy}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: not_disclosed
+    value: null
+    checked_sources: [model-201-grok-supergrok]
+    sources:
+    - source_id: model-201-grok-supergrok
+      snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
+      cited_regions: [page]
+# Grok Business: Per user.
+- kind: subscription
+  provider: xai
+  plan: business
+  name: Grok Business
+  facts:
+  - id: xai/subscription/business#offering.subscription.price
+    subject: {kind: offering, id: xai/subscription/business}
+    facet: offering.subscription.price
+    state: known
+    value: 30
+    sources:
+    - source_id: model-201-xai-business
+      snapshot_ref: sha256:4229887c1ce257e1c78412c3d0cf1011248565a7f04d76e02ac9699d93056a72
+      cited_regions: [page]
+  - id: xai/subscription/business#offering.subscription.billing_period
+    subject: {kind: offering, id: xai/subscription/business}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-201-xai-business
+      snapshot_ref: sha256:4229887c1ce257e1c78412c3d0cf1011248565a7f04d76e02ac9699d93056a72
+      cited_regions: [page]
+  - id: xai/subscription/business#offering.subscription.models_covered
+    subject: {kind: offering, id: xai/subscription/business}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [xai/grok-4-6]
+    sources:
+    - source_id: model-201-xai-business
+      snapshot_ref: sha256:4229887c1ce257e1c78412c3d0cf1011248565a7f04d76e02ac9699d93056a72
+      cited_regions: [page]
+  - id: xai/subscription/business#offering.subscription.usage_allowance
+    subject: {kind: offering, id: xai/subscription/business}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: Increased rate limits
+    sources:
+    - source_id: model-201-xai-business
+      snapshot_ref: sha256:4229887c1ce257e1c78412c3d0cf1011248565a7f04d76e02ac9699d93056a72
+      cited_regions: [page]
+  - id: xai/subscription/business#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: xai/subscription/business}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Grok Build
+    sources:
+    - source_id: model-201-xai-business
+      snapshot_ref: sha256:4229887c1ce257e1c78412c3d0cf1011248565a7f04d76e02ac9699d93056a72
+      cited_regions: [page]

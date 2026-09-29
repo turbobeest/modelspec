@@ -532,6 +532,266 @@ def test_subscription_page_extracts_supported_plan_facts(field, value, names, pa
     assert verify.compare(claim, readings) == []
 
 
+CHATGPT_MODELS = """Models
+GPT-6 Astra
+Plan: Go, Feature: GPT-6 Astra, No
+Plan: Plus, Feature: GPT-6 Astra, Yes
+Plan: Pro, Feature: GPT-6 Astra, Expanded
+GPT-5.6 Sol Pro
+Plan: Go, Feature: GPT-5.6 Sol Pro, No
+Plan: Plus, Feature: GPT-5.6 Sol Pro, No
+Plan: Pro, Feature: GPT-5.6 Sol Pro, Yes
+GPT-5.6 Terra
+Plan: Go, Feature: GPT-5.6 Terra, Limited access in Work and Codex on desktop
+Plan: Plus, Feature: GPT-5.6 Terra, Yes
+Plan: Pro, Feature: GPT-5.6 Terra, Unlimited*
+GPT-5 Thinking Mini
+Plan: Go, Feature: GPT-5 Thinking Mini, Yes
+Plan: Plus, Feature: GPT-5 Thinking Mini, Expanded
+Plan: Pro, Feature: GPT-5 Thinking Mini, Unlimited*
+GPT Instant total context window
+Plan: Plus, Feature: GPT Instant total context window, 54K
+Codex
+Plan: Plus, Feature: Codex, Yes
+"""
+
+
+def _chatgpt_models_claim(names, value):
+    return verify.Claim(
+        target=verify.TargetRef(kind="fact", id="openai/subscription/plan#models"),
+        subject="openai/subscription/plan",
+        names=names,
+        field="offering.subscription.models_covered",
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="model-201-openai-pricing",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+
+@pytest.mark.parametrize(
+    ("names", "value"),
+    [
+        (("ChatGPT Plus", "Plus"), ["openai/gpt-6-astra", "openai/gpt-5-6-terra"]),
+        (("ChatGPT Pro 20x", "Pro"), ["openai/gpt-6-astra", "openai/gpt-5-6-terra"]),
+        (("ChatGPT Go", "Go"), ["openai/gpt-5-6-terra"]),
+    ],
+)
+def test_subscription_page_reads_a_chatgpt_plan_column(names, value) -> None:
+    # GPT-5.6 Sol Pro and GPT-5 Thinking Mini have no catalogue ID: the facet
+    # holds catalogue IDs only, so they cannot be claimed and are not required.
+    claim = _chatgpt_models_claim(names, value)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, CHATGPT_MODELS)
+
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(
+    ("names", "value"),
+    [
+        # Go's GPT-6 Astra cell is "No".
+        (("ChatGPT Go", "Go"), ["openai/gpt-6-astra", "openai/gpt-5-6-terra"]),
+        # A catalogued model the column lists is missing from the claim.
+        (("ChatGPT Plus", "Plus"), ["openai/gpt-6-astra"]),
+    ],
+)
+def test_subscription_page_chatgpt_column_rejects_a_wrong_model_set(names, value) -> None:
+    claim = _chatgpt_models_claim(names, value)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, CHATGPT_MODELS)
+
+    assert [d.field for d in verify.compare(claim, readings)] == ["value"]
+
+
+TEAM_CARD = """Pricing varies by seat type and billing interval:
+Standard seats
+$25 per member per month, billed monthly
+$20 per member per month, billed annually
+Premium seats
+$125 per member per month, billed monthly
+$100 per member per month, billed annually
+"""
+MISTRAL_CARD = """Popular
+Pro
+Education plan
+Full access to Vibe for all-day coding and long-running tasks.
+$14.99
+/mo
+Excluding taxes
+"""
+ZAI_CARD = """## Max
+Max Usage
+Power use
+$117.6/month$168/month
+Subscribe
+- 14× Lite usage
+"""
+MINIMAX_TABLE = """| Plus | Max | Ultra
+Price | $22 /month | $55 /month | $132 /month
+Best for | Personal projects | Daily coding | Heavy Agent workflows
+"""
+GEMINI_TIERS = """Starting at:
+$99.99/ month
+$99.99/ month: 5x higher usage limits vs. AI Pro
+$199.99 / month: 20x higher usage limits vs. AI Pro
+"""
+SEAT_TABLE = """Seat type | Price per seat | Included access | Billing model
+Standard seat | Monthly plan: $25 per user per month Annual plan: $20 per user per month, billed annually | ChatGPT, ChatGPT Work, and Codex | Fixed per-user cost
+Premium seat | Monthly plan: $125 per user per month Annual plan: $100 per user per month, billed annually | ChatGPT, ChatGPT Work, and Codex with higher usage limits | Fixed per-user cost
+"""
+MODEL_LIST_TABLE = """| Pro
+Supported models | Only the following exact model versions are supported: Recommended models: qwen3.7-plus (vision), glm-5 , and MiniMax-M2.5 More models: qwen3-max-2026-01-23 , and glm-4.7 Models not listed above are not supported.
+Price | $ 50 /month
+"""
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "page"),
+    [
+        ("offering.subscription.price", 25, ("Standard seats",), TEAM_CARD),
+        ("offering.subscription.billing_period", "monthly", ("Standard seats",), TEAM_CARD),
+        ("offering.subscription.price", 125, ("Premium seats",), TEAM_CARD),
+        ("offering.subscription.price", 14.99, ("Pro",), MISTRAL_CARD),
+        ("offering.subscription.billing_period", "monthly", ("Pro",), MISTRAL_CARD),
+        ("offering.subscription.price", 168, ("Max",), ZAI_CARD),
+        ("offering.subscription.billing_period", "monthly", ("Max",), ZAI_CARD),
+        ("offering.subscription.price", 55, ("Max",), MINIMAX_TABLE),
+        ("offering.subscription.billing_period", "monthly", ("Ultra",), MINIMAX_TABLE),
+        ("offering.subscription.price", 199.99, ("Google AI Ultra 20x", "Ultra 20x"),
+         GEMINI_TIERS),
+        ("offering.subscription.usage_allowance", "5x higher usage limits vs. AI Pro",
+         ("Google AI Ultra 5x", "Ultra 5x"), GEMINI_TIERS),
+        ("offering.subscription.price", 125, ("Premium seat",), SEAT_TABLE),
+        ("offering.subscription.programmatic_or_agent_use",
+         "ChatGPT, ChatGPT Work, and Codex", ("Standard seat",), SEAT_TABLE),
+        ("offering.subscription.models_covered",
+         ["qwen/qwen3-7-plus", "zhipu/glm-5", "minimax/minimax-m2-5", "zhipu/glm-4-7"],
+         ("Pro",), MODEL_LIST_TABLE),
+        ("offering.subscription.models_covered", ["zhipu/glm-5-3", "zhipu/glm-5-3-flash"],
+         ("Lite",), "Supported Models\nAll plans support GLM-5.3, GLM-5.3-Flash.\n"),
+        ("offering.subscription.models_covered", ["xai/grok-4-6"], ("Business",),
+         "### Models\nImagine\nVoice\nGrok 4.6\n### Security & compliance\n"),
+    ],
+)
+def test_subscription_page_reads_plan_cards_and_tables(field, value, names, page) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"plan#{field}"),
+        subject="provider/subscription/plan",
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+PLAN_ARTICLE = """Skip to main content
+What is the Enterprise plan?
+Updated over
+Enterprise uses a single seat type, priced per user per month and billed annually.
+All usage is billed at API rates. There are no per-seat usage limits and no included token allowance.
+"""
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "page"),
+    [
+        ("offering.subscription.usage_allowance",
+         "There are no per-seat usage limits and no included token allowance.",
+         ("Claude Enterprise", "Enterprise plan"), PLAN_ARTICLE),
+        ("offering.subscription.billing_period", "annual",
+         ("Claude Enterprise", "Enterprise plan"), PLAN_ARTICLE),
+        ("offering.subscription.usage_allowance", "Up to 6,000 requests per 5 hours",
+         ("Pro",), "| Pro\nQuota | Up to 6,000 requests per 5 hours\n"),
+    ],
+)
+def test_subscription_page_reads_plan_articles_and_quota_rows(field, value, names, page) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"plan#{field}"),
+        subject="provider/subscription/plan",
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+def test_a_plan_article_does_not_speak_for_another_plan() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="plan#allowance"),
+        subject="provider/subscription/plan",
+        names=("Claude Team", "Team plan"),
+        field="offering.subscription.usage_allowance",
+        value="There are no per-seat usage limits and no included token allowance.",
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, PLAN_ARTICLE)
+
+    assert verify.compare(claim, readings) != []
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "page"),
+    [
+        # Another seat's price, and a seat's annual rate when a monthly one is published.
+        ("offering.subscription.price", 125, ("Standard seats",), TEAM_CARD),
+        ("offering.subscription.price", 20, ("Standard seats",), TEAM_CARD),
+        # Another tier's column and another tier's line.
+        ("offering.subscription.price", 22, ("Max",), MINIMAX_TABLE),
+        ("offering.subscription.price", 99.99, ("Google AI Ultra 20x", "Ultra 20x"),
+         GEMINI_TIERS),
+        # A price published only as billed annually is not a monthly plan.
+        ("offering.subscription.billing_period", "monthly", ("Pro",),
+         "Pro\nAdvanced answers\n$17\n/month when billed annually\n"),
+    ],
+)
+def test_subscription_page_plan_cards_reject_a_sibling_value(field, value, names, page) -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"plan#{field}"),
+        subject="provider/subscription/plan",
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) != []
+
+
 @pytest.mark.parametrize(
     "page",
     [
