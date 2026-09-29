@@ -82,12 +82,18 @@ jobs:
       - name: Byte-identity against `modelspec offline rank --json`
         run: python -m pytest -q tests/test_rank_worker.py
 
+      - name: The spec corpus's answers under the CLI's pydantic
+        # MODEL-203. The reference the next step holds the Worker's pydantic to:
+        # every corpus spec's status and body bytes under 2.13.
+        run: python -m tests.corpus decisions --out "$RUNNER_TEMP/corpus" --cache "$RUNNER_TEMP/corpus-snapshots"
+
       - name: The decision contract under the Worker's own pydantic
         # The deployed Worker runs the pydantic that Pyodide ships (pylock.toml:
         # 2.10.6), not the 2.13 above. 2.10 ignores `Field(exclude_if=...)`, so
         # the Worker's decisions drifted from the CLI's bytes until
         # `decision.contract._Strict` applied it itself (MODEL-200). Replays the
-        # byte-identity suites under the pinned version. JSON-schema generation
+        # byte-identity suites under the pinned version, and the whole spec
+        # corpus against the reference above (MODEL-203). JSON-schema generation
         # needs 2.12+ and never runs in the Worker, so its test is skipped.
         run: |
           pins=$(python -c "import tomllib; d = tomllib.load(open('api/worker/pylock.toml', 'rb')); print(' '.join(f\"{p['name']}=={p['version']}\" for p in d['packages'] if p['name'] in ('pydantic', 'pydantic-core')))")
@@ -97,6 +103,12 @@ jobs:
           "$RUNNER_TEMP/pyodide-pins/bin/python" -m pytest -q -W ignore \
             tests/test_decision_plans.py tests/test_decide_worker.py tests/test_decide_page_fixtures.py \
             --deselect tests/test_decision_plans.py::test_the_contract_took_the_next_minor_and_publishes_the_plan_types
+          # The corpus from the vendored bundle alone, as the isolate imports it,
+          # held byte for byte to the CPython reference above (MODEL-203). A file
+          # the bundle lacks (the hardware/ device IDs were one) fails here.
+          "$RUNNER_TEMP/pyodide-pins/bin/python" -m tests.corpus decisions --bundle api/worker/src \
+            --cache "$RUNNER_TEMP/corpus-snapshots" --out "$RUNNER_TEMP/corpus-worker"
+          python -m tests.corpus compare "$RUNNER_TEMP/corpus" "$RUNNER_TEMP/corpus-worker"
 
       - name: The policy-check endpoint (MODEL-80)
         # Runs under CPython against the real catalogue, with no determinations

@@ -19,6 +19,13 @@ class ExplanationError(ValueError):
     """A displayed measurement cannot be traced to a verified snapshot record."""
 
 
+#: An offering's provider, region and tier are its identity: structural, never
+#: a sourced claim, so they carry no record (``decision.snapshot``). A value
+#: preference on one used to fail its explanation (MODEL-203).
+OFFERING_IDENTITY = frozenset({"offering.provider", "offering.region", "offering.tier"})
+OFFERING_IDENTITY_FORMULA = "the offering's identity, which carries no source"
+
+
 #: Facets a top candidate always shows when known, beside those the spec names:
 #: what the decide page displays for a candidate (contract 1.4).
 DISPLAY_FACETS = (
@@ -96,6 +103,8 @@ def fact_provenance(snapshot, cid, facet_id):
         for rid in found.records:
             checked_record(snapshot, rid)
         return list(found.records), facet_unit(facet_id), found.formula
+    if facet_id in OFFERING_IDENTITY:
+        return [], None, OFFERING_IDENTITY_FORMULA
     fact = snapshot.fact(cid, facet_id)
     checked_record(snapshot, fact.record_id)
     return [fact.record_id], facet_unit(facet_id), None
@@ -820,7 +829,11 @@ def number_origins(decision, snapshot):
             or key in ("value", "values")
             and ("record_id" in parent or "condition" in parent or "facet" in parent)
         )
-        if raw and isinstance(parent, dict) and parent.get("formula"):
+        if raw and isinstance(parent, dict) and parent.get("preferred_value") is not None:
+            # A value preference's raw_value is whether the value matched, not
+            # the value: comparing it with the record failed every match (MODEL-203).
+            basis = "1 when the value is the preferred one, 0 when it is not"
+        elif raw and isinstance(parent, dict) and parent.get("formula"):
             # Computed per decision from the records listed (MODEL-153), so it is
             # checked against the formula, not against one record's value.
             basis = "computed per decision: " + parent["formula"]
