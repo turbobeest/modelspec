@@ -57,6 +57,7 @@ REGISTRY_SCHEMA_VERSIONS = {
     "providers": 1,
     "harnesses": 1,
     "domains": 1,
+    "refinements": 1,
 }
 
 #: A facet definition shorter than this is a label, not a definition.

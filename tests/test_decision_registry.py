@@ -341,6 +341,7 @@ def test_registry_schema_versions_are_independent_compatibility_gates():
         "providers": 1,
         "harnesses": 1,
         "domains": 1,
+        "refinements": 1,
     }
 
     assert reg.REGISTRY_SCHEMA_VERSIONS == expected
@@ -605,3 +606,23 @@ def test_retrieval_preselects_the_retrieval_task_type(registry):
     """The explicit retrieval drill-down starts on MTEB Retrieval."""
     domains = {d.id: d for d in registry.domains()}
     assert domains["retrieval"].default_benchmark == "mteb_v2_retrieval"
+
+
+def test_every_registry_document_read_has_a_schema_version_gate() -> None:
+    # #322 added registry/refinements.yaml without a REGISTRY_SCHEMA_VERSIONS
+    # entry; the loader raised KeyError only in the site build.
+    import re
+    from pathlib import Path
+
+    import yaml
+
+    from decision import registry
+
+    source = Path(registry.__file__).read_text(encoding="utf-8")
+    names = set(re.findall(r'_read\(root, "([a-z_]+)"', source))
+    assert "refinements" in names
+    root = Path(registry.__file__).resolve().parent.parent / "registry"
+    for name in sorted(names):
+        assert name in registry.REGISTRY_SCHEMA_VERSIONS, name
+        declared = yaml.safe_load((root / f"{name}.yaml").read_text(encoding="utf-8"))
+        assert declared["schema_version"] == registry.REGISTRY_SCHEMA_VERSIONS[name], name
