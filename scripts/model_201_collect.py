@@ -468,7 +468,8 @@ PLAN_FACTS: dict[str, dict[str, Any]] = {
             QUOTE: known("Access to all available models.", "model-201-anthropic-team-plan"),
             RELATIVE_TO: known("anthropic/subscription/pro", "model-201-anthropic-team-plan"),
             MULTIPLIER: known(multiple, "model-201-anthropic-team-plan"),
-            WINDOW: known("five hours", "model-201-anthropic-team-plan"),
+            # No window: the Team article mentions a "five-hour session limit" only
+            # in a note about limit resets, not as the plan's stated window.
         }
         for seat, multiple in (("standard", 1.25), ("premium", 6.25))
     },

@@ -1726,3 +1726,110 @@ def test_plan_facts_reject_what_the_page_does_not_say(field, value, names, subje
     readings = verify.SubscriptionPageExtractor().extract(claim, page)
 
     assert verify.compare(claim, readings) != []
+
+
+# Counterexamples from MODEL-201's independent review, on real page wording.
+TEAM_ARTICLE = """What is the Team plan?
+Standard seats: Team plan Standard seats include 1.25x the Pro plan's per-session usage allowance and have a weekly usage limit that applies across all models.
+Premium seats: Team plan Premium seats include 6.25x the Pro plan's per-session usage allowance and have a weekly usage limit that applies across all models.
+"""
+BUSINESS_INTRO = """ChatGPT Business - Overview
+Introducing Premium seats for ChatGPT Business. Premium seats cost $100 per user per month when billed annually, or $125 per user per month when billed monthly. Premium includes 5x more usage than Standard seats, no 5-hour usage limit.
+"""
+ENTERPRISE_ARTICLE = """What is the Enterprise plan?
+Enterprise uses a single seat type, priced per user per month and billed annually.
+Usage billing | Credits purchased upfront | Billed monthly in arrears
+"""
+XAI_CARD = """SuperGrok Plus
+$100/month
+Go further with significantly higher usage.
+Everything in SuperGrok, plus:
+Early access to new features
+Compare features across plans
+Free
+SuperGrok Heavy
+Grok Build
+Grok Bot
+"""
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "subject", "page"),
+    [
+        ("offering.subscription.allowance.multiplier", 20,
+         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x",
+         MAX_ARTICLE + "We do not offer standard discounted pricing any of our paid plans, "
+         "including Max 5x and 20x plans.\n"),
+        ("offering.subscription.allowance.multiplier", 20,
+         ("ChatGPT Pro 5x", "Pro $100", "Pro"), "openai/subscription/pro-5x",
+         "We're temporarily pausing new sign-ups and upgrades to the ChatGPT Pro $200 plan (Pro 20X).\n"),
+        ("offering.subscription.allowance.multiplier", 6.25,
+         ("Claude Team (Standard seat)", "Standard seats", "Team plan", "Team"),
+         "anthropic/subscription/team-standard", TEAM_ARTICLE),
+        ("offering.subscription.allowance.multiplier", 1.25,
+         ("Claude Team (Premium seat)", "Premium seats", "Team plan", "Team"),
+         "anthropic/subscription/team-premium", TEAM_ARTICLE),
+        ("offering.subscription.billing_period", "monthly",
+         ("Claude Enterprise", "Enterprise plan"), "anthropic/subscription/enterprise",
+         ENTERPRISE_ARTICLE),
+        ("offering.subscription.billing_period", "annual", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.billing_period", "annual", ("Standard seats",),
+         "anthropic/subscription/team-standard", TEAM_CARD),
+        ("offering.subscription.price", 100, ("ChatGPT Business (Standard seat)", "Standard seat"),
+         "openai/subscription/business-standard", BUSINESS_INTRO),
+        ("offering.subscription.price", 99.99, ("Google AI Pro", "AI Pro"),
+         "google-gemini-api/subscription/ai-pro", GEMINI_TIERS),
+        ("offering.subscription.price", 20, ("Google AI Pro", "AI Pro"),
+         "google-gemini-api/subscription/ai-pro", "Google AI Pro\n$19.99/ month\n"),
+        ("offering.subscription.programmatic_or_agent_use", "Grok Build",
+         ("SuperGrok Plus",), "xai/subscription/supergrok-plus", XAI_CARD),
+    ],
+)
+def test_review_counterexamples_do_not_verify(field, value, names, subject, page) -> None:
+    claim = _plan_claim(field, value, names, subject)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) != []
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "subject", "page"),
+    [
+        ("offering.subscription.allowance.multiplier", 1.25,
+         ("Claude Team (Standard seat)", "Standard seats", "Team plan", "Team"),
+         "anthropic/subscription/team-standard", TEAM_ARTICLE),
+        ("offering.subscription.billing_period", "annual",
+         ("Claude Enterprise", "Enterprise plan"), "anthropic/subscription/enterprise",
+         ENTERPRISE_ARTICLE),
+        ("offering.subscription.billing_period", "monthly", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.surfaces",
+         ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"],
+         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x",
+         CLAUDE_CODE_ARTICLE),
+    ],
+)
+def test_review_fixes_keep_the_true_value(field, value, names, subject, page) -> None:
+    claim = _plan_claim(field, value, names, subject)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+def test_a_subscription_price_must_match_exactly() -> None:
+    claim = _plan_claim("offering.subscription.price", 20, ("Google AI Pro",))
+    assert verify.compare(claim, [verify.Reading("Google AI Pro", "$19.99/ month")]) != []
+
+
+def test_unknown_model_names_are_dropped_only_for_models_covered() -> None:
+    claim = verify.Claim(
+        target=verify.TargetRef(kind="fact", id="m#base"), subject="lab/m",
+        names=("M",), field="origin.base_models", value=["openai/gpt-6-sol"],
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(source_id="s", snapshot_ref="sha256:" + "0" * 64,
+                                  cited_regions=["page"]),),
+    )
+    assert verify.compare(claim, [verify.Reading("M", "GPT-6 Sol, Not A Catalogued Model")]) != []

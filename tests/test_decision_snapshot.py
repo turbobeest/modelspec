@@ -209,13 +209,13 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
     index = load(path)
 
     subscriptions = {row["id"]: row for row in index.subscription_offerings()}
-    assert len(subscriptions) == 30
+    assert len(subscriptions) == 34
     facts = [fact for subscription in subscriptions.values()
              for fact in subscription["facts"].values()]
-    assert len(facts) == 134
-    # 119 known facts are filed; 12 verbatim access and allowance strings on
-    # multi-plan pages await a second key (MODEL-201) and are left out.
-    assert sum(fact.state == "known" for fact in facts) == 107
+    assert len(facts) == 218
+    # MODEL-201: 10 verbatim access and allowance strings on multi-plan pages
+    # await a second key and are left out, like every unknown plan fact.
+    assert sum(fact.state == "known" for fact in facts) == 183
     assert subscriptions["anthropic/subscription/max-20x"]["facts"][
         "offering.subscription.price"
     ] == FactValue("known", 200, ("model-201-anthropic-max-plan",))
@@ -247,6 +247,13 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
         "offering.subscription.models_covered",
         "offering.subscription.usage_allowance",
         "offering.subscription.programmatic_or_agent_use",
+        "offering.subscription.surfaces",
+        "offering.subscription.families_covered",
+        "offering.subscription.coverage_quote",
+        "offering.subscription.allowance.relative_to",
+        "offering.subscription.allowance.multiplier",
+        "offering.subscription.allowance.window",
+        "offering.subscription.price_cny",
     }
     assert not set(subscriptions).intersection(index.candidates())
 

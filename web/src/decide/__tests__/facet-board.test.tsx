@@ -651,4 +651,16 @@ describe("a stored estate after the vocabulary changes", () => {
     });
     expect(sanitized.notes.join(" ")).toMatch(/google-gemini-api\/subscription\/ai-ultra .*not in this snapshot/);
   });
+
+  it("keeps what an older vocabulary lists nothing for", () => {
+    const vocabulary: Vocabulary = {
+      ...realVocabulary,
+      estate: { providers: [], plans: [], devices: [] },
+    };
+    const held = { providers: ["anthropic"], plans: ["anthropic/subscription/pro"], hardware: ["apple_m3_max"] };
+    const sanitized = sanitizeBoardState({ selections: {}, mustOrder: [], estate: held }, vocabulary);
+
+    expect(sanitized.estate).toEqual(held);
+    expect(sanitized.notes).toEqual([]);
+  });
 });
