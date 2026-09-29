@@ -3855,8 +3855,8 @@
       "category": "coding",
       "tier": "fastest",
       "name": "Coding, fastest",
-      "tradeoff": "The fastest of the strong; coding strength weighs three times speed, so only a strong model wins on speed.",
-      "purpose": "Find an active coding model whose offering streams output fastest; coding strength weighs more than speed.",
+      "tradeoff": "The fastest of the strong; only models within 1.0 of the strongest coding estimate compete, and speed decides among them.",
+      "purpose": "Find an active coding model whose offering streams output fastest, among models within 1.0 of the strongest coding estimate.",
       "where": [
         {
           "condition": "model.class = text-generator",
@@ -3865,16 +3865,16 @@
         {
           "condition": "model.lifecycle = active",
           "reason": "An active model is still supported by its lab or provider."
+        },
+        {
+          "condition": "software_engineering >= best(1.0)",
+          "reason": "Keep only models whose coding estimate is within 1.0 of the strongest eligible model's; speed decides among them. A gap of 1.0 can be measurable but is not decisive."
         }
       ],
       "weights": {
         "offering.speed.throughput": {
-          "weight": 0.25,
-          "reason": "Among offerings of similar coding strength, prefer the one that produces output tokens fastest."
-        },
-        "software_engineering": {
-          "weight": 0.75,
-          "reason": "Weigh coding strength above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212)."
+          "weight": 1.0,
+          "reason": "Among the models the floor keeps, prefer the offering that produces output tokens fastest."
         }
       },
       "needs": {
@@ -3889,17 +3889,17 @@
         "x": "facet:offering.speed.throughput",
         "y": "capability:software_engineering"
       },
-      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "teaches": "Strength is a floor relative to the strongest eligible model, so speed can never buy it back. Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
       "spec": {
         "spec_version": 1,
         "where": [
           "model.class = text-generator",
-          "model.lifecycle = active"
+          "model.lifecycle = active",
+          "software_engineering >= best(1.0)"
         ],
         "optimize": {
           "weights": {
-            "offering.speed.throughput": 0.25,
-            "software_engineering": 0.75
+            "offering.speed.throughput": 1.0
           }
         }
       },
@@ -4135,8 +4135,8 @@
       "category": "writing",
       "tier": "fastest",
       "name": "Writing, fastest",
-      "tradeoff": "The fastest of the strong; writing quality weighs three times speed, so only a strong model wins on speed.",
-      "purpose": "Find an active text model whose offering streams output fastest; writing quality weighs more than speed.",
+      "tradeoff": "The fastest of the strong; only models within 1.0 of the strongest writing estimate compete, and speed decides among them.",
+      "purpose": "Find an active text model whose offering streams output fastest, among models within 1.0 of the strongest writing estimate.",
       "where": [
         {
           "condition": "model.class = text-generator",
@@ -4145,16 +4145,16 @@
         {
           "condition": "model.lifecycle = active",
           "reason": "An active model is still supported by its lab or provider."
+        },
+        {
+          "condition": "writing >= best(1.0)",
+          "reason": "Keep only models whose writing estimate is within 1.0 of the strongest eligible model's; speed decides among them. A gap of 1.0 can be measurable but is not decisive."
         }
       ],
       "weights": {
         "offering.speed.throughput": {
-          "weight": 0.25,
-          "reason": "Among offerings of similar writing quality, prefer the one that produces output tokens fastest."
-        },
-        "writing": {
-          "weight": 0.75,
-          "reason": "Weigh writing quality above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212)."
+          "weight": 1.0,
+          "reason": "Among the models the floor keeps, prefer the offering that produces output tokens fastest."
         }
       },
       "needs": {
@@ -4169,17 +4169,17 @@
         "x": "facet:offering.speed.throughput",
         "y": "capability:writing"
       },
-      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "teaches": "Strength is a floor relative to the strongest eligible model, so speed can never buy it back. Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
       "spec": {
         "spec_version": 1,
         "where": [
           "model.class = text-generator",
-          "model.lifecycle = active"
+          "model.lifecycle = active",
+          "writing >= best(1.0)"
         ],
         "optimize": {
           "weights": {
-            "offering.speed.throughput": 0.25,
-            "writing": 0.75
+            "offering.speed.throughput": 1.0
           }
         }
       },
@@ -4416,8 +4416,8 @@
       "category": "maths-reasoning",
       "tier": "fastest",
       "name": "Maths and reasoning, fastest",
-      "tradeoff": "The fastest of the strong; maths strength weighs three times speed, so only a strong model wins on speed.",
-      "purpose": "Find an active text model whose offering streams output fastest; maths weighs more than speed.",
+      "tradeoff": "The fastest of the strong; only models within 1.0 of the strongest maths estimate compete, and speed decides among them.",
+      "purpose": "Find an active text model whose offering streams output fastest, among models within 1.0 of the strongest maths estimate.",
       "where": [
         {
           "condition": "model.class = text-generator",
@@ -4426,16 +4426,16 @@
         {
           "condition": "model.lifecycle = active",
           "reason": "An active model is still supported by its lab or provider."
+        },
+        {
+          "condition": "maths >= best(1.0)",
+          "reason": "Keep only models whose maths estimate is within 1.0 of the strongest eligible model's; speed decides among them. A gap of 1.0 can be measurable but is not decisive."
         }
       ],
       "weights": {
         "offering.speed.throughput": {
-          "weight": 0.25,
-          "reason": "Among offerings of similar maths strength, prefer the one that produces output tokens fastest."
-        },
-        "maths": {
-          "weight": 0.75,
-          "reason": "Weigh maths strength above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212)."
+          "weight": 1.0,
+          "reason": "Among the models the floor keeps, prefer the offering that produces output tokens fastest."
         }
       },
       "needs": {
@@ -4450,17 +4450,17 @@
         "x": "facet:offering.speed.throughput",
         "y": "capability:maths"
       },
-      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "teaches": "Strength is a floor relative to the strongest eligible model, so speed can never buy it back. Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
       "spec": {
         "spec_version": 1,
         "where": [
           "model.class = text-generator",
-          "model.lifecycle = active"
+          "model.lifecycle = active",
+          "maths >= best(1.0)"
         ],
         "optimize": {
           "weights": {
-            "offering.speed.throughput": 0.25,
-            "maths": 0.75
+            "offering.speed.throughput": 1.0
           }
         }
       },
@@ -4710,7 +4710,7 @@
       "tier": "fastest",
       "name": "Long documents, fastest",
       "tradeoff": "Million-token context; the fastest of the strong, by short-prompt speed.",
-      "purpose": "Find a million-token text model whose offering streams its analysis fastest; writing quality weighs more than speed.",
+      "purpose": "Find a million-token text model whose offering streams its analysis fastest, among models within 1.0 of the strongest writing estimate.",
       "where": [
         {
           "condition": "model.class = text-generator",
@@ -4719,16 +4719,16 @@
         {
           "condition": "model.context_window >= 1000000",
           "reason": "The model must accept a million-token document in one request."
+        },
+        {
+          "condition": "writing >= best(1.0)",
+          "reason": "Keep only models whose writing estimate is within 1.0 of the strongest eligible model's; speed decides among them. A gap of 1.0 can be measurable but is not decisive."
         }
       ],
       "weights": {
         "offering.speed.throughput": {
-          "weight": 0.25,
-          "reason": "Among offerings of similar writing quality, prefer the one that produces output tokens fastest."
-        },
-        "writing": {
-          "weight": 0.75,
-          "reason": "Weigh writing quality above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212)."
+          "weight": 1.0,
+          "reason": "Among the models the floor keeps, prefer the offering that produces output tokens fastest."
         }
       },
       "needs": {
@@ -4743,17 +4743,17 @@
         "x": "facet:offering.speed.throughput",
         "y": "capability:writing"
       },
-      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "teaches": "Strength is a floor relative to the strongest eligible model, so speed can never buy it back. Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
       "spec": {
         "spec_version": 1,
         "where": [
           "model.class = text-generator",
-          "model.context_window >= 1000000"
+          "model.context_window >= 1000000",
+          "writing >= best(1.0)"
         ],
         "optimize": {
           "weights": {
-            "offering.speed.throughput": 0.25,
-            "writing": 0.75
+            "offering.speed.throughput": 1.0
           }
         }
       },
@@ -4979,22 +4979,22 @@
       "category": "retrieval",
       "tier": "fastest",
       "name": "Retrieval embeddings, fastest",
-      "tradeoff": "Fastest hosted embedding among the strong; retrieval quality weighs three times speed.",
-      "purpose": "Find the hosted embedding model with the fastest offering; retrieval quality weighs more than speed.",
+      "tradeoff": "Fastest hosted embedding among the strong; only models within 1.0 of the strongest retrieval estimate compete.",
+      "purpose": "Find the hosted embedding model with the fastest offering, among models within 1.0 of the strongest retrieval estimate.",
       "where": [
         {
           "condition": "model.class = vectoriser",
           "reason": "Retrieval embeddings require the model class that emits vectors."
+        },
+        {
+          "condition": "retrieval >= best(1.0)",
+          "reason": "Keep only models whose retrieval estimate is within 1.0 of the strongest eligible model's; speed decides among them. A gap of 1.0 can be measurable but is not decisive."
         }
       ],
       "weights": {
         "offering.speed.throughput": {
-          "weight": 0.25,
-          "reason": "Among offerings of similar retrieval quality, prefer the one that produces output tokens fastest."
-        },
-        "retrieval": {
-          "weight": 0.75,
-          "reason": "Weigh retrieval quality above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212)."
+          "weight": 1.0,
+          "reason": "Among the models the floor keeps, prefer the offering that produces output tokens fastest."
         }
       },
       "needs": {
@@ -5009,16 +5009,16 @@
         "x": "facet:offering.speed.throughput",
         "y": "capability:retrieval"
       },
-      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "teaches": "Strength is a floor relative to the strongest eligible model, so speed can never buy it back. Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
       "spec": {
         "spec_version": 1,
         "where": [
-          "model.class = vectoriser"
+          "model.class = vectoriser",
+          "retrieval >= best(1.0)"
         ],
         "optimize": {
           "weights": {
-            "offering.speed.throughput": 0.25,
-            "retrieval": 0.75
+            "offering.speed.throughput": 1.0
           }
         }
       },
@@ -5254,8 +5254,8 @@
       "category": "assistant",
       "tier": "fastest",
       "name": "General assistant, fastest",
-      "tradeoff": "The fastest of the strong; response quality weighs three times speed, so only a strong model wins on speed.",
-      "purpose": "Find an active assistant whose offering streams output fastest; response quality weighs more than speed.",
+      "tradeoff": "The fastest of the strong; only models within 1.0 of the strongest response-quality estimate compete, and speed decides among them.",
+      "purpose": "Find an active assistant whose offering streams output fastest, among models within 1.0 of the strongest response-quality estimate.",
       "where": [
         {
           "condition": "model.class = text-generator",
@@ -5264,16 +5264,16 @@
         {
           "condition": "model.lifecycle = active",
           "reason": "An active model is still supported by its lab or provider."
+        },
+        {
+          "condition": "chat_preference >= best(1.0)",
+          "reason": "Keep only models whose response-quality estimate is within 1.0 of the strongest eligible model's; speed decides among them. A gap of 1.0 can be measurable but is not decisive."
         }
       ],
       "weights": {
         "offering.speed.throughput": {
-          "weight": 0.25,
-          "reason": "Among offerings of similar response quality, prefer the one that produces output tokens fastest."
-        },
-        "chat_preference": {
-          "weight": 0.75,
-          "reason": "Weigh response quality above speed, so a model must reach two thirds of the lineup's range to win on speed (MODEL-212)."
+          "weight": 1.0,
+          "reason": "Among the models the floor keeps, prefer the offering that produces output tokens fastest."
         }
       },
       "needs": {
@@ -5288,17 +5288,17 @@
         "x": "facet:offering.speed.throughput",
         "y": "capability:chat_preference"
       },
-      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "teaches": "Strength is a floor relative to the strongest eligible model, so speed can never buy it back. Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
       "spec": {
         "spec_version": 1,
         "where": [
           "model.class = text-generator",
-          "model.lifecycle = active"
+          "model.lifecycle = active",
+          "chat_preference >= best(1.0)"
         ],
         "optimize": {
           "weights": {
-            "offering.speed.throughput": 0.25,
-            "chat_preference": 0.75
+            "offering.speed.throughput": 1.0
           }
         }
       },
@@ -5549,25 +5549,25 @@
       "tier": "fastest",
       "name": "High volume, fastest",
       "tradeoff": "Short requests at scale; the fastest of the strong, cost counts.",
-      "purpose": "Find a text model for many short requests whose offering streams output fastest among strong, affordable models.",
+      "purpose": "Find a text model for many short requests whose offering streams output fastest and costs little, among models within 1.0 of the strongest response-quality estimate.",
       "where": [
         {
           "condition": "model.class = text-generator",
           "reason": "The workload needs generated text responses."
+        },
+        {
+          "condition": "chat_preference >= best(1.0)",
+          "reason": "Keep only models whose response-quality estimate is within 1.0 of the strongest eligible model's; speed decides among them. A gap of 1.0 can be measurable but is not decisive."
         }
       ],
       "weights": {
-        "chat_preference": {
-          "weight": 0.75,
-          "reason": "Weigh response quality three times speed and cost together, so a fast, cheap but weak model cannot win (MODEL-212)."
-        },
         "offering.speed.throughput": {
-          "weight": 0.15,
-          "reason": "Among offerings of similar quality, prefer the one that produces output tokens fastest."
+          "weight": 0.6,
+          "reason": "Among the models the floor keeps, prefer the offering that produces output tokens fastest."
         },
         "-offering.cost_per_task": {
-          "weight": 0.1,
-          "reason": "At volume, cost still counts."
+          "weight": 0.4,
+          "reason": "At volume, cost still counts, in the same proportion to speed as before the floor."
         }
       },
       "task_tokens": {
@@ -5586,17 +5586,17 @@
         "x": "facet:offering.speed.throughput",
         "y": "facet:offering.cost_per_task"
       },
-      "teaches": "Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
+      "teaches": "Strength is a floor relative to the strongest eligible model, so speed can never buy it back. Speed is a Prefer, not a gate. An offering without a measured speed may qualify but is not ranked, so this tier answers only once speeds are published.",
       "spec": {
         "spec_version": 1,
         "where": [
-          "model.class = text-generator"
+          "model.class = text-generator",
+          "chat_preference >= best(1.0)"
         ],
         "optimize": {
           "weights": {
-            "chat_preference": 0.75,
-            "offering.speed.throughput": 0.15,
-            "-offering.cost_per_task": 0.1
+            "offering.speed.throughput": 0.6,
+            "-offering.cost_per_task": 0.4
           }
         },
         "task_tokens": {

@@ -1301,7 +1301,9 @@ that used to be accepted is a major change; accepting more is not.
   the funnel lists it after them; see [Relative to the best](#relative-to-the-best).
   A condition on a capability domain now reads the capability estimate: before,
   `software_engineering >= model(…)`, `software_engineering >= 0.5` and
-  `known(software_engineering)` left every model unknown. Additive:
+  `known(software_engineering)` left every model unknown. Every Fastest
+  template now keeps the models within `best(1.0)` on its domain and ranks
+  them by speed alone (High volume: speed 0.6, cost 0.4). Additive:
   `Compare.value` accepts one more shape, and no decision field changes.
 - **2.10 — MODEL-221:** A decision adds `feedback`: the endpoint, request
   schema, the five ratings and the CLI line for telling ModelSpec whether the
