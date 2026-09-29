@@ -3240,8 +3240,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.4'
-          default: '2.4'
+          const: '2.5'
+          default: '2.5'
           title: Contract Version
           type: string
         decision_id:
@@ -4148,7 +4148,7 @@ components:
     DecisionModelOffering:
       additionalProperties: false
       description: One offering of a model in ``by_model``, with why it is or is not ranked. Added in
-        2.4.
+        2.5.
       properties:
         offering:
           $ref: '#/components/schemas/DecisionOfferingRef'
@@ -4203,7 +4203,7 @@ components:
       type: object
     DecisionModelRow:
       additionalProperties: false
-      description: 'One model, with all its offerings, in ranking order. Added in 2.4.
+      description: 'One model, with all its offerings, in ranking order. Added in 2.5.
 
 
         A model is ``ranked`` when any offering is, else ``may_qualify`` when any
@@ -5272,7 +5272,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:
@@ -5324,7 +5324,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:
@@ -5349,7 +5349,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:
@@ -5403,7 +5403,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:
@@ -5743,7 +5743,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:

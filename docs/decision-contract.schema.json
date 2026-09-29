@@ -691,8 +691,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.4",
-          "default": "2.4",
+          "const": "2.5",
+          "default": "2.5",
           "title": "Contract Version",
           "type": "string"
         },
@@ -2101,7 +2101,7 @@
     },
     "ModelOffering": {
       "additionalProperties": false,
-      "description": "One offering of a model in ``by_model``, with why it is or is not ranked. Added in 2.4.",
+      "description": "One offering of a model in ``by_model``, with why it is or is not ranked. Added in 2.5.",
       "properties": {
         "cost_per_task": {
           "anyOf": [
@@ -2186,7 +2186,7 @@
     },
     "ModelRow": {
       "additionalProperties": false,
-      "description": "One model, with all its offerings, in ranking order. Added in 2.4.\n\nA model is ``ranked`` when any offering is, else ``may_qualify`` when any\nis unknown on a facet, else ``eliminated``. ``rank`` is ``Result.model_rank``.\nEliminated models appear only when the explanation carries eliminations.",
+      "description": "One model, with all its offerings, in ranking order. Added in 2.5.\n\nA model is ``ranked`` when any offering is, else ``may_qualify`` when any\nis unknown on a facet, else ``eliminated``. ``rank`` is ``Result.model_rank``.\nEliminated models appear only when the explanation carries eliminations.",
       "properties": {
         "cost_per_task": {
           "anyOf": [
@@ -3926,5 +3926,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.4"
+  "x-contract-version": "2.5"
 }
