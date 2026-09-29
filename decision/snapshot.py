@@ -1044,6 +1044,46 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
     test compile fixture speed numbers; ``build_from_repo`` never passes it.
     A measurement older than its staleness limit at ``as_of`` stays out.
     """
+    c = _compile(inputs, registry, guard, as_of, allow_fixture_measurements)
+    premier = None if premier is None else tuple(premier)
+    if premier is not None and gate:
+        gaps = c.gaps(premier)
+        if gaps:
+            raise CompletenessError(gaps)
+    return _finish(c, as_of, premier, guard)
+
+
+@dataclass(frozen=True)
+class BuildAudit:
+    """What a premier build admitted, and what it kept out and why (MODEL-215).
+
+    ``rejected`` maps (subject, facet) to the reason a fact stayed out: the
+    same reasons the completeness gate prints, for every facet, not only the
+    guaranteed ones. ``excluded`` counts every record kept out, by subject.
+    """
+
+    snapshot: Snapshot
+    gaps: tuple[Gap, ...]
+    rejected: Mapping[tuple[str, str], str]
+    excluded: Mapping[str | None, Mapping[str, int]]
+
+
+def audit_build(inputs: SnapshotInputs, *, registry: Any, premier: Iterable[str],
+                as_of: date | None, guard: ExcludedSources | None) -> BuildAudit:
+    """Compile a premier build without the gate and keep the compiler's reasons."""
+    c = _compile(inputs, registry, guard, as_of, False)
+    premier = tuple(premier)
+    gaps = tuple(c.gaps(premier))
+    return BuildAudit(
+        snapshot=_finish(c, as_of, premier, guard),
+        gaps=gaps,
+        rejected={key: reason for key, (reason, _urls) in c.rejected.items()},
+        excluded={sid: dict(counts) for sid, counts in c.excluded.items()},
+    )
+
+
+def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | None,
+             as_of: date | None, allow_fixture_measurements: bool) -> _Compiler:
     c = _Compiler(inputs, registry, guard, as_of, allow_fixture_measurements)
     for m in inputs.models:
         c.add_model(m)
@@ -1053,11 +1093,11 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
         c.add_subscription(subscription)
     for e in inputs.evidence:
         c.add_evidence(e)
-    premier = None if premier is None else tuple(premier)
-    if premier is not None and gate:
-        gaps = c.gaps(premier)
-        if gaps:
-            raise CompletenessError(gaps)
+    return c
+
+
+def _finish(c: _Compiler, as_of: date | None, premier: tuple[str, ...] | None,
+            guard: ExcludedSources | None) -> Snapshot:
     content = c.content(as_of, premier)
     if guard is not None:
         text = canonical_json(content).decode("utf-8")

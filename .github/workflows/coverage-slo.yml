@@ -1,0 +1,87 @@
+name: Coverage report
+
+# MODEL-215. Once a day: measure every coverage target in
+# docs/method/coverage-slo.md, publish the report to the `coverage` Pages
+# branch, and keep one GitHub issue per breached target. A breach does not
+# fail this job; a report that cannot be written does.
+#
+# Cost: one job, about four minutes (the snapshot build reads every card), and
+# about a dozen REST calls: one per watched workflow, one issue listing, and
+# one per issue change.
+
+on:
+  schedule:
+    # After the 06:00-07:00 UTC research, curation and accuracy runs finish.
+    - cron: '37 9 * * *'
+  workflow_dispatch:
+    inputs:
+      stage_breach:
+        description: 'A target id to give a synthetic breach, to prove the alert path'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+concurrency:
+  group: coverage-slo
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Measure the coverage targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      STAGE_BREACH: ${{ inputs.stage_breach }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install
+        run: python -m pip install -e .
+
+      - name: Measure every target
+        run: |
+          stage=()
+          if [ -n "$STAGE_BREACH" ]; then stage=(--stage-breach "$STAGE_BREACH"); fi
+          python -m scripts.slo report --out coverage-report "${stage[@]}"
+          cat coverage-report/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report/
+          retention-days: 14
+
+      - name: Open, update, escalate and close breach issues
+        run: python -m scripts.slo alert --report coverage-report/coverage.json --apply
+
+      - name: Check the Pages credentials are present
+        id: creds
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "::warning::No Cloudflare credentials; the report is in the run artifact only."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # A preview branch of the modelspec Pages project, never production.
+      - name: Publish the report page
+        if: steps.creds.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy coverage-report --project-name=modelspec --branch=coverage

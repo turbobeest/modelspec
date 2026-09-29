@@ -1,0 +1,98 @@
+# Coverage targets (MODEL-215). The prose is docs/method/coverage-slo.md;
+# tests/test_coverage_slo.py holds the two to the same ids and numbers.
+#
+# A target is `in_force: false` until the thing it measures exists. The report
+# still measures it, and never counts it as met.
+
+schema_version: 1
+
+# The daily report's published home: a Pages branch of the modelspec project,
+# deployed by .github/workflows/coverage-slo.yml. Never linked from the site.
+report_url: https://coverage.modelspec-7np.pages.dev/
+
+# Who a breach older than `escalate_after_hours` notifies, by GitHub mention.
+notify: ["@turbobeest"]
+escalate_after_hours: 24
+issue_label: coverage-slo
+
+targets:
+  - id: new-model-cards
+    title: A new model from a tracked lab has a card within 24 hours
+    in_force: true
+    grace_days: 1
+    window_days: 30
+
+  - id: lab-release-feeds
+    title: Every lab with a lineup model has a release feed
+    in_force: true
+
+  - id: lineup-domain-evidence
+    title: Every lineup model has verified evidence in each domain it claims
+    in_force: true
+
+  - id: live-reading-age
+    title: Every live board reading on a lineup model was re-read within 30 days
+    in_force: true
+    max_age_days: 30
+
+  - id: thin-evidence
+    title: Every lineup model has admitted evidence on at least two benchmarks
+    in_force: true
+    # MIN_BENCHMARK_COUNT in api/ranking/engine.py; the test holds them equal.
+    min_benchmarks: 2
+
+  - id: lineup-facts-verified
+    title: Every fact stated on a lineup model or offering is verified
+    in_force: true
+
+  - id: offering-price-age
+    title: Lineup offering prices were re-read within 7 days
+    in_force: true
+    max_age_days: 7
+
+  - id: plan-age
+    title: Subscription plans were re-read within 7 days
+    in_force: true
+    max_age_days: 7
+
+  - id: premier-speed-age
+    title: Premier offerings have speed readings within 14 days
+    # Comes into force when the MODEL-230 pilot and baseline have run.
+    in_force: false
+    max_age_days: 14
+
+  - id: workflow-health
+    title: Every coverage workflow's latest run on main succeeded, on time
+    in_force: true
+
+# Premier-list domain names (premier/slice-1.yaml) to registry/domains.yaml
+# ids. Evidence in any listed registry domain satisfies the premier domain.
+domain_map:
+  software-engineering: [software_engineering]
+  reasoning-and-maths: [maths, reasoning, engineering_stem]
+  chat-or-preference: [chat_preference]
+  retrieval-and-embedding: [retrieval]
+  vision: [vision_documents]
+
+# The workflows that keep the catalogue current. `max_age_hours` is how old
+# the latest completed run may be; omit it for push-triggered workflows.
+# `skipped_ok: false` counts a run whose every job was skipped (a disabled
+# pipeline) as a breach.
+workflows:
+  - file: daily-research.yml
+    max_age_hours: 30
+  - file: release-signals.yml
+    max_age_hours: 3
+    skipped_ok: false
+  - file: leaderboard-refresh.yml
+    max_age_hours: 192
+  - file: curation-benchmarks.yml
+    max_age_hours: 30
+  - file: accuracy-nightly.yml
+    max_age_hours: 30
+  - file: card-stats.yml
+    max_age_hours: 192
+  - file: coverage-slo.yml
+    max_age_hours: 30
+  - file: deploy-sites.yml
+  - file: rank-api.yml
