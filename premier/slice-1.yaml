@@ -1565,16 +1565,26 @@ near_misses:
   class: text-generator
   slice1_group: open-weights-generation
   why: clause 2; among the three newest nvidia releases in the window and not needed to fill a quota
+- model_id: openai/gpt-daybreak-red-latest
+  display_name: Daybreak Red
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest openai releases in the window and not needed to fill a quota
+- model_id: openai/gpt-daybreak-blue-latest
+  display_name: Daybreak Blue
+  class: text-generator
+  slice1_group: frontier-generation
+  why: clause 2; among the three newest openai releases in the window and not needed to fill a quota
 - model_id: openai/gpt-5-6
   display_name: GPT-5.6
   class: text-generator
   slice1_group: frontier-generation
   why: clause 2; among the three newest openai releases in the window and not needed to fill a quota
-- model_id: openai/gpt-realtime-2-1
-  display_name: GPT-Realtime-2.1
+- model_id: qwen/qwen3-8-omni-flash
+  display_name: Qwen3.8 Omni Flash
   class: text-generator
   slice1_group: frontier-generation
-  why: clause 2; among the three newest openai releases in the window and not needed to fill a quota
+  why: clause 2; among the three newest qwen releases in the window and not needed to fill a quota
 - model_id: qwen/qwen3-8-flash
   display_name: Qwen3.8 Flash
   class: text-generator
@@ -1582,11 +1592,6 @@ near_misses:
   why: clause 2; among the three newest qwen releases in the window and not needed to fill a quota
 - model_id: cerebras/qwen-3-8-27b
   display_name: Qwen3.8 27B
-  class: text-generator
-  slice1_group: open-weights-generation
-  why: clause 2; among the three newest qwen releases in the window and not needed to fill a quota
-- model_id: qwen/qwen3-8-2-4t-a95b
-  display_name: Qwen3.8 2.4T A95B
   class: text-generator
   slice1_group: open-weights-generation
   why: clause 2; among the three newest qwen releases in the window and not needed to fill a quota
@@ -1608,6 +1613,6 @@ near_misses:
 counts:
   selected: 44
   clause_1_cards: 70
-  clause_2_pool: 41
+  clause_2_pool: 45
   clause_3_pool: 7
   missing_top10_rows: 0
