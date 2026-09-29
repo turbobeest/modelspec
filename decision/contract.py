@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "2.1"
+CONTRACT_VERSION = "2.2"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1350,7 +1350,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.1"] = CONTRACT_VERSION
+    contract_version: Literal["2.2"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.

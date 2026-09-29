@@ -35,7 +35,7 @@ are the Worker's declared Python dependencies.
 
 The JSON body is a Spec from [`decision-contract.md`](decision-contract.md).
 `spec_version` is the integer `1`; the current compatible contract release is
-`1.11`.
+`2.2`.
 
 ```http
 POST /v1/decide
@@ -107,7 +107,7 @@ shown indented here for reading.
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "1.11",
+  "contract_version": "2.2",
   "decision_id": "dec_0123456789abcdef01234567",
   "snapshot": "snap_0123456789abcdef",
   "spec_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -204,7 +204,7 @@ confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 
 ```json
 {
-  "contract_version": "1.11",
+  "contract_version": "2.2",
   "endpoint": "decide",
   "snapshot": "snap_new0123456789ab",
   "error": {

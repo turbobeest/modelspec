@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.1**
+Contract version: **2.2**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -389,7 +389,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.1",
+  "contract_version": "2.2",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -465,7 +465,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.1"`. |
+| `contract_version` | `"2.2"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |

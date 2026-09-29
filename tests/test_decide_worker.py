@@ -345,7 +345,7 @@ def test_refinement_weights_are_rejected_until_the_refinement_estimator_lands(
     status, body = service.decide(payload, snapshot)
 
     assert status == 400
-    assert body["contract_version"] == "1.11"
+    assert body["contract_version"] == "2.2"
     assert body["error"] == {
         "code": "invalid_spec",
         "message": (
