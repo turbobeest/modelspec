@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Spec } from "../engine/types";
-import type { Vocabulary, VocabFacet, VocabRefinement } from "../vocabulary";
+import type { Vocabulary, VocabFacet, VocabRefinement, VocabTemplate } from "../vocabulary";
+import type { CanvasAxes } from "../components/FreeAxisCanvas";
+import { isCanvasAxisId } from "../components/canvas-axis";
+import { TemplatePicker } from "./TemplatePicker";
+import type { ActiveTemplate } from "./templates";
 import {
   allocateBoardWeights, boardToSpec, defaultFacetOp, defaultFacetValue, facetGroup, GROUP_ORDER,
   groupFacets, nextMustOrder, readEstate, refinementSelectionId, supportsPreference,
@@ -162,7 +166,7 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string> }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -172,6 +176,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     else setLocalSelections(next);
   };
   const [templatesOpen, setTemplatesOpen] = useState(true);
+  const [activeTemplate, setActiveTemplate] = useState<ActiveTemplate | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const active = new Set(Object.entries(selections ?? {}).flatMap(([id, choice]) => choice.mode === "off" ? [] : [facetGroup(id)]));
     return Object.fromEntries(GROUP_ORDER.map((name) => [name, name === "What it's good at" || active.has(name)]));
@@ -196,9 +201,16 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     setSelected(sanitized.selections); onNotes?.(sanitized.notes);
     onSpec(boardToSpec(spec, vocabulary, sanitized.selections, sanitized.mustOrder));
   };
-  const applyTemplate = (template: NonNullable<Vocabulary["templates"]>[number]) => {
+  const applyTemplate = (template: VocabTemplate, refinement: VocabRefinement | null = null) => {
     const converted = templateToBoard(template, vocabulary);
-    const sanitized = sanitizeBoardState({ selections: converted.selections, mustOrder: converted.mustOrder, estate }, vocabulary);
+    // A subcategory is a Prefer on one refinement, sharing its parent domain's weight.
+    const selections = refinement
+      ? allocateBoardWeights(vocabulary, {
+          ...converted.selections,
+          [refinementSelectionId(refinement.id)]: { mode: "prefer", reason: `Subcategory: ${refinement.name}.` },
+        }).selections
+      : converted.selections;
+    const sanitized = sanitizeBoardState({ selections, mustOrder: converted.mustOrder, estate }, vocabulary);
     const all = sanitized.selections;
     const activeGroups = grouped.groups.filter((group) => group.facets.some((facet) => ["must", "prefer", "both"].includes(all[facet.id]?.mode)));
     setExpandedGroups((current) => Object.fromEntries(grouped.groups.map((group) => [group.name, group.name === "What it's good at" || activeGroups.some((active) => active.name === group.name) || current[group.name] === true])));
@@ -206,19 +218,30 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     const templateSpec = { ...spec, tokIn: taskTokens.input, tokOut: taskTokens.output };
     if (onMustOrder) onMustOrder(sanitized.mustOrder); else setLocalMustOrder(sanitized.mustOrder);
     setSelected(all); onNotes?.(sanitized.notes); setTemplatesOpen(false);
+    setActiveTemplate({ id: template.id, refinement: refinement?.id ?? null });
+    const canvas = template.canvas;
+    if (canvas && isCanvasAxisId(canvas.x) && isCanvasAxisId(canvas.y)) onCanvasAxes?.({ x: canvas.x, y: canvas.y });
     onSpec(boardToSpec(templateSpec, vocabulary, all, sanitized.mustOrder));
   };
+  const resetAll = () => {
+    const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary);
+    setSelected(empty.selections);
+    if (onMustOrder) onMustOrder([]); else setLocalMustOrder([]);
+    onNotes?.([]);
+    setExpandedGroups({ "What it's good at": true });
+    // Reset clears the spec, never the template card: it returns to its bar.
+    setActiveTemplate(null); setTemplatesOpen(false);
+    onSpec(boardToSpec(spec, vocabulary, empty.selections, []));
+  };
   return <div className="facet-board">
-    <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div>{vocabulary.templates?.length ? <button aria-expanded={templatesOpen} onClick={() => setTemplatesOpen(!templatesOpen)}>ⓘ Templates</button> : null}</div>
-    {templatesOpen && vocabulary.templates?.length ? <section className="board-templates"><span className="eyebrow">Start from a template</span><div>{vocabulary.templates.map((template) => template.available
-      ? <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.purpose}</span></button>
-      : <article className="template-unavailable" key={template.id}><strong>{template.name}</strong><span>{template.unavailable_reason}</span><details><summary>Info</summary><p>{template.purpose}</p><p>{template.unavailable_reason}</p></details></article>)}</div></section> : null}
+    <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div></div>
+    <TemplatePicker vocabulary={vocabulary} active={activeTemplate} open={templatesOpen} onOpen={setTemplatesOpen} onApply={applyTemplate} />
     {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}
     {onAccess && <AccessQuestion access={access} onAccess={onAccess} />}
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
     <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
     <div className="board-workspace">
-      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{activeSelectionCount} set</small></span><button onClick={() => { const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary); setSelected(empty.selections); if (onMustOrder) onMustOrder([]); else setLocalMustOrder([]); onNotes?.([]); setExpandedGroups({ "What it's good at": true }); onSpec(boardToSpec(spec, vocabulary, empty.selections, [])); }}>Reset all</button></header>
+      <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{activeSelectionCount} set</small></span><button onClick={resetAll}>Reset all</button></header>
         <div className="facet-columns" aria-hidden="true"><span>Facet</span><span>Known</span><span>State</span></div>
         {grouped.groups.map((group) => {
           const active = group.facets.filter((facet) => selected[facet.id]?.mode && selected[facet.id]?.mode !== "off");

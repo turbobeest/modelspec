@@ -97,17 +97,16 @@ async function applyTemplateThenReset(page: Page) {
   await page.getByRole("button", { name: "Reset all" }).click();
 }
 
-// The setup on its own, so the expected failure below cannot pass because the
-// board never offered a template or never reached Reset all.
 test("a template applies and Reset all runs", async ({ page }) => {
   await applyTemplateThenReset(page);
   await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible();
 });
 
 test("the templates are offered again after Reset all", async ({ page }) => {
-  // MODEL-204 fixes this; until it lands the board hides the templates for good
-  // once one is applied. Remove test.fail when 204 merges.
-  test.fail();
   await applyTemplateThenReset(page);
-  await expect(page.getByText("Start from a template")).toBeVisible({ timeout: 5000 });
+  const bar = page.getByRole("button", { name: /Start from a template/ });
+  await expect(bar).toBeVisible({ timeout: 5000 });
+  await expect(bar).toHaveAttribute("aria-expanded", "false");
+  await bar.click();
+  await expect(page.locator(".board-templates").getByRole("button").first()).toBeVisible();
 });

@@ -16,7 +16,7 @@ from decision.contract import DEFAULT_TASK_TOKENS, parse_spec
 from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
-from decision.templates import load_templates
+from decision.templates import load_catalogue
 from pipeline import landing
 from pipeline.load import load_models
 
@@ -65,12 +65,23 @@ def test_every_published_template_route_is_an_engine_result(data: landing.Landin
     cards = {model.model_id: model for model in load_models(ROOT)}
     expected: list[tuple[str, str, str, float]] = []
     unpriced_results: list[str] = []
-    for template in load_templates(registry=registry):
-        spec = parse_spec(template["spec"] | {"explain": "none", "limit": 1},
-                          facets=registry.facet)
-        answer = decide(spec, loaded, facets=registry.facet)
-        if not answer.results:
+    catalogue = load_catalogue(registry=registry)
+    # One template per category: its Balanced tier, else the first tier that answers.
+    order = ["balanced", *(tier["id"] for tier in catalogue["tiers"] if tier["id"] != "balanced")]
+    for category in catalogue["categories"]:
+        answered = None
+        for template in sorted((row for row in catalogue["templates"]
+                                if row["category"] == category["id"]),
+                               key=lambda row: order.index(row["tier"])):
+            spec = parse_spec(template["spec"] | {"explain": "none", "limit": 1},
+                              facets=registry.facet)
+            answer = decide(spec, loaded, facets=registry.facet)
+            if answer.results:
+                answered = template, spec, answer
+                break
+        if answered is None:
             continue
+        template, spec, answer = answered
         result = answer.results[0]
         candidate = landing._offering_id(result)
         task_view = with_computed(loaded, spec.task_tokens or DEFAULT_TASK_TOKENS)

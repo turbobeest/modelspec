@@ -84,8 +84,14 @@ const refinementSchema = z.object({
   ),
   weight_key: z.string(),
 });
+const canvasAxisId = z.string().regex(/^(?:facet|capability):[a-z][a-z0-9_.-]*$/);
 const templateSchema = z.object({
   id: z.string(),
+  /** 2.8 (MODEL-204): the grid row and column, the cell's one line, the canvas axes. */
+  category: z.string().optional(),
+  tier: z.string().optional(),
+  tradeoff: z.string().optional(),
+  canvas: z.object({ x: canvasAxisId, y: canvasAxisId }).strict().optional(),
   name: z.string(),
   purpose: z.string(),
   where: z.array(z.object({ condition: z.string(), reason: z.string() })),
@@ -199,6 +205,13 @@ export const vocabularySchema = z.object({
     })
     .nullable()
     .default(null),
+  /** Template grid rows and columns (MODEL-204). Absent before contract 2.8. */
+  template_categories: z
+    .array(
+      z.object({ id: z.string(), name: z.string(), kind: z.enum(["use", "constraint"]) }).strict(),
+    )
+    .optional(),
+  template_tiers: z.array(z.object({ id: z.string(), name: z.string() }).strict()).optional(),
   /** Data-defined templates. Absent from vocabularies published before MODEL-178. */
   templates: z.array(templateSchema).optional(),
 });
@@ -208,6 +221,7 @@ export type VocabBenchmark = Vocabulary["benchmarks"][number];
 export type VocabRefinement = NonNullable<Vocabulary["refinements"]>[number];
 export type Coverage = NonNullable<Vocabulary["coverage"]>;
 export type VocabPlan = Vocabulary["estate"]["plans"][number];
+export type VocabTemplate = NonNullable<Vocabulary["templates"]>[number];
 
 /** Why the vocabulary could not be used. `missing` means no snapshot is published yet. */
 export class VocabularyError extends Error {

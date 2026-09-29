@@ -1,4 +1,8 @@
-"""Load data-defined partial decision specs from ``registry/templates.yaml``."""
+"""Load data-defined partial decision specs from ``registry/templates.yaml``.
+
+Each template sits in one category (a use case or a constraint) and one tier
+(the same use case traded off differently), and names the trade-off canvas
+axes a client sets when it is applied (MODEL-204)."""
 
 from __future__ import annotations
 
@@ -15,6 +19,11 @@ from decision.resolve import resolve
 
 TEMPLATES_PATH = REGISTRY_DIR / "templates.yaml"
 _ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+#: The two ways a category groups templates: by what the work is, or by the
+#: constraint it must meet.
+CATEGORY_KINDS = ("use", "constraint")
+#: Canvas axis value types a client can plot.
+_PLOTTABLE = frozenset({"number", "date"})
 
 
 def _mapping(value: Any, path: str) -> Mapping[str, Any]:
@@ -29,10 +38,70 @@ def _text(value: Any, path: str) -> str:
     return value
 
 
-def _expanded(row: Mapping[str, Any], *, registry: Any) -> dict[str, Any]:
+def _groups(root: Mapping[str, Any], key: str, path: Path) -> list[dict[str, str]]:
+    """The ``categories`` or ``tiers`` table, each row an id and a name."""
+    rows = root.get(key)
+    if not isinstance(rows, list) or not rows:
+        raise RegistryError(f"{path}: {key} must be a non-empty list")
+    groups = []
+    for index, raw in enumerate(rows):
+        item = _mapping(raw, f"{key}[{index}]")
+        group_id = _text(item.get("id"), f"{key}[{index}].id")
+        if _ID.fullmatch(group_id) is None:
+            raise RegistryError(f"{key} id {group_id!r} must be a lowercase kebab-case id")
+        group = {"id": group_id, "name": _text(item.get("name"), f"{key} {group_id}.name")}
+        if key == "categories":
+            if item.get("kind") not in CATEGORY_KINDS:
+                raise RegistryError(
+                    f"category {group_id}: kind must be one of {', '.join(CATEGORY_KINDS)}"
+                )
+            group["kind"] = item["kind"]
+        groups.append(group)
+    ids = [group["id"] for group in groups]
+    if len(ids) != len(set(ids)):
+        raise RegistryError(f"{path}: {key} ids must be unique")
+    return groups
+
+
+def _canvas_axis(value: Any, path: str, *, registry: Any) -> str:
+    """``facet:<numeric or date facet>`` or ``capability:<domain>``."""
+    axis = _text(value, path)
+    kind, _, target = axis.partition(":")
+    try:
+        if kind == "facet":
+            facet = registry.facet(target)
+            if facet.value_type.kind not in _PLOTTABLE:
+                raise RegistryError(f"{path}: facet {target} is not a number or a date")
+            return axis
+        if kind == "capability":
+            registry.domain(target)
+            return axis
+    except RegistryError as exc:
+        raise RegistryError(f"{path}: {exc}") from exc
+    raise RegistryError(f"{path}: {axis!r} must be facet:<facet id> or capability:<domain id>")
+
+
+def _expanded(row: Mapping[str, Any], *, registry: Any, categories: set[str],
+              tiers: set[str]) -> dict[str, Any]:
     template_id = _text(row.get("id"), "templates[].id")
     if _ID.fullmatch(template_id) is None:
         raise RegistryError(f"template id {template_id!r} must be a lowercase kebab-case id")
+    category = _text(row.get("category"), f"template {template_id}.category")
+    if category not in categories:
+        raise RegistryError(f"template {template_id}: unknown category {category!r}")
+    tier = _text(row.get("tier"), f"template {template_id}.tier")
+    if tier not in tiers:
+        raise RegistryError(f"template {template_id}: unknown tier {tier!r}")
+    canvas_row = _mapping(row.get("canvas"), f"template {template_id}.canvas")
+    if set(canvas_row) != {"x", "y"}:
+        raise RegistryError(f"template {template_id}: canvas must name exactly x and y")
+    canvas = {
+        axis: _canvas_axis(canvas_row[axis], f"template {template_id}.canvas.{axis}",
+                           registry=registry)
+        for axis in ("x", "y")
+    }
+    if canvas["x"] == canvas["y"]:
+        raise RegistryError(f"template {template_id}: canvas x and y must differ")
 
     where_rows = row.get("where")
     if not isinstance(where_rows, list):
@@ -91,19 +160,27 @@ def _expanded(row: Mapping[str, Any], *, registry: Any) -> dict[str, Any]:
 
     return {
         "id": template_id,
+        "category": category,
+        "tier": tier,
         "name": _text(row.get("name"), f"template {template_id}.name"),
+        "tradeoff": _text(row.get("tradeoff"), f"template {template_id}.tradeoff"),
         "purpose": _text(row.get("purpose"), f"template {template_id}.purpose"),
         "where": where,
         "weights": weights,
         **({"task_tokens": spec["task_tokens"]} if "task_tokens" in spec else {}),
         "needs": {"classes": list(classes), "domains": list(domains)},
+        "canvas": canvas,
         "teaches": _text(row.get("teaches"), f"template {template_id}.teaches"),
         "spec": spec,
     }
 
 
-def load_templates(path: Path = TEMPLATES_PATH, *, registry: Any = None) -> list[dict[str, Any]]:
-    """Return validated templates in registry order."""
+def load_catalogue(path: Path = TEMPLATES_PATH, *, registry: Any = None) -> dict[str, Any]:
+    """Return the validated ``categories``, ``tiers`` and ``templates``, in file order.
+
+    Every category holds at least one template, and a category holds at most
+    one template per tier, so a client can draw them as a category-by-tier grid.
+    """
     registry = registry or default()
     try:
         document = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -112,14 +189,31 @@ def load_templates(path: Path = TEMPLATES_PATH, *, registry: Any = None) -> list
     root = _mapping(document, str(path))
     if root.get("schema_version") != 1:
         raise RegistryError(f"{path}: schema_version must be 1")
+    categories = _groups(root, "categories", path)
+    tiers = _groups(root, "tiers", path)
     rows = root.get("templates")
     if not isinstance(rows, list):
         raise RegistryError(f"{path}: templates must be a list")
-    templates = [_expanded(_mapping(row, "templates[]"), registry=registry) for row in rows]
+    templates = [
+        _expanded(_mapping(row, "templates[]"), registry=registry,
+                  categories={row["id"] for row in categories}, tiers={row["id"] for row in tiers})
+        for row in rows
+    ]
     ids = [row["id"] for row in templates]
     if len(ids) != len(set(ids)):
         raise RegistryError(f"{path}: template ids must be unique")
-    return templates
+    cells = [(row["category"], row["tier"]) for row in templates]
+    for cell in {cell for cell in cells if cells.count(cell) > 1}:
+        raise RegistryError(f"{path}: category {cell[0]} has more than one {cell[1]} template")
+    for category in categories:
+        if not any(row["category"] == category["id"] for row in templates):
+            raise RegistryError(f"{path}: category {category['id']} has no templates")
+    return {"categories": categories, "tiers": tiers, "templates": templates}
+
+
+def load_templates(path: Path = TEMPLATES_PATH, *, registry: Any = None) -> list[dict[str, Any]]:
+    """Return validated templates in registry order."""
+    return load_catalogue(path, registry=registry)["templates"]
 
 
 def template_by_id(

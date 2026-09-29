@@ -816,9 +816,9 @@ export function mapDecisionToViewModel(
 ): AdapterDecision {
   const sources = sourceRecords(decision);
   const names: Names = { models: options.models ?? {}, providers: options.providers ?? {} };
-  const modelGrained = ["1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12", "2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6"].includes(
-    decision.contract_version,
-  );
+  // Funnels and eliminations are counted per model from 1.6. Name the versions
+  // before it, so each new minor is model-grained without an edit here.
+  const modelGrained = !["1.1", "1.2", "1.3", "1.4", "1.5"].includes(decision.contract_version);
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
     row: rankedRow(decision, result, spec, sources, names),
     ref: result.offering,

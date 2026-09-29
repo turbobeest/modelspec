@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.7**
+Contract version: **2.8**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -563,7 +563,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.7",
+  "contract_version": "2.8",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -699,7 +699,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.7"`. |
+| `contract_version` | `"2.8"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1131,17 +1131,29 @@ it instead of carrying its own list of facets or benchmarks. Built by
 - `models`: every snapshot model by ID, with `display_name`, `lab`, `lab_name`,
   and optional `class`. The class is the snapshot's `model.class` fact and may
   be null when that fact is unknown.
-- `templates`: the eight partial decision specs from `registry/templates.yaml`.
-  Each row has `id`, `name`, `purpose`, reasoned `where` Musts, reasoned
-  `weights` Prefers, optional non-default `task_tokens`, `needs`, `teaches`,
-  and the expanded contract fragment under `spec`. The build expands each
-  template and runs it against this same snapshot with `explain: none`.
-  `available` is true exactly when that decision has at least one ranked result
-  or `may_qualify` entry. Otherwise it is false and `unavailable_reason`
-  describes the decision's first Must whose funnel reaches zero, or its
-  `no_feasible` relaxation when no Must does. Rows stay present so clients can
-  explain why a template is unavailable. Adding this field is compatible, so
-  `vocabulary_version` remains `1`.
+- `template_categories` and `template_tiers`: the rows and columns of the
+  template grid, from `registry/templates.yaml`, in file order. A category has
+  `id`, `name` and `kind` (`use`, what the work is, or `constraint`, what it
+  must meet); a tier has `id` and `name` (Best available, Balanced, Budget,
+  Fastest, Private / self-hosted). Added in 2.8 (MODEL-204).
+- `templates`: the partial decision specs from `registry/templates.yaml`.
+  Each row has `id`, `category`, `tier`, `name`, `tradeoff` (the one line a
+  grid cell shows), `purpose`, reasoned `where` Musts, reasoned `weights`
+  Prefers, optional non-default `task_tokens`, `needs`, `canvas` (the trade-off
+  canvas axes to set when the template is applied: `x` and `y`, each
+  `facet:<numeric or date facet>` or `capability:<domain>`), `teaches`, and the
+  expanded contract fragment under `spec`. A category holds at most one
+  template per tier. `category`, `tier`, `tradeoff` and `canvas` were added in
+  2.8. The build expands each template and runs it against this same snapshot
+  with `explain: none`. `available` is true exactly when that decision has at
+  least one ranked result. Otherwise it is false and `unavailable_reason` says
+  why: when every candidate only may qualify, it names the facet most of them
+  lack (for example no offering has a measured output throughput yet);
+  otherwise it describes the decision's first Must whose funnel reaches zero,
+  or its `no_feasible` relaxation when no Must does. Before 2.8 a template
+  whose candidates only may qualify counted as available. Rows stay present so
+  clients can explain why a template is unavailable. Adding these fields is
+  compatible, so `vocabulary_version` remains `1`.
 - `estate`: the IDs a spec's `estate` accepts: `providers` (every registered
   provider ID), `plans` (each subscription plan in the snapshot as `id`,
   `provider` and `name`) and `devices` (every hardware SKU ID). Adding it is
@@ -1189,6 +1201,14 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.8 — MODEL-204:** The vocabulary adds `template_categories` and
+  `template_tiers`, and each template adds `category`, `tier`, `tradeoff` and
+  `canvas`, so a client draws templates as a category-by-tier grid and sets the
+  trade-off canvas when one is applied. Templates grow from eight to forty; the
+  eight earlier ids are kept. A template is `available` only when its decision
+  ranks at least one result; a template whose candidates only may qualify is
+  unavailable, and its `unavailable_reason` names the missing facet. Additive:
+  no decision field changes.
 - **2.7 — MODEL-206:** A decision adds `bands` (the ranked models as `best`,
   `rest` and `thin`, each entry with its score, interval, `p_beats_leader`,
   cost and capability estimates with benchmark and direct-benchmark counts) and `blend` (each

@@ -117,3 +117,28 @@ def test_the_fixed_identity_preference_explains_without_a_record(answers):
     assert contribution["records"] == []
     assert contribution["formula"] == "the offering's identity, which carries no source"
 
+
+
+def test_every_category_has_tiers_and_best_and_budget_answer_differently(answers):
+    """MODEL-204: the tiers of one use case are different trade-offs. Best and
+    Budget do not share a leader unless no model has enough evidence to lead,
+    which the page states with the thin band (MODEL-206)."""
+    from decision.templates import load_catalogue
+
+    catalogue = load_catalogue()
+    all_tiers = {tier["id"] for tier in catalogue["tiers"]}
+    for category in catalogue["categories"]:
+        tiers = {row["tier"]: row for row in catalogue["templates"]
+                 if row["category"] == category["id"]}
+        assert len(tiers) >= 3, category["id"]
+        if category["kind"] == "use":
+            assert set(tiers) == all_tiers, category["id"]
+        pair = [tiers.get("best"), tiers.get("budget")]
+        if None in pair:
+            continue
+        bodies = [json.loads(answers[f"template-{row['id']}-summary"][1]) for row in pair]
+        if not all(body["results"] for body in bodies):
+            continue  # an unavailable tier shows its reason on the grid instead
+        leaders = [body["results"][0]["model"] for body in bodies]
+        best_band = [entry["model"] for entry in (bodies[0].get("bands") or {}).get("best", [])]
+        assert leaders[0] != leaders[1] or not best_band, (category["id"], leaders)

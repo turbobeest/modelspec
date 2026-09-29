@@ -62,7 +62,7 @@ from decision.contract import (
 from decision.engine import decide
 from decision.filter import _INDEPENDENT as INDEPENDENT_MEASURERS
 from decision.refinements import evidence_state as refinement_evidence_state
-from decision.templates import load_templates
+from decision.templates import load_catalogue
 
 VOCABULARY_VERSION = 1
 MIN_FRONTIER_COVERAGE = 0.50
@@ -390,7 +390,7 @@ def _condition_facet(condition: Any) -> str | None:
 
 
 def _unavailable_reason(
-    decision: Any, funnel: Iterable[Any], template_id: str, registry: Any
+    decision: Any, funnel: Iterable[Any], category: str, registry: Any
 ) -> str:
     """Describe the decision stage that left a template without an answer."""
     for step in funnel:
@@ -400,7 +400,7 @@ def _unavailable_reason(
         facet = registry.facet(facet_id) if facet_id else None
         subject = facet.subject if facet else "candidate"
         label = facet.label if facet and facet.label else step.condition
-        if template_id == "eu-data" and facet_id == "offering.region":
+        if category == "regional" and facet_id == "offering.region":
             label = "Inference region in the EU"
         before = step.offerings_before if subject == "offering" else step.models_before
         noun = subject if before == 1 else f"{subject}s"
@@ -413,20 +413,39 @@ def _unavailable_reason(
     return "No feasible result."
 
 
-def _template_rows(snapshot: Any, registry: Any) -> list[dict[str, Any]]:
+def _unknown_reason(may_qualify: Iterable[Any], registry: Any) -> str:
+    """Why every candidate only may qualify: the facet most of them lack."""
+    rows = list(may_qualify)
+    counts = Counter(facet for row in rows for facet in row.unknown)
+    if not counts:
+        return f"No ranked result yet — {len(rows)} candidates may qualify"
+    facet_id, missing = counts.most_common(1)[0]
+    facet = registry.facet(facet_id)
+    label = facet.label or facet_id
+    subject = facet.subject
+    noun = subject if missing == 1 else f"{subject}s"
+    return (f"No {subject} has a known {label} yet — {missing} {noun} may qualify "
+            f"once it is published")
+
+
+def _template_rows(snapshot: Any, registry: Any, templates: list[dict[str, Any]],
+                   ) -> list[dict[str, Any]]:
     """Templates plus answerability proven by the real decision engine."""
     rows = []
-    for template in load_templates(registry=registry):
+    for template in templates:
         spec = parse_spec(template["spec"] | {"explain": "none"}, facets=registry.facet)
         trace = []
         decision = decide(spec, snapshot, facets=registry.facet, _filter_trace=trace.append)
-        available = bool(decision.results or decision.may_qualify)
-        rows.append(template | {
-            "available": available,
-            "unavailable_reason": None if available else _unavailable_reason(
-                decision, trace[0].funnel, template["id"], registry
-            ),
-        })
+        # A starting point must rank something: a decision whose candidates all
+        # only may qualify has no answer to show (MODEL-204).
+        available = bool(decision.results)
+        if available:
+            reason = None
+        elif decision.may_qualify:
+            reason = _unknown_reason(decision.may_qualify, registry)
+        else:
+            reason = _unavailable_reason(decision, trace[0].funnel, template["category"], registry)
+        rows.append(template | {"available": available, "unavailable_reason": reason})
     return rows
 
 
@@ -522,6 +541,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
             "benchmarks": [row["id"] for row in sorted(members, key=order)],
         })
     coverage = _coverage(view, lineup, registry)
+    catalogue = load_catalogue(registry=registry)
     refinements = _refinement_rows(view, lineup, pages or {}, registry)
     return {
         "vocabulary_version": VOCABULARY_VERSION,
@@ -538,5 +558,7 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "providers": {p.id: p.name for p in registry.providers()},
         "estate": _estate_ids(snapshot, registry),
         "coverage": coverage,
-        "templates": _template_rows(snapshot, registry),
+        "template_categories": catalogue["categories"],
+        "template_tiers": catalogue["tiers"],
+        "templates": _template_rows(snapshot, registry, catalogue["templates"]),
     }

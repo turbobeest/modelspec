@@ -443,10 +443,9 @@ it("hides absent templates and expands groups with active canonical template fac
   const vocabulary = { ...smallVocabulary, templates: realVocabulary.templates };
   render(<FacetBoard vocabulary={vocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.getByRole("button", { name: /Budgetall Doesn't matter/ })).toHaveAttribute("aria-expanded", "false");
-  expect(screen.getByText("EU-only data handling").closest("article")).toHaveClass("template-unavailable");
-  expect(screen.getAllByText("No offering passes: Inference region in the EU — 0 of 4 offerings").length).toBeGreaterThan(0);
-  expect(screen.getAllByText(/Coding agent on a budget|Private assistant you host yourself|Regulated data|Maths and proofs|Retrieval embeddings|High volume, good enough|Long documents|EU-only data handling/)).toHaveLength(8);
-  fireEvent.click(screen.getByRole("button", { name: /Coding agent on a budget/ }));
+  const euData = screen.getByRole("group", { name: "EU-only data · Balanced: not available on this snapshot" });
+  expect(euData).toHaveTextContent("No offering passes: Inference region in the EU — 0 of 43 offerings");
+  fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
   expect(screen.getByRole("button", { name: /Budget1 set/ })).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByText(/Why: The offering must stay within the per-task budget.*prefer the cheaper task/)).toBeInTheDocument();
   expect(onSpec).toHaveBeenCalledOnce();
@@ -461,13 +460,13 @@ it("restores default task tokens when a template has no token override", () => {
   const base = realBaseSpec(realVocabulary);
   const view = render(<FacetBoard vocabulary={realVocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
 
-  fireEvent.click(screen.getByRole("button", { name: /High volume, good enough/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^High volume · Budget:/ }));
   const highVolume = onSpec.mock.calls.at(-1)![0];
   expect([highVolume.tokIn, highVolume.tokOut]).toEqual([2000, 500]);
 
   view.rerender(<FacetBoard vocabulary={realVocabulary} spec={highVolume} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
-  fireEvent.click(screen.getByRole("button", { name: /Templates/ }));
-  fireEvent.click(screen.getByRole("button", { name: /Maths and proofs/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Start from a template/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Maths and reasoning · Best available:/ }));
   const maths = onSpec.mock.calls.at(-1)![0];
   expect([maths.tokIn, maths.tokOut]).toEqual([
     realVocabulary.default_task_tokens.input,
@@ -500,7 +499,7 @@ describe("canonical template mapping", () => {
     if (!budget) throw new Error("budget-coding fixture is missing");
     const cost = templateToBoard(budget, realVocabulary).selections["offering.cost_per_task"];
     expect(cost).toMatchObject({
-      mode: "both", op: "<=", value: 0.25, weight: 0.4,
+      mode: "both", op: "<=", value: 0.05, weight: 0.4,
       weightKey: "-offering.cost_per_task",
     });
   });
