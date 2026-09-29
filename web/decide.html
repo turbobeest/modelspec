@@ -3,6 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // The theme before first paint: initialTheme() in src/decide/theme.ts,
+      // which __tests__/theme.test.tsx holds this script to.
+      (function () {
+        var theme = new URLSearchParams(location.search).get("theme");
+        if (theme !== "light" && theme !== "dark") {
+          try {
+            theme = localStorage.getItem("modelspec-theme");
+          } catch (e) {
+            theme = null;
+          }
+        }
+        document.documentElement.dataset.decideTheme = theme === "light" ? "light" : "dark";
+      })();
+    </script>
     <meta
       name="description"
       content="Set what matters, watch the field narrow, and choose an AI model from visible evidence."
