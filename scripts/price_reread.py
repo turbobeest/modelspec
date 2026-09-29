@@ -435,7 +435,14 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
             if fact.status is Status.UNCHANGED and fact.verification is not None:
                 log.append(fact.verification)
     if write and report.changes:
-        apply_changes(root, report.changes, at=at, today=today, regions=regions)
+        refused = apply_changes(root, report.changes, at=at, today=today, regions=regions)
+        report.facts = [
+            replace(f, status=Status.NEEDS_REVIEW,
+                    reason=f"read {f.new_value!r}, but the rewrite guard refused it: "
+                    f"{refused[f.fact_id]}")
+            if f.fact_id in refused else f
+            for f in report.facts
+        ]
     return report
 
 
@@ -474,23 +481,34 @@ def source_diffs(report: Report, sources: Mapping[str, Any], store: CopyStore
 
 
 def apply_changes(root: Path, changes: Sequence[FactResult], *, at: datetime, today: date,
-                  regions: StoredRegions) -> None:
-    """Rewrite each changed fact in place, then file and verify its new value."""
+                  regions: StoredRegions) -> dict[str, str]:
+    """Rewrite each changed fact in place, then file and verify its new value.
+
+    Returns the changes the guard refused, fact ID -> why; nothing is written for
+    those, and the caller reports them as alerts.
+    """
+    refused: dict[str, str] = {}
+    applied: list[FactResult] = []
     by_file: dict[str, list[FactResult]] = {}
     for change in changes:
         by_file.setdefault(change.file, []).append(change)
     for rel, file_changes in by_file.items():
         path = root / rel
-        before = path.read_text(encoding="utf-8")
-        after = before
+        text = path.read_text(encoding="utf-8")
         for change in file_changes:
-            after = rewrite_fact(after, change)
-        check_value_only(before, after, file_changes)
-        path.write_text(after, encoding="utf-8")
+            try:
+                after = rewrite_fact(text, change)
+                check_value_only(text, after, [change])
+            except ValueError as exc:
+                refused[change.fact_id] = str(exc)
+                continue
+            text = after
+            applied.append(change)
+        path.write_text(text, encoding="utf-8")
 
     queue = Queue(root / "verification")
     log = VerificationLog(root / "verification")
-    for change in changes:
+    for change in applied:
         assert change.claim is not None
         claim = replace(change.claim, value=change.new_value, collector=REREAD)
         queue.file(claim, at=at)
@@ -499,9 +517,15 @@ def apply_changes(root: Path, changes: Sequence[FactResult], *, at: datetime, to
             raise RuntimeError(f"{change.fact_id}: the new value did not verify on write")
         log.append(result.verification)
         queue.checked(result, at=at)
+    return refused
 
 
 def _dump_value(value: Any) -> str:
+    """``value: <value>`` on one line. A string with a line break is written as a
+    double-quoted JSON string, which is also valid YAML, so no continuation line
+    depends on the file's indentation."""
+    if isinstance(value, str) and "\n" in value:
+        return "value: " + json.dumps(value, ensure_ascii=False)
     return yaml.safe_dump({"value": value}, width=10**9, allow_unicode=True,
                           default_flow_style=False).strip()
 
@@ -533,9 +557,13 @@ def rewrite_fact(text: str, change: FactResult) -> str:
         if line.startswith(key + "value:"):
             out.append(key + _dump_value(change.new_value) + "\n")
             i += 1
-            while i < len(block) and len(block[i]) - len(block[i].lstrip(" ")) > len(key) \
-                    and block[i].strip():
+            # The old value's continuation lines are indented deeper; a quoted
+            # scalar's paragraph break is a blank line inside it.
+            while i < len(block) and (not block[i].strip()
+                                      or len(block[i]) - len(block[i].lstrip(" ")) > len(key)):
                 i += 1
+            while not block[i - 1].strip():
+                i -= 1
             continue
         if line.startswith(key + "state:"):
             out.append(f"{key}state: known\n")
@@ -644,8 +672,13 @@ def render_report(report: Report) -> str:
         out += ["### Source diffs", ""]
         for sid, lines in report.diffs.items():
             url = report.sources[sid].url if sid in report.sources else ""
-            out += [f"`{sid}` {url}", "", "```diff", *(lines or ["# no text change"]),
-                    "```", ""]
+            # Page text must not close the fence: make it longer than any run of
+            # backticks the page contains.
+            longest = max((len(run) for line in lines for run in re.findall(r"`+", line)),
+                          default=0)
+            fence = "`" * max(3, longest + 1)
+            out += [f"`{sid}` {url}", "", f"{fence}diff", *(lines or ["# no text change"]),
+                    fence, ""]
     not_reread = Counter(f.reason for f in report.facts if f.status is Status.NOT_REREAD)
     if not_reread:
         out += ["### Not re-read", "", "| Why | Facts |", "|---|---|"]

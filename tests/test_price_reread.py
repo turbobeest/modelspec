@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -393,3 +394,79 @@ def test_a_runner_store_keeps_only_cited_and_fetched_copies(estate) -> None:
     # Example Max still cites the old copy; Example Pro now cites the new one.
     assert store.has(old_plans) and store.has(new_plans)
     assert store.has(report.sources["example-api-pricing"].copy_ref)
+
+
+QUOTED = """\
+- kind: subscription
+  provider: example
+  plan: pro
+  name: Example Pro
+  facts:
+  - id: example/subscription/pro#offering.subscription.coverage_quote
+    subject: {kind: offering, id: example/subscription/pro}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: 'Opus | No | Yes
+
+      Sonnet | Yes | Yes'
+    sources:
+    - source_id: example-plans
+      snapshot_ref: sha256:1111111111111111111111111111111111111111111111111111111111111111
+      cited_regions: [page]
+  - id: example/subscription/pro#offering.subscription.price
+    subject: {kind: offering, id: example/subscription/pro}
+    facet: offering.subscription.price
+    state: known
+    value: 20
+    sources:
+    - source_id: example-plans
+      snapshot_ref: sha256:1111111111111111111111111111111111111111111111111111111111111111
+      cited_regions: [page]
+"""
+
+
+@pytest.mark.parametrize("new", ["Opus | Yes | Yes", "Opus | Yes | Yes\n\nSonnet | No | Yes"])
+def test_a_multi_paragraph_quoted_value_is_replaced_whole(new: str) -> None:
+    fid = "example/subscription/pro#offering.subscription.coverage_quote"
+    new_ref = "sha256:" + "2" * 64
+    change = price_reread.FactResult(
+        fid, "offering.subscription.coverage_quote", PLAN_FILE, ("example-plans",),
+        Status.CHANGED, "known", "Opus | No | Yes\nSonnet | Yes | Yes", new_value=new,
+        copies={"example-plans": ("sha256:" + "1" * 64, new_ref)})
+    rewritten = rewrite_fact(QUOTED, change)
+    check_value_only(QUOTED, rewritten, [change])
+
+    facts = {f["id"]: f for o in yaml.safe_load(rewritten) for f in o["facts"]}
+    assert facts[fid]["value"] == new
+    assert facts[fid]["sources"][0]["snapshot_ref"] == new_ref
+    assert facts[PRO_PRICE]["value"] == 20
+    # The three lines of the old value became one; nothing around them moved.
+    old, out = QUOTED.splitlines(), rewritten.splitlines()
+    assert out[:9] == old[:9] and out[10:12] == old[12:14] and out[13:] == old[15:]
+
+
+def test_a_refused_rewrite_becomes_an_alert_and_writes_nothing(estate, monkeypatch) -> None:
+    root, _ = estate
+    before = (root / PLAN_FILE).read_text()
+    log_before = (root / "verification" / "log.jsonl").read_text()
+
+    def tamper(text: str, change: price_reread.FactResult) -> str:
+        return text.replace("    value: 100", "    value: 90")
+
+    monkeypatch.setattr(price_reread, "rewrite_fact", tamper)
+    report, _ = reread(estate, [page("plans-price-change.html")], write=True)
+
+    assert report.changes == []
+    [alert] = [f for f in report.alerts if f.fact_id == PRO_PRICE]
+    assert alert.status is Status.NEEDS_REVIEW
+    assert "the rewrite guard refused it" in alert.reason
+    assert (root / PLAN_FILE).read_text() == before
+    log_after = (root / "verification" / "log.jsonl").read_text()
+    new_records = [json.loads(line) for line in log_after[len(log_before):].splitlines()]
+    assert all(r["target"]["id"] != PRO_PRICE for r in new_records)
+
+
+def test_page_text_cannot_close_the_diff_fence() -> None:
+    report = price_reread.Report(TODAY, diffs={"example-plans": ["+```", "+# injected"]})
+    body = render_report(report)
+    assert "````diff\n+```\n+# injected\n````" in body
