@@ -58,7 +58,8 @@ test("share dialog copies the board permalink and restores focus", async ({ page
 test("the board fits a 390px viewport in light and dark mode", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openBoard(page);
-  for (const buttonName of ["Dark mode", "Light mode"]) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  for (const buttonName of ["Light mode", "Dark mode"]) {
     await page.getByRole("button", { name: buttonName }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   }

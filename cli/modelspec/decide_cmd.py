@@ -366,6 +366,24 @@ def _emit_router_config(
     typer.echo(f"wrote {note} to {out}", err=True)
 
 
+def _note_outcome_recording(result: contract.Decision) -> None:
+    """When outcome recording is on, keep this decision's stub and say how to record.
+
+    It records no outcome: only ``modelspec outcome record`` does that.
+    """
+    from . import outcome
+
+    if not outcome.enabled():
+        return
+    try:
+        outcome.save_stub(outcome.stub_from_decision(result.model_dump(mode="json")))
+    except (OSError, ValueError):
+        pass
+    typer.echo(f"outcome recording is on: after the task, run `modelspec outcome record "
+               f"{result.decision_id} --adopted MODEL --result success|partial|failure`",
+               err=True)
+
+
 def decide(
     spec_path: Optional[Path] = typer.Argument(  # noqa: UP045 - Typer reads the annotation
         None, help="The optional spec, as YAML. Required without --template."
@@ -588,6 +606,8 @@ def decide(
             [f"error: {exc}"],
             as_json,
         )
+    if compare_to is None:
+        _note_outcome_recording(result)
     if router_format is not None:
         _emit_router_config(base, result, router_format, out, include_rest, include_thin,
                             as_json=as_json, spec_path=spec_path, template=template)

@@ -47,6 +47,7 @@ import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
 import { Share } from "./components/Share";
 import { BrandMark } from "./components/BrandMark";
+import { initialTheme, storeTheme, storedTheme, type Theme } from "./theme";
 import "./decide.css";
 import { mapDecisionToViewModel } from "./adapter/view-model";
 import { evaluateQuestionOptions } from "./adapter/questions";
@@ -104,10 +105,8 @@ export function DesignedApp({
     ),
     [legacyNotes, setLegacyNotes] = useState<string[]>([]),
     [initialRestored, setInitialRestored] = useState(!initial);
-  const [theme, setTheme] = useState(() =>
-      new URLSearchParams(location.search).get("theme") === "dark"
-        ? "dark"
-        : "light",
+  const [theme, setTheme] = useState<Theme>(() =>
+      initialTheme(location.search, storedTheme()),
     ),
     [layout, setLayout] = useState(() =>
       new URLSearchParams(location.search).get("layout") === "table"
@@ -870,13 +869,13 @@ export function DesignedApp({
     <div className="decide-app" data-theme={theme} data-layout={layout}>
       <header className="global-header">
         <button
-          className="brand"
+          className="brand lockup"
           aria-label="ModelSpec home"
           onClick={() => { window.location.href = "/"; }}
         >
           <BrandMark transparent={theme === "dark"} />
-          <span>
-            Model<span>Spec</span>
+          <span className="wordmark">
+            <b>Model</b>Spec
           </span>
         </button>
         <div className="spacer" />
@@ -895,7 +894,13 @@ export function DesignedApp({
             Table first
           </button>
         </div>
-        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+        <button
+          onClick={() => {
+            const next = theme === "dark" ? "light" : "dark";
+            setTheme(next);
+            storeTheme(next);
+          }}
+        >
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </button>
         <button className="primary" onClick={() => setShare(true)}>

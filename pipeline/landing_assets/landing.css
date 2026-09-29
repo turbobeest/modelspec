@@ -93,17 +93,6 @@ header {
   align-items: center;
   gap: 28px;
 }
-.mark {
-  width: 34px;
-  height: 34px;
-}
-.wordmark {
-  font-size: 21px;
-  letter-spacing: -0.02em;
-}
-.wordmark b {
-  font-weight: 650;
-}
 nav {
   margin-left: auto;
   display: flex;
@@ -684,13 +673,6 @@ footer a {
   header {
     height: 60px;
     padding: 0 var(--right) 0 var(--left);
-  }
-  header .mark {
-    width: 28px;
-    height: 28px;
-  }
-  .wordmark {
-    font-size: 18px;
   }
   nav {
     display: none;

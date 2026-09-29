@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from pipeline import build as builder  # noqa: E402
+from pipeline import landing_chrome  # noqa: E402
 
 EXPLORER = ROOT / "web3d/explorer.html"
 VENDOR = ROOT / "web3d/vendor"
@@ -56,7 +57,7 @@ def test_the_built_explorer_carries_the_landing_shell_and_its_libraries(tmp_path
     assert builder.ship_explorer(ROOT, ms, '<p class="fresh">as of 2026-09-18</p>') is True
     built = (ms / "graph/index.html").read_text(encoding="utf-8")
 
-    assert '<a class="home" href="/" aria-label="ModelSpec home">' in built
+    assert landing_chrome.lockup() in built
     assert '<a href="/legal/terms/">Terms</a>' in built
     assert '<a href="/legal/privacy/">Privacy</a>' in built
     assert '<a href="/legal/neutrality/">Neutrality</a>' in built

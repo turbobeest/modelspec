@@ -5,6 +5,7 @@ import { cleanup } from "@testing-library/react";
 afterEach(() => {
   cleanup();
   history.replaceState(null, "", "/decide/");
+  localStorage.removeItem("modelspec-theme");
 });
 
 // jsdom has no native top layer. Browser tests exercise the real dialog.

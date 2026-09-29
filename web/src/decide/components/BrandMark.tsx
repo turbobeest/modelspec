@@ -3,16 +3,10 @@
  * C2PA metadata block. Dark mode uses the transparent variant: the dark page
  * background is the tile colour, so the tile edge would not show anyway.
  */
-export function BrandMark({
-  transparent,
-  size = 28,
-}: {
-  transparent: boolean;
-  size?: number;
-}) {
+export function BrandMark({ transparent }: { transparent: boolean }) {
   const tile = "#0B1426";
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
+    <svg className="mark" viewBox="0 0 40 40" aria-hidden="true">
       <rect id="tile" width="40" height="40" rx="3" fill={transparent ? "none" : tile} />
       <line
         id="y-axis"

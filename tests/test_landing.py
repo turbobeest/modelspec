@@ -185,7 +185,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
     [
         "altered_data", "challenge", "motion", "responsive", "holding",
         "forwarding", "assembled_decide", "assembled_decide_mobile", "forwarded_state_ranks",
-        "method_responsive",
+        "method_responsive", "decide_dark_before_paint", "decide_theme_persists",
     ],
 )
 def test_landing_behaviour_in_browser(
@@ -247,6 +247,19 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     footer = (f"{len(data.routes)} of {data.template_count} templates · "
               "the others' top result has no published price")
     assert footer in live and footer in holding
+
+
+def test_the_landing_and_method_pages_carry_the_shared_lockup(data: landing.LandingData) -> None:
+    from pipeline import landing_chrome, method
+
+    # The landing is the page "/" itself, so its lockup is not a link.
+    pages = {variant: landing.render(data, variant=variant) for variant in ("live", "holding")}
+    for page in pages.values():
+        assert page.count(landing_chrome.lockup(href=None)) == 1
+        assert landing_chrome.LOCKUP_CSS in page
+    method_page = method.page(data, method.SigningState((), None))
+    assert landing_chrome.lockup() in method_page
+    assert landing_chrome.LOCKUP_CSS in method_page
 
 
 @pytest.mark.parametrize("key", landing.DECIDE_QUERY_KEYS)

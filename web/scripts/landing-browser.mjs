@@ -56,6 +56,18 @@ async function assertRankedBoard(page) {
   await page.locator(".board-ranked-answer li").first().waitFor();
 }
 
+// MODEL-213: one lockup scale, 48px mark on desktop and 38px below 900px, never past the edge.
+async function assertLockup(page, width) {
+  const lockup = await page.evaluate(() => {
+    const element = document.querySelector("header .lockup, .global-header .lockup");
+    const mark = element?.querySelector(".mark")?.getBoundingClientRect();
+    const box = element?.getBoundingClientRect();
+    return { mark: mark?.width, right: box?.right, client: document.documentElement.clientWidth };
+  });
+  assert.equal(lockup.mark, width >= 900 ? 48 : 38, `lockup at ${width}px: ${JSON.stringify(lockup)}`);
+  assert.equal(lockup.right <= lockup.client, true, `lockup overflows at ${width}px: ${JSON.stringify(lockup)}`);
+}
+
 async function load(page, html) {
   await page.setContent(html);
   await page.addStyleTag({ path: cssPath });
@@ -91,7 +103,9 @@ try {
   results.challenge = true;
 
   assert.equal(await page.locator(".sticky").evaluate((el) => getComputedStyle(el).display), "none");
+  await assertLockup(page, 1440);
   await page.setViewportSize({ width: 390, height: 844 });
+  await assertLockup(page, 390);
   const overflow = await page.evaluate(() => ({
     client: document.documentElement.clientWidth,
     scroll: document.documentElement.scrollWidth,
@@ -117,6 +131,7 @@ try {
   await methodPage.addStyleTag({ path: new URL("pipeline/landing_assets/method.css", root).pathname });
   const methodWidth = await methodPage.evaluate(() => document.documentElement.scrollWidth);
   assert.equal(methodWidth <= 390, true, `method scrollWidth=${methodWidth}`);
+  await assertLockup(methodPage, 390);
   results.method_responsive = true;
   await methodContext.close();
 
@@ -161,30 +176,51 @@ try {
   results.forwarding = true;
   await forwarding.close();
 
-  const assembled = await browser.newContext();
   const vocabularyFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
   const decisionFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
-  await assembled.route("https://modelspec.dev/**", (route) => {
-    const pathname = new URL(route.request().url()).pathname;
-    const relative = pathname === "/decide/" ? "decide/index.html" : pathname.replace(/^\//, "");
-    const staticFile = path.resolve(assembledPath, relative);
-    if (!staticFile.startsWith(assembledRoot + path.sep) || !fs.existsSync(staticFile))
-      return route.fulfill({ status: 404, body: "not found" });
-    const types = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript" };
-    return route.fulfill({ status: 200, contentType: types[path.extname(staticFile)] ?? "application/octet-stream", body: fs.readFileSync(staticFile) });
-  });
-  await assembled.route("**/api/decision/vocabulary.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: vocabularyFixture }));
-  await assembled.route("**/v1/decide", (route) => route.fulfill({ status: 200, contentType: "application/json", body: decisionFixture }));
+  async function serveAssembled(context, { scripts = true } = {}) {
+    await context.route("https://modelspec.dev/**", (route) => {
+      const pathname = new URL(route.request().url()).pathname;
+      const relative = pathname === "/decide/" ? "decide/index.html" : pathname.replace(/^\//, "");
+      const staticFile = path.resolve(assembledPath, relative);
+      if (!scripts && relative.endsWith(".js")) return route.abort();
+      if (!staticFile.startsWith(assembledRoot + path.sep) || !fs.existsSync(staticFile))
+        return route.fulfill({ status: 404, body: "not found" });
+      const types = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript" };
+      return route.fulfill({ status: 200, contentType: types[path.extname(staticFile)] ?? "application/octet-stream", body: fs.readFileSync(staticFile) });
+    });
+    await context.route("**/api/decision/vocabulary.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: vocabularyFixture }));
+    await context.route("**/v1/decide", (route) => route.fulfill({ status: 200, contentType: "application/json", body: decisionFixture }));
+  }
+
+  // Before the app's script runs, the page is already dark: no light flash, whatever the OS prefers.
+  const unhydrated = await browser.newContext({ colorScheme: "light" });
+  await serveAssembled(unhydrated, { scripts: false });
+  const firstPaint = await unhydrated.newPage();
+  await firstPaint.goto("https://modelspec.dev/decide/?demo=1");
+  assert.deepEqual(await firstPaint.evaluate(() => ({
+    theme: document.documentElement.dataset.decideTheme,
+    background: getComputedStyle(document.documentElement).backgroundColor,
+  })), { theme: "dark", background: "rgb(11, 20, 38)" });
+  results.decide_dark_before_paint = true;
+  await unhydrated.close();
+
+  const assembled = await browser.newContext({ colorScheme: "light", viewport: { width: 1440, height: 900 } });
+  await serveAssembled(assembled);
   const decidePage = await assembled.newPage();
   const decideFailures = recordBrowserFailures(decidePage);
   await decidePage.goto("https://modelspec.dev/decide/?demo=1");
   await assertRankedBoard(decidePage);
   assert.deepEqual(decideFailures, []);
+  assert.equal(await decidePage.locator(".decide-app").getAttribute("data-theme"), "dark");
+  await decidePage.getByRole("button", { name: "Light mode" }).waitFor();
+  await assertLockup(decidePage, 1440);
   results.assembled_decide = true;
 
   await decidePage.setViewportSize({ width: 390, height: 844 });
   async function assertDecideFitsViewport(theme) {
-    await decidePage.getByRole("button", { name: theme === "dark" ? "Dark mode" : "Light mode" }).click();
+    assert.equal(await decidePage.locator(".decide-app").getAttribute("data-theme"), theme);
+    await assertLockup(decidePage, 390);
     const overflow = await decidePage.evaluate(() => ({
       clientWidth: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
@@ -204,8 +240,18 @@ try {
     );
   }
   await assertDecideFitsViewport("dark");
+  await decidePage.getByRole("button", { name: "Light mode" }).click();
   await assertDecideFitsViewport("light");
   results.assembled_decide_mobile = true;
+
+  await decidePage.reload();
+  await assertRankedBoard(decidePage);
+  assert.equal(await decidePage.locator(".decide-app").getAttribute("data-theme"), "light");
+  await decidePage.getByRole("button", { name: "Dark mode" }).click();
+  await decidePage.reload();
+  await assertRankedBoard(decidePage);
+  assert.equal(await decidePage.locator(".decide-app").getAttribute("data-theme"), "dark");
+  results.decide_theme_persists = true;
 
   const state = btoa(encodeURIComponent(JSON.stringify({
     tokIn: 40000,
