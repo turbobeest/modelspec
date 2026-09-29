@@ -3240,8 +3240,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.4'
-          default: '2.4'
+          const: '2.5'
+          default: '2.5'
           title: Contract Version
           type: string
         decision_id:
@@ -3291,6 +3291,11 @@ components:
           items:
             $ref: '#/components/schemas/DecisionResult'
           title: Results
+          type: array
+        by_model:
+          items:
+            $ref: '#/components/schemas/DecisionModelRow'
+          title: By Model
           type: array
         may_qualify:
           items:
@@ -4140,6 +4145,50 @@ components:
       - model
       title: ModelEliminationGroup
       type: object
+    DecisionModelOffering:
+      additionalProperties: false
+      description: One offering of a model in ``by_model``, with why it is or is not ranked. Added in
+        2.5.
+      properties:
+        offering:
+          $ref: '#/components/schemas/DecisionOfferingRef'
+        status:
+          enum:
+          - ranked
+          - may_qualify
+          - eliminated
+          title: Status
+          type: string
+        rank:
+          anyOf:
+          - minimum: 1
+            type: integer
+          - type: 'null'
+          default: null
+          title: Rank
+        cost_per_task:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Cost Per Task
+        unknown:
+          items:
+            pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
+            type: string
+          title: Unknown
+          type: array
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Reason
+      required:
+      - offering
+      - status
+      title: ModelOffering
+      type: object
     DecisionModelRef:
       additionalProperties: false
       description: 'The right-hand side of a relative condition: ``coding >= model(lab/example-model)``.'
@@ -4151,6 +4200,51 @@ components:
       required:
       - model
       title: ModelRef
+      type: object
+    DecisionModelRow:
+      additionalProperties: false
+      description: 'One model, with all its offerings, in ranking order. Added in 2.5.
+
+
+        A model is ``ranked`` when any offering is, else ``may_qualify`` when any
+
+        is unknown on a facet, else ``eliminated``. ``rank`` is ``Result.model_rank``.
+
+        Eliminated models appear only when the explanation carries eliminations.'
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        status:
+          enum:
+          - ranked
+          - may_qualify
+          - eliminated
+          title: Status
+          type: string
+        rank:
+          anyOf:
+          - minimum: 1
+            type: integer
+          - type: 'null'
+          default: null
+          title: Rank
+        cost_per_task:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Cost Per Task
+        offerings:
+          items:
+            $ref: '#/components/schemas/DecisionModelOffering'
+          title: Offerings
+          type: array
+      required:
+      - model
+      - status
+      title: ModelRow
       type: object
     DecisionNearMiss:
       additionalProperties: false
@@ -4580,6 +4674,26 @@ components:
           type: integer
         offering:
           $ref: '#/components/schemas/DecisionOfferingRef'
+        model:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Model
+        model_rank:
+          anyOf:
+          - minimum: 1
+            type: integer
+          - type: 'null'
+          default: null
+          title: Model Rank
+        cost_per_task:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Cost Per Task
         harness:
           anyOf:
           - pattern: ^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$
@@ -5158,7 +5272,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:
@@ -5210,7 +5324,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:
@@ -5235,7 +5349,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:
@@ -5289,7 +5403,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:
@@ -5629,7 +5743,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.4'
+          - '2.5'
         endpoint:
           type: string
           enum:

@@ -122,6 +122,17 @@ describe("modelspec MCP worker", () => {
     }
   });
 
+  it("decide tells agents to use the summary explanation and warns about full", async () => {
+    const listed = await rpc("tools/list", {});
+    const result = listed.payload.result as {
+      tools: Array<{ name: string; description?: string }>;
+    };
+    const description = result.tools.find((tool) => tool.name === "decide")?.description;
+    expect(description).toContain('explain: "summary" (the default)');
+    expect(description).toContain('explain: "full"');
+    expect(description).toContain("670 KB");
+  });
+
   it("initialize reports BUILD_COMMIT as serverInfo.version", async () => {
     const { payload } = await rpc("initialize", {
       protocolVersion: "2025-03-26",

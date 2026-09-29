@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.4**
+Contract version: **2.5**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -472,7 +472,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.4",
+  "contract_version": "2.5",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -494,6 +494,9 @@ same canonical representation it had in 1.0.
   "results": [
     {
       "rank": 1,
+      "model": "anthropic/claude-opus-5-5",
+      "model_rank": 1,
+      "cost_per_task": 0.42,
       "offering": {"model": "anthropic/claude-opus-5-5", "provider": "aws-bedrock",
                    "region": "us-east-1", "tier": "enterprise"},
       "harness": "claude-code@2.1",
@@ -516,6 +519,19 @@ same canonical representation it had in 1.0.
       ],
       "warnings": ["provisional_released_2_days_ago"]
     }
+  ],
+  "by_model": [
+    {"model": "anthropic/claude-opus-5-5", "status": "ranked", "rank": 1, "cost_per_task": 0.42,
+     "offerings": [
+       {"offering": {"model": "anthropic/claude-opus-5-5", "provider": "aws-bedrock",
+                     "region": "us-east-1", "tier": "enterprise"},
+        "status": "ranked", "rank": 1, "cost_per_task": 0.42, "unknown": [], "reason": null}
+     ]},
+    {"model": "google/gemini-3-8-pro", "status": "may_qualify", "rank": null, "cost_per_task": null,
+     "offerings": [
+       {"offering": {"model": "google/gemini-3-8-pro"}, "status": "may_qualify", "rank": null,
+        "cost_per_task": null, "unknown": ["offering.data.trains_on_customer_data"], "reason": null}
+     ]}
   ],
   "may_qualify": [
     {"model": "google/gemini-3-8-pro", "offering": null,
@@ -548,7 +564,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.4"`. |
+| `contract_version` | `"2.5"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -558,6 +574,7 @@ same canonical representation it had in 1.0.
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
 | `answer` | The model-level answer for a scalar objective, or null when the objective has no scalar order or no result. See below. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
+| `by_model` | The decision grouped by model, best first. See below. |
 | `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
 | `eliminated` | Candidates that failed a condition or were Pareto-dominated. The `funnel` reports each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. A qualifying candidate omitted by `limit` is never an elimination. |
 | `truncated` | Qualifying candidates omitted only because of `limit`. `offerings` counts omitted offering rows. `models` counts models with no row in `results`; a model with one returned offering and another omitted offering is not counted as an omitted model. Both counts are always present and are zero when the complete qualifying result set was returned. |
@@ -616,11 +633,34 @@ A `separated` answer carries all four `tie_breakers` as null. A `tied` answer
 contains at least two unique `members`, and each non-null tie-breaker names one
 of them.
 
+### The model view
+
+`by_model` answers "which models, and through which offerings?" once, so the
+page, the CLI and agents cannot disagree. It has one `ModelRow` per model: its
+`model`, its `status`, its `rank` (the result's `model_rank`, ranked models
+only), its `cost_per_task` (its best ranked offering's) and its `offerings`.
+
+`status` is `ranked` when any of the model's offerings is ranked,
+`may_qualify` when none is ranked but one is unknown on a facet, and
+`eliminated` otherwise. Rows run ranked (by `rank`), then `may_qualify`, then
+`eliminated` (by model ID). Each `ModelOffering` carries its `offering`, the
+strongest `status` the decision gives it, its `rank` in `results` (ranked only),
+its `cost_per_task`, the facets it is `unknown` on (may-qualify only) and, for an
+eliminated offering, the Must `reason` it failed.
+
+Eliminated models are listed only when the explanation carries them, at `full`.
+At `none` and `summary`, `by_model` holds ranked and may-qualify models only.
+`cost_per_task` is null when the offering has no priced task. The field is
+always present, and is empty when `results` and `may_qualify` are.
+
 ### A result
 
 | Field | Meaning |
 |---|---|
 | `rank` | 1-based position. |
+| `model` | The offering's model ID, flat, so an agent need not open `offering`. Always equal to `offering.model`. |
+| `model_rank` | 1-based position among models: the model's best offering's place. Ties are expressed only by `answer`. |
+| `cost_per_task` | The offering's exact cost of one task in USD, or null when it cannot be priced. Filled at every explanation level. |
 | `offering` | `model`, and when the result is an offering, its `provider`, `region` and `tier`. |
 | `harness` | The harness the evidence and estimate apply to, or null. |
 | `effort` | The effort setting the evidence and estimate apply to, or null. |
@@ -909,7 +949,8 @@ Decided now, so that later slices do not widen anything:
 - `warnings` (on the decision and on each result) are **an open set of
   lowercase codes**. Clients must accept codes they do not know. A new code is
   not a widening.
-- `status`, `measured_by`, `date_type`, `directness` and `explain` are **closed**.
+- `status`, `measured_by`, `date_type`, `directness`, `explain` and the
+  `by_model` row `status` (`ranked`, `may_qualify`, `eliminated`) are **closed**.
   A new value in any of them bumps the major.
 - The spec hash algorithm above is part of the contract. Changing it changes
   every published hash, so it bumps the major.
@@ -919,6 +960,10 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.5 — MODEL-180:** Each result adds the flat `model`, `model_rank` and
+  `cost_per_task`, and the decision adds `by_model`, the model-grouped view
+  the page used to build for itself. All are new optional fields, so the
+  major stays 2. `by_model` lists eliminated models only at `explain: full`.
 - **2.4 — MODEL-190:** `optimize.weights` accepts refinement keys
   (`software_engineering/rust`) for refinements the vocabulary marks `live` or
   `thin`, and ranks them on a nested estimate. Results add optional

@@ -495,6 +495,20 @@
   "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 330\" role=\"img\" aria-label=\"Objective contributions in original units\"><text x=\"8\" y=\"18\">lab/alpha · -offering.cost_per_task: 0.168 usd_per_task</text><rect x=\"8\" y=\"27\" width=\"300\" height=\"12\" /><text x=\"8\" y=\"73\">lab/alpha · quality: 92 percent</text><rect x=\"8\" y=\"82\" width=\"300\" height=\"12\" /><text x=\"8\" y=\"128\">lab/gamma · -offering.cost_per_task: 0.112 usd_per_task</text><rect x=\"8\" y=\"137\" width=\"200\" height=\"12\" /><text x=\"8\" y=\"183\">lab/gamma · quality: 88 percent</text><rect x=\"8\" y=\"192\" width=\"286.957\" height=\"12\" /><text x=\"8\" y=\"238\">lab/beta · -offering.cost_per_task: 0.056 usd_per_task</text><rect x=\"8\" y=\"247\" width=\"100\" height=\"12\" /><text x=\"8\" y=\"293\">lab/beta · quality: 72 percent</text><rect x=\"8\" y=\"302\" width=\"234.783\" height=\"12\" /></svg>",
   "number_origins": [
     {
+      "path": "/results/0/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
       "path": "/results/0/evidence/0/items/0/value",
       "basis": "snapshot measurement",
       "records": [
@@ -591,6 +605,20 @@
       "source_ids": []
     },
     {
+      "path": "/results/1/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
       "path": "/results/1/evidence/0/items/0/value",
       "basis": "snapshot measurement",
       "records": [
@@ -681,6 +709,20 @@
     },
     {
       "path": "/results/1/contributions/1/evidence/0/interval/1",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/cost_per_task",
       "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
       "records": [],
       "sources": [],
@@ -911,7 +953,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.4",
+  "contract_version": "2.5",
   "decision_id": "dec_c5b644153bbf9512a5325287",
   "snapshot": "snap_20eefc281d696965",
   "signature_verified": false,
@@ -945,6 +987,9 @@
         "region": "global",
         "tier": "standard"
       },
+      "model": "lab/alpha",
+      "model_rank": 1,
+      "cost_per_task": 0.168,
       "harness": null,
       "effort": null,
       "evidence": [
@@ -1058,6 +1103,9 @@
         "region": "global",
         "tier": "standard"
       },
+      "model": "lab/gamma",
+      "model_rank": 2,
+      "cost_per_task": 0.112,
       "harness": null,
       "effort": null,
       "evidence": [
@@ -1171,6 +1219,9 @@
         "region": "global",
         "tier": "standard"
       },
+      "model": "lab/beta",
+      "model_rank": 3,
+      "cost_per_task": 0.056,
       "harness": null,
       "effort": null,
       "evidence": [
@@ -1267,6 +1318,92 @@
         }
       ],
       "warnings": []
+    }
+  ],
+  "by_model": [
+    {
+      "model": "lab/alpha",
+      "status": "ranked",
+      "rank": 1,
+      "cost_per_task": 0.168,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/alpha",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 1,
+          "cost_per_task": 0.168,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "lab/gamma",
+      "status": "ranked",
+      "rank": 2,
+      "cost_per_task": 0.112,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/gamma",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 2,
+          "cost_per_task": 0.112,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "lab/beta",
+      "status": "ranked",
+      "rank": 3,
+      "cost_per_task": 0.056,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/beta",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 3,
+          "cost_per_task": 0.056,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "lab/delta",
+      "status": "eliminated",
+      "rank": null,
+      "cost_per_task": null,
+      "offerings": [
+        {
+          "offering": {
+            "model": "lab/delta",
+            "provider": "cloud",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "eliminated",
+          "rank": null,
+          "cost_per_task": 0.028,
+          "unknown": [],
+          "reason": "quality >= 60 @independent"
+        }
+      ]
     }
   ],
   "may_qualify": [],

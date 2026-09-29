@@ -8,6 +8,7 @@ from dataclasses import replace
 from math import inf, isfinite, sqrt
 
 from decision import estate as estate_module
+from decision.by_model import build_by_model
 from decision.computed import with_computed
 from decision.contract import (
     DEFAULT_TASK_TOKENS,
@@ -232,6 +233,23 @@ def _known_number(snapshot, cid: str, facet: str) -> float | None:
 
 def _candidate_cost(snapshot, cid: str) -> float | None:
     return _known_number(snapshot, cid, "offering.cost_per_task")
+
+
+def _offering_costs(snapshot) -> Callable[[OfferingRef], float | None]:
+    """The task cost of any offering, by its reference; the snapshot is scanned on first use."""
+    by_model: dict[str, list[str]] = {}
+
+    def cost_of(ref: OfferingRef) -> float | None:
+        if not by_model:
+            for cid in snapshot.candidates():
+                if snapshot.kind(cid) == "offering":
+                    by_model.setdefault(snapshot.model_of(cid), []).append(cid)
+        for cid in by_model.get(ref.model, ()):
+            if offering_ref(snapshot, cid) == ref:
+                return _candidate_cost(snapshot, cid)
+        return None
+
+    return cost_of
 
 
 def _representative_rows(
@@ -546,8 +564,10 @@ def _decide(
         models=len(omitted_models),
     )
     results = []
+    model_ranks: dict[str, int] = {}
     for i, row in enumerate(returned_rows):
         model_id = snapshot.model_of(row.candidate_id)
+        model_ranks.setdefault(model_id, len(model_ranks) + 1)
         stored_estimates = [
             (domain, snapshot.capability_estimate(row.candidate_id, domain))
             for domain in shown_domains
@@ -594,6 +614,8 @@ def _decide(
         results.append(Result(
             rank=i + 1,
             offering=offering_ref(snapshot, row.candidate_id),
+            model_rank=model_ranks[model_id],
+            cost_per_task=_candidate_cost(snapshot, row.candidate_id),
             estimates=estimates or None,
             refinement_estimates=nested or None,
             p_best=p_best,
@@ -637,6 +659,8 @@ def _decide(
         truncated=truncated,
         out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
     )
+    cost_of = _offering_costs(snapshot)
+    decision.by_model = build_by_model(decision, cost_of)
     if spec.explain != "none":
         from decision.explain import explain
 
@@ -644,4 +668,6 @@ def _decide(
             decision, resolved, snapshot, filtered, ordered, selectors, domains,
             comparison=comparison,
         )
+        if spec.explain == "full":
+            decision.by_model = build_by_model(decision, cost_of)
     return decision
