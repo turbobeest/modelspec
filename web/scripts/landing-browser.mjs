@@ -123,6 +123,18 @@ try {
   assert.equal(hero.plotWidth > 680, true, JSON.stringify(hero));
   assert.equal(hero.h1 <= 56 && hero.tie <= 56, true, JSON.stringify(hero));
   assert.equal(hero.scroll <= 1440, true, JSON.stringify(hero));
+  // Laptop widths keep a readable copy column beside the graph.
+  for (const width of [1000, 1200]) {
+    await page.setViewportSize({ width, height: 900 });
+    const mid = await page.evaluate(() => ({
+      copy: document.querySelector(".hero-copy").getBoundingClientRect().width,
+      copyRight: document.querySelector(".hero-copy").getBoundingClientRect().right,
+      plotLeft: document.querySelector("#plot").getBoundingClientRect().left,
+      plotRight: document.querySelector("#plot").getBoundingClientRect().right,
+    }));
+    assert.equal(mid.copy >= 280 && mid.plotLeft >= mid.copyRight && mid.plotRight <= width, true,
+      `${width}px: ${JSON.stringify(mid)}`);
+  }
   await page.setViewportSize({ width: 390, height: 844 });
   await assertLockup(page, 390);
   const overflow = await page.evaluate(() => ({

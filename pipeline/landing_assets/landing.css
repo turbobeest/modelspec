@@ -131,7 +131,7 @@ nav > a:not(.button) {
   min-height: 880px;
   padding: 64px 64px 80px 72px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 760px);
+  grid-template-columns: minmax(0, 1fr) min(760px, 60%);
   gap: 48px;
 }
 .hero-copy {
@@ -151,7 +151,7 @@ nav > a:not(.button) {
 .hero h1 {
   margin: 0;
   color: #fff;
-  font-size: 54px;
+  font-size: clamp(40px, 3.75vw, 54px);
   line-height: 1;
 }
 .eyebrow,
@@ -262,7 +262,7 @@ nav > a:not(.button) {
 }
 .receipt h2 {
   margin: 0;
-  font-size: 54px;
+  font-size: clamp(40px, 3.75vw, 54px);
   line-height: 1;
 }
 .receipt p {
