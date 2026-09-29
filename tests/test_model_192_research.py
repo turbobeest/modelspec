@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -204,11 +205,12 @@ def test_collected_finance_evidence_is_filed_and_verified(
     assert row["source_url"] == FINANCE_SOURCE_URL
     assert row["source_kind"] == "independent_evaluator"
     assert row["measured_by"] == "independent_evaluator"
-    assert row["sources"] == [{
-        "source_id": FINANCE_SOURCE_ID,
-        "snapshot_ref": "sha256:a8d3d8dec4605e37bf43a29ef09b35b6e47a78e4bc9e64b701d620d9dfb668d7",
-        "cited_regions": ["rows"],
-    }]
+    # The weekly refresh re-reads this board (MODEL-232) and re-binds the row to
+    # each new read, so the snapshot is not pinned to the MODEL-192 collection.
+    [source] = row["sources"]
+    assert source["source_id"] == FINANCE_SOURCE_ID
+    assert source["cited_regions"] == ["rows"]
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", source["snapshot_ref"])
 
     verification = _latest_verifications()[row["id"]]
     assert verification["outcome"] == "verified"
