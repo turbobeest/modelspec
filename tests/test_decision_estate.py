@@ -18,7 +18,7 @@ from decision import contract as c
 from decision.contract import SpecError, parse_spec
 from decision.engine import decide
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes
-from tests.snapshot_records import SOURCES, fact, model, offering, subscription
+from tests.snapshot_records import SOURCES, evidence, fact, model, offering, subscription
 
 ROOT = Path(__file__).parents[1]
 KEY = b"model-179-test-key"
@@ -232,6 +232,61 @@ def test_when_the_estate_reaches_the_unrestricted_answer_the_gap_says_so(snapsho
 
     assert held.gap.same_answer is True
     assert held.gap.unreachable_models == []
+
+
+@pytest.fixture(scope="module")
+def tied_snapshot():
+    quality = {"tie/a": (92.0, [86.0, 98.0]), "tie/b": (88.0, [82.0, 94.0]),
+               "tie/c": (40.0, [36.0, 44.0])}
+    models = [_model(mid, 100_000) for mid in quality]
+    offerings = [_offering("tie/a", "anthropic", 3.0), _offering("tie/b", "openai", 4.0),
+                 _offering("tie/c", "together-ai", 1.0)]
+    rows = [evidence(mid, "quality", score, interval=interval)
+            for mid, (score, interval) in quality.items()]
+    built = build_snapshot(
+        SnapshotInputs(models=models, offerings=offerings, evidence=rows, sources=SOURCES,
+                       benchmark_domains={"quality": [("software_engineering", "direct")]}),
+        gate=False)
+    return load_snapshot_bytes(built.to_bytes(key=KEY), key=KEY, source="tied estate snapshot")
+
+
+def _decide_tied(snapshot, estate):
+    spec = parse_spec({"spec_version": 1, "capabilities": {"software_engineering": "required"},
+                       "optimize": {"max": "quality"}, "explain": "none",
+                       "estate": estate}, facets=None)
+    return decide(spec, snapshot)
+
+
+def test_a_tied_answer_names_the_tie_members_the_estate_cannot_reach(tied_snapshot) -> None:
+    decision = _decide_tied(tied_snapshot, {"providers": ["anthropic", "together-ai"]})
+    held = decision.with_estate
+
+    assert decision.answer.kind == "tied"
+    assert decision.answer.members == ["tie/a", "tie/b"]
+    assert held.answer.kind == "separated"
+    assert held.answer.leader == "tie/a"
+    assert held.gap.same_answer is False
+    assert held.gap.unreachable_models == ["tie/b"]
+    assert "tie/b" in held.gap.summary
+    assert "tie of tie/a, tie/b" in held.gap.summary
+    assert "0 model" not in held.gap.summary
+
+
+def test_a_tied_answer_reached_in_full_says_so(tied_snapshot) -> None:
+    held = _decide_tied(tied_snapshot, {"providers": ["anthropic", "openai"]}).with_estate
+
+    assert held.gap.same_answer is True
+    assert held.gap.unreachable_models == []
+    assert "tie/a" in held.gap.summary and "tie/b" in held.gap.summary
+
+
+def test_a_tied_answer_with_no_tie_member_reachable_lists_them_all(tied_snapshot) -> None:
+    decision = _decide_tied(tied_snapshot, {"providers": ["together-ai"]})
+    held = decision.with_estate
+
+    assert held.answer.leader == "tie/c"
+    assert held.gap.unreachable_models == ["tie/a", "tie/b"]
+    assert "0 model" not in held.gap.summary
 
 
 def test_an_empty_estate_reaches_nothing_and_says_what_to_add(snapshot) -> None:

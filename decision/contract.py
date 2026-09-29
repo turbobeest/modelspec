@@ -1398,8 +1398,8 @@ class EstateGap(_Strict):
     """Why the two answers differ, or that they do not."""
 
     same_answer: bool
-    #: Models the unrestricted ranking puts above the estate's leader that the
-    #: estate cannot reach, best first.
+    #: Models the unrestricted ranking puts above the estate's leader, plus any
+    #: member of a tied unrestricted answer, that the estate cannot reach, best first.
     unreachable_models: list[ModelId] = Field(default_factory=list)
     summary: str
 

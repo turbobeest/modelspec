@@ -210,19 +210,30 @@ def _mark(computed: Any, cid: str, via: tuple[str, str]) -> EstateMark:
         marginal_cost_per_task_usd=cost)
 
 
-def _summary(same: bool, unrestricted: list[str], held_models: list[str],
-             unreachable: list[str]) -> str:
-    if not held_models:
+def _label(answer: Any, models: list[str]) -> str:
+    if answer is not None and answer.kind == "tied":
+        return f"a tie of {', '.join(answer.members)}"
+    return answer.leader if answer is not None else (models[0] if models else "none")
+
+
+def _summary(same: bool, unrestricted: Ran, held: Ran, unreachable: list[str]) -> str:
+    unrestricted_label = _label(unrestricted.decision.answer, unrestricted.models)
+    if not held.models:
         return ("What you hold reaches no model that qualifies. Unrestricted, the best is "
-                + (unrestricted[0] if unrestricted else "none") + ".")
+                f"{unrestricted_label}.")
+    held_label = _label(held.decision.answer, held.models)
     if same:
-        return f"What you hold reaches the unrestricted answer, {held_models[0]}."
+        return f"What you hold reaches the unrestricted answer, {held_label}."
+    if not unreachable:
+        return (f"Unrestricted, the best is {unrestricted_label}. With what you hold it is "
+                f"{held_label}; no model ranked at or above it is outside your estate, so "
+                "the answer differs only in cost or how the tie is broken.")
     names = ", ".join(unreachable[:5])
     more = len(unreachable) - 5
     tail = f" and {more} more" if more > 0 else ""
-    lead = unrestricted[0] if unrestricted else "none"
-    return (f"Unrestricted, the best is {lead}. With what you hold it is {held_models[0]}; "
-            f"{len(unreachable)} better-ranked model(s) are outside your estate: {names}{tail}.")
+    return (f"Unrestricted, the best is {unrestricted_label}. With what you hold it is "
+            f"{held_label}; {len(unreachable)} model(s) ranked at or above it are outside "
+            f"your estate: {names}{tail}.")
 
 
 def with_estate(
@@ -250,10 +261,13 @@ def with_estate(
     best = unrestricted.models
     if ran.models and ran.models[0] in best:
         best = best[: best.index(ran.models[0])]
-    unreachable = [m for m in best if m not in set(ran.models)]
+    tied = unrestricted.decision.answer
+    keep = set(best) | set(tied.members if tied is not None and tied.kind == "tied" else ())
+    reached = set(ran.models)
+    unreachable = [m for m in unrestricted.models if m in keep and m not in reached]
     gap = EstateGap(
         same_answer=same, unreachable_models=unreachable,
-        summary=_summary(same, unrestricted.models, ran.models, unreachable))
+        summary=_summary(same, unrestricted, ran, unreachable))
     gain = _gain(catalogue, estate, (providers, plans, devices), current, ran, run)
     return WithEstate(
         status=decision.status, answer=decision.answer, results=results,

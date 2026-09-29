@@ -416,7 +416,7 @@ are byte-identical to the decision for the same spec without one.
 | `results[].estate` | How the estate reaches the row: `via` is `{kind, id}` with `kind` one of `provider`, `plan` or `device`; `cost_basis` is `list_price`, `plan_included` or `owned_hardware`; `marginal_cost_per_task_usd` is what one more task costs the caller (0 inside a plan or on an owned device, the list `offering.cost_per_task` on a key, null when the price is unknown). The marginal cost drives a cost objective. When several holds reach a row the plan wins, then the key, then the device. |
 | `may_qualify` | As for the decision, over the estate. |
 | `truncated` | As for the decision. |
-| `gap` | Why the two answers differ. `same_answer` is true when the estate reaches the unrestricted answer, `unreachable_models` lists the models the unrestricted ranking puts above the estate's leader that it cannot reach, and `summary` says so in a sentence. |
+| `gap` | Why the two answers differ. `same_answer` is true when the estate reaches the unrestricted answer, `unreachable_models` lists the models the unrestricted ranking puts above the estate's leader that it cannot reach, and, when the unrestricted answer is a tie, every tied member it cannot reach, and `summary` says so in a sentence. |
 | `gain` | Holds the caller lacks whose addition would change the `with_estate` answer, each as `add` (`{kind, id}`), the `status` and `leader` it would give, and the `answer`. A hold that reaches nothing new, an exhausted one and one already held are not offered. |
 
 ### Contract note
