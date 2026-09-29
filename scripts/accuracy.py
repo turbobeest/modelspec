@@ -751,9 +751,17 @@ _PROJECTIONS = {"hf-result-projection@1": _oll_projection}
 
 
 def _read_nothing(result: Any) -> bool:
-    """No reader found the value, as opposed to finding a different one."""
+    """No reader found the value, as opposed to finding a different one.
+
+    A mismatch only on conditions (effort, harness, date) the source does not state
+    is a mismatch: the value itself was read.
+    """
+    from decision.verify import CONDITION_KEYS
+
     return result.outcome == "skipped" or (
-        result.outcome == "mismatch" and all(diff.found is None for diff in result.diffs)
+        result.outcome == "mismatch"
+        and all(diff.found is None for diff in result.diffs)
+        and any(diff.field not in CONDITION_KEYS for diff in result.diffs)
     )
 
 
@@ -785,7 +793,9 @@ def verify_fidelity_sample(
         if _read_nothing(result):
             undetermined = unread.get((claim.target.kind, claim.target.id), "source_changed")
             if undetermined == "mismatch":
+                # The queue records what the nightly concluded, not verify's "skipped".
                 outcome, undetermined = "mismatch", None
+                result = replace(result, outcome="mismatch")
             else:
                 outcome = "undetermined"
         counts[outcome] += 1

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -493,6 +494,86 @@ def test_a_value_no_reader_finds_in_its_unchanged_source_is_undetermined_not_pas
     assert result.counts["verified"] == 0
     assert log.latest() == {}
     assert queue.pending() == ([], [])
+
+
+def test_a_mismatch_only_on_an_unstated_condition_is_still_a_mismatch() -> None:
+    from decision.verify import Diff, Result
+
+    target = TargetRef(kind="evidence", id="lab/model#bench#1")
+    condition = Result(target, "mismatch", diffs=(Diff("harness", "unregistered", None),))
+    value = Result(target, "mismatch", diffs=(Diff("value", "92.0 percent", None),))
+
+    assert accuracy._read_nothing(condition) is False
+    assert accuracy._read_nothing(value) is True
+
+
+class _Fetches:
+    def __init__(self, bodies):
+        self.bodies = bodies
+
+    def fetch(self, url, *, etag=None, last_modified=None):
+        from decision.sources import FetchResult
+
+        return FetchResult("ok", 200, body=self.bodies[url], content_type="text/plain")
+
+
+def test_current_copies_pin_new_copies_and_say_what_an_unread_value_is(tmp_path: Path) -> None:
+    from decision.sources import CopyStore, fingerprint_bytes
+
+    same, moved = b"context: 10\n", b"context: 10 tokens, revised\n"
+    sources = {
+        sid: Source(
+            id=sid,
+            url=f"https://example.test/{sid}",
+            fetch="http",
+            normaliser="text-default",
+            cited_regions=[{"id": "table", "locator": {"kind": "page", "value": ""}}],
+        )
+        for sid in ("same", "moved")
+    }
+
+    def claim(target, source_id, snapshot_ref):
+        return replace(
+            _claim(target, "context", 10),
+            sources=(SourceRef(source_id=source_id, snapshot_ref=snapshot_ref,
+                               cited_regions=["table"]),),
+        )
+
+    batch = [
+        (claim("lab/a#context", "same", fingerprint_bytes(same)), "key-value-match@1"),
+        (claim("lab/b#context", "same", fingerprint_bytes(same)), "retained-source-proof@1"),
+        (claim("lab/c#context", "moved", fingerprint_bytes(b"old copy")), "key-value-match@1"),
+    ]
+    store = CopyStore(tmp_path)
+
+    current, unread = accuracy._current_copies(
+        batch,
+        sources=sources,
+        store=store,
+        fetcher=_Fetches({"https://example.test/same": same,
+                          "https://example.test/moved": moved}),
+        as_of=date(2026, 9, 29),
+        nightly_methods=frozenset({"key-value-match@1"}),
+    )
+
+    assert unread == {
+        ("fact", "lab/a#context"): "mismatch",
+        ("fact", "lab/b#context"): "source_unchanged",
+        ("fact", "lab/c#context"): "source_changed",
+    }
+    assert current[2].sources[0].snapshot_ref == fingerprint_bytes(moved)
+    assert store.get(current[2].sources[0].snapshot_ref) == moved
+
+
+def test_a_promoted_mismatch_is_queued_as_a_mismatch(tmp_path: Path) -> None:
+    claim, result, queue, log = _fidelity(
+        tmp_path,
+        "no key value pairs here",
+        {("fact", "lab/model#model.context_window"): "mismatch"},
+    )
+
+    assert result.details[0]["outcome"] == "mismatch"
+    assert queue.recrawl_requests() == [(claim.target, "mismatch")]
 
 
 def test_fidelity_fails_when_too_many_draws_are_undetermined() -> None:
