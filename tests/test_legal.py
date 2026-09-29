@@ -588,12 +588,17 @@ def test_the_privacy_statement_says_pages_load_nothing_third_party() -> None:
     """No page on either site loads a font from a CDN any more (MODEL-92, with
     explorer.html switched in MODEL-24's PR #115), so the draft must not disclose
     a Google Fonts request that no longer happens. tests/test_no_font_cdn.py
-    proves the premise against the source tree and a built site."""
+    proves the premise against the source tree and a built site.
+
+    MODEL-236: Cloudflare inserts its Web Analytics script at the edge. It is not
+    in the source tree, so it is named here as the one third-party request."""
     from pipeline import render as r
     assert "fonts.googleapis.com" not in r.FONTS
     assert "fonts.googleapis.com" not in FLAT_PRIVACY
     assert "Google Fonts" not in FLAT_PRIVACY
-    assert "pages load nothing from a third party" in FLAT_PRIVACY
+    assert "pages load nothing else from a third party" in FLAT_PRIVACY
+    assert "Cloudflare Web Analytics is on" in FLAT_PRIVACY
+    assert "`static.cloudflareinsights.com`" in FLAT_PRIVACY
 
 
 def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> None:

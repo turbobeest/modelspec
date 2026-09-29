@@ -23,7 +23,8 @@ choose to send about an answer is described below; storing it is not yet switche
 on. If you use an API key or buy credits, we keep a hash of the key
 (never the key), its usage counters and credit balance, and the Stripe identifiers
 of your purchase. Stripe, not us, handles your card. Cloudflare, our infrastructure
-provider, records request metadata as platform logs.
+provider, records request metadata as platform logs, and runs Cloudflare Web
+Analytics on our web pages.
 
 ## What a request contains
 
@@ -267,7 +268,10 @@ snapshot and determinations, which contain nothing of yours
 (`api/worker/src/entry.py`).
 
 Our own code writes no log line about your request. There is no analytics call,
-no telemetry beacon and no third-party tag on the API path.
+no telemetry beacon and no third-party tag on the API path. Cloudflare's
+analytics script (see *The websites*) is inserted into the one HTML page the API
+serves, the page that shows a purchased key, but that page's content security
+policy stops a browser from loading it (`api/worker/src/billing_page.py`).
 
 ## What Stripe holds
 
@@ -306,8 +310,23 @@ you. Cloudflare processes it under its own terms as our infrastructure provider.
 `modelspec.dev` is a static site on Cloudflare Pages. `benchgraph.dev`
 redirects to it.
 
-- **No cookies are set.** No analytics, no tag manager, no tracking pixel, no
-  advertising network.
+- **No cookies are set.** No tag manager, no tracking pixel, no advertising
+  network.
+- **Cloudflare Web Analytics is on.** Cloudflare inserts its analytics script
+  into each page of the site as it serves the page; the script is not in our
+  code. Your browser loads it from `static.cloudflareinsights.com`, a Cloudflare
+  host, and it sends to `modelspec.dev/cdn-cgi/rum`, which Cloudflare answers:
+  the page's address without its query string or the part after the `#`; the
+  page you came from, shortened the same way; an identifier for that page load;
+  your browser's make and version and your operating system's version; and how
+  quickly the page loaded and responded, naming the page element involved in
+  the slowest paint, layout shift or interaction. Cloudflare also receives the
+  request metadata described under *What Cloudflare records*. Cloudflare
+  states that the script uses no cookie or other browser storage and does not
+  fingerprint visitors. From it, Cloudflare shows us aggregate counts of page
+  views and visits and aggregate page-load performance, by page, referrer,
+  country, browser, operating system and device type. We do not export it,
+  join it to anything else, or use it to build a profile of you.
 - **No account exists** to sign into, so there is nothing about you to hold.
 - The **decide page** (`/decide/`) answers by sending the board's current spec
   to `POST /v1/decide`, described above, whenever it needs an answer, including
@@ -328,9 +347,10 @@ the page address described above; and, if
 - The **Feedback** button, on every page, and the "Was this answer reliable?"
   prompt on the decide page send what you enter to `/v1/feedback` only when you
   press Send. They set no cookie and store nothing in your browser.
-- **No third-party requests:** pages load nothing from a third party. Web fonts
-  and the graph explorer's libraries are served from our own origin rather than
-  a CDN.
+- **One third-party request:** each page loads Cloudflare's analytics script,
+  above, from `static.cloudflareinsights.com`, and pages load nothing else from
+  a third party. Web fonts and the graph explorer's libraries are served from
+  our own origin rather than a CDN.
 
 ## Inference, and why there is nothing to say about it
 
@@ -430,7 +450,10 @@ published here before the change ships. The version above is the one in force.
   that Stripe renewals and claims are still credited while `BILLING_ENABLED` is
   off; which Stripe identifiers we keep; what the Worker holds in memory between
   requests; which intake needs which secret; and that not every claim names a
-  file.
+  file. Disclosed Cloudflare Web Analytics, which
+  Cloudflare inserts into our web pages, what its script sends and what
+  Cloudflare shows us from it, and that the pages' one third-party request is
+  that script (MODEL-236).
 - **1.2, 2026-09-26.** Disclosed the release-signal queue before it is enabled:
   the public release fields it stores, its processing audit, its 1-, 7- and
   30-day re-check records, and its `SIGNALS_ENABLED` switch (MODEL-113).
