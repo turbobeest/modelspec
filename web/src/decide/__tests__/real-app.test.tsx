@@ -428,7 +428,7 @@ it("keeps ticket IDs and future promises out of every applied template surface",
     expect(document.querySelector(".facet-board")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
     fireEvent.click(screen.getByRole("button", { name: "ⓘ Templates" }));
   }
-});
+}, 20_000); // walks every template; took 5.2 s on a CI runner (deploy run for 8c815d00)
 
 function plotCostAgainstCapability(canvas: HTMLElement) {
   fireEvent.change(within(canvas).getByLabelText("X axis"), {
