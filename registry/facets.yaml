@@ -533,6 +533,17 @@ facets:
     tier: best_effort
     risk: capability
     permitted_source_kinds: [modelspec_estimate]
+  - id: model.hardware_fit_indeterminate
+    label: Hardware fit indeterminate
+    subject: model
+    value_type: {kind: set, values_from: hardware}
+    definition: >-
+      The hardware SKUs in `hardware/` for which ModelSpec's single-memory-pool
+      weight-fit formula does not apply. Membership conditions on
+      `model.fits_hardware` treat these device legs as unknown, not as false.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [modelspec_estimate]
 
   # ── Offering: identity ────────────────────────────────────────────────────
   - id: offering.provider

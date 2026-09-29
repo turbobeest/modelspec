@@ -431,7 +431,12 @@ def test_every_closed_enum_value_has_a_plain_label(registry):
     for facet in registry._facets.values():
         if facet.value_type.kind not in ("enum", "set"):
             continue
-        if facet.id in ("offering.provider", "offering.harness_compatibility", "model.fits_hardware"):
+        if facet.id in (
+            "offering.provider",
+            "offering.harness_compatibility",
+            "model.fits_hardware",
+            "model.hardware_fit_indeterminate",
+        ):
             continue  # named by registry/providers.yaml, harnesses.yaml and hardware/
         for value in sorted(registry.allowed_values(facet) or ()):
             if not facet.value_label(value):

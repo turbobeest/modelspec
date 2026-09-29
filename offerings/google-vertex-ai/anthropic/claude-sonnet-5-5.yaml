@@ -149,3 +149,15 @@
     checked_sources:
     - vertex-pricing
     - model-s55-anthropic-claude-sonnet-5-5
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - model-s55-anthropic-claude-sonnet-5-5
+    - model-s55-google-attestations-rendered
+    - model-s55-vertex-data-rendered
+    - vertex-pricing

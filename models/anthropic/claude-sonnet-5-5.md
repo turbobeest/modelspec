@@ -1100,6 +1100,29 @@ facts:
     snapshot_ref: sha256:d5d965655631830bb822007868b89450f8a127e7b8b277a60eaee51be5acdf52
     cited_regions:
     - guaranteed-facts
+- id: anthropic/claude-sonnet-5-5#model.fits_hardware
+  subject:
+    kind: model
+    id: anthropic/claude-sonnet-5-5
+  facet: model.fits_hardware
+  value: null
+  state: unknown
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: null
+      parameters_total: null
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:d5d965655631830bb822007868b89450f8a127e7b8b277a60eaee51be5acdf52
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
+  checked_sources:
+  - model-s55-anthropic-model-facts-rendered
 ---
 
 # Claude Sonnet 5.5

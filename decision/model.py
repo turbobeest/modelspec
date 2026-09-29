@@ -263,6 +263,7 @@ class Fact(Record):
     state: Literal["known", "unknown", "not_disclosed", "requires_contract"]
     sources: list[SourceRef] = Field(default_factory=list)
     checked_sources: list[Text] = Field(default_factory=list)
+    derivation: dict[str, JsonValue] | None = None
     verification: Verification | None = None
 
     @model_validator(mode="after")

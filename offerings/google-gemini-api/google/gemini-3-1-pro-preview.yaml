@@ -143,3 +143,16 @@
     checked_sources:
     - gemini-pricing
     - model-143-google-gemini-3-1-pro-preview
+  - id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - gemini-pricing
+    - gemini-retention
+    - gemini-zdr
+    - google-attestations
+    - model-143-google-gemini-3-1-pro-preview

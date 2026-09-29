@@ -2130,6 +2130,32 @@ facts:
     snapshot_ref: sha256:2d5f971cdba4f6e36d021746ff9511f9323e4a66c27e30ac3c3ea6a10b36d96f
     cited_regions:
     - audit
+- id: moonshot/kimi-k3#model.fits_hardware
+  subject:
+    kind: model
+    id: moonshot/kimi-k3
+  facet: model.fits_hardware
+  value: []
+  state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 2779931837184
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:f48f8c823e99d428cb27363dc0202dfc240f57a19e1d460c4df8d5d957906b13
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
+  sources:
+  - source_id: model-174-moonshot-kimi-k3-hardware-input
+    snapshot_ref: sha256:f48f8c823e99d428cb27363dc0202dfc240f57a19e1d460c4df8d5d957906b13
+    cited_regions:
+    - rows
 - id: moonshot/kimi-k3#model.parameters_total
   subject:
     kind: model
@@ -2138,30 +2164,42 @@ facts:
   value: 2779931837184
   state: known
   sources:
-  - source_id: model-161-kimi-k3-rtx-4090-fit
-    snapshot_ref: sha256:9ca75a16dfd64b9af44ca339ba4be8fe66e9eed1466808c9a8e9560fdb859111
+  - source_id: model-174-moonshot-kimi-k3-hardware-input
+    snapshot_ref: sha256:f48f8c823e99d428cb27363dc0202dfc240f57a19e1d460c4df8d5d957906b13
     cited_regions:
     - rows
-- id: moonshot/kimi-k3#model.fits_hardware
+- id: moonshot/kimi-k3#model.hardware_fit_indeterminate
   subject:
     kind: model
     id: moonshot/kimi-k3
-  facet: model.fits_hardware
-  value: []
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
   state: known
   sources:
-  - source_id: model-161-kimi-k3-rtx-4090-fit
-    snapshot_ref: sha256:9ca75a16dfd64b9af44ca339ba4be8fe66e9eed1466808c9a8e9560fdb859111
+  - source_id: model-174-moonshot-kimi-k3-hardware-input
+    snapshot_ref: sha256:f48f8c823e99d428cb27363dc0202dfc240f57a19e1d460c4df8d5d957906b13
     cited_regions:
     - rows
-  - source_id: model-161-nvidia-rtx-4090-memory
-    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
-    cited_regions:
-    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 2779931837184
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:f48f8c823e99d428cb27363dc0202dfc240f57a19e1d460c4df8d5d957906b13
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 # Kimi K3

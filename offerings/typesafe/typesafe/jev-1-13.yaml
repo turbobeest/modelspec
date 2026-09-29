@@ -143,3 +143,13 @@
     checked_sources:
     - typesafe-models
     - model-143-typesafe-jev-1-13
+  - id: typesafe/typesafe/jev-1-13/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: typesafe/typesafe/jev-1-13/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - model-143-typesafe-jev-1-13
+    - typesafe-models

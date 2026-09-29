@@ -2238,6 +2238,32 @@ facts:
     snapshot_ref: sha256:7ce9db1b1cc7e2efafe7cbfd57b9d46d240c20399f7bd87672c7e3a5250ccdd0
     cited_regions:
     - audit
+- id: deepseek/deepseek-v4-pro#model.fits_hardware
+  subject:
+    kind: model
+    id: deepseek/deepseek-v4-pro
+  facet: model.fits_hardware
+  value: []
+  state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 1598839674782
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
+  sources:
+  - source_id: model-174-deepseek-deepseek-v4-pro-hardware-input
+    snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
+    cited_regions:
+    - rows
 - id: deepseek/deepseek-v4-pro#model.parameters_total
   subject:
     kind: model
@@ -2246,30 +2272,42 @@ facts:
   value: 1598839674782
   state: known
   sources:
-  - source_id: model-161-deepseek-v4-pro-rtx-4090-fit
-    snapshot_ref: sha256:ede7381cf57ed2b3699b9df7a8a74800a9051d2ac313c90c35b4b0b47a62a96d
+  - source_id: model-174-deepseek-deepseek-v4-pro-hardware-input
+    snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
     cited_regions:
     - rows
-- id: deepseek/deepseek-v4-pro#model.fits_hardware
+- id: deepseek/deepseek-v4-pro#model.hardware_fit_indeterminate
   subject:
     kind: model
     id: deepseek/deepseek-v4-pro
-  facet: model.fits_hardware
-  value: []
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
   state: known
   sources:
-  - source_id: model-161-deepseek-v4-pro-rtx-4090-fit
-    snapshot_ref: sha256:ede7381cf57ed2b3699b9df7a8a74800a9051d2ac313c90c35b4b0b47a62a96d
+  - source_id: model-174-deepseek-deepseek-v4-pro-hardware-input
+    snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
     cited_regions:
     - rows
-  - source_id: model-161-nvidia-rtx-4090-memory
-    snapshot_ref: sha256:282762d1ab30d41edb243674a4e9ad07b1b8a5cf9401e34c2ca44c62374361ba
-    cited_regions:
-    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 1598839674782
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:409b510e4f35de8dbc228bf56ca9ebd72dd3d154b014cd8c23cf9d70edbb6c6b
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 # DeepSeek V4 Pro

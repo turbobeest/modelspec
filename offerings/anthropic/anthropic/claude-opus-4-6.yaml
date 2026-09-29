@@ -144,3 +144,17 @@
     checked_sources:
     - anthropic-pricing
     - model-143-anthropic-claude-opus-4-6
+  - id: anthropic/anthropic/claude-opus-4-6/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-opus-4-6/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-attestations
+    - anthropic-pricing
+    - anthropic-retention
+    - anthropic-training
+    - anthropic-zdr
+    - model-143-anthropic-claude-opus-4-6
