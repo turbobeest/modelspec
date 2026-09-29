@@ -65,6 +65,16 @@ targets:
     title: Every coverage workflow's latest run on main succeeded, on time
     in_force: true
 
+  # MODEL-232. A refresh resets reading ages only when its PR merges. Three
+  # days: a verified refresh auto-merges the day it opens, a blocked one gets a
+  # working weekday before the alert, and the alert (plus the 24-hour
+  # escalation) lands before the next weekly run replaces the PR.
+  - id: refresh-pr-merged
+    title: Every scheduled refresh PR merges within 3 days of opening
+    in_force: true
+    max_open_days: 3
+    branches: [data/weekly-leaderboard-refresh]
+
 # Premier-list domain names (premier/slice-1.yaml) to registry/domains.yaml
 # ids. Evidence in any listed registry domain satisfies the premier domain.
 domain_map:

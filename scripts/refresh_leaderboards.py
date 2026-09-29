@@ -858,6 +858,47 @@ def _project_scale_hle(html: str, *, url: str, page_ref: str,
                             note="entries from the page's React payload; score as accuracy")
 
 
+FINBENCH_URL = "https://finbenchmark.ai/"
+
+
+def _project_finbenchmark(html: str, *, url: str, page_ref: str,
+                          observed_at: str) -> bytes:
+    """Finance Benchmark v2 rows from the page's React payload (MODEL-232).
+
+    The page carries one ``rows`` list of run records. Only ``task_set_version``
+    v2 rows are kept: v2.1 and v3 results are different task sets, not newer v2
+    readings. ``pass_at_1`` is a fraction on the page and percent on the cards.
+    """
+    payload = readers._rsc_payload(html)
+    lists: list[list[Mapping[str, Any]]] = []
+    position = 0
+    while True:
+        try:
+            start = payload.index('"rows":', position) + len('"rows":')
+        except ValueError:
+            break
+        value, _ = json.JSONDecoder().raw_decode(payload, start)
+        if (isinstance(value, list) and value and isinstance(value[0], Mapping)
+                and {"model_name", "provider", "task_set_version", "pass_at_1"} <= set(value[0])):
+            lists.append(value)
+        position = start + 1
+    if len(lists) != 1:
+        raise ValueError(f"Finance Benchmark: expected one run-record list, got {len(lists)}")
+    rows = [{
+        "model": f"{row['provider']}/{row['model_name']}",
+        "pass_at_1": round(float(row["pass_at_1"]) * 100, 4),
+        "date": str(row["completed_at"]).split("T", 1)[0],
+        "harness": f"finance-benchmark {row['harness_version']}",
+        "task_set_version": row["task_set_version"],
+    } for row in lists[0] if row["task_set_version"] == "v2" and row["pass_at_1"] is not None]
+    if not rows:
+        raise ValueError("Finance Benchmark: no v2 rows in the run-record list")
+    return readers.document(rows, url=url, page_ref=page_ref, read_date=observed_at,
+                            note="task_set_version v2 rows from the page's React payload; "
+                                 "provider/model_name as model; pass_at_1 as percent; "
+                                 "harness_version as the finance-benchmark harness")
+
+
 def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]) \
         -> tuple[list[BoardReading], list[RowFailure]]:
     """Fetch every terms-compatible live board used by the premier snapshot."""
@@ -1048,6 +1089,10 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                                                             **{k: v for k, v in kw.items()
                                                                if k != "observed_at"}),
             "accuracy")
+    # MIT-licensed repository; the site asks only to be cited (checked 2026-09-29).
+    collect("finbenchmark", "model-192-finance-benchmark-v2", ("finance_benchmark_v2",),
+            FINBENCH_URL, FINBENCH_URL,
+            lambda body, **kw: _project_finbenchmark(body.decode(), **kw), "pass_at_1")
 
     # SWE-bench carries two named boards in one embedded JSON document.
     try:

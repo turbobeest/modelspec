@@ -1,7 +1,8 @@
 """The daily coverage report (MODEL-215): measure every target, state every breach.
 
 Each check is a pure function over data already read: a premier build audit,
-the models.dev payload, and the latest workflow runs. ``measure`` reads them.
+the models.dev payload, the latest workflow runs, and the newest refresh pull
+requests. ``measure`` reads them.
 A check that could not read its input reports ``error``, and a check that
 measured nothing reports ``error`` too: an empty check is never a met target.
 
@@ -471,6 +472,42 @@ def check_workflows(runs: Mapping[str, Sequence[Mapping[str, Any]] | str],
     return Check(measured, tuple(findings), tuple(errors))
 
 
+# ── checks over the refresh pull requests ──────────────────────────────────
+
+
+def check_refresh_prs(prs: Mapping[str, Sequence[Mapping[str, Any]] | str],
+                      branches: Sequence[str], now: datetime, max_open_days: float) -> Check:
+    """The newest pull request on each scheduled refresh branch merged in time.
+
+    A refresh only resets a reading's age when its PR merges, because the report
+    reads main. The newest PR on the branch is a finding when it has gone
+    unmerged, open or closed, for more than ``max_open_days`` since it opened.
+    A branch with no PR yet has nothing unmerged.
+    """
+    findings, errors, measured = [], [], 0
+    for branch in branches:
+        got = prs.get(branch)
+        if got is None or isinstance(got, str):
+            errors.append(f"{branch}: pull requests could not be read: {got or 'not fetched'}")
+            continue
+        measured += 1
+        if not got:
+            continue
+        latest = max(got, key=lambda pr: pr["created_at"])
+        if latest.get("merged_at"):
+            continue
+        days = (now - _when(latest["created_at"])).total_seconds() / 86400
+        if days <= max_open_days:
+            continue
+        state = ("still open" if latest.get("state") == "open"
+                 else f"closed unmerged on {str(latest.get('closed_at'))[:10]}")
+        findings.append(Finding(branch, f"#{latest['number']} opened "
+                                        f"{latest['created_at'][:10]}, {state}; "
+                                        f"{days:.0f} days without merging, limit "
+                                        f"{max_open_days:g}: {latest['html_url']}"))
+    return Check(measured, tuple(findings), tuple(errors))
+
+
 # ── reading the inputs ─────────────────────────────────────────────────────
 
 
@@ -499,6 +536,22 @@ def fetch_runs(watched: Sequence[WatchedWorkflow], gh: Gh = gh_cli,
     return out
 
 
+def fetch_refresh_prs(branches: Sequence[str], gh: Gh = gh_cli,
+                      repo: str = REPO) -> dict[str, Sequence[Mapping[str, Any]] | str]:
+    """One REST call per refresh branch: its five newest pull requests, any state."""
+    owner = repo.split("/", 1)[0]
+    out: dict[str, Sequence[Mapping[str, Any]] | str] = {}
+    for branch in branches:
+        try:
+            body = gh(["api", f"repos/{repo}/pulls?state=all&head={owner}:{branch}"
+                              "&sort=created&direction=desc&per_page=5"])
+            out[branch] = json.loads(body)
+        except (subprocess.CalledProcessError, ValueError) as exc:
+            stderr = getattr(exc, "stderr", "") or ""
+            out[branch] = f"{type(exc).__name__}: {stderr.strip() or exc}"
+    return out
+
+
 def fetch_models_dev() -> tuple[dict | None, str | None]:
     from scripts import seed_models_dev as seeder
 
@@ -518,6 +571,7 @@ class Inputs:
     models_dev: tuple[Mapping[str, Any] | None, str | None]
     runs: Mapping[str, Sequence[Mapping[str, Any]] | str]
     models_dir: Path
+    refresh_prs: Mapping[str, Sequence[Mapping[str, Any]] | str] = field(default_factory=dict)
     extra_findings: Mapping[str, Sequence[Finding]] = field(default_factory=dict)
 
 
@@ -543,13 +597,15 @@ def read_repo(root: Path, as_of: date, *, gh: Gh = gh_cli,
     audit = audit_build(snapshot_inputs, registry=default_registry(),
                         premier=load_premier(premier_path), as_of=as_of,
                         guard=excluded_sources())
+    config = load_config()
     return Inputs(
         audit=audit,
         premier=yaml.safe_load(premier_path.read_text(encoding="utf-8")),
         authored=authored_facts(snapshot_inputs),
         models_dev=models_dev if models_dev is not None else fetch_models_dev(),
-        runs=fetch_runs(load_config().workflows, gh),
+        runs=fetch_runs(config.workflows, gh),
         models_dir=root / "models",
+        refresh_prs=fetch_refresh_prs(config.target("refresh-pr-merged").params["branches"], gh),
     )
 
 
@@ -600,6 +656,9 @@ def measure(inputs: Inputs, config: Config, *, as_of: date, now: datetime,
             lineup, fact_records, record, audit.rejected, as_of,
             int(t("premier-speed-age").params["max_age_days"])),
         "workflow-health": check_workflows(inputs.runs, config.workflows, now),
+        "refresh-pr-merged": check_refresh_prs(
+            inputs.refresh_prs, t("refresh-pr-merged").params["branches"], now,
+            float(t("refresh-pr-merged").params["max_open_days"])),
     }
     missing = {x.id for x in config.targets} ^ set(checks)
     if missing:

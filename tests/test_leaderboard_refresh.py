@@ -644,3 +644,124 @@ def test_unread_board_keeps_the_old_observation_date(monkeypatch, tmp_path: Path
 
     assert report.failures == [failure]
     assert str(refresh._front(card)["benchmarks"]["evidence"][0]["observed_at"]) == "2026-08-01"
+
+
+# ── Finance Benchmark v2 (MODEL-232) ────────────────────────────────────────
+
+FINANCE_CARDS = (
+    "anthropic/claude-fable-5", "anthropic/claude-opus-4-6", "anthropic/claude-opus-4-7",
+    "deepseek/deepseek-v4-pro", "google/gemini-3-5-flash", "moonshot/kimi-k3",
+    "openai/gpt-5-4", "openai/gpt-5-6-sol",
+)
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _finance_repo(tmp_path: Path) -> Path:
+    """The eight lineup cards with finance_benchmark_v2 rows, and the real registry."""
+    root = tmp_path / "repo"
+    (root / "premier").mkdir(parents=True)
+    (root / "registry").mkdir()
+    (root / "verification").mkdir()
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n" + "".join(f"- model_id: {m}\n" for m in FINANCE_CARDS), encoding="utf-8")
+    (root / "registry" / "sources.yaml").write_bytes(
+        (REPO_ROOT / "registry" / "sources.yaml").read_bytes())
+    for model_id in FINANCE_CARDS:
+        rel = Path("models") / f"{model_id}.md"
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_bytes((REPO_ROOT / rel).read_bytes())
+    return root
+
+
+def _replay_finbenchmark(monkeypatch) -> None:
+    """Serve the 2026-09-29 finbenchmark.ai page; every other board is unreachable."""
+    import gzip
+
+    page = gzip.decompress((FIXTURES / "finbenchmark_2026-09-29.html.gz").read_bytes())
+
+    def fetch(url: str) -> bytes:
+        if url == refresh.FINBENCH_URL:
+            return page
+        raise OSError(f"offline replay: {url}")
+
+    monkeypatch.setattr(refresh, "_fetch", fetch)
+
+
+def _finance_row(card: Path) -> dict:
+    return next(row for row in refresh._front(card)["benchmarks"]["evidence"]
+                if row["benchmark_id"] == "finance_benchmark_v2")
+
+
+def test_replayed_refresh_reconfirms_every_finance_benchmark_row(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = _finance_repo(tmp_path)
+    before = {m: _finance_row(root / "models" / f"{m}.md") for m in FINANCE_CARDS}
+    _replay_finbenchmark(monkeypatch)
+
+    report = refresh.run(observed_at="2026-09-29", dry_run=False, root=root,
+                         source_cache=tmp_path / "copies")
+
+    assert report.boards["finbenchmark"] == {
+        "models_read": 8, "models_reconfirmed": 8, "values_changed": 0, "failures": [],
+    }
+    assert report.changes == []
+    assert report.quarantined == []
+    assert not [f for f in report.failures if f.source == refresh.FINBENCH_URL]
+    for model_id in FINANCE_CARDS:
+        row = _finance_row(root / "models" / f"{model_id}.md")
+        assert row["score"] == before[model_id]["score"]
+        assert str(row["evidence_date"]) == str(before[model_id]["evidence_date"])
+        assert str(row["observed_at"]) == "2026-09-29"
+        assert row["sources"][0]["source_id"] == "model-192-finance-benchmark-v2"
+        assert row["sources"][0]["snapshot_ref"] != before[model_id]["sources"][0]["snapshot_ref"]
+    log = [json.loads(line) for line in
+           (root / "verification" / "log.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [entry["outcome"] for entry in log] == ["verified"] * 8
+
+
+def test_replayed_refresh_moves_a_changed_finance_score_through_verification(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = _finance_repo(tmp_path)
+    card = root / "models" / "openai" / "gpt-5-4.md"
+    card.write_text(card.read_text(encoding="utf-8").replace("score: 63.0137", "score: 61.6438"),
+                    encoding="utf-8")
+    _replay_finbenchmark(monkeypatch)
+
+    report = refresh.run(observed_at="2026-09-29", dry_run=False, root=root,
+                         source_cache=tmp_path / "copies")
+
+    assert [(c.model_id, c.old_value, c.new_value) for c in report.changes] == [
+        ("openai/gpt-5-4", 61.6438, 63.0137)
+    ]
+    assert report.quarantined == []
+    assert _finance_row(card)["score"] == 63.0137
+
+
+def _rsc_page(payload: str) -> str:
+    return f'<script>self.__next_f.push([1,{json.dumps(payload)}])</script>'
+
+
+def test_finance_projection_keeps_only_v2_rows() -> None:
+    run = {"provider": "lab", "harness_version": "0.2.0",
+           "completed_at": "2026-07-01T00:00:00+00:00"}
+    rows = [
+        {**run, "model_name": "m", "task_set_version": "v2", "pass_at_1": 0.5},
+        {**run, "model_name": "m", "task_set_version": "v3", "pass_at_1": 0.9},
+        {**run, "model_name": "m", "task_set_version": "v2.1", "pass_at_1": 0.8},
+    ]
+    projected = json.loads(refresh._project_finbenchmark(
+        _rsc_page('["$","$L12",null,{"rows":' + json.dumps(rows) + "}]"),
+        url=refresh.FINBENCH_URL, page_ref="sha256:" + "c" * 64, observed_at="2026-09-29",
+    ))
+
+    assert projected["rows"] == [{"model": "lab/m", "pass_at_1": 50.0, "date": "2026-07-01",
+                                  "harness": "finance-benchmark 0.2.0", "task_set_version": "v2"}]
+
+
+@pytest.mark.parametrize("payload", ['{"rows":[]}', '{"other":1}'])
+def test_finance_projection_refuses_a_page_without_run_records(payload: str) -> None:
+    with pytest.raises(ValueError, match="Finance Benchmark"):
+        refresh._project_finbenchmark(_rsc_page(payload), url=refresh.FINBENCH_URL,
+                                      page_ref="sha256:" + "c" * 64, observed_at="2026-09-29")

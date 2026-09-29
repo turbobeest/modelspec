@@ -41,6 +41,7 @@ per breached target raises the alarm.
 | `plan-age` | Every subscription plan was re-read within 7 days, and its facts are verified | 7 days | yes |
 | `premier-speed-age` | Every lineup offering has a ModelSpec speed measurement that ended within 14 days | 14 days | no: in force when the MODEL-230 pilot and baseline have run |
 | `workflow-health` | The latest completed run on main of each coverage workflow succeeded, and is not overdue | per workflow | yes |
+| `refresh-pr-merged` | The newest PR on each scheduled refresh branch merged within 3 days of opening | 3 days | yes |
 
 ### How each target is measured
 
@@ -67,6 +68,18 @@ per breached target raises the alarm.
   older than the workflow's `max_age_hours`, is a breach. For
   `release-signals.yml`, a run whose every job was skipped is a breach, because
   that means `SIGNALS_ENABLED` is off.
+- **`refresh-pr-merged`.** A refresh re-reads boards on a branch and resets
+  `live-reading-age` only when its PR merges, because the report reads main.
+  For each branch under `branches` in `targets.yaml` (today only
+  `data/weekly-leaderboard-refresh`), one REST call reads its five newest PRs.
+  The newest is a breach when it has not merged more than 3 days
+  (`max_open_days`) after it opened, whether it is still open or was closed
+  unmerged. A branch with no PR yet has nothing unmerged. A verified,
+  score-only refresh auto-merges the day it opens, so only a blocked one waits:
+  for example a quarantined row, a failed accuracy gate, or the recall ratchet
+  that blocked #337. Three days gives a blocked refresh one working day before
+  the alert, and the alert plus its 24-hour escalation still land before the
+  next weekly run replaces the PR.
 
 ## Statuses
 
@@ -125,7 +138,8 @@ reported to the orchestrator for tickets:
    has no reader for finbenchmark.ai (`finance_benchmark_v2`), which eight
    lineup models cite, so those readings breach `live-reading-age` from
    2026-10-29. A refresh PR left unmerged also stops the clock resetting,
-   because the report reads main.
+   because the report reads main. MODEL-232 added the reader and the
+   `refresh-pr-merged` target.
 5. **`accuracy-nightly.yml` has failed every night from 2026-09-26 to
    2026-09-29.**
 6. **Evidence gaps on the lineup:** 19 lineup models have admitted evidence on
