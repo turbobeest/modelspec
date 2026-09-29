@@ -266,7 +266,7 @@ body {
 .tie-plot rect {
   fill: #0e1a30;
 }
-.tie-plot line:not(.leader-line) {
+.tie-plot line {
   stroke-width: 4;
   stroke-linecap: round;
 }
@@ -278,17 +278,9 @@ body {
   stroke: #3fb68b !important;
   stroke-width: 3 !important;
 }
-.tie-plot .leader-line {
-  stroke: #f2c94c;
-  stroke-dasharray: 5 5;
-}
 .tie-plot text {
   fill: #eef2f7;
   font-size: 15px;
-}
-.tie-plot .leader-label {
-  fill: #f2c94c;
-  font-size: 13px;
 }
 .tie-plot .status,
 .tie-plot .axis-label {

@@ -18,6 +18,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from pipeline import brand
 from pipeline import export as exporter
 from pipeline import graph as graph_export
 from pipeline import render as r
@@ -55,12 +56,14 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
     return (
         f"# {site}\n\n"
         f"> {base}\n\n"
+        f"{brand.POSITIONING}\n\n"
         f"Open data on AI models and benchmarks. "
         f"Built {build.built_at} from commit {build.commit[:12]}. "
         f"Null means not researched.\n\n"
         f"- Machine-readable index: {base}/api/index.json\n"
         f"- Benchmark catalogue: {base}/api/catalogue.json\n"
         f"- Decide: {base}/decide/\n"
+        f"- How it decides: {base}/method/\n"
         f"- Decision CLI: modelspec snapshot fetch; modelspec vocab; "
         f"modelspec decide --template <id>\n"
         f"- Legacy v1 rank API: {RANK_API}\n"
