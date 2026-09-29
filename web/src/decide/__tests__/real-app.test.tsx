@@ -12,6 +12,8 @@ import {
   realVocabulary,
   routeFetch,
   sentSpecs,
+  rankingCalls,
+  rankingSpecs,
   smallVocabulary,
 } from "./vocab-fixtures";
 import { VOCABULARY_URL, realBaseSpec, vocabularySchema } from "../vocabulary";
@@ -94,8 +96,8 @@ it("applies visible legacy controls and drops the unsupported parts named in the
   const note = await screen.findByRole("note", { name: "Notes from your old decision link" });
   expect(note).toHaveTextContent("single-benchmark floor, so it's not applied");
   expect(note).toHaveTextContent("soft(0.2)");
-  await waitFor(() => expect(sentSpecs(fetch).length).toBeGreaterThan(0));
-  const request = sentSpecs(fetch).at(-1)!;
+  await waitFor(() => expect(rankingSpecs(fetch).length).toBeGreaterThan(0));
+  const request = rankingSpecs(fetch).at(-1)!;
   expect(request.where).toContain("offering.region in {EU}");
   expect(request.where).not.toContain("swe_bench_pro >= 50 @independent");
   expect(request.where.every((condition: string) => !condition.includes("soft("))).toBe(true);
@@ -367,8 +369,8 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(document.body).not.toHaveTextContent(/Gamma Max 902|\bAlpha\b/);
   expect(screen.queryByText(/fictional/i)).not.toBeInTheDocument();
 
-  await waitFor(() => expect(sentSpecs(fetch).filter((body) => body.explain === "full").length).toBeGreaterThan(1));
-  const sent = sentSpecs(fetch).filter((body) => body.explain === "full").at(-1);
+  await waitFor(() => expect(rankingSpecs(fetch).filter((body) => body.explain === "full").length).toBeGreaterThan(1));
+  const sent = rankingSpecs(fetch).filter((body) => body.explain === "full").at(-1);
   if (!sent) throw new Error("template decision did not send a full request");
   expect(sent).not.toHaveProperty("task");
   expect(sent.where).toContain("model.class = text-generator");
@@ -428,6 +430,15 @@ it("keeps ticket IDs and future promises out of every applied template surface",
   }
 });
 
+function plotCostAgainstCapability(canvas: HTMLElement) {
+  fireEvent.change(within(canvas).getByLabelText("X axis"), {
+    target: { value: "facet:offering.cost_per_task" },
+  });
+  fireEvent.change(within(canvas).getByLabelText("Y axis"), {
+    target: { value: "capability:software_engineering" },
+  });
+}
+
 it("does not render the Next-questions panel in the facet-board preview", async () => {
   const fetch = routeFetch({ decide: (init) => {
     const decision = decisionFor(init);
@@ -468,9 +479,8 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
   expect(screen.getByLabelText("Why this model")).toHaveTextContent("Select a model to inspect");
   const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
-  expect(canvas).toHaveTextContent(
-    "Software engineering capability (estimated from",
-  );
+  plotCostAgainstCapability(canvas);
+  await waitFor(() => expect(canvas.querySelector(".point")).not.toBeNull());
   const point = canvas.querySelector<HTMLButtonElement>(".point");
   if (!point) throw new Error("unranked canvas did not render a model point");
   fireEvent.pointerEnter(point);
@@ -569,8 +579,8 @@ it("plots and tabulates domain estimates while the board is unranked", async () 
   render(<DesignedApp />);
 
   const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
-  expect(canvas.querySelectorAll(".point")).toHaveLength(10);
-  expect(canvas).toHaveTextContent("defaults to text generators");
+  plotCostAgainstCapability(canvas);
+  await waitFor(() => expect(canvas.querySelectorAll(".point")).toHaveLength(10));
   const first = liveSwePrefer.results[0].estimates?.[0];
   if (!first) throw new Error("live capability fixture has no estimate");
   const modelName = realVocabulary.models[liveSwePrefer.results[0].offering.model]?.display_name ??
@@ -580,78 +590,6 @@ it("plots and tabulates domain estimates while the board is unranked", async () 
   expect(modelRow).toHaveTextContent(first.value.toFixed(2));
   expect(modelRow).toHaveTextContent("±");
   expect(modelRow?.children[3]).not.toHaveTextContent("not available in this snapshot");
-});
-
-it("explains models excluded from the default text-generator canvas", async () => {
-  const vocabulary = {
-    ...realVocabulary,
-    models: Object.fromEntries(Object.entries(realVocabulary.models).map(([id, model]) => [
-      id,
-      { ...model, class: "text-generator" },
-    ])),
-  };
-  const firstModel = liveSwePrefer.top[0].offering.model;
-  const decision = {
-    ...liveSwePrefer,
-    top: liveSwePrefer.top.map((candidate) => candidate.offering.model === firstModel ? {
-      ...candidate,
-      facts: candidate.facts.map((fact) => fact.facet === "model.class"
-        ? { ...fact, value: "decider" }
-        : fact),
-    } : candidate),
-  };
-  vi.stubGlobal("fetch", routeFetch({
-    vocabulary: () => json(vocabulary),
-    decide: () => json(decision),
-  }));
-  render(<DesignedApp />);
-
-  const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
-  expect(canvas).toHaveTextContent("Showing text generators; 1 decision model not plotted");
-  expect(canvas).toHaveTextContent(/\d+ not plotted/);
-});
-
-it.each([
-  ["Decision model", "decider"],
-  ["Embedding model", "vectoriser"],
-])("plots the selected %s class without the text-generator default caption", async (label, modelClass) => {
-  const vocabulary = {
-    ...realVocabulary,
-    models: Object.fromEntries(Object.entries(realVocabulary.models).map(([id, model]) => [
-      id,
-      { ...model, class: modelClass },
-    ])),
-  };
-  const decision = {
-    ...liveSwePrefer,
-    top: liveSwePrefer.top.map((candidate) => ({
-      ...candidate,
-      facts: candidate.facts.map((fact) => fact.facet === "model.class"
-        ? { ...fact, value: modelClass }
-        : fact),
-    })),
-  };
-  const fetch = routeFetch({
-    vocabulary: () => json(vocabulary),
-    decide: () => json(decision),
-  });
-  vi.stubGlobal("fetch", fetch);
-  render(<DesignedApp />);
-
-  await screen.findByLabelText("Facet board answer");
-  fireEvent.click(screen.getByRole("button", { name: /What it does/ }));
-  const modelType = document.querySelector<HTMLElement>('[data-facet="model.class"]')!;
-  fireEvent.click(within(modelType).getByLabelText("Must"));
-  fireEvent.click(within(modelType).getByLabelText(new RegExp(`^${label}`)));
-
-  await waitFor(() => expect(sentSpecs(fetch).some((body) =>
-    body.where.includes(`model.class = ${modelClass}`),
-  )).toBe(true));
-  const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
-  expect(canvas.querySelectorAll(".point").length).toBeGreaterThan(0);
-  expect(within(canvas).getByLabelText("Pareto frontier").querySelector("path"))
-    .toHaveAttribute("d", expect.stringContaining("M"));
-  expect(canvas).not.toHaveTextContent("defaults to text generators");
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {
@@ -1109,11 +1047,8 @@ it("on a 409 to the summary, reloads once, retries the summary, then asks for fu
   ).toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   const sent = (explain: string) =>
-    fetch.mock.calls
-      .filter(
-        ([url, init]) =>
-          url !== VOCABULARY_URL && JSON.parse(String(init?.body)).explain === explain,
-      )
+    rankingCalls(fetch)
+      .filter(([, init]) => JSON.parse(String(init?.body)).explain === explain)
       .map(([, init]) => new Headers(init?.headers).get("x-modelspec-snapshot"));
   await waitFor(() => expect(sent("full")).toEqual([fresh.snapshot]));
   expect(sent("summary")).toEqual([smallVocabulary.snapshot, fresh.snapshot]);
@@ -1146,7 +1081,11 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
     decide: (init) => {
       const sent = new Headers(init?.headers).get("x-modelspec-snapshot");
       const explain = JSON.parse(String(init?.body)).explain;
-      if (explain === "full" || sent !== fresh.snapshot) return changed(sent);
+      const ranking = Object.hasOwn(
+        JSON.parse(String(init?.body)).optimize.weights ?? {},
+        "-offering.cost_per_task",
+      );
+      if ((explain === "full" && ranking) || sent !== fresh.snapshot) return changed(sent);
       return json(decisionFor(init));
     },
   });
@@ -1158,7 +1097,7 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
   await waitFor(() =>
-    expect(sentSpecs(fetch).filter((spec) => spec.explain === "full")).toHaveLength(1),
+    expect(rankingSpecs(fetch).filter((spec) => spec.explain === "full")).toHaveLength(1),
   );
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(vocabularyLoads).toBe(2);

@@ -1179,6 +1179,24 @@ body {
 .interval.may {
   background: var(--warn);
 }
+.axis-interval {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+.axis-interval.x {
+  height: 2px;
+  transform: translateY(-1px);
+}
+.axis-interval.y {
+  width: 2px;
+  transform: translateX(-1px);
+}
+.free-axis-canvas .chart-tooltip {
+  left: 1rem;
+  top: 1rem;
+}
 .point-label {
   position: absolute;
   font-size: 12px;
