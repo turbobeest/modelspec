@@ -1059,7 +1059,9 @@ that used to be accepted is a major change; accepting more is not.
   add surfaces, quoted family coverage and allowance, and the vocabulary's
   `estate.plans` publishes each plan record. All new and optional, so the
   major stays 2. Without `access`, a decision is byte-identical to 2.5's but
-  for `contract_version`.
+  for `contract_version`. That now holds on the Worker too: its pydantic
+  (2.10, from Pyodide) ignored `exclude_if` and sent absent optional fields
+  as `null` or `[]`, which the contract applies itself from 2.6.
 
 - **2.5 — MODEL-180:** Each result adds the flat `model`, `model_rank` and
   `cost_per_task`, and the decision adds `by_model`, the model-grouped view

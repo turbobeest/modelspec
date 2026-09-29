@@ -34,9 +34,12 @@ from pydantic import (
     Tag,
     ValidationError,
     WithJsonSchema,
+    SerializerFunctionWrapHandler,
     field_validator,
+    model_serializer,
     model_validator,
 )
+from pydantic.fields import FieldInfo
 
 CONTRACT_VERSION = "2.6"
 
@@ -164,8 +167,33 @@ Scalar = Annotated[bool | int | float | date | str, BeforeValidator(_iso_date)]
 Day = date
 
 
+#: ``Field(exclude_if=...)`` arrived in pydantic 2.12. Older versions, such as
+#: the 2.10.6 that Pyodide gives the Worker, keep the predicate in
+#: ``json_schema_extra`` and emit the field anyway, so the Worker's bytes drifted
+#: from the CLI's. On those versions ``_Strict`` applies the predicate itself.
+NATIVE_EXCLUDE_IF = "exclude_if" in FieldInfo.__slots__
+
+
+def apply_exclude_if(model: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
+    """Drop from ``data`` (``model``'s own dump) each field whose
+    ``exclude_if`` predicate holds, as pydantic 2.12 and later do natively."""
+    for name, field in type(model).model_fields.items():
+        extra = field.json_schema_extra
+        excluded = getattr(field, "exclude_if", None) or (
+            extra.get("exclude_if") if isinstance(extra, dict) else None)
+        key = name if name in data else field.serialization_alias or field.alias
+        if callable(excluded) and key in data and excluded(getattr(model, name)):
+            del data[key]
+    return data
+
+
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    if not NATIVE_EXCLUDE_IF:
+        @model_serializer(mode="wrap")
+        def _exclude_if(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+            return apply_exclude_if(self, handler(self))
 
 
 # ── conditions ─────────────────────────────────────────────────────────────

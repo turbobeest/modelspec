@@ -118,3 +118,40 @@ def test_the_tied_page_fixture_is_the_engines_answer():
         f"{path.name} is stale; regenerate with "
         "MODELSPEC_WRITE_FIXTURES=1 pytest tests/test_decide_page_fixtures.py"
     )
+
+
+# ── MODEL-200: decisions with `access` ────────────────────────────────────
+
+PLAN_SPECS = {
+    # A Max 20x holder in Claude Code: plan routes with a break-even, and the
+    # estate answer through the plan at $0 with its coverage.
+    "plans-coding-full": ({"kind": "coding_tool", "harness": "claude-code"},
+                          {"plans": ["anthropic/subscription/max-20x"]}),
+    # The same holder for their own software: pay-per-use, a plan route with a
+    # null price and no break-even, and the estate warning.
+    "plans-own-software-full": ("own_software", {"plans": ["anthropic/subscription/max-20x"]}),
+}
+
+
+@pytest.mark.parametrize("name", sorted(PLAN_SPECS))
+def test_the_plan_page_fixtures_are_the_engines_answer(name):
+    from tests.plan_records import CONTEXT, inputs
+
+    access, estate = PLAN_SPECS[name]
+    snapshot = load_built_snapshot(build_snapshot(inputs(max_coverage=True), as_of=date(2026, 9, 29)),
+                                   include_archive=True, source="plan page fixture build")
+    status, body = _service().decide(
+        {"spec_version": 1, "optimize": {"max": CONTEXT}, "explain": "full",
+         "access": access, "estate": estate},
+        snapshot,
+    )
+    assert status == 200, body
+    assert any(result.get("plans") for result in body["results"])
+    path = WEB / f"{name}.json"
+    fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+    if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
+        path.write_text(fresh, encoding="utf-8")
+    assert path.read_text(encoding="utf-8") == fresh, (
+        f"{path.name} is stale; regenerate with "
+        "MODELSPEC_WRITE_FIXTURES=1 pytest tests/test_decide_page_fixtures.py"
+    )

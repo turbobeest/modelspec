@@ -431,3 +431,26 @@ def test_an_unregistered_harness_is_a_400_with_the_existing_error_code(sourced) 
     assert status == 400
     assert body["error"]["code"] == "invalid_spec"
     assert "access.harness" in json.dumps(body)
+
+
+# ── the Worker's pydantic ──────────────────────────────────────────────────
+
+
+def test_the_contract_drops_what_exclude_if_drops_on_any_pydantic(undisclosed) -> None:
+    """The Worker runs Pyodide's pydantic 2.10.6, which ignores ``exclude_if``
+    and emitted ``plans: []`` on every result. ``apply_exclude_if`` is what
+    ``_Strict`` falls back to there; CI also runs this file under that version."""
+    decision = decide(parse_spec(NO_ACCESS_SPECS[3], facets=None), undisclosed)
+    result = decision.results[0]
+    held = decision.with_estate
+
+    native = result.model_dump(mode="json")
+    assert "plans" not in native
+    assert c.apply_exclude_if(result, native | {"plans": []}) == native
+    native = held.model_dump(mode="json")
+    assert "warnings" not in native
+    assert c.apply_exclude_if(held, native | {"warnings": []}) == native
+    mark = held.results[0].estate if held.results else None
+    if mark is not None:
+        native = mark.model_dump(mode="json")
+        assert c.apply_exclude_if(mark, native | {"coverage": None}) == native
