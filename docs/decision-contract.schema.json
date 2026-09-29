@@ -499,6 +499,48 @@
           "default": null,
           "title": "Normalisation"
         },
+        "preference_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "satisfied",
+                "not_satisfied",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preference Status"
+        },
+        "preferred_value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preferred Value"
+        },
         "raw_value": {
           "anyOf": [
             {
@@ -596,8 +638,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "1.12",
-          "default": "1.12",
+          "const": "2.0",
+          "default": "2.0",
           "title": "Contract Version",
           "type": "string"
         },
@@ -2075,7 +2117,14 @@
             {
               "patternProperties": {
                 "^-?[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$": {
-                  "type": "number"
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "$ref": "#/$defs/Preference"
+                    }
+                  ]
                 }
               },
               "type": "object"
@@ -2239,6 +2288,44 @@
         "model"
       ],
       "title": "OfferingRef",
+      "type": "object"
+    },
+    "Preference": {
+      "additionalProperties": false,
+      "description": "A weighted preference for one value of a boolean or enum facet.",
+      "properties": {
+        "prefer": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Prefer"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "prefer",
+        "weight"
+      ],
+      "title": "Preference",
       "type": "object"
     },
     "ProfileOffering": {
@@ -3022,5 +3109,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "1.12"
+  "x-contract-version": "2.0"
 }

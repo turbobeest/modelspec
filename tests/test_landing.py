@@ -45,7 +45,7 @@ def test_landing_figures_are_derived_from_the_snapshot(data: landing.LandingData
 def test_landing_copy_uses_the_computed_figures(data: landing.LandingData) -> None:
     page = landing.render(data, variant="live")
     tied_others = len(data.tie) - 1
-    assert f"tell {tied_others} of these models apart" in page
+    assert f"tell {tied_others} models apart" in page
     assert f"costs {data.ratio:.1f}× less" in page
     assert f"${data.monthly_gap:,.0f} a month apart" in page
     assert data.leader.name in page

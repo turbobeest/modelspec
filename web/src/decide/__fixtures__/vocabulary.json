@@ -1,6 +1,6 @@
 {
   "vocabulary_version": 1,
-  "contract_version": "1.3",
+  "contract_version": "2.0",
   "snapshot": "snap_7bf37267f8f2b2eb",
   "default_task_tokens": {
     "input": 40000,
@@ -62,7 +62,14 @@
           "count": 4,
           "label": "Embedding model"
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "model.input_modalities",
@@ -108,7 +115,8 @@
           "count": 9,
           "label": "Video"
         }
-      ]
+      ],
+      "preference": null
     },
     {
       "id": "model.output_modalities",
@@ -149,7 +157,8 @@
           "count": 25,
           "label": "Text"
         }
-      ]
+      ],
+      "preference": null
     },
     {
       "id": "model.context_window",
@@ -177,6 +186,14 @@
       "range": {
         "min": 8192,
         "max": 1050000
+      },
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
       }
     },
     {
@@ -205,6 +222,14 @@
       "range": {
         "min": 65536,
         "max": 262144
+      },
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
       }
     },
     {
@@ -238,7 +263,14 @@
           "count": 11,
           "label": "Open weights"
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "model.parameters_total",
@@ -263,7 +295,15 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "range": null
+      "range": null,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "model.parameters_active",
@@ -288,7 +328,15 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "range": null
+      "range": null,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "model.architecture",
@@ -310,7 +358,14 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "values": []
+      "values": [],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "licence.commercial_use",
@@ -343,7 +398,14 @@
           "count": 22,
           "label": "Permitted with conditions"
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "licence.user_cap",
@@ -371,7 +433,15 @@
       "range": null,
       "literals": [
         "unbounded"
-      ]
+      ],
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "licence.output_training",
@@ -404,7 +474,14 @@
           "count": 16,
           "label": "Restricted"
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "licence.fine_tuning",
@@ -442,7 +519,14 @@
           "count": 16,
           "label": "Prohibited"
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "origin.lab_jurisdiction",
@@ -467,7 +551,8 @@
           "value": "US",
           "count": 20
         }
-      ]
+      ],
+      "preference": null
     },
     {
       "id": "origin.base_lineage",
@@ -496,7 +581,8 @@
           "value": "US",
           "count": 1
         }
-      ]
+      ],
+      "preference": null
     },
     {
       "id": "origin.weights_hosting",
@@ -516,7 +602,8 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "values": []
+      "values": [],
+      "preference": null
     },
     {
       "id": "origin.base_models",
@@ -536,7 +623,8 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "values": []
+      "values": [],
+      "preference": null
     },
     {
       "id": "model.release_date",
@@ -564,7 +652,8 @@
       "range": {
         "min": "2025-08-01",
         "max": "2026-09-22"
-      }
+      },
+      "preference": null
     },
     {
       "id": "model.lifecycle",
@@ -592,7 +681,14 @@
           "count": 32,
           "label": "Active"
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "model.knowledge_cutoff",
@@ -617,7 +713,8 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "range": null
+      "range": null,
+      "preference": null
     },
     {
       "id": "model.deprecation_date",
@@ -642,7 +739,8 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "range": null
+      "range": null,
+      "preference": null
     },
     {
       "id": "feature.tool_calling",
@@ -667,7 +765,14 @@
           "value": true,
           "count": 25
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "feature.structured_output",
@@ -692,7 +797,14 @@
           "value": true,
           "count": 25
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "feature.effort_controls",
@@ -717,7 +829,14 @@
           "value": true,
           "count": 25
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "feature.batch",
@@ -742,7 +861,14 @@
           "value": true,
           "count": 16
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "feature.streaming",
@@ -767,7 +893,14 @@
           "value": true,
           "count": 24
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "model.languages",
@@ -787,7 +920,8 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "values": []
+      "values": [],
+      "preference": null
     },
     {
       "id": "model.fits_hardware",
@@ -807,7 +941,8 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "values": []
+      "values": [],
+      "preference": null
     },
     {
       "id": "model.hardware_fit_indeterminate",
@@ -827,7 +962,8 @@
       "computed_by": null,
       "known": 0,
       "of": 32,
-      "values": []
+      "values": [],
+      "preference": null
     },
     {
       "id": "offering.provider",
@@ -898,7 +1034,14 @@
           "value": "zai",
           "count": 2
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.region",
@@ -938,7 +1081,8 @@
           "value": "singapore",
           "count": 1
         }
-      ]
+      ],
+      "preference": null
     },
     {
       "id": "offering.tier",
@@ -966,7 +1110,14 @@
           "count": 38,
           "label": "Standard"
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.price.input",
@@ -994,6 +1145,14 @@
       "range": {
         "min": 0.042,
         "max": 10.0
+      },
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
       }
     },
     {
@@ -1022,6 +1181,14 @@
       "range": {
         "min": 0.0,
         "max": 50.0
+      },
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
       }
     },
     {
@@ -1050,6 +1217,14 @@
       "range": {
         "min": 0.044,
         "max": 1.0
+      },
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
       }
     },
     {
@@ -1081,7 +1256,15 @@
       },
       "literals": [
         "not_offered"
-      ]
+      ],
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "offering.price.batch_output",
@@ -1112,7 +1295,15 @@
       },
       "literals": [
         "not_offered"
-      ]
+      ],
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "offering.cost_per_task",
@@ -1140,6 +1331,14 @@
       "range": {
         "min": 0.00168,
         "max": 0.6
+      },
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
       }
     },
     {
@@ -1165,7 +1364,15 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "range": null
+      "range": null,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "offering.speed.throughput",
@@ -1190,7 +1397,15 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "range": null
+      "range": null,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "offering.rate_limit.requests",
@@ -1215,7 +1430,15 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "range": null
+      "range": null,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "offering.rate_limit.tokens",
@@ -1240,7 +1463,15 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "range": null
+      "range": null,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "offering.sla_uptime",
@@ -1265,7 +1496,15 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "range": null
+      "range": null,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      }
     },
     {
       "id": "offering.data.retention",
@@ -1293,6 +1532,14 @@
       "range": {
         "min": 0,
         "max": 55
+      },
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
       }
     },
     {
@@ -1318,7 +1565,14 @@
           "value": false,
           "count": 35
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.data.zero_retention",
@@ -1347,7 +1601,14 @@
           "value": true,
           "count": 11
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.attestation.soc2",
@@ -1375,7 +1636,14 @@
           "count": 7,
           "label": "SOC 2 Type II"
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.attestation.baa",
@@ -1400,7 +1668,14 @@
           "value": true,
           "count": 20
         }
-      ]
+      ],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.attestation.fedramp",
@@ -1422,7 +1697,14 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "values": []
+      "values": [],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.attestation.iso_27001",
@@ -1442,7 +1724,14 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "values": []
+      "values": [],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.fine_tuning",
@@ -1462,7 +1751,14 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "values": []
+      "values": [],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.private_deployment",
@@ -1482,7 +1778,14 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "values": []
+      "values": [],
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      }
     },
     {
       "id": "offering.harness_compatibility",
@@ -1502,7 +1805,8 @@
       "computed_by": null,
       "known": 0,
       "of": 38,
-      "values": []
+      "values": [],
+      "preference": null
     }
   ],
   "benchmarks": [

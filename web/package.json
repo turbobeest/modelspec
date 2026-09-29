@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "cd .. && python -m pipeline.social_cards sync-meta",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

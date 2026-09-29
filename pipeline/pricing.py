@@ -41,6 +41,31 @@ def _rate(value: float) -> str:
     return "$" + f"{value:.{digits}f}".rstrip("0").rstrip(".")
 
 
+def hero_summary(tiers: dict[str, Any], *, access_enforced: bool,
+                 x402_live: bool) -> tuple[str, str]:
+    """Return the flag-aware agent line and displayed per-credit rate range."""
+    prices = tuple(tiers["billing"]["prices"].values())
+    rates = [row["usd"] / row["credits"] for row in prices]
+    if x402_live:
+        packs = [row for row in prices if row["kind"] == "pack"]
+        smallest_pack = min(packs, key=lambda row: row["credits"])
+        high_rate = smallest_pack["usd"] / smallest_pack["credits"]
+    else:
+        high_rate = max(rates)
+    agent_line = (
+        "Agents pay per answer."
+        if access_enforced
+        else "Agents start free."
+    )
+    return agent_line, f"{_rate(min(rates))}–{_rate(high_rate)} per credit"
+
+
+def _social_meta() -> str:
+    from pipeline import social_cards
+
+    return social_cards.social_meta_for_page("/pricing/")
+
+
 def _logo() -> str:
     return ('<svg class="mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" '
             'height="40" rx="3" fill="#0B1426" stroke="#2a3b5c"/><line x1="6.5" y1="3" '
@@ -143,6 +168,9 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
         f'<button type="button" data-value="{value}" aria-pressed="{str(value == 0).lower()}">{"None" if value == 0 else f"{value:,}"}</button>'
         for value in (0, 100, 1000, 10000))
     hero_payment = "prepaid credits or a per-call x402 payment" if x402_live else "prepaid credits"
+    agent_line, _ = hero_summary(
+        tiers, access_enforced=access_enforced, x402_live=x402_live
+    )
     hero_rate = (f'<div><strong>{_rate(best_rate)}</strong><b>to {_rate(per_call)}</b></div>'
                  if x402_live else
                  f'<div><strong>{_rate(best_rate)}–{_rate(highest_rate)}</strong></div>')
@@ -151,8 +179,7 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
                    if x402_live else
                    f"One credit. The low end is the {cheapest_label}'s rate; the range "
                    "covers the plans and packs below. A full explanation costs two credits.")
-    hero_heading = ("People decide free. Agents pay per answer." if access_enforced else
-                    "People decide free. Agents start free.")
+    hero_heading = f"People decide free. {agent_line}"
     hero_copy = (f"The board on this site and the offline CLI cost nothing. Hosted API and "
                  f"MCP answers use {hero_payment}." if access_enforced else
                  "The board on this site and the offline CLI cost nothing. The hosted API "
@@ -179,7 +206,7 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title><meta name="description" content="{description}">
-<link rel="canonical" href="{base.rstrip('/')}/pricing/">{brand.head_links()}{brand.social_meta(title)}
+<link rel="canonical" href="{base.rstrip('/')}/pricing/">{brand.head_links()}{_social_meta()}
 <link rel="stylesheet" href="/{ASSET_DIR}/pricing.css"></head><body><div class="axis" aria-hidden="true"></div>
 <header>{_logo()}<a class="wordmark" href="/"><b>Model</b>Spec</a><nav><a href="/#agents">For agents</a><a class="current" href="/pricing/" aria-current="page">Pricing</a><a class="button" href="/decide/">Open the board</a></nav><a class="button mobile-board" href="/decide/">Open the board</a></header>
 <main><section class="hero" id="pricing"><div><h1>{hero_heading}</h1><p>{hero_copy}</p></div><div class="rate-card"><span>One decision for an agent</span>{hero_rate}<p>{hero_detail}</p></div></section>

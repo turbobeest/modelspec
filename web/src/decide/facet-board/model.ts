@@ -1,7 +1,9 @@
-import type { Cond, FacetValue, Spec } from "../engine/types";
+import type { BoardWeight, Cond, FacetValue, Spec } from "../engine/types";
 import type { DecisionSpec } from "../adapter/contract";
 import { contractCondition, toDecisionSpec } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
+import { isCanvasAxisId } from "../components/canvas-axis";
+import type { CanvasAxisId } from "../components/canvas-axis";
 import type { VocabFacet, VocabRefinement, Vocabulary } from "../vocabulary";
 import { z } from "zod";
 
@@ -26,7 +28,12 @@ export interface BoardTemplateState {
   taskTokens?: { input: number; output: number };
 }
 export interface Estate { providers: string[]; plans: string[]; hardware: string[] }
-export interface BoardUrlState { selections: BoardSelections; mustOrder: string[]; estate: Estate }
+export interface BoardUrlState {
+  selections: BoardSelections;
+  mustOrder: string[];
+  estate: Estate;
+  canvas?: { x: CanvasAxisId; y: CanvasAxisId };
+}
 export interface SanitizedBoardState extends Omit<BoardUrlState, "selections"> {
   selections: SanitizedBoardSelections;
   notes: string[];
@@ -52,6 +59,10 @@ const boardUrlSchema = z.object({
   estate: z.object({
     providers: z.array(z.string()), plans: z.array(z.string()), hardware: z.array(z.string()),
   }),
+  canvas: z.object({
+    x: z.string().refine(isCanvasAxisId),
+    y: z.string().refine(isCanvasAxisId),
+  }).optional(),
 });
 
 const GROUPS: Readonly<Record<string, string>> = {
@@ -100,9 +111,7 @@ export const GROUP_ORDER = [
 export const facetGroup = (id: string): string =>
   id.startsWith("capability.") ? "What it's good at" : (GROUPS[id] ?? "Other");
 
-export const supportsPreference = (id: string): boolean =>
-  id.startsWith("capability.") || id === "offering.cost_per_task" ||
-  id === "offering.speed.time_to_first_token" || id === "offering.speed.throughput";
+export const supportsPreference = (facet: VocabFacet): boolean => facet.preference !== null;
 
 export function defaultFacetValue(facet: VocabFacet): FacetValue {
   if (facet.value_type === "boolean") return true;
@@ -332,11 +341,15 @@ export function sanitizeBoardState(
     selections: selections as SanitizedBoardSelections,
     mustOrder: [...new Set(state.mustOrder.filter((id) => activeMusts.has(id)))],
     estate: state.estate,
+    ...(state.canvas ? { canvas: state.canvas } : {}),
     notes: [...new Set(notes)],
   };
 }
 
-export function boardWeights(vocabulary: Vocabulary, selections: BoardSelections): Record<string, number> {
+export function boardWeights(
+  vocabulary: Vocabulary,
+  selections: BoardSelections,
+): Record<string, BoardWeight> {
   return allocateBoardWeights(vocabulary, selections).weights;
 }
 
@@ -347,7 +360,7 @@ export interface RefinementAllocation {
 
 export interface BoardAllocation {
   selections: BoardSelections;
-  weights: Record<string, number>;
+  weights: Record<string, BoardWeight>;
   refinements: Record<string, RefinementAllocation>;
   general: Record<string, number>;
 }
@@ -356,20 +369,33 @@ const stableWeight = (weight: number): number => Math.round(weight * 1e12) / 1e1
 
 /** Resolve every refinement share once for state, controls, display and requests. */
 export function allocateBoardWeights(
-  vocabulary: Pick<Vocabulary, "refinements">,
+  vocabulary: Pick<Vocabulary, "refinements"> & { facets?: VocabFacet[] },
   selections: BoardSelections,
 ): BoardAllocation {
   const normalized = { ...selections };
-  const weights = Object.fromEntries(Object.entries(selections).flatMap(([facetId, choice]) => {
+  const entries = Object.entries(selections).flatMap<[string, BoardWeight]>(([facetId, choice]) => {
     if (facetId.startsWith("refinement.")) return [];
-    if ((choice.mode !== "prefer" && choice.mode !== "both") || !supportsPreference(facetId)) return [];
+    const preference = facetId.startsWith("capability.")
+      ? { kind: "continuous" as const }
+      : vocabulary.facets?.find((row) => row.id === facetId)?.preference;
+    if (
+      (choice.mode !== "prefer" && choice.mode !== "both") ||
+      preference === null || preference === undefined
+    ) return [];
     const id = choice.weightKey ?? (facetId.startsWith("capability.")
       ? facetId.slice("capability.".length)
       : facetId === "offering.cost_per_task" ? "-offering.cost_per_task"
       : facetId === "offering.speed.time_to_first_token" ? "-offering.speed.time_to_first_token"
       : facetId);
-    return [[id, choice.weight ?? 0.5]];
-  }));
+    const weight = choice.weight ?? 0.5;
+    if (preference.kind === "value") {
+      const preferred = choice.value;
+      if (typeof preferred !== "string" && typeof preferred !== "boolean") return [];
+      return [[id, { prefer: preferred, weight }]];
+    }
+    return [[id, weight]];
+  });
+  const weights: Record<string, BoardWeight> = Object.fromEntries(entries);
   const allocations: Record<string, RefinementAllocation> = {};
   const general: Record<string, number> = {};
   const refinementsByParent = new Map<string, VocabRefinement[]>();
@@ -431,11 +457,17 @@ export function foldRefinementWeights(spec: Spec, vocabulary: Vocabulary): Spec 
   const refinementsByKey = new Map(
     (vocabulary.refinements ?? []).map((row) => [row.weight_key, row]),
   );
-  const weights: Record<string, number> = {};
+  const weights: Record<string, BoardWeight> = {};
   for (const [key, weight] of Object.entries(spec.boardWeights)) {
     const refinement = refinementsByKey.get(key);
     if (!refinement) weights[key] = weight;
-    else weights[refinement.parent_domain] = (weights[refinement.parent_domain] ?? 0) + weight;
+    else {
+      const parent = weights[refinement.parent_domain];
+      if (typeof weight !== "number" || (parent !== undefined && typeof parent !== "number")) {
+        throw new Error(`Refinement ${key} must have a continuous weight.`);
+      }
+      weights[refinement.parent_domain] = (parent ?? 0) + weight;
+    }
   }
   return { ...spec, boardWeights: weights };
 }
@@ -443,7 +475,9 @@ export function foldRefinementWeights(spec: Spec, vocabulary: Vocabulary): Spec 
 export function toBoardDecisionSpec(spec: Spec, explain: "none" | "summary" | "full"): DecisionSpec {
   const contract = toDecisionSpec(spec, explain);
   const positiveWeights = Object.fromEntries(
-    Object.entries(spec.boardWeights ?? {}).filter(([, weight]) => weight > 0),
+    Object.entries(spec.boardWeights ?? {}).filter(([, term]) =>
+      typeof term === "number" ? term > 0 : term.weight > 0,
+    ),
   );
   return spec.boardWeights !== undefined
     ? { ...contract, optimize: { weights: Object.keys(positiveWeights).length > 0 ? positiveWeights : UNRANKED_OBJECTIVE } }
@@ -451,11 +485,14 @@ export function toBoardDecisionSpec(spec: Spec, explain: "none" | "summary" | "f
 }
 
 export function boardHasPreference(spec: Spec): boolean {
-  return spec.boardWeights !== undefined && Object.values(spec.boardWeights).some((weight) => weight > 0);
+  return spec.boardWeights !== undefined && Object.values(spec.boardWeights).some((term) =>
+    typeof term === "number" ? term > 0 : term.weight > 0,
+  );
 }
 
 export function encodeBoardSpec(spec: Spec, axis: Axis, board: BoardUrlState): string {
-  const { boardWeights: _previewWeights, ...productionSpec } = spec;
+  const productionSpec = { ...spec };
+  delete productionSpec.boardWeights;
   return "#s=" + btoa(encodeURIComponent(JSON.stringify({ ...productionSpec, x: axis, board })));
 }
 
@@ -616,6 +653,11 @@ export function groupFacets(vocabulary: Vocabulary) {
     known: domain.estimate_models,
     of: vocabulary.coverage?.models ?? Math.max(...vocabulary.facets.filter((facet) => facet.subject === "model").map((facet) => facet.of), 0),
     range: { min: 0, max: 1 },
+    preference: {
+      kind: "continuous",
+      directions: ["max", "min"],
+      threshold: "where",
+    },
   }));
   const all = [...capabilityFacets, ...vocabulary.facets];
   const tracked = all.filter((facet) => facet.known > 0);

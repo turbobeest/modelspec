@@ -35,6 +35,12 @@ import { baseSpec, decodeSpec, specHash } from "./state/spec";
 import type { Axis } from "./state/spec";
 import { Field } from "./components/Field";
 import { Canvas } from "./components/Canvas";
+import { FreeAxisCanvas } from "./components/FreeAxisCanvas";
+import type { CanvasAxes } from "./components/FreeAxisCanvas";
+import {
+  canvasAxisOptions,
+  canvasPlotSpec,
+} from "./components/canvas-axis";
 import { RankedAnswer } from "./facet-board/RankedAnswer";
 import { DecisionTable } from "./components/DecisionTable";
 import { Why } from "./components/Why";
@@ -48,10 +54,12 @@ import type { Question } from "./engine/reference";
 import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
 import {
   boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
-  legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys, sanitizeBoardState,
+  allocateBoardWeights, nextMustOrder, legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys,
+  sanitizeBoardState,
   toBoardDecisionSpec,
 } from "./facet-board/model";
-import type { BoardSelections, Estate } from "./facet-board/model";
+import type { BoardSelections, Estate, FacetSelection } from "./facet-board/model";
+import type { CanvasAxisOption } from "./components/canvas-axis";
 
 /**
  * The main decision shows Retry if it has not resolved by then, whatever it is
@@ -79,6 +87,9 @@ export function DesignedApp({
     [refinementFallbackKeys, setRefinementFallbackKeys] = useState<Set<string>>(new Set()),
     [lastSentSpec, setLastSentSpec] = useState<Spec | null>(null),
     [axis, setAxis] = useState<Axis>(initial?.x || "task$"),
+    [canvasAxes, setCanvasAxes] = useState<CanvasAxes | null>(
+      initialBoard?.canvas ?? null,
+    ),
     [legacyNotes, setLegacyNotes] = useState<string[]>([]),
     [initialRestored, setInitialRestored] = useState(!initial);
   const [theme, setTheme] = useState(() =>
@@ -109,6 +120,7 @@ export function DesignedApp({
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
     questionsAbort = useRef<AbortController | null>(null),
+    plotKey = useRef(""),
     provTrigger = useRef<HTMLElement | null>(null),
     hashNavigation = useRef<() => void>(() => undefined),
     initialAnswered = useRef(false);
@@ -116,6 +128,7 @@ export function DesignedApp({
   // Worker says so with a 409; every request that hears it shares one reload.
   const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary()));
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
+    [plotDecision, setPlotDecision] = useState<Decision | null>(null),
     [hostedQuestions, setHostedQuestions] = useState<Question[]>([]),
     [requestState, setRequestState] = useState<
       | { kind: "idle" }
@@ -137,6 +150,18 @@ export function DesignedApp({
     >({ kind: "loading" }),
     [vocabAttempt, setVocabAttempt] = useState(0);
   const vocabulary = vocabState.kind === "ready" ? vocabState.vocabulary : null;
+  const shownCanvasAxes = useMemo((): CanvasAxes | null => {
+    if (!vocabulary) return null;
+    const enabled = canvasAxisOptions(vocabulary).filter((option) => !option.disabled);
+    if (enabled.length === 0) return null;
+    const fallback = { x: enabled[0].id, y: (enabled[1] ?? enabled[0]).id };
+    if (!canvasAxes) return fallback;
+    const ids = new Set(enabled.map((option) => option.id));
+    return {
+      x: ids.has(canvasAxes.x) ? canvasAxes.x : fallback.x,
+      y: ids.has(canvasAxes.y) ? canvasAxes.y : fallback.y,
+    };
+  }, [canvasAxes, vocabulary]);
   const vocab = useMemo(() => {
     if (!vocabulary) return fictionalVocab;
     registerBenchmarks(vocabulary.benchmarks);
@@ -190,6 +215,59 @@ export function DesignedApp({
     }
   }, [hostedDecision, shownSpec, shownAxis, dismissed, hostedQuestions, vocabulary, vocab]);
   const liveDecision = mapped.decision;
+  useEffect(() => {
+    if (
+      !vocabulary ||
+      !hostedDecision ||
+      !lastSentSpec ||
+      !shownCanvasAxes
+    ) {
+      plotKey.current = "";
+      setPlotDecision(null);
+      return;
+    }
+    const options = new Map(
+      canvasAxisOptions(vocabulary).map((option) => [option.id, option]),
+    );
+    const x = options.get(shownCanvasAxes.x);
+    const y = options.get(shownCanvasAxes.y);
+    if (!x || !y) return;
+    const rankingSpec = toBoardDecisionSpec(lastSentSpec, "summary");
+    const numericFallback = [...options.values()].find(
+      (option) => !option.disabled && option.valueType === "number",
+    );
+    const plotSpec = canvasPlotSpec(rankingSpec, x, y, numericFallback);
+    const key = `${hostedDecision.snapshot}:${JSON.stringify(plotSpec)}`;
+    if (plotKey.current === key) return;
+    const controller = new AbortController();
+    plotKey.current = key;
+    setPlotDecision(null);
+    void retryOnSnapshotChange(
+      vocabulary,
+      (current) =>
+        hostedEngine.decide(plotSpec, {
+          signal: controller.signal,
+          snapshot: (current ?? vocabulary).snapshot,
+        }),
+      reloadVocabulary,
+      (fresh) => setVocabState({ kind: "ready", vocabulary: fresh }),
+    )
+      .then(({ result: plotDecision }) => {
+        if (!controller.signal.aborted)
+          setPlotDecision(plotDecision);
+      })
+      .catch((cause: unknown) => {
+        if (!(cause instanceof Error && cause.name === "AbortError"))
+          setPlotDecision(null);
+      });
+    return () => controller.abort();
+  }, [
+    hostedDecision,
+    lastSentSpec,
+    shownCanvasAxes,
+    vocabulary,
+    reloadVocabulary,
+  ]);
   const estateDecision = useMemo(() => {
     if (estateRequest.kind !== "done" || !vocabulary) return null;
     try {
@@ -206,7 +284,7 @@ export function DesignedApp({
   }, [estateRequest, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
   const decision = liveDecision,
     e = decision?.explanation,
-    boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => weight > 0),
+    boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => (typeof weight === "number" ? weight : weight.weight) > 0),
     selectedId = selected || (boardIsRanked ? e?.shortlist.top?.m.id || e?.may[0]?.m.id : null) || null,
     row = e?.rows.find((candidate) => candidate.m.id === selectedId) || null;
   const sim = simulate || new URLSearchParams(location.search).get("simulate"),
@@ -371,6 +449,45 @@ export function DesignedApp({
     scheduleDecision(nextSpec);
   }
 
+  function setCanvasMust(axisOption: CanvasAxisOption, value: number | string) {
+    if (!vocabulary || !axisOption.mustOp) return;
+    const selectionId =
+      axisOption.kind === "capability"
+        ? `capability.${axisOption.key}`
+        : axisOption.key;
+    const current = boardSelections[selectionId];
+    const next: FacetSelection = {
+      ...current,
+      mode:
+        current?.mode === "prefer" || current?.mode === "both"
+          ? "both"
+          : "must",
+      op: axisOption.mustOp,
+      value,
+    };
+    const all = allocateBoardWeights(vocabulary, {
+      ...boardSelections,
+      [selectionId]: next,
+    }).selections;
+    const nextOrder = nextMustOrder(
+      boardMustOrder,
+      boardSelections,
+      selectionId,
+      next,
+    );
+    const sanitized = sanitizeBoardState(
+      { selections: all, mustOrder: nextOrder, estate },
+      vocabulary,
+      legacyNotes,
+    );
+    setBoardSelections(sanitized.selections);
+    setBoardMustOrder(sanitized.mustOrder);
+    setLegacyNotes(sanitized.notes);
+    changeSpec(
+      boardToSpec(boardBaseSpec, vocabulary, sanitized.selections, sanitized.mustOrder),
+    );
+  }
+
   const answered = hostedDecision !== null;
   const effectiveSpec = lastSentSpec ?? spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
@@ -469,6 +586,7 @@ export function DesignedApp({
       setBoardBaseSpec(restoredBase);
       setBoardSelections(restoredBoard.selections);
       setBoardMustOrder(restoredBoard.mustOrder);
+      setCanvasAxes(restoredBoard.canvas ?? null);
       setEstate(restoredBoard.estate);
       setLegacyNotes(restoredBoard.notes);
       setSpec(restored);
@@ -591,10 +709,15 @@ export function DesignedApp({
       location.pathname + location.search + encodeBoardSpec(
         boardBaseSpec,
         axis,
-        { selections: boardSelections, mustOrder: boardMustOrder, estate },
+        {
+          selections: boardSelections,
+          mustOrder: boardMustOrder,
+          estate,
+          ...(shownCanvasAxes ? { canvas: shownCanvasAxes } : {}),
+        },
       ),
     );
-  }, [vocabulary, initialRestored, spec, axis, boardBaseSpec, boardSelections, boardMustOrder, estate]);
+  }, [vocabulary, initialRestored, spec, axis, boardBaseSpec, boardSelections, boardMustOrder, estate, shownCanvasAxes]);
   useEffect(() => {
     document.documentElement.dataset.decideTheme = theme;
     return () => {
@@ -618,6 +741,7 @@ export function DesignedApp({
     setBoardBaseSpec(restoredBase);
     setBoardSelections(restoredBoard?.selections ?? {});
     setBoardMustOrder(restoredBoard?.mustOrder ?? []);
+    setCanvasAxes(restoredBoard?.canvas ?? null);
     if (restoredBoard) setEstate(restoredBoard.estate);
     setLegacyNotes(restoredBoard?.notes ?? []);
     changeSpec(nextSpec);
@@ -831,19 +955,35 @@ export function DesignedApp({
             <>
             <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
             <div className="results">
-              <Canvas
-                decision={decision}
-                spec={shownSpec}
-                axis={shownAxis}
-                onAxis={setAxis}
-                onSpec={changeSpec}
-                onAdd={add}
-                selected={selectedId}
-                onSelect={setSelected}
-                onRelax={relax}
-                compact={layout === "table"}
-                boardRanked={boardRanked}
-              />
+              {vocabulary && hostedDecision && shownCanvasAxes ? (
+                <FreeAxisCanvas
+                  decision={decision}
+                  rankingDecision={hostedDecision}
+                  plotDecision={plotDecision}
+                  vocabulary={vocabulary}
+                  axes={shownCanvasAxes}
+                  onAxes={setCanvasAxes}
+                  onMust={setCanvasMust}
+                  selections={boardSelections}
+                  selected={selectedId}
+                  onSelect={setSelected}
+                  compact={layout === "table"}
+                />
+              ) : (
+                <Canvas
+                  decision={decision}
+                  spec={shownSpec}
+                  axis={shownAxis}
+                  onAxis={setAxis}
+                  onSpec={changeSpec}
+                  onAdd={add}
+                  selected={selectedId}
+                  onSelect={setSelected}
+                  onRelax={relax}
+                  compact={layout === "table"}
+                  boardRanked={boardRanked}
+                />
+              )}
               <DecisionTable
                 decision={decision}
                 spec={shownSpec}
@@ -960,7 +1100,12 @@ export function DesignedApp({
           refinementsFolded={refinementFallbackKeys.size > 0}
           boardPermalink={{
             spec: boardBaseSpec,
-            state: { selections: boardSelections, mustOrder: boardMustOrder, estate },
+            state: {
+              selections: boardSelections,
+              mustOrder: boardMustOrder,
+              estate,
+              ...(shownCanvasAxes ? { canvas: shownCanvasAxes } : {}),
+            },
           }}
           onClose={() => setShare(false)}
         />

@@ -56,7 +56,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from pipeline import brand, landing
+from pipeline import brand, landing, social_cards
 
 MODE_ENV = "SITE_MODE"
 LIVE = "live"
@@ -67,7 +67,7 @@ SITES = {"modelspec": "ModelSpec"}
 #: What is copied from the real build, byte for byte. Directories whole.
 #: modelspec only. benchgraph.dev is one redirect file, copied unchanged.
 KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR)}
-KEEP_FILES = ("openapi.yaml", *brand.FILES)
+KEEP_FILES = ("openapi.yaml", *brand.FILES, social_cards.LANDING_IMAGE)
 #: What this module writes itself.
 WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")
 

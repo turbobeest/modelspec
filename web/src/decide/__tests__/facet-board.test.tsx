@@ -144,8 +144,9 @@ describe("facet state mapping", () => {
   it("maps numeric, boolean, enum, domain preference and Must+Prefer cost literally", () => {
     expect(contract({
       "model.context_window": { mode: "must", op: ">=", value: 200000 },
-      "offering.data.zero_retention": { mode: "must", op: "=", value: true },
+      "offering.data.zero_retention": { mode: "both", op: "=", value: true, weight: 0.2 },
       "model.class": { mode: "must", op: "in", value: ["text-generator"] },
+      "model.weights_openness": { mode: "prefer", value: "open_weights", weight: 0.3 },
       "capability.software_engineering": { mode: "prefer", weight: 0.6 },
       "offering.cost_per_task": { mode: "both", op: "<=", value: 0.25, weight: 0.4 },
     })).toEqual({
@@ -157,7 +158,12 @@ describe("facet state mapping", () => {
         "model.context_window >= 200000", "offering.data.zero_retention = true",
         "model.class in {text-generator}", "offering.cost_per_task <= 0.25",
       ],
-      optimize: { weights: { software_engineering: 0.6, "-offering.cost_per_task": 0.4 } },
+      optimize: { weights: {
+        software_engineering: 0.6,
+        "-offering.cost_per_task": 0.4,
+        "model.weights_openness": { prefer: "open_weights", weight: 0.3 },
+        "offering.data.zero_retention": { prefer: true, weight: 0.2 },
+      } },
       unknowns: "default", explain: "full", limit: 500,
     });
   });
@@ -197,7 +203,7 @@ describe("facet state mapping", () => {
     const states: BoardSelections[] = [{}];
     for (const facet of groupFacets(smallVocabulary).groups.flatMap((group) => group.facets)) {
       states.push({ [facet.id]: { mode: "must" } });
-      if (supportsPreference(facet.id)) {
+      if (supportsPreference(facet)) {
         states.push({ [facet.id]: { mode: "prefer" } });
         states.push({ [facet.id]: { mode: "both" } });
       }
@@ -213,8 +219,8 @@ describe("facet state mapping", () => {
     expect(toDecisionSpec(estateSpec(base, ["anthropic", "google"]), "summary").where?.at(-1)).toBe("offering.provider in {anthropic, google}");
   });
   it("only enables weights the engine supports", () => {
-    expect(supportsPreference("offering.cost_per_task")).toBe(true);
-    expect(supportsPreference("model.context_window")).toBe(false);
+    expect(supportsPreference(smallVocabulary.facets.find((facet) => facet.id === "offering.cost_per_task")!)).toBe(true);
+    expect(supportsPreference(smallVocabulary.facets.find((facet) => facet.id === "model.input_modalities")!)).toBe(false);
   });
 });
 
@@ -285,7 +291,9 @@ describe("refinements", () => {
       expect(allocation.refinements[`refinement.${id}`].max).toBeCloseTo(expected);
     }
     expect(allocation.general.software_engineering).toBeCloseTo(0);
-    expect(Object.values(allocation.weights).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(0.3);
+    expect(Object.values(allocation.weights).reduce<number>(
+      (sum, term) => sum + (typeof term === "number" ? term : term.weight), 0,
+    )).toBeCloseTo(0.3);
     expect(allocateBoardWeights(refinementVocabulary, allocation.selections).weights)
       .toEqual(allocation.weights);
     const request = toBoardDecisionSpec(
@@ -422,7 +430,7 @@ it("starts enum Must controls unselected and shows vocabulary counts", () => {
 
 it("hides absent templates and expands groups with active canonical template facets", () => {
   const base = realBaseSpec(smallVocabulary);
-  const { templates: _templates, ...withoutTemplates } = smallVocabulary;
+  const withoutTemplates = { ...smallVocabulary, templates: undefined };
   const first = render(<FacetBoard vocabulary={withoutTemplates} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.queryByText("Start from a template")).not.toBeInTheDocument();
   first.unmount();

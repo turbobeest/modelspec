@@ -22,6 +22,7 @@ from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_templates
 from pipeline import brand, landing_chrome
+from pipeline import social_cards
 from pipeline.load import load_models
 
 SOFTWARE_ENGINEERING = "software_engineering"
@@ -375,11 +376,11 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <title>{TITLE}</title>
 <meta name="description" content="{DESCRIPTION}">
 <meta property="og:description" content="{DESCRIPTION}">
-{robots}{canonical}{brand.head_links()}{brand.social_meta(TITLE)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
+{robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css"></head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{_logo()}<span class="wordmark"><b>Model</b>Spec</span><nav><a href="#receipt">What it costs you</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><h1>Your model is a guess.</h1>
-<p class="fud"><span class="desktop-only">The evidence can't tell {tied_others} of these models apart from the top one. The cheapest of them costs {data.ratio:.1f}× less. Benchmarks disagree, leaderboards reshuffle, and nothing in your stack will ever tell you that you chose wrong.</span><span class="mobile-only">The evidence can't tell {tied_others} of these models apart from the top one. The cheapest costs {data.ratio:.1f}× less, and nothing in your stack will tell you.</span></p>
+<p class="fud"><span class="desktop-only">{social_cards.landing_tie_line(data)} Benchmarks disagree, leaderboards reshuffle, and nothing in your stack will ever tell you that you chose wrong.</span><span class="mobile-only">{social_cards.landing_tie_line(data)} Nothing in your stack will tell you.</span></p>
 <p class="close">ModelSpec shows you the model your job needs, from sourced evidence. Nobody pays to rank higher. When one model wins, we say so. When it's a tie, we hand you the cheapest.</p>
 <div class="actions">{board}<a class="button secondary" href="#agents">Give it to your agents</a></div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>
