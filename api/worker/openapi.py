@@ -141,6 +141,7 @@ access = importlib.import_module("access")
 access_config = importlib.import_module("access_config")
 billing_mod = importlib.import_module("billing")
 signals = importlib.import_module("signals_service")
+feedback = importlib.import_module("feedback_service")
 #: Same reason as `access`: `x402.Config` is a dataclass, and `_load` does not
 #: put the module in `sys.modules` before the decorator runs.
 x402 = importlib.import_module("x402")
@@ -1655,6 +1656,138 @@ def _signal_paths() -> dict[str, Any]:
     }
 
 
+def _feedback_openapi(schema: dict[str, Any]) -> dict[str, Any]:
+    """The published JSON Schema (2020-12) in OpenAPI 3.0.3's dialect."""
+    node = {k: v for k, v in schema.items() if k not in {"$schema", "$id", "examples"}}
+    kind = node.get("type")
+    if isinstance(kind, list):
+        node["type"] = next(k for k in kind if k != "null")
+        if "null" in kind:
+            node["nullable"] = True
+    if "enum" in node and "type" not in node:
+        node["type"] = "string"
+    if "properties" in node:
+        node["properties"] = {name: _feedback_openapi(child)
+                              for name, child in node["properties"].items()}
+    return node
+
+
+def _feedback_paths() -> dict[str, Any]:
+    """MODEL-221. Public, keyless, and not probed: a probe would leave feedback."""
+    errors = {
+        str(status): _json_body(f"`{code}`: {fix}", {"$ref": "#/components/schemas/FeedbackError"})
+        for code, (status, fix) in feedback.ERRORS.items()
+    }
+    by_status: dict[str, Any] = {}
+    for code, (status, fix) in feedback.ERRORS.items():
+        by_status.setdefault(str(status), []).append(f"`{code}`: {fix}")
+    for status, lines in by_status.items():
+        errors[status]["description"] = " ".join(lines)
+    method = _json_body("Use POST to send and DELETE to withdraw.",
+                        {"$ref": "#/components/schemas/TransportError"})
+    example = feedback.request_schema()["examples"][0]
+    return {
+        "/v1/feedback": {
+            "post": {
+                "operationId": "feedback",
+                "summary": ("Tell ModelSpec whether an answer was reliable, unreliable, "
+                            "trustworthy, untrustworthy or confusing. No key."),
+                "description": (
+                    "Send one rating after you act on an answer, with the decision_id "
+                    "when it is about a decision. Never include a prompt, a key or "
+                    "anything that identifies a person: free text is scrubbed, and "
+                    "`redacted` says what was replaced. Storage ships off: a 200 is "
+                    "`not_recorded` and nothing is kept; a 202 is `recorded`. Request "
+                    f"schema: {feedback.SCHEMA_URL}. Reference: docs/feedback-api.md."
+                ),
+                "security": [{}],
+                "x-modelspec-probe": "skip",
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {
+                        "schema": {"$ref": "#/components/schemas/FeedbackRequest"},
+                        "example": example,
+                    }},
+                },
+                "responses": {
+                    "200": _json_body("Valid, and storage is off: nothing was kept.",
+                                      {"$ref": "#/components/schemas/FeedbackResult"}),
+                    "202": _json_body("Recorded. Keep `receipt` to delete it later.",
+                                      {"$ref": "#/components/schemas/FeedbackResult"}),
+                    **{s: e for s, e in errors.items() if s != "404"},
+                    "405": method,
+                },
+            },
+            "delete": {
+                "operationId": "feedbackWithdraw",
+                "summary": "Delete one piece of feedback by the receipt it was given.",
+                "security": [{}],
+                "x-modelspec-probe": "skip",
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {
+                        "schema": {"$ref": "#/components/schemas/FeedbackWithdrawal"},
+                    }},
+                },
+                "responses": {
+                    "200": _json_body("Deleted.", {"$ref": "#/components/schemas/FeedbackResult"}),
+                    **{s: e for s, e in errors.items() if s in {"400", "403", "404", "413", "429"}},
+                    "405": method,
+                },
+            },
+        },
+    }
+
+
+def _feedback_schemas() -> dict[str, Any]:
+    envelope = {
+        "schema_version": {"type": "string", "enum": [feedback.SCHEMA_VERSION]},
+        "service_commit": {"type": "string"},
+        "endpoint": {"type": "string", "enum": ["feedback"]},
+    }
+    return {
+        "FeedbackRequest": _feedback_openapi(feedback.request_schema()),
+        "FeedbackWithdrawal": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["receipt"],
+            "properties": {"receipt": {"type": "string", "pattern": feedback.RECEIPT.pattern}},
+        },
+        "FeedbackResult": {
+            "type": "object",
+            "required": ["schema_version", "service_commit", "endpoint", "status", "recorded"],
+            "properties": {
+                **envelope,
+                "status": {"type": "string", "enum": ["recorded", "not_recorded", "deleted"]},
+                "recorded": {"type": "boolean"},
+                "receipt": {"type": "string", "nullable": True,
+                            "pattern": feedback.RECEIPT.pattern},
+                "retention_days": {"type": "integer", "nullable": True},
+                "redacted": {"type": "array", "items": {
+                    "type": "string", "enum": ["email", "ip", "phone", "secret", "url_query"]}},
+                "message": {"type": "string"},
+                "privacy": {"type": "string", "format": "uri"},
+            },
+        },
+        "FeedbackError": {
+            "type": "object",
+            "required": ["schema_version", "service_commit", "endpoint", "error"],
+            "properties": {
+                **envelope,
+                "error": {
+                    "type": "object",
+                    "required": ["code", "message"],
+                    "properties": {
+                        "code": {"type": "string", "enum": sorted(feedback.ERRORS)},
+                        "message": {"type": "string"},
+                        "retry_after": {"type": "integer"},
+                    },
+                },
+            },
+        },
+    }
+
+
 def _signal_schemas() -> dict[str, Any]:
     contract = json.loads(
         (REPO_ROOT / "schemas" / "release-signal-v1.schema.json").read_text(encoding="utf-8")
@@ -2495,7 +2628,9 @@ def build_spec() -> dict[str, Any]:
                 "failure, it returns which constraint eliminated every option. "
                 "POST /v1/policy-check returns, per model and per platform, pass, fail or "
                 "undetermined against a licence, origin, residency and commercial-use "
-                "policy, citing the document behind each verdict.\n\n"
+                "policy, citing the document behind each verdict. After you act on an "
+                "answer, POST /v1/feedback with a rating (reliable, unreliable, "
+                "trustworthy, untrustworthy, confusing) and its decision_id; no key.\n\n"
                 "One call, and no state on your side. Each answer is computed per request "
                 "from the current public export; `build.commit` on every response names the "
                 "catalogue it was computed from. A request carries a profile or a policy — "
@@ -2527,7 +2662,8 @@ def build_spec() -> dict[str, Any]:
                                     "/v1/compare": decide_service.MAX_BODY_BYTES,
                                     "/v1/policy-check": policy.MAX_BODY_BYTES,
                                     "/v1/signals": signals.MAX_BODY_BYTES,
-                                    "/v1/signals/discovered": signals.MAX_BODY_BYTES},
+                                    "/v1/signals/discovered": signals.MAX_BODY_BYTES,
+                                    "/v1/feedback": feedback.MAX_BODY_BYTES},
         },
         "x-modelspec-access": _access(),
         "x-modelspec-billing": {
@@ -2786,6 +2922,7 @@ def build_spec() -> dict[str, Any]:
                     },
                 },
             },
+            **_feedback_paths(),
             **_signal_paths(),
             **_billing_paths(),
         },
@@ -2818,6 +2955,7 @@ def build_spec() -> dict[str, Any]:
                     },
                 }),
                 **_signal_schemas(),
+                **_feedback_schemas(),
             },
         },
     }

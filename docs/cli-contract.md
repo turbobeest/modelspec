@@ -15,10 +15,12 @@ major version changes.
 modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
                                           download the rank snapshot and, when available,
                                           the decision snapshot and vocabulary
-                                          (the only networked command)
+                                          (networked, like feedback)
 modelspec snapshot status [--json]        what is cached, how old, which build or decision
 modelspec vocab [SECTION] [--json]        inspect the cached decision vocabulary
 modelspec decide SPEC.yaml --check        validate a spec without running a decision
+modelspec feedback [DECISION_ID] --rating RATING [--note TEXT] [--dry-run] [--json]
+                                          rate an answer; sends one request, no key (MODEL-221)
 modelspec outcome enable|disable|record|show|export
                                           opt-in, local outcome records (MODEL-211)
 ```
@@ -218,6 +220,31 @@ ordering: neither class is placed above the other, and no number is attached.
 The whole rule, including the term list the matcher uses, is published keyless
 at `https://modelspec.dev/api/rank/class-fit.json`, so a caller can run the
 same match locally without calling anything.
+
+## Feedback (MODEL-221)
+
+`modelspec feedback` sends one rating of an answer to
+`POST https://api.modelspec.dev/v1/feedback` ([`feedback-api.md`](feedback-api.md)).
+It is the second command that uses the network, and it sends exactly one
+request, only when run.
+
+```
+modelspec feedback [DECISION_ID] --rating reliable|unreliable|trustworthy|untrustworthy|confusing
+                   [--note TEXT] [--trying-to-decide TEXT] [--template ID]
+                   [--endpoint URL] [--dry-run] [--json]
+```
+
+- **No key.** It never reads `MODELSPEC_API_KEY` and sends no `Authorization`
+  header. The body is `{"rating", "client": "cli"}` plus the options given, and
+  nothing else: no machine, user or install identifier.
+- The body is printed to stderr before it is sent. `--dry-run` prints it to
+  stdout as `{"command": "feedback", "dry_run": true, "endpoint", "body"}` and
+  sends nothing.
+- `--json` prints `{"command": "feedback", "result": <the Worker's answer>}`.
+  Check `result.status`: `recorded`, or `not_recorded` while storage is off.
+- A refusal exits 1 with `{"command": "feedback", "error": {"code", "message"}}`
+  on stderr, the code being the Worker's (`invalid_request`, `rate_limited`, …)
+  or `origin_unreachable` / `unexpected_response`.
 
 ## Outcome records (MODEL-211)
 

@@ -201,6 +201,12 @@ jobs:
           test -s dist/modelspec/pricing-assets/pricing.css
           test -s dist/modelspec/pricing-assets/pricing.js
           test -s dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2
+          test -s dist/modelspec/feedback/index.html
+          test -s dist/modelspec/feedback-assets/feedback.js
+          test -s dist/modelspec/api/feedback/v1.schema.json
+          grep -Fq 'https://api.modelspec.dev/v1/feedback' dist/modelspec/llms.txt
+          ! grep -Fq 'llms-full.txt' dist/modelspec/llms.txt
+          grep -Fq 'data-feedback-launch' dist/modelspec/method/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/method/"' dist/modelspec/method/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/decide/"' dist/modelspec/decide/index.html

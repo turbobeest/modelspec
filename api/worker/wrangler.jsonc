@@ -66,6 +66,11 @@
   // Binding it does not require a key: ACCESS_ENFORCED stays off, and no key
   // has been issued (issuance is MODEL-73). A presented live key is checked
   // against the store; anonymous and `test_` requests are unaffected.
+  //
+  // MODEL-221. A FEEDBACK namespace is deliberately NOT bound yet. It is its
+  // own namespace, never ACCESS: feedback has its own retention, and wiping it
+  // must never touch a key record. It is created and bound as part of the
+  // launch Jamie signs off (docs/design/feedback-privacy.md).
   "kv_namespaces": [
     { "binding": "DETERMINATIONS", "id": "a73f33d391f74c3e88e45f47d8e50814" },
     { "binding": "ACCESS", "id": "ef86b7ce138d4891b3eb630cdd2ba4e5" }
@@ -101,6 +106,15 @@
     // MODEL-113. Grok Bot release-signal intake. Keep this off until Jamie
     // creates the two Wrangler secrets and configures Grok Bot.
     "SIGNALS_ENABLED": "false",
+    // MODEL-221. Feedback storage (POST /v1/feedback). Ships OFF: the endpoint
+    // validates, rate-limits in memory and answers `not_recorded`, and writes
+    // nothing anywhere. Turning it on is Jamie's call, after the privacy
+    // statement covers it (docs/design/feedback-privacy.md, "Launch"). On also
+    // needs a FEEDBACK KV namespace in kv_namespaces and the Wrangler secret
+    // FEEDBACK_LIMIT_PEPPER; without either, the endpoint answers 503 rather
+    // than storing unkeyed. Any value other than "false", "0", "no", "off" or
+    // "" reads as ON.
+    "FEEDBACK_ENABLED": "false",
     // MODEL-75. x402 prepaid credits / per-call 402. Independent of Stripe
     // (MODEL-73) and of ACCESS_ENFORCED. Ships OFF. Any value other than
     // "false", "0", "no", "off" or "" reads as ON. See docs/x402.md.
@@ -162,6 +176,7 @@
         "BUILD_COMMIT": "dev",
         "ACCESS_ENFORCED": "false",
         "BILLING_ENABLED": "false",
+        "FEEDBACK_ENABLED": "false",
         "X402_ENABLED": "true",
         "X402_MAINNET": "false",
         "X402_NETWORK": "eip155:84532",

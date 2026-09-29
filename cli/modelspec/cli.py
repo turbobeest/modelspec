@@ -41,7 +41,7 @@ class RootGroup(_offline.ContractGroup):
         name: index
         for index, name in enumerate(
             (
-                "snapshot", "vocab", "decide", "outcome", "verify",
+                "snapshot", "vocab", "decide", "feedback", "outcome", "verify",
                 "rank", "search", "compare", "hardware",
                 "info", "stats", "gaps", "offline",
                 "research", "contribute", "validate",
@@ -63,6 +63,8 @@ app = typer.Typer(
     help=(
         "[bold]Start here:[/] modelspec snapshot fetch, then modelspec vocab, then "
         "modelspec decide --template <id>.\n\n"
+        "[bold]After you act on an answer:[/] modelspec feedback <decision_id> --rating "
+        "reliable|unreliable|trustworthy|untrustworthy|confusing. No key.\n\n"
         "ModelSpec decides which model or offering fits a spec."
     ),
     no_args_is_help=True,
@@ -100,6 +102,13 @@ app.add_typer(_verify_cmd.app, name="verify", rich_help_panel=_DECISION_PANEL)
 from . import outcome_cmd as _outcome_cmd  # noqa: E402
 
 app.add_typer(_outcome_cmd.app, name="outcome", rich_help_panel=_DECISION_PANEL)
+
+# Feedback on an answer (MODEL-221): one rating to /v1/feedback, no key.
+from . import feedback_cmd as _feedback_cmd  # noqa: E402
+
+app.command("feedback", cls=_offline.ContractCommand, rich_help_panel=_DECISION_PANEL)(
+    _feedback_cmd.feedback
+)
 
 console = Console()
 

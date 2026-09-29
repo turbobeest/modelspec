@@ -38,6 +38,7 @@ BENCHGRAPH_REDIRECTS = (
 API_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/api.md"
 RANK_API = "https://api.modelspec.dev/v1/rank"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
+FEEDBACK_API = "https://api.modelspec.dev/v1/feedback"
 MODEL_PAGE_MAX_BYTES = 512 * 1024
 
 
@@ -69,6 +70,12 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"- Legacy v1 rank API: {RANK_API}\n"
         f"- API docs: {API_DOCS}\n"
         f"- MCP: {MCP_ENDPOINT}\n"
+        f"- Feedback (no key): POST {FEEDBACK_API} with "
+        f'{{"rating": "reliable|unreliable|trustworthy|untrustworthy|confusing", '
+        f'"client": "agent", "decision_id": "dec_…"}}. '
+        f"Schema: {base}/api/feedback/v1.schema.json. "
+        f"CLI: modelspec feedback DECISION_ID --rating <rating>. MCP tool: feedback. "
+        f"Send one after you act on an answer.\n"
         f"- Source: https://github.com/turbobeest/modelspec\n"
     )
 
@@ -625,6 +632,10 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
     ms_paths.append("/decide/")
+    # MODEL-221. /feedback/, its assets and the published request schema.
+    from pipeline import feedback_page
+    feedback_counts = feedback_page.write(ms, root)
+    ms_paths.extend(feedback_counts["sitemap_paths"])
 
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
@@ -643,6 +654,9 @@ def main(argv: list[str] | None = None) -> int:
     # pages from this tree, and the deploy workflow diffs them byte for byte.
     from pipeline import structured_data
     structured_data.inject(ms, root)
+
+    # The Feedback control on every page, last, so no later writer drops it.
+    feedback_counts["pages_with_control"] = feedback_page.inject_tree(ms)
 
     missing = missing_internal_hrefs(ms)
     if missing:
@@ -664,6 +678,7 @@ def main(argv: list[str] | None = None) -> int:
         "export_schema_version": exporter.EXPORT_SCHEMA_VERSION,
         "modelspec_urls": len(ms_paths),
         "agent_ready": agent_counts,
+        "feedback": feedback_counts,
     }
     print(json.dumps(summary, indent=1))
     return 0

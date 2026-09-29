@@ -1318,7 +1318,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.9",
+  "contract_version": "2.10",
   "decision_id": "dec_9b52c5b2f6cd8cab89248556",
   "snapshot": "snap_b00a0d674da5f48d",
   "signature_verified": false,
@@ -2294,5 +2294,18 @@
   "relax": [],
   "relax_to": [],
   "warnings": [],
-  "out_of_lineup": 0
+  "out_of_lineup": 0,
+  "feedback": {
+    "endpoint": "https://api.modelspec.dev/v1/feedback",
+    "method": "POST",
+    "request_schema": "https://modelspec.dev/api/feedback/v1.schema.json",
+    "ratings": [
+      "reliable",
+      "unreliable",
+      "trustworthy",
+      "untrustworthy",
+      "confusing"
+    ],
+    "cli": "modelspec feedback <decision_id> --rating <rating>"
+  }
 }

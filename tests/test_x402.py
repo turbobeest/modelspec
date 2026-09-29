@@ -833,6 +833,7 @@ def test_staging_x402_config_is_isolated_on_base_sepolia():
         "BUILD_COMMIT": "dev",
         "ACCESS_ENFORCED": "false",
         "BILLING_ENABLED": "false",
+        "FEEDBACK_ENABLED": "false",
         "X402_ENABLED": "true",
         "X402_MAINNET": "false",
         "X402_NETWORK": "eip155:84532",

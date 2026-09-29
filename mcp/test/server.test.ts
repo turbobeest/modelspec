@@ -107,7 +107,7 @@ describe("modelspec MCP worker", () => {
     vi.unstubAllGlobals();
   });
 
-  it("tools/list returns all six tools with object input schemas", async () => {
+  it("tools/list returns all seven tools with object input schemas", async () => {
     const listed = await rpc("tools/list", {});
     const result = listed.payload.result as {
       tools: Array<{ name: string; inputSchema: { type?: string } }>;
@@ -115,7 +115,7 @@ describe("modelspec MCP worker", () => {
     expect(result.tools.map((tool) => tool.name).sort()).toEqual(
       [...TOOL_NAMES].sort(),
     );
-    expect(result.tools).toHaveLength(6);
+    expect(result.tools).toHaveLength(7);
     for (const tool of result.tools) {
       expect(tool.inputSchema).toBeTruthy();
       expect(tool.inputSchema.type ?? "object").toBe("object");
@@ -292,6 +292,43 @@ describe("modelspec MCP worker", () => {
     );
     const init = originFetch.mock.calls[0][1] as RequestInit;
     expect(new Headers(init.headers).get("authorization")).toBe("Bearer test_key");
+  });
+
+  it("feedback posts client mcp, forwards the caller address and never a key", async () => {
+    const originBody = { status: "not_recorded", recorded: false };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, originBody));
+    const { payload } = await rpc(
+      "tools/call",
+      {
+        name: "feedback",
+        arguments: { rating: "unreliable", decision_id: "dec_3f9a1c2b7d4e", note: "no EU region" },
+      },
+      1,
+      { authorization: "Bearer live_secret", "CF-Connecting-IP": "203.0.113.7" },
+    );
+    const envelope = envelopeFromCall(payload);
+    expect(envelope.origin).toBe("https://api.modelspec.dev/v1/feedback");
+    expect(envelope.body).toEqual(originBody);
+    const init = originFetch.mock.calls[0][1] as RequestInit;
+    const headers = new Headers(init.headers);
+    expect(headers.get("authorization")).toBeNull();
+    expect(headers.get("x-modelspec-client-ip")).toBe("203.0.113.7");
+    expect(JSON.parse(String(init.body))).toEqual({
+      rating: "unreliable",
+      decision_id: "dec_3f9a1c2b7d4e",
+      note: "no EU region",
+      client: "mcp",
+    });
+  });
+
+  it("feedback refuses a rating outside the five before any request", async () => {
+    const { payload } = await rpc("tools/call", {
+      name: "feedback",
+      arguments: { rating: "great" },
+    });
+    const result = payload.result as { isError?: boolean };
+    expect(result.isError).toBe(true);
+    expect(originFetch).not.toHaveBeenCalled();
   });
 
   it("decide proxies the spec and summarizes the decision", async () => {

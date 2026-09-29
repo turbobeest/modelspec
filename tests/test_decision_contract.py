@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.9"
+    assert c.CONTRACT_VERSION == "2.10"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -878,6 +878,7 @@ def _samples() -> list:
                     surface="coding_tool:claude-code", price=plan_price, price_monthly_usd=200,
                     coverage=plan_coverage, allowance=plan_allowance,
                     break_even_tasks_per_month=303.0, basis="200 USD a month ÷ 0.66 USD a task"),
+        c.FeedbackPointer(),
     ]
 
 
@@ -955,3 +956,19 @@ def test_doc_examples_are_valid() -> None:
         for line in block.splitlines():
             if line.strip():
                 c.parse_condition(line.strip())
+
+
+def test_every_decision_names_the_feedback_endpoint_the_worker_serves() -> None:
+    """MODEL-221: the pointer on a decision is the endpoint that exists, with its ratings."""
+    import sys
+    src = str(REPO_ROOT / "api" / "worker" / "src")
+    sys.path.insert(0, src)
+    try:
+        import feedback_service
+    finally:
+        sys.path.remove(src)
+    pointer = c.FeedbackPointer()
+    assert pointer.endpoint == feedback_service.ENDPOINT_URL
+    assert pointer.request_schema == feedback_service.SCHEMA_URL
+    assert tuple(pointer.ratings) == feedback_service.RATINGS
+    assert pointer.cli.startswith("modelspec feedback ")

@@ -490,10 +490,13 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     # Only the access modules and disclosed release-signal service write KV.
     # billing*.py decides; access_billing.py stores.
     # credits*.py mutate the Durable Object via SQL, not Workers KV.
+    # feedback_service.py (MODEL-221) writes only its own FEEDBACK namespace,
+    # and may exist undisclosed only while that store can never be reached:
+    # see test_feedback_storage_is_unreachable_until_the_statement_covers_it.
     for src in sorted((worker / "src").glob("*.py")):
         body = src.read_text(encoding="utf-8")
         if (src.name.startswith("access") or src.name.startswith("credits")
-                or src.name == "signals_service.py"):
+                or src.name in ("signals_service.py", "feedback_service.py")):
             continue
         assert ".put(" not in body and ".delete(" not in body, (
             f"{src.name} writes to KV; the privacy statement says the Worker "
@@ -503,6 +506,59 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
                   "confidence", "signal id", "1, 7 and 30 days", "SIGNALS_ENABLED"):
         assert claim in FLAT_PRIVACY, (
             f"the signal service writes ACCESS and the privacy statement does not say {claim!r}")
+
+
+def test_feedback_storage_is_unreachable_until_the_statement_covers_it() -> None:
+    """MODEL-221. The feedback endpoint ships with storage off.
+
+    While the privacy statement says nothing of feedback, the Worker must not be
+    able to keep any: `FEEDBACK_ENABLED` is off in production and staging and no
+    `FEEDBACK` namespace is bound. Turning either on without adopting the
+    wording in `docs/design/feedback-privacy.md` fails here. Once the statement
+    discloses the store, it must name what a record holds.
+    """
+    import ast
+    import sys
+
+    from pipeline.worker_flags import parse_jsonc
+
+    worker = REPO_ROOT / "api" / "worker"
+    config = parse_jsonc((worker / "wrangler.jsonc").read_text(encoding="utf-8"))
+    flags = [config["vars"].get("FEEDBACK_ENABLED", "false")] + [
+        env.get("vars", {}).get("FEEDBACK_ENABLED", "false")
+        for env in config.get("env", {}).values()]
+    on = any(str(flag).strip().lower() not in {"", "0", "false", "no", "off"}
+             for flag in flags)
+    bound = "FEEDBACK" in _kv_bindings(_wrangler_config()) or any(
+        kv.get("binding") == "FEEDBACK"
+        for env in config.get("env", {}).values() for kv in env.get("kv_namespaces", []))
+    disclosed = "`FEEDBACK`" in FLAT_PRIVACY
+    if on or bound:
+        assert disclosed, (
+            "feedback storage is switched on or bound, and the privacy statement does not "
+            "disclose the FEEDBACK store; adopt the wording in "
+            "docs/design/feedback-privacy.md first")
+    if disclosed:
+        sys.path.insert(0, str(worker / "src"))
+        try:
+            import feedback_service
+        finally:
+            sys.path.remove(str(worker / "src"))
+        for name in feedback_service.STORED_FIELDS:
+            assert f"`{name}`" in FLAT_PRIVACY, (
+                f"a feedback record holds {name!r} and the privacy statement does not say so")
+
+    # Whatever the switch, the service writes only a record, under a name built
+    # from the receipt's hash, and two counters.
+    tree = ast.parse((worker / "src" / "feedback_service.py").read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "put"):
+            target = node.args[0]
+            name = (target.func.id if isinstance(target, ast.Call)
+                    and isinstance(target.func, ast.Name) else
+                    target.id if isinstance(target, ast.Name) else None)
+            assert name in {"_record_name", "address_name", "global_name"}, ast.unparse(node)
 
 
 def _assert_access_writes_only_records_and_counters(src: Path) -> None:

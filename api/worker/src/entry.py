@@ -23,6 +23,12 @@ exact body with a Grok Bot HMAC secret and writes a pending record to the
 existing `ACCESS` KV namespace. Its read and acknowledgement routes require a
 different secret held only by the repository workflow. The feature ships off.
 
+`POST /v1/feedback` (MODEL-221) takes a rating of an answer from a person or an
+agent, with no key. Storage ships off (`FEEDBACK_ENABLED`); when on, a record
+goes to its own KV namespace, `FEEDBACK`, and holds no address, key or user
+agent. `feedback_service.py` owns the rules; `docs/design/feedback-privacy.md`
+says why.
+
 All decision POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
 after the body is read and before any export is fetched. It ships with
 enforcement OFF (`ACCESS_ENFORCED`): an unkeyed request is answered exactly as
@@ -61,6 +67,7 @@ import access_sandbox
 import billing
 import billing_page
 import credits
+import feedback_service
 import kv_value
 import policy_service
 import rank_service as service
@@ -88,6 +95,14 @@ SNAPSHOT_KEY_VAR = "MODELSPEC_SNAPSHOT_KEY"
 SIGNALS_ENABLED_VAR = "SIGNALS_ENABLED"
 SIGNALS_HMAC_SECRET_VAR = "SIGNALS_HMAC_SECRET"
 SIGNALS_READ_KEY_VAR = "SIGNALS_READ_KEY"
+#: MODEL-221. Feedback storage: the switch (ships off), its own KV namespace,
+#: and the secret that keys the abuse-limit counters so no address is stored.
+FEEDBACK_ENABLED_VAR = "FEEDBACK_ENABLED"
+FEEDBACK_BINDING = "FEEDBACK"
+FEEDBACK_PEPPER_VAR = "FEEDBACK_LIMIT_PEPPER"
+#: Comma-separated extra browser origins for local development only
+#: (`--var FEEDBACK_DEV_ORIGINS:http://localhost:8000`). Empty in wrangler.jsonc.
+FEEDBACK_DEV_ORIGINS_VAR = "FEEDBACK_DEV_ORIGINS"
 
 #: KV keys holding the private determinations, staged by
 #: `api/worker/load_determinations.py`. The manifest is read first and verified
@@ -117,7 +132,7 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
 ACCEPTED_ENDPOINTS = (
     "POST /v1/rank", "POST /v1/decide", "POST /v1/compare",
-    "POST /v1/policy-check", "GET /v1/health",
+    "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
     "GET /v1/credits",
@@ -514,6 +529,8 @@ class Default(WorkerEntrypoint):
                 })
             return Response("", status=204, headers=headers)
 
+        if path == "/v1/feedback":
+            return await self._feedback(request, method, service_commit)
         if path == "/v1/health":
             if method not in ("GET", "HEAD"):
                 return self._method_not_allowed(service_commit, path, "GET", method)
@@ -819,6 +836,50 @@ class Default(WorkerEntrypoint):
             outcome = signals_service._error(404, "not_found", f"no endpoint at {path}")
         outcome.body["service_commit"] = service_commit
         return _json_response(outcome.status, outcome.body)
+
+    async def _feedback(self, request, method: str, service_commit: str):
+        """`POST` and `DELETE /v1/feedback` (MODEL-221). No key is read."""
+        extra = str(getattr(self.env, FEEDBACK_DEV_ORIGINS_VAR, "") or "")
+        allowed = CORS_ORIGINS | frozenset(o.strip() for o in extra.split(",") if o.strip())
+        origin = str(request.headers.get("origin") or "") or None
+        cors = {}
+        if origin in allowed:
+            cors = {
+                "access-control-allow-origin": origin,
+                "access-control-allow-methods": "POST, DELETE, OPTIONS",
+                "access-control-allow-headers": "content-type",
+                "access-control-max-age": "86400",
+                "vary": "Origin",
+            }
+        if method == "OPTIONS":
+            return Response("", status=204 if cors else 403, headers=cors)
+        if method not in ("POST", "DELETE"):
+            return self._method_not_allowed(service_commit, "/v1/feedback", "POST or DELETE",
+                                            method)
+        binding = getattr(self.env, FEEDBACK_BINDING, None)
+        store = feedback_service.Store(
+            enabled=feedback_service.enabled(getattr(self.env, FEEDBACK_ENABLED_VAR, None)),
+            kv=None if binding is None else access_kv.CloudflareKV(binding),
+            pepper=str(getattr(self.env, FEEDBACK_PEPPER_VAR, "") or "").encode("utf-8"),
+        )
+        # Cloudflare sets CF-Connecting-IP on every request that reaches this
+        # route and overwrites any the client sent. A request with none came
+        # through a service binding: the MCP Worker, which forwards its own
+        # caller's address in x-modelspec-client-ip so its callers are limited
+        # one by one rather than as a crowd. Either way the address is only an
+        # HMAC input; it is never stored or logged.
+        address = str(request.headers.get("CF-Connecting-IP")
+                      or request.headers.get("x-modelspec-client-ip") or "")
+        handler = feedback_service.submit if method == "POST" else feedback_service.withdraw
+        outcome = await handler(
+            raw=(await request.text()).encode("utf-8"),
+            address=address,
+            origin=origin,
+            allowed_origins=allowed,
+            store=store,
+        )
+        outcome.body["service_commit"] = service_commit
+        return _json_response(outcome.status, outcome.body, {**outcome.headers, **cors})
 
     def _x402_wrap(self, produce, request, path, api_key, envelope, payload, trace, *,
                    keyed: bool, produce_unfunded=None):
