@@ -23,8 +23,13 @@ choose to send about an answer is described below; storing it is not yet switche
 on. If you use an API key or buy credits, we keep a hash of the key
 (never the key), its usage counters and credit balance, and the Stripe identifiers
 of your purchase. Stripe, not us, handles your card. Cloudflare, our infrastructure
-provider, records request metadata as platform logs, and runs Cloudflare Web
-Analytics on our web pages.
+provider, records request metadata as platform logs.
+
+We want to know where our visitors come from and how they use the site, so we
+can make a better product. That is why we run Cloudflare Web Analytics. It
+tells us where visitors come from, which pages they use and how fast those
+pages load. It does not tell us who you are: it sets no cookie, and nothing it
+shows us identifies you.
 
 ## What a request contains
 
@@ -82,7 +87,7 @@ The remote MCP server at `https://api.modelspec.dev/mcp` (`mcp/`) is stateless.
 It passes each tool call through to those endpoints or to the public export,
 forwarding the `Authorization` header you sent, and stores nothing. Its feedback
 tool forwards no `Authorization` header; it passes your address instead, used
-only for the feedback limits described under [the feedback store](#the-feedback-store).
+only for the feedback limits described under *The feedback store*.
 
 ## What we store
 
@@ -280,8 +285,8 @@ Purchases are made on Checkout pages hosted by Stripe
 Sawdust LLC. Stripe collects your card details and the contact and billing
 details its Checkout form asks for, and holds them under its own privacy
 policy. **We never receive your card number, expiry or CVC.** From Stripe we
-keep only the identifiers listed under [the API-key store](#the-api-key-store)
-and [the credit ledger](#the-credit-ledger): event, customer, subscription,
+keep only the identifiers listed under *The API-key store* and *The credit
+ledger*: event, customer, subscription,
 Checkout session, invoice, PaymentIntent, chargeback and Price ids. We do
 not copy your name, email address or billing address into our stores; they
 remain in our Stripe account, where we can see them to handle a request from
@@ -292,12 +297,11 @@ you.
 The API and the website run on Cloudflare, and Cloudflare records request
 metadata as any host does: the source IP address, timestamp, request method and
 path, response status, and user-agent. Cloudflare also asks your browser, in the
-`NEL` and `Report-To` headers of its responses, to report to `a.nel.cloudflare.com` any request to our site or API that fails to
-connect or is answered with an error status; a report carries the address
-requested, the referring page, the status and timings. It asks for no report of
-a request that succeeds.
-Cloudflare **Workers observability is
-enabled** on the API Worker and the MCP Worker (`api/worker/wrangler.jsonc`,
+`NEL` and `Report-To` headers of its responses, to report to
+`a.nel.cloudflare.com` any request to our site or API that fails to connect or
+is answered with an error status; a report carries the address requested, the
+referring page, the status and timings. It asks for no report of a request that
+succeeds. Cloudflare **Workers observability is enabled** on the API Worker and the MCP Worker (`api/worker/wrangler.jsonc`,
 `mcp/wrangler.jsonc`), which retains invocation logs — request metadata,
 outcome and any uncaught error — under Cloudflare's own retention. We use this
 to tell whether the service is working.
@@ -312,38 +316,26 @@ redirects to it.
 
 - **No cookies are set.** No tag manager, no tracking pixel, no advertising
   network.
-- **Cloudflare Web Analytics is on.** Cloudflare inserts its analytics script
-  into each page of the site as it serves the page; the script is not in our
-  code. Your browser loads it from `static.cloudflareinsights.com`, a Cloudflare
-  host, and it sends to `modelspec.dev/cdn-cgi/rum`, which Cloudflare answers:
-  the page's address without its query string or the part after the `#`; the
-  page you came from, shortened the same way; an identifier for that page load;
-  your browser's make and version and your operating system's version; and how
-  quickly the page loaded and responded, naming the page element involved in
-  the slowest paint, layout shift or interaction. Cloudflare also receives the
-  request metadata described under *What Cloudflare records*. Cloudflare
-  states that the script uses no cookie or other browser storage and does not
-  fingerprint visitors. From it, Cloudflare shows us aggregate counts of page
-  views and visits and aggregate page-load performance, by page, referrer,
-  country, browser, operating system and device type. We do not export it,
-  join it to anything else, or use it to build a profile of you.
+- **Cloudflare Web Analytics is on**, as described under *Cloudflare Web
+  Analytics* below.
 - **No account exists** to sign into, so there is nothing about you to hold.
 - The **decide page** (`/decide/`) answers by sending the board's current spec
   to `POST /v1/decide`, described above, whenever it needs an answer, including
   when it first loads (`web/src/decide/adapter/hosted.ts`). That endpoint keeps
-  nothing of it. The board itself, including the estate below, is kept in the page address after
-the `#`, which your browser does not send to any server; a link you copy or
-share from the page carries it.
+  nothing of it. The board itself, including the estate below, is kept in the
+  page address after the `#`, which your browser does not send to any server; a
+  link you copy or share from the page carries it.
 - **Your browser keeps three things for the decide page**, in its
   `localStorage`: your light or dark theme (`modelspec-theme`,
-  `web/src/decide/theme.ts`); the providers, plans and devices the board is set
-  to hold (`modelspec-estate-v1`, `web/src/decide/facet-board/model.ts`), which leave your browser as the estate of a spec sent to `/v1/decide` and in
-the page address described above; and, if
-  you press **Save and watch**, the spec and the alerts you ticked
-  (`modelspec-alerts`, or `modelspec-sample-alerts` on a sample,
+  `web/src/decide/theme.ts`); the providers, plans and devices the board is
+  set to hold (`modelspec-estate-v1`, `web/src/decide/facet-board/model.ts`),
+  which leave your browser as the estate of a spec sent to `/v1/decide` and in
+  the page address described above; and, if you press **Save and watch**, the
+  spec and the alerts you ticked (`modelspec-alerts`, or
+  `modelspec-sample-alerts` on a sample,
   `web/src/decide/components/Share.tsx`). The saved spec and alerts are never
-  sent to us, and the service holds no watch list. Clearing this site's data in
-  your browser removes all three.
+  sent to us, and the service holds no watch list. Clearing this site's data
+  in your browser removes all three.
 - The **Feedback** button, on every page, and the "Was this answer reliable?"
   prompt on the decide page send what you enter to `/v1/feedback` only when you
   press Send. They set no cookie and store nothing in your browser.
@@ -351,6 +343,36 @@ the page address described above; and, if
   above, from `static.cloudflareinsights.com`, and pages load nothing else from
   a third party. Web fonts and the graph explorer's libraries are served from
   our own origin rather than a CDN.
+
+### Cloudflare Web Analytics
+
+We want to know where our visitors come from and how they use the site, so we
+can make a better product. That is why we run Cloudflare Web Analytics. It
+tells us where visitors come from, which pages they use and how fast those pages
+load. It does not tell us who you are.
+
+Cloudflare inserts its analytics script into each page of the site as it serves
+the page; the script is not in our code. Your browser loads it from
+`static.cloudflareinsights.com`, a Cloudflare host, and it sends to
+`modelspec.dev/cdn-cgi/rum`, which Cloudflare answers: the page's address
+without its query string or the part after the `#`; the page you came from,
+shortened the same way; a random identifier made afresh for that one page load;
+your browser's make and version and your operating system's version; and how
+quickly the page loaded and responded, naming the page element involved in the
+slowest paint, layout shift or interaction. The script sets no cookie, uses no
+other storage in your browser and sends no identifier that outlasts the page
+load, so nothing it sends follows you from visit to visit or from site to site.
+Cloudflare also receives the request metadata described under *What Cloudflare
+records*, as for any request.
+
+From this, Cloudflare shows us counts of page views and visits and page-load
+times, by page, referrer, country, browser, operating system and device type.
+Web Analytics never shows us an IP address, and nothing it shows us identifies
+you or any customer. We do not export it, join it to anything else, or use it to
+build a profile of you. Cloudflare processes this data for us, as our processor,
+under its own terms. Cloudflare's own description of Web Analytics and its
+privacy is at
+[cloudflare.com/web-analytics](https://www.cloudflare.com/web-analytics/).
 
 ## Inference, and why there is nothing to say about it
 
@@ -382,31 +404,30 @@ nothing below is read as describing the service today:
 
 - **x402 payments.** The rail (MODEL-75) is wired behind `X402_ENABLED`, which
   ships off: no request is charged by x402 and no x402 payment is credited.
-  Coinbase's x402 facilitator, when the flag is on, receives the signed payment
-  payload in order to verify and settle it; that payload is the caller's, not a
-  store of ours. No private key for receiving funds is in this repository.
-  `X402_PAY_TO` is an on-chain address in configuration, currently empty. This
-describes the production service at `api.modelspec.dev`. A separate staging
-copy of the API, on a `workers.dev` address that the site never calls, runs
-with x402 on, on a test network, for testing; a request sent to it directly
-can be metered as the next paragraph describes.
-
-  Turning x402 on would also change two things this statement says today, and
-  each has to be settled before it is turned on. A request from a browser on
-  this site that presents no key would be metered in `ACCESS`, under counters
-  named from the SHA-256 of your IP address
-  (`_site_free_visitor` in `api/worker/src/entry.py`). An unsalted hash of an IP
-  address can be reversed by trying every address, so it is a pseudonymous
-  address, not an anonymous one; a keyed or rotating scheme replaces it, and this
-  statement is revised, before x402 is switched on. And a payment made without a
-  key would be recorded in the credit ledger under the paying wallet's public
-  address, with the credits it bought, which are spent at once.
+  Coinbase's x402 facilitator, when the flag is on, receives the signed
+  payment payload in order to verify and settle it; that payload is the
+  caller's, not a store of ours. No private key for receiving funds is in this
+  repository. `X402_PAY_TO` is an on-chain address in configuration, currently
+  empty. This describes the production service at `api.modelspec.dev`. A
+  separate staging copy of the API, on a `workers.dev` address that the site
+  never calls, runs with x402 on, on a test network, for testing; a request
+  sent to it directly can be metered as described next. Turning x402 on would
+  also change two things this statement says today, and each has to be settled
+  before it is turned on. A request from a browser on this site that presents
+  no key would be metered in `ACCESS`, under counters named from the SHA-256
+  of your IP address (`_site_free_visitor` in `api/worker/src/entry.py`). An
+  unsalted hash of an IP address can be reversed by trying every address, so
+  it is a pseudonymous address, not an anonymous one; a keyed or rotating
+  scheme replaces it, and this statement is revised, before x402 is switched
+  on. And a payment made without a key would be recorded in the credit ledger
+  under the paying wallet's public address, with the credits it bought, which
+  are spent at once.
 - **Outcome logging by the service.** Not built. The service does not receive or
   record what you chose, whether a recommendation worked, or anything about the
   result of acting on one. The CLI's local log (see *Inference, and why there is nothing to say
   about it*) is not sent to us, and uploading it is designed but not built
   (`docs/design/outcome-upload.md`). The feedback described under
-  [the feedback store](#the-feedback-store) is separate: a rating you choose to
+  *The feedback store* is separate: a rating you choose to
   send, with optional text. When upload is built it will send only records you
   choose to upload, under a consent of its own, and never prompt text, and this
   statement will be updated before it ships, not after.
@@ -450,10 +471,9 @@ published here before the change ships. The version above is the one in force.
   that Stripe renewals and claims are still credited while `BILLING_ENABLED` is
   off; which Stripe identifiers we keep; what the Worker holds in memory between
   requests; which intake needs which secret; and that not every claim names a
-  file. Disclosed Cloudflare Web Analytics, which
-  Cloudflare inserts into our web pages, what its script sends and what
-  Cloudflare shows us from it, and that the pages' one third-party request is
-  that script (MODEL-236).
+  file. Disclosed Cloudflare Web Analytics, which Cloudflare inserts into our web
+  pages: why we run it, what its script sends, what Cloudflare shows us from it,
+  and that the pages' one third-party request is that script (MODEL-236).
 - **1.2, 2026-09-26.** Disclosed the release-signal queue before it is enabled:
   the public release fields it stores, its processing audit, its 1-, 7- and
   30-day re-check records, and its `SIGNALS_ENABLED` switch (MODEL-113).

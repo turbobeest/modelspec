@@ -584,21 +584,108 @@ def test_the_privacy_statement_discloses_cloudflare_observability() -> None:
     assert "Workers observability is enabled" in FLAT_PRIVACY
 
 
-def test_the_privacy_statement_says_pages_load_nothing_third_party() -> None:
-    """No page on either site loads a font from a CDN any more (MODEL-92, with
-    explorer.html switched in MODEL-24's PR #115), so the draft must not disclose
-    a Google Fonts request that no longer happens. tests/test_no_font_cdn.py
-    proves the premise against the source tree and a built site.
+#: Third-party script hosts a page may load, each disclosed in the privacy
+#: statement. Cloudflare injects Web Analytics at the edge (MODEL-236), so it is
+#: not in the source tree; it is listed so that the live smoke check or a later
+#: move into the source cannot add it silently. Adding a host here is a change to
+#: the privacy statement.
+DISCLOSED_THIRD_PARTY_SCRIPTS = {"static.cloudflareinsights.com": "### Cloudflare Web Analytics"}
+_OWN_HOSTS = {"modelspec.dev", "www.modelspec.dev", "api.modelspec.dev"}
+_LOADING_RELS = {"stylesheet", "preload", "modulepreload", "preconnect", "prefetch",
+                 "dns-prefetch", "icon", "manifest"}
 
-    MODEL-236: Cloudflare inserts its Web Analytics script at the edge. It is not
-    in the source tree, so it is named here as the one third-party request."""
+
+def _third_party_hosts(text: str) -> set[str]:
+    """Hosts other than ours that markup or code loads a script, style or font from."""
+    import re
+
+    found = set(re.findall(
+        r"""<script\b[^>]*?\bsrc\s*=\s*["']?(?:https?:)?//([^/"'\s>]+)""", text, re.I))
+    found |= set(re.findall(r"""\b(?:fetch|import)\s*\(\s*["'`]https?://([^/"'`\s]+)""", text))
+    for tag in re.findall(r"<link\b[^>]*>", text, re.I):
+        rel = re.search(r"""\brel\s*=\s*["']?([^"'>]+)""", tag, re.I)
+        href = re.search(r"""\bhref\s*=\s*["']?(?:https?:)?//([^/"'\s>]+)""", tag, re.I)
+        if rel and href and _LOADING_RELS & set(rel.group(1).lower().split()):
+            found.add(href.group(1))
+    return {host.lower() for host in found} - _OWN_HOSTS
+
+
+def test_the_host_detector_allows_the_beacon_and_nothing_else() -> None:
+    """The guard below is only as good as this detector, so prove it on the tag
+    Cloudflare injects (as captured from modelspec.dev on 2026-09-29) and on the
+    loads it has to refuse."""
+    beacon = ('<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v31" '
+              'data-cf-beacon=\'{"token":"t","spa":2}\' crossorigin="anonymous"></script>')
+    assert _third_party_hosts(beacon) == {"static.cloudflareinsights.com"}
+    assert set(_third_party_hosts(beacon)) <= set(DISCLOSED_THIRD_PARTY_SCRIPTS)
+    for load, host in (
+            ('<script src="https://cdn.jsdelivr.net/npm/x.js"></script>', "cdn.jsdelivr.net"),
+            ('<script async src=//www.googletagmanager.com/gtag/js></script>',
+             "www.googletagmanager.com"),
+            ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2">',
+             "fonts.googleapis.com"),
+            ('fetch("https://plausible.io/api/event", {})', "plausible.io")):
+        assert _third_party_hosts(load) == {host}, load
+        assert host not in DISCLOSED_THIRD_PARTY_SCRIPTS
+    ours = ('<script src="/assets/decide.js"></script><link rel="canonical" '
+            'href="https://modelspec.dev/decide/"><a href="https://github.com/x">x</a>'
+            'fetch("https://api.modelspec.dev/v1/decide")')
+    assert _third_party_hosts(ours) == set()
+
+
+def test_pages_load_no_third_party_script_but_the_disclosed_beacon(tmp_path: Path) -> None:
+    """MODEL-236 / MODEL-237. The statement says the pages' one third-party request
+    is Cloudflare's analytics script. Any other third-party script, stylesheet or
+    font in a page's source, or in a rendered legal page, fails here."""
+    hits: dict[str, set[str]] = {}
+    for folder in ("site", "web", "web3d", "pipeline"):
+        for src in (REPO_ROOT / folder).rglob("*"):
+            if (src.suffix not in {".html", ".js", ".mjs", ".ts", ".tsx", ".py", ".css"}
+                    or not src.is_file()
+                    or {"node_modules", "__tests__", "vendor", "dist"} & set(src.parts)
+                    or ".test." in src.name):
+                continue
+            hosts = _third_party_hosts(src.read_text(encoding="utf-8", errors="ignore"))
+            if hosts - set(DISCLOSED_THIRD_PARTY_SCRIPTS):
+                hits[str(src.relative_to(REPO_ROOT))] = hosts
+    legal.write(tmp_path, REPO_ROOT, _build())
+    for page in (tmp_path / legal.LEGAL_ROOT).rglob("*.html"):
+        hosts = _third_party_hosts(page.read_text(encoding="utf-8"))
+        if hosts - set(DISCLOSED_THIRD_PARTY_SCRIPTS):
+            hits[str(page.relative_to(tmp_path))] = hosts
+    assert hits == {}, (
+        f"pages load third-party scripts the privacy statement does not disclose: {hits}")
+
+    for host, section in DISCLOSED_THIRD_PARTY_SCRIPTS.items():
+        assert section in PRIVACY, (host, section)
+        assert f"`{host}`" in FLAT_PRIVACY, host
+    assert "pages load nothing else from a third party" in FLAT_PRIVACY
+
+
+def test_the_analytics_disclosure_states_its_purpose_and_its_limits() -> None:
+    """Jamie's intent (MODEL-236): say why the beacon runs, in the short version
+    and in its own section, and say that it does not identify anyone."""
+    purpose = ("We want to know where our visitors come from and how they use the site, "
+               "so we can make a better product. That is why we run Cloudflare Web Analytics.")
+    short = flat(PRIVACY.split("## The short version", 1)[1].split("\n## ", 1)[0])
+    section = flat(PRIVACY.split("### Cloudflare Web Analytics", 1)[1].split("\n## ", 1)[0])
+    for text in (short, section):
+        assert purpose in text
+        assert "It does not tell us who you are" in text
+    for claim in ("sets no cookie", "never shows us an IP address", "as our processor",
+                  "https://www.cloudflare.com/web-analytics/"):
+        assert claim in section, claim
+
+
+def test_no_page_loads_a_font_from_a_cdn() -> None:
+    """No page on either site loads a font from a CDN any more (MODEL-92, with
+    explorer.html switched in MODEL-24's PR #115), so the statement must not
+    disclose a Google Fonts request that no longer happens. tests/test_no_font_cdn.py
+    proves the premise against the source tree and a built site."""
     from pipeline import render as r
     assert "fonts.googleapis.com" not in r.FONTS
     assert "fonts.googleapis.com" not in FLAT_PRIVACY
     assert "Google Fonts" not in FLAT_PRIVACY
-    assert "pages load nothing else from a third party" in FLAT_PRIVACY
-    assert "Cloudflare Web Analytics is on" in FLAT_PRIVACY
-    assert "`static.cloudflareinsights.com`" in FLAT_PRIVACY
 
 
 def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> None:
