@@ -736,7 +736,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -750,9 +750,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      snapshot_ref: sha256:bea7ea9d7344aeccaed159b64f2f3aa97e84231d3723b02f9d4a5672b6b889b8
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: phi-4
     score: 1306.3
@@ -761,7 +762,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -770,6 +771,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_coding#746e9a34fd5c
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:da249e40e0397ffcd8dd5f738c4c91f9a389869f8ae9e26c425a1187f04c7118
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: phi-4
     score: 1277.71
@@ -778,7 +786,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -787,6 +795,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_hard_prompts#d25d6bf2ed34
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:5a69c3a3a5f23cf6bfd2b0ecae495ec9731f62df889f4147793616588a2d4f8b
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: phi-4
     score: 1264.71
@@ -795,7 +810,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
       2026-09-13; style control. Highest-effort row for the product (effort: default; MODEL-123
@@ -803,6 +818,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_math#56e927c2ad19
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:41e622d3837a9ab1577d975e3c57ae92db367c09f45606ed1870a32a4591335a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: phi-4
     score: 1209.93
@@ -811,7 +833,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -820,6 +842,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_creative_writing#c95952868273
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4ca49a5b7efede8e577057d10266b363a837e56331ac79f7540f7da349a3eee5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: phi-4
     score: 1245.39
@@ -828,7 +857,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -837,6 +866,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_instruction_following#3d0c96a84471
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:6bcc35b68ac189cda1a204de4fab84c84fcd9d853dc2c3265e68366133d9093b
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: phi-4
     score: 1241.97
@@ -845,7 +881,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -854,6 +890,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_multi_turn#188c73f194e5
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:76f93ba07e2611ee096faf4210eb6b965b5b113b375cb5edec5f224be61fc346
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: phi-4
     score: 1267.83
@@ -862,7 +905,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -871,6 +914,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_expert#e9c023fc856d
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:ebf8116274f3815b353511b1829bd763a0817e2a0c5d3669072ebd5571271745
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: phi-4
     score: 1266.76
@@ -879,7 +929,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -888,6 +938,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_longer_query#077730b392d8
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3c7de94587c842e12c134292a7df52a9faafb46f877d184d8f235d5c1d466737
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: phi-4
     score: 1232.88
@@ -896,7 +953,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -905,6 +962,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_non_english#67e729bb58cf
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:47f41bf8222f55644ca4a36db5ad4178546c5d3e2982bcda2dc08798f9776a65
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: phi-4
     score: 1272.5
@@ -913,7 +977,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
       revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
@@ -923,6 +987,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_medicine#6e6936af16fb
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:31163709a3917ed23ec956a2589a6a5ad30924817977652909218ecbbf9a8d0e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: phi-4
     score: 1298.76
@@ -931,7 +1002,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
       1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
@@ -941,6 +1012,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_legal#da14bea84030
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:6aec9d4dd9fc82958ffeceea56c977de5d8204f6c62ad5113657b828f9bc55da
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: phi-4
     score: 1256.01
@@ -949,7 +1027,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
       latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
@@ -959,6 +1037,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_business#bd36d3db517b
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:ba565a81fbb65e9d13c80776fda09aabedc819d64793b355a5a5fe836212472e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: phi-4
     score: 1264.54
@@ -967,7 +1052,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
@@ -977,6 +1062,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_science#a23d402752da
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:dff891db693196c263ad841fcb75cf135a4529936b386a76fc324e6b66bb2d2e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: phi-4
     score: 1229.01
@@ -985,7 +1077,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
@@ -995,6 +1087,13 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#arena_sc_writing#26958241fb24
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:451771d6d03dfcdc902ebbb505ce47bfc614e33bde751b42f3be31d89d416086
+      cited_regions:
+      - rows
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: phi-4
     score: 56.06
@@ -1003,13 +1102,20 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2025-01-31'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: GPQA Diamond (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
       read 2026-09-24. Run started 2025-01-31T23:03:31.781Z; effort default; highest-effort
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.59 points.
     limitations: Epoch AI data, CC BY 4.0.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: microsoft/phi-4#gpqa_diamond#5e29bfcde655
+    sources:
+    - source_id: model-143-evidence-epoch-gpqa-diamond-csv
+      snapshot_ref: sha256:946618a3befb5210ccf841c8f3c6b257584d10d5314a7e03408fb73aa13a38a9
+      cited_regions:
+      - rows
 deployment:
   api_only: false
   local_inference: true

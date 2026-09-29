@@ -711,7 +711,7 @@ benchmarks:
     id: google/gemma-4-26b-a4b-it#gpqa_diamond#a3cd726212d3
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:39583bb153c2d06652ef7e4886b645abb7ea53fe3b7bb6c8aaeccef4055705cb
+      snapshot_ref: sha256:946618a3befb5210ccf841c8f3c6b257584d10d5314a7e03408fb73aa13a38a9
       cited_regions:
       - rows
     measured_by: independent_evaluator

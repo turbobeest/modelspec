@@ -1109,7 +1109,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:39583bb153c2d06652ef7e4886b645abb7ea53fe3b7bb6c8aaeccef4055705cb
+      snapshot_ref: sha256:946618a3befb5210ccf841c8f3c6b257584d10d5314a7e03408fb73aa13a38a9
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1133,7 +1133,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:cae4d7f40f600006a0cbd47a4ced7d916a96f50953b9a454830dd46b20aa4c1a
+      snapshot_ref: sha256:ff8b653f9ba2c936d6278eeecc42b3a3dee1079e409c8806616f80fb41e23c11
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1158,7 +1158,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:33e4a89c307a2e5d6941be7ad13770315c4eff899ed69e92490cd697bdb5a584
+      snapshot_ref: sha256:f4e88f5154755ef9c355b28d6900467dce89bcbe0ea54329d1f96215c21239fa
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1182,7 +1182,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-swe-bench-verified-csv
-      snapshot_ref: sha256:b6f26a6b1de09762a56e4ae4de985d4b7aa8588bdf6035fdd7a206c164f6bbb4
+      snapshot_ref: sha256:2cd01ace47ba0c0e08f7fee6c4ed24921ff7ce01fe86d73f9e18203dc2adca0f
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1207,7 +1207,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-160-frontiercode
-      snapshot_ref: sha256:cd845eb12dc06498f07c3729c9725cf61ad153cacb7580918f8b955e443b4add
+      snapshot_ref: sha256:946a90057bea730dbfa5a27ab38168e01b5269492c1b41f46cf4ec29dd0d3cf3
       cited_regions:
       - rows
     observed_at: '2026-09-29'

@@ -1320,7 +1320,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:39583bb153c2d06652ef7e4886b645abb7ea53fe3b7bb6c8aaeccef4055705cb
+      snapshot_ref: sha256:946618a3befb5210ccf841c8f3c6b257584d10d5314a7e03408fb73aa13a38a9
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1344,7 +1344,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:cae4d7f40f600006a0cbd47a4ced7d916a96f50953b9a454830dd46b20aa4c1a
+      snapshot_ref: sha256:ff8b653f9ba2c936d6278eeecc42b3a3dee1079e409c8806616f80fb41e23c11
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1369,7 +1369,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:33e4a89c307a2e5d6941be7ad13770315c4eff899ed69e92490cd697bdb5a584
+      snapshot_ref: sha256:f4e88f5154755ef9c355b28d6900467dce89bcbe0ea54329d1f96215c21239fa
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1393,7 +1393,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-swe-bench-verified-csv
-      snapshot_ref: sha256:b6f26a6b1de09762a56e4ae4de985d4b7aa8588bdf6035fdd7a206c164f6bbb4
+      snapshot_ref: sha256:2cd01ace47ba0c0e08f7fee6c4ed24921ff7ce01fe86d73f9e18203dc2adca0f
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1418,7 +1418,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-160-frontiercode
-      snapshot_ref: sha256:cd845eb12dc06498f07c3729c9725cf61ad153cacb7580918f8b955e443b4add
+      snapshot_ref: sha256:946a90057bea730dbfa5a27ab38168e01b5269492c1b41f46cf4ec29dd0d3cf3
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1467,7 +1467,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-scale-hle-json
-      snapshot_ref: sha256:ed8318afc3b822d4f773ca68e50554d1e6104feee3439ef5b9b84952803a46e6
+      snapshot_ref: sha256:0b1035c71b44ece657ea740ad8a9047296217407a2ca6f989b23c99b3176c2fe
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1491,7 +1491,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-160-scale-swe-bench-pro-public
-      snapshot_ref: sha256:8102e4e2f83cd1d7e344654b372d2d26fe6a70df95b26e9145f32e1214df3aa6
+      snapshot_ref: sha256:c7274fd355e5088ecba5af644822c648e446b19cefd5f6270d9071efcd268341
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1997,8 +1997,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-06-15'
     date_type: evaluated
-    observed_at: '2026-09-28'
-    verified_at: '2026-09-28'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: Finance Benchmark v2, harness 0.1.0
     configuration: 73 v2 tasks; three attempts per task; temperature zero.
     limitations: Passes at least once, so this value does not measure repeated-run consistency.
@@ -2007,7 +2007,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-192-finance-benchmark-v2
-      snapshot_ref: sha256:a8d3d8dec4605e37bf43a29ef09b35b6e47a78e4bc9e64b701d620d9dfb668d7
+      snapshot_ref: sha256:9e10ecf98bc44ca664396e7a752fd46c9a08466f368aa35c8ff6456b0f1c4540
       cited_regions:
       - rows
     id: anthropic/claude-opus-4-6#finance_benchmark_v2#916c9b059ba6

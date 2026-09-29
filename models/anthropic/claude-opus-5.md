@@ -1148,7 +1148,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:39583bb153c2d06652ef7e4886b645abb7ea53fe3b7bb6c8aaeccef4055705cb
+      snapshot_ref: sha256:946618a3befb5210ccf841c8f3c6b257584d10d5314a7e03408fb73aa13a38a9
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1172,7 +1172,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:cae4d7f40f600006a0cbd47a4ced7d916a96f50953b9a454830dd46b20aa4c1a
+      snapshot_ref: sha256:ff8b653f9ba2c936d6278eeecc42b3a3dee1079e409c8806616f80fb41e23c11
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1197,7 +1197,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:33e4a89c307a2e5d6941be7ad13770315c4eff899ed69e92490cd697bdb5a584
+      snapshot_ref: sha256:f4e88f5154755ef9c355b28d6900467dce89bcbe0ea54329d1f96215c21239fa
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1247,7 +1247,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-160-frontiercode
-      snapshot_ref: sha256:cd845eb12dc06498f07c3729c9725cf61ad153cacb7580918f8b955e443b4add
+      snapshot_ref: sha256:946a90057bea730dbfa5a27ab38168e01b5269492c1b41f46cf4ec29dd0d3cf3
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1321,7 +1321,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-143-evidence-terminal-bench-4-0-json
-      snapshot_ref: sha256:bb663dbb1c192df5da46fdd72b8cead516a56bc45af3ff53b91177f38d29e9fa
+      snapshot_ref: sha256:ea8d2644137b35340e437581fd626baeb200138b503f17f66f91fdf8eaf7f701
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1370,7 +1370,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-cursorbench
-      snapshot_ref: sha256:69711f79d10b032dc2d6fdb360e7edcf5bf836e829cb94bd66aa70df4ac409d8
+      snapshot_ref: sha256:b49a5d5cb43476f9ef20fef431f3677fa11cb6523453499c336dc64cdc298b30
       cited_regions:
       - rows
     observed_at: '2026-09-29'
