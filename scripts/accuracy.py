@@ -49,6 +49,8 @@ class DataFidelityConfig:
     sample_size: int
     random_seed: str
     max_firecrawl_credits: int
+    max_values_drawn: int
+    max_undetermined_share: float
 
 
 @dataclass(frozen=True)
@@ -104,7 +106,12 @@ class AccuracyReport:
 
     @property
     def status(self) -> Literal["pass", "fail"]:
-        return "fail" if any(row.gating and row.status == "fail" for row in self.layers) else "pass"
+        """A gating layer that could not decide fails too: it did not check anything."""
+        return (
+            "fail"
+            if any(row.gating and row.status in ("fail", "undetermined") for row in self.layers)
+            else "pass"
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -142,6 +149,8 @@ def load_config(path: str | Path = DEFAULT_CONFIG) -> AccuracyConfig:
             int(fidelity["sample_size"]),
             str(fidelity["random_seed"]),
             int(fidelity["max_firecrawl_credits"]),
+            int(fidelity["max_values_drawn"]),
+            float(fidelity["max_undetermined_share"]),
         ),
         ReferenceConfig(
             int(reference["top_k"]),
@@ -160,6 +169,10 @@ def load_config(path: str | Path = DEFAULT_CONFIG) -> AccuracyConfig:
         raise ValueError("freshness.live_leaderboard_max_age_days must be positive")
     if not 0 <= config.data_fidelity.max_firecrawl_credits <= 10:
         raise ValueError("data_fidelity.max_firecrawl_credits must be between 0 and 10")
+    if config.data_fidelity.max_values_drawn < config.data_fidelity.sample_size:
+        raise ValueError("data_fidelity.max_values_drawn must be at least sample_size")
+    if not 0 <= config.data_fidelity.max_undetermined_share < 1:
+        raise ValueError("data_fidelity.max_undetermined_share must be in [0, 1)")
     if config.reference.top_k < 1 or config.reference.minimum_common_models < 2:
         raise ValueError("reference top_k must be positive and minimum_common_models at least 2")
     return config
@@ -682,7 +695,8 @@ def _latest_collected_claims(path: Path) -> list[Any]:
     return list(latest.values())
 
 
-def _verified_claims(root: Path) -> list[Any]:
+def _verified_claims(root: Path) -> list[tuple[Any, str]]:
+    """Each verified claim with the method of the verification that admitted it."""
     from decision.model import value_hash
     from decision.verify import VerificationLog
 
@@ -690,12 +704,65 @@ def _verified_claims(root: Path) -> list[Any]:
     latest = VerificationLog(directory).latest()
     claims = _latest_collected_claims(directory / "queue" / "events.jsonl")
     return [
-        claim
+        (claim, record.verifier.method)
         for claim in claims
         if (record := latest.get((claim.target.kind, claim.target.id))) is not None
         and record.outcome == "verified"
         and record.target.value_hash == value_hash(claim.value)
     ]
+
+
+#: What the nightly can say about one re-read value. ``verified``, ``mismatch`` and
+#: ``unreachable`` are ``decision.verify``'s. ``undetermined`` is a re-read in which
+#: no nightly reader found the value at all. It is never a pass: finding nothing
+#: says nothing about the value either way. Its reason is one of
+#:
+#: - ``source_unchanged``: the source returned the very bytes the value was
+#:   verified against, by a method the nightly cannot perform (a retained-source
+#:   proof, an LLM read, a derived recompute);
+#: - ``source_changed``: the source has changed since. The value is re-queued for
+#:   re-collection, not logged as a mismatch that would quarantine it.
+FIDELITY_OUTCOMES = ("verified", "mismatch", "unreachable", "undetermined")
+_FIDELITY_FAILURES = ("mismatch", "unreachable")
+_ASSESSED = ("verified", "mismatch", "unreachable")
+Unread = Literal["source_unchanged", "source_changed", "mismatch"]
+
+
+def _oll_projection(url: str, raw: bytes) -> bytes:
+    """Rebuild ``hf-result-projection@1`` from a fetched Open LLM Leaderboard result."""
+    from decision.sources import fingerprint_bytes
+    from scripts import migrate_oll_evidence as oll
+
+    for version, (repository, revision) in oll.DATASETS.items():
+        marker = f"/{repository}/resolve/{revision}/"
+        if marker in url:
+            path = url.split(marker, 1)[1]
+            extract = oll.extract_v1_scores if version == "v1" else oll.extract_v2_scores
+            identity, evaluated, scores = extract(json.loads(raw), path)
+            return oll.project_result(
+                identity, evaluated, scores, source_url=url, raw_ref=fingerprint_bytes(raw)
+            )
+    raise ValueError(f"not a pinned Open LLM Leaderboard result: {url}")
+
+
+#: Collectors whose retained copy is a projection of the fetched page, and how to
+#: rebuild it. While the page is unchanged the rebuild is byte-identical.
+_PROJECTIONS = {"hf-result-projection@1": _oll_projection}
+
+
+def _read_nothing(result: Any) -> bool:
+    """No reader found the value, as opposed to finding a different one.
+
+    A mismatch only on conditions (effort, harness, date) the source does not state
+    is a mismatch: the value itself was read.
+    """
+    from decision.verify import CONDITION_KEYS
+
+    return result.outcome == "skipped" or (
+        result.outcome == "mismatch"
+        and all(diff.found is None for diff in result.diffs)
+        and any(diff.field not in CONDITION_KEYS for diff in result.diffs)
+    )
 
 
 def verify_fidelity_sample(
@@ -707,26 +774,44 @@ def verify_fidelity_sample(
     log: Any,
     today: date,
     source_urls: Mapping[str, str],
+    unread: Mapping[tuple[str, str], Unread] | None = None,
 ) -> LayerResult:
-    """Re-read sampled claims and route failures through MODEL-140's recrawl queue."""
+    """Re-read sampled claims and route failures through MODEL-140's recrawl queue.
+
+    ``unread`` says what a claim is when no reader finds its value: ``undetermined``
+    because its source is unchanged or changed (the default), or a ``mismatch``.
+    """
     from decision.verify import ref_str, verify
 
+    unread = unread or {}
+    now = datetime.now(UTC)
     details = []
-    counts = dict.fromkeys(("verified", "mismatch", "unreachable", "skipped"), 0)
+    counts = dict.fromkeys(FIDELITY_OUTCOMES, 0)
     for claim in claims:
         result = verify(claim, regions, extractors, today=today)
-        counts[result.outcome] += 1
-        if result.verification is not None:
+        outcome, undetermined = result.outcome, None
+        if _read_nothing(result):
+            undetermined = unread.get((claim.target.kind, claim.target.id), "source_changed")
+            if undetermined == "mismatch":
+                # The queue records what the nightly concluded, not verify's "skipped".
+                outcome, undetermined = "mismatch", None
+                result = replace(result, outcome="mismatch")
+            else:
+                outcome = "undetermined"
+        counts[outcome] += 1
+        if outcome in ("verified", *_FIDELITY_FAILURES) and result.verification is not None:
             log.append(result.verification)
-        if result.outcome in ("mismatch", "unreachable"):
-            queue.checked(result, at=datetime.now(UTC))
+        if outcome in _FIDELITY_FAILURES:
+            queue.checked(result, at=now)
+        elif undetermined == "source_changed":
+            queue.requeue([claim.target], at=now)
         details.append(
             {
                 "target": ref_str(result.target),
                 "category": claim_category(claim),
-                "outcome": result.outcome,
+                "outcome": outcome,
                 "diff": [row.to_dict() for row in result.diffs],
-                "reason": result.reason,
+                "reason": undetermined or result.reason,
                 "source_urls": sorted(
                     {
                         source_urls[source.source_id]
@@ -736,11 +821,11 @@ def verify_fidelity_sample(
                 ),
                 "read_date": today.isoformat(),
                 "verifier": result.verification.verifier.model_dump()
-                if result.verification is not None
+                if result.verification is not None and outcome != "undetermined"
                 else None,
             }
         )
-    failed = sum(counts[name] for name in ("mismatch", "unreachable", "skipped"))
+    failed = sum(counts[name] for name in _FIDELITY_FAILURES)
     return LayerResult(
         "data_fidelity",
         "fail" if failed else "pass",
@@ -750,6 +835,95 @@ def verify_fidelity_sample(
         counts,
         details,
     )
+
+
+def _current_copies(
+    batch: Sequence[tuple[Any, str]],
+    *,
+    sources: Mapping[str, Any],
+    store: Any,
+    fetcher: Any,
+    as_of: date,
+    nightly_methods: frozenset[str],
+) -> tuple[list[Any], dict[tuple[str, str], Unread]]:
+    """Fetch each claim's sources with plain HTTP and pin the claim to the new copies.
+
+    A projected copy is rebuilt from the fetch. When no reader finds a claim's value
+    in the very bytes it was verified against, that is a ``mismatch`` if a nightly
+    reader performed the verification (the reader regressed), and otherwise
+    undetermined with ``source_unchanged``.
+    """
+    from decision.sources import recheck
+
+    selected = {source.source_id for claim, _ in batch for source in claim.sources}
+    report = recheck(
+        [sources[source_id].model_copy(update={"fetch": "http"}) for source_id in sorted(selected)],
+        {},
+        (),
+        fetcher=fetcher,
+        store=store,
+        now=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
+    )
+    fetched = {
+        source_id: state.snapshot.copy_ref
+        for source_id, state in report.states.items()
+        if state.snapshot is not None
+    }
+    current: list[Any] = []
+    unread: dict[tuple[str, str], Unread] = {}
+    for claim, method in batch:
+        project = _PROJECTIONS.get(claim.collector.method)
+        refs: dict[str, str] = {}
+        for source in claim.sources:
+            ref = fetched.get(source.source_id)
+            if ref is not None and project is not None:
+                try:
+                    ref = store.put(project(str(sources[source.source_id].url), store.get(ref)))
+                except (KeyError, TypeError, ValueError):
+                    pass
+            if ref is not None:
+                refs[source.source_id] = ref
+        current.append(
+            replace(
+                claim,
+                sources=tuple(
+                    source.model_copy(update={"snapshot_ref": refs[source.source_id]})
+                    if source.source_id in refs
+                    else source
+                    for source in claim.sources
+                ),
+            )
+        )
+        same_bytes = all(refs.get(s.source_id) == s.snapshot_ref for s in claim.sources)
+        unread[(claim.target.kind, claim.target.id)] = (
+            ("mismatch" if method in nightly_methods else "source_unchanged")
+            if same_bytes
+            else "source_changed"
+        )
+    return current, unread
+
+
+def fidelity_verdict(
+    counts: Mapping[str, int], *, drawn: int, wanted: int, config: DataFidelityConfig
+) -> tuple[Status, str, float]:
+    """Fail on a value that did not verify, on fewer than N assessed values, and on
+    more undetermined draws than ``max_undetermined_share``."""
+    assessed = sum(counts[name] for name in _ASSESSED)
+    failed = sum(counts[name] for name in _FIDELITY_FAILURES)
+    share = counts["undetermined"] / drawn if drawn else 0.0
+    summary = (
+        f"Re-read {assessed} verified values from current source copies; "
+        f"{failed} did not verify. {counts['undetermined']} of {drawn} draws "
+        f"({share:.0%}) were undetermined: no nightly reader found the value."
+    )
+    status: Status = "fail" if failed else "pass"
+    if assessed < wanted:
+        status = "fail"
+        summary += f" Only {assessed} of {wanted} values could be assessed."
+    if share > config.max_undetermined_share:
+        status = "fail"
+        summary += f" That is above the {config.max_undetermined_share:.0%} limit."
+    return status, summary, share
 
 
 def data_fidelity(
@@ -765,11 +939,14 @@ def data_fidelity(
 
     Every selected source gets a plain HTTP attempt, including sources normally
     marked rendered. Firecrawl use is therefore zero and cannot exceed the
-    configured ten-credit ceiling. A short eligible pool fails rather than
-    silently reducing N.
+    configured ten-credit ceiling. An undetermined value (no nightly reader found
+    it) is replaced by a further draw, up to ``max_values_drawn``. The layer fails
+    rather than silently reducing N when fewer than N values can be assessed, and
+    fails when more than ``max_undetermined_share`` of the draws were undetermined:
+    a harness that can read nothing must not pass.
     """
     from decision.excluded import excluded_sources
-    from decision.sources import CopyStore, Fetcher, recheck
+    from decision.sources import CopyStore, Fetcher
     from decision.verify import (
         Queue,
         StoredRegions,
@@ -784,8 +961,8 @@ def data_fidelity(
     sources = load_sources(root / "registry" / "sources.yaml")
     excluded = excluded_sources()
     eligible = [
-        claim
-        for claim in _verified_claims(root)
+        (claim, method)
+        for claim, method in _verified_claims(root)
         if claim.sources
         and all(
             source.source_id in sources
@@ -793,75 +970,83 @@ def data_fidelity(
             for source in claim.sources
         )
     ]
-    sampled = sample_verified_claims(
-        eligible,
-        size=wanted,
-        seed=f"{seed or config.random_seed}:{as_of.isoformat()}",
-    )
+    methods = {(claim.target.kind, claim.target.id): method for claim, method in eligible}
+    order = [
+        (claim, methods[(claim.target.kind, claim.target.id)])
+        for claim in sample_verified_claims(
+            [claim for claim, _ in eligible],
+            size=max(len(eligible), 1),
+            seed=f"{seed or config.random_seed}:{as_of.isoformat()}",
+        )
+    ][: max(config.max_values_drawn, wanted)]
+    extractors = deterministic_extractors()
+    if llm_reader == "claude":
+        extractors.append(claude_extractor())
+    elif llm_reader == "mistral":
+        extractors.append(mistral_extractor())
+    nightly_methods = frozenset(extractor.actor.method for extractor in extractors)
+    source_urls = {source_id: str(source.url) for source_id, source in sources.items()}
+    counts = dict.fromkeys(FIDELITY_OUTCOMES, 0)
+    sample: list[dict[str, Any]] = []
+    drawn = 0
+    fetched_sources: set[str] = set()
     with tempfile.TemporaryDirectory(prefix="modelspec-accuracy-sources-") as temporary:
         store = CopyStore(Path(temporary))
-        selected_ids = {source.source_id for claim in sampled for source in claim.sources}
-        report = recheck(
-            [
-                sources[source_id].model_copy(update={"fetch": "http"})
-                for source_id in sorted(selected_ids)
-            ],
-            {},
-            (),
-            fetcher=Fetcher(),
-            store=store,
-            now=datetime.combine(as_of, datetime.min.time(), tzinfo=UTC),
-        )
-        current_refs = {
-            source_id: state.snapshot.copy_ref
-            for source_id, state in report.states.items()
-            if state.snapshot is not None
-        }
-        current = [
-            replace(
-                claim,
-                sources=tuple(
-                    source.model_copy(update={"snapshot_ref": current_refs[source.source_id]})
-                    if source.source_id in current_refs
-                    else source
-                    for source in claim.sources
-                ),
+        fetcher = Fetcher()
+        while drawn < len(order):
+            assessed = sum(counts[name] for name in _ASSESSED)
+            if assessed >= wanted:
+                break
+            batch = order[drawn : drawn + wanted - assessed]
+            drawn += len(batch)
+            fetched_sources.update(s.source_id for claim, _ in batch for s in claim.sources)
+            current, unread = _current_copies(
+                batch,
+                sources=sources,
+                store=store,
+                fetcher=fetcher,
+                as_of=as_of,
+                nightly_methods=nightly_methods,
             )
-            for claim in sampled
-        ]
-        extractors = deterministic_extractors()
-        if llm_reader == "claude":
-            extractors.append(claude_extractor())
-        elif llm_reader == "mistral":
-            extractors.append(mistral_extractor())
-        result = verify_fidelity_sample(
-            current,
-            regions=StoredRegions(store, sources),
-            extractors=extractors,
-            queue=Queue(root / "verification"),
-            log=VerificationLog(root / "verification"),
-            today=as_of,
-            source_urls={source_id: str(source.url) for source_id, source in sources.items()},
-        )
-    details = {
-        "sample": result.details,
-        "eligible_values": len(eligible),
-        "requested_sample_size": wanted,
-        "actual_sample_size": len(sampled),
-        "plain_http_sources": len(selected_ids),
-        "firecrawl_credits_used": 0,
-        "firecrawl_credit_limit": config.max_firecrawl_credits,
-    }
-    if len(sampled) < wanted:
-        return replace(
-            result,
-            status="fail",
-            summary=(
-                result.summary + f" Only {len(sampled)} of {wanted} eligible values were available."
-            ),
-            details=details,
-        )
-    return replace(result, details=details)
+            result = verify_fidelity_sample(
+                current,
+                regions=StoredRegions(store, sources),
+                extractors=extractors,
+                queue=Queue(root / "verification"),
+                log=VerificationLog(root / "verification"),
+                today=as_of,
+                source_urls=source_urls,
+                unread=unread,
+            )
+            for name, count in result.counts.items():
+                counts[name] += count
+            sample.extend(result.details)
+    status, summary, share = fidelity_verdict(counts, drawn=drawn, wanted=wanted, config=config)
+    assessed = sum(counts[name] for name in _ASSESSED)
+    return LayerResult(
+        "data_fidelity",
+        status,
+        True,
+        summary,
+        counts,
+        {
+            "sample": sample,
+            "eligible_values": len(eligible),
+            "requested_sample_size": wanted,
+            "actual_sample_size": assessed,
+            "values_drawn": drawn,
+            "max_values_drawn": config.max_values_drawn,
+            "undetermined_share": round(share, 4),
+            "max_undetermined_share": config.max_undetermined_share,
+            "undetermined_reasons": {
+                reason: sum(row["reason"] == reason for row in sample)
+                for reason in ("source_unchanged", "source_changed")
+            },
+            "plain_http_sources": len(fetched_sources),
+            "firecrawl_credits_used": 0,
+            "firecrawl_credit_limit": config.max_firecrawl_credits,
+        },
+    )
 
 
 def spearman(
@@ -886,7 +1071,6 @@ def compare_rankings(
     *,
     domain: str,
     engine_basis: str,
-    engine_benchmark: str | None,
     engine_rows: Sequence[Mapping[str, Any]],
     reference_board: str,
     reference_rows: Sequence[Mapping[str, Any]],
@@ -894,91 +1078,104 @@ def compare_rankings(
     read_date: date,
     config: ReferenceConfig,
 ) -> dict[str, Any]:
+    """Compare two orders over the models both rank.
+
+    Each side's top k is taken among the shared models only: a board that has not
+    measured the engine's leaders cannot disagree about them. Fewer shared models
+    than ``minimum_common_models`` is undetermined, not a disagreement.
+    """
     engine_rank = {str(row["model"]): i for i, row in enumerate(engine_rows, start=1)}
     reference_rank = {str(row["model"]): i for i, row in enumerate(reference_rows, start=1)}
+    common = set(engine_rank) & set(reference_rank)
     rho = spearman(engine_rank, reference_rank, minimum_common=config.minimum_common_models)
-    engine_top = list(engine_rank)[: config.top_k]
-    reference_top = list(reference_rank)[: config.top_k]
+    engine_top = [model for model in engine_rank if model in common][: config.top_k]
+    reference_top = [model for model in reference_rank if model in common][: config.top_k]
     frontier = sorted(set(engine_top) & set(reference_top))
-    if not engine_rows or not reference_rows:
+    reason = None
+    if len(common) < config.minimum_common_models:
         status: Status = "undetermined"
-    elif not frontier or (rho is not None and rho < config.minimum_rank_correlation):
-        status = "fail"
+        reason = "too_few_common_models"
     elif rho is None:
         status = "undetermined"
+    elif not frontier or rho < config.minimum_rank_correlation:
+        status = "fail"
     else:
         status = "pass"
     return {
         "domain": domain,
         "status": status,
+        **({"reason": reason} if reason else {}),
         "engine_basis": engine_basis,
-        "engine_benchmark": engine_benchmark,
         "reference_board": reference_board,
         "rank_correlation": rho,
-        "common_models": len(set(engine_rank) & set(reference_rank)),
+        "common_models": len(common),
         "known_frontier_present": bool(frontier),
         "frontier_models": frontier,
         "engine_top_k": engine_top,
         "reference_top_k": reference_top,
-        "responsible_evidence": [dict(row) for row in engine_rows[: config.top_k]],
+        "responsible_evidence": [
+            dict(row) for row in engine_rows if row["model"] in engine_top
+        ],
         "source_url": source_url,
         "read_date": read_date.isoformat(),
     }
 
 
-def _benchmark_directions(root: Path) -> dict[str, str]:
-    from pipeline.load import load_benchmarks
+def _engine_domain_ranking(snapshot: Any, domain: str) -> list[dict[str, Any]]:
+    """The engine's own order in ``domain``: each model's capability estimate.
 
-    return {
-        card.benchmark_id: str(
-            (card.front.get("metric") or {}).get("direction") or "higher_is_better"
-        )
-        for card in load_benchmarks(root)
-    }
+    A model whose 80% interval is wider than ``THIN_INTERVAL_WIDTH`` is left out,
+    because the engine itself says that is too little evidence to rank it
+    (``decision.bands``). Its place is not a claim the engine makes.
+    """
+    from decision.bands import THIN_INTERVAL_WIDTH
 
-
-def _engine_domain_ranking(
-    snapshot: Any, domain: str, *, root: Path
-) -> tuple[str | None, list[dict]]:
-    """Fallback before MODEL-129: the most-covered direct benchmark in this domain."""
-    by_benchmark: dict[str, dict[str, list[Any]]] = defaultdict(lambda: defaultdict(list))
-    for model, candidates in _model_candidates(snapshot).items():
-        seen: set[str] = set()
-        for candidate in candidates:
-            for row in snapshot.evidence_for_domain(candidate, domain):
-                key = row.record_id or f"{row.benchmark_id}:{row.value}:{row.date}"
-                if not row.verified or row.directness != "direct" or key in seen:
-                    continue
-                seen.add(key)
-                by_benchmark[row.benchmark_id][model].append(row)
-    if not by_benchmark:
-        return None, []
-    benchmark = min(
-        by_benchmark,
-        key=lambda name: (-len(by_benchmark[name]), name),
-    )
-    directions = _benchmark_directions(root)
-    reverse = directions.get(benchmark, "higher_is_better") == "higher_is_better"
     rows = []
-    for model, evidence in by_benchmark[benchmark].items():
-        ordered = sorted(evidence, key=lambda row: row.value, reverse=reverse)
+    for model, candidates in _model_candidates(snapshot).items():
+        candidate, estimate = next(
+            (
+                (candidate, estimate)
+                for candidate in candidates
+                if (estimate := snapshot.capability_estimate(candidate, domain)) is not None
+            ),
+            (None, None),
+        )
+        if estimate is None or estimate.high - estimate.low > THIN_INTERVAL_WIDTH:
+            continue
         rows.append(
             {
                 "model": model,
-                "value": ordered[0].value,
-                "record_ids": sorted({row.record_id for row in evidence if row.record_id}),
+                "value": estimate.value,
+                "low": estimate.low,
+                "high": estimate.high,
+                "record_ids": sorted(
+                    {driver.record_id for driver in snapshot.capability_drivers(candidate, domain)}
+                ),
             }
         )
-    rows.sort(key=lambda row: ((-row["value"] if reverse else row["value"]), row["model"]))
-    return benchmark, rows
+    rows.sort(key=lambda row: (-row["value"], row["model"]))
+    return rows
 
 
+#: The engine domains each permitted board ranks: the domains its benchmark's own
+#: page tags ``direct`` (``benchmarks/*.md``). GPQA Diamond is engineering_stem,
+#: not maths; WebDev Arena is chat_preference, and only a proxy for software
+#: engineering.
 _BOARD_DOMAINS: Mapping[str, tuple[str, ...]] = {
-    "software-engineering": ("software_engineering",),
-    "chat-or-preference": ("chat_preference",),
-    "reasoning-and-maths": ("maths", "reasoning"),
-    "vision": ("vision_documents",),
-    "retrieval-and-embedding": ("retrieval",),
+    "swe-bench-verified-bash": ("software_engineering",),
+    "swe-bench-pro": ("software_engineering",),
+    "terminal-bench-4.0": ("software_engineering",),
+    "epoch-swe-bench-verified": ("software_engineering",),
+    "arena-text": ("chat_preference",),
+    "arena-webdev": ("chat_preference",),
+    "arena-vision": ("vision_documents",),
+    "matharena-expected": ("maths",),
+    "epoch-frontiermath-tiers-1-3-v2": ("maths",),
+    "epoch-gpqa-diamond": ("engineering_stem",),
+    "mteb-eng-v2": ("retrieval",),
+    "mteb-multilingual-v2": ("retrieval",),
+    "mteb-eng-v2-rerank": ("retrieval",),
+    "mteb-multilingual-v2-rerank": ("retrieval",),
 }
 _ALLOWED_BOARD_PREFIXES = (
     "arena-",
@@ -1022,29 +1219,34 @@ def reference_agreement(
         for board in premier.leaderboards()
         if str(board["id"]).startswith(_ALLOWED_BOARD_PREFIXES)
     ]
-    comparisons: list[dict[str, Any]] = []
+    comparisons: list[dict[str, Any]] = [
+        {
+            "domain": None,
+            "status": "undetermined",
+            "reference_board": str(board["id"]),
+            "reason": "board_has_no_domain",
+        }
+        for board in boards
+        if str(board["id"]) not in _BOARD_DOMAINS
+    ]
     for domain in snapshot.domain_ids():
-        benchmark, engine_rows = _engine_domain_ranking(snapshot, domain, root=root)
-        applicable = [
-            board for board in boards if domain in _BOARD_DOMAINS.get(board["domain"], ())
-        ]
+        applicable = [board for board in boards if domain in _BOARD_DOMAINS.get(board["id"], ())]
         if not applicable:
             comparisons.append(
                 {
                     "domain": domain,
                     "status": "undetermined",
-                    "engine_basis": "direct_benchmark",
-                    "engine_benchmark": benchmark,
+                    "engine_basis": "domain_capability",
                     "reason": "no_permitted_independent_board",
                 }
             )
             continue
+        engine_rows = _engine_domain_ranking(snapshot, domain)
         for board in applicable:
             comparisons.append(
                 compare_rankings(
                     domain=domain,
-                    engine_basis="direct_benchmark",
-                    engine_benchmark=benchmark,
+                    engine_basis="domain_capability",
                     engine_rows=engine_rows,
                     reference_board=str(board["id"]),
                     reference_rows=_reference_rows(board, index),
@@ -1058,14 +1260,15 @@ def reference_agreement(
         for status in ("pass", "fail", "undetermined")
     }
     status: Status = "fail" if counts["fail"] else "pass"
-    if not comparisons or counts["undetermined"] == len(comparisons):
+    if not counts["pass"] and not counts["fail"]:
         status = "undetermined"
     return LayerResult(
         "reference_agreement",
         status,
         True,
         f"Compared {len(snapshot.domain_ids())} domains across {len(comparisons)} "
-        f"permitted board comparisons; {counts['fail']} disagreement(s).",
+        f"permitted board comparisons; {counts['fail']} disagreement(s), "
+        f"{counts['undetermined']} undetermined.",
         counts,
         comparisons,
     )
@@ -1186,6 +1389,14 @@ def run_profile(
     )
 
 
+STAGED_FAILURE = LayerResult(
+    "staged_failure",
+    "fail",
+    True,
+    "A synthetic failure that proves the alert path (MODEL-231); not a real regression.",
+)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
@@ -1214,6 +1425,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--check-recall-approval",
         action="store_true",
         help="Check protected recall paths against pull-request labels.",
+    )
+    parser.add_argument(
+        "--stage-failure",
+        action="store_true",
+        help="Add a synthetic failing gate, to prove the alert path (MODEL-231).",
     )
     parser.add_argument("--changed-files", type=Path)
     parser.add_argument("--labels-json")
@@ -1264,6 +1480,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         random_seed=args.seed,
         approved_recall_baseline=args.approved_recall_baseline,
     )
+    if args.stage_failure:
+        report = replace(report, layers=(*report.layers, STAGED_FAILURE))
     markdown, payload = write_report(report, args.output_dir)
     print(markdown.read_text(encoding="utf-8"), end="")
     print(f"JSON: {payload}")

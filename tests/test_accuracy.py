@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -447,13 +448,219 @@ def test_a_fidelity_mismatch_enters_the_existing_recrawl_queue(tmp_path: Path) -
     assert result.details[0]["read_date"] == "2026-09-25"
 
 
+def _fidelity(tmp_path: Path, region: str, unread=None):
+    queue = Queue(tmp_path / "verification")
+    log = VerificationLog(tmp_path / "verification")
+    claim = _claim("lab/model#model.context_window", "context", 10)
+    result = accuracy.verify_fidelity_sample(
+        [claim],
+        regions=DictRegions(region),
+        extractors=[KeyValueExtractor()],
+        queue=queue,
+        log=log,
+        today=date(2026, 9, 29),
+        source_urls={"source": "https://example.test/model"},
+        unread=unread,
+    )
+    return claim, result, queue, log
+
+
+def test_a_value_no_reader_finds_in_a_changed_source_is_requeued_not_quarantined(
+    tmp_path: Path,
+) -> None:
+    claim, result, queue, log = _fidelity(tmp_path, "Model: Model\nrelease: soon")
+
+    assert result.status == "pass"
+    assert result.details[0]["outcome"] == "undetermined"
+    assert result.details[0]["reason"] == "source_changed"
+    assert result.counts["undetermined"] == 1
+    assert result.counts["verified"] == 0
+    assert log.latest() == {}
+    assert queue.recrawl_requests() == []
+    assert queue.pending(changed_only=True) == ([], [claim.target])
+
+
+def test_a_value_no_reader_finds_in_its_unchanged_source_is_undetermined_not_passed(
+    tmp_path: Path,
+) -> None:
+    claim, result, queue, log = _fidelity(
+        tmp_path,
+        "Model: Model\nrelease: soon",
+        {("fact", "lab/model#model.context_window"): "source_unchanged"},
+    )
+
+    assert result.details[0]["outcome"] == "undetermined"
+    assert result.details[0]["reason"] == "source_unchanged"
+    assert result.counts["verified"] == 0
+    assert log.latest() == {}
+    assert queue.pending() == ([], [])
+
+
+def test_a_mismatch_only_on_an_unstated_condition_is_still_a_mismatch() -> None:
+    from decision.verify import Diff, Result
+
+    target = TargetRef(kind="evidence", id="lab/model#bench#1")
+    condition = Result(target, "mismatch", diffs=(Diff("harness", "unregistered", None),))
+    value = Result(target, "mismatch", diffs=(Diff("value", "92.0 percent", None),))
+
+    assert accuracy._read_nothing(condition) is False
+    assert accuracy._read_nothing(value) is True
+
+
+class _Fetches:
+    def __init__(self, bodies):
+        self.bodies = bodies
+
+    def fetch(self, url, *, etag=None, last_modified=None):
+        from decision.sources import FetchResult
+
+        return FetchResult("ok", 200, body=self.bodies[url], content_type="text/plain")
+
+
+def test_current_copies_pin_new_copies_and_say_what_an_unread_value_is(tmp_path: Path) -> None:
+    from decision.sources import CopyStore, fingerprint_bytes
+
+    same, moved = b"context: 10\n", b"context: 10 tokens, revised\n"
+    sources = {
+        sid: Source(
+            id=sid,
+            url=f"https://example.test/{sid}",
+            fetch="http",
+            normaliser="text-default",
+            cited_regions=[{"id": "table", "locator": {"kind": "page", "value": ""}}],
+        )
+        for sid in ("same", "moved")
+    }
+
+    def claim(target, source_id, snapshot_ref):
+        return replace(
+            _claim(target, "context", 10),
+            sources=(SourceRef(source_id=source_id, snapshot_ref=snapshot_ref,
+                               cited_regions=["table"]),),
+        )
+
+    batch = [
+        (claim("lab/a#context", "same", fingerprint_bytes(same)), "key-value-match@1"),
+        (claim("lab/b#context", "same", fingerprint_bytes(same)), "retained-source-proof@1"),
+        (claim("lab/c#context", "moved", fingerprint_bytes(b"old copy")), "key-value-match@1"),
+    ]
+    store = CopyStore(tmp_path)
+
+    current, unread = accuracy._current_copies(
+        batch,
+        sources=sources,
+        store=store,
+        fetcher=_Fetches({"https://example.test/same": same,
+                          "https://example.test/moved": moved}),
+        as_of=date(2026, 9, 29),
+        nightly_methods=frozenset({"key-value-match@1"}),
+    )
+
+    assert unread == {
+        ("fact", "lab/a#context"): "mismatch",
+        ("fact", "lab/b#context"): "source_unchanged",
+        ("fact", "lab/c#context"): "source_changed",
+    }
+    assert current[2].sources[0].snapshot_ref == fingerprint_bytes(moved)
+    assert store.get(current[2].sources[0].snapshot_ref) == moved
+
+
+def test_a_promoted_mismatch_is_queued_as_a_mismatch(tmp_path: Path) -> None:
+    claim, result, queue, log = _fidelity(
+        tmp_path,
+        "no key value pairs here",
+        {("fact", "lab/model#model.context_window"): "mismatch"},
+    )
+
+    assert result.details[0]["outcome"] == "mismatch"
+    assert queue.recrawl_requests() == [(claim.target, "mismatch")]
+
+
+def test_fidelity_fails_when_too_many_draws_are_undetermined() -> None:
+    config = accuracy.load_config(Path("accuracy.yaml")).data_fidelity
+    counts = dict.fromkeys(accuracy.FIDELITY_OUTCOMES, 0)
+
+    ok = {**counts, "verified": 12, "undetermined": 6}
+    too_many = {**counts, "verified": 12, "undetermined": 20}
+    short = {**counts, "verified": 3, "undetermined": 3}
+
+    assert accuracy.fidelity_verdict(ok, drawn=18, wanted=12, config=config)[0] == "pass"
+    status, summary, share = accuracy.fidelity_verdict(
+        too_many, drawn=32, wanted=12, config=config
+    )
+    assert (status, round(share, 3)) == ("fail", 0.625)
+    assert "20 of 32 draws (62%) were undetermined" in summary
+    assert accuracy.fidelity_verdict(short, drawn=6, wanted=12, config=config)[0] == "fail"
+
+
+def test_a_nightly_reader_that_cannot_reread_its_own_verified_bytes_fails(
+    tmp_path: Path,
+) -> None:
+    claim, result, queue, log = _fidelity(
+        tmp_path,
+        "Model: Model\nrelease: soon",
+        {("fact", "lab/model#model.context_window"): "mismatch"},
+    )
+
+    assert result.status == "fail"
+    assert result.details[0]["outcome"] == "mismatch"
+    assert queue.recrawl_requests() == [(claim.target, "mismatch")]
+
+
+def test_an_open_llm_leaderboard_projection_is_rebuilt_from_the_fetched_result() -> None:
+    from decision.verify import StructuredDataExtractor, verify
+
+    url = (
+        "https://huggingface.co/datasets/open-llm-leaderboard-old/results/resolve/"
+        "23474373f8874f9057d23b97e5a41e911d2721c5/lab/Model/results_2024-04-16T04-20-00.json"
+    )
+    raw = json.dumps(
+        {
+            "config_general": {"model_name": "lab/Model"},
+            "results": {"harness|hendrycksTest-us_foreign_policy|5": {"acc": 0.92}},
+        }
+    ).encode()
+    claim = Claim(
+        target=TargetRef(kind="evidence", id="lab/model#mmlu_us_foreign_policy#1"),
+        subject="lab/model",
+        names=("lab/Model",),
+        field="mmlu_us_foreign_policy",
+        label="mmlu_us_foreign_policy",
+        value=92.0,
+        unit="percent",
+        collector=accuracy_collector("hf-result-projection@1"),
+        sources=(SourceRef(source_id="oll", snapshot_ref="sha256:" + "a" * 64,
+                           cited_regions=["rows"]),),
+    )
+
+    projected = accuracy._PROJECTIONS["hf-result-projection@1"](url, raw)
+
+    assert json.loads(projected)["rows"][0]["mmlu_us_foreign_policy"] == "92.0%"
+    result = verify(
+        claim,
+        DictRegions(projected.decode()),
+        [StructuredDataExtractor()],
+        today=date(2026, 9, 29),
+    )
+    assert result.outcome == "verified"
+
+
+def accuracy_collector(method: str) -> VerificationActor:
+    return VerificationActor(agent="openai-codex-model-118", model_family="openai", method=method)
+
+
+def test_the_coverage_report_watches_the_nightly() -> None:
+    targets = yaml.safe_load(Path("scripts/slo/targets.yaml").read_text())
+
+    assert "accuracy-nightly.yml" in {row["file"] for row in targets["workflows"]}
+
+
 def test_reference_disagreement_names_the_engine_evidence_responsible() -> None:
     config = accuracy.load_config(Path("accuracy.yaml")).reference
 
     comparison = accuracy.compare_rankings(
         domain="software_engineering",
-        engine_basis="direct_benchmark",
-        engine_benchmark="terminal_bench_v4_0",
+        engine_basis="domain_capability",
         engine_rows=[
             {"model": "lab/a", "value": 90, "record_ids": ["e-a"]},
             {"model": "lab/b", "value": 80, "record_ids": ["e-b"]},
@@ -470,13 +677,87 @@ def test_reference_disagreement_names_the_engine_evidence_responsible() -> None:
 
     assert comparison["status"] == "fail"
     assert comparison["rank_correlation"] == -1.0
-    assert comparison["engine_benchmark"] == "terminal_bench_v4_0"
     assert comparison["responsible_evidence"] == [
         {"model": "lab/a", "value": 90, "record_ids": ["e-a"]},
         {"model": "lab/b", "value": 80, "record_ids": ["e-b"]},
     ]
     assert comparison["source_url"] == "https://example.test/board"
     assert comparison["read_date"] == "2026-09-25"
+
+
+def test_reference_boards_sharing_too_few_models_are_undetermined_not_disagreeing() -> None:
+    config = accuracy.load_config(Path("accuracy.yaml")).reference
+
+    comparison = accuracy.compare_rankings(
+        domain="retrieval",
+        engine_basis="domain_capability",
+        engine_rows=[{"model": "lab/reranker-a"}, {"model": "lab/reranker-b"}],
+        reference_board="mteb-eng-v2",
+        reference_rows=[{"model": "lab/embedder-a"}, {"model": "lab/reranker-b"}],
+        source_url="https://example.test/board",
+        read_date=date(2026, 9, 25),
+        config=config,
+    )
+
+    assert comparison["status"] == "undetermined"
+    assert comparison["reason"] == "too_few_common_models"
+    assert comparison["common_models"] == 1
+
+
+def test_a_board_missing_the_engine_leaders_is_judged_on_the_models_it_shares() -> None:
+    config = accuracy.load_config(Path("accuracy.yaml")).reference
+    newest = [{"model": f"lab/new-{i}"} for i in range(5)]
+    shared = [{"model": f"lab/old-{i}"} for i in range(3)]
+
+    comparison = accuracy.compare_rankings(
+        domain="software_engineering",
+        engine_basis="domain_capability",
+        engine_rows=newest + shared,
+        reference_board="epoch-swe-bench-verified",
+        reference_rows=[{"model": "lab/unrated"}, *shared],
+        source_url="https://example.test/board",
+        read_date=date(2026, 9, 25),
+        config=config,
+    )
+
+    assert comparison["status"] == "pass"
+    assert comparison["engine_top_k"] == ["lab/old-0", "lab/old-1", "lab/old-2"]
+    assert comparison["rank_correlation"] == 1.0
+
+
+class _Estimate:
+    def __init__(self, value: float, width: float):
+        self.value, self.low, self.high = value, value - width / 2, value + width / 2
+
+
+class _CapabilitySnapshot(FakeSnapshot):
+    estimates = {"lab/sure": _Estimate(1.0, 1.0), "lab/thin": _Estimate(2.0, 3.4)}
+
+    def candidates(self):
+        return tuple(self.estimates)
+
+    def capability_estimate(self, candidate, domain):
+        return self.estimates[candidate]
+
+    def capability_drivers(self, candidate, domain):
+        return ()
+
+
+def test_engine_order_leaves_out_models_the_engine_calls_too_thin_to_rank() -> None:
+    rows = accuracy._engine_domain_ranking(_CapabilitySnapshot(), "software_engineering")
+
+    assert [row["model"] for row in rows] == ["lab/sure"]
+
+
+def test_a_gate_that_decided_nothing_fails_the_report() -> None:
+    report = accuracy.AccuracyReport(
+        generated_at="2026-09-29T06:00:00Z",
+        profile="nightly",
+        snapshot=None,
+        layers=(accuracy.LayerResult("reference_agreement", "undetermined", True, "none"),),
+    )
+
+    assert report.status == "fail"
 
 
 def test_reference_correlation_is_null_when_two_ranks_cannot_be_compared() -> None:
@@ -499,9 +780,7 @@ def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
         in Path("scripts/accuracy.py").read_text()
     )
     assert "cron:" in nightly
-    assert "issues: write" in nightly
-    assert "if: failure()" in nightly
-    assert "github.rest.issues.create" in nightly
+    assert "timeout-minutes:" in nightly
     assert "--check-recall-approval" in pr
     assert "labeled" in pr
     assert "unlabeled" in pr
