@@ -11,10 +11,10 @@
     value: 2.0
     state: known
     sources:
-    - source_id: model-s55-anthropic-pricing-rendered
-      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:c0df0f1d4112d4934b9c45a360eab86006f5f6b1ac569e3b56c359c031b8a1f8
       cited_regions:
-      - sonnet-5-5-pricing
+      - base-pricing
   - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.output
     subject:
       kind: offering
@@ -23,10 +23,10 @@
     value: 10.0
     state: known
     sources:
-    - source_id: model-s55-anthropic-pricing-rendered
-      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:c0df0f1d4112d4934b9c45a360eab86006f5f6b1ac569e3b56c359c031b8a1f8
       cited_regions:
-      - sonnet-5-5-pricing
+      - base-pricing
   - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.cached_input
     subject:
       kind: offering
@@ -35,10 +35,10 @@
     value: 0.2
     state: known
     sources:
-    - source_id: model-s55-anthropic-pricing-rendered
-      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:c0df0f1d4112d4934b9c45a360eab86006f5f6b1ac569e3b56c359c031b8a1f8
       cited_regions:
-      - sonnet-5-5-pricing
+      - base-pricing
   - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.batch_input
     subject:
       kind: offering
@@ -47,10 +47,10 @@
     value: 1.0
     state: known
     sources:
-    - source_id: model-s55-anthropic-pricing-rendered
-      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:c0df0f1d4112d4934b9c45a360eab86006f5f6b1ac569e3b56c359c031b8a1f8
       cited_regions:
-      - sonnet-5-5-pricing
+      - batch-pricing
   - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.batch_output
     subject:
       kind: offering
@@ -59,10 +59,10 @@
     value: 5.0
     state: known
     sources:
-    - source_id: model-s55-anthropic-pricing-rendered
-      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+    - source_id: anthropic-pricing
+      snapshot_ref: sha256:c0df0f1d4112d4934b9c45a360eab86006f5f6b1ac569e3b56c359c031b8a1f8
       cited_regions:
-      - sonnet-5-5-pricing
+      - batch-pricing
   - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.data.retention
     subject:
       kind: offering

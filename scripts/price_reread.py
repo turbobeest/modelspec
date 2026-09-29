@@ -21,9 +21,11 @@ Each fact ends in one status:
   cited region is gone, no reader accepts the page, or the subject is not found.
 - ``unreachable``: the page did not fetch.
 - ``not_reread``: out of this job's reach. The page needs a rendered browser, or
-  the fact's current value was not last verified by a deterministic reader (an
-  LLM reader verified it, or it is still quarantined), so a deterministic
-  failure now would say nothing about the page.
+  the value is still quarantined, or an LLM reader last verified it and the
+  deterministic readers cannot read it, so their failure says nothing about the
+  page. When they can, an LLM-verified value is reconfirmed like any other, and
+  a value they read otherwise is ``needs_review``, never ``changed``
+  (MODEL-235).
 
 ``needs_review``, ``unreadable`` and ``unreachable`` are alerts. The job never
 guesses a value for them; a person re-collects.
@@ -201,7 +203,7 @@ def tracked_facts(root: Path) -> list[Tracked]:
 
 
 def _in_scope(fact: Mapping[str, Any], claim: Claim | None, log_latest: Mapping) -> str | None:
-    """Why this fact is out of the deterministic re-read's reach, or ``None``."""
+    """Why this fact is out of the re-read's reach, or ``None``."""
     if claim is None:
         return "no filed claim"
     if value_hash(claim.value) != value_hash(fact.get("value")):
@@ -211,9 +213,13 @@ def _in_scope(fact: Mapping[str, Any], claim: Claim | None, log_latest: Mapping)
         return "quarantined: its value was never verified"
     if latest.target.value_hash != value_hash(fact.get("value")):
         return "quarantined: its verification is for another value"
-    if latest.verifier.model_family != DETERMINISTIC:
-        return f"last verified by an LLM reader ({latest.verifier.model_family})"
     return None
+
+
+def _llm_baseline(fact: Mapping[str, Any], log_latest: Mapping) -> str | None:
+    """The model family of the LLM reader that last verified this fact, if one did."""
+    family = log_latest[("fact", fact["id"])].verifier.model_family
+    return None if family == DETERMINISTIC else family
 
 
 # --- fetching -----------------------------------------------------------------------------------
@@ -305,7 +311,12 @@ def _propose(claim: Claim, regions: StoredRegions, today: date) -> tuple[list[An
 
 
 def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetch],
-                regions: StoredRegions, today: date, root: Path) -> FactResult:
+                regions: StoredRegions, today: date, root: Path,
+                llm: str | None = None) -> FactResult:
+    """Re-read one fact. ``llm`` names the LLM reader that last verified it, if one
+    did (MODEL-235): the deterministic readers may confirm that value, but a value
+    they read differently is only an alert, never a change, and a page they
+    cannot read says nothing about it."""
     fact = tracked.fact
     # The filed claim's sources, not the fact's: its cited regions are the ones the
     # value was verified from.
@@ -335,6 +346,20 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     result = verify(claim, regions, deterministic_extractors(), today=today)
     if result.outcome == "verified":
         return replace(base, status=Status.UNCHANGED, verification=result.verification)
+    if llm is not None:
+        # Only a well-formed value that verifies in its place is evidence of a change;
+        # a reader that cannot parse the page says nothing about it.
+        # A verbatim string "verifies" as whatever a reader returns, so only a number
+        # counts here.
+        confirmed = [v for v in (_propose(claim, regions, today)[0]
+                                 if result.outcome == "mismatch" else [])
+                     if isinstance(v, (int, float)) and not isinstance(v, bool)]
+        if confirmed:
+            return replace(base, status=Status.NEEDS_REVIEW,
+                           reason=f"last verified by an LLM reader ({llm}); a deterministic "
+                           "reader now reads " + ", ".join(map(json.dumps, confirmed)))
+        return replace(base, reason=f"last verified by an LLM reader ({llm}); "
+                       "the deterministic readers cannot read it")
     if result.outcome == "unreachable":
         return replace(base, status=Status.UNREADABLE,
                        reason=f"cited region not found in the new copy: {result.reason}"
@@ -349,8 +374,14 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     if not read_any:
         return replace(base, status=Status.UNREADABLE,
                        reason=f"the readers find no value for {claim.names[0]!r}: {diff}")
-    if len(confirmed) == 1:
+    if len(confirmed) == 1 and fact["state"] == "known":
         return replace(base, status=Status.CHANGED, new_value=confirmed[0], claim=claim)
+    if len(confirmed) == 1:
+        # A value the page did not state is new, not changed: a person confirms the
+        # page now states it, and it is not a label for something else (MODEL-235).
+        return replace(base, status=Status.NEEDS_REVIEW,
+                       reason=f"was {fact['state']}; a reader now reads "
+                       f"{json.dumps(confirmed[0])}: {diff}")
     why = ("several new values verify: " + ", ".join(map(json.dumps, confirmed))
            if confirmed else "no single new value verifies")
     return replace(base, status=Status.NEEDS_REVIEW, reason=f"{why}; {diff}")
@@ -394,13 +425,13 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
     report = Report(today)
 
     facts = tracked_facts(root)
-    scoped: list[tuple[Tracked, Claim]] = []
+    scoped: list[tuple[Tracked, Claim, str | None]] = []
     for tracked in facts:
         claim = filed.get(("fact", tracked.fact["id"]))
         reason = _in_scope(tracked.fact, claim, latest)
         if reason is None:
             assert claim is not None
-            scoped.append((tracked, claim))
+            scoped.append((tracked, claim, _llm_baseline(tracked.fact, latest)))
         else:
             report.facts.append(FactResult(
                 tracked.fact["id"], tracked.fact["facet"], str(tracked.path.relative_to(root)),
@@ -408,8 +439,9 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
                 tracked.fact["state"], tracked.fact.get("value"), reason=reason))
 
     report.sources = fetch_sources(
-        (s.source_id for _, claim in scoped for s in claim.sources), sources, fetcher, store)
-    results = [reread_fact(t, c, report.sources, regions, today, root) for t, c in scoped]
+        (s.source_id for _, claim, _ in scoped for s in claim.sources), sources, fetcher, store)
+    results = [reread_fact(t, c, report.sources, regions, today, root, llm)
+               for t, c, llm in scoped]
 
     # Some servers answer a plain fetch now and then with a script shell, a bot wall
     # or a 403. A page whose facts would alert is fetched once more first.
@@ -421,9 +453,9 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
                  if f.outcome == "ok" and f.copy_ref != report.sources[sid].copy_ref}
         report.sources.update({sid: again[sid] for sid in fresh})
         results = [
-            reread_fact(t, c, report.sources, regions, today, root)
+            reread_fact(t, c, report.sources, regions, today, root, llm)
             if r.status in retryable and fresh & set(r.source_ids) else r
-            for (t, c), r in zip(scoped, results, strict=True)
+            for (t, c, llm), r in zip(scoped, results, strict=True)
         ]
     report.facts += results
 
