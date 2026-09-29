@@ -5,9 +5,10 @@ operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
 This describes **what the service does today**, not what it is planned to do.
-Every claim below names the file that makes it true, so it can be checked and so
-it fails visibly when the code changes. Where something is built but not yet
-switched on, it is marked **not yet live** and claims nothing.
+Most claims below name the file that makes them true, so they can be checked and
+so they fail visibly when the code changes. Where something is built but not yet
+switched on, it is marked **not yet live**, and what is said of it describes the
+service only once it is switched on.
 
 ## The short version
 
@@ -40,8 +41,8 @@ so there is nothing of that kind for us to receive, log or store. Widening these
 fields toward prompt text would be a breach of the commitment in the terms, not
 a feature release.
 
-A rank body is capped at 16 KB and larger ones are refused unread past that
-point.
+A rank body is capped at 16 KB; a larger one is refused, and nothing of it is
+kept.
 
 `POST https://api.modelspec.dev/v1/policy-check` accepts a **policy**: the
 licence types, origin countries, processing regions and commercial-use
@@ -55,10 +56,12 @@ field for prompt text either. Its body is capped at 256 KB.
 catalogued facets, what to optimise, how much explanation to return and how many
 results. A spec may also carry an **estate**: the providers, subscription plans
 and devices you hold, named by catalogue ids. `POST /v1/compare` takes the same
-spec and the id of an earlier published snapshot to compare it against. Neither
-has a field for prompt text or a description of your task, and a field the
-contract does not define is refused, not ignored. Their bodies are capped at 64
-KB.
+spec and the id of an earlier published snapshot to compare it against. A field
+the spec does not define is refused, not ignored. The contract's one free-text
+field, `task`, is refused in this version: a spec that sets it is rejected, not
+answered (`decision/contract.py`). `/v1/compare` reads only `spec` and
+`compare_to` from its body and ignores anything else. Their bodies are capped at
+64 KB.
 
 `POST https://api.modelspec.dev/v1/feedback` accepts **feedback on an answer**:
 a `rating` (reliable, unreliable, trustworthy, untrustworthy or confusing), a
@@ -68,13 +71,17 @@ up to 300 characters, the site `page` and the `template` you used
 (`api/worker/src/feedback_service.py`). No key is needed and none is read. Any
 other field is refused. Its body is capped at 4 KB. Before anything is kept,
 text that looks like an email address, a phone number, an IP address, a card
-number, a social security number, a credential or a URL query is replaced by a
-placeholder; this catches the shape of such text, not its meaning, so please do
-not send a prompt, a key or personal details in the note.
+number, a social security number or a credential is replaced by a placeholder,
+and the query of a URL is removed; this catches the shape of such text, not its meaning, so please do
+not send a prompt, a key or personal details in the note. The feedback endpoint
+(MODEL-221) is disclosed here before it is deployed; until it is, `/v1/feedback`
+answers 404 and the Feedback button described under *The websites* is not shown.
 
 The remote MCP server at `https://api.modelspec.dev/mcp` (`mcp/`) is stateless.
 It passes each tool call through to those endpoints or to the public export,
-forwarding the `Authorization` header you sent, and stores nothing.
+forwarding the `Authorization` header you sent, and stores nothing. Its feedback
+tool forwards no `Authorization` header; it passes your address instead, used
+only for the feedback limits described under [the feedback store](#the-feedback-store).
 
 ## What we store
 
@@ -130,8 +137,8 @@ record (`api/worker/src/access_keys.py`, `access_limits.py`,
 
 It holds no prompt, no request body, no field of a rank, decide, compare or
 policy-check request, no answer, no IP address and no user-agent: our code reads none of
-those into it. A request that presents no key, or a `test_` sandbox key, writes
-nothing to it at all. Card data never reaches this store: Checkout is hosted on
+those into it. A rank, decide, compare or policy-check request that presents no
+key, or a `test_` sandbox key, writes nothing to it. Card data never reaches this store: Checkout is hosted on
 Stripe.
 
 ### The release-signal queue
@@ -145,10 +152,12 @@ X is discovery only: none of these values becomes model-card evidence.
 
 A second submitter, our primary-source release watcher (MODEL-216,
 `release_signals/watch.py`), files the same fields for a release it finds on a
-lab's or provider's own public page, with that page's URL as the first-seen URL.
-It authenticates with the repository workflow's read key. For each of its
+lab's or provider's public model page, a provider's public model list or a lab's
+Hugging Face feed, with that page's URL as the first-seen URL. It authenticates
+with the repository workflow's read key. For each of its
 discoveries the queue also keeps a marker holding the signal id and timestamp,
-so the same discovery is not queued twice. Its discoveries are not model-card
+so the same discovery is not queued twice; the marker is kept permanently. Its
+discoveries are not model-card
 evidence either.
 
 After the repository workflow handles the signal, it stores an audit record with
@@ -156,9 +165,9 @@ that signal, the processing date, result and pull-request or issue URL. It also
 schedules copies for re-checks after 1, 7 and 30 days. A pending or scheduled
 record is deleted when acknowledged; the audit record remains so the automation's
 actions can be reconstructed. The queue stores no prompt, completion, private X
-message, API key, IP address or user-agent. `SIGNALS_ENABLED` and the HMAC write
-secret must be configured before intake accepts anything. The separate read key
-protects retrieval and acknowledgement by the repository workflow
+message, API key, IP address or user-agent. `SIGNALS_ENABLED` must be on before intake accepts anything. Grok Bot's intake
+also needs the HMAC write secret, and the watcher's needs the read key, which
+also protects retrieval and acknowledgement by the repository workflow
 (`api/worker/src/signals_service.py`).
 
 ### The feedback store
@@ -175,9 +184,10 @@ does not reveal either), the `rating`, the `client`, and whichever of
 `decision_id`, `page`, `template`, `note` and `trying_to_decide` you sent, after
 the replacement described above, plus which kinds of text were replaced
 (`redacted`). It holds no IP address, no key, no user-agent, no origin and no
-time of day. Records are deleted automatically 180 days after they are received.
-A `decision_id` identifies the question that was asked (it is derived from the
-question and the data it was answered from), not who asked it.
+time of day. Records are deleted automatically between 180 and 181 days after they are
+received.
+A `decision_id` identifies the question that was asked (it is derived from the question and the data it was answered from), not who asked it; anyone who
+can guess the whole question can recompute it.
 
 A recorded response gives you a random receipt; we keep only its SHA-256 hash.
 Sending the receipt to `DELETE /v1/feedback` deletes the stored record at once.
@@ -206,8 +216,9 @@ https://modelspec.dev/feedback/.
 
 A Durable Object class `CreditsObject`, bound as `CREDITS`
 (`api/worker/wrangler.jsonc`), holds credit balances (MODEL-75, MODEL-93).
-Credits are added only by a paid Stripe purchase, which runs only while
-`BILLING_ENABLED` is on, or by an x402 payment, which runs only while
+Credits are added only by a paid Stripe purchase (a new purchase can start only
+while `BILLING_ENABLED` is on; renewals and claims of purchases already paid are
+credited while it is off), or by an x402 payment, which runs only while
 `X402_ENABLED` is on. It holds these kinds of record
 (`api/worker/src/credits.py`):
 
@@ -241,8 +252,8 @@ Credits are added only by a paid Stripe purchase, which runs only while
 
 It holds no prompt, no request body, no field of a request, no ranking or
 policy answer, no IP address and no user-agent: our code reads none of those
-into it. A request that presents no key, or a `test_` sandbox key, writes
-nothing to it. A request that presents a live key reserves its cost against
+into it. A rank, decide, compare or policy-check request that presents no key,
+or a `test_` sandbox key, writes nothing to it. A request that presents a live key reserves its cost against
 that key's balance, which can create an empty balance record under the key's
 hash even when nothing has been bought (`api/worker/src/x402.py`).
 
@@ -250,8 +261,9 @@ Workers KV is not this ledger. KV is eventually consistent and has no
 compare-and-set, so it cannot keep a balance non-negative when two requests
 race. The Durable Object is the serial mailbox that can.
 
-The only other thing held between requests is a short-lived copy of our own
-published catalogue, which is public data and contains nothing of yours
+Apart from the per-minute feedback count described above, the only other things
+held between requests are short-lived copies of our own catalogue, decision
+snapshot and determinations, which contain nothing of yours
 (`api/worker/src/entry.py`).
 
 Our own code writes no log line about your request. There is no analytics call,
@@ -264,8 +276,9 @@ Purchases are made on Checkout pages hosted by Stripe
 Sawdust LLC. Stripe collects your card details and the contact and billing
 details its Checkout form asks for, and holds them under its own privacy
 policy. **We never receive your card number, expiry or CVC.** From Stripe we
-keep only the identifiers listed under [the API-key store](#the-api-key-store):
-event, customer, subscription, Checkout session, invoice and Price ids. We do
+keep only the identifiers listed under [the API-key store](#the-api-key-store)
+and [the credit ledger](#the-credit-ledger): event, customer, subscription,
+Checkout session, invoice, PaymentIntent, chargeback and Price ids. We do
 not copy your name, email address or billing address into our stores; they
 remain in our Stripe account, where we can see them to handle a request from
 you.
@@ -275,8 +288,10 @@ you.
 The API and the website run on Cloudflare, and Cloudflare records request
 metadata as any host does: the source IP address, timestamp, request method and
 path, response status, and user-agent. Cloudflare also asks your browser, in the
-`NEL` and `Report-To` headers of its responses, to report connections that fail
-to `a.nel.cloudflare.com`; it asks for no report of a request that succeeds.
+`NEL` and `Report-To` headers of its responses, to report to `a.nel.cloudflare.com` any request to our site or API that fails to
+connect or is answered with an error status; a report carries the address
+requested, the referring page, the status and timings. It asks for no report of
+a request that succeeds.
 Cloudflare **Workers observability is
 enabled** on the API Worker and the MCP Worker (`api/worker/wrangler.jsonc`,
 `mcp/wrangler.jsonc`), which retains invocation logs — request metadata,
@@ -297,13 +312,14 @@ redirects to it.
 - The **decide page** (`/decide/`) answers by sending the board's current spec
   to `POST /v1/decide`, described above, whenever it needs an answer, including
   when it first loads (`web/src/decide/adapter/hosted.ts`). That endpoint keeps
-  nothing of it. The board itself is kept in the page address after the
-  `#`, which your browser does not send to any server.
+  nothing of it. The board itself, including the estate below, is kept in the page address after
+the `#`, which your browser does not send to any server; a link you copy or
+share from the page carries it.
 - **Your browser keeps three things for the decide page**, in its
   `localStorage`: your light or dark theme (`modelspec-theme`,
   `web/src/decide/theme.ts`); the providers, plans and devices the board is set
-  to hold (`modelspec-estate-v1`, `web/src/decide/facet-board/model.ts`), which
-  leave your browser only as the estate of a spec sent to `/v1/decide`; and, if
+  to hold (`modelspec-estate-v1`, `web/src/decide/facet-board/model.ts`), which leave your browser as the estate of a spec sent to `/v1/decide` and in
+the page address described above; and, if
   you press **Save and watch**, the spec and the alerts you ticked
   (`modelspec-alerts`, or `modelspec-sample-alerts` on a sample,
   `web/src/decide/components/Share.tsx`). The saved spec and alerts are never
@@ -324,16 +340,17 @@ your prompts, your completions, your token counts or your model traffic, and we
 do not meter, resell or bill any of it. This is an architectural boundary rather
 than a retention promise: there is no path by which that data could reach us.
 
-The ModelSpec CLI, which runs on your machine, reads **which** provider API keys
-are present in your environment and never their values. The keys stay with you.
+The ModelSpec CLI, which runs on your machine, reads none of your provider API
+keys. They stay with you.
 
-From the first CLI release after 0.2.0, the CLI can also keep a log of outcomes
+From the first CLI release after 0.2.0, and in the repository's source since
+2026-09-29, the CLI can also keep a log of outcomes
 on your machine: whether you adopted a decision and whether the task succeeded.
 It records **nothing until you turn it on** with `modelspec outcome enable`,
 which shows you every field it records and asks you to agree
 (`cli/modelspec/outcome.py`, `docs/outcome-privacy.md`). The log lives under
-`~/.modelspec/`, or `$MODELSPEC_HOME` if you set it. It holds identifiers,
-catalogue names, fixed-choice results and rounded numbers, and no free text.
+`~/.modelspec/`, or `$MODELSPEC_HOME` if you set it. It holds identifiers, catalogue names, fixed-choice results, rounded numbers,
+the minute each record was made and the CLI's version, and no free text.
 **It never leaves your machine:** no `outcome` command opens a network
 connection, and we never receive the log. `modelspec outcome disable --delete`
 stops recording and deletes it.
@@ -348,7 +365,11 @@ nothing below is read as describing the service today:
   Coinbase's x402 facilitator, when the flag is on, receives the signed payment
   payload in order to verify and settle it; that payload is the caller's, not a
   store of ours. No private key for receiving funds is in this repository.
-  `X402_PAY_TO` is an on-chain address in configuration, currently empty.
+  `X402_PAY_TO` is an on-chain address in configuration, currently empty. This
+describes the production service at `api.modelspec.dev`. A separate staging
+copy of the API, on a `workers.dev` address that the site never calls, runs
+with x402 on, on a test network, for testing; a request sent to it directly
+can be metered as the next paragraph describes.
 
   Turning x402 on would also change two things this statement says today, and
   each has to be settled before it is turned on. A request from a browser on
@@ -403,7 +424,13 @@ published here before the change ships. The version above is the one in force.
   the feedback endpoint before it is deployed, with its storage not yet live:
   the fields it accepts, what a record would hold, the 180-day retention,
   deletion by receipt, the keyed per-day abuse counter and the weekly review
-  into our issue tracker (MODEL-221).
+  into our issue tracker (MODEL-221). Corrected statements that had gone stale:
+  a rank body is measured after it is read; the CLI reads none of your provider
+  API keys; which requests write nothing to the key store and the credit ledger;
+  that Stripe renewals and claims are still credited while `BILLING_ENABLED` is
+  off; which Stripe identifiers we keep; what the Worker holds in memory between
+  requests; which intake needs which secret; and that not every claim names a
+  file.
 - **1.2, 2026-09-26.** Disclosed the release-signal queue before it is enabled:
   the public release fields it stores, its processing audit, its 1-, 7- and
   30-day re-check records, and its `SIGNALS_ENABLED` switch (MODEL-113).

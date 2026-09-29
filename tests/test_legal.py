@@ -313,20 +313,47 @@ def test_the_privacy_statement_describes_the_local_outcome_log() -> None:
         assert claim in before, claim
 
 
+def test_the_outcome_modules_open_no_connection() -> None:
+    """"It never leaves your machine" holds only while the outcome code imports
+    nothing that can reach a network. Upload is a separate, unbuilt path."""
+    import ast
+
+    network = {"socket", "ssl", "http", "urllib", "urllib3", "httpx", "requests",
+               "aiohttp", "ftplib", "smtplib"}
+    for name in ("outcome.py", "outcome_cmd.py"):
+        tree = ast.parse((REPO_ROOT / "cli" / "modelspec" / name).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                roots = {alias.name.split(".")[0] for alias in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                roots = {node.module.split(".")[0]}
+            else:
+                continue
+            assert not roots & network, (
+                f"cli/modelspec/{name} imports {sorted(roots & network)}; the privacy "
+                "statement says the outcome log never leaves your machine")
+
+
 def test_the_privacy_statement_names_every_browser_storage_key() -> None:
     """No cookie is set, but the decide page writes `localStorage` (MODEL-237).
     Every key a shipped page writes must be named, so a new one fails here."""
     import re
 
     keys = set()
-    for src in (REPO_ROOT / "web").rglob("*"):
-        if (src.suffix not in {".ts", ".tsx", ".html", ".js"} or "node_modules" in src.parts
-                or "__tests__" in src.parts or not src.is_file()):
-            continue
-        text = src.read_text(encoding="utf-8", errors="ignore")
-        if "localStorage.setItem" not in text:
-            continue
-        keys |= set(re.findall(r'"(modelspec-[a-z0-9-]+)"', text))
+    for folder in ("web", "web3d", "pipeline", "site"):
+        for src in (REPO_ROOT / folder).rglob("*"):
+            if (src.suffix not in {".ts", ".tsx", ".html", ".js", ".mjs", ".py"}
+                    or not src.is_file()
+                    or {"node_modules", "__tests__", "vendor", "dist"} & set(src.parts)
+                    or ".test." in src.name):
+                continue
+            text = src.read_text(encoding="utf-8", errors="ignore")
+            for other in ("sessionStorage", "indexedDB", "document.cookie"):
+                assert other not in text, (
+                    f"{src.relative_to(REPO_ROOT)} uses {other}; the privacy statement "
+                    "says no cookie is set and names only localStorage")
+            if "localStorage.setItem" in text:
+                keys |= set(re.findall(r"""["'`](modelspec-[a-z0-9-]+)["'`]""", text))
     assert {"modelspec-theme", "modelspec-estate-v1", "modelspec-alerts"} <= keys
     for key in sorted(keys):
         assert f"`{key}`" in PRIVACY, (
@@ -338,19 +365,28 @@ def test_x402_stays_off_while_keyless_visitors_are_metered_by_a_bare_ip_hash() -
     """MODEL-237. With x402 on, `_site_free_visitor` names keyless browser meters
     after an unsalted SHA-256 of the IP address, which enumeration reverses. The
     statement promises that is replaced before x402 goes on; this holds it."""
-    entry = (REPO_ROOT / "api" / "worker" / "src" / "entry.py").read_text(encoding="utf-8")
-    unsalted = "hashlib.sha256(connecting_ip.encode(" in entry
-    if unsalted:
-        assert '"X402_ENABLED": "false"' in _production_vars(), (
-            "X402_ENABLED is on while keyless visitors are metered under an unsalted "
-            "SHA-256 of their IP address; the privacy statement says that is replaced first")
+    import ast
+
+    from pipeline.worker_flags import parse_jsonc
+
+    worker = REPO_ROOT / "api" / "worker"
+    tree = ast.parse((worker / "src" / "entry.py").read_text(encoding="utf-8"))
+    meter = next(node for node in ast.walk(tree)
+                 if isinstance(node, ast.FunctionDef) and node.name == "_site_free_visitor")
+    source = ast.unparse(meter)
+    reads_ip = "CF-Connecting-IP" in source
+    keyed = "hmac" in source.lower()
+    if reads_ip and not keyed:
+        config = parse_jsonc((worker / "wrangler.jsonc").read_text(encoding="utf-8"))
+        flag = str(config["vars"].get("X402_ENABLED", "false")).strip().lower()
+        assert flag in {"", "0", "false", "no", "off"}, (
+            "X402_ENABLED is on in production while keyless visitors are metered under "
+            "an unkeyed hash of their IP address; the privacy statement says that is "
+            "replaced first")
+        # A deploy-time `--var X402_ENABLED:true` would dodge the check above.
+        for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+            assert "X402_ENABLED" not in workflow.read_text(encoding="utf-8"), workflow.name
         assert "unsalted hash of an IP address" in FLAT_PRIVACY
-
-
-def _production_vars() -> str:
-    """The top-level `vars` block of wrangler.jsonc: production, not `env.staging`."""
-    config = _wrangler_config()
-    return config.split('"vars"', 1)[1].split("}", 1)[0]
 
 
 def _wrangler_config() -> str:
@@ -569,6 +605,19 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
             "a profile, not a prompt, and the privacy statement says so to customers"
         )
     assert "There is no field" in FLAT_PRIVACY
+
+
+def test_the_decide_contract_refuses_its_free_text_task() -> None:
+    """The statement says `task`, the contract's one free-text field, is refused,
+    and that fields a spec does not define are refused rather than ignored."""
+    from decision import contract
+
+    base = {"spec_version": 1, "optimize": {"max": "swe_bench_pro"}}
+    assert contract.parse_spec(dict(base), facets=None).spec_version == 1
+    for extra in ({"task": "summarise my contract"}, {"prompt": "hello"}):
+        with pytest.raises(contract.SpecError):
+            contract.parse_spec({**base, **extra}, facets=None)
+    assert "`task`, is refused" in FLAT_PRIVACY
 
 
 #: The version in force for each document. A change to what the service records
