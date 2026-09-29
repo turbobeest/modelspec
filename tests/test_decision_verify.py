@@ -1975,6 +1975,18 @@ def test_subscription_page_reads_a_card_ending_in_get_plan_and_a_plan_includes_s
     assert verify.compare(models, extractor.extract(models, PLAN_CARDS)) == []
 
 
+def test_a_card_without_its_own_price_never_borrows_the_card_before_it() -> None:
+    page = PLAN_CARDS.replace("What models do I get access to?",
+                              "For your organisation\nContact us for pricing\nGet Team\n"
+                              "What models do I get access to?")
+    claim = _plan_claim("offering.subscription.usage_allowance", "10,000 monthly credits",
+                        ("Perplexity Team", "Team"))
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) != []
+
+
 def test_a_name_on_two_cards_is_the_card_so_named_and_a_literal_id_is_that_id() -> None:
     # "Claude Haiku 4.5" is the dated card's display name and the alias card's ID stem.
     assert verify._catalogue_model_matches("Claude Haiku 4.5") == {

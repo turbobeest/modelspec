@@ -1487,8 +1487,16 @@ def _vendor_layouts(claim: Claim, text: str) -> list[Reading]:
         for i, line in enumerate(lines):
             if line.casefold() not in {f"get {name}" for name in names}:
                 continue
-            price = next((j for j in range(i - 1, max(-1, i - 25), -1)
-                          if re.search(r"[$¥]\s?[0-9]", lines[j])), None)
+            # The card's own price: walking back past another card's "Get ..." line
+            # would borrow that card's price and features, so a card with no price of
+            # its own gives no reading.
+            price = None
+            for j in range(i - 1, max(-1, i - 25), -1):
+                if re.search(r"[$¥]\s?[0-9]", lines[j]):
+                    price = j
+                    break
+                if re.match(r"(?i)^get \S", lines[j]):
+                    break
             if price is not None:
                 readings += [Reading(subject=subject, value=later)
                              for later in lines[price + 1:i]]
