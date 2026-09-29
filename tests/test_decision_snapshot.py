@@ -208,7 +208,9 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
     build_snapshot(collected, registry=REGISTRY, as_of=date(2026, 9, 28)).write(path)
     index = load(path)
 
-    subscriptions = {row["id"]: row for row in index.subscription_offerings()}
+    vendors = {vendor.id for vendor in REGISTRY.vendors()}  # MODEL-205 pins its own
+    subscriptions = {row["id"]: row for row in index.subscription_offerings()
+                     if row["provider"] not in vendors}
     assert len(subscriptions) == 34
     facts = [fact for subscription in subscriptions.values()
              for fact in subscription["facts"].values()]

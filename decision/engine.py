@@ -421,7 +421,8 @@ def _plan_routes(cid: str, snapshot, access, reach) -> list:
     where = f"{ref.model} through {ref.provider}" if ref.provider else ref.model
     cost = _candidate_cost(snapshot, cid)
     routes = [
-        plans_module.route(reach.plans[plan_id], surface, coverage, access, cost, where)
+        plans_module.route(reach.plans[plan_id], surface, coverage, access, cost, where,
+                           bare=ref.provider is None)
         for plan_id, surface, coverage in reach.routes.get(cid, ())
     ]
     return sorted(routes, key=lambda r: (r.price_monthly_usd is None,

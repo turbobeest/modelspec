@@ -672,3 +672,19 @@ def test_change_detection_has_no_llm_or_agent_hook() -> None:
         }
         third_party = imported - set(sys.stdlib_module_names) - {"__future__", "decision"}
         assert third_party <= {"httpx", "yaml"}, f"{name} imports {third_party}"
+
+
+def test_icon_labels_render_an_icon_cell_as_its_label_and_leave_html_default_alone():
+    """MODEL-205: GitHub Docs marks plan coverage with icons, not words."""
+    page = (b'<main><table><tr><th>Available models</th><th>Copilot Pro</th><th>Copilot Max</th>'
+            b'</tr><tr><th>GPT-6 Sol</th><td><svg role="img" aria-label="Not included">'
+            b'<path d="M1"/></svg></td><td><svg class="octicon" role="img" aria-label="Included">'
+            b'</svg></td></tr></table><svg aria-label="logo"></svg></main>')
+
+    labelled = normalise_document(page, NORMALISERS["html-icon-labels"]).text
+    default = normalise_document(page, NORMALISERS["html-default"]).text
+
+    assert labelled.splitlines() == ["Available models | Copilot Pro | Copilot Max",
+                                     "GPT-6 Sol | Not included | Included"]
+    assert default.splitlines() == ["Available models | Copilot Pro | Copilot Max",
+                                    "GPT-6 Sol | |"]

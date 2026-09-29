@@ -1,0 +1,2830 @@
+{
+ "$defs": {
+  "AlertType": {
+   "description": "Enum for alert types and management event types",
+   "enum": [
+    "llm_exceptions",
+    "llm_too_slow",
+    "llm_requests_hanging",
+    "budget_alerts",
+    "spend_reports",
+    "failed_tracking_spend",
+    "user_spend_thresholds",
+    "user_spend_anomalies",
+    "db_exceptions",
+    "daily_reports",
+    "cooldown_deployment",
+    "new_model_added",
+    "model_deprecation_warnings",
+    "outage_alerts",
+    "region_outage_alerts",
+    "fallback_reports",
+    "new_virtual_key_created",
+    "virtual_key_updated",
+    "virtual_key_deleted",
+    "new_team_created",
+    "team_updated",
+    "team_deleted",
+    "new_internal_user_created",
+    "internal_user_updated",
+    "internal_user_deleted"
+   ],
+   "title": "AlertType",
+   "type": "string"
+  },
+  "ConfigGeneralSettings": {
+   "description": "Documents all the fields supported by `general_settings` in config.yaml",
+   "properties": {
+    "admission_queue_timeout_seconds": {
+     "default": 1.0,
+     "description": "maximum time a request waits for a worker slot",
+     "exclusiveMinimum": 0,
+     "title": "Admission Queue Timeout Seconds",
+     "type": "number"
+    },
+    "alert_to_webhook_url": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Mapping of alert type to webhook url. e.g. `alert_to_webhook_url: {'budget_alerts': 'https://nothooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'}`",
+     "title": "Alert To Webhook Url"
+    },
+    "alert_types": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/AlertType"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "List of alerting types. By default it is all alerts",
+     "title": "Alert Types"
+    },
+    "alerting": {
+     "anyOf": [
+      {
+       "items": {},
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "List of alerting integrations - e.g. `alerting: ['slack', 'webhook', 'email']`. 'slack' posts Slack-format messages to any Slack-compatible webhook (Slack, Rocket.Chat, Mattermost); 'webhook' posts structured JSON budget alerts to WEBHOOK_URL",
+     "title": "Alerting"
+    },
+    "alerting_args": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Controllable params for slack alerting - e.g. ttl in cache.",
+     "title": "Alerting Args"
+    },
+    "alerting_threshold": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "sends alerts if requests hang for 5min+",
+     "title": "Alerting Threshold"
+    },
+    "allow_cli_sso_verification_uri_complete": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "opt-in to RFC 8628 verification_uri_complete for the CLI SSO device flow, pre-filling the user_code in the browser. Off by default; intended for same-host clients where the device that starts the flow and the browser run on the same machine",
+     "title": "Allow Cli Sso Verification Uri Complete"
+    },
+    "allow_unmanaged_response_ids": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, lets keys address Responses API ids that this proxy did not issue (raw provider ids, or ids issued before response-id encryption was configured). Such an id carries no owner, so no ownership check can run on it; ids this proxy did issue keep full ownership enforcement. Off by default, in which case an unrecognized response id is rejected with 403",
+     "title": "Allow Unmanaged Response Ids"
+    },
+    "allowed_file_extensions": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "the only file extensions (e.g. ['.jsonl', '.pdf', '.txt']) accepted on /v1/files uploads, for any purpose, matched case-insensitively against the uploaded filename. Files with any other extension, or none, are rejected. An empty list rejects every upload. Unset means no allowlist is applied",
+     "title": "Allowed File Extensions"
+    },
+    "allowed_routes": {
+     "anyOf": [
+      {
+       "items": {},
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Proxy API Endpoints you want users to be able to access",
+     "title": "Allowed Routes"
+    },
+    "apply_user_budget_to_team_keys": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, a user's personal max_budget is enforced on every request they make, including requests made with a team-scoped key. Defaults to False, where a team-scoped key is governed only by the team and team-member budgets and the key owner's personal max_budget does not apply (see GitHub issue #12905).",
+     "title": "Apply User Budget To Team Keys"
+    },
+    "background_health_check_model_groups": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Opt-in allowlist of model group names for background health checks and health-check routing. When set, the background loop probes only deployments whose model_name is listed, and enable_health_check_routing filters unhealthy deployments only within the listed groups; every other group, including newly added deployments, is skipped and keeps its configured routing strategy. When unset, all deployments participate (opt out per deployment via model_info.disable_background_health_check).",
+     "title": "Background Health Check Model Groups"
+    },
+    "background_health_checks": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "run health checks in background",
+     "title": "Background Health Checks"
+    },
+    "blocked_file_extensions": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "file extensions (e.g. ['.exe', '.sh']) rejected on /v1/files uploads, for any purpose, matched case-insensitively against the uploaded filename. Deprecated in favour of allowed_file_extensions; still enforced, after the allowlist, when set",
+     "title": "Blocked File Extensions"
+    },
+    "cancel_on_disconnect": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "cancel the in-flight upstream LLM request (non-streaming) when the client disconnects, freeing backend capacity (e.g. a vLLM GPU slot); the request is logged as a 499 failure",
+     "title": "Cancel On Disconnect"
+    },
+    "claude_code_gateway_managed_settings": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Claude Code managed-settings.json served verbatim at the gateway's /claude_code_gateway/managed/settings endpoint. When unset the endpoint returns 404 (no managed policy)",
+     "title": "Claude Code Gateway Managed Settings"
+    },
+    "completion_model": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "proxy level default model for all chat completion calls",
+     "title": "Completion Model"
+    },
+    "control_plane_url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Global Control Plane: URL of the control plane whose admin UI manages this instance. Enables /v3/login and /v3/login/exchange on this instance so that UI can authenticate against it cross-origin, and restricts the SSO return_to origin to that URL. No state is shared with the control plane",
+     "title": "Control Plane Url"
+    },
+    "coordination_redis": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/CoordinationRedisParams"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "standalone Redis for cross-pod coordination (tpm/rpm rate limits, spend tracking, pod lock manager, shared health checks), configured independently of the response-cache backend; takes precedence over borrowing the `cache_params` Redis and over the REDIS_* env fallback"
+    },
+    "custom_auth": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "override user_api_key_auth with your own auth script - https://docs.litellm.ai/docs/proxy/virtual_keys#custom-auth",
+     "title": "Custom Auth"
+    },
+    "database_args": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/DynamoDBArgs"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "custom args for instantiating dynamodb client - e.g. billing provision"
+    },
+    "database_connect_timeout": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Prisma `connect_timeout` URL param (seconds). Bounds how long the engine waits to establish a new connection before failing. Defaults to Prisma's built-in value when unset.",
+     "title": "Database Connect Timeout"
+    },
+    "database_connection_pool_limit": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": 10,
+     "description": "default connection pool for prisma client connecting to postgres db",
+     "title": "Database Connection Pool Limit"
+    },
+    "database_connection_timeout": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": 60,
+     "description": "default timeout for a connection to the database",
+     "title": "Database Connection Timeout"
+    },
+    "database_disable_prepared_statements": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Disable server-side prepared statements by setting Prisma's `pgbouncer=true` URL param. Use this for pgbouncer transaction-pooling deployments, or to prevent the 'cached plan must not change result type' error that pooled connections hit during rolling schema migrations. An explicit `pgbouncer` in `database_extra_connection_params` takes precedence.",
+     "title": "Database Disable Prepared Statements"
+    },
+    "database_extra_connection_params": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Escape hatch: extra key/value pairs appended verbatim to the Prisma DATABASE_URL / DIRECT_URL query string (e.g. `sslmode`, `pgbouncer`, `statement_cache_size`). Keys here override any default LiteLLM sets.",
+     "title": "Database Extra Connection Params"
+    },
+    "database_max_idle_connection_lifetime": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": 60,
+     "description": "Prisma `max_idle_connection_lifetime` URL param (seconds). A pooled connection idle longer than this is closed and replaced instead of being handed to the next request. Defaults to 60 so connections are recycled before common infra idle timeouts (AWS NLB / RDS Proxy ~350s, many LBs 60-350s) silently drop them and requests fail with `Error { kind: Closed }`. A value pinned on the DATABASE_URL or set via `database_extra_connection_params` takes precedence.",
+     "title": "Database Max Idle Connection Lifetime"
+    },
+    "database_socket_timeout": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Prisma `socket_timeout` URL param (seconds). When set, an in-flight operation that has not produced data within this window is aborted. For capping how long idle pooled connections are kept, see `database_max_idle_connection_lifetime`.",
+     "title": "Database Socket Timeout"
+    },
+    "database_type": {
+     "anyOf": [
+      {
+       "const": "dynamo_db",
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "to use dynamodb instead of postgres db",
+     "title": "Database Type"
+    },
+    "database_url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "connect to a postgres db - needed for generating temporary keys + tracking spend / key",
+     "title": "Database Url"
+    },
+    "disable_auto_add_proxy_admin_to_teams": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "By default, the user calling /team/new is automatically added to the new team as a team admin. If True, proxy admins are no longer auto-added; members explicitly listed in members_with_roles are unaffected. Default is False.",
+     "title": "Disable Auto Add Proxy Admin To Teams"
+    },
+    "disable_budget_reservation": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, disables the optimistic per-request budget reservation introduced in v1.84.0. WARNING: This weakens hard budget enforcement. Without the reservation, a burst of concurrent requests from a single key can each pass the read-time spend check before any of them is charged, allowing a configured budget to be exceeded under high concurrency. Budgets are still evaluated on every request at read time, so an already-exhausted budget is still rejected. Enable only if your deployment is experiencing phantom BudgetExceededError responses caused by leaked reservations (see GitHub issue #27639). An INFO notice is logged once per worker at config load while this flag is active as a reminder that hard enforcement is relaxed.",
+     "title": "Disable Budget Reservation"
+    },
+    "disable_env_credential_login": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, disables signing in to the Admin UI with the environment credentials: UI_USERNAME/UI_PASSWORD, or the master key when UI_PASSWORD is unset (that fallback means env-credential login is always live by default). Database users with passwords are unaffected. LOCKOUT RISK: create at least one proxy admin user with a password before enabling, or nobody can sign in to the UI. A locked-out admin can still administer the proxy over the API with the master key, and can unset this setting and restart the proxy to restore env-credential login. Default is False.",
+     "title": "Disable Env Credential Login"
+    },
+    "disable_password_login_when_sso_enabled": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True and SSO is configured (MICROSOFT_CLIENT_ID, GOOGLE_CLIENT_ID, GENERIC_CLIENT_ID, or SAML_IDP_METADATA_URL/XML), disables username/password login on /login, /v2/login, and /v3/login so SSO is the only way to reach the Admin UI. An admin locked out of the UI can still administer the proxy over the API with the master key; unset this setting and restart the proxy to restore UI username/password login. Default is False.",
+     "title": "Disable Password Login When Sso Enabled"
+    },
+    "disable_responses_id_security": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, disables ownership enforcement on Responses API ids. Keys may then retrieve, cancel, delete, and chain from any response id, including ids belonging to another user or team and ids this proxy never issued. WARNING: this removes tenant isolation on /v1/responses",
+     "title": "Disable Responses Id Security"
+    },
+    "enable_claude_code_gateway": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "serve the Claude Code gateway protocol (https://code.claude.com/docs/en/claude-apps-gateway) under /claude_code_gateway: OAuth device-flow sign-in reusing proxy SSO, plus managed settings and OTLP telemetry ingestion. Off by default",
+     "title": "Enable Claude Code Gateway"
+    },
+    "enable_openai_websocket_passthrough": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Serve the OpenAI pass-through WebSocket route, which relays frames to OpenAI under the proxy's own provider credential without reading them. Off by default.",
+     "title": "Enable Openai Websocket Passthrough"
+    },
+    "enable_public_model_hub": {
+     "default": false,
+     "description": "Public model hub for users to see what models they have access to, supported openai params, etc.",
+     "title": "Enable Public Model Hub",
+     "type": "boolean"
+    },
+    "enforce_fallback_model_access": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, router fallbacks configured in router_settings are only attempted when the calling key (and its team and project) is allowed to call the fallback model; unauthorized fallback targets are skipped and the primary model's error is returned. Default is False.",
+     "title": "Enforce Fallback Model Access"
+    },
+    "failed_login_block_seconds": {
+     "anyOf": [
+      {
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "How long a blocked source address, or source address and username, stays blocked. Every attempt from a blocked key, right or wrong, is refused with 429 before the password is checked; the block is not extended by refused attempts. Set under `general_settings` in config.yaml. Defaults to 300",
+     "title": "Failed Login Block Seconds"
+    },
+    "failed_login_window_seconds": {
+     "anyOf": [
+      {
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Fixed window in seconds over which failed Admin UI sign-in attempts are counted. The window starts at the first failure and is not extended by later ones. Set under `general_settings` in config.yaml. Defaults to 60",
+     "title": "Failed Login Window Seconds"
+    },
+    "forward_client_headers_to_llm_api": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, forwards client headers (e.g. Authorization) to the LLM API. Required for Claude Code with Max subscription.",
+     "title": "Forward Client Headers To Llm Api"
+    },
+    "global_max_parallel_requests": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "global max parallel requests to allow for a proxy instance.",
+     "title": "Global Max Parallel Requests"
+    },
+    "health_check_concurrency": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "limit concurrent health checks per cycle; when unset, health checks run without a concurrency cap",
+     "title": "Health Check Concurrency"
+    },
+    "health_check_interval": {
+     "default": 300,
+     "description": "background health check interval in seconds",
+     "title": "Health Check Interval",
+     "type": "integer"
+    },
+    "health_check_skip_disabled_background_models": {
+     "default": false,
+     "description": "When true, deployments with model_info.disable_background_health_check are skipped for on-demand GET /health as well as the background health loop.",
+     "title": "Health Check Skip Disabled Background Models",
+     "type": "boolean"
+    },
+    "infer_model_from_keys": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "for `/models` endpoint, infers available model based on environment keys (e.g. OPENAI_API_KEY)",
+     "title": "Infer Model From Keys"
+    },
+    "key_management_system": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/KeyManagementSystem"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "key manager to load keys from / decrypt keys with"
+    },
+    "master_key": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "require a key for all calls to proxy",
+     "title": "Master Key"
+    },
+    "max_batch_file_size_mb": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "max batch input file size in MB for /v1/files uploads with purpose=batch, if a file is larger than this size it will be rejected before being forwarded to the provider",
+     "title": "Max Batch File Size Mb"
+    },
+    "max_failed_login_attempts_per_source": {
+     "anyOf": [
+      {
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Failed Admin UI sign-in attempts allowed from one source address, across every username, within `failed_login_window_seconds`. One more blocks that address for `failed_login_block_seconds`. Half this value, rounded down but at least 1, is the allowance for one username from that address; one more blocks that address for that username only, and its further failures stop counting toward the address limit, so a script stuck on one account does not block everyone behind a shared address. The per-address limit is only enforced when `trusted_proxy_ranges` is set: to the proxies in front of LiteLLM, or to an empty list when clients connect directly. Left unset, the peer address may be a shared ingress and only the per-username half runs. IPv6 addresses are grouped by /64. Set under `general_settings` in config.yaml. Defaults to 10",
+     "title": "Max Failed Login Attempts Per Source"
+    },
+    "max_failed_login_attempts_per_source_overrides": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "type": "integer"
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Per-address overrides of `max_failed_login_attempts_per_source`, keyed by IP address or CIDR range, e.g. {'1.2.3.4': 200, '5.6.0.0/24': 500}. The most specific matching range wins (between equivalent keys such as '1.2.3.4' and '1.2.3.4/32', an exemption wins, then the higher limit), and the per-username allowance for that address follows as half the override. A value of 0 exempts the address from both limits. Set under `general_settings` in config.yaml",
+     "title": "Max Failed Login Attempts Per Source Overrides"
+    },
+    "max_file_size_mb": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "max file size in MB for /v1/files uploads, for any purpose, if a file is larger than this size it will be rejected before being forwarded to the provider",
+     "title": "Max File Size Mb"
+    },
+    "max_in_flight_requests_per_worker": {
+     "anyOf": [
+      {
+       "exclusiveMinimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "maximum concurrent requests handled by each worker",
+     "title": "Max In Flight Requests Per Worker"
+    },
+    "max_parallel_requests": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "maximum parallel requests for each api key",
+     "title": "Max Parallel Requests"
+    },
+    "max_queued_requests_per_worker": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "maximum requests waiting for a worker slot",
+     "title": "Max Queued Requests Per Worker"
+    },
+    "max_request_size_mb": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "max request size in MB, if a request is larger than this size it will be rejected",
+     "title": "Max Request Size Mb"
+    },
+    "max_response_size_mb": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "max response size in MB, if a response is larger than this size it will be rejected",
+     "title": "Max Response Size Mb"
+    },
+    "maximum_autorouter_session_retention_period": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Maximum retention period for auto-router benchmark session rollup rows (e.g., '365d'). Rows whose last turn is older than this are deleted by the spend log cleanup job, on that job's schedule. Unset means rollup rows are never deleted.",
+     "title": "Maximum Autorouter Session Retention Period"
+    },
+    "maximum_health_check_retention_period": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Maximum retention period for health-check rows (e.g., '30d'). Rows whose checked_at is older than this are deleted by the spend log cleanup job, on that job's schedule. Unset means rows are never deleted. Set this well above health_check_interval because /health and the UI read the latest row per model.",
+     "title": "Maximum Health Check Retention Period"
+    },
+    "maximum_spend_logs_cleanup_batch_size": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Rows deleted per DELETE statement by the spend log cleanup job. Defaults to 1000.",
+     "title": "Maximum Spend Logs Cleanup Batch Size"
+    },
+    "maximum_spend_logs_cleanup_batch_timeout": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Postgres statement_timeout and lock_timeout applied to each spend log cleanup delete batch (e.g. '30s'), so cleanup cannot hold row locks or a connection indefinitely. Defaults to '30s'.",
+     "title": "Maximum Spend Logs Cleanup Batch Timeout"
+    },
+    "maximum_spend_logs_cleanup_max_batches": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Maximum DELETE statements the spend log cleanup job issues per table per run. Defaults to 500.",
+     "title": "Maximum Spend Logs Cleanup Max Batches"
+    },
+    "maximum_spend_logs_cleanup_run_budget": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Wall-clock budget for one spend log cleanup run (e.g. '5m'), shared across every table it prunes. A run that hits the budget stops and the next run resumes from where it left off. Defaults to '5m'.",
+     "title": "Maximum Spend Logs Cleanup Run Budget"
+    },
+    "maximum_spend_logs_retention_period": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Maximum retention period for spend logs (e.g., '7d' for 7 days). Logs older than this will be deleted.",
+     "title": "Maximum Spend Logs Retention Period"
+    },
+    "mcp_allowed_clients": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/MCPAllowedClient"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "MCP client applications admitted by the gateway, each an {alias, value} pair where alias is the name shown in the dashboard and logs and value is the identity that must match exactly. When set, every MCP request must carry a client identity equal to one of the values: a JWT caller is identified by the claim named in litellm_jwtauth.mcp_client_id_jwt_field, any other caller by the header named in mcp_client_id_header. A request with no resolvable identity, or an unlisted one, is rejected with 403. Unset means every client is admitted.",
+     "title": "Mcp Allowed Clients"
+    },
+    "mcp_client_id_header": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Request header whose value names the calling MCP client application (for example 'x-mcp-client') for callers that did not authenticate with a JWT, used only while mcp_allowed_clients is set. The client picks this value itself, so it is a policy control rather than a security boundary; prefer litellm_jwtauth.mcp_client_id_jwt_field where callers use JWTs.",
+     "title": "Mcp Client Id Header"
+    },
+    "mcp_internal_ip_ranges": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Custom CIDR ranges that define internal/private networks for MCP access control. When set, only these ranges are treated as internal. Defaults to RFC 1918 private ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8).",
+     "title": "Mcp Internal Ip Ranges"
+    },
+    "mcp_required_fields": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "List of MCP server fields that must be filled in for a submission to pass standards checks (e.g. ['description', 'source_url', 'alias']).",
+     "title": "Mcp Required Fields"
+    },
+    "mcp_trusted_proxy_ranges": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "CIDR ranges of trusted reverse proxies. When set, X-Forwarded-For and X-Forwarded-* origin headers are only trusted from these IPs.",
+     "title": "Mcp Trusted Proxy Ranges"
+    },
+    "mcp_xff_num_trusted_hops": {
+     "anyOf": [
+      {
+       "minimum": 1,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Number of trusted reverse proxies/load balancers in front of the gateway that append to X-Forwarded-For. When set (and mcp_trusted_proxy_ranges validates the direct peer), the client IP for MCP access control is read this many entries from the right of the chain instead of the spoofable leftmost value, defeating append-style X-Forwarded-For forgery.",
+     "title": "Mcp Xff Num Trusted Hops"
+    },
+    "missing_session_id": {
+     "anyOf": [
+      {
+       "enum": [
+        "generate",
+        "reject",
+        "omit"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "What to do with LLM API requests that carry no session id (x-litellm-session-id header, metadata.session_id, etc.). 'generate' stamps one id into litellm_session_id, litellm_trace_id and metadata.session_id so SpendLogs and logging callbacks agree; 'reject' returns 400; 'omit' leaves SpendLogs.session_id null, matching callbacks such as Langfuse that only record a client-established metadata.session_id. Unset keeps the legacy behavior where SpendLogs falls back to the trace id while callbacks get no session id.",
+     "title": "Missing Session Id"
+    },
+    "model_list_healthy_only": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "When true, `/models`, `/v1/models/{id}` and `/model/info` hide models whose backing deployments are all unhealthy, for every caller, without needing `healthy_only=true` per request. Requires `background_health_checks: true`, and keeps deployment health state cached without turning on `enable_health_check_routing`, so routing is unaffected. With no health state nothing is hidden. Hiding is presentation-only, a hidden model can still be called.",
+     "title": "Model List Healthy Only"
+    },
+    "otel": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "[BETA] OpenTelemetry support - this might change, use with caution.",
+     "title": "Otel"
+    },
+    "pass_through_endpoints": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/PassThroughGenericEndpoint"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Set-up pass-through endpoints for provider-specific endpoints. Docs - https://docs.litellm.ai/docs/proxy/pass_through",
+     "title": "Pass Through Endpoints"
+    },
+    "pass_through_request_timeout": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Default upstream request timeout in seconds for native and custom pass-through endpoints that use pass_through_request. Defaults to 600 when unset.",
+     "title": "Pass Through Request Timeout"
+    },
+    "password_policy_min_length": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Minimum length required for a locally-managed user's password. Default is 12; a value below 8 is floored to 8 rather than weakening the requirement further.",
+     "title": "Password Policy Min Length"
+    },
+    "password_policy_require_lowercase": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True (default), a locally-managed user's password must contain a lowercase letter.",
+     "title": "Password Policy Require Lowercase"
+    },
+    "password_policy_require_numbers": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True (default), a locally-managed user's password must contain a number.",
+     "title": "Password Policy Require Numbers"
+    },
+    "password_policy_require_special_characters": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True (default), a locally-managed user's password must contain a special (non-alphanumeric) character.",
+     "title": "Password Policy Require Special Characters"
+    },
+    "password_policy_require_uppercase": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True (default), a locally-managed user's password must contain an uppercase letter.",
+     "title": "Password Policy Require Uppercase"
+    },
+    "plugins": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/PluginConfig"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "external services registered as embeddable UI plugins",
+     "title": "Plugins"
+    },
+    "provider_url_destination_allowed_hosts": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Allowlist of hosts a request may redirect a provider call's destination URL to.",
+     "title": "Provider Url Destination Allowed Hosts"
+    },
+    "proxy_config_reload_interval_seconds": {
+     "default": 30,
+     "description": "how often (in seconds) each pod reloads config-in-DB objects (models, credentials, guardrails, etc.) when store_model_in_db is enabled; lower values speed up multi-pod convergence at the cost of more DB load. Applied on proxy startup",
+     "exclusiveMinimum": 0,
+     "title": "Proxy Config Reload Interval Seconds",
+     "type": "integer"
+    },
+    "reject_clientside_metadata_tags": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "When set to True, rejects requests that contain client-side 'metadata.tags' to prevent users from influencing budgets by sending different tags. Tags can only be inherited from the API key metadata.",
+     "title": "Reject Clientside Metadata Tags"
+    },
+    "scheduled_job_stagger": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/ScheduledJobStaggerSettings"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Spreads the proxy's scheduled background jobs (spend flushes, budget resets, config reloads, exports) across a window instead of firing them together on every replica. On by default; set to tune the window, pin a job, or turn it off."
+    },
+    "store_model_in_db": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, models and config are stored in and loaded from the database. Default is False.",
+     "title": "Store Model In Db"
+    },
+    "store_prompts_in_spend_logs": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True, stores request messages and responses in spend logs. Default is False.",
+     "title": "Store Prompts In Spend Logs"
+    },
+    "supported_db_objects": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/SupportedDBObjectType"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Fine-grained control over which object types to load from the database when store_model_in_db is True. Available types: 'models', 'mcp', 'guardrails', 'vector_stores', 'pass_through_endpoints', 'prompts', 'model_cost_map', 'tools', 'config_overrides'. If not set, all objects are loaded (default behavior).",
+     "title": "Supported Db Objects"
+    },
+    "transcribe_media_buckets": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "S3 bucket names that keys other than proxy admins may read media from and write transcripts to through the Amazon Transcribe pass-through. Unset means only proxy admins can start transcription jobs.",
+     "title": "Transcribe Media Buckets"
+    },
+    "trusted_proxy_ranges": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "CIDR ranges of trusted reverse proxies allowed to provide identity headers for header-based auth paths such as enable_oauth2_proxy_auth and custom_ui_sso_sign_in_handler, and whose X-Forwarded-For is used to attribute Admin UI sign-in attempts to a source address. Set it to an empty list when clients connect directly, so the peer address is the source. Left unset, or containing an entry that is not an address or CIDR range, the per-source sign-in limit is off.",
+     "title": "Trusted Proxy Ranges"
+    },
+    "ui_access_mode": {
+     "anyOf": [
+      {
+       "enum": [
+        "admin_only",
+        "all"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": "all",
+     "description": "Control access to the Proxy UI",
+     "title": "Ui Access Mode"
+    },
+    "use_azure_key_vault": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "load keys from azure key vault",
+     "title": "Use Azure Key Vault"
+    },
+    "use_google_kms": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "decrypt keys with google kms",
+     "title": "Use Google Kms"
+    },
+    "use_spend_logs_partitioning": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "If True and LiteLLM_SpendLogs has been converted to a range-partitioned table (db_scripts/partition_spend_logs.sql), retention cleanup drops expired partitions instead of deleting rows, and pre-creates upcoming partitions. Default is False.",
+     "title": "Use Spend Logs Partitioning"
+    },
+    "user_api_key_cache_max_size": {
+     "anyOf": [
+      {
+       "exclusiveMinimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "max number of entries (virtual keys, teams, users, end users, memberships, ...) each worker keeps in its in-memory auth cache. Defaults to 200. Raise this if you have more active keys than that or auth lookups keep hitting the DB",
+     "title": "User Api Key Cache Max Size"
+    },
+    "user_header_mappings": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/UserHeaderMapping"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "User Header Mappings"
+    },
+    "user_header_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "[DEPRECATED] Use 'user_header_mappings' instead. When set, the header value is treated as the end user id unless overridden by user_header_mappings.",
+     "title": "User Header Name"
+    },
+    "user_mcp_management_mode": {
+     "anyOf": [
+      {
+       "enum": [
+        "restricted",
+        "view_all"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Controls how non-admin users interact with MCP servers in the dashboard. 'restricted' shows only accessible servers, 'view_all' lists every server in read-only mode.",
+     "title": "User Mcp Management Mode"
+    },
+    "user_url_allowed_hosts": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "SSRF allowlist for user-supplied URLs. Entries are `hostname` or `hostname:port` (bracketed for IPv6, e.g. `[::1]:8080`). Allowlisted hosts skip the blocked-network check in validate_url() but still resolve DNS. Use this to permit legitimate internal targets, e.g. an internal OpenAPI/MCP server.",
+     "title": "User Url Allowed Hosts"
+    },
+    "user_url_validation": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Master switch for the SSRF guard applied to user-supplied URLs (image_url, file_url, MCP/OpenAPI spec URLs, etc). Defaults to True. Set to False to disable DNS/IP validation entirely (not recommended).",
+     "title": "User Url Validation"
+    }
+   },
+   "title": "ConfigGeneralSettings",
+   "type": "object"
+  },
+  "CoordinationRedisNode": {
+   "description": "A single startup node of a cluster-mode Redis used for proxy coordination.",
+   "properties": {
+    "host": {
+     "description": "hostname of the cluster node",
+     "title": "Host",
+     "type": "string"
+    },
+    "port": {
+     "description": "port of the cluster node",
+     "title": "Port",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "host",
+    "port"
+   ],
+   "title": "CoordinationRedisNode",
+   "type": "object"
+  },
+  "CoordinationRedisParams": {
+   "additionalProperties": true,
+   "description": "Connection params for the proxy's coordination Redis (cross-pod tpm/rpm rate\nlimits, spend tracking, pod lock manager, shared health checks), configured\nindependently of the response-cache backend in `litellm_settings.cache_params`.",
+   "properties": {
+    "aws_iam_auth": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "enable AWS ElastiCache IAM authentication",
+     "title": "Aws Iam Auth"
+    },
+    "aws_iam_cache_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "AWS ElastiCache cache name",
+     "title": "Aws Iam Cache Name"
+    },
+    "aws_iam_region": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "AWS region for ElastiCache IAM authentication",
+     "title": "Aws Iam Region"
+    },
+    "aws_iam_serverless": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "the ElastiCache cache is serverless rather than a self-designed cluster",
+     "title": "Aws Iam Serverless"
+    },
+    "aws_iam_user_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "AWS ElastiCache IAM user name",
+     "title": "Aws Iam User Name"
+    },
+    "host": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Redis hostname",
+     "title": "Host"
+    },
+    "password": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Redis password",
+     "title": "Password"
+    },
+    "port": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Redis port",
+     "title": "Port"
+    },
+    "sentinel_nodes": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "anyOf": [
+          {
+           "type": "string"
+          },
+          {
+           "type": "integer"
+          }
+         ]
+        },
+        "type": "array"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "sentinel [host, port] pairs; when set a sentinel-managed client is used",
+     "title": "Sentinel Nodes"
+    },
+    "sentinel_password": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "password for the sentinel nodes",
+     "title": "Sentinel Password"
+    },
+    "service_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "sentinel service name",
+     "title": "Service Name"
+    },
+    "ssl": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "connect over TLS",
+     "title": "Ssl"
+    },
+    "startup_nodes": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinationRedisNode"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "cluster-mode startup nodes; when set a cluster client is used",
+     "title": "Startup Nodes"
+    },
+    "url": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "full Redis connection url, e.g. redis://:pass@host:6379",
+     "title": "Url"
+    },
+    "username": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Redis username",
+     "title": "Username"
+    }
+   },
+   "title": "CoordinationRedisParams",
+   "type": "object"
+  },
+  "DynamoDBArgs": {
+   "properties": {
+    "assume_role_aws_role_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Assume Role Aws Role Name"
+    },
+    "assume_role_aws_session_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Assume Role Aws Session Name"
+    },
+    "aws_duration_seconds": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Aws Duration Seconds"
+    },
+    "aws_policy": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Aws Policy"
+    },
+    "aws_policy_arns": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Aws Policy Arns"
+    },
+    "aws_provider_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Aws Provider Id"
+    },
+    "aws_role_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Aws Role Name"
+    },
+    "aws_session_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Aws Session Name"
+    },
+    "aws_web_identity_token": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Aws Web Identity Token"
+    },
+    "billing_mode": {
+     "enum": [
+      "PROVISIONED_THROUGHPUT",
+      "PAY_PER_REQUEST"
+     ],
+     "title": "Billing Mode",
+     "type": "string"
+    },
+    "config_table_name": {
+     "default": "LiteLLM_Config",
+     "title": "Config Table Name",
+     "type": "string"
+    },
+    "key_table_name": {
+     "default": "LiteLLM_VerificationToken",
+     "title": "Key Table Name",
+     "type": "string"
+    },
+    "read_capacity_units": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Read Capacity Units"
+    },
+    "region_name": {
+     "title": "Region Name",
+     "type": "string"
+    },
+    "spend_table_name": {
+     "default": "LiteLLM_SpendLogs",
+     "title": "Spend Table Name",
+     "type": "string"
+    },
+    "ssl_verify": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Ssl Verify"
+    },
+    "user_table_name": {
+     "default": "LiteLLM_UserTable",
+     "title": "User Table Name",
+     "type": "string"
+    },
+    "write_capacity_units": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Write Capacity Units"
+    }
+   },
+   "required": [
+    "billing_mode",
+    "region_name"
+   ],
+   "title": "DynamoDBArgs",
+   "type": "object"
+  },
+  "KeyManagementSystem": {
+   "enum": [
+    "google_kms",
+    "azure_key_vault",
+    "aws_secret_manager",
+    "google_secret_manager",
+    "hashicorp_vault",
+    "cyberark",
+    "local",
+    "aws_kms",
+    "custom"
+   ],
+   "title": "KeyManagementSystem",
+   "type": "string"
+  },
+  "MCPAllowedClient": {
+   "description": "One entry of `general_settings.mcp_allowed_clients`.",
+   "properties": {
+    "alias": {
+     "description": "Human-readable name for this client application, shown in the dashboard and in gateway logs.",
+     "minLength": 1,
+     "title": "Alias",
+     "type": "string"
+    },
+    "value": {
+     "description": "Exact value of the JWT claim named in litellm_jwtauth.mcp_client_id_jwt_field, or of the mcp_client_id_header header, that identifies this client application. Matched case-sensitively.",
+     "minLength": 1,
+     "title": "Value",
+     "type": "string"
+    }
+   },
+   "required": [
+    "alias",
+    "value"
+   ],
+   "title": "MCPAllowedClient",
+   "type": "object"
+  },
+  "ModelInfo": {
+   "additionalProperties": true,
+   "properties": {
+    "base_model": {
+     "anyOf": [
+      {
+       "enum": [
+        "gpt-4-1106-preview",
+        "gpt-4-32k",
+        "gpt-4",
+        "gpt-3.5-turbo-16k",
+        "gpt-3.5-turbo",
+        "text-embedding-ada-002"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Base Model"
+    },
+    "id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Id"
+    },
+    "input_cost_per_token": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": 0.0,
+     "title": "Input Cost Per Token"
+    },
+    "max_tokens": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": 2048,
+     "title": "Max Tokens"
+    },
+    "mode": {
+     "anyOf": [
+      {
+       "enum": [
+        "embedding",
+        "chat",
+        "completion"
+       ],
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "title": "Mode"
+    },
+    "output_cost_per_token": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": 0.0,
+     "title": "Output Cost Per Token"
+    }
+   },
+   "required": [
+    "id",
+    "mode",
+    "base_model"
+   ],
+   "title": "ModelInfo",
+   "type": "object"
+  },
+  "ModelParams": {
+   "properties": {
+    "litellm_params": {
+     "additionalProperties": true,
+     "title": "Litellm Params",
+     "type": "object"
+    },
+    "model_info": {
+     "$ref": "#/$defs/ModelInfo"
+    },
+    "model_name": {
+     "title": "Model Name",
+     "type": "string"
+    }
+   },
+   "required": [
+    "model_name",
+    "litellm_params",
+    "model_info"
+   ],
+   "title": "ModelParams",
+   "type": "object"
+  },
+  "PassThroughGenericEndpoint": {
+   "properties": {
+    "auth": {
+     "default": true,
+     "description": "Whether authentication is required for the pass-through endpoint. Defaults to True so a pass-through silently created without an explicit value still requires a valid LiteLLM API key \u2014 set to False only if the endpoint is meant to be a public forwarder (e.g. an unauthenticated webhook target).",
+     "title": "Auth",
+     "type": "boolean"
+    },
+    "cost_per_request": {
+     "default": 0.0,
+     "description": "The USD cost per request to the target endpoint. This is used to calculate the cost of the request to the target endpoint.",
+     "title": "Cost Per Request",
+     "type": "number"
+    },
+    "default_query_params": {
+     "additionalProperties": true,
+     "default": {},
+     "description": "Key-value pairs of default query parameters to be sent with every request to this endpoint. These can be overridden by client-provided query parameters. For example: {'key': 'default_value', 'api_version': '2023-01'}",
+     "title": "Default Query Params",
+     "type": "object"
+    },
+    "guardrails": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/PassThroughGuardrailSettings"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Guardrails configuration for this passthrough endpoint. Dict keys are guardrail names, values are optional settings for field targeting. When set, all org/team/key level guardrails will also execute. Defaults to None (no guardrails execute).",
+     "title": "Guardrails"
+    },
+    "headers": {
+     "additionalProperties": true,
+     "default": {},
+     "description": "Key-value pairs of headers to be forwarded with the request. You can set any key value pair here and it will be forwarded to your target endpoint",
+     "title": "Headers",
+     "type": "object"
+    },
+    "id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Optional unique identifier for the pass-through endpoint. If not provided, endpoints will be identified by path for backwards compatibility.",
+     "title": "Id"
+    },
+    "include_subpath": {
+     "default": false,
+     "description": "If True, requests to subpaths of the path will be forwarded to the target endpoint. For example, if the path is /bria and include_subpath is True, requests to /bria/v1/text-to-image/base/2.3 will be forwarded to the target endpoint.",
+     "title": "Include Subpath",
+     "type": "boolean"
+    },
+    "is_from_config": {
+     "default": false,
+     "description": "True if this endpoint is defined in the config file, False if from DB. Config-defined endpoints cannot be edited via the UI.",
+     "title": "Is From Config",
+     "type": "boolean"
+    },
+    "methods": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "List of HTTP methods this endpoint handles (e.g., ['GET', 'POST']). If None or empty, all methods (GET, POST, PUT, DELETE, PATCH) are supported for backward compatibility. This allows the same path to have different targets for different HTTP methods.",
+     "title": "Methods"
+    },
+    "path": {
+     "description": "The route to be added to the LiteLLM Proxy Server.",
+     "title": "Path",
+     "type": "string"
+    },
+    "target": {
+     "description": "The URL to which requests for this path should be forwarded.",
+     "title": "Target",
+     "type": "string"
+    },
+    "timeout": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Upstream request timeout in seconds for this pass-through endpoint. If unset, uses general_settings.pass_through_request_timeout (default 600).",
+     "title": "Timeout"
+    }
+   },
+   "required": [
+    "path",
+    "target"
+   ],
+   "title": "PassThroughGenericEndpoint",
+   "type": "object"
+  },
+  "PassThroughGuardrailSettings": {
+   "description": "Settings for a specific guardrail on a passthrough endpoint.\n\nAllows field-level targeting for guardrail execution.",
+   "properties": {
+    "request_fields": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "JSONPath expressions for input field targeting (pre_call). Examples: 'query', 'documents[*].text', 'messages[*].content'. If not specified, guardrail runs on entire request payload.",
+     "title": "Request Fields"
+    },
+    "response_fields": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "JSONPath expressions for output field targeting (post_call). Examples: 'results[*].text', 'output'. If not specified, guardrail runs on entire response payload.",
+     "title": "Response Fields"
+    }
+   },
+   "title": "PassThroughGuardrailSettings",
+   "type": "object"
+  },
+  "PluginConfig": {
+   "description": "A single external service registered as an embeddable UI plugin.",
+   "properties": {
+    "display_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "human-readable label shown in the UI view switcher",
+     "title": "Display Name"
+    },
+    "name": {
+     "description": "unique plugin identifier (kebab-case)",
+     "title": "Name",
+     "type": "string"
+    },
+    "plugin_key": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "plugin's own credential, injected as Bearer auth only on /plugin-proxy/<name>/* reverse-proxy calls",
+     "title": "Plugin Key"
+    },
+    "url": {
+     "description": "base URL of the plugin service",
+     "title": "Url",
+     "type": "string"
+    }
+   },
+   "required": [
+    "name",
+    "url"
+   ],
+   "title": "PluginConfig",
+   "type": "object"
+  },
+  "RetryPolicy": {
+   "description": "Use this to set a custom number of retries per exception type\nIf RateLimitErrorRetries = 3, then 3 retries will be made for RateLimitError\nMapping of Exception type to number of retries\nhttps://docs.litellm.ai/docs/exception_mapping",
+   "properties": {
+    "AuthenticationErrorRetries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Authenticationerrorretries"
+    },
+    "BadRequestErrorRetries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Badrequesterrorretries"
+    },
+    "ContentPolicyViolationErrorRetries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Contentpolicyviolationerrorretries"
+    },
+    "DefaultRetries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Defaultretries"
+    },
+    "InternalServerErrorRetries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Internalservererrorretries"
+    },
+    "RateLimitErrorRetries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Ratelimiterrorretries"
+    },
+    "ServiceUnavailableErrorRetries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Serviceunavailableerrorretries"
+    },
+    "TimeoutErrorRetries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Timeouterrorretries"
+    }
+   },
+   "title": "RetryPolicy",
+   "type": "object"
+  },
+  "RoutingGroup": {
+   "description": "A group of models that share a routing strategy.",
+   "properties": {
+    "group_name": {
+     "title": "Group Name",
+     "type": "string"
+    },
+    "models": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Models",
+     "type": "array"
+    },
+    "routing_strategy": {
+     "title": "Routing Strategy",
+     "type": "string"
+    },
+    "routing_strategy_args": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Routing Strategy Args"
+    }
+   },
+   "required": [
+    "group_name",
+    "models",
+    "routing_strategy"
+   ],
+   "title": "RoutingGroup",
+   "type": "object"
+  },
+  "ScheduledJobStaggerSettings": {
+   "additionalProperties": false,
+   "description": "Spreads the proxy's scheduled background jobs across a window instead of firing them\nall on one instant, on every replica, forever.",
+   "properties": {
+    "enabled": {
+     "default": true,
+     "description": "apply deterministic phase offsets to scheduled background jobs",
+     "title": "Enabled",
+     "type": "boolean"
+    },
+    "identity": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "replaces the POD_NAME/HOSTNAME-derived component of the offset hash. Set this when replicas share a hostname and would otherwise land on the same offset",
+     "title": "Identity"
+    },
+    "offsets": {
+     "additionalProperties": {
+      "type": "integer"
+     },
+     "description": "explicit offset in seconds per scheduler job id, overriding the derived value. 0 pins a job to its unshifted schedule",
+     "title": "Offsets",
+     "type": "object"
+    },
+    "window_seconds": {
+     "default": 300,
+     "description": "width of the window jobs are spread over. An interval job is never offset by more than one of its own periods, so it is not delayed past the wait it already has",
+     "minimum": 0,
+     "title": "Window Seconds",
+     "type": "integer"
+    }
+   },
+   "title": "ScheduledJobStaggerSettings",
+   "type": "object"
+  },
+  "SupportedDBObjectType": {
+   "description": "Supported database object types for fine-grained DB storage control.\nUse in general_settings.supported_db_objects to specify which objects to load from DB.",
+   "enum": [
+    "models",
+    "mcp",
+    "guardrails",
+    "policies",
+    "vector_stores",
+    "pass_through_endpoints",
+    "prompts",
+    "model_cost_map",
+    "tools",
+    "config_overrides",
+    "websearch_interception_settings"
+   ],
+   "title": "SupportedDBObjectType",
+   "type": "string"
+  },
+  "UpdateRouterConfig": {
+   "description": "Set of params that you can modify via `router.update_settings()`.",
+   "properties": {
+    "allowed_fails": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Allowed Fails"
+    },
+    "context_window_fallbacks": {
+     "anyOf": [
+      {
+       "items": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Context Window Fallbacks"
+    },
+    "cooldown_time": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Cooldown Time"
+    },
+    "enable_tag_filtering": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Enable Tag Filtering"
+    },
+    "fallbacks": {
+     "anyOf": [
+      {
+       "items": {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Fallbacks"
+    },
+    "max_retries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Max Retries"
+    },
+    "model_group_affinity_config": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model Group Affinity Config"
+    },
+    "model_group_alias": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "additionalProperties": true,
+          "type": "object"
+         }
+        ]
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": {},
+     "title": "Model Group Alias"
+    },
+    "model_group_retry_policy": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "$ref": "#/$defs/RetryPolicy"
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model Group Retry Policy"
+    },
+    "num_retries": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Num Retries"
+    },
+    "optional_pre_call_checks": {
+     "anyOf": [
+      {
+       "items": {
+        "enum": [
+         "prompt_caching",
+         "router_budget_limiting",
+         "responses_api_deployment_check",
+         "deployment_affinity",
+         "session_affinity",
+         "forward_client_headers_by_model_group",
+         "enforce_model_rate_limits",
+         "encrypted_content_affinity"
+        ],
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Optional Pre Call Checks"
+    },
+    "retry_after": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Retry After"
+    },
+    "retry_policy": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/RetryPolicy"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "routing_groups": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/RoutingGroup"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Routing Groups"
+    },
+    "routing_strategy": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Routing Strategy"
+    },
+    "routing_strategy_args": {
+     "anyOf": [
+      {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Routing Strategy Args"
+    },
+    "tag_routing_prefix": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Tag Routing Prefix"
+    },
+    "timeout": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Timeout"
+    },
+    "weights": {
+     "anyOf": [
+      {
+       "patternProperties": {
+        "\\S": {
+         "patternProperties": {
+          "\\S": {
+           "minimum": 0,
+           "type": "number"
+          }
+         },
+         "propertyNames": {
+          "minLength": 1
+         },
+         "type": "object"
+        }
+       },
+       "propertyNames": {
+        "minLength": 1
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Weights"
+    }
+   },
+   "title": "UpdateRouterConfig",
+   "type": "object"
+  },
+  "UserHeaderMapping": {
+   "additionalProperties": false,
+   "description": "Map an incoming HTTP header to a LiteLLM user role.",
+   "properties": {
+    "header_name": {
+     "title": "Header Name",
+     "type": "string"
+    },
+    "litellm_user_role": {
+     "enum": [
+      "internal_user",
+      "customer"
+     ],
+     "title": "Litellm User Role",
+     "type": "string"
+    }
+   },
+   "required": [
+    "header_name",
+    "litellm_user_role"
+   ],
+   "title": "UserHeaderMapping",
+   "type": "object"
+  },
+  "WorkerRegistryEntry": {
+   "properties": {
+    "name": {
+     "title": "Name",
+     "type": "string"
+    },
+    "url": {
+     "title": "Url",
+     "type": "string"
+    },
+    "worker_id": {
+     "title": "Worker Id",
+     "type": "string"
+    }
+   },
+   "required": [
+    "worker_id",
+    "name",
+    "url"
+   ],
+   "title": "WorkerRegistryEntry",
+   "type": "object"
+  }
+ },
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "description": "Documents all the fields supported by the config.yaml",
+ "properties": {
+  "environment_variables": {
+   "anyOf": [
+    {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Object to pass in additional environment variables via POST request",
+   "title": "Environment Variables"
+  },
+  "general_settings": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/ConfigGeneralSettings"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null
+  },
+  "litellm_settings": {
+   "anyOf": [
+    {
+     "additionalProperties": true,
+     "type": "object"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "litellm Module settings. See __init__.py for all, example litellm.drop_params=True, litellm.set_verbose=True, litellm.api_base, litellm.cache",
+   "title": "Litellm Settings"
+  },
+  "model_list": {
+   "anyOf": [
+    {
+     "items": {
+      "$ref": "#/$defs/ModelParams"
+     },
+     "type": "array"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "List of supported models on the server, with model-specific configs",
+   "title": "Model List"
+  },
+  "router_settings": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/UpdateRouterConfig"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "litellm router object settings. See router.py __init__ for all, example router.num_retries=5, router.timeout=5, router.max_retries=5, router.retry_after=5"
+  },
+  "worker_registry": {
+   "anyOf": [
+    {
+     "items": {
+      "$ref": "#/$defs/WorkerRegistryEntry"
+     },
+     "type": "array"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Global Control Plane: the independent proxy instances this instance's admin UI manages. Setting it makes this a control plane, which serves the UI and does not route LLM requests. Enterprise-only",
+   "title": "Worker Registry"
+  }
+ },
+ "title": "ConfigYAML",
+ "type": "object"
+}

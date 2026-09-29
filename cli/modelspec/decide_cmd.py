@@ -292,6 +292,80 @@ def _why_not_lines(answer: Any) -> list[str]:
     return lines
 
 
+def _check_router_options(
+    base: dict[str, Any], router_format: str | None, out: Path | None,
+    include_rest: bool, include_thin: bool, *, as_json: bool, other: bool,
+) -> None:
+    from decision.router_config import FORMATS
+
+    def fail(message: str) -> None:
+        _fail(base | {"error": {"code": "router_config_usage", "message": message}},
+              [f"error: {message}"], as_json)
+
+    if router_format is None:
+        if out is not None or include_rest or include_thin:
+            fail("--out, --include-rest and --include-thin need --emit-router-config")
+        return
+    if router_format not in FORMATS:
+        fail(f"unknown router config format {router_format!r}; valid: {', '.join(FORMATS)}")
+    if other:
+        fail("--emit-router-config cannot be combined with --check, --compare-to or --why-not")
+    if as_json and out is None:
+        # stdout carries one document: --json keeps the decision, so the config needs --out.
+        fail("--emit-router-config with --json needs --out PATH")
+
+
+def _regenerate_command(spec_path: Path | None, template: str | None, router_format: str,
+                        include_rest: bool, include_thin: bool) -> str:
+    parts = ["modelspec", "decide"]
+    if spec_path is not None:
+        parts.append(str(spec_path))
+    if template is not None:
+        parts += ["--template", template]
+    parts += ["--emit-router-config", router_format]
+    parts += ["--include-rest"] if include_rest else []
+    parts += ["--include-thin"] if include_thin else []
+    return " ".join(parts)
+
+
+def _emit_router_config(
+    base: dict[str, Any], result: contract.Decision, router_format: str, out: Path | None,
+    include_rest: bool, include_thin: bool, *, as_json: bool,
+    spec_path: Path | None, template: str | None,
+) -> None:
+    from decision.router_config import EmptyAllowListError, listed, render
+
+    base = base | {"decision_id": result.decision_id, "snapshot": result.snapshot}
+    try:
+        text = render(
+            result, router_format,  # type: ignore[arg-type] - checked in _check_router_options
+            include_rest=include_rest, include_thin=include_thin,
+            command=_regenerate_command(spec_path, template, router_format,
+                                        include_rest, include_thin),
+        )
+    except EmptyAllowListError as exc:
+        _fail(base | {"error": {"code": exc.code, "message": str(exc)}},
+              [f"error: {exc}"], as_json)
+    rows = listed(result, include_rest=include_rest, include_thin=include_thin)
+    routes = sum(len(row.routes) for row in rows)
+    thin = sum(row.band == "thin" for row in rows)
+    note = (f"{router_format} router config: {len(rows)} model"
+            f"{'' if len(rows) == 1 else 's'}, {routes} route{'' if routes == 1 else 's'}")
+    if thin:
+        note += f", {thin} thin (not enough evidence yet)"
+    typer.echo("warning: replace every <...> placeholder with the router's own model ID "
+               "before use; this snapshot does not publish them", err=True)
+    if out is None:
+        typer.echo(text, nl=False)
+        return
+    try:
+        out.write_text(text, encoding="utf-8")
+    except OSError as exc:
+        _fail(base | {"error": {"code": "unwritable", "message": str(exc)}},
+              [f"error: cannot write {out}: {exc.strerror or exc}"], as_json)
+    typer.echo(f"wrote {note} to {out}", err=True)
+
+
 def decide(
     spec_path: Optional[Path] = typer.Argument(  # noqa: UP045 - Typer reads the annotation
         None, help="The optional spec, as YAML. Required without --template."
@@ -323,6 +397,23 @@ def decide(
         "--why-not",
         metavar="MODEL_ID",
         help="Say why one model failed a Must, may qualify, or ranked where it did.",
+    ),
+    router_format: Optional[str] = typer.Option(  # noqa: UP045 - Typer annotation
+        None,
+        "--emit-router-config",
+        metavar="FORMAT",
+        help="Write the best band as a router allow-list: litellm, openrouter or json.",
+    ),
+    out: Optional[Path] = typer.Option(  # noqa: UP045 - Typer annotation
+        None, "--out", help="Write the router config here instead of stdout."
+    ),
+    include_rest: bool = typer.Option(
+        False, "--include-rest",
+        help="Also list the rest band: the other models that passed every Must.",
+    ),
+    include_thin: bool = typer.Option(
+        False, "--include-thin",
+        help="Also list models with not enough evidence yet, labelled thin.",
     ),
 ) -> None:
     """Decide which model or offering fits a spec (the decision contract, v1)."""
@@ -387,6 +478,9 @@ def decide(
                   [f"error: {message}"], as_json)
         # Eliminated models are only listed at full; the answer needs them.
         spec = spec.model_copy(update={"explain": "full"})
+    _check_router_options(base, router_format, out, include_rest, include_thin,
+                          as_json=as_json, other=check or compare_to is not None
+                          or why_not is not None)
     template_warning = None
     if selected_template is not None and not selected_template.get("available", True):
         template_warning = selected_template.get("unavailable_reason") or (
@@ -494,6 +588,11 @@ def decide(
             [f"error: {exc}"],
             as_json,
         )
+    if router_format is not None:
+        _emit_router_config(base, result, router_format, out, include_rest, include_thin,
+                            as_json=as_json, spec_path=spec_path, template=template)
+        if out is None:
+            return
     if why_not is not None:
         from decision.why_not import why_not as answer_why_not
 

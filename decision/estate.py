@@ -255,18 +255,25 @@ def check(estate: Estate, snapshot: Any) -> None:
     """Refuse an id the vocabulary does not know, naming where it sits in the spec."""
     registry = default_registry()
     providers = {p.id for p in registry.providers()}
+    vendors = {v.id for v in registry.vendors()}
     plans = {plan["id"] for plan in snapshot.subscription_offerings()}
     devices = registry.allowed_values(registry.facet(FITS)) or frozenset()
     issues = []
     for field_name, noun, allowed in (
         ("providers", "provider", providers), ("plans", "plan", plans),
-        ("devices", "device", devices), ("exhausted", "provider or plan", providers | plans),
+        ("devices", "device", devices),
+        ("exhausted", "provider or plan", providers | vendors | plans),
     ):
         for index, value in enumerate(getattr(estate, field_name)):
-            if value not in allowed:
-                issues.append(Issue(
-                    None, f"estate.{field_name}", f"unknown {noun} ID: {value}",
-                    f"estate.{field_name}[{index}]"))
+            if value in allowed:
+                continue
+            message = f"unknown {noun} ID: {value}"
+            if field_name == "providers" and value in vendors:
+                # A subscription-only vendor has no pay-per-use key (MODEL-205).
+                message = (f"{value} sells subscription plans only, not pay-per-use: "
+                           "name its plan in estate.plans")
+            issues.append(Issue(
+                None, f"estate.{field_name}", message, f"estate.{field_name}[{index}]"))
     if issues:
         raise SpecError(issues)
 

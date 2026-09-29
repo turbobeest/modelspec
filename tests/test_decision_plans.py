@@ -330,10 +330,12 @@ def test_repository_plans_carry_sourced_plan_facts() -> None:
     from decision.registry import default
     from decision.sources import load_sources
 
+    vendors = {vendor.id for vendor in default().vendors()}  # MODEL-205 is new research
     plans = {
         plan.id: {fact.facet: fact for fact in plan.facts}
         for path in sorted((ROOT / "offerings" / "subscriptions").glob("*.yaml"))
         for plan in load_subscription_offerings(path, registry=default())
+        if plan.provider not in vendors
     }
     surfaces = plans[MAX]["offering.subscription.surfaces"]
     assert surfaces.value == ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"]

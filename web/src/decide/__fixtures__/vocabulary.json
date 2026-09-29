@@ -2453,6 +2453,11 @@
     "replicate": "Replicate",
     "openrouter": "OpenRouter"
   },
+  "vendors": {
+    "cursor": "Cursor",
+    "github-copilot": "GitHub Copilot",
+    "perplexity": "Perplexity"
+  },
   "estate": {
     "providers": [
       "ai21",

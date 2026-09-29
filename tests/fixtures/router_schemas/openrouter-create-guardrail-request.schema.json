@@ -1,0 +1,393 @@
+{
+ "$defs": {
+  "ContentFilterAction": {
+   "description": "Action taken when the pattern matches",
+   "enum": [
+    "redact",
+    "block",
+    "flag"
+   ],
+   "example": "block",
+   "type": "string",
+   "x-speakeasy-unknown-values": "allow"
+  },
+  "ContentFilterBuiltinAction": {
+   "description": "Action taken when the builtin filter triggers",
+   "enum": [
+    "redact",
+    "block",
+    "flag"
+   ],
+   "example": "block",
+   "type": "string",
+   "x-speakeasy-unknown-values": "allow"
+  },
+  "ContentFilterBuiltinEntryInput": {
+   "description": "A builtin content filter entry for create/update requests. Labels are system-assigned and cannot be set by the caller.",
+   "example": {
+    "action": "redact",
+    "slug": "email"
+   },
+   "properties": {
+    "action": {
+     "$ref": "#/$defs/ContentFilterBuiltinAction"
+    },
+    "label": {
+     "deprecated": true,
+     "description": "Deprecated: labels are system-assigned and cannot be set by the caller. Accepted for backward compatibility but silently ignored.",
+     "maxLength": 100,
+     "type": "string"
+    },
+    "scan_scope": {
+     "$ref": "#/$defs/PromptInjectionScanScope"
+    },
+    "slug": {
+     "$ref": "#/$defs/ContentFilterBuiltinSlug"
+    }
+   },
+   "required": [
+    "slug",
+    "action"
+   ],
+   "type": "object"
+  },
+  "ContentFilterBuiltinSlug": {
+   "description": "The builtin filter identifier",
+   "enum": [
+    "email",
+    "phone",
+    "ssn",
+    "credit-card",
+    "ip-address",
+    "secrets",
+    "person-name",
+    "address",
+    "regex-prompt-injection"
+   ],
+   "example": "regex-prompt-injection",
+   "type": "string",
+   "x-speakeasy-unknown-values": "allow"
+  },
+  "ContentFilterEntry": {
+   "description": "A custom regex content filter that scans request messages for matching patterns.",
+   "example": {
+    "action": "redact",
+    "label": "[API_KEY]",
+    "pattern": "\\b(sk-[a-zA-Z0-9]{48})\\b"
+   },
+   "properties": {
+    "action": {
+     "$ref": "#/$defs/ContentFilterAction"
+    },
+    "label": {
+     "description": "Optional label used in redaction placeholders or error messages",
+     "example": "[API_KEY]",
+     "maxLength": 100,
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "pattern": {
+     "description": "A regex pattern to match against request content",
+     "example": "\\b(sk-[a-zA-Z0-9]{48})\\b",
+     "minLength": 1,
+     "type": "string"
+    }
+   },
+   "required": [
+    "pattern",
+    "action"
+   ],
+   "type": "object"
+  },
+  "GuardrailDataRegion": {
+   "description": "An OpenRouter data region: `global` (https://openrouter.ai), `europe` (https://eu.openrouter.ai), or `us` (https://us.openrouter.ai)",
+   "enum": [
+    "global",
+    "europe",
+    "us"
+   ],
+   "example": "europe",
+   "type": "string",
+   "x-speakeasy-unknown-values": "allow"
+  },
+  "GuardrailInterval": {
+   "description": "Interval at which the limit resets (daily, weekly, monthly)",
+   "enum": [
+    "daily",
+    "weekly",
+    "monthly",
+    null
+   ],
+   "example": "monthly",
+   "type": [
+    "string",
+    "null"
+   ],
+   "x-speakeasy-unknown-values": "allow"
+  },
+  "PromptInjectionScanScope": {
+   "description": "Which message roles to scan for prompt injection. Only applies to the regex-prompt-injection builtin. Defaults to all_messages.",
+   "enum": [
+    "user_only",
+    "all_messages"
+   ],
+   "example": "user_only",
+   "type": "string",
+   "x-speakeasy-unknown-values": "allow"
+  }
+ },
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "example": {
+  "allowed_models": null,
+  "allowed_providers": [
+   "openai",
+   "anthropic",
+   "deepseek"
+  ],
+  "content_filter_builtins": [
+   {
+    "action": "block",
+    "slug": "regex-prompt-injection"
+   }
+  ],
+  "content_filters": null,
+  "description": "A guardrail for limiting API usage",
+  "enforce_zdr_anthropic": true,
+  "enforce_zdr_google": false,
+  "enforce_zdr_openai": true,
+  "enforce_zdr_other": false,
+  "enforce_zdr_xai": false,
+  "ignored_models": null,
+  "ignored_providers": null,
+  "limit_usd": 50,
+  "name": "My New Guardrail",
+  "reset_interval": "monthly"
+ },
+ "properties": {
+  "allowed_data_regions": {
+   "description": "Data regions through which requests governed by this guardrail must arrive. `global` is https://openrouter.ai, `europe` is https://eu.openrouter.ai, and `us` is https://us.openrouter.ai. Requests arriving through any other region are rejected. `null` leaves the ingress region unrestricted. When several guardrails apply (workspace default, member, API key), the effective regions are the intersection of every non-null value. An empty array is rejected.",
+   "example": [
+    "europe"
+   ],
+   "items": {
+    "$ref": "#/$defs/GuardrailDataRegion"
+   },
+   "minItems": 1,
+   "type": [
+    "array",
+    "null"
+   ]
+  },
+  "allowed_models": {
+   "description": "Array of model identifiers (slug or canonical_slug accepted)",
+   "example": [
+    "openai/gpt-5.2",
+    "anthropic/claude-4.5-opus-20251124",
+    "deepseek/deepseek-r1-0528:free"
+   ],
+   "items": {
+    "type": "string"
+   },
+   "minItems": 1,
+   "type": [
+    "array",
+    "null"
+   ]
+  },
+  "allowed_providers": {
+   "description": "List of allowed provider IDs",
+   "example": [
+    "openai",
+    "anthropic",
+    "deepseek"
+   ],
+   "items": {
+    "type": "string"
+   },
+   "minItems": 1,
+   "type": [
+    "array",
+    "null"
+   ]
+  },
+  "content_filter_builtins": {
+   "description": "Builtin content filters to apply. Every builtin slug supports \"block\", \"redact\", and the detect-only \"flag\" action.",
+   "example": [
+    {
+     "action": "block",
+     "slug": "regex-prompt-injection"
+    }
+   ],
+   "items": {
+    "$ref": "#/$defs/ContentFilterBuiltinEntryInput"
+   },
+   "type": [
+    "array",
+    "null"
+   ]
+  },
+  "content_filters": {
+   "description": "Custom regex content filters to apply to request messages",
+   "example": [
+    {
+     "action": "redact",
+     "label": "[API_KEY]",
+     "pattern": "\\b(sk-[a-zA-Z0-9]{48})\\b"
+    }
+   ],
+   "items": {
+    "$ref": "#/$defs/ContentFilterEntry"
+   },
+   "type": [
+    "array",
+    "null"
+   ]
+  },
+  "description": {
+   "description": "Description of the guardrail",
+   "example": "A guardrail for limiting API usage",
+   "maxLength": 1000,
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "enable_free_model_publication": {
+   "description": "Whether this guardrail allows free endpoints that publish prompts.",
+   "example": false,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "enable_free_model_training": {
+   "description": "Whether this guardrail allows free endpoints that train on request data.",
+   "example": true,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "enable_paid_model_training": {
+   "description": "Whether this guardrail allows paid endpoints that train on request data.",
+   "example": true,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "enforce_zdr": {
+   "deprecated": true,
+   "description": "Deprecated. Use enforce_zdr_anthropic, enforce_zdr_openai, enforce_zdr_google, enforce_zdr_xai, and enforce_zdr_other instead. When provided, its value is copied into any of those per-provider fields that are not explicitly specified on the request.",
+   "example": false,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "enforce_zdr_anthropic": {
+   "description": "Whether to enforce zero data retention for Anthropic models. Falls back to enforce_zdr when not provided.",
+   "example": false,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "enforce_zdr_google": {
+   "description": "Whether to enforce zero data retention for Google models. Falls back to enforce_zdr when not provided.",
+   "example": false,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "enforce_zdr_openai": {
+   "description": "Whether to enforce zero data retention for OpenAI models. Falls back to enforce_zdr when not provided.",
+   "example": false,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "enforce_zdr_other": {
+   "description": "Whether to enforce zero data retention for models that are not from Anthropic, OpenAI, Google, or xAI. Falls back to enforce_zdr when not provided.",
+   "example": false,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "enforce_zdr_xai": {
+   "description": "Whether to enforce zero data retention for xAI models. Falls back to enforce_zdr when not provided.",
+   "example": false,
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "ignored_models": {
+   "description": "Array of model identifiers to exclude from routing (slug or canonical_slug accepted)",
+   "example": [
+    "openai/gpt-4o-mini"
+   ],
+   "items": {
+    "type": "string"
+   },
+   "minItems": 1,
+   "type": [
+    "array",
+    "null"
+   ]
+  },
+  "ignored_providers": {
+   "description": "List of provider IDs to exclude from routing",
+   "example": [
+    "azure"
+   ],
+   "items": {
+    "type": "string"
+   },
+   "minItems": 1,
+   "type": [
+    "array",
+    "null"
+   ]
+  },
+  "include_byok_in_budgets": {
+   "description": "Whether BYOK (bring-your-own-key) inference spend counts toward this guardrail's limit_usd, in addition to OpenRouter credit spend. Defaults to false.",
+   "example": false,
+   "type": "boolean"
+  },
+  "limit_usd": {
+   "description": "Spending limit in USD. Must be provided together with `reset_interval`: a request that sets only one of the two is rejected with a 400.",
+   "example": 50,
+   "format": "double",
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "name": {
+   "description": "Name for the new guardrail",
+   "example": "My New Guardrail",
+   "maxLength": 200,
+   "minLength": 1,
+   "type": "string"
+  },
+  "reset_interval": {
+   "$ref": "#/$defs/GuardrailInterval"
+  },
+  "workspace_id": {
+   "description": "The workspace to create the guardrail in. When omitted, the guardrail is created in the default workspace; if that default has been deleted, the request returns a 400 and you must pass `workspace_id` explicitly. This only places the guardrail in the workspace; the created guardrail enforces nothing for that workspace's traffic until it is assigned to API keys or members. To restrict all traffic in a workspace, update the workspace's default guardrail instead.",
+   "example": "0df9e665-d932-5740-b2c7-b52af166bc11",
+   "format": "uuid",
+   "type": "string"
+  }
+ },
+ "required": [
+  "name"
+ ],
+ "type": "object"
+}

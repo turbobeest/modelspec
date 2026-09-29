@@ -5,8 +5,10 @@
 # `schema/card.py`; `v1_availability_field` names the field each entry takes
 # over, so the offerings migration (MODEL-134) can be checked, not guessed.
 # App-only platforms (consumer chat apps, IDEs, aggregating chat apps) are not
-# providers of offerings and are kept out (design §4.1, "Consumer chat apps are
-# out of scope for now").
+# providers of offerings and are kept out of `providers` (design §4.1,
+# "Consumer chat apps are out of scope for now"). Those that sell subscription
+# plans covering labs' models are listed under `subscription_vendors` below
+# (MODEL-205).
 #
 # Adding a provider is an entry here. Loader: decision/registry.py.
 #
@@ -352,3 +354,32 @@ providers:
       source: https://openrouter.ai/terms
       read: "2026-09-24"
     attestations: {soc2: unknown, iso_27001: unknown}
+
+# ── Subscription-only vendors (MODEL-205) ───────────────────────────────────
+#
+# A subscription-only vendor sells plans (offerings/subscriptions/<id>.yaml)
+# and nothing else. It is never an inference provider: it owns no metered
+# offering, a spec's `estate.providers` refuses it, and it never appears as a
+# pay-per-use route. Its plans reach the lab models they are documented to
+# cover, through the surfaces they name, usually its own tool
+# (`coding_tool:<harness>`, registered in harnesses.yaml).
+#
+# This is a list of its own rather than a fifth `kind` above, so the closed
+# `kind` range of v1 of this document does not widen.
+#
+# Entry fields
+#   id         kebab-case, unique across `providers` and this list; used in plan
+#              paths (offerings/subscriptions/<id>.yaml)
+#   name, url  as the vendor names itself; its home page
+#   note       optional
+
+subscription_vendors:
+  - id: cursor
+    name: Cursor
+    url: https://cursor.com/
+  - id: github-copilot
+    name: GitHub Copilot
+    url: https://github.com/features/copilot
+  - id: perplexity
+    name: Perplexity
+    url: https://www.perplexity.ai/

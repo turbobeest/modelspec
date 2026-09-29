@@ -113,36 +113,40 @@ class RuleSet:
     drop_furniture: bool = True
     strip_volatile: bool = True
     strip_tracking: bool = True
+    #: Render ``<svg role="img" aria-label="…">`` as its label rather than dropping
+    #: it, for pages whose table cells are icons (GitHub Docs' "Included").
+    label_icons: bool = False
 
+
+_HTML_DROP_TAGS = frozenset(
+    {
+        "head",
+        "script",
+        "style",
+        "noscript",
+        "template",
+        "iframe",
+        "svg",
+        "canvas",
+        "nav",
+        "aside",
+        "form",
+        "button",
+        "dialog",
+        "link",
+        "meta",
+        "object",
+        "embed",
+    }
+)
 
 NORMALISERS: dict[str, RuleSet] = {
     rules.name: rules
     for rules in (
-        RuleSet(
-            "html-default",
-            "html",
-            drop_tags=frozenset(
-                {
-                    "head",
-                    "script",
-                    "style",
-                    "noscript",
-                    "template",
-                    "iframe",
-                    "svg",
-                    "canvas",
-                    "nav",
-                    "aside",
-                    "form",
-                    "button",
-                    "dialog",
-                    "link",
-                    "meta",
-                    "object",
-                    "embed",
-                }
-            ),
-        ),
+        RuleSet("html-default", "html", drop_tags=_HTML_DROP_TAGS),
+        # MODEL-205: a copy's fingerprint depends on its rules, so icon labels are a
+        # recipe of their own; html-default's text, and every source's, is unchanged.
+        RuleSet("html-icon-labels", "html", drop_tags=_HTML_DROP_TAGS, label_icons=True),
         RuleSet("text-default", "text"),
     )
 }
@@ -400,10 +404,20 @@ def _is_furniture(node: Node, rules: RuleSet) -> bool:
     return False
 
 
+def _icon_label(node: Node) -> str | None:
+    if node.tag == "svg" and node.attrs.get("role", "").lower() == "img":
+        return node.attrs.get("aria-label") or None
+    return None
+
+
 def _prune(node: Node, rules: RuleSet) -> None:
     kept: list[Node | str] = []
     for child in node.children:
         if isinstance(child, Node):
+            label = _icon_label(child) if rules.label_icons else None
+            if label is not None:
+                kept.append(label)
+                continue
             if _is_furniture(child, rules):
                 continue
             _prune(child, rules)

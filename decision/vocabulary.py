@@ -556,6 +556,9 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         "refinements": refinements,
         "models": _model_rows(view, cards or {}),
         "providers": {p.id: p.name for p in registry.providers()},
+        # Subscription-only vendors (MODEL-205): they name plans, never a
+        # pay-per-use account, so they are kept out of ``providers``.
+        "vendors": {v.id: v.name for v in registry.vendors()},
         "estate": _estate_ids(snapshot, registry),
         "coverage": coverage,
         "template_categories": catalogue["categories"],
