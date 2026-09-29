@@ -1833,3 +1833,162 @@ def test_unknown_model_names_are_dropped_only_for_models_covered() -> None:
                                   cited_regions=["page"]),),
     )
     assert verify.compare(claim, [verify.Reading("M", "GPT-6 Sol, Not A Catalogued Model")]) != []
+
+
+# ── MODEL-205: the subscription-only vendors' plan pages ──────────────────
+
+VENDOR_POOLS = """Models & Pricing
+Cursor supports frontier models from OpenAI and more. Pro, Pro Plus, and Ultra include two usage pools so you can pick.
+There are two separate usage pools, each resetting with your monthly billing cycle:
+Cursor Models
+The Cursor Models pool includes Grok 4.7, Grok 4.6, and Composer 2.5.
+Name | | | |
+Grok 4.7 (Fast) | $ 4 | - | $ 1 | $ 12
+Other Models
+When you select a specific third-party model, usage is drawn from the Other Models pool.
+Name | | | |
+Claude Opus 5.5 | $ 4 | $ 5 | $ 0.2 | $ 20
+Gemini 3.1 Pro | $ 2 | - | $ 0.2 | $ 12
+Plans
+Pro, Pro Plus, and Ultra include unlimited tab completions and access to Cloud Agents. Start covers the Cursor Models pool.
+Plan | Price | Cursor Models | Other Models
+Start (India only) | ₹649/mo | Included | Not included
+Pro | $20/mo | Included | Included
+"""
+POOL_MODELS = ["anthropic/claude-opus-5-5", "xai/grok-4-6", "xai/grok-4-7"]
+
+
+@pytest.mark.parametrize(("field", "value", "names"), [
+    ("offering.subscription.models_covered", POOL_MODELS, ("Cursor Pro", "Pro")),
+    ("offering.subscription.usage_allowance",
+     "There are two separate usage pools, each resetting with your monthly billing cycle",
+     ("Cursor Pro", "Pro")),
+    ("offering.subscription.programmatic_or_agent_use",
+     "Pro, Pro Plus, and Ultra include unlimited tab completions and access to Cloud Agents.",
+     ("Cursor Ultra", "Ultra")),
+    ("offering.subscription.surfaces", ["coding_tool:cursor"], ("Cursor Pro", "Pro")),
+])
+def test_subscription_page_reads_a_vendors_pools_and_plan_list(field, value, names) -> None:
+    claim = _plan_claim(field, value, names, subject="cursor/subscription/pro")
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, VENDOR_POOLS)
+
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(("field", "value", "names"), [
+    # Start's "Other Models" cell is "Not included".
+    ("offering.subscription.models_covered", POOL_MODELS, ("Cursor Start", "Start")),
+    # A pool model missing from the claim.
+    ("offering.subscription.models_covered", POOL_MODELS[1:], ("Cursor Pro", "Pro")),
+    # "Cursor Models" names a pool, not the editor; the Plans paragraph says nothing
+    # about where Ultra works, and Start is in no plan list.
+    ("offering.subscription.surfaces", ["coding_tool:cursor"], ("Cursor Start", "Start")),
+])
+def test_subscription_page_vendor_layouts_reject_a_sibling_or_a_wrong_set(
+        field, value, names) -> None:
+    claim = _plan_claim(field, value, names, subject="cursor/subscription/start")
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, VENDOR_POOLS)
+
+    assert verify.compare(claim, readings) != []
+
+
+COPILOT_PLANS = """GitHub Copilot plans
+Copilot plans overview
+The table below provides an overview of differences between plans. All plans include Copilot CLI and Copilot app.
+Plan | Price per month | Base credits | Flex allotment | Total monthly AI credits
+Copilot Pro | $10 USD | 1,000 | 500 | 1,500
+Copilot Pro+ | $39 USD | 3,900 | 3,100 | 7,000
+Models
+Available models | Copilot Pro | Copilot Pro+
+Claude Haiku 4.5 | Included | Included
+Claude Opus 5.5 | Not included | Included
+GPT-6 Sol | Not included | Included
+"""
+
+
+@pytest.mark.parametrize(("field", "value", "names"), [
+    ("offering.subscription.models_covered", ["anthropic/claude-haiku-4-5-20251001"],
+     ("GitHub Copilot Pro", "Copilot Pro")),
+    ("offering.subscription.models_covered",
+     ["anthropic/claude-haiku-4-5-20251001", "anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
+     ("GitHub Copilot Pro+", "Copilot Pro+")),
+    ("offering.subscription.usage_allowance", "Total monthly AI credits: 1,500",
+     ("GitHub Copilot Pro", "Copilot Pro")),
+    ("offering.subscription.billing_period", "monthly", ("GitHub Copilot Pro", "Copilot Pro")),
+    ("offering.subscription.programmatic_or_agent_use",
+     "All plans include Copilot CLI and Copilot app.", ("GitHub Copilot Pro", "Copilot Pro")),
+    ("offering.subscription.surfaces", ["coding_tool:copilot-cli"],
+     ("GitHub Copilot Pro", "Copilot Pro")),
+])
+def test_subscription_page_reads_an_icon_column_and_a_plan_row(field, value, names) -> None:
+    claim = _plan_claim(field, value, names, subject="github-copilot/subscription/pro")
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, COPILOT_PLANS)
+
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    # Pro+'s models and credits never confirm Pro: "Copilot Pro+" is not "Copilot Pro".
+    ("offering.subscription.models_covered",
+     ["anthropic/claude-haiku-4-5-20251001", "anthropic/claude-opus-5-5", "openai/gpt-6-sol"]),
+    ("offering.subscription.usage_allowance", "Total monthly AI credits: 7,000"),
+])
+def test_subscription_page_icon_column_rejects_a_siblings_values(field, value) -> None:
+    claim = _plan_claim(field, value, ("GitHub Copilot Pro", "Copilot Pro"),
+                        subject="github-copilot/subscription/pro")
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, COPILOT_PLANS)
+
+    assert verify.compare(claim, readings) != []
+
+
+PLAN_CARDS = """Choose your plan
+Advanced answers and top AI models
+$17
+/month when billed annually
+Expanded Computer access
+4,000 bonus credits
+Get Pro
+Unlimited usage and top performance
+$167
+/month when billed annually
+10,000 monthly credits
+Get Max
+What models do I get access to?
+Pro includes GPT-5.6 Terra, Claude Sonnet 5, Grok 4.1, and Perplexity's in-house Sonar 2 model.
+"""
+
+
+def test_subscription_page_reads_a_card_ending_in_get_plan_and_a_plan_includes_sentence():
+    pro = ("Perplexity Pro", "Pro")
+    allowance = _plan_claim("offering.subscription.usage_allowance", "4,000 bonus credits", pro)
+    sibling = _plan_claim("offering.subscription.usage_allowance", "10,000 monthly credits", pro)
+    models = _plan_claim("offering.subscription.models_covered",
+                         ["anthropic/claude-sonnet-5", "openai/gpt-5-6-terra"], pro)
+    extractor = verify.SubscriptionPageExtractor()
+
+    assert verify.compare(allowance, extractor.extract(allowance, PLAN_CARDS)) == []
+    assert verify.compare(sibling, extractor.extract(sibling, PLAN_CARDS)) != []
+    assert verify.compare(models, extractor.extract(models, PLAN_CARDS)) == []
+
+
+def test_a_card_without_its_own_price_never_borrows_the_card_before_it() -> None:
+    page = PLAN_CARDS.replace("What models do I get access to?",
+                              "For your organisation\nContact us for pricing\nGet Team\n"
+                              "What models do I get access to?")
+    claim = _plan_claim("offering.subscription.usage_allowance", "10,000 monthly credits",
+                        ("Perplexity Team", "Team"))
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) != []
+
+
+def test_a_name_on_two_cards_is_the_card_so_named_and_a_literal_id_is_that_id() -> None:
+    # "Claude Haiku 4.5" is the dated card's display name and the alias card's ID stem.
+    assert verify._catalogue_model_matches("Claude Haiku 4.5") == {
+        "anthropic/claude-haiku-4-5-20251001"}
+    assert verify._catalogue_model_matches("claude-haiku-4-5") == {"anthropic/claude-haiku-4-5"}

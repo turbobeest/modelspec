@@ -124,7 +124,6 @@ CURSOR_DOCS = "model-205-cursor-models-and-pricing"
 CURSOR_PAGE = "model-205-cursor-pricing"
 COPILOT = "model-205-github-copilot-plans"
 PPLX = "model-205-perplexity-pro"
-PPLX_HELP = "model-205-perplexity-pro-help"
 
 #: "Cursor Models" (Grok 4.7, 4.6, 4.5; Composer 2.5 has no card) and the "Other
 #: Models" pricing table (Gemini 3.1 Pro has only a Preview card, so it is out).
@@ -144,10 +143,10 @@ CURSOR_INDIVIDUAL = {
                   CURSOR_DOCS),
     SURFACES: known(["coding_tool:cursor"], CURSOR_DOCS),
 }
+#: No sentence ties a Teams seat to where it works, so its surfaces stay unknown.
 CURSOR_TEAMS = {
     MODELS: undisclosed(CURSOR_DOCS),
     ACCESS: known("Cloud agents and automations with shared team context", CURSOR_PAGE),
-    SURFACES: known(["coding_tool:cursor"], CURSOR_DOCS),
 }
 
 #: GitHub's "Available models" rows, by plan column, where the cell is "Included".
@@ -180,7 +179,9 @@ COPILOT_COMMON = {
 
 
 def _copilot(plan: str, name: str, price: int, allowance: str, note: str | None = None) -> dict:
+    # The page names each plan "Copilot Pro", "Copilot Pro+", ...
     return {"provider": "github-copilot", "plan": plan, "name": name, "note": note,
+            "names": [name.removeprefix("GitHub ")],
             PRICE: known(price, COPILOT), PERIOD: known("monthly", COPILOT),
             MODELS: known(COPILOT_COVERED[plan], COPILOT),
             ALLOWANCE: known(allowance, COPILOT), **COPILOT_COMMON}
@@ -188,11 +189,11 @@ def _copilot(plan: str, name: str, price: int, allowance: str, note: str | None 
 
 PLANS: list[dict[str, Any]] = [
     # ── Cursor ───────────────────────────────────────────────────────────────
-    {"provider": "cursor", "plan": "pro", "name": "Cursor Pro",
+    {"provider": "cursor", "plan": "pro", "name": "Cursor Pro", "names": ["Pro"],
      PRICE: known(20, CURSOR_DOCS), PERIOD: known("monthly", CURSOR_DOCS), **CURSOR_INDIVIDUAL},
-    {"provider": "cursor", "plan": "pro-plus", "name": "Cursor Pro Plus", "names": ["Pro+"],
+    {"provider": "cursor", "plan": "pro-plus", "name": "Cursor Pro Plus", "names": ["Pro Plus", "Pro+"],
      PRICE: known(60, CURSOR_DOCS), PERIOD: known("monthly", CURSOR_DOCS), **CURSOR_INDIVIDUAL},
-    {"provider": "cursor", "plan": "ultra", "name": "Cursor Ultra",
+    {"provider": "cursor", "plan": "ultra", "name": "Cursor Ultra", "names": ["Ultra"],
      PRICE: known(200, CURSOR_DOCS), PERIOD: known("monthly", CURSOR_DOCS), **CURSOR_INDIVIDUAL},
     {"provider": "cursor", "plan": "teams-standard", "name": "Cursor Teams (Standard seat)",
      "names": ["Standard", "Teams"],
@@ -210,20 +211,21 @@ PLANS: list[dict[str, Any]] = [
      MULTIPLIER: known(5, CURSOR_DOCS), **CURSOR_TEAMS},
     # ── GitHub Copilot ───────────────────────────────────────────────────────
     _copilot("pro", "GitHub Copilot Pro", 10,
-             "1,500 total monthly AI credits (1,000 base, 500 flex allotment)",
+             "Total monthly AI credits: 1,500",
              "Free for some users (verified teachers, maintainers of popular open source "
              "projects)."),
     _copilot("pro-plus", "GitHub Copilot Pro+", 39,
-             "7,000 total monthly AI credits (3,900 base, 3,100 flex allotment)"),
+             "Total monthly AI credits: 7,000"),
     _copilot("max", "GitHub Copilot Max", 100,
-             "20,000 total monthly AI credits (10,000 base, 10,000 flex allotment)"),
-    _copilot("business", "GitHub Copilot Business", 19, "1,900 GitHub AI Credits per user per month",
+             "Total monthly AI credits: 20,000"),
+    _copilot("business", "GitHub Copilot Business", 19,
+             "GitHub AI Credits per user per month: 1,900",
              "Per granted seat."),
     _copilot("enterprise", "GitHub Copilot Enterprise", 39,
-             "3,900 GitHub AI Credits per user per month",
+             "GitHub AI Credits per user per month: 3,900",
              "Per granted seat; requires GitHub Enterprise Cloud."),
     # ── Perplexity ───────────────────────────────────────────────────────────
-    {"provider": "perplexity", "plan": "pro", "name": "Perplexity Pro",
+    {"provider": "perplexity", "plan": "pro", "name": "Perplexity Pro", "names": ["Pro"],
      "note": "The page gives only '$17 /month when billed annually', a monthly equivalent of an "
              "annual price, so the billed amount and period stay unknown. Its FAQ names GPT-5.6 "
              "Terra and Claude Sonnet 5; the help article (last modified 2026-09-03) names older "
@@ -231,15 +233,13 @@ PLANS: list[dict[str, Any]] = [
      PRICE: unread(PPLX), PERIOD: unread(PPLX),
      MODELS: known(["anthropic/claude-sonnet-5", "openai/gpt-5-6-terra"], PPLX),
      ALLOWANCE: known("4,000 bonus credits", PPLX),
-     ACCESS: known("Expanded Computer access", PPLX),
-     SURFACES: known(["chat_app"], PPLX_HELP)},
-    {"provider": "perplexity", "plan": "max", "name": "Perplexity Max",
+     ACCESS: known("Expanded Computer access", PPLX)},
+    {"provider": "perplexity", "plan": "max", "name": "Perplexity Max", "names": ["Max"],
      "note": "The page gives only '$167 /month when billed annually'; see Perplexity Pro.",
      PRICE: unread(PPLX), PERIOD: unread(PPLX),
      MODELS: undisclosed(PPLX),
-     ALLOWANCE: known("35,000 bonus credits; 10,000 monthly credits", PPLX),
-     ACCESS: known("Maximum Computer usage", PPLX),
-     SURFACES: known(["chat_app"], PPLX_HELP)},
+     ALLOWANCE: known("10,000 monthly credits", PPLX),
+     ACCESS: known("Maximum Computer usage", PPLX)},
 ]
 
 HEADER = ("# MODEL-205. Primary sources read 2026-09-29; {vendor} is a subscription-only vendor\n"

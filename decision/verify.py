@@ -805,7 +805,8 @@ class SubscriptionPageExtractor:
         if not claim.field.startswith("offering.subscription."):
             raise ExtractorError("not a subscription claim")
         readings = self._page_layouts(claim, text)
-        for more in (_plan_cards(claim, text), _plan_facts(claim, text)):
+        for more in (_plan_cards(claim, text), _plan_facts(claim, text),
+                     _vendor_layouts(claim, text)):
             readings += [r for r in more if r not in readings]
         return readings
 
@@ -1346,7 +1347,160 @@ _SURFACE_WORDS = (
     (re.compile(r"\b(?:mobile|iOS|Android)\b", re.IGNORECASE), "mobile_app"),
     (re.compile(r"\bClaude Code\b"), "coding_tool:claude-code"),
     (re.compile(r"\bCodex\b.*\bCLI\b|\bCLI\b.*\bCodex\b"), "coding_tool:codex-cli"),
+    (re.compile(r"\bCopilot CLI\b"), "coding_tool:copilot-cli"),  # MODEL-205
 )
+#: Read only in a paragraph that opens with the plan's own list sentence
+#: (``_vendor_layouts``): other providers' pages name Cursor as a place their own
+#: tool runs ("VS Code, Cursor and other VS Code forks"), which is not a surface.
+#: "Cursor Models" and the like are not the editor.
+_VENDOR_SURFACE_WORDS = (
+    *_SURFACE_WORDS,
+    (re.compile(r"\bCursor\b(?!\s+(?:Models|Token|Router|SDK|CLI|for\s+iOS))"),
+     "coding_tool:cursor"),
+)
+
+
+#: A sentence that opens with a list of plans and "include(s)": "Pro, Pro Plus, and
+#: Ultra include unlimited tab completions", "Pro includes GPT-5.6 Terra, ...".
+_LISTED_PLANS = re.compile(
+    r"^(?P<plans>[A-Z][^.:;]{0,80}?)\s+(?:also\s+)?includes?\s+(?P<rest>.+?)\.?$")
+
+
+def _listed_plan_sentences(claim: Claim, lines: list[str]) -> list[tuple[str, str, str]]:
+    """(paragraph, sentence, what the plans include) for each sentence whose opening
+    list of plans names the claim's plan exactly ("Pro" is not "Pro+")."""
+    names = {name.casefold() for name in claim.names}
+    out = []
+    for line in lines:
+        for sentence in _sentences(line):
+            m = _LISTED_PLANS.match(sentence)
+            if not m:
+                continue
+            plans = [p.strip() for p in re.split(r",\s*(?:and\s+)?|\s+and\s+", m.group("plans"))
+                     if p.strip()]
+            if all(len(p.split()) <= 3 for p in plans) and any(p.casefold() in names for p in plans):
+                out.append((line, sentence, m.group("rest")))
+    return out
+
+
+def _pool_models(pool: str, lines: list[str]) -> list[str]:
+    """The models a usage pool covers: those "The <pool> pool includes ..." names, and
+    the rows of the first table after a heading that is the pool's name."""
+    out: list[str] = []
+    named = re.compile(rf"^The {re.escape(pool)} pool includes (.+?)\.?$", re.IGNORECASE)
+    for line in lines:
+        for sentence in _sentences(line):
+            if m := named.match(sentence):
+                out += [s.strip() for s in re.split(r",|\band\b", m.group(1)) if s.strip()]
+    for i, line in enumerate(lines):
+        if line.casefold() != pool.casefold():
+            continue
+        rows: list[str] = []
+        for later in lines[i + 1:]:
+            if "|" in later:
+                rows.append(later.split("|", 1)[0].strip())
+            elif rows:
+                break
+        out += [row for row in rows if normalise_name(row) not in {"", "name"}]
+        break
+    return out
+
+
+def _vendor_layouts(claim: Claim, text: str) -> list[Reading]:
+    """The layouts of the subscription-only vendors' plan pages (MODEL-205).
+
+    * a sentence opening with a list of plans and "include(s)": what follows is what
+      those plans include (models, allowance, agent use), and the surfaces its
+      paragraph names are where they work;
+    * a plan-column table whose cells are "Included" or "Not included" (GitHub
+      Docs, read with the ``html-icon-labels`` normaliser): the rows the plan's
+      column includes are the models it covers;
+    * a plan's row in a table: each cell is read with its column heading
+      ("Total monthly AI credits: 1,500"), and a price "per month" is monthly;
+    * a plan table whose pool columns say "Included" (Cursor's "Cursor Models",
+      "Other Models"): the plan covers each included pool's models;
+    * a plan card ending in "Get <plan>": the lines after its price are its features.
+
+    Plan names are matched exactly, case aside, so a sibling ("Copilot Pro+" beside
+    "Copilot Pro") never confirms the claim's plan.
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    names = {name.casefold() for name in claim.names}
+    subject, field = claim.names[0], claim.field
+    models = field == "offering.subscription.models_covered"
+    wording = field in {"offering.subscription.usage_allowance",
+                        "offering.subscription.programmatic_or_agent_use"}
+    readings: list[Reading] = []
+
+    for paragraph, sentence, rest in _listed_plan_sentences(claim, lines):
+        if models:
+            readings.append(Reading(subject=subject, value=rest))
+        if wording:
+            readings.append(Reading(subject=subject, value=sentence))
+        if field == "offering.subscription.surfaces":
+            found = sorted({s for word, s in _VENDOR_SURFACE_WORDS if word.search(paragraph)})
+            if found:
+                readings.append(Reading(subject=subject, value=", ".join(found)))
+    if field == "offering.subscription.programmatic_or_agent_use":
+        readings += [Reading(subject=subject, value=s) for line in lines
+                     for s in _sentences(line) if re.match(r"(?i)^all plans include\b", s)]
+
+    tables: list[list[list[str]]] = []
+    current: list[list[str]] = []
+    for line in [*lines, ""]:
+        if "|" in line:
+            current.append([cell.strip() for cell in line.split("|")])
+        elif current:
+            tables.append(current)
+            current = []
+    for table in tables:
+        header, rows = table[0], table[1:]
+        if models:
+            for j in (j for j, cell in enumerate(header) if cell.casefold() in names):
+                cells = [normalise_name(row[j]) for row in rows if j < len(row)]
+                if cells and set(cells) <= {"included", "not included"}:
+                    included = [row[0] for row in rows
+                                if j < len(row) and normalise_name(row[j]) == "included"]
+                    readings.append(Reading(subject=subject, value=", ".join(included)))
+        for row in rows:
+            if not row or row[0].casefold() not in names:
+                continue
+            pairs = [(h, c) for h, c in zip(header[1:], row[1:]) if h and c]
+            if field == "offering.subscription.usage_allowance":
+                readings += [Reading(subject=subject, value=f"{h}: {c}") for h, c in pairs]
+            if field == "offering.subscription.billing_period" and any(
+                    re.search(r"[$¥]\s?[0-9]", c)
+                    and re.search(r"(?i)\bper (?:\w+ ){0,3}month\b|/\s*mo\b", f"{h} {c}")
+                    for h, c in pairs):
+                readings.append(Reading(subject=subject, value="monthly"))
+            if normalise_name(header[0]) == "plan":
+                pools = [h for h, c in pairs if normalise_name(c) == "included"]
+                covered = [m for pool in pools for m in _pool_models(pool, lines)]
+                if models and covered:
+                    readings.append(Reading(subject=subject,
+                                            value=", ".join(dict.fromkeys(covered))))
+                if field == "offering.subscription.usage_allowance" and pools:
+                    readings += [Reading(subject=subject, value=s) for line in lines
+                                 for s in _sentences(line) if "usage pools" in s.casefold()]
+
+    if wording:
+        for i, line in enumerate(lines):
+            if line.casefold() not in {f"get {name}" for name in names}:
+                continue
+            # The card's own price: walking back past another card's "Get ..." line
+            # would borrow that card's price and features, so a card with no price of
+            # its own gives no reading.
+            price = None
+            for j in range(i - 1, max(-1, i - 25), -1):
+                if re.search(r"[$¥]\s?[0-9]", lines[j]):
+                    price = j
+                    break
+                if re.match(r"(?i)^get \S", lines[j]):
+                    break
+            if price is not None:
+                readings += [Reading(subject=subject, value=later)
+                             for later in lines[price + 1:i]]
+    return readings
 
 
 def _plan_facts(claim: Claim, text: str) -> list[Reading]:
@@ -1989,7 +2143,19 @@ def _show(claim: Claim) -> JsonValue:
 @cache
 def _catalogue_model_aliases() -> Mapping[str, frozenset[str]]:
     """Canonical model IDs indexed by names published on their cards."""
+    return _catalogue_model_index()[0]
+
+
+@cache
+def _catalogue_display_names() -> Mapping[str, frozenset[str]]:
+    """Canonical model IDs indexed by their cards' display names only."""
+    return _catalogue_model_index()[1]
+
+
+@cache
+def _catalogue_model_index() -> tuple[Mapping[str, frozenset[str]], Mapping[str, frozenset[str]]]:
     aliases: dict[str, set[str]] = {}
+    display: dict[str, set[str]] = {}
     for path in (REPO_ROOT / "models").rglob("*.md"):
         model_id = display_name = None
         with path.open(encoding="utf-8", errors="replace") as card:
@@ -2005,12 +2171,28 @@ def _catalogue_model_aliases() -> Mapping[str, frozenset[str]]:
         for alias in (model_id, model_id.rsplit("/", 1)[-1], display_name):
             if alias:
                 aliases.setdefault(normalise_name(alias), set()).add(model_id)
-    return {alias: frozenset(ids) for alias, ids in aliases.items()}
+        if display_name:
+            display.setdefault(normalise_name(display_name), set()).add(model_id)
+    return ({alias: frozenset(ids) for alias, ids in aliases.items()},
+            {name: frozenset(ids) for name, ids in display.items()})
 
 
 def _catalogue_model_matches(published: str) -> frozenset[str]:
-    label = re.sub(r"(?i)\s+model$", "", published.strip())
-    return _catalogue_model_aliases().get(normalise_name(label), frozenset())
+    """The cards a published name can mean. When it matches several, a card whose
+    display name is exactly that name is the one (MODEL-205: "Claude Haiku 4.5" is
+    the dated card so named, not the alias card whose ID stem reads the same)."""
+    raw = re.sub(r"(?i)\s+model$", "", published.strip())
+    label = normalise_name(raw)
+    matches = _catalogue_model_aliases().get(label, frozenset())
+    if len(matches) > 1:
+        # A literal ID ("claude-haiku-4-5") is that card; a name is the card so named.
+        literal = frozenset(m for m in matches
+                            if raw.casefold() in {m.casefold(), m.rsplit("/", 1)[-1].casefold()})
+        named = _catalogue_display_names().get(label, frozenset()) & matches
+        for narrowed in (literal, named):
+            if len(narrowed) == 1:
+                return narrowed
+    return matches
 
 
 def _catalogue_model_id(published: str) -> str | None:

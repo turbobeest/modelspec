@@ -675,9 +675,11 @@ def test_change_detection_has_no_llm_or_agent_hook() -> None:
 
 
 def test_icon_labels_render_an_icon_cell_as_its_label_and_leave_html_default_alone():
-    """MODEL-205: GitHub Docs marks plan coverage with icons, not words."""
+    """MODEL-205: GitHub Docs marks plan coverage with icons, not words, and its
+    footnote marks would run into the model name."""
     page = (b'<main><table><tr><th>Available models</th><th>Copilot Pro</th><th>Copilot Max</th>'
-            b'</tr><tr><th>GPT-6 Sol</th><td><svg role="img" aria-label="Not included">'
+            b'</tr><tr><th>GPT-6 Sol<sup><a href="#fn-1" data-footnote-ref="">2</a></sup></th>'
+            b'<td><svg role="img" aria-label="Not included">'
             b'<path d="M1"/></svg></td><td><svg class="octicon" role="img" aria-label="Included">'
             b'</svg></td></tr></table><svg aria-label="logo"></svg></main>')
 
@@ -687,4 +689,4 @@ def test_icon_labels_render_an_icon_cell_as_its_label_and_leave_html_default_alo
     assert labelled.splitlines() == ["Available models | Copilot Pro | Copilot Max",
                                      "GPT-6 Sol | Not included | Included"]
     assert default.splitlines() == ["Available models | Copilot Pro | Copilot Max",
-                                    "GPT-6 Sol | |"]
+                                    "GPT-6 Sol 2 | |"]

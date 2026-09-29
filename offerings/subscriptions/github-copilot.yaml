@@ -44,7 +44,7 @@
     subject: {kind: offering, id: github-copilot/subscription/pro}
     facet: offering.subscription.usage_allowance
     state: known
-    value: 1,500 total monthly AI credits (1,000 base, 500 flex allotment)
+    value: 'Total monthly AI credits: 1,500'
     sources:
     - source_id: model-205-github-copilot-plans
       snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
@@ -139,7 +139,7 @@
     subject: {kind: offering, id: github-copilot/subscription/pro-plus}
     facet: offering.subscription.usage_allowance
     state: known
-    value: 7,000 total monthly AI credits (3,900 base, 3,100 flex allotment)
+    value: 'Total monthly AI credits: 7,000'
     sources:
     - source_id: model-205-github-copilot-plans
       snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
@@ -234,7 +234,7 @@
     subject: {kind: offering, id: github-copilot/subscription/max}
     facet: offering.subscription.usage_allowance
     state: known
-    value: 20,000 total monthly AI credits (10,000 base, 10,000 flex allotment)
+    value: 'Total monthly AI credits: 20,000'
     sources:
     - source_id: model-205-github-copilot-plans
       snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
@@ -330,7 +330,7 @@
     subject: {kind: offering, id: github-copilot/subscription/business}
     facet: offering.subscription.usage_allowance
     state: known
-    value: 1,900 GitHub AI Credits per user per month
+    value: 'GitHub AI Credits per user per month: 1,900'
     sources:
     - source_id: model-205-github-copilot-plans
       snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
@@ -426,7 +426,7 @@
     subject: {kind: offering, id: github-copilot/subscription/enterprise}
     facet: offering.subscription.usage_allowance
     state: known
-    value: 3,900 GitHub AI Credits per user per month
+    value: 'GitHub AI Credits per user per month: 3,900'
     sources:
     - source_id: model-205-github-copilot-plans
       snapshot_ref: sha256:e2c94865bd496323ff061048b3d2993f06ad7a075aa25770ec68f5992851193d
