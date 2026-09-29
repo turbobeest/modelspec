@@ -172,10 +172,17 @@ def test_a_model_without_a_card_is_never_named_from_its_slug(snapshot):
     assert all(row["display_name"] is None and row["lab_name"] is None for row in rows.values())
 
 
-def test_every_registered_facet_is_listed_with_label_unit_subject_type_and_operators(vocabulary):
+def test_every_decision_facet_is_listed_with_label_unit_subject_type_and_operators(vocabulary):
     facets = by_id(vocabulary["facets"])
     families = {f.id for f in registry().facets() if f.parameter is not None}
-    assert set(facets) == {f.id for f in registry().facets()} - families
+    subscription_facets = {
+        f.id for f in registry().facets()
+        if f.id.startswith("offering.subscription.")
+    }
+    assert set(facets) == {
+        f.id for f in registry().facets()
+    } - families - subscription_facets
+    assert subscription_facets.isdisjoint(facets)
     for row in facets.values():
         assert row["label"] and row["subject"] in ("model", "offering")
         assert row["value_type"] in ("number", "enum", "boolean", "date", "set")

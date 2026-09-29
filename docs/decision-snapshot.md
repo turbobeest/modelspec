@@ -14,7 +14,8 @@ Inputs, read by `collect_repo`:
 | Input | Where |
 |---|---|
 | Models | cards in `models/`: `lifecycle` (else v1 `status`: `deprecated`/`sunset` → `deprecated`, else `active`), v2 `facts`, `benchmarks.evidence` rows |
-| Offerings | `offerings/<provider>/<lab>/<model>.yaml`, each a list |
+| Metered offerings | `offerings/<provider>/<lab>/<model>.yaml`, each a list |
+| Subscription offerings | `offerings/subscriptions/<provider>.yaml`, each a list |
 | Sources | `registry/sources.yaml`: `sources: [{id, url}]` (provisional, until MODEL-137 fixes the file) |
 | Domains | each benchmark page's `domains` tags (MODEL-133) |
 | Verification log | `verification/*.jsonl`, one MODEL-134 `Verification` per line; the latest per target wins |
@@ -49,7 +50,7 @@ Gzipped canonical JSON (sorted keys, no whitespace, gzip `mtime=0`):
  "snapshot_id": "snap_<16 hex>", "content_hash": "sha256:<hex>",
  "signature": {"alg": "hmac-sha256", "value": "<hex>"} | null,
  "signatures": [{"alg": "ed25519", "key_id": "<id>", "value": "<base64>"}],
- "content": {"as_of", "facet_subjects", "lineup", "archive",
+ "content": {"as_of", "facet_subjects", "lineup", "archive", "subscriptions",
              "benchmark_domains", "sources", "excluded"}}
 ```
 
@@ -79,6 +80,14 @@ metadata exists; otherwise it is the composite of `score`, `interval`, `n`,
 and sorted `quality_flags`. A verification for the score alone cannot admit a
 row carrying decision-affecting metadata.
 
+`subscriptions` is an additive list beside `lineup` and `archive`, omitted when
+there are no subscription inputs so legacy snapshots remain byte-stable. Each
+row contains the plan identity and its verified facts. Subscription plans never
+enter `candidates` or the decision vocabulary until MODEL-179 defines their
+holder-cost semantics, so older readers ignore the field and the Worker makes
+the same decisions. New readers expose it through
+`SnapshotIndex.subscription_offerings()`.
+
 ## Load
 
 `load_snapshot(path, key=…, include_archive=False)` checks the hash, then a
@@ -93,6 +102,8 @@ It returns a `SnapshotIndex`:
   of the lineup (MODEL-159): the offerings represent it, and the bare row
   would tie with them. A model with no offering, such as open weights run on
   your own hardware, ranks as its own row;
+- `subscription_offerings()`: verified subscription plans and facts. These are
+  considerations for callers and are not ranking candidates in MODEL-173;
 - `fact(cid, facet)`: a `FactValue`. An offering answers its model's facets;
   `offering.provider`, `.region` and `.tier` come from its identity;
 - `ids_where(facet, op, arg)`: a `Bitset3` (passing, failing, unknown). Any

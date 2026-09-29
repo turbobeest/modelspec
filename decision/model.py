@@ -14,7 +14,7 @@ import math
 import re
 from importlib import import_module
 from pathlib import Path
-from typing import Annotated, Literal, Self
+from typing import Annotated, ClassVar, Literal, Self
 
 import yaml
 from pydantic import (
@@ -461,5 +461,72 @@ def load_offerings(path: str | Path, *, registry=None) -> list[Offering]:
             raise ValueError(f"offering {row.id} does not match path {expected}")
         if row.id in ids:
             raise ValueError(f"duplicate offering: {row.id}")
+        ids.add(row.id)
+    return rows
+
+
+class SubscriptionOffering(Record):
+    """A fixed-period plan that covers one or more models.
+
+    Subscription facts stay separate from metered inference offerings because
+    a plan can cover several models and its allowance is not a token price.
+    """
+
+    kind: Literal["subscription"]
+    provider: PathPart
+    plan: PathPart
+    name: Text
+    facts: list[Fact] = Field(default_factory=list)
+
+    REQUIRED_FACETS: ClassVar[frozenset[str]] = frozenset({
+        "offering.subscription.price",
+        "offering.subscription.billing_period",
+        "offering.subscription.models_covered",
+        "offering.subscription.usage_allowance",
+        "offering.subscription.programmatic_or_agent_use",
+    })
+
+    @property
+    def id(self) -> str:
+        return f"{self.provider}/subscription/{self.plan}"
+
+    @model_validator(mode="after")
+    def valid_subscription(self, info: ValidationInfo) -> Self:
+        _registered(info, "provider", self.provider)
+        _check_facts(self.facts, "offering", self.id)
+        facets = {fact.facet for fact in self.facts}
+        if facets != self.REQUIRED_FACETS:
+            missing = sorted(self.REQUIRED_FACETS - facets)
+            extra = sorted(facets - self.REQUIRED_FACETS)
+            raise ValueError(
+                "a subscription requires exactly one fact for every subscription facet; "
+                f"missing={missing}, extra={extra}"
+            )
+        for fact in self.facts:
+            if fact.state != "known" and not fact.checked_sources:
+                raise ValueError(
+                    f"{fact.id}: a non-known subscription fact requires checked_sources"
+                )
+        return self
+
+
+def load_subscription_offerings(
+    path: str | Path, *, registry=None
+) -> list[SubscriptionOffering]:
+    """Read ``offerings/subscriptions/<provider>.yaml``."""
+
+    path = Path(path)
+    rows = TypeAdapter(list[SubscriptionOffering]).validate_python(
+        yaml.safe_load(path.read_text(encoding="utf-8")),
+        context={"registry": registry},
+    )
+    ids: set[str] = set()
+    for row in rows:
+        if path.stem != row.provider:
+            raise ValueError(
+                f"subscription offering {row.id} does not match path {row.provider}.yaml"
+            )
+        if row.id in ids:
+            raise ValueError(f"duplicate subscription offering: {row.id}")
         ids.add(row.id)
     return rows

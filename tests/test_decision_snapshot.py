@@ -39,6 +39,7 @@ from tests.snapshot_records import (
     fact,
     model,
     offering,
+    subscription,
     thirty_models,
     verification,
 )
@@ -104,6 +105,7 @@ def inputs(**overrides) -> SnapshotInputs:
                 model("lab/old", lifecycle="retired")],
         offerings=[offering("lab/alpha"), offering("lab/beta", price=0.5, batch=0.25),
                    offering("lab/old")],
+        subscriptions=[],
         evidence=[
             evidence("lab/alpha", "swe_bench_pro", 55.0),
             evidence("lab/alpha", "swe_bench_pro", 61.0, measured_by="provider_self_report",
@@ -142,6 +144,99 @@ def test_same_inputs_give_a_byte_identical_snapshot(tmp_path):
     a = build(tmp_path, "a.json.gz")
     b = build(tmp_path, "b.json.gz")
     assert a.read_bytes() == b.read_bytes()
+
+
+def test_subscription_offerings_round_trip_without_becoming_candidates(tmp_path):
+    path = build(tmp_path, subscriptions=[subscription()])
+    index = load(path)
+
+    assert index.subscription_offerings() == ({
+        "id": "lab-api/subscription/pro",
+        "provider": "lab-api",
+        "plan": "pro",
+        "name": "Pro",
+        "facts": {
+            "offering.subscription.billing_period": FactValue(
+                "known", "monthly", ("src-pricing",)
+            ),
+            "offering.subscription.models_covered": FactValue(
+                "known", ["lab/alpha"], ("src-pricing",)
+            ),
+            "offering.subscription.price": FactValue("known", 20, ("src-pricing",)),
+            "offering.subscription.programmatic_or_agent_use": FactValue(
+                "known", "Coding harness included", ("src-pricing",)
+            ),
+            "offering.subscription.usage_allowance": FactValue(
+                "known", "5x standard usage per five-hour session", ("src-pricing",)
+            ),
+        },
+    },)
+    assert "lab-api/subscription/pro" not in index.candidates()
+
+
+def test_subscription_data_does_not_change_an_existing_decision(tmp_path):
+    from decision.contract import parse_spec
+    from decision.engine import decide
+    from decision.registry import facet
+
+    plain = load(build(tmp_path, "plain.gz"))
+    with_subscription = load(build(
+        tmp_path, "subscription.gz", subscriptions=[subscription()]
+    ))
+    request = parse_spec({
+        "spec_version": 1,
+        "capabilities": {"software_engineering": "required"},
+        "where": [],
+        "optimize": {"max": "swe_bench_pro @independent"},
+        "explain": "none",
+    }, facets=facet)
+
+    before = decide(request, plain, facets=facet)
+    after = decide(request, with_subscription, facets=facet)
+
+    assert [row.offering for row in after.results] == [row.offering for row in before.results]
+    assert [row.model_dump(exclude={"decision"}) for row in after.results] == [
+        row.model_dump(exclude={"decision"}) for row in before.results
+    ]
+    assert after.may_qualify == before.may_qualify
+    assert after.eliminated == before.eliminated
+
+
+def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
+    collected = snap.collect_repo(REPO_ROOT)
+    path = tmp_path / "production.json.gz"
+    build_snapshot(collected, registry=REGISTRY, as_of=date(2026, 9, 28)).write(path)
+    index = load(path)
+
+    subscriptions = {row["id"]: row for row in index.subscription_offerings()}
+    assert len(subscriptions) == 11
+    facts = [fact for subscription in subscriptions.values()
+             for fact in subscription["facts"].values()]
+    assert len(facts) == 55
+    assert sum(fact.state == "known" for fact in facts) == 39
+    assert subscriptions["anthropic/subscription/pro"]["facts"][
+        "offering.subscription.price"
+    ] == FactValue("known", 20, ("model-173-anthropic-consumer-pricing",))
+    assert subscriptions["openai/subscription/pro-5x"]["facts"][
+        "offering.subscription.usage_allowance"
+    ] == FactValue("known", "5x higher usage than Plus", ("model-173-openai-pro",))
+    assert subscriptions["xai/subscription/supergrok"]["facts"][
+        "offering.subscription.models_covered"
+    ] == FactValue("known", ["xai/grok-4-6"], ("model-173-xai-consumer-pricing",))
+    known_facets = {
+        facet_id
+        for subscription in subscriptions.values()
+        for facet_id, fact in subscription["facts"].items()
+        if fact.state == "known"
+    }
+    assert known_facets == {
+        "offering.subscription.price",
+        "offering.subscription.billing_period",
+        "offering.subscription.models_covered",
+        "offering.subscription.usage_allowance",
+        "offering.subscription.programmatic_or_agent_use",
+    }
+    assert not set(subscriptions).intersection(index.candidates())
 
 
 def test_input_order_does_not_change_the_snapshot(tmp_path):

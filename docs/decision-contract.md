@@ -734,8 +734,11 @@ it instead of carrying its own list of facets or benchmarks. Built by
 [`decision/vocabulary.py`](../decision/vocabulary.py):
 
 - `snapshot`, `contract_version`, `default_task_tokens` and `task_types`.
-- `facets`: every registered facet except the parameterised families, each
-  with `id`, `label`, `definition`, `subject`, `value_type`, `unit`, the
+- `facets`: every registered facet except the parameterised families and the
+  `offering.subscription.*` facets. MODEL-173 carries subscription facts in
+  snapshot metadata, but MODEL-179 must add holder-cost comparison before a
+  client can use them in a spec or objective. Each published facet has
+  `id`, `label`, `definition`, `subject`, `value_type`, `unit`, the
   condition `operators` its type admits (`=`, `!=`, `<`, `<=`, `>`, `>=`,
   `between` for `facet in [low, high]`, `in` and `not in` for `facet in {…}`,
   `known`), whether it can be an `objective`, its `risk` and `computed_by`, and

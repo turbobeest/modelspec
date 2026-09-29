@@ -1,0 +1,158 @@
+# MODEL-173. Primary sources read 2026-09-28. These rendered Help Center pages
+# challenged plain HTTP during collection; modelspec verify decides quarantine.
+- kind: subscription
+  provider: openai
+  plan: plus
+  name: ChatGPT Plus
+  facts:
+  - id: openai/subscription/plus#offering.subscription.price
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.price
+    state: known
+    value: 20
+    sources:
+    - source_id: model-173-openai-plus
+      snapshot_ref: sha256:fa32aa4313d411b6a5c91593744fd5a6c804bc07150abd40b39568edd7a1710a
+      cited_regions: [page]
+  - id: openai/subscription/plus#offering.subscription.billing_period
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-173-openai-plus
+      snapshot_ref: sha256:fa32aa4313d411b6a5c91593744fd5a6c804bc07150abd40b39568edd7a1710a
+      cited_regions: [page]
+  - id: openai/subscription/plus#offering.subscription.models_covered
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
+    sources:
+    - source_id: model-173-openai-codex
+      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+      cited_regions: [page]
+  - id: openai/subscription/plus#offering.subscription.usage_allowance
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.usage_allowance
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-plus, model-173-openai-codex]
+    sources:
+    - source_id: model-173-openai-plus
+      snapshot_ref: sha256:fa32aa4313d411b6a5c91593744fd5a6c804bc07150abd40b39568edd7a1710a
+      cited_regions: [page]
+  - id: openai/subscription/plus#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Codex
+    sources:
+    - source_id: model-173-openai-codex
+      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+      cited_regions: [page]
+- kind: subscription
+  provider: openai
+  plan: pro-5x
+  name: ChatGPT Pro 5x
+  facts:
+  - id: openai/subscription/pro-5x#offering.subscription.price
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.price
+    state: known
+    value: 100
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-5x#offering.subscription.billing_period
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.billing_period
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-pro]
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-5x#offering.subscription.models_covered
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
+    sources:
+    - source_id: model-173-openai-codex
+      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+      cited_regions: [page]
+  - id: openai/subscription/pro-5x#offering.subscription.usage_allowance
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 5x higher usage than Plus
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-5x#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Codex
+    sources:
+    - source_id: model-173-openai-codex
+      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+      cited_regions: [page]
+- kind: subscription
+  provider: openai
+  plan: pro-20x
+  name: ChatGPT Pro 20x
+  facts:
+  - id: openai/subscription/pro-20x#offering.subscription.price
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.price
+    state: known
+    value: 200
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-20x#offering.subscription.billing_period
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.billing_period
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-pro]
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-20x#offering.subscription.models_covered
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-173-openai-codex]
+    sources:
+    - source_id: model-173-openai-codex
+      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+      cited_regions: [page]
+  - id: openai/subscription/pro-20x#offering.subscription.usage_allowance
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 20x usage than Plus
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-20x#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Codex
+    sources:
+    - source_id: model-173-openai-codex
+      snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
+      cited_regions: [page]

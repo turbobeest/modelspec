@@ -132,8 +132,14 @@ attestations; fine-tuning; private deployment; and harness compatibility.
 The registry defines each facet's exact meaning and unit. Unknown facts remain
 explicit states or are absent; the loader never fills a price or attestation.
 
-The only offering file in this PR is fake test data under
-`tests/fixtures/offerings/`. Its provider, model, sources, and hashes are synthetic.
+`SubscriptionOffering` is the additive second offering kind. It reads from
+`offerings/subscriptions/<provider>.yaml`, has the stable ID
+`<provider>/subscription/<plan>`, and does not become a decision candidate.
+Its facts record price per billing period, exact covered model IDs, the
+allowance in the units or windows the provider publishes, and the provider's
+terms for coding-harness, agent, command-line, or raw API use. Unknown coverage
+and allowances use `not_disclosed` with `checked_sources`; the loader never
+turns a plan multiplier into a message or token estimate.
 
 The v2 `Model` requires an explicit `lifecycle`. `active` and `deprecated` have
 `in_lineup=True`; `retired` has `in_live_archive=True`. The eventual decision

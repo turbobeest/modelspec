@@ -7,7 +7,7 @@
 # Entry fields
 #   id                      dotted snake_case, unique
 #   subject                 model | offering | evidence
-#   value_type.kind         number | enum | boolean | date | set | range
+#   value_type.kind         number | enum | boolean | date | set | range | string
 #     number, range         need `unit` (one of `units` below). `unbounded: true`
 #                           lets a known value be the literal `unbounded`
 #                           (for example a licence with no user cap), and
@@ -33,9 +33,13 @@
 # A fact's state (known, unknown, not_disclosed, requires_contract) is separate
 # from its value and is not declared here.
 
-schema_version: 1
+schema_version: 2
 
 units:
+  - id: usd_per_billing_period
+    definition: >-
+      United States dollars charged for one billing period of a subscription
+      offering, before taxes or temporary promotions.
   - id: usd_per_1m_tokens
     definition: >-
       United States dollars per 1,000,000 tokens, at the provider's list price
@@ -852,6 +856,67 @@ facets:
     tier: best_effort
     risk: capability
     permitted_source_kinds: [provider_documentation, lab_documentation]
+
+  # ── Offering: subscription plans ─────────────────────────────────────────
+  - id: offering.subscription.price
+    label: Subscription price
+    subject: offering
+    addressable: false
+    value_type: {kind: number}
+    unit: usd_per_billing_period
+    definition: >-
+      The published list price charged for one billing period of a subscription
+      plan, before taxes, introductory discounts, credits, or regional pricing.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.subscription.billing_period
+    label: Billing period
+    subject: offering
+    addressable: false
+    value_type: {kind: enum, values: [monthly, annual]}
+    value_labels:
+      annual: Annual
+      monthly: Monthly
+    definition: >-
+      The period covered by the subscription price: one calendar month or one
+      year paid in advance, exactly as the provider publishes the plan.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.subscription.models_covered
+    label: Models covered
+    subject: offering
+    addressable: false
+    value_type: {kind: set, values_from: model_ids}
+    definition: >-
+      Canonical ModelSpec model IDs the provider explicitly documents as
+      available under this subscription plan; silence is not inferred as access.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.subscription.usage_allowance
+    label: Published usage allowance
+    subject: offering
+    addressable: false
+    value_type: {kind: string}
+    definition: >-
+      The provider's published allowance as a concise literal quantity or
+      window, preserving messages, tokens, multipliers, and reset periods.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.subscription.programmatic_or_agent_use
+    label: Programmatic or agent use
+    subject: offering
+    addressable: false
+    value_type: {kind: string}
+    definition: >-
+      The product or terms language that permits or restricts using the plan
+      through a coding harness, agent product, command line, or raw API.
+    tier: best_effort
+    risk: governance
+    permitted_source_kinds: [provider_documentation, provider_terms]
 
   # ── Evidence and estimates ────────────────────────────────────────────────
   - id: evidence.benchmark

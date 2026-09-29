@@ -101,6 +101,16 @@ def test_every_best_effort_facet_in_section_8_is_registered(registry):
     assert BEST_EFFORT <= ids, sorted(BEST_EFFORT - ids)
 
 
+def test_subscription_facets_are_record_only_until_holder_costs_exist(registry):
+    subscriptions = [
+        facet for facet in registry.facets()
+        if facet.id.startswith("offering.subscription.")
+    ]
+
+    assert len(subscriptions) == 5
+    assert all(not facet.addressable for facet in subscriptions)
+
+
 def test_parameterized_facet_ids_resolve_through_the_real_registry(registry):
     benchmark = registry.facet("swe_bench_pro")
     assert benchmark.id == "swe_bench_pro"
@@ -267,6 +277,37 @@ def _facet(**over):
     }
     base.update(over)
     return base
+
+
+def test_registry_schema_versions_are_independent_compatibility_gates():
+    expected = {
+        "facets": 2,
+        "providers": 1,
+        "harnesses": 1,
+        "domains": 1,
+    }
+
+    assert reg.REGISTRY_SCHEMA_VERSIONS == expected
+    for name, version in expected.items():
+        document = yaml.safe_load((ROOT / "registry" / f"{name}.yaml").read_text())
+        assert document["schema_version"] == version
+
+
+@pytest.mark.parametrize(("name", "version", "expected"), [
+    ("facets", 1, 2),
+    ("providers", 2, 1),
+])
+def test_registry_loader_rejects_an_incompatible_file_version(
+    tmp_path, name, version, expected
+):
+    root = _copy(tmp_path)
+    _edit(root, name, lambda document: document.update(schema_version=version))
+
+    with pytest.raises(
+        RegistryError,
+        match=rf"{name}\.yaml: schema_version must be {expected}",
+    ):
+        _load(root)
 
 
 @pytest.mark.parametrize("entry,needle", [

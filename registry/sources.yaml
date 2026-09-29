@@ -4292,3 +4292,77 @@ sources:
     locator:
       kind: page
       value: ''
+# MODEL-173: consumer subscription offerings, read 2026-09-28.
+- id: model-173-anthropic-consumer-pricing
+  url: https://claude.com/pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+  - id: features
+    locator: {kind: table, value: '0'}
+  - id: billing
+    locator: {kind: table, value: '2'}
+  - id: models-and-usage
+    locator: {kind: table, value: '3'}
+- id: model-173-anthropic-claude-code
+  url: https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-173-openai-plus
+  url: https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-173-openai-pro
+  url: https://help.openai.com/en/articles/9793128-what-is-chatgpt-pro
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-173-openai-codex
+  url: https://help.openai.com/en/articles/20001275-chatgpt-work-and-codex
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-173-google-ai-plans
+  url: https://one.google.com/about/google-ai-plans/
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+  - id: comparison
+    locator: {kind: table, value: '0'}
+- id: model-173-google-gemini-limits
+  url: https://support.google.com/gemini/answer/16275805?hl=en
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: usage-limits
+    locator: {kind: table, value: '0'}
+  - id: model-access
+    locator: {kind: table, value: '1'}
+- id: model-173-xai-consumer-pricing
+  url: https://x.ai/pricing
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-173-xai-consumer-terms
+  url: https://x.ai/legal/terms-of-service
+  fetch: rendered
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}

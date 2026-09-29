@@ -57,6 +57,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from functools import cache
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
@@ -781,6 +782,246 @@ class GovernanceProseExtractor:
         return []
 
 
+class SubscriptionPageExtractor:
+    """Read consumer-plan facts from plan cards and comparison tables."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="subscription-page@1")
+
+    def accepts(self, text: str) -> bool:
+        return bool(re.search(
+            r"(?i)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
+            r"everything in .+?, plus|\bcodex\b|claude code|more usage than pro|"
+            r"google ai studio)",
+            text,
+        ))
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        if not claim.field.startswith("offering.subscription."):
+            raise ExtractorError("not a subscription claim")
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        aliases = {normalise_name(name) for name in claim.names}
+
+        def matches(value: str) -> bool:
+            candidate = normalise_name(value)
+            return any(
+                alias == candidate
+                or (len(alias.split()) >= 2 and alias in candidate)
+                for alias in aliases
+            )
+
+        products = (
+            ("google ai studio", "Google AI Studio"),
+            ("google antigravity", "Google Antigravity"),
+            ("jules", "Jules"),
+        )
+        matrix_header = next(
+            ([cell.strip() for cell in line.split("|")] for line in lines
+             if normalise_name(line.split("|", 1)[0]) == "features"),
+            None,
+        )
+        if claim.field == "offering.subscription.programmatic_or_agent_use" \
+                and matrix_header is not None:
+            columns = [i for i, heading in enumerate(matrix_header) if matches(heading)]
+            found: list[tuple[str, set[str]]] = []
+            for token, label in products:
+                section = next(
+                    (i for i, line in enumerate(lines) if token in normalise_name(line)),
+                    None,
+                )
+                if section is None:
+                    continue
+                for line in lines[section + 1:]:
+                    if "|" not in line:
+                        break
+                    row = [cell.strip() for cell in line.split("|")]
+                    values = {
+                        row[i].casefold() for i in columns if i < len(row) and row[i]
+                    }
+                    if values:
+                        found.append((label, values))
+                        break
+            if found and len({tuple(sorted(values)) for _, values in found}) == 1:
+                levels = set().union(*(values for _, values in found))
+                level = " or ".join(sorted(levels))
+                product_names = ", ".join(label for label, _ in found[:-1])
+                product_names += f", and {found[-1][0]}" if len(found) > 1 else found[0][0]
+                suffix = ", depending on subscription" if len(levels) > 1 else ""
+                return [Reading(
+                    subject=claim.names[0],
+                    value=f"{level.capitalize()} {product_names} limits{suffix}",
+                )]
+
+        tables: list[list[list[str]]] = []
+        current: list[list[str]] = []
+        for line in [*lines, ""]:
+            if "|" in line:
+                current.append([cell.strip().rstrip("*") for cell in line.split("|")])
+            elif current:
+                tables.append(current)
+                current = []
+
+        for table in tables:
+            if len(table[0]) == 2 and normalise_name(table[0][0]) == "plan":
+                if claim.field == "offering.subscription.usage_allowance":
+                    for row in table[1:]:
+                        if len(row) == 2 and matches(row[0]):
+                            return [Reading(subject=row[0], value=row[1])]
+                continue
+
+            columns = [i for i, heading in enumerate(table[0]) if matches(heading)]
+            if not columns:
+                continue
+            if claim.field == "offering.subscription.billing_period":
+                for row in table[1:]:
+                    if normalise_name(row[0]) == "billing cycle":
+                        values = [row[i] for i in columns if i < len(row)]
+                        if values and all("monthly" in value.casefold() for value in values):
+                            return [Reading(subject=claim.names[0], value="monthly")]
+                if all("mo" in normalise_name(table[0][i]).split() for i in columns):
+                    return [Reading(subject=claim.names[0], value="monthly")]
+        price = re.compile(r"^\$[0-9.]+/(?:month|year)$", re.IGNORECASE)
+        starts = [i - 1 for i, line in enumerate(lines) if i and price.match(line)]
+        sections = {
+            normalise_name(lines[start]): (lines[start + 1], lines[start + 2:next_start])
+            for start, next_start in zip(starts, [*starts[1:], len(lines)])
+        }
+        wanted = next(
+            (name for name in claim.names if normalise_name(name) in sections),
+            None,
+        )
+
+        def features(plan: str, seen: set[str]) -> list[str]:
+            key = normalise_name(plan)
+            if key in seen or key not in sections:
+                return []
+            seen.add(key)
+            _, body = sections[key]
+            values = list(body)
+            for line in body:
+                inherited = re.match(r"Everything in (.+?), plus:?$", line, re.IGNORECASE)
+                if inherited:
+                    values.extend(features(inherited.group(1), seen))
+            return values
+
+        if claim.field == "offering.subscription.price":
+            if wanted is not None:
+                amount = re.match(r"^\$([0-9.]+)", sections[normalise_name(wanted)][0])
+                if amount:
+                    return [Reading(subject=wanted, value=amount.group(1))]
+            if any("max 5x" in alias for alias in aliases):
+                amount = re.search(r"(?is)\bmax\b.{0,100}?from \$([0-9.]+)", text)
+                if amount:
+                    return [Reading(subject=claim.names[0], value=amount.group(1))]
+            if any(alias in {"claude pro", "pro"} for alias in aliases):
+                amount = re.search(r"(?i)\$([0-9.]+) if billed monthly", text)
+                if amount:
+                    return [Reading(subject=claim.names[0], value=amount.group(1))]
+            multiplier = next((m.group(1) for name in claim.names
+                               if (m := re.search(r"\b(5x|20x)\b", name, re.IGNORECASE))), None)
+            if multiplier:
+                amount = re.search(
+                    rf"(?i)Pro \$([0-9.]+) unlocks {re.escape(multiplier)}\b", text
+                )
+                if amount:
+                    return [Reading(subject=claim.names[0], value=amount.group(1))]
+            for line in lines:
+                if not matches(line):
+                    continue
+                amount = re.search(r"\$([0-9.]+)", line)
+                if amount:
+                    return [Reading(subject=claim.names[0], value=amount.group(1))]
+            return []
+
+        if claim.field == "offering.subscription.billing_period":
+            if wanted is not None and price.match(sections[normalise_name(wanted)][0]):
+                period = price.match(sections[normalise_name(wanted)][0]).group(0).rsplit("/", 1)[1]
+                return [Reading(subject=wanted, value={"month": "monthly", "year": "annual"}[period])]
+            for line in lines:
+                if any(alias in normalise_name(line) for alias in aliases) and re.search(
+                    r"(?i)(?:\$[0-9.]+/month|billed monthly)", line
+                ):
+                    return [Reading(subject=claim.names[0], value="monthly")]
+            return []
+
+        if claim.field == "offering.subscription.usage_allowance":
+            if wanted is not None:
+                body = features(wanted, set())
+                allowance = next((line for line in body if re.match(
+                    r"(?i)(?:more usage|higher rate limits|significantly higher usage)", line
+                )), None)
+                if allowance is not None:
+                    return [Reading(subject=wanted, value=allowance.rstrip("*"))]
+            multiplier = next((m.group(1) for name in claim.names
+                               if (m := re.search(r"\b(5x|20x)\b", name, re.IGNORECASE))), None)
+            if multiplier and re.search(r"(?i)choose 5x or 20x more usage than pro", text):
+                return [Reading(subject=claim.names[0], value=f"{multiplier} more usage than Pro")]
+            if multiplier:
+                allowance = re.search(
+                    rf"(?i)\b{re.escape(multiplier)}\b (?:higher )?usage than Plus", text
+                )
+                if allowance:
+                    return [Reading(subject=claim.names[0], value=allowance.group(0))]
+            if any(alias in {"claude pro", "pro"} for alias in aliases) and re.search(
+                r"(?im)^More usage\*?$", text
+            ):
+                return [Reading(subject=claim.names[0], value="More usage")]
+            return []
+
+        if claim.field == "offering.subscription.programmatic_or_agent_use":
+            if wanted is not None:
+                body = features(wanted, set())
+                access = next((line for line in body if re.search(
+                    r"(?i)(?:bot access|claude code|ai studio|antigravity|jules)", line
+                )), None)
+                if access is not None:
+                    return [Reading(subject=wanted, value=access)]
+            codex_lines = [
+                line for line in lines
+                if "codex" in line.casefold()
+                and any(alias in normalise_name(line) for alias in aliases)
+            ]
+            restriction = next((line for line in codex_lines if re.search(
+                r"(?i)(?:\b(?:do|does|did|will) not include\b.{0,80}\bcodex\b|"
+                r"\b(?:don't|doesn't|didn't|won't) include\b.{0,80}\bcodex\b|"
+                r"\b(?:never|no longer) include\b.{0,80}\bcodex\b|"
+                r"\binclude no\b.{0,80}\bcodex\b|"
+                r"\bcodex\b.{0,80}\bnot included\b|"
+                r"\bexclude(?:s|d)?\b.{0,80}\bcodex\b|"
+                r"\bwithout\b.{0,80}\bcodex\b|"
+                r"\bcodex\b.{0,80}\bunavailable\b)",
+                line,
+            )), None)
+            if restriction is not None:
+                return [Reading(subject=claim.names[0], value=restriction)]
+            if any(re.search(
+                r"(?i)(?:\binclude(?:s|d)?\b.{0,80}\bcodex\b|"
+                r"\bcodex\b.{0,80}\bincluded\b|"
+                r"\baccess to\b.{0,80}\bcodex\b)",
+                line,
+            ) for line in codex_lines):
+                return [Reading(subject=claim.names[0], value="Codex")]
+            claude = re.search(
+                r"(?i)access to both Claude on the web, desktop, and mobile apps and Claude Code "
+                r"in your terminal",
+                text,
+            )
+            if claude and re.search(r"(?i)pro (?:and|or) max plan", text):
+                return [Reading(subject=claim.names[0], value=claude.group(0))]
+            return []
+
+        if claim.field != "offering.subscription.models_covered" or wanted is None:
+            return []
+
+        models = [
+            match.group(1).strip() + " model"
+            for line in features(wanted, set())
+            if (match := re.fullmatch(r"(.+?\d(?:[\w .-]*))\s+model", line, re.IGNORECASE))
+        ]
+        models = list(dict.fromkeys(models))
+        return [Reading(subject=wanted, value=", ".join(models))] if models else []
+
+
 class ModelPageExtractor:
     """Read the label/value layouts used by first-party model-spec pages.
 
@@ -1266,7 +1507,8 @@ def _text(value: Any) -> str | None:
 
 
 def deterministic_extractors() -> list[Extractor]:
-    return [StructuredDataExtractor(), OfferingPriceExtractor(), TableExtractor(),
+    return [StructuredDataExtractor(), OfferingPriceExtractor(), SubscriptionPageExtractor(),
+            TableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor()]
 
 
@@ -1329,6 +1571,34 @@ def _show(claim: Claim) -> JsonValue:
     return claim.value
 
 
+@cache
+def _catalogue_model_aliases() -> Mapping[str, frozenset[str]]:
+    """Canonical model IDs indexed by names published on their cards."""
+    aliases: dict[str, set[str]] = {}
+    for path in (REPO_ROOT / "models").rglob("*.md"):
+        model_id = display_name = None
+        with path.open(encoding="utf-8", errors="replace") as card:
+            for line in card:
+                if line.startswith("model_id:"):
+                    model_id = line.split(":", 1)[1].strip().strip("'\"")
+                elif line.startswith("display_name:"):
+                    display_name = line.split(":", 1)[1].strip().strip("'\"")
+                elif line.strip() == "---" and model_id is not None:
+                    break
+        if not model_id:
+            continue
+        for alias in (model_id, model_id.rsplit("/", 1)[-1], display_name):
+            if alias:
+                aliases.setdefault(normalise_name(alias), set()).add(model_id)
+    return {alias: frozenset(ids) for alias, ids in aliases.items()}
+
+
+def _catalogue_model_id(published: str) -> str | None:
+    label = re.sub(r"(?i)\s+model$", "", published.strip())
+    matches = _catalogue_model_aliases().get(normalise_name(label), frozenset())
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
 def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
     expected, value = _show(claim), claim.value
     if reading.value is None:
@@ -1367,9 +1637,17 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
     if isinstance(value, list):
         if not value and normalise_name(reading.value) in _FALSE:
             return None
-        found_items = {s.strip().casefold()
-                       for s in re.split(r",|;|\band\b", reading.value) if s.strip()}
+        published_items = {
+            s.strip() for s in re.split(r",|;|\band\b", reading.value) if s.strip()
+        }
+        found_items = {item.casefold() for item in published_items}
         claimed_items = {str(v).strip().casefold() for v in value}
+        if claimed_items and all("/" in item for item in claimed_items):
+            found_items = {
+                canonical.casefold() if (canonical := _catalogue_model_id(item))
+                else normalise_name(re.sub(r"(?i)\s+model$", "", item))
+                for item in published_items
+            }
         return None if found_items == claimed_items else Diff("value", expected, reading.value)
     expected_name = normalise_name(str(value))
     found_name = normalise_name(reading.value)
@@ -1876,7 +2154,8 @@ __all__ = [
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
     "Regions", "Result",
-    "RunReport", "StoredRegions", "StructuredDataExtractor", "TableExtractor", "TOLERANCE_RULE",
+    "RunReport", "StoredRegions", "StructuredDataExtractor", "SubscriptionPageExtractor",
+    "TableExtractor", "TOLERANCE_RULE",
     "UNITS", "VerificationLog", "compare",
     "claude_extractor", "deterministic_extractors", "is_quarantined", "load_sources",
     "mistral_extractor",

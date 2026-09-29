@@ -31,8 +31,21 @@ class RegistryStub:
             "region": "string",
             "attestations": "string_set",
             "release": "date",
+            "offering.subscription.price": "number",
+            "offering.subscription.billing_period": "enum",
+            "offering.subscription.models_covered": "string_set",
+            "offering.subscription.usage_allowance": "string",
+            "offering.subscription.programmatic_or_agent_use": "string",
         }
-        return SimpleNamespace(id=id, value_type=types[id], tier="guaranteed", risk="capability")
+        fields = dict(
+            id=id,
+            value_type=types[id],
+            tier="best_effort",
+            risk="capability",
+        )
+        if id.startswith("offering.subscription."):
+            fields["subject"] = "offering"
+        return SimpleNamespace(**fields)
 
     def provider(self, id):
         if id != "fake-provider":
@@ -67,6 +80,43 @@ def fact_data(**changes):
         "value": 128000,
         "sources": [citation()],
         **changes,
+    }
+
+
+SUBSCRIPTION_VALUES = {
+    "offering.subscription.price": 20,
+    "offering.subscription.billing_period": "monthly",
+    "offering.subscription.models_covered": ["fake-lab/fake-model"],
+    "offering.subscription.usage_allowance": "5x standard usage per five-hour session",
+    "offering.subscription.programmatic_or_agent_use": "Fake Harness is included",
+}
+
+
+def subscription_data(*, state="known"):
+    sid = "fake-provider/subscription/pro"
+    facts = []
+    for facet, value in SUBSCRIPTION_VALUES.items():
+        changes = {
+            "id": f"{sid}#{facet}",
+            "subject": {"kind": "offering", "id": sid},
+            "facet": facet,
+        }
+        if state != "known":
+            changes.update(
+                state=state,
+                value=None,
+                sources=[],
+                checked_sources=["fake-doc"],
+            )
+        else:
+            changes["value"] = value
+        facts.append(fact_data(**changes))
+    return {
+        "kind": "subscription",
+        "provider": "fake-provider",
+        "plan": "pro",
+        "name": "Fake Pro",
+        "facts": facts,
     }
 
 
@@ -466,6 +516,133 @@ def test_offering_loader_checks_file_identity_and_duplicate_offerings(context, t
     path.write_text("offerings: []")
     with pytest.raises(ValidationError):
         load_offerings(path, registry=context["registry"])
+
+
+def test_subscription_offering_validates_and_round_trips(context, tmp_path):
+    import yaml
+
+    from decision.model import SubscriptionOffering, load_subscription_offerings
+
+    sid = "fake-provider/subscription/pro"
+    rows = [subscription_data()]
+    directory = tmp_path / "subscriptions"
+    directory.mkdir()
+    path = directory / "fake-provider.yaml"
+    path.write_text(yaml.safe_dump(rows))
+
+    [subscription] = load_subscription_offerings(path, registry=context["registry"])
+
+    assert subscription.id == sid
+    assert subscription.kind == "subscription"
+    assert subscription.name == "Fake Pro"
+    assert SubscriptionOffering.model_validate_json(
+        subscription.model_dump_json(), context=context
+    ) == subscription
+
+
+def test_subscription_offering_rejects_wrong_subject_and_file_provider(context, tmp_path):
+    import yaml
+
+    from decision.model import SubscriptionOffering, load_subscription_offerings
+
+    data = subscription_data()
+    data["facts"] = [fact_data()]
+    with pytest.raises(ValidationError, match="subject"):
+        SubscriptionOffering.model_validate(data, context=context)
+
+    path = tmp_path / "wrong-provider.yaml"
+    path.write_text(yaml.safe_dump([subscription_data(state="not_disclosed")]))
+    with pytest.raises(ValueError, match="does not match path"):
+        load_subscription_offerings(path, registry=context["registry"])
+
+
+def test_subscription_offering_requires_every_subscription_facet(context):
+    from decision.model import SubscriptionOffering
+
+    data = subscription_data(state="not_disclosed")
+
+    for missing in SUBSCRIPTION_VALUES:
+        incomplete = {**data, "facts": [
+            fact for fact in data["facts"] if fact["facet"] != missing
+        ]}
+        with pytest.raises(ValidationError, match="exactly one fact"):
+            SubscriptionOffering.model_validate(incomplete, context=context)
+
+    with pytest.raises(ValidationError, match="exactly one fact"):
+        SubscriptionOffering.model_validate({**data, "facts": []}, context=context)
+
+
+@pytest.mark.parametrize("state", ["unknown", "not_disclosed", "requires_contract"])
+def test_subscription_non_known_facts_require_checked_sources(context, state):
+    from decision.model import SubscriptionOffering
+
+    data = subscription_data(state=state)
+    data["facts"][0]["checked_sources"] = []
+
+    with pytest.raises(ValidationError, match="checked_sources"):
+        SubscriptionOffering.model_validate(data, context=context)
+
+
+def test_subscription_known_facts_require_sources(context):
+    from decision.model import SubscriptionOffering
+
+    data = subscription_data()
+    data["facts"][0]["sources"] = []
+
+    with pytest.raises(ValidationError, match="known fact requires"):
+        SubscriptionOffering.model_validate(data, context=context)
+
+
+def test_repository_subscription_offerings_validate_against_the_real_registry():
+    from decision.model import load_subscription_offerings
+    from decision.registry import default
+
+    root = Path(__file__).resolve().parents[1] / "offerings" / "subscriptions"
+    loaded = [
+        subscription
+        for path in sorted(root.glob("*.yaml"))
+        for subscription in load_subscription_offerings(path, registry=default())
+    ]
+
+    assert [subscription.id for subscription in loaded] == [
+        "anthropic/subscription/pro",
+        "anthropic/subscription/max-5x",
+        "anthropic/subscription/max-20x",
+        "google-gemini-api/subscription/ai-plus",
+        "google-gemini-api/subscription/ai-pro",
+        "google-gemini-api/subscription/ai-ultra",
+        "openai/subscription/plus",
+        "openai/subscription/pro-5x",
+        "openai/subscription/pro-20x",
+        "xai/subscription/supergrok",
+        "xai/subscription/supergrok-plus",
+    ]
+    facts = [fact for subscription in loaded for fact in subscription.facts]
+    assert len(facts) == 55
+    assert all(fact.sources for fact in facts if fact.state == "known")
+    assert all(
+        fact.value is None and fact.checked_sources
+        for fact in facts
+        if fact.state != "known"
+    )
+    assert {fact.facet for fact in facts if fact.state == "known"} == {
+        "offering.subscription.price",
+        "offering.subscription.billing_period",
+        "offering.subscription.models_covered",
+        "offering.subscription.usage_allowance",
+        "offering.subscription.programmatic_or_agent_use",
+    }
+    xai_programmatic = [
+        fact
+        for subscription in loaded
+        if subscription.provider == "xai"
+        for fact in subscription.facts
+        if fact.facet == "offering.subscription.programmatic_or_agent_use"
+    ]
+    assert all(
+        "model-173-xai-consumer-terms" in {source.source_id for source in fact.sources}
+        for fact in xai_programmatic
+    )
 
 
 def test_fake_offering_covers_provider_dependent_facts(context):
