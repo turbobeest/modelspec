@@ -38,7 +38,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "2.4"
+CONTRACT_VERSION = "2.5"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -119,6 +119,7 @@ MeasuredBy = Literal["benchmark_author", "independent", "provider_self_report", 
                      "outcome_protocol"]
 Explain = Literal["none", "summary", "full"]
 Status = Literal["answered", "partial", "no_feasible"]
+ModelRowStatus = Literal["ranked", "may_qualify", "eliminated"]
 DateType = Literal["observed", "published"]
 Directness = Literal["direct", "proxy"]
 CapabilityLevel = Literal["required", "preferred"]
@@ -1183,6 +1184,16 @@ class Contribution(_Strict):
 class Result(_Strict):
     rank: int = Field(ge=1)
     offering: OfferingRef
+    #: The model, flat: ``offering.model``. Added in 2.5.
+    model: ModelId | None = None
+    #: The model's place among the returned models, 1 for the model of the
+    #: top offering. It counts models, not offerings, and does not say whether
+    #: two models are tied: ``Decision.answer`` does. Added in 2.5.
+    model_rank: int | None = Field(default=None, ge=1)
+    #: The task's cost through this offering, in dollars, or null when it has
+    #: no known price. The same number as the cost contribution's
+    #: ``raw_value``, present at every explain level. Added in 2.5.
+    cost_per_task: float | None = None
     harness: HarnessId | None = None
     effort: Effort | None = None
     evidence: list[DomainEvidence] = Field(default_factory=list)
@@ -1196,6 +1207,14 @@ class Result(_Strict):
     soft_penalty: float = Field(default=0.0, ge=0)
     contributions: list[Contribution] = Field(default_factory=list)
     warnings: list[Code] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _model_is_the_offerings(self) -> Result:
+        if self.model is None:
+            self.model = self.offering.model
+        elif self.model != self.offering.model:
+            raise ValueError(f"model {self.model!r} is not the offering's model {self.offering.model!r}")
+        return self
 
 
 class MayQualify(_Strict):
@@ -1473,6 +1492,37 @@ class WithEstate(_Strict):
     gain: list[GainItem] = Field(default_factory=list)
 
 
+class ModelOffering(_Strict):
+    """One offering of a model in ``by_model``, with why it is or is not ranked. Added in 2.5."""
+
+    offering: OfferingRef
+    status: ModelRowStatus
+    #: The offering's rank in ``results``, for a ranked offering.
+    rank: int | None = Field(default=None, ge=1)
+    cost_per_task: float | None = None
+    #: The facets a may-qualify offering is unknown on.
+    unknown: list[FacetId] = Field(default_factory=list)
+    #: The Must condition an eliminated offering failed. Only when the
+    #: explanation carries eliminations (``explain: full``).
+    reason: str | None = None
+
+
+class ModelRow(_Strict):
+    """One model, with all its offerings, in ranking order. Added in 2.5.
+
+    A model is ``ranked`` when any offering is, else ``may_qualify`` when any
+    is unknown on a facet, else ``eliminated``. ``rank`` is ``Result.model_rank``.
+    Eliminated models appear only when the explanation carries eliminations.
+    """
+
+    model: ModelId
+    status: ModelRowStatus
+    rank: int | None = Field(default=None, ge=1)
+    #: The best ranked offering's cost.
+    cost_per_task: float | None = None
+    offerings: list[ModelOffering] = Field(default_factory=list)
+
+
 class Decision(_Strict):
     """The engine's answer to one spec against one snapshot."""
 
@@ -1486,7 +1536,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.4"] = CONTRACT_VERSION
+    contract_version: Literal["2.5"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1498,6 +1548,9 @@ class Decision(_Strict):
     #: overlap chains are deliberately not followed. Added in 2.1.
     answer: Answer | None = None
     results: list[Result] = Field(default_factory=list)
+    #: The same candidates grouped by model: ranked, then may qualify, then
+    #: eliminated. Added in 2.5.
+    by_model: list[ModelRow] = Field(default_factory=list)
     may_qualify: list[MayQualify] = Field(default_factory=list)
     eliminated: Eliminated = Field(default_factory=Eliminated)
     truncated: Truncated = Field(default_factory=Truncated)
@@ -1536,7 +1589,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     BenchmarkEstimateChange, BenchmarkExclusions, Contribution,
     MayQualify, Eliminated, FunnelStep, ModelElimination, OfferingElimination,
     Truncated, TieBreakers, SeparatedAnswer, TiedAnswer,
-    ModelEliminationGroup, ConstraintCost, TippingPoint,
+    ModelEliminationGroup, ConstraintCost, TippingPoint, ModelRow, ModelOffering,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
 )
@@ -1546,7 +1599,7 @@ def closed_values() -> list[str]:
     """Every value of every closed vocabulary in the contract, for the doc agreement test."""
     values: list[str] = []
     for alias in (Op, UnknownPolicy, MeasuredByQualifier, MeasuredBy, Explain, Status, DateType,
-                  Directness, CapabilityLevel, PreferenceStatus, TaskType):
+                  Directness, CapabilityLevel, PreferenceStatus, TaskType, ModelRowStatus):
         values.extend(str(v) for v in typing.get_args(alias))
     values.extend(QUALIFIER_KEYWORDS)
     return sorted(set(values))

@@ -664,6 +664,13 @@
           ],
           "default": null
         },
+        "by_model": {
+          "items": {
+            "$ref": "#/$defs/ModelRow"
+          },
+          "title": "By Model",
+          "type": "array"
+        },
         "chart": {
           "anyOf": [
             {
@@ -2092,6 +2099,75 @@
       "title": "ModelEliminationGroup",
       "type": "object"
     },
+    "ModelOffering": {
+      "additionalProperties": false,
+      "description": "One offering of a model in ``by_model``, with why it is or is not ranked. Added in 2.4.",
+      "properties": {
+        "cost_per_task": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Per Task"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "enum": [
+            "ranked",
+            "may_qualify",
+            "eliminated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unknown": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+            "type": "string"
+          },
+          "title": "Unknown",
+          "type": "array"
+        }
+      },
+      "required": [
+        "offering",
+        "status"
+      ],
+      "title": "ModelOffering",
+      "type": "object"
+    },
     "ModelRef": {
       "additionalProperties": false,
       "description": "The right-hand side of a relative condition: ``coding >= model(openai/gpt-6-sol)``.",
@@ -2106,6 +2182,64 @@
         "model"
       ],
       "title": "ModelRef",
+      "type": "object"
+    },
+    "ModelRow": {
+      "additionalProperties": false,
+      "description": "One model, with all its offerings, in ranking order. Added in 2.4.\n\nA model is ``ranked`` when any offering is, else ``may_qualify`` when any\nis unknown on a facet, else ``eliminated``. ``rank`` is ``Result.model_rank``.\nEliminated models appear only when the explanation carries eliminations.",
+      "properties": {
+        "cost_per_task": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Per Task"
+        },
+        "model": {
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "offerings": {
+          "items": {
+            "$ref": "#/$defs/ModelOffering"
+          },
+          "title": "Offerings",
+          "type": "array"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "status": {
+          "enum": [
+            "ranked",
+            "may_qualify",
+            "eliminated"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model",
+        "status"
+      ],
+      "title": "ModelRow",
       "type": "object"
     },
     "NearMiss": {
@@ -2807,6 +2941,18 @@
           "title": "Contributions",
           "type": "array"
         },
+        "cost_per_task": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Per Task"
+        },
         "effort": {
           "anyOf": [
             {
@@ -2854,6 +3000,32 @@
           ],
           "default": null,
           "title": "Harness"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "model_rank": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Rank"
         },
         "offering": {
           "$ref": "#/$defs/OfferingRef"

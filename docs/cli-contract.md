@@ -29,7 +29,7 @@ modelspec offline fit [<hardware-id>]     what a given machine can run, or list 
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
 ```
 
-`modelspec decide [SPEC.yaml] [--template ID] [--check] [--explain …] [--json]`
+`modelspec decide [SPEC.yaml] [--template ID] [--check] [--explain …] [--why-not MODEL_ID] [--json]`
 is the decision engine's command (MODEL-135). It speaks the **decision
 contract**, which is versioned on its own (`contract_version`) and documented in
 [`decision-contract.md`](decision-contract.md). With neither `--snapshot-file`
@@ -86,6 +86,31 @@ counts, and model rows for entries, departures and their Must reason, rank and
 IDs where the decision exposes them. `spec_snapshot_ignored` records whether
 the input spec contained a non-`latest` pin. No change is a successful result with
 `changed: false`; both changed and unchanged comparisons exit 0.
+
+Without `--json`, `modelspec decide` prints a short readable summary: the
+status, the answer (a tied group with its tie-breakers, or the single pick,
+per the decision's `answer` block), the top five rows with cost per task, the
+leading contributions behind the top row, and how many models may qualify.
+A `no_feasible` decision prints the `relax` suggestions. `--json` is unchanged
+and stays byte-identical to the Worker's `POST /v1/decide` body.
+
+`modelspec decide SPEC.yaml --why-not MODEL_ID` answers "why not this model?"
+from the finished decision. It runs at `explain: full` internally so an
+eliminated model is known. It cannot be combined with `--check` or
+`--compare-to`. The verdict is one of:
+
+- `eliminated`: the Must the model failed, with its value and how far it was
+  from the threshold, and what relaxing that Must would admit.
+- `may_qualify`: the facets that are unknown for it. Unknown is never ranked
+  last and never dropped.
+- `ranked`: its place among models, and the weight change from `tipping_points`
+  that would put it first.
+- `not_in_decision`: the ID is not a candidate, or the `limit` cut it.
+
+`--json` prints `{"contract_version", "command", "why_not": {...}}`. The
+`why_not` object is CLI output, not part of the decision contract, and carries
+`model`, `verdict`, `model_rank`, `ranked_models`, `offerings`, `failed`,
+`unknown`, `constraint_costs`, `tipping_points` and a one-line `summary`.
 
 Options on legacy v1 `offline rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,

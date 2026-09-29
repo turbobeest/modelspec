@@ -631,6 +631,7 @@ function unrankedRow(
 
 interface CandidateRow<T extends Row = Row> {
   row: T;
+  ref: OfferingRef;
   hasOffering: boolean;
 }
 
@@ -669,6 +670,46 @@ function consolidateRows<T extends Row>(
   }
   consolidated.forEach((row) => claimed.add(rowModel(row)));
   return consolidated;
+}
+
+function refKey(ref: OfferingRef): string {
+  return [ref.model, ref.provider, ref.region, ref.tier].map((part) => part ?? "").join("|");
+}
+
+/**
+ * The engine's `by_model` view, mapped onto the page's rows: which offerings
+ * sit under which model, and in what state, is the engine's answer, not the
+ * page's. Decisions older than 2.5 have no view and use `consolidateRows`.
+ */
+function rowsFromEngineView<T extends Row>(
+  decision: Decision,
+  status: "ranked" | "may_qualify" | "eliminated",
+  candidates: CandidateRow[],
+  offeringStatuses: ReadonlySet<string>,
+): T[] {
+  const byRef = new Map<string, CandidateRow>();
+  for (const candidate of candidates) {
+    if (!byRef.has(refKey(candidate.ref))) byRef.set(refKey(candidate.ref), candidate);
+  }
+  const rows: T[] = [];
+  for (const entry of decision.by_model) {
+    if (entry.status !== status) continue;
+    const members = entry.offerings.flatMap((item) => {
+      const candidate = offeringStatuses.has(item.status) ? byRef.get(refKey(item.offering)) : undefined;
+      return candidate ? [candidate] : [];
+    });
+    const lead = members[0];
+    if (!lead) continue;
+    const offerings = [
+      ...new Map(members.map((item) => [item.row.best.o.id, item.row.best])).values(),
+    ];
+    rows.push({
+      ...lead.row,
+      m: { ...lead.row.m, offerings: offerings.map((offering) => offering.o) },
+      offs: offerings,
+    } as T);
+  }
+  return rows;
 }
 
 function offeringKey(ref: OfferingRef): string {
@@ -774,11 +815,12 @@ export function mapDecisionToViewModel(
 ): AdapterDecision {
   const sources = sourceRecords(decision);
   const names: Names = { models: options.models ?? {}, providers: options.providers ?? {} };
-  const modelGrained = ["1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12", "2.0", "2.1", "2.2", "2.3"].includes(
+  const modelGrained = ["1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12", "2.0", "2.1", "2.2", "2.3", "2.4", "2.5"].includes(
     decision.contract_version,
   );
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
     row: rankedRow(decision, result, spec, sources, names),
+    ref: result.offering,
     hasOffering: result.offering.provider !== null,
   }));
   const rawMay: CandidateRow[] = decision.may_qualify.map((candidate) => {
@@ -799,6 +841,7 @@ export function mapDecisionToViewModel(
         `${renderUnknownFacets(candidate.unknown)} not known`,
         names,
       ),
+      ref,
       hasOffering: ref.provider !== null,
     };
   });
@@ -832,19 +875,37 @@ export function mapDecisionToViewModel(
         eliminated.condition,
         names,
       ),
+      ref,
       hasOffering: ref.provider !== null,
     };
   });
   const rawRows: CandidateRow[] = [...rawFeasible, ...rawMay, ...rawExcluded];
-  const claimed = new Set<string>();
-  const feasible = consolidateRows(
-    rawFeasible,
-    spec.boardWeights === undefined ? rawRows : rawFeasible,
-    claimed,
-  );
-  feasible.forEach((row) => claimed.add(rowModel(row)));
-  const may = consolidateRows(rawMay, rawRows, claimed);
-  const excluded = consolidateRows(rawExcluded, rawRows, claimed);
+  let feasible: RankedRow[];
+  let may: Row[];
+  let excluded: Row[];
+  if (decision.by_model.length > 0) {
+    const everything = spec.boardWeights === undefined ? rawRows : rawFeasible;
+    feasible = rowsFromEngineView<RankedRow>(
+      decision,
+      "ranked",
+      everything,
+      spec.boardWeights === undefined
+        ? new Set(["ranked", "may_qualify", "eliminated"])
+        : new Set(["ranked"]),
+    );
+    may = rowsFromEngineView(decision, "may_qualify", rawRows, new Set(["may_qualify", "eliminated"]));
+    excluded = rowsFromEngineView(decision, "eliminated", rawRows, new Set(["eliminated"]));
+  } else {
+    const claimed = new Set<string>();
+    feasible = consolidateRows(
+      rawFeasible,
+      spec.boardWeights === undefined ? rawRows : rawFeasible,
+      claimed,
+    );
+    feasible.forEach((row) => claimed.add(rowModel(row)));
+    may = consolidateRows(rawMay, rawRows, claimed);
+    excluded = consolidateRows(rawExcluded, rawRows, claimed);
+  }
   const rows = [...feasible, ...may, ...excluded];
   const benchmarks = options.benchmarks ? { ...options.benchmarks } : Object.fromEntries(
     [...new Set(decision.top.flatMap((candidate) => candidate.evidence.flatMap((group) => group.items.map((item) => item.benchmark))))].map(

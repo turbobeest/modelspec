@@ -70,7 +70,7 @@ def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
     ), gate=False, as_of=date(2026, 9, 27))
     vocabulary = {
         "vocabulary_version": 1,
-        "contract_version": "2.4",
+        "contract_version": "2.5",
         "snapshot": snapshot.snapshot_id,
         "task_types": ["new_feature", "bug_fix"],
         "facets": [

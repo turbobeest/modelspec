@@ -183,6 +183,75 @@ def _cache_freshness() -> dict[str, Any]:
     return {key: freshness[key] for key in FRESHNESS_KEYS}
 
 
+def _cost(value: float | None) -> str:
+    return "no known price" if value is None else f"${value:.4g}/task"
+
+
+def _offering_name(ref: contract.OfferingRef) -> str:
+    return "/".join(part for part in (ref.provider, ref.region, ref.tier) if part) or "(model)"
+
+
+def _readable_lines(result: contract.Decision) -> list[str]:
+    """A short, human summary: status, the answer, the top rows, and the leader's reasons.
+
+    ``--json`` is the whole decision; this is what a person reads first.
+    """
+    lines = [f"status: {result.status}"]
+    if result.status == "no_feasible":
+        lines.append("relax: " + "; ".join(result.relax[:3]))
+        return lines
+    answer = result.answer
+    if isinstance(answer, contract.TiedAnswer):
+        lines.append(f"answer: tied, {' / '.join(answer.members)}")
+        lines.append(f"  {answer.basis}")
+        named = {key: value for key, value in answer.tie_breakers.model_dump().items() if value}
+        if named:
+            lines.append("  " + "; ".join(f"{key.replace('_', ' ')}: {value}"
+                                          for key, value in named.items()))
+    elif isinstance(answer, contract.SeparatedAnswer):
+        lines.append(f"answer: {answer.leader}")
+        lines.append(f"  {answer.basis}")
+    lines.append("top:")
+    for row in result.results[:5]:
+        lines.append(
+            f"  {row.rank}. {row.offering.model} via {_offering_name(row.offering)}"
+            f"  {_cost(row.cost_per_task)}"
+        )
+    if len(result.results) > 5:
+        lines.append(f"  ... and {len(result.results) - 5} more")
+    if result.results and result.results[0].contributions:
+        parts = sorted(
+            result.results[0].contributions,
+            key=lambda part: -(part.weight or 0) * (part.value or 0),
+        )[:3]
+        lines.append("why:")
+        for part in parts:
+            value = "unknown" if part.raw_value is None else f"{part.raw_value:g}"
+            unit = f" {part.unit}" if part.unit else ""
+            weight = "" if part.weight is None else f" (weight {part.weight:g})"
+            lines.append(f"  {part.dimension} {value}{unit}{weight}")
+    if result.may_qualify:
+        models = sorted({row.model for row in result.may_qualify})
+        lines.append(f"{len(result.may_qualify)} may qualify: {', '.join(models[:5])}")
+    lines.append("--json prints the whole decision; --why-not MODEL_ID explains one model.")
+    return lines
+
+
+def _why_not_lines(answer: Any) -> list[str]:
+    lines = [answer.summary]
+    for failed in answer.failed:
+        figure = "" if failed.value is None else f": {failed.value}{' ' + failed.unit if failed.unit else ''}"
+        lines.append(f"  failed {failed.condition}{figure}")
+    for point in answer.tipping_points[:3]:
+        lines.append(f"  {point.description} ({point.dimension}, {point.threshold})")
+    for offering in answer.offerings:
+        detail = f"#{offering.rank}" if offering.rank else offering.status
+        lines.append(
+            f"  {_offering_name(offering.offering)}: {detail}, {_cost(offering.cost_per_task)}"
+        )
+    return lines
+
+
 def decide(
     spec_path: Optional[Path] = typer.Argument(  # noqa: UP045 - Typer reads the annotation
         None, help="The optional spec, as YAML. Required without --template."
@@ -208,6 +277,12 @@ def decide(
     ),
     compare_to: Optional[str] = typer.Option(  # noqa: UP045 - Typer annotation
         None, "--compare-to", help="Compare with a cached snapshot ID, previous, or a .gz path."
+    ),
+    why_not: Optional[str] = typer.Option(  # noqa: UP045 - Typer annotation
+        None,
+        "--why-not",
+        metavar="MODEL_ID",
+        help="Say why one model failed a Must, may qualify, or ranked where it did.",
     ),
 ) -> None:
     """Decide which model or offering fits a spec (the decision contract, v1)."""
@@ -265,6 +340,13 @@ def decide(
         )
 
     base |= {"spec_hash": contract.spec_hash(spec), "explain": spec.explain}
+    if why_not is not None:
+        if check or compare_to is not None:
+            message = "--why-not cannot be combined with --check or --compare-to"
+            _fail(base | {"error": {"code": "decision_failed", "message": message}},
+                  [f"error: {message}"], as_json)
+        # Eliminated models are only listed at full; the answer needs them.
+        spec = spec.model_copy(update={"explain": "full"})
     template_warning = None
     if selected_template is not None and not selected_template.get("available", True):
         template_warning = selected_template.get("unavailable_reason") or (
@@ -372,7 +454,20 @@ def decide(
             [f"error: {exc}"],
             as_json,
         )
-    if as_json:
+    if why_not is not None:
+        from decision.why_not import why_not as answer_why_not
+
+        answer = answer_why_not(result, why_not)
+        if as_json:
+            typer.echo(json.dumps(
+                {"contract_version": contract.CONTRACT_VERSION, "command": "decide",
+                 "why_not": answer.model_dump(mode="json")},
+                ensure_ascii=False, separators=(",", ":"),
+            ))
+        else:
+            for line in _why_not_lines(answer):
+                typer.echo(line)
+    elif as_json:
         if compare_to is not None:
             typer.echo(json.dumps({
                 "schema_version": SCHEMA_VERSION,
@@ -410,4 +505,5 @@ def decide(
             )
             typer.echo(f"{row['model']}: " + "; ".join(parts))
     else:
-        typer.echo(result.model_dump_json(indent=2))
+        for line in _readable_lines(result):
+            typer.echo(line)

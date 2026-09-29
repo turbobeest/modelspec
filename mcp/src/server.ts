@@ -284,6 +284,10 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       description:
         "Downselect models by proxying POST https://api.modelspec.dev/v1/decide. " +
         SPEC_GUIDANCE +
+        'Use explain: "summary" (the default): it carries the answer, results, ' +
+        "by_model and may_qualify. " +
+        'explain: "full" also lists every eliminated candidate and returns about 670 KB, ' +
+        "so ask for it only to see why one model was excluded. " +
         "The decision response is returned unchanged with a short summary. " +
         "Authorization from the MCP client is forwarded. " +
         NULL_RULE,

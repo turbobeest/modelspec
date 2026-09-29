@@ -18,7 +18,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("the compact full decision", () => {
   it("parses, with sources listed once and origins naming them by ID", () => {
-    expect(full.contract_version).toBe("2.4");
+    expect(full.contract_version).toBe("2.5");
     expect(full.answer?.kind).toBe("separated");
     expect(full.sources.map((source) => source.id)).toEqual([
       "src-board",
@@ -51,6 +51,44 @@ describe("the compact full decision", () => {
     const alpha = view(unsourced).explanation.feasible[0];
     expect(alpha.best.o.in).toBeNull();
     expect(alpha.m.ctx).toBe(200_000);
+  });
+});
+
+describe("the engine's model view (MODEL-180)", () => {
+  const ids = (rows: { m: { lab: string; id: string } }[]) =>
+    rows.map((row) => `${row.m.lab}/${row.m.id}`);
+
+  it("carries the flat fields and one by_model row per model", () => {
+    expect(full.by_model.length).toBeGreaterThan(0);
+    expect(full.results.every((result) => result.model === result.offering.model)).toBe(true);
+    expect(full.results.every((result) => typeof result.cost_per_task === "number")).toBe(true);
+  });
+
+  it("groups the page's rows exactly as the engine's view does", () => {
+    const mapped = view().explanation;
+    const engine = (status: string) =>
+      full.by_model.filter((row) => row.status === status).map((row) => row.model);
+    expect(ids(mapped.feasible)).toEqual(engine("ranked"));
+    expect(ids(mapped.may)).toEqual(engine("may_qualify"));
+    expect(ids(mapped.excluded)).toEqual(engine("eliminated"));
+  });
+
+  it("puts every offering of a model under its row", () => {
+    const mapped = view().explanation.feasible;
+    full.by_model
+      .filter((row) => row.status === "ranked")
+      .forEach((row, index) => {
+        expect(mapped[index].offs).toHaveLength(row.offerings.length);
+      });
+  });
+
+  it("still groups a decision that predates by_model", () => {
+    const legacy = { ...full, by_model: [] };
+    const mapped = view(legacy).explanation;
+    const engine = view().explanation;
+    expect(ids(mapped.feasible)).toEqual(ids(engine.feasible));
+    expect(ids(mapped.may)).toEqual(ids(engine.may));
+    expect(ids(mapped.excluded).sort()).toEqual(ids(engine.excluded).sort());
   });
 });
 

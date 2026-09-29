@@ -100,6 +100,10 @@ const contributionSchema = z
 const resultSchema = z
   .object({
     rank: z.number().int().positive(),
+    // 2.5 flat fields. Older saved decisions predate them.
+    model: modelId.optional(),
+    model_rank: z.number().int().positive().nullable().optional(),
+    cost_per_task: z.number().nullable().optional(),
     offering: offeringRefSchema,
     harness: nullableString,
     effort: nullableString,
@@ -113,6 +117,29 @@ const resultSchema = z
     soft_penalty: z.number().nonnegative(),
     contributions: z.array(contributionSchema),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)),
+  })
+  .strict();
+
+const modelRowStatus = z.enum(["ranked", "may_qualify", "eliminated"]);
+
+const modelOfferingSchema = z
+  .object({
+    offering: offeringRefSchema,
+    status: modelRowStatus,
+    rank: z.number().int().positive().nullable(),
+    cost_per_task: z.number().nullable(),
+    unknown: z.array(facetId),
+    reason: z.string().nullable(),
+  })
+  .strict();
+
+const modelRowSchema = z
+  .object({
+    model: modelId,
+    status: modelRowStatus,
+    rank: z.number().int().positive().nullable(),
+    cost_per_task: z.number().nullable(),
+    offerings: z.array(modelOfferingSchema),
   })
   .strict();
 
@@ -265,6 +292,7 @@ export const decisionSchema = z
       "2.2",
       "2.3",
       "2.4",
+      "2.5",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -276,6 +304,8 @@ export const decisionSchema = z
     // while the adapter keeps those local fixtures readable.
     answer: answerSchema.nullable().optional(),
     results: z.array(resultSchema),
+    // Older saved decisions predate 2.5; the page then groups by model itself.
+    by_model: z.array(modelRowSchema).optional().default([]),
     may_qualify: z.array(
       z
         .object({
@@ -503,6 +533,7 @@ export const decisionSpecSchema = z
 export type OfferingRef = z.infer<typeof offeringRefSchema>;
 export type EvidenceItem = z.infer<typeof evidenceItemSchema>;
 export type Result = z.infer<typeof resultSchema>;
+export type ModelRow = z.infer<typeof modelRowSchema>;
 export type Decision = z.infer<typeof decisionSchema>;
 export type DecisionSpec = z.infer<typeof decisionSpecSchema>;
 export type Contribution = z.infer<typeof contributionSchema>;
