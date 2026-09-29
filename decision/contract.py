@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "2.0"
+CONTRACT_VERSION = "2.1"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1201,6 +1201,56 @@ class Truncated(_Strict):
     models: int = Field(default=0, ge=0)
 
 
+class TieBreakers(_Strict):
+    cheapest: ModelId | None = None
+    open_weights: ModelId | None = None
+    most_independently_measured: ModelId | None = None
+    fastest: ModelId | None = None
+
+
+class SeparatedAnswer(_Strict):
+    kind: Literal["separated"]
+    members: list[ModelId] = Field(min_length=1, max_length=1)
+    leader: ModelId
+    basis: str
+    tie_breakers: TieBreakers
+    deterministic_order: list[ModelId] = Field(min_length=1, max_length=1)
+
+    @model_validator(mode="after")
+    def _one_leader(self) -> SeparatedAnswer:
+        if self.members != [self.leader] or self.deterministic_order != self.members:
+            raise ValueError("a separated answer contains only its leader")
+        if any(value is not None for value in self.tie_breakers.model_dump().values()):
+            raise ValueError("a separated answer has no tie-breakers")
+        return self
+
+
+class TiedAnswer(_Strict):
+    kind: Literal["tied"]
+    members: list[ModelId] = Field(min_length=2)
+    basis: str
+    tie_breakers: TieBreakers
+    deterministic_order: list[ModelId] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def _same_members(self) -> TiedAnswer:
+        if len(set(self.members)) != len(self.members):
+            raise ValueError("answer members are unique model IDs")
+        if len(set(self.deterministic_order)) != len(self.deterministic_order) or set(
+            self.deterministic_order
+        ) != set(self.members):
+            raise ValueError("deterministic_order contains every member exactly once")
+        if any(
+            value is not None and value not in self.members
+            for value in self.tie_breakers.model_dump().values()
+        ):
+            raise ValueError("a tie-breaker names a member of the tied answer")
+        return self
+
+
+Answer = Annotated[SeparatedAnswer | TiedAnswer, Field(discriminator="kind")]
+
+
 class ConstraintCost(_Strict):
     units: dict[str, str | None] = Field(default_factory=dict)
     records: list[str] = Field(default_factory=list)
@@ -1300,7 +1350,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.0"] = CONTRACT_VERSION
+    contract_version: Literal["2.1"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1308,6 +1358,9 @@ class Decision(_Strict):
     spec_hash: SpecHash
     explain: Explain
     status: Status
+    #: The model-level answer. Members overlap the point-estimate leader only;
+    #: overlap chains are deliberately not followed. Added in 2.1.
+    answer: Answer | None = None
     results: list[Result] = Field(default_factory=list)
     may_qualify: list[MayQualify] = Field(default_factory=list)
     eliminated: Eliminated = Field(default_factory=Eliminated)
@@ -1344,7 +1397,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate,
     BenchmarkEstimateChange, BenchmarkExclusions, Contribution,
     MayQualify, Eliminated, FunnelStep, ModelElimination, OfferingElimination,
-    Truncated,
+    Truncated, TieBreakers, SeparatedAnswer, TiedAnswer,
     ModelEliminationGroup, ConstraintCost, TippingPoint,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
 )

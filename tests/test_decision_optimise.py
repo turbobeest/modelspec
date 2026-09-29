@@ -138,6 +138,23 @@ def test_unknown_preference_warning_survives_a_missing_scale_value() -> None:
     )
 
 
+def test_score_intervals_use_the_unclamped_point_estimate_transform():
+    index = evidence_index({
+        "leader": [evidence_value(value=20, interval=(18, 22))],
+        "other": [evidence_value(value=10, interval=(9, 11))],
+    })
+
+    result = optimise(
+        index,
+        index.candidates(),
+        Objective(max="quality"),
+        evidence_selectors={"quality": EvidenceSelector("bench")},
+    )
+
+    assert result.results[0].score_interval == (0.8, 1.2)
+    assert result.results[1].score_interval == (-0.1, 0.1)
+
+
 def test_lexicographic_tolerance_is_anchored_not_pairwise_chained():
     rows = {"a": {"speed": 100, "cost": 30}, "b": {"speed": 96, "cost": 20},
             "c": {"speed": 92, "cost": 10}, "missing": {"speed": 1000}}

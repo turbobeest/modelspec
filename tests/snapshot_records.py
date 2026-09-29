@@ -159,13 +159,13 @@ def loaded_index(
                 harness=value.harness,
                 day=value.date.isoformat() if value.date else "",
                 outcome="verified" if value.verified else "mismatch",
+                interval=value.interval,
+                n=value.n,
+                quality_flags=value.quality_flags,
             )
             row["benchmark_version"] = value.version
             row["subcategory"] = value.subcategory
             row["unit"] = value.unit
-            row["interval"] = value.interval
-            row["n"] = value.n
-            row["quality_flags"] = list(value.quality_flags)
             evidence_records.append(row)
 
     inputs = SnapshotInputs(

@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.0**
+Contract version: **2.1**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -389,13 +389,25 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.0",
+  "contract_version": "2.1",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
   "spec_hash": "sha256:9f2c1e4b7a0d3f6e8c5b2a1d4e7f0c3b6a9d2e5f8c1b4a7d0e3f6c9b2a5d8e1f",
   "explain": "summary",
   "status": "answered",
+  "answer": {
+    "kind": "tied",
+    "members": ["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "tie_breakers": {
+      "cheapest": "openai/gpt-6-sol",
+      "open_weights": "openai/gpt-6-sol",
+      "most_independently_measured": "anthropic/claude-opus-5-5",
+      "fastest": null
+    },
+    "deterministic_order": ["anthropic/claude-opus-5-5", "openai/gpt-6-sol"]
+  },
   "results": [
     {
       "rank": 1,
@@ -453,7 +465,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.0"`. |
+| `contract_version` | `"2.1"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -461,6 +473,7 @@ same canonical representation it had in 1.0.
 | `spec_hash` | The canonical spec hash. |
 | `explain` | The explanation level used. |
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
+| `answer` | The model-level answer for a scalar objective, or null when the objective has no scalar order or no result. See below. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
 | `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
 | `eliminated` | Candidates that failed a condition or were Pareto-dominated. The `funnel` reports each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. A qualifying candidate omitted by `limit` is never an elimination. |
@@ -489,6 +502,37 @@ models enter a decision only when a condition asks for lifecycle `retired`.
 Every other catalogue model is left out and counted in `out_of_lineup`; it is
 never listed as a candidate or in `may_qualify`.
 
+### The answer
+
+`answer` is the evidence-supported model-level conclusion. Each model is
+represented by its best offering under the spec's objective. A model's own
+offerings never compete with one another in this block.
+
+For a scalar objective, each candidate has a `score_interval`. The engine
+applies the same feasible-set affine transform to interval bounds that it uses
+for the point estimate. It does not clamp transformed bounds to 0 through 1.
+Exact facets such as cost contribute a point. A capability estimate contributes
+its 80% interval. The weighted interval is the sum of each transformed interval
+times its objective weight, less the exact soft penalty.
+
+The point-estimate leader anchors the comparison. `members` contains that
+model and every other model whose score interval overlaps the leader's.
+Overlap chains are deliberately not followed. For example, if B overlaps A
+and C overlaps B but not A, A and B are members and C is not.
+
+| Field | Meaning |
+|---|---|
+| `kind` | `separated` when no other model overlaps the leader, otherwise `tied`. |
+| `members` | Model IDs supported by the leader-overlap rule. A separated answer contains only its leader. |
+| `leader` | Present only for `separated`, and equal to its sole member. A tied answer cannot carry this field. |
+| `basis` | The overlap rule and interval level used. |
+| `tie_breakers` | Four model IDs or nulls, computed only for a tied answer. `cheapest` minimises exact cost per task, `fastest` maximises offering throughput, `open_weights` names the sole open-weights member when there is one, and `most_independently_measured` counts admitted measurements from independent measurers. A non-unique or unknown value is null. |
+| `deterministic_order` | The members ordered by point estimate, then exact cost, then model ID. This lets an agent process the group repeatably. It is not evidence that the first member is better. |
+
+A `separated` answer carries all four `tie_breakers` as null. A `tied` answer
+contains at least two unique `members`, and each non-null tie-breaker names one
+of them.
+
 ### A result
 
 | Field | Meaning |
@@ -499,8 +543,8 @@ never listed as a candidate or in `may_qualify`.
 | `effort` | The effort setting the evidence and estimate apply to, or null. |
 | `evidence` | For each requested `domain`, the verified evidence `items`. |
 | `estimates` | Capability estimates per `domain`, each a `value` and an 80% `interval` `[low, high]`, with the `harness` and `effort` they apply to. Null when the snapshot has no fitted estimate. |
-| `p_best` | The probability this result is best among the feasible models for a single-domain objective. Null for other objective forms. |
-| `top3_stability` | The share of deterministic posterior resamples in which the result stays in the top three. Null for other objective forms. |
+| `p_best` | The probability this model is best among the feasible models. For a weighted objective, the engine resamples each capability posterior, applies the objective's affine transform and weights, and keeps exact facets fixed. Null when the objective has no capability posterior. |
+| `top3_stability` | The share of those deterministic posterior resamples in which the model stays in the top three. Null when `p_best` is null. |
 | `soft_penalty` | The total penalty from violated soft conditions. |
 | `contributions` | Per objective `dimension`: its `weight`, normalised `value`, the `normalisation` used, and the `evidence` behind it. A boolean or enum term also carries `preferred_value` and `preference_status`. |
 | `warnings` | Codes about this result. |
@@ -779,6 +823,13 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.1 — MODEL-170:** A decision adds the model-level `answer` block. Its
+  `kind` is `separated` or `tied`; `members` overlap the point-estimate
+  leader's weighted score interval, without following overlap chains. The
+  block also carries `leader` only when separated, its `basis`, four nullable
+  `tie_breakers`, and a non-evidentiary `deterministic_order`. Weighted
+  objectives now fill `p_best` and `top3_stability` by resampling their
+  capability posteriors. The response addition is compatible.
 - **2.0 — MODEL-172 (major):** `optimize.weights` values widen from a number
   to a number or a value preference (`{prefer, weight}`). A 1.x client that
   read every weight of a spec or echoed spec as a number must handle the new

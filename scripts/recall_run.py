@@ -192,6 +192,11 @@ def _raw_value(decision: Decision, rank: int) -> tuple[str, float | None, str | 
 
 
 def _top_is_tied(decision: Decision) -> bool:
+    if decision.answer is not None and decision.answer.kind == "tied":
+        return True
+    # Recall expectations ask whether the capability evidence separates the
+    # models. An exact objective can have a separated answer while the requested
+    # capability estimates still overlap.
     if len(decision.results) < 2:
         return False
     first_result, second_result = decision.results[:2]

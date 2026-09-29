@@ -23,13 +23,30 @@
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "2.0",
+  "contract_version": "2.1",
   "decision_id": "dec_18b812054b953e2d9d3d1465",
   "snapshot": "snap_0ba2c5bb156ee46b",
   "signature_verified": false,
   "spec_hash": "sha256:58169809043c42397540ad85e390d27df0c8056eb53a32359f0b16447c710332",
   "explain": "summary",
   "status": "answered",
+  "answer": {
+    "kind": "separated",
+    "members": [
+      "lab/alpha"
+    ],
+    "leader": "lab/alpha",
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "tie_breakers": {
+      "cheapest": null,
+      "open_weights": null,
+      "most_independently_measured": null,
+      "fastest": null
+    },
+    "deterministic_order": [
+      "lab/alpha"
+    ]
+  },
   "results": [
     {
       "rank": 1,

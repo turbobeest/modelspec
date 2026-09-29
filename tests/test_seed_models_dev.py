@@ -8,6 +8,7 @@ onto zhipu/glm-5-2. Identity is an explicit registry, never a display-name match
 from __future__ import annotations
 
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -165,6 +166,23 @@ def test_models_dev_and_seeder_ids_are_explicit() -> None:
 def test_registry_file_is_next_to_the_seeder() -> None:
     assert KNOWN_IDENTITIES_PATH == REPO_ROOT / "scripts" / "models_dev_known_identities.yaml"
     assert KNOWN_IDENTITIES_PATH.is_file()
+
+
+def test_new_cards_record_the_day_the_seeder_created_them() -> None:
+    card = seeder.build_model_card(
+        {
+            "id": "brand-new-model",
+            "name": "Brand New Model",
+            "release_date": "2026-09-27",
+            "modalities": {"input": ["text"], "output": ["text"]},
+        },
+        "openai",
+        seeder.PROVIDER_MAP["openai"],
+    )
+
+    today = date.today().isoformat()
+    assert card.card_created == today
+    assert card.card_updated == today
 
 
 def _rehost_card(models_dir: Path) -> None:

@@ -15,6 +15,7 @@ import os
 import re
 import sys
 import tempfile
+from datetime import date
 from pathlib import Path
 
 import httpx
@@ -677,6 +678,7 @@ def build_model_card(
 
     # Cost
     raw_cost = raw.get("cost", {})
+    card_date = date.today().isoformat()
 
     # Build the card
     card = ModelCard(
@@ -737,8 +739,8 @@ def build_model_card(
         ),
         card_schema_version="3.0",
         card_author="models.dev-seeder",
-        card_created="2026-04-05",
-        card_updated="2026-04-05",
+        card_created=card_date,
+        card_updated=card_date,
         prose_body=_build_prose(display_name, raw, model_type, provider_cfg),
     )
 

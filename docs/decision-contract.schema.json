@@ -607,6 +607,32 @@
       "additionalProperties": false,
       "description": "The engine's answer to one spec against one snapshot.",
       "properties": {
+        "answer": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "separated": "#/$defs/SeparatedAnswer",
+                  "tied": "#/$defs/TiedAnswer"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SeparatedAnswer"
+                },
+                {
+                  "$ref": "#/$defs/TiedAnswer"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
+        },
         "benchmark_exclusions": {
           "anyOf": [
             {
@@ -638,8 +664,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.0",
-          "default": "2.0",
+          "const": "2.1",
+          "default": "2.1",
           "title": "Contract Version",
           "type": "string"
         },
@@ -2536,6 +2562,58 @@
       "title": "Result",
       "type": "object"
     },
+    "SeparatedAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "deterministic_order": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Deterministic Order",
+          "type": "array"
+        },
+        "kind": {
+          "const": "separated",
+          "title": "Kind",
+          "type": "string"
+        },
+        "leader": {
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+          "title": "Leader",
+          "type": "string"
+        },
+        "members": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Members",
+          "type": "array"
+        },
+        "tie_breakers": {
+          "$ref": "#/$defs/TieBreakers"
+        }
+      },
+      "required": [
+        "kind",
+        "members",
+        "leader",
+        "basis",
+        "tie_breakers",
+        "deterministic_order"
+      ],
+      "title": "SeparatedAnswer",
+      "type": "object"
+    },
     "ShownFact": {
       "additionalProperties": false,
       "properties": {
@@ -2886,6 +2964,109 @@
       "title": "TaskTokens",
       "type": "object"
     },
+    "TieBreakers": {
+      "additionalProperties": false,
+      "properties": {
+        "cheapest": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cheapest"
+        },
+        "fastest": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fastest"
+        },
+        "most_independently_measured": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Most Independently Measured"
+        },
+        "open_weights": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Open Weights"
+        }
+      },
+      "title": "TieBreakers",
+      "type": "object"
+    },
+    "TiedAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "deterministic_order": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Deterministic Order",
+          "type": "array"
+        },
+        "kind": {
+          "const": "tied",
+          "title": "Kind",
+          "type": "string"
+        },
+        "members": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Members",
+          "type": "array"
+        },
+        "tie_breakers": {
+          "$ref": "#/$defs/TieBreakers"
+        }
+      },
+      "required": [
+        "kind",
+        "members",
+        "basis",
+        "tie_breakers",
+        "deterministic_order"
+      ],
+      "title": "TiedAnswer",
+      "type": "object"
+    },
     "TippingPoint": {
       "additionalProperties": false,
       "properties": {
@@ -3109,5 +3290,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.0"
+  "x-contract-version": "2.1"
 }
