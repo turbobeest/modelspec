@@ -110,6 +110,41 @@ them for `--changed-only --llm-reader mistral`.
 `quarantined_values(targets=None)` lists the quarantined targets in the log,
 or among `targets` when that list is given.
 
+## Weekly price and plan re-read
+
+`scripts/price_reread.py`, run by `.github/workflows/price-reread.yml` on
+Tuesdays (MODEL-217). It takes every `offering.price.*` and
+`offering.subscription.*` fact whose current value was last verified by a
+deterministic reader, fetches each cited page once more over plain HTTP, pins
+the fact's filed claim to the new copy and verifies it again. Each fact ends as:
+
+- `unchanged`: the recorded value still verifies.
+- `changed`: it does not, and exactly one new value for the same subject
+  verifies. The job writes that value and the new copy ref into the offering
+  file (nothing else in the file changes), files a claim from
+  `modelspec-price-reread` and logs the verification. It opens a pull request on
+  `data/weekly-price-reread`, with the old and new values and a diff of the cited
+  regions' text. `automerge.yml` skips that branch: a person reviews every price
+  change.
+- `needs_review`, `unreadable`, `unreachable`: the value no longer verifies and
+  there is no single replacement; or the page fetched and the readers cannot read
+  it; or it did not fetch. These are alerts. The job writes nothing for them,
+  opens or updates one issue ("Price and plan re-read needs a person") and fails
+  the run. A page is fetched a second time before its facts alert, since some
+  servers now and then answer a plain fetch with a script shell or a 403.
+- `not_reread`: the page needs a rendered fetch, or an LLM reader verified the
+  value, or the value is still quarantined. A deterministic failure would say
+  nothing about the page, so these are counted in the report and never alert.
+
+Both keys on a new value are code in this repository: the readers that found it
+and the verifier that confirmed it. The pull request's reviewer is the check that
+the readers still read the page as intended.
+
+The retained copies live in the `price-reread-copies` artifact between runs;
+only the report's text diff needs them. On 2026-09-29 a run fetched 33 pages
+(16 MB), and 14 more need a rendered fetch. It took about a minute on one Linux
+runner, with no model and no paid scraper.
+
 ## Fixture
 
 `tests/fixtures/verification/` seeds these errors: a score copied from a

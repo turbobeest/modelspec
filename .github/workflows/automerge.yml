@@ -5,6 +5,8 @@ name: Enable auto-merge
 # finished record (MODEL-5). That job opens research/daily-models and must
 # never be auto-merged. Only that exact branch is excluded: other research/*
 # branches (scripts, tests) auto-merge like any agent PR (MODEL-44).
+# The weekly price re-read is the other exception: a person reviews every price
+# change before it merges (MODEL-217), so data/weekly-price-reread never queues.
 
 on:
   pull_request:
@@ -20,7 +22,8 @@ jobs:
     if: >
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.head_ref != 'research/daily-models'
+      github.head_ref != 'research/daily-models' &&
+      github.head_ref != 'data/weekly-price-reread'
     runs-on: ubuntu-latest
     steps:
       - name: Fail if RESEARCH_PR_TOKEN is empty
