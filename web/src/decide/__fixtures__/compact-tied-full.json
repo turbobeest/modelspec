@@ -157,8 +157,8 @@
               "unit": "percent",
               "n": null,
               "interval": [
-                86.0,
-                98.0
+                80.0,
+                104.0
               ],
               "quality_flags": [],
               "measured_by": "independent",
@@ -315,8 +315,8 @@
               "unit": "percent",
               "n": null,
               "interval": [
-                82.0,
-                94.0
+                76.0,
+                100.0
               ],
               "quality_flags": [],
               "measured_by": "independent",
@@ -953,9 +953,9 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.6",
-  "decision_id": "dec_c5b644153bbf9512a5325287",
-  "snapshot": "snap_20eefc281d696965",
+  "contract_version": "2.7",
+  "decision_id": "dec_19d420d3d1fec5f89f895ee4",
+  "snapshot": "snap_1c41789e130ea033",
   "signature_verified": false,
   "spec_hash": "sha256:2e6d018a3802e03cd200cf58efd0d6910f67f06e11d32f6063b7a0ff7706e806",
   "explain": "full",
@@ -966,7 +966,7 @@
       "lab/alpha",
       "lab/gamma"
     ],
-    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
     "tie_breakers": {
       "cheapest": "lab/gamma",
       "open_weights": "lab/gamma",
@@ -978,6 +978,111 @@
       "lab/gamma"
     ]
   },
+  "bands": {
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "lab/alpha",
+    "best": [
+      {
+        "model": "lab/alpha",
+        "offering": {
+          "model": "lab/alpha",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.78,
+        "score_interval": [
+          0.312,
+          1.248
+        ],
+        "p_best": null,
+        "p_beats_leader": null,
+        "cost_per_task": 0.168,
+        "estimates": []
+      },
+      {
+        "model": "lab/gamma",
+        "offering": {
+          "model": "lab/gamma",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.734,
+        "score_interval": [
+          0.266,
+          1.202
+        ],
+        "p_best": null,
+        "p_beats_leader": 0.4458,
+        "cost_per_task": 0.112,
+        "estimates": []
+      }
+    ],
+    "rest": [
+      {
+        "model": "lab/beta",
+        "offering": {
+          "model": "lab/beta",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.22,
+        "score_interval": [
+          0.22,
+          0.22
+        ],
+        "p_best": null,
+        "p_beats_leader": 0.0095,
+        "cost_per_task": 0.056,
+        "estimates": []
+      }
+    ],
+    "thin": []
+  },
+  "blend": [
+    {
+      "dimension": "quality",
+      "weight": 0.78,
+      "share": 0.78,
+      "estimated": false,
+      "leaders": [
+        "lab/alpha"
+      ],
+      "value": 92.0,
+      "p_best": null,
+      "runner_up": null,
+      "p_runner_up": null,
+      "order": [
+        "lab/alpha",
+        "lab/gamma",
+        "lab/beta"
+      ],
+      "thin": []
+    },
+    {
+      "dimension": "-offering.cost_per_task",
+      "weight": 0.22,
+      "share": 0.22,
+      "estimated": false,
+      "leaders": [
+        "lab/beta"
+      ],
+      "value": 0.056,
+      "p_best": null,
+      "runner_up": null,
+      "p_runner_up": null,
+      "order": [
+        "lab/beta",
+        "lab/gamma",
+        "lab/alpha"
+      ],
+      "thin": []
+    }
+  ],
   "results": [
     {
       "rank": 1,
@@ -1006,8 +1111,8 @@
               "unit": "percent",
               "n": null,
               "interval": [
-                86.0,
-                98.0
+                80.0,
+                104.0
               ],
               "quality_flags": [],
               "measured_by": "independent",
@@ -1068,8 +1173,8 @@
               "unit": "percent",
               "n": null,
               "interval": [
-                86.0,
-                98.0
+                80.0,
+                104.0
               ],
               "quality_flags": [],
               "measured_by": "independent",
@@ -1122,8 +1227,8 @@
               "unit": "percent",
               "n": null,
               "interval": [
-                82.0,
-                94.0
+                76.0,
+                100.0
               ],
               "quality_flags": [],
               "measured_by": "independent",
@@ -1184,8 +1289,8 @@
               "unit": "percent",
               "n": null,
               "interval": [
-                82.0,
-                94.0
+                76.0,
+                100.0
               ],
               "quality_flags": [],
               "measured_by": "independent",

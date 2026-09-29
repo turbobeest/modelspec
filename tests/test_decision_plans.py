@@ -15,6 +15,7 @@ import pytest
 from typer.testing import CliRunner
 
 from decision import contract as c
+from decision.bands import BASIS
 from decision.contract import SpecError, parse_spec
 from decision.engine import decide
 from decision.snapshot import build_snapshot, load_snapshot_bytes
@@ -109,7 +110,14 @@ def _same_bytes(decision, golden) -> None:
     ours = decision.model_dump(mode="json")
     assert ours["contract_version"] == c.CONTRACT_VERSION
     ours["contract_version"] = golden["contract_version"]
-    assert json.dumps(ours, sort_keys=True) == json.dumps(golden, sort_keys=True)
+    # 2.7 (MODEL-206) adds the bands and the blend and states the band rule as
+    # every answer's basis; the golden predates both.
+    ours.pop("bands", None)
+    ours.pop("blend", None)
+    text = json.dumps(ours, sort_keys=True).replace(
+        json.dumps(BASIS), json.dumps("leader-overlap score intervals; "
+                                      "capability estimates use 80% intervals"))
+    assert text == json.dumps(golden, sort_keys=True)
 
 
 @pytest.mark.parametrize("index", range(len(NO_ACCESS_SPECS)))
@@ -374,7 +382,7 @@ def test_the_vocabulary_publishes_each_plan_record(sourced) -> None:
 
 
 def test_the_contract_took_the_next_minor_and_publishes_the_plan_types() -> None:
-    assert c.CONTRACT_VERSION == "2.6"
+    assert c.CONTRACT_VERSION == "2.7"
     defs = c.json_schema()["$defs"]
     for name in ("Access", "PlanRoute", "PlanCoverage", "PlanPrice", "PlanAllowance"):
         assert name in defs, name

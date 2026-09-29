@@ -245,7 +245,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.6",
+  "contract_version": "2.7",
   "decision_id": "dec_b1e8359cbdf1dbb1928ac804",
   "snapshot": "snap_71b689ca16c5a402",
   "signature_verified": false,
@@ -258,7 +258,7 @@
       "anthropic/claude-sonnet-5",
       "anthropic/claude-opus-5-5"
     ],
-    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
     "tie_breakers": {
       "cheapest": "anthropic/claude-sonnet-5",
       "open_weights": null,
@@ -270,6 +270,73 @@
       "anthropic/claude-opus-5-5"
     ]
   },
+  "bands": {
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "anthropic/claude-sonnet-5",
+    "best": [
+      {
+        "model": "anthropic/claude-opus-5-5",
+        "offering": {
+          "model": "anthropic/claude-opus-5-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.0,
+        "score_interval": [
+          0.0,
+          0.0
+        ],
+        "p_best": null,
+        "p_beats_leader": 1.0,
+        "cost_per_task": null,
+        "estimates": []
+      },
+      {
+        "model": "anthropic/claude-sonnet-5",
+        "offering": {
+          "model": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.0,
+        "score_interval": [
+          0.0,
+          0.0
+        ],
+        "p_best": null,
+        "p_beats_leader": null,
+        "cost_per_task": null,
+        "estimates": []
+      }
+    ],
+    "rest": [],
+    "thin": []
+  },
+  "blend": [
+    {
+      "dimension": "model.context_window",
+      "weight": 1.0,
+      "share": 1.0,
+      "estimated": false,
+      "leaders": [
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5"
+      ],
+      "value": 200000.0,
+      "p_best": null,
+      "runner_up": null,
+      "p_runner_up": null,
+      "order": [
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5"
+      ],
+      "thin": []
+    }
+  ],
   "results": [
     {
       "rank": 1,
@@ -541,7 +608,7 @@
         "anthropic/claude-opus-5-5",
         "anthropic/claude-sonnet-5"
       ],
-      "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+      "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
       "tie_breakers": {
         "cheapest": null,
         "open_weights": null,
@@ -637,7 +704,7 @@
             "anthropic/claude-opus-5-5",
             "anthropic/claude-sonnet-5"
           ],
-          "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+          "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
           "tie_breakers": {
             "cheapest": null,
             "open_weights": null,

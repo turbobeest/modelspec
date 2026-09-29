@@ -35,7 +35,7 @@ def test_page_uses_snapshot_tie_data(data: landing.LandingData) -> None:
     page = method.page(data, method.SigningState(method.load_key_ids(ROOT), None))
     tied = len(data.tie) - 1
     assert f"tell {tied} of these models apart" in page
-    assert f"{tied} of the other {len(data.models) - 1} models reach" in page
+    assert f"{tied} of the other {len(data.models) - 1} models are at least 25% likely" in page
     assert data.leader.name in page
     assert data.cheapest.name in page
 

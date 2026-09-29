@@ -236,7 +236,7 @@ def test_when_the_estate_reaches_the_unrestricted_answer_the_gap_says_so(snapsho
 
 @pytest.fixture(scope="module")
 def tied_snapshot():
-    quality = {"tie/a": (92.0, [86.0, 98.0]), "tie/b": (88.0, [82.0, 94.0]),
+    quality = {"tie/a": (92.0, [86.0, 98.0]), "tie/b": (90.0, [84.0, 96.0]),
                "tie/c": (40.0, [36.0, 44.0])}
     models = [_model(mid, 100_000) for mid in quality]
     offerings = [_offering("tie/a", "anthropic", 3.0), _offering("tie/b", "openai", 4.0),
@@ -383,7 +383,7 @@ def test_marginal_cost_drives_a_cost_objective(snapshot) -> None:
 
 
 def test_the_contract_version_took_the_next_minor() -> None:
-    assert c.CONTRACT_VERSION == "2.6"
+    assert c.CONTRACT_VERSION == "2.7"
 
 
 def test_the_json_schema_publishes_the_estate_types() -> None:

@@ -101,6 +101,44 @@ def test_the_summary_shows_a_tied_group_not_a_single_pick(tmp_path):
     assert "answer: lab/" not in out
 
 
+def test_the_summary_names_the_blend_each_part_alone_and_the_thin_models(tmp_path):
+    from tests.test_decision_bands import LINEUP
+
+    models, sold, rows = [], [], []
+    for mid, repo, patch, proxy, price in LINEUP:
+        models.append(model(mid, facts=[
+            fact("model", mid, "model.class", "text-generator"),
+            fact("model", mid, "model.context_window", 200_000),
+            fact("model", mid, "model.weights_openness", "closed_weights"),
+            fact("model", mid, "licence.user_cap", "unbounded"),
+        ]))
+        oid = f"cloud/{mid}/global/standard"
+        sold.append(offering(mid, "cloud", facts=[
+            fact("offering", oid, "offering.price.input", price, source="src-pricing"),
+            fact("offering", oid, "offering.price.output", 4 * price, source="src-pricing"),
+        ]))
+        rows += [evidence(mid, name, score, day="2026-09-01")
+                 for name, score in (("repo_work", repo), ("patch_work", patch),
+                                     ("preference_proxy", proxy)) if score is not None]
+    tags = {"repo_work": [("software_engineering", "direct")],
+            "patch_work": [("software_engineering", "direct")],
+            "preference_proxy": [("software_engineering", "proxy")]}
+    built = build_snapshot(
+        SnapshotInputs(models=models, offerings=sold, evidence=rows, sources=SOURCES,
+                       benchmark_domains=tags,
+                       benchmark_metadata={name: {"direction": "higher_is_better"}
+                                           for name in tags}),
+        gate=False, as_of=date(2026, 9, 29))
+    spec = SPEC | {"where": ["model.class = text-generator"], "optimize": {"weights": {
+        "software_engineering": 0.6, "-offering.cost_per_task": 0.4}}}
+    out = run(tmp_path, built.to_bytes(key=KEY), spec=spec).stdout
+
+    assert "blend: 60% software_engineering, 40% -offering.cost_per_task" in out
+    assert "not enough evidence yet: lab/mystery (measured on 1 benchmark, 0 direct)" in out
+    assert "  software_engineering alone: lab/frontier leads" in out
+    assert "  -offering.cost_per_task alone: lab/mystery" in out
+
+
 def test_a_decision_with_no_feasible_model_says_what_to_relax(tmp_path, snapshot_bytes):
     spec = SPEC | {"where": ["model.class = text-generator", "model.context_window >= 900000"]}
     result = run(tmp_path, snapshot_bytes, spec=spec)
@@ -111,7 +149,7 @@ def test_a_decision_with_no_feasible_model_says_what_to_relax(tmp_path, snapshot
 
 def test_json_is_unchanged_by_the_summary(tmp_path, snapshot_bytes):
     body = json.loads(run(tmp_path, snapshot_bytes, "--json").stdout)
-    assert body["contract_version"] == "2.6"
+    assert body["contract_version"] == "2.7"
     assert body["results"][0]["model"] == "lab/alpha"
     assert [row["model"] for row in body["by_model"]][:2] == ["lab/alpha", "lab/beta"]
 

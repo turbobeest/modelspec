@@ -174,6 +174,155 @@
       "title": "AnyOf",
       "type": "object"
     },
+    "BandEntry": {
+      "additionalProperties": false,
+      "description": "One model in a band, through its best offering. Added in 2.7 (MODEL-206).",
+      "properties": {
+        "cost_per_task": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Per Task"
+        },
+        "estimates": {
+          "items": {
+            "$ref": "#/$defs/DimensionEstimate"
+          },
+          "title": "Estimates",
+          "type": "array"
+        },
+        "model": {
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        },
+        "p_beats_leader": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Beats Leader"
+        },
+        "p_best": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Best"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "score_interval": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Score Interval",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model",
+        "offering",
+        "score",
+        "score_interval"
+      ],
+      "title": "BandEntry",
+      "type": "object"
+    },
+    "Bands": {
+      "additionalProperties": false,
+      "description": "The ranked models in three bands (MODEL-206). Added in 2.7.\n\n``best`` is the leader and every model with enough evidence whose score is\nat least the leader's with probability ``band_probability`` or more,\nordered by ``p_best``. ``rest`` holds the other models with enough\nevidence and ``thin`` the models with a weighted capability interval wider\nthan ``thin_interval_width``, both in score order. Every ranked model is in\nexactly one band.",
+      "properties": {
+        "band_probability": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Band Probability",
+          "type": "number"
+        },
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "best": {
+          "items": {
+            "$ref": "#/$defs/BandEntry"
+          },
+          "title": "Best",
+          "type": "array"
+        },
+        "leader": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Leader"
+        },
+        "rest": {
+          "items": {
+            "$ref": "#/$defs/BandEntry"
+          },
+          "title": "Rest",
+          "type": "array"
+        },
+        "thin": {
+          "items": {
+            "$ref": "#/$defs/BandEntry"
+          },
+          "title": "Thin",
+          "type": "array"
+        },
+        "thin_interval_width": {
+          "exclusiveMinimum": 0,
+          "title": "Thin Interval Width",
+          "type": "number"
+        }
+      },
+      "required": [
+        "basis",
+        "band_probability",
+        "thin_interval_width"
+      ],
+      "title": "Bands",
+      "type": "object"
+    },
     "BenchmarkEstimateChange": {
       "additionalProperties": false,
       "description": "How one model's domain estimate changed after removing evidence. Added in 1.12.",
@@ -249,6 +398,116 @@
         "benchmarks"
       ],
       "title": "BenchmarkExclusions",
+      "type": "object"
+    },
+    "BlendTerm": {
+      "additionalProperties": false,
+      "description": "One weighted dimension, its share, and the order on it alone. Added in 2.7 (MODEL-206).\n\nThe weighted score mixes these dimensions; each term says who leads on\nthat dimension by itself. A capability term leads with the best point\nestimate among models with enough evidence on it; ``thin`` lists the rest.\nAn exact term (cost, a fact, a preference) can have several ``leaders``\nwhen they share the best value.",
+      "properties": {
+        "dimension": {
+          "pattern": "^-?[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$",
+          "title": "Dimension",
+          "type": "string"
+        },
+        "estimated": {
+          "title": "Estimated",
+          "type": "boolean"
+        },
+        "leaders": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Leaders",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        },
+        "p_best": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Best"
+        },
+        "p_runner_up": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Runner Up"
+        },
+        "runner_up": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runner Up"
+        },
+        "share": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Share",
+          "type": "number"
+        },
+        "thin": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Thin",
+          "type": "array"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "dimension",
+        "weight",
+        "share",
+        "estimated"
+      ],
+      "title": "BlendTerm",
       "type": "object"
     },
     "Budget": {
@@ -687,6 +946,17 @@
           "default": null,
           "title": "Answer"
         },
+        "bands": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Bands"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "benchmark_exclusions": {
           "anyOf": [
             {
@@ -697,6 +967,13 @@
             }
           ],
           "default": null
+        },
+        "blend": {
+          "items": {
+            "$ref": "#/$defs/BlendTerm"
+          },
+          "title": "Blend",
+          "type": "array"
         },
         "by_model": {
           "items": {
@@ -725,8 +1002,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.6",
-          "default": "2.6",
+          "const": "2.7",
+          "default": "2.7",
           "title": "Contract Version",
           "type": "string"
         },
@@ -871,6 +1148,54 @@
         "status"
       ],
       "title": "Decision",
+      "type": "object"
+    },
+    "DimensionEstimate": {
+      "additionalProperties": false,
+      "description": "A band entry's estimate on one weighted capability. Added in 2.7 (MODEL-206).",
+      "properties": {
+        "benchmarks": {
+          "minimum": 0,
+          "title": "Benchmarks",
+          "type": "integer"
+        },
+        "dimension": {
+          "pattern": "^-?[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$",
+          "title": "Dimension",
+          "type": "string"
+        },
+        "direct_benchmarks": {
+          "minimum": 0,
+          "title": "Direct Benchmarks",
+          "type": "integer"
+        },
+        "interval": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Interval",
+          "type": "array"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "dimension",
+        "value",
+        "interval",
+        "benchmarks",
+        "direct_benchmarks"
+      ],
+      "title": "DimensionEstimate",
       "type": "object"
     },
     "DomainEvidence": {
@@ -4209,5 +4534,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.6"
+  "x-contract-version": "2.7"
 }

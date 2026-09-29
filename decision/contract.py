@@ -41,7 +41,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.6"
+CONTRACT_VERSION = "2.7"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1453,6 +1453,104 @@ class TiedAnswer(_Strict):
 Answer = Annotated[SeparatedAnswer | TiedAnswer, Field(discriminator="kind")]
 
 
+class DimensionEstimate(_Strict):
+    """A band entry's estimate on one weighted capability. Added in 2.7 (MODEL-206)."""
+
+    #: The signed weight key: a domain, or a refinement key.
+    dimension: WeightKey
+    value: float
+    #: The 80% interval.
+    interval: tuple[float, float]
+    #: Distinct fitted benchmarks the model is measured on for this estimate.
+    benchmarks: int = Field(ge=0)
+    #: Of those, the benchmarks tagged direct for this dimension.
+    direct_benchmarks: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _direct_are_counted(self) -> DimensionEstimate:
+        if self.direct_benchmarks > self.benchmarks:
+            raise ValueError("direct_benchmarks counts some of benchmarks")
+        return self
+
+
+class BandEntry(_Strict):
+    """One model in a band, through its best offering. Added in 2.7 (MODEL-206)."""
+
+    model: ModelId
+    offering: OfferingRef
+    #: The weighted score and its interval, on the feasible set's normalised scale.
+    score: float
+    score_interval: tuple[float, float]
+    p_best: float | None = Field(default=None, ge=0, le=1)
+    #: P(this model's score >= the leader's). Null for the leader, and for a
+    #: thin-evidence model when no model has enough evidence to lead.
+    p_beats_leader: float | None = Field(default=None, ge=0, le=1)
+    cost_per_task: float | None = None
+    #: One per weighted capability, in objective order.
+    estimates: list[DimensionEstimate] = Field(default_factory=list)
+
+
+class Bands(_Strict):
+    """The ranked models in three bands (MODEL-206). Added in 2.7.
+
+    ``best`` is the leader and every model with enough evidence whose score is
+    at least the leader's with probability ``band_probability`` or more,
+    ordered by ``p_best``. ``rest`` holds the other models with enough
+    evidence and ``thin`` the models with a weighted capability interval wider
+    than ``thin_interval_width``, both in score order. Every ranked model is in
+    exactly one band.
+    """
+
+    basis: str
+    band_probability: float = Field(gt=0, lt=1)
+    thin_interval_width: float = Field(gt=0)
+    #: The best point score among models with enough evidence; null when none has.
+    leader: ModelId | None = None
+    best: list[BandEntry] = Field(default_factory=list)
+    rest: list[BandEntry] = Field(default_factory=list)
+    thin: list[BandEntry] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _one_band_each(self) -> Bands:
+        models = [entry.model for band in (self.best, self.rest, self.thin) for entry in band]
+        if len(set(models)) != len(models):
+            raise ValueError("a model is in exactly one band")
+        if (self.leader is None) != (not self.best):
+            raise ValueError("the best band is empty exactly when there is no leader")
+        if self.leader is not None and self.leader not in {entry.model for entry in self.best}:
+            raise ValueError("the leader is in the best band")
+        return self
+
+
+class BlendTerm(_Strict):
+    """One weighted dimension, its share, and the order on it alone. Added in 2.7 (MODEL-206).
+
+    The weighted score mixes these dimensions; each term says who leads on
+    that dimension by itself. A capability term leads with the best point
+    estimate among models with enough evidence on it; ``thin`` lists the rest.
+    An exact term (cost, a fact, a preference) can have several ``leaders``
+    when they share the best value.
+    """
+
+    dimension: WeightKey
+    weight: float
+    #: ``weight`` over the sum of the objective's weights.
+    share: float = Field(ge=0, le=1)
+    #: Whether the dimension is a capability estimate rather than an exact value.
+    estimated: bool
+    leaders: list[ModelId] = Field(default_factory=list)
+    #: The leaders' value on this dimension, in its own unit: an estimate, or a raw value.
+    value: float | None = None
+    #: Capability only: P(the leader is best on this dimension alone).
+    p_best: float | None = Field(default=None, ge=0, le=1)
+    runner_up: ModelId | None = None
+    #: Capability only: P(the runner-up's estimate >= the leader's).
+    p_runner_up: float | None = Field(default=None, ge=0, le=1)
+    #: Models with enough evidence, best first on this dimension alone.
+    order: list[ModelId] = Field(default_factory=list)
+    thin: list[ModelId] = Field(default_factory=list)
+
+
 class RefinementGain(_Strict):
     """``gain`` for one refinement dimension. Added in 2.4 (MODEL-190)."""
 
@@ -1658,7 +1756,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.6"] = CONTRACT_VERSION
+    contract_version: Literal["2.7"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1666,9 +1764,15 @@ class Decision(_Strict):
     spec_hash: SpecHash
     explain: Explain
     status: Status
-    #: The model-level answer. Members overlap the point-estimate leader only;
-    #: overlap chains are deliberately not followed. Added in 2.1.
+    #: The model-level answer: its members are ``bands.best`` (2.7; before,
+    #: every model whose interval overlapped the leader's). Added in 2.1.
     answer: Answer | None = None
+    #: The ranked models in three bands. Absent for a lexicographic or Pareto
+    #: objective, or without results. Added in 2.7 (MODEL-206).
+    bands: Bands | None = Field(default=None, exclude_if=lambda value: value is None)
+    #: What the objective mixes: each weighted dimension's share and its own
+    #: order. Absent when ``bands`` is. Added in 2.7 (MODEL-206).
+    blend: list[BlendTerm] = Field(default_factory=list, exclude_if=lambda value: not value)
     results: list[Result] = Field(default_factory=list)
     #: The same candidates grouped by model: ranked, then may qualify, then
     #: eliminated. Added in 2.5.
@@ -1711,6 +1815,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     BenchmarkEstimateChange, BenchmarkExclusions, Contribution,
     MayQualify, Eliminated, FunnelStep, ModelElimination, OfferingElimination,
     Truncated, TieBreakers, SeparatedAnswer, TiedAnswer,
+    DimensionEstimate, BandEntry, Bands, BlendTerm,
     ModelEliminationGroup, ConstraintCost, TippingPoint, ModelRow, ModelOffering,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,

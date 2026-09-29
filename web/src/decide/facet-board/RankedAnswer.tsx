@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { money } from "../adapter";
 import type { AdapterDecision, Spec } from "../adapter";
+import { facetName } from "../adapter/condition-label";
 import type { EstateMark } from "../adapter/contract";
 import type { VocabPlan, Vocabulary } from "../vocabulary";
 import { boardHasPreference } from "./model";
@@ -119,6 +120,13 @@ export function RankedAnswer({
     return { min, span: Math.max(max - min, Number.EPSILON) };
   }, [rows]);
   const tied = new Set(ranked && decision.answer?.kind === "tied" ? decision.answer.members : []);
+  const thin = new Set(ranked ? decision.bands?.thin.map((entry) => entry.model) ?? [] : []);
+  const dimensionName = (key: string) => {
+    const bare = key.replace(/^-/, "");
+    return domainName(vocabulary, bare)
+      ?? vocabulary.refinements?.find((refinement) => refinement.weight_key === bare)?.name
+      ?? facetName(bare);
+  };
   const showsTied = visible.some((row) => tied.has(`${row.m.lab}/${row.m.id}`));
   const warnedModels = new Set(
     decision.results
@@ -130,9 +138,9 @@ export function RankedAnswer({
   );
 
   return <section className="panel board-ranked-answer">
-    {ranked && decision.answer && <TieAwareAnswer answer={decision.answer} decision={decision} />}
+    {ranked && (decision.answer || decision.bands) && <TieAwareAnswer answer={decision.answer} decision={decision} dimensionName={dimensionName} />}
     {!ranked && <p className="board-unranked">{rows.length} qualify — set a Prefer to rank them</p>}
-    {ranked && !decision.answer && inseparable.length > 0 && <p className="board-inseparable">
+    {ranked && !decision.answer && !decision.bands && inseparable.length > 0 && <p className="board-inseparable">
       The evidence can't separate {inseparable.map((row) => row.m.name).join(", ")}.
     </p>}
     {capability && <div className="board-ranked-columns" aria-hidden="true">
@@ -159,7 +167,7 @@ export function RankedAnswer({
           resultsFor(model).some((result) => result.offering.provider === plan.provider));
         return <li className={capability ? "" : "without-capability"} key={model}>
           <div className="board-ranked-copy">
-            <strong>{row.m.name}{tied.has(model) && <span className="board-tie-tag">tied</span>}</strong>
+            <strong>{row.m.name}{tied.has(model) && <span className="board-tie-tag">tied</span>}{thin.has(model) && <span className="board-thin-tag">not enough evidence</span>}</strong>
             <small>{row.m.labName}</small>
             {otherProviders.length > 0 && <small>also via {otherProviders.join(", ")}</small>}
             {activeRefinements.map((refinement) => {

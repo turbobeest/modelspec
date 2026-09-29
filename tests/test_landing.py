@@ -30,7 +30,11 @@ def data() -> landing.LandingData:
 
 def test_landing_figures_are_derived_from_the_snapshot(data: landing.LandingData) -> None:
     leader = data.leader
-    assert leader.estimate == max(model.estimate for model in data.models)
+    # The tie is /decide's best band for coding alone (MODEL-206): the leader
+    # is the top estimate with enough evidence, and a thin model never ties.
+    assert not leader.thin
+    assert leader.estimate == max(model.estimate for model in data.models if not model.thin)
+    assert not any(model.thin for model in data.tie)
     assert all(model.high >= leader.low for model in data.tie)
     assert data.cheapest in data.tie
     assert data.cheapest == min(
