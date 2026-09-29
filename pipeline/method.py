@@ -68,7 +68,7 @@ def _tie_plot(data: LandingData) -> str:
         colour = ("#F2C94C" if model.id == data.leader_id else
                   "#3FB68B" if model.tied else "#5f6f8c")
         status = ("leader" if model.id == data.leader_id else
-                  "tied" if model.tied else "apart")
+                  "tied" if model.tied else "thin" if model.thin else "apart")
         name = model.name if len(model.name) <= 19 else model.name[:17] + "…"
         rows += (f'<text x="138" y="{y + 5}" text-anchor="end">{html.escape(name)}</text>'
                  f'<line x1="{sx(model.low):.1f}" y1="{y}" x2="{sx(model.high):.1f}" '
@@ -76,7 +76,7 @@ def _tie_plot(data: LandingData) -> str:
                  f'cy="{y}" r="6" fill="{colour}"/><text class="status" x="730" '
                  f'y="{y + 5}" fill="{colour}">{status}</text>')
     line = sx(data.leader.low)
-    label = f"Real capability ranges. {len(data.tie) - 1} other models overlap the top estimate's range."
+    label = f"Real capability ranges. {len(data.tie) - 1} other models can't be told apart from the top estimate."
     return (f'<svg class="tie-plot" viewBox="0 0 772 420" role="img" aria-label="{label}">'
             '<rect width="772" height="420" rx="6"/><line class="axis-y" x1="150" y1="24" x2="150" y2="370"/>'
             '<line class="axis-x" x1="150" y1="370" x2="752" y2="370"/>'
@@ -176,12 +176,16 @@ def page(data: LandingData, signing: SigningState) -> str:
                  '<article><h3>Inside a tie, choose on something else</h3><p>Ability cannot split '
                  'a tied group. Price, context, licence and the other facets you set can, and '
                  'the board shows them for every row.</p></article></div>')
+    thin = sum(model.thin for model in data.models)
     ties = (f'<figure>{_tie_plot(data)}<figcaption>{tied} of the other '
-            f'{len(data.models) - 1} models reach {html.escape(data.leader.name)}\'s lower bound. '
-            f'That is the front-page figure, counted against the top estimate only. '
-            f'Of those, {html.escape(data.cheapest.name)} is cheapest.</figcaption></figure>'
+            f'{len(data.models) - 1} models are at least 25% likely to score as well as '
+            f'{html.escape(data.leader.name)}. That is the front-page figure, counted against '
+            f'the top estimate only. {thin} more have too little evidence to count, however '
+            f'high their estimate. Of the {tied + 1}, {html.escape(data.cheapest.name)} is '
+            f'cheapest.</figcaption></figure>'
             + tie_rules
-            + _sources((("decision/engine.py", "where not_separable is set", ""),
+            + _sources((("decision/bands.py", "the tie: P(B ≥ leader) and the thin threshold", ""),
+                        ("decision/engine.py", "where not_separable is set", ""),
                         ("decision/capability.py", "deterministic_probabilities()", ""),
                         ("docs/decision-contract.md", "p_best and top3_stability", "a-result"))))
     settings = (("Doesn't matter", "The default. The row stays on the board, greyed, so you can always see what you didn't choose."),
@@ -235,7 +239,7 @@ def page(data: LandingData, signing: SigningState) -> str:
     sections = (
         _section("evidence", "1 · Where evidence comes from", "Every number starts as a sourced, checked record.", "A value with no source never reaches a decision. Neither does one that only its collector has checked.", evidence, theme="dark")
         + _section("estimate", "2 · The capability estimate", "Ability is estimated per domain, from every benchmark we hold.", "There is no fixed benchmark list and no hand-set weight. Every admitted benchmark with at least two model observations counts, and nobody picks favourites. One leaderboard is one reading, and readings disagree. The estimate uses all of them, and says how sure it is.", estimate, theme="light")
-        + _section("ties", "3 · Ties", "Why the #1 is often a tie.", "Every estimate is a range. When two models' ranges overlap, the evidence can't say which is better, so the page doesn't pretend to.", '<pre>range         = estimate ± 1.2816 × sd\nnot_separable = max(A.low, B.low) ≤ min(A.high, B.high)\n                for any other model B</pre>' + ties, theme="dark")
+        + _section("ties", "3 · Ties", "Why the #1 is often a tie.", "Every estimate is a range. When another model is at least 25% likely to score as well as the top one, the evidence can't say which is better, so the page doesn't pretend to. A model whose range is too wide to tell is never counted in the tie.", '<pre>range         = estimate ± 1.2816 × sd\ntied          = P(B ≥ leader) ≥ 0.25, where\nP(B ≥ leader) = Φ((B − leader) / √(sd_B² + sd_leader²))\nthin          = range wider than 2.8: never tied\nnot_separable = max(A.low, B.low) ≤ min(A.high, B.high)\n                for any other model B</pre>' + ties, theme="dark")
         + _section("must-prefer", "4 · Must and Prefer", "Must is a gate. Prefer is a weight.", "Every facet on the board has three settings, and each does a different job. Conditions filter. They never add points.", must_prefer, theme="light")
         + _section("unknown", "5 · Unknown means unknown", "A missing fact is never a zero.", "Every condition has three answers: pass, fail and unknown. Unknown is its own answer, with its own rules. A null beats a guess.", unknown, theme="dark")
         + _section("reproducible", "6 · Reproducibility", "Same spec, same snapshot, same answer.", "A decision depends on two things you can name: the question and the evidence. Pin both, and anyone holding the same snapshot file gets the answer you got.", reproducible, theme="light")

@@ -2947,6 +2947,118 @@ components:
       - any
       title: AnyOf
       type: object
+    DecisionBandEntry:
+      additionalProperties: false
+      description: One model in a band, through its best offering. Added in 2.7 (MODEL-206).
+      properties:
+        model:
+          pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+          title: Model
+          type: string
+        offering:
+          $ref: '#/components/schemas/DecisionOfferingRef'
+        score:
+          title: Score
+          type: number
+        score_interval:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - type: number
+          - type: number
+          title: Score Interval
+          type: array
+        p_best:
+          anyOf:
+          - maximum: 1
+            minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: P Best
+        p_beats_leader:
+          anyOf:
+          - maximum: 1
+            minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: P Beats Leader
+        cost_per_task:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Cost Per Task
+        estimates:
+          items:
+            $ref: '#/components/schemas/DecisionDimensionEstimate'
+          title: Estimates
+          type: array
+      required:
+      - model
+      - offering
+      - score
+      - score_interval
+      title: BandEntry
+      type: object
+    DecisionBands:
+      additionalProperties: false
+      description: 'The ranked models in three bands (MODEL-206). Added in 2.7.
+
+
+        ``best`` is the leader and every model with enough evidence whose score is
+
+        at least the leader''s with probability ``band_probability`` or more,
+
+        ordered by ``p_best``. ``rest`` holds the other models with enough
+
+        evidence and ``thin`` the models with a weighted capability interval wider
+
+        than ``thin_interval_width``, both in score order. Every ranked model is in
+
+        exactly one band.'
+      properties:
+        basis:
+          title: Basis
+          type: string
+        band_probability:
+          exclusiveMaximum: 1
+          exclusiveMinimum: 0
+          title: Band Probability
+          type: number
+        thin_interval_width:
+          exclusiveMinimum: 0
+          title: Thin Interval Width
+          type: number
+        leader:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Leader
+        best:
+          items:
+            $ref: '#/components/schemas/DecisionBandEntry'
+          title: Best
+          type: array
+        rest:
+          items:
+            $ref: '#/components/schemas/DecisionBandEntry'
+          title: Rest
+          type: array
+        thin:
+          items:
+            $ref: '#/components/schemas/DecisionBandEntry'
+          title: Thin
+          type: array
+      required:
+      - basis
+      - band_probability
+      - thin_interval_width
+      title: Bands
+      type: object
     DecisionBenchmarkEstimateChange:
       additionalProperties: false
       description: How one model's domain estimate changed after removing evidence. Added in 1.12.
@@ -2997,6 +3109,90 @@ components:
       required:
       - benchmarks
       title: BenchmarkExclusions
+      type: object
+    DecisionBlendTerm:
+      additionalProperties: false
+      description: 'One weighted dimension, its share, and the order on it alone. Added in 2.7 (MODEL-206).
+
+
+        The weighted score mixes these dimensions; each term says who leads on
+
+        that dimension by itself. A capability term leads with the best point
+
+        estimate among models with enough evidence on it; ``thin`` lists the rest.
+
+        An exact term (cost, a fact, a preference) can have several ``leaders``
+
+        when they share the best value.'
+      properties:
+        dimension:
+          pattern: ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$
+          title: Dimension
+          type: string
+        weight:
+          title: Weight
+          type: number
+        share:
+          maximum: 1
+          minimum: 0
+          title: Share
+          type: number
+        estimated:
+          title: Estimated
+          type: boolean
+        leaders:
+          items:
+            pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          title: Leaders
+          type: array
+        value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          title: Value
+        p_best:
+          anyOf:
+          - maximum: 1
+            minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: P Best
+        runner_up:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Runner Up
+        p_runner_up:
+          anyOf:
+          - maximum: 1
+            minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: P Runner Up
+        order:
+          items:
+            pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          title: Order
+          type: array
+        thin:
+          items:
+            pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          title: Thin
+          type: array
+      required:
+      - dimension
+      - weight
+      - share
+      - estimated
+      title: BlendTerm
       type: object
     DecisionBudget:
       additionalProperties: false
@@ -3276,8 +3472,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.6'
-          default: '2.6'
+          const: '2.7'
+          default: '2.7'
           title: Contract Version
           type: string
         decision_id:
@@ -3323,6 +3519,16 @@ components:
           - type: 'null'
           default: null
           title: Answer
+        bands:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionBands'
+          - type: 'null'
+          default: null
+        blend:
+          items:
+            $ref: '#/components/schemas/DecisionBlendTerm'
+          title: Blend
+          type: array
         results:
           items:
             $ref: '#/components/schemas/DecisionResult'
@@ -3385,6 +3591,41 @@ components:
       - explain
       - status
       title: Decision
+      type: object
+    DecisionDimensionEstimate:
+      additionalProperties: false
+      description: A band entry's estimate on one weighted capability. Added in 2.7 (MODEL-206).
+      properties:
+        dimension:
+          pattern: ^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$
+          title: Dimension
+          type: string
+        value:
+          title: Value
+          type: number
+        interval:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+          - type: number
+          - type: number
+          title: Interval
+          type: array
+        benchmarks:
+          minimum: 0
+          title: Benchmarks
+          type: integer
+        direct_benchmarks:
+          minimum: 0
+          title: Direct Benchmarks
+          type: integer
+      required:
+      - dimension
+      - value
+      - interval
+      - benchmarks
+      - direct_benchmarks
+      title: DimensionEstimate
       type: object
     DecisionDomainEvidence:
       additionalProperties: false
@@ -5481,7 +5722,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.6'
+          - '2.7'
         endpoint:
           type: string
           enum:
@@ -5533,7 +5774,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.6'
+          - '2.7'
         endpoint:
           type: string
           enum:
@@ -5558,7 +5799,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.6'
+          - '2.7'
         endpoint:
           type: string
           enum:
@@ -5612,7 +5853,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.6'
+          - '2.7'
         endpoint:
           type: string
           enum:
@@ -5952,7 +6193,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.6'
+          - '2.7'
         endpoint:
           type: string
           enum:

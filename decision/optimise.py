@@ -356,7 +356,7 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                     _normalise(raw_high, norm),
                 ))
                 # Do not clamp. Values beyond the feasible point-estimate range
-                # carry uncertainty needed by the leader-overlap test.
+                # carry uncertainty the answer bands need.
                 interval = transformed[0], transformed[1]
             contributions[cid].append(DimensionContribution(
                 signed, value, normalised, weight, norm, readings[cid][1], readings[cid][2],

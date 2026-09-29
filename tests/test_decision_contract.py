@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.6"
+    assert c.CONTRACT_VERSION == "2.7"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -767,6 +767,12 @@ def _samples() -> list:
         tie_breakers=tie_breakers,
         deterministic_order=[result.offering.model, "openai/gpt-6-sol"],
     )
+    band_estimate = c.DimensionEstimate(dimension="software_engineering", value=1.3,
+                                        interval=(0.35, 2.29), benchmarks=2,
+                                        direct_benchmarks=2)
+    band_entry = c.BandEntry(model=result.offering.model, offering=result.offering, score=0.6,
+                             score_interval=(0.39, 0.81), p_best=0.04, cost_per_task=0.24,
+                             estimates=[band_estimate])
     estate_hold = c.EstateHold(kind="plan", id="anthropic/subscription/pro")
     estate_mark = c.EstateMark(via=estate_hold, cost_basis="plan_included",
                                marginal_cost_per_task_usd=0)
@@ -856,6 +862,15 @@ def _samples() -> list:
                      relaxed="offering.price.input <= 0.75", facet="offering.price.input",
                      value=0.75, unit="usd_per_1m_tokens", admits=2),
         c.Access(kind="coding_tool", harness="claude-code"),
+        band_estimate,
+        band_entry,
+        c.Bands(basis="probability bands", band_probability=0.25, thin_interval_width=2.8,
+                leader=result.offering.model, best=[band_entry]),
+        c.BlendTerm(dimension="software_engineering", weight=0.6, share=0.6, estimated=True,
+                    leaders=[result.offering.model], value=1.3, p_best=0.55,
+                    runner_up="openai/gpt-6-sol", p_runner_up=0.39,
+                    order=[result.offering.model, "openai/gpt-6-sol"],
+                    thin=["qwen/qwen3-8-max"]),
         plan_price,
         plan_coverage,
         plan_allowance,

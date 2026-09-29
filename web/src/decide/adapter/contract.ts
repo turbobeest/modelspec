@@ -218,6 +218,58 @@ const answerSchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
+// 2.7 (MODEL-206): the ranked models in three bands, and the named blend.
+const bandEntrySchema = z
+  .object({
+    model: modelId,
+    offering: offeringRefSchema,
+    score: z.number(),
+    score_interval: z.tuple([z.number(), z.number()]),
+    p_best: z.number().min(0).max(1).nullable(),
+    p_beats_leader: z.number().min(0).max(1).nullable(),
+    cost_per_task: z.number().nullable(),
+    estimates: z.array(
+      z
+        .object({
+          dimension: z.string(),
+          value: z.number(),
+          interval: z.tuple([z.number(), z.number()]),
+          benchmarks: z.number().int().nonnegative(),
+          direct_benchmarks: z.number().int().nonnegative(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
+const bandsSchema = z
+  .object({
+    basis: z.string(),
+    band_probability: z.number(),
+    thin_interval_width: z.number(),
+    leader: modelId.nullable(),
+    best: z.array(bandEntrySchema),
+    rest: z.array(bandEntrySchema),
+    thin: z.array(bandEntrySchema),
+  })
+  .strict();
+
+const blendTermSchema = z
+  .object({
+    dimension: z.string(),
+    weight: z.number(),
+    share: z.number().min(0).max(1),
+    estimated: z.boolean(),
+    leaders: z.array(modelId),
+    value: z.number().nullable(),
+    p_best: z.number().min(0).max(1).nullable(),
+    runner_up: modelId.nullable(),
+    p_runner_up: z.number().min(0).max(1).nullable(),
+    order: z.array(modelId),
+    thin: z.array(modelId),
+  })
+  .strict();
+
 const accessKind = z.enum(["chat_app", "coding_tool", "own_software", "own_hardware"]);
 
 const truncatedSchema = z
@@ -418,6 +470,7 @@ export const decisionSchema = z
       "2.4",
       "2.5",
       "2.6",
+      "2.7",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -428,6 +481,10 @@ export const decisionSchema = z
     // Older saved decisions predate 2.1. New responses always send the block,
     // while the adapter keeps those local fixtures readable.
     answer: answerSchema.nullable().optional(),
+    // 2.7 (MODEL-206): absent for a lexicographic or Pareto objective, and
+    // in decisions saved before 2.7.
+    bands: bandsSchema.nullish(),
+    blend: z.array(blendTermSchema).optional().default([]),
     results: z.array(resultSchema),
     // Older saved decisions predate 2.5; the page then groups by model itself.
     by_model: z.array(modelRowSchema).optional().default([]),
@@ -671,6 +728,9 @@ export type EvidenceItem = z.infer<typeof evidenceItemSchema>;
 export type Result = z.infer<typeof resultSchema>;
 export type ModelRow = z.infer<typeof modelRowSchema>;
 export type Decision = z.infer<typeof decisionSchema>;
+export type Bands = z.infer<typeof bandsSchema>;
+export type BandEntry = z.infer<typeof bandEntrySchema>;
+export type BlendTerm = z.infer<typeof blendTermSchema>;
 export type DecisionSpec = z.infer<typeof decisionSpecSchema>;
 export type Contribution = z.infer<typeof contributionSchema>;
 export type PlanRoute = z.infer<typeof planRouteSchema>;

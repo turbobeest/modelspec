@@ -863,7 +863,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.6",
+  "contract_version": "2.7",
   "decision_id": "dec_07c7fc82935c3f050de8264c",
   "snapshot": "snap_0ba2c5bb156ee46b",
   "signature_verified": false,
@@ -876,7 +876,7 @@
       "lab/alpha"
     ],
     "leader": "lab/alpha",
-    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
     "tie_breakers": {
       "cheapest": null,
       "open_weights": null,
@@ -887,6 +887,111 @@
       "lab/alpha"
     ]
   },
+  "bands": {
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "lab/alpha",
+    "best": [
+      {
+        "model": "lab/alpha",
+        "offering": {
+          "model": "lab/alpha",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.78,
+        "score_interval": [
+          0.78,
+          0.78
+        ],
+        "p_best": null,
+        "p_beats_leader": null,
+        "cost_per_task": 0.168,
+        "estimates": []
+      }
+    ],
+    "rest": [
+      {
+        "model": "lab/gamma",
+        "offering": {
+          "model": "lab/gamma",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.734,
+        "score_interval": [
+          0.734,
+          0.734
+        ],
+        "p_best": null,
+        "p_beats_leader": 0.0,
+        "cost_per_task": 0.112,
+        "estimates": []
+      },
+      {
+        "model": "lab/beta",
+        "offering": {
+          "model": "lab/beta",
+          "provider": "cloud",
+          "region": "global",
+          "tier": "standard"
+        },
+        "score": 0.22,
+        "score_interval": [
+          0.22,
+          0.22
+        ],
+        "p_best": null,
+        "p_beats_leader": 0.0,
+        "cost_per_task": 0.056,
+        "estimates": []
+      }
+    ],
+    "thin": []
+  },
+  "blend": [
+    {
+      "dimension": "quality",
+      "weight": 0.78,
+      "share": 0.78,
+      "estimated": false,
+      "leaders": [
+        "lab/alpha"
+      ],
+      "value": 92.0,
+      "p_best": null,
+      "runner_up": null,
+      "p_runner_up": null,
+      "order": [
+        "lab/alpha",
+        "lab/gamma",
+        "lab/beta"
+      ],
+      "thin": []
+    },
+    {
+      "dimension": "-offering.cost_per_task",
+      "weight": 0.22,
+      "share": 0.22,
+      "estimated": false,
+      "leaders": [
+        "lab/beta"
+      ],
+      "value": 0.056,
+      "p_best": null,
+      "runner_up": null,
+      "p_runner_up": null,
+      "order": [
+        "lab/beta",
+        "lab/gamma",
+        "lab/alpha"
+      ],
+      "thin": []
+    }
+  ],
   "results": [
     {
       "rank": 1,

@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.6**
+Contract version: **2.7**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -563,7 +563,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.6",
+  "contract_version": "2.7",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -573,7 +573,7 @@ same canonical representation it had in 1.0.
   "answer": {
     "kind": "tied",
     "members": ["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
-    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
     "tie_breakers": {
       "cheapest": "openai/gpt-6-sol",
       "open_weights": "openai/gpt-6-sol",
@@ -582,6 +582,50 @@ same canonical representation it had in 1.0.
     },
     "deterministic_order": ["anthropic/claude-opus-5-5", "openai/gpt-6-sol"]
   },
+  "bands": {
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "anthropic/claude-opus-5-5",
+    "best": [
+      {"model": "anthropic/claude-opus-5-5",
+       "offering": {"model": "anthropic/claude-opus-5-5", "provider": "aws-bedrock",
+                    "region": "us-east-1", "tier": "enterprise"},
+       "score": 0.81, "score_interval": [0.62, 1.0], "p_best": 0.55, "p_beats_leader": null,
+       "cost_per_task": 0.42,
+       "estimates": [{"dimension": "software_engineering", "value": 1.32,
+                      "interval": [0.35, 2.29], "benchmarks": 2, "direct_benchmarks": 2}]},
+      {"model": "openai/gpt-6-sol",
+       "offering": {"model": "openai/gpt-6-sol", "provider": "openai",
+                    "region": "global", "tier": "standard"},
+       "score": 0.74, "score_interval": [0.55, 0.93], "p_best": 0.31, "p_beats_leader": 0.31,
+       "cost_per_task": 0.12,
+       "estimates": [{"dimension": "software_engineering", "value": 1.02,
+                      "interval": [0.05, 1.99], "benchmarks": 3, "direct_benchmarks": 3}]}
+    ],
+    "rest": [],
+    "thin": [
+      {"model": "qwen/qwen3-8-max-0902",
+       "offering": {"model": "qwen/qwen3-8-max-0902", "provider": "alibaba-cloud",
+                    "region": "global", "tier": "standard"},
+       "score": 0.66, "score_interval": [0.24, 1.08], "p_best": 0.14, "p_beats_leader": 0.37,
+       "cost_per_task": 0.1,
+       "estimates": [{"dimension": "software_engineering", "value": 0.28,
+                      "interval": [-1.72, 2.27], "benchmarks": 1, "direct_benchmarks": 0}]}
+    ]
+  },
+  "blend": [
+    {"dimension": "software_engineering", "weight": 0.6, "share": 0.6, "estimated": true,
+     "leaders": ["anthropic/claude-opus-5-5"], "value": 1.32, "p_best": 0.55,
+     "runner_up": "openai/gpt-6-sol", "p_runner_up": 0.31,
+     "order": ["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
+     "thin": ["qwen/qwen3-8-max-0902"]},
+    {"dimension": "-offering.price.output", "weight": 0.4, "share": 0.4, "estimated": false,
+     "leaders": ["qwen/qwen3-8-max-0902"], "value": 1.6, "p_best": null,
+     "runner_up": null, "p_runner_up": null,
+     "order": ["qwen/qwen3-8-max-0902", "openai/gpt-6-sol", "anthropic/claude-opus-5-5"],
+     "thin": []}
+  ],
   "results": [
     {
       "rank": 1,
@@ -655,7 +699,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.6"`. |
+| `contract_version` | `"2.7"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -663,7 +707,9 @@ same canonical representation it had in 1.0.
 | `spec_hash` | The canonical spec hash. |
 | `explain` | The explanation level used. |
 | `status` | `answered`, `partial` or `no_feasible`; see below. |
-| `answer` | The model-level answer for a scalar objective, or null when the objective has no scalar order or no result. See below. |
+| `answer` | The model-level answer for a scalar objective, or null when the objective has no scalar order, no result, or no ranked model with enough evidence to lead. See below. |
+| `bands` | The ranked models in three bands: `best`, `rest` and `thin` (not enough evidence yet). Absent when `answer` has no scalar order to band. See below. Added in 2.7. |
+| `blend` | What a scalar objective mixes: each weighted dimension, heaviest first, its `share` of the weights and who leads on it alone. Absent with `bands`. See below. Added in 2.7. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
 | `by_model` | The decision grouped by model, best first. See below. |
 | `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
@@ -699,30 +745,117 @@ never listed as a candidate or in `may_qualify`.
 represented by its best offering under the spec's objective. A model's own
 offerings never compete with one another in this block.
 
-For a scalar objective, each candidate has a `score_interval`. The engine
-applies the same feasible-set affine transform to interval bounds that it uses
-for the point estimate. It does not clamp transformed bounds to 0 through 1.
-Exact facets such as cost contribute a point. A capability estimate contributes
-its 80% interval. The weighted interval is the sum of each transformed interval
-times its objective weight, less the exact soft penalty.
+For a scalar objective, each candidate has a weighted score and a
+`score_interval`. The engine applies the same feasible-set affine transform to
+interval bounds that it uses for the point estimate. It does not clamp
+transformed bounds to 0 through 1. Exact facets such as cost contribute a
+point. A capability estimate contributes its 80% interval. A measured
+benchmark term contributes its source-published interval. The weighted
+interval is the sum of each transformed interval times its objective weight,
+less the exact soft penalty.
 
-The point-estimate leader anchors the comparison. `members` contains that
-model and every other model whose score interval overlaps the leader's.
-Overlap chains are deliberately not followed. For example, if B overlaps A
-and C overlaps B but not A, A and B are members and C is not.
+The answer's `members` are the `best` band (below): the leader, and every model
+with enough evidence whose score is at least the leader's with probability 0.25
+or more. Before 2.7 a model was a member when its interval merely overlapped
+the leader's. That rule tied models the evidence ranks well apart, because
+overlapping 80% intervals can still leave 95% or more of the probability on one
+side, and it tied every thin-evidence model, whose interval overlaps
+everything.
 
 | Field | Meaning |
 |---|---|
-| `kind` | `separated` when no other model overlaps the leader, otherwise `tied`. |
-| `members` | Model IDs supported by the leader-overlap rule. A separated answer contains only its leader. |
+| `kind` | `separated` when the best band holds only the leader, otherwise `tied`. |
+| `members` | The best band's model IDs, in point-score order. A separated answer contains only its leader. |
 | `leader` | Present only for `separated`, and equal to its sole member. A tied answer cannot carry this field. |
-| `basis` | The overlap rule and interval level used. |
+| `basis` | The band rule and interval level used. |
 | `tie_breakers` | Four model IDs or nulls, computed only for a tied answer. `cheapest` minimises exact cost per task, `fastest` maximises offering throughput, `open_weights` names the sole open-weights member when there is one, and `most_independently_measured` counts admitted measurements from independent measurers. A non-unique or unknown value is null. |
 | `deterministic_order` | The members ordered by point estimate, then exact cost, then model ID. This lets an agent process the group repeatably. It is not evidence that the first member is better. |
 
 A `separated` answer carries all four `tie_breakers` as null. A `tied` answer
 contains at least two unique `members`, and each non-null tie-breaker names one
-of them.
+of them. `answer` is null when every ranked model is thin: then no model has
+the evidence to lead, and `bands.thin` lists them all.
+
+### The bands
+
+`bands` sorts every ranked model, through its best offering, into exactly one
+of three bands (MODEL-206).
+
+Each model's weighted score is read as a normal distribution: the point score,
+with variance from its capability terms (each estimate's standard deviation,
+through the objective's transform and weight) and from any measured term's
+source-published interval, read as a 95% interval. Exact terms add none.
+Models are independent. `p_beats_leader` is then P(this score ≥ the leader's),
+computed in closed form: the limit of comparing the posterior draws pairwise,
+without their sampling error.
+
+- **`best`, best for your weights.** The leader is the best point score among
+  models with enough evidence. A model with enough evidence joins it when
+  `p_beats_leader` ≥ `band_probability` (0.25): the leader is then ahead with
+  at most 75% probability. Ordered by `p_best`, then score.
+- **`rest`.** The other models with enough evidence, in score order, each with
+  its `p_beats_leader`.
+- **`thin`, not enough evidence yet.** A model is thin when any weighted
+  capability's 80% interval is wider than `thin_interval_width` (2.8 on the
+  capability scale). One fresh direct benchmark gives an interval about 2.0
+  wide; a model measured only on three proxy benchmarks, or on one direct
+  benchmark more than about fourteen months old, is wider than 2.8; the prior
+  alone is 5.1. A thin model is never in the leader's band, whatever its point
+  score. In score order.
+
+The width threshold is on the capability scale, not on `score_interval`: a
+score interval is in feasible-set normalised units, which change with the
+lineup, so a fixed width there would mean different evidence in different
+decisions.
+
+| Field | Meaning |
+|---|---|
+| `basis` | The rule, as text. The same string as `answer.basis`. |
+| `band_probability` | The P(score ≥ leader's) a model needs to join the best band. |
+| `thin_interval_width` | The 80% capability interval width above which a model is thin. |
+| `leader` | The best point score among models with enough evidence, or null when every model is thin. |
+| `best` | The leader's band, ordered by `p_best`. |
+| `rest` | Other models with enough evidence, in score order. |
+| `thin` | Models without enough evidence yet, in score order. |
+
+Each band entry:
+
+| Field | Meaning |
+|---|---|
+| `model` | The model ID. |
+| `offering` | The model's best offering under the objective. |
+| `score` | The weighted score, rounded to 6 places. |
+| `score_interval` | The weighted interval, rounded to 6 places. |
+| `p_best` | The result's `p_best` for this model: its probability of being best among every ranked model, thin ones included. Null when the objective has no capability posterior. |
+| `p_beats_leader` | P(this score ≥ the leader's), to 4 places. Null for the leader, and for every entry when there is no leader. |
+| `cost_per_task` | The offering's cost per task, as in `results`. |
+| `estimates` | One per weighted capability, in objective order: the signed weight key as `dimension`, the estimate's `value`, its 80% `interval`, `benchmarks`, the distinct fitted benchmarks the model is measured on for it, and `direct_benchmarks`, how many of those are tagged direct for it. |
+
+The capability intervals were recalibrated in 2.7: see
+[`research/capability-interval-calibration.md`](research/capability-interval-calibration.md).
+Before, they covered held-out benchmark results 94% of the time where 80% was
+claimed.
+
+### The blend
+
+A weighted score mixes unlike things, so a band on the mix is only one reading
+of the question. `blend` names the mix and gives the order on each dimension
+alone: "on your 60/40 mix of software engineering and cost …, and on software
+engineering alone, … leads".
+
+| Field | Meaning |
+|---|---|
+| `dimension` | The signed weight key. |
+| `weight` | The weight as given. |
+| `share` | `weight` over the sum of the objective's weights, to 4 places. |
+| `estimated` | `true` for a capability estimate, `false` for an exact value (cost, a fact, a preference, a measured benchmark). |
+| `leaders` | Who leads on this dimension alone. For a capability, the best point estimate among models with enough evidence on it. For an exact dimension, every model sharing the best value. |
+| `value` | The leaders' value on this dimension in its own unit: a capability estimate or a raw value such as dollars per task. |
+| `p_best` | Capability only: P(the leader is best on this dimension alone) among models with enough evidence, from the same deterministic posterior draws as `p_best` on a result. |
+| `runner_up` | Capability only: the second model by point estimate among models with enough evidence. |
+| `p_runner_up` | Capability only: P(the runner-up's estimate ≥ the leader's), to 4 places. |
+| `order` | Models with enough evidence, best first on this dimension alone. Each model is read at its best ranked offering for this dimension. |
+| `thin` | Models whose estimate on this dimension is thin, by model ID. |
 
 ### The model view
 
@@ -1050,6 +1183,19 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **2.7 — MODEL-206:** A decision adds `bands` (the ranked models as `best`,
+  `rest` and `thin`, each entry with its score, interval, `p_beats_leader`,
+  cost and capability estimates with benchmark and direct-benchmark counts) and `blend` (each
+  weighted dimension's share and its order alone). The answer keeps its
+  fields and `kind` values; its `members` are now the `best` band, a model
+  whose score is at least the leader's with probability 0.25 or more, never a
+  thin-evidence model. Before, `members` were every model whose interval
+  overlapped the leader's. `answer` can be null for a scalar objective when
+  every ranked model is thin; it was already nullable. The capability
+  model's intervals are recalibrated: the noise variance of a measurement is
+  fitted to held-out benchmark results, so the 80% intervals are narrower.
+  All new fields are optional, so the major stays 2.
 
 - **2.6 — MODEL-200:** A spec adds the optional `access` (`chat_app`,
   `coding_tool` with an optional `harness`, `own_software`, `own_hardware`).

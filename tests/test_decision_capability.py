@@ -790,7 +790,7 @@ def test_exact_objective_answer_ignores_requested_capability_overlap() -> None:
     assert decision.answer.leader == "lab/model-9"
 
 
-def test_tied_answer_compares_models_to_the_leader_without_following_chains() -> None:
+def test_the_band_compares_each_model_to_the_leader_by_probability_not_overlap() -> None:
     def sold(mid: str, provider: str, price: float, speed: float):
         oid = f"{provider}/{mid}/global/standard"
         return offering(mid, provider, facts=[
@@ -811,8 +811,9 @@ def test_tied_answer_compares_models_to_the_leader_without_following_chains() ->
         evidence("lab/alpha", "quality", 100, interval=[95, 105]),
         evidence("lab/alpha", "aux-one", 70),
         evidence("lab/alpha", "aux-two", 80),
-        evidence("lab/beta", "quality", 90, interval=[94, 96]),
-        evidence("lab/gamma", "quality", 80, interval=[85, 94]),
+        evidence("lab/beta", "quality", 99, interval=[94, 104]),
+        # Overlaps alpha's interval at the edge, but is almost surely below it.
+        evidence("lab/gamma", "quality", 90, interval=[85, 96]),
     ]
     built = build_snapshot(
         SnapshotInputs(
@@ -861,7 +862,16 @@ def test_tied_answer_compares_models_to_the_leader_without_following_chains() ->
         "most_independently_measured": "lab/alpha",
         "fastest": "lab/alpha",
     }
-    assert "80%" in decision.answer.basis
+    assert "P(its score >= the leader's) >= 0.25" in decision.answer.basis
+    bands = decision.bands
+    assert bands.leader == "lab/alpha"
+    assert [(entry.model, entry.p_beats_leader) for entry in bands.best] == [
+        ("lab/alpha", None), ("lab/beta", 0.3908)]
+    assert [(entry.model, entry.p_beats_leader) for entry in bands.rest] == [
+        ("lab/gamma", 0.0042)]
+    assert bands.thin == []
+    gamma, alpha = bands.rest[0], bands.best[0]
+    assert gamma.score_interval[1] >= alpha.score_interval[0]  # the old rule tied them
 
 
 def test_one_models_offerings_never_tie_with_each_other_in_the_answer() -> None:
@@ -975,9 +985,9 @@ def test_one_models_offerings_do_not_make_its_evidence_not_separable() -> None:
     assert all("not_separable" not in row.warnings for row in decision.results)
 
 
-def test_answer_members_overlap_even_when_evidence_versions_are_not_comparable() -> None:
+def test_answer_members_band_even_when_evidence_versions_are_not_comparable() -> None:
     alpha = evidence("lab/alpha", "swe_bench_pro", 1.0, interval=[0.8, 1.2])
-    beta = evidence("lab/beta", "swe_bench_pro", 0.9, interval=[0.85, 0.95])
+    beta = evidence("lab/beta", "swe_bench_pro", 0.95, interval=[0.9, 1.0])
     beta["benchmark_version"] = "2.0"
     rows = [alpha, beta]
     built = build_snapshot(

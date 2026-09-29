@@ -191,6 +191,31 @@ def _offering_name(ref: contract.OfferingRef) -> str:
     return "/".join(part for part in (ref.provider, ref.region, ref.tier) if part) or "(model)"
 
 
+def _percent(value: float | None) -> str:
+    return "unknown" if value is None else f"{value:.0%}"
+
+
+def _measured(entry: contract.BandEntry) -> str:
+    if not entry.estimates:
+        return "no capability estimate"
+    fewest = min(entry.estimates, key=lambda estimate: estimate.direct_benchmarks)
+    number, direct = fewest.benchmarks, fewest.direct_benchmarks
+    text = f"measured on {number} benchmark{'' if number == 1 else 's'}"
+    return text if direct == number else f"{text}, {direct} direct"
+
+
+def _term_lead(term: contract.BlendTerm) -> str:
+    if not term.leaders:
+        return "no model has enough evidence"
+    if not term.estimated:
+        value = "" if term.value is None else f" ({term.value:g})"
+        return " / ".join(term.leaders) + value
+    text = f"{term.leaders[0]} leads, {_percent(term.p_best)} chance of being best"
+    if term.runner_up is not None:
+        text += f"; {term.runner_up} is ahead of it with probability {_percent(term.p_runner_up)}"
+    return text
+
+
 def _readable_lines(result: contract.Decision) -> list[str]:
     """A short, human summary: status, the answer, the top rows, and the leader's reasons.
 
@@ -200,9 +225,16 @@ def _readable_lines(result: contract.Decision) -> list[str]:
     if result.status == "no_feasible":
         lines.append("relax: " + "; ".join(result.relax[:3]))
         return lines
+    if len(result.blend) > 1:
+        lines.append("blend: " + ", ".join(
+            f"{term.share:.0%} {term.dimension}" for term in result.blend))
     answer = result.answer
+    bands = result.bands
     if isinstance(answer, contract.TiedAnswer):
         lines.append(f"answer: tied, {' / '.join(answer.members)}")
+        if bands is not None and any(entry.p_best is not None for entry in bands.best):
+            lines.append("  chance of being best: " + ", ".join(
+                f"{entry.model} {_percent(entry.p_best)}" for entry in bands.best))
         lines.append(f"  {answer.basis}")
         named = {key: value for key, value in answer.tie_breakers.model_dump().items() if value}
         if named:
@@ -211,6 +243,14 @@ def _readable_lines(result: contract.Decision) -> list[str]:
     elif isinstance(answer, contract.SeparatedAnswer):
         lines.append(f"answer: {answer.leader}")
         lines.append(f"  {answer.basis}")
+    elif bands is not None and bands.thin:
+        lines.append("answer: none; no ranked model has enough evidence to lead")
+    if bands is not None and bands.thin:
+        lines.append("not enough evidence yet: " + ", ".join(
+            f"{entry.model} ({_measured(entry)})" for entry in bands.thin))
+    if len(result.blend) > 1:
+        for term in result.blend:
+            lines.append(f"  {term.dimension} alone: {_term_lead(term)}")
     lines.append("top:")
     for row in result.results[:5]:
         lines.append(
