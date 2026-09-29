@@ -641,7 +641,6 @@ body {
 .board-answer .narrowing { display: block; }
 .board-answer-head { display: flex; flex-direction: column; gap: 7px; }
 .board-answer-head h2, .board-answer-head p { margin: 0; }
-.board-tied-note { color: var(--muted); }
 .board-ranked-answer { padding: 6px 16px 12px; border-top: 2px solid var(--ink); }
 .board-ranked-answer > ol { list-style: none; margin: 0; padding: 0; }
 .board-ranked-answer > ol > li { display: grid; grid-template-columns: minmax(150px, 1fr) 92px minmax(120px, .8fr); gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
@@ -658,9 +657,21 @@ body {
 .funnel .engine-added { color: var(--muted); }
 .funnel .engine-added .funnel-track { opacity: .55; }
 .board-inseparable { margin: 6px 0; font-size: 12px; }
+.board-tie-answer { padding: 10px 0 14px; border-bottom: 1px solid var(--line); min-width: 0; }
+.board-tie-answer h2 { margin: 0 0 4px; font-size: 15px; overflow-wrap: anywhere; }
+.board-tie-answer h3 { margin: 12px 0 4px; font-size: 12px; color: var(--muted); }
+.board-tie-answer p { margin: 4px 0; font-size: 12.5px; overflow-wrap: anywhere; }
+.board-tie-note, .board-tie-caption { color: var(--muted); }
+.board-tie-answer ul { list-style: none; margin: 0; padding: 0; }
+.board-tie-group li, .board-tie-breakers li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); min-width: 0; }
+.board-tie-group small, .board-tie-breakers small { color: var(--muted); overflow-wrap: anywhere; }
+.board-tie-caption { margin: 8px 0 0; font-size: 12px; }
+.board-tie-tag { margin-left: 8px; font-size: 11px; font-weight: 400; border: 1px solid var(--line); padding: 0 6px; border-radius: 999px; color: var(--muted); }
+.board-tie-pick { font-size: 11.5px; border: 1px solid var(--line); padding: 1px 6px; border-radius: 999px; }
+.board-tie-breakers li > span { min-width: 9.5em; color: var(--muted); font-size: 12px; }
 .board-show-all { margin-top: 10px; }
 .board-may-qualify { margin-top: 14px; border-top: 1px solid var(--line); }
-.board-may-qualify h3 { margin: 0; padding: 12px 0 4px; font-size: 13px; }
+.board-may-qualify h2 { margin: 0; padding: 12px 0 4px; font-size: 13px; }
 .board-may-qualify ul { list-style: none; margin: 0; padding: 0; }
 .board-may-qualify li { display: grid; grid-template-columns: minmax(150px, 1fr) 92px; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
 .mobile-answer-bar { display: none; }
