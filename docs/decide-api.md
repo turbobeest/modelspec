@@ -35,7 +35,7 @@ are the Worker's declared Python dependencies.
 
 The JSON body is a Spec from [`decision-contract.md`](decision-contract.md).
 `spec_version` is the integer `1`; the current compatible contract release is
-`2.2`.
+`2.3`.
 
 ```http
 POST /v1/decide
@@ -54,6 +54,18 @@ content-type: application/json
   "limit": 5
 }
 ```
+
+### Estate (MODEL-179)
+
+A Spec may carry an `estate` (provider keys, subscription plans, devices, and
+what is exhausted right now; see [The estate](decision-contract.md#the-estate-model-179)).
+The response then also has `with_estate`, the same question answered from what
+the caller holds, with a `gap` and a `gain` list; the unrestricted answer is
+unchanged. It is computed inside the decision engine, so the Worker and
+`modelspec decide --json` return the same bytes. The Worker does not store or
+log the estate: it lives in the request body and the reply. An estate ID the
+vocabulary does not list is a `400 invalid_spec` naming its path
+(`estate.providers[0]`). The estate is part of `spec_hash`.
 
 Unknown fields and unknown facet IDs are errors. Free-text `task` remains
 unsupported in slice 1. A Spec may request `latest` or the ID of the loaded
@@ -107,7 +119,7 @@ shown indented here for reading.
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "2.2",
+  "contract_version": "2.3",
   "decision_id": "dec_0123456789abcdef01234567",
   "snapshot": "snap_0123456789abcdef",
   "spec_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -204,7 +216,7 @@ confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 
 ```json
 {
-  "contract_version": "2.2",
+  "contract_version": "2.3",
   "endpoint": "decide",
   "snapshot": "snap_new0123456789ab",
   "error": {

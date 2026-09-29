@@ -3228,8 +3228,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.2'
-          default: '2.2'
+          const: '2.3'
+          default: '2.3'
           title: Contract Version
           type: string
         decision_id:
@@ -3320,6 +3320,11 @@ components:
           minimum: 0
           title: Out Of Lineup
           type: integer
+        with_estate:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionWithEstate'
+          - type: 'null'
+          default: null
       required:
       - decision_id
       - snapshot
@@ -3364,6 +3369,147 @@ components:
           title: Model Groups
           type: array
       title: Eliminated
+      type: object
+    DecisionEstate:
+      additionalProperties: false
+      description: 'What the caller holds, sent with the spec and never stored. Added in 2.3.
+
+
+        ``providers`` are provider IDs the caller has a key for, ``plans`` are
+
+        subscription plan IDs, ``devices`` are hardware SKU IDs. ``exhausted`` lists
+
+        providers or plans that cannot be used right now; an exhausted provider
+
+        takes its key and its plans with it.'
+      properties:
+        providers:
+          items:
+            maxLength: 120
+            minLength: 1
+            type: string
+          maxItems: 64
+          title: Providers
+          type: array
+        plans:
+          items:
+            maxLength: 120
+            minLength: 1
+            type: string
+          maxItems: 64
+          title: Plans
+          type: array
+        devices:
+          items:
+            maxLength: 120
+            minLength: 1
+            type: string
+          maxItems: 64
+          title: Devices
+          type: array
+        exhausted:
+          items:
+            maxLength: 120
+            minLength: 1
+            type: string
+          maxItems: 64
+          title: Exhausted
+          type: array
+      title: Estate
+      type: object
+    DecisionEstateGap:
+      additionalProperties: false
+      description: Why the two answers differ, or that they do not.
+      properties:
+        same_answer:
+          title: Same Answer
+          type: boolean
+        unreachable_models:
+          items:
+            pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          title: Unreachable Models
+          type: array
+        summary:
+          title: Summary
+          type: string
+      required:
+      - same_answer
+      - summary
+      title: EstateGap
+      type: object
+    DecisionEstateHold:
+      additionalProperties: false
+      properties:
+        kind:
+          enum:
+          - provider
+          - plan
+          - device
+          title: Kind
+          type: string
+        id:
+          maxLength: 120
+          minLength: 1
+          title: Id
+          type: string
+      required:
+      - kind
+      - id
+      title: EstateHold
+      type: object
+    DecisionEstateMark:
+      additionalProperties: false
+      description: How the estate reaches one row, and what one more task costs the caller.
+      properties:
+        via:
+          $ref: '#/components/schemas/DecisionEstateHold'
+        cost_basis:
+          enum:
+          - list_price
+          - plan_included
+          - owned_hardware
+          title: Cost Basis
+          type: string
+        marginal_cost_per_task_usd:
+          anyOf:
+          - minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Marginal Cost Per Task Usd
+      required:
+      - via
+      - cost_basis
+      title: EstateMark
+      type: object
+    DecisionEstateResult:
+      additionalProperties: false
+      properties:
+        rank:
+          minimum: 1
+          title: Rank
+          type: integer
+        offering:
+          $ref: '#/components/schemas/DecisionOfferingRef'
+        estate:
+          $ref: '#/components/schemas/DecisionEstateMark'
+        soft_penalty:
+          default: 0.0
+          minimum: 0
+          title: Soft Penalty
+          type: number
+        warnings:
+          items:
+            pattern: ^[a-z0-9_]+$
+            type: string
+          title: Warnings
+          type: array
+      required:
+      - rank
+      - offering
+      - estate
+      title: EstateResult
       type: object
     DecisionEstimate:
       additionalProperties: false
@@ -3647,6 +3793,44 @@ components:
       - before
       - after
       title: FunnelStep
+      type: object
+    DecisionGainItem:
+      additionalProperties: false
+      description: One hold the caller does not have whose addition would change the answer.
+      properties:
+        add:
+          $ref: '#/components/schemas/DecisionEstateHold'
+        status:
+          enum:
+          - answered
+          - partial
+          - no_feasible
+          title: Status
+          type: string
+        leader:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Leader
+        answer:
+          anyOf:
+          - discriminator:
+              mapping:
+                separated: '#/components/schemas/DecisionSeparatedAnswer'
+                tied: '#/components/schemas/DecisionTiedAnswer'
+              propertyName: kind
+            oneOf:
+            - $ref: '#/components/schemas/DecisionSeparatedAnswer'
+            - $ref: '#/components/schemas/DecisionTiedAnswer'
+          - type: 'null'
+          default: null
+          title: Answer
+      required:
+      - add
+      - status
+      title: GainItem
       type: object
     DecisionHardware:
       additionalProperties: false
@@ -4607,6 +4791,11 @@ components:
           - type: 'null'
           default: null
           title: Save As
+        estate:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionEstate'
+          - type: 'null'
+          default: null
       required:
       - spec_version
       - optimize
@@ -4816,6 +5005,54 @@ components:
       - between
       title: Window
       type: object
+    DecisionWithEstate:
+      additionalProperties: false
+      description: The same question answered from what the caller holds. Added in 2.3.
+      properties:
+        status:
+          enum:
+          - answered
+          - partial
+          - no_feasible
+          title: Status
+          type: string
+        answer:
+          anyOf:
+          - discriminator:
+              mapping:
+                separated: '#/components/schemas/DecisionSeparatedAnswer'
+                tied: '#/components/schemas/DecisionTiedAnswer'
+              propertyName: kind
+            oneOf:
+            - $ref: '#/components/schemas/DecisionSeparatedAnswer'
+            - $ref: '#/components/schemas/DecisionTiedAnswer'
+          - type: 'null'
+          default: null
+          title: Answer
+        results:
+          items:
+            $ref: '#/components/schemas/DecisionEstateResult'
+          title: Results
+          type: array
+        may_qualify:
+          items:
+            $ref: '#/components/schemas/DecisionMayQualify'
+          title: May Qualify
+          type: array
+        truncated:
+          $ref: '#/components/schemas/DecisionTruncated'
+        gap:
+          $ref: '#/components/schemas/DecisionEstateGap'
+        gain:
+          items:
+            $ref: '#/components/schemas/DecisionGainItem'
+          title: Gain
+          type: array
+      required:
+      - status
+      - gap
+      title: WithEstate
+      type: object
     DecisionRequestRefused:
       type: object
       additionalProperties: false
@@ -4828,7 +5065,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.2'
+          - '2.3'
         endpoint:
           type: string
           enum:
@@ -4880,7 +5117,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.2'
+          - '2.3'
         endpoint:
           type: string
           enum:
@@ -4905,7 +5142,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.2'
+          - '2.3'
         endpoint:
           type: string
           enum:
@@ -4959,7 +5196,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.2'
+          - '2.3'
         endpoint:
           type: string
           enum:
@@ -5299,7 +5536,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.2'
+          - '2.3'
         endpoint:
           type: string
           enum:

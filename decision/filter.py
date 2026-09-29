@@ -321,9 +321,10 @@ def _keep_row(row: Any, qualifiers: EvidenceQualifiers, measured: frozenset[str]
 
 
 class _Run:
-    def __init__(self, resolved: Resolved, index: Any) -> None:
+    def __init__(self, resolved: Resolved, index: Any, reach: Any = None) -> None:
         self.resolved = resolved
         self.index = index
+        self.reach = reach
         self.facets = resolved.facets
         self.facet_cache: dict[str, Any] = {}
         self.ids = list(index.candidates())
@@ -691,17 +692,20 @@ class _Run:
             )])
         sold = {self.index.model_of(cid) for cid in self.ids
                 if self.index.kind(cid) == "offering"}
-        represented = retired = 0
+        represented = retired = outside = 0
+        reach = self.reach
         for i, cid in enumerate(self.ids):
-            if cid in sold:
+            if reach is not None and not reach.holds(cid):
+                outside |= 1 << i
+            elif cid in sold and (reach is None or not reach.holds_bare(cid)):
                 represented |= 1 << i
             elif self._life(cid) == "retired":
                 retired |= 1 << i
         eliminations: list[Elimination] = []
         if self.resolved.include_retired:
-            self.lineup = self.universe & ~represented
+            self.lineup = self.universe & ~represented & ~outside
         else:
-            self.lineup = self.universe & ~retired & ~represented
+            self.lineup = self.universe & ~retired & ~represented & ~outside
             for cid in self._ids_of(retired):
                 eliminations.append(Elimination(
                     candidate=cid, _condition=_RETIRED_CONDITION, value="retired",
@@ -709,8 +713,15 @@ class _Run:
                 ))
         feasible = self.lineup
         maybe = 0
-        eliminated = self.universe & ~self.lineup
         unknown_facets: dict[str, list[str]] = {}
+        if reach is not None:
+            for cid, facets in reach.unknown.items():
+                bit = 1 << self.pos[cid]
+                if feasible & bit:
+                    feasible &= ~bit
+                    maybe |= bit
+                    unknown_facets[cid] = list(facets)
+        eliminated = self.universe & ~self.lineup
         funnel: list[FunnelCount] = []
         rules = 0 if self.resolved.profile is None else len(self.resolved.profile.rules)
         self._cover(feasible, maybe, eliminated)
@@ -791,6 +802,10 @@ def _split(raw: Bits, mask: int) -> tuple[int, int, int]:
     return passing, failing, unknown
 
 
-def apply(resolved: Resolved, index: Any) -> FilterResult:
-    """Filter ``index`` by the resolved conditions. The same inputs give the same result."""
-    return _Run(resolved, index).run()
+def apply(resolved: Resolved, index: Any, reach: Any = None) -> FilterResult:
+    """Filter ``index`` by the resolved conditions. The same inputs give the same result.
+
+    ``reach`` (``decision.estate.Reach``) restricts the lineup to the rows a
+    caller's estate can use, and starts its ``unknown`` rows as may-qualify.
+    """
+    return _Run(resolved, index, reach).run()

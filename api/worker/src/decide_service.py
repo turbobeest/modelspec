@@ -413,7 +413,8 @@ def compare(payload: Any, old_snapshot, new_snapshot, *,
             issues=_issues(exc),
             endpoint="compare",
         )
-    comparison_spec = spec.model_copy(update={"snapshot": "latest", "explain": "full"})
+    comparison_spec = spec.model_copy(
+        update={"snapshot": "latest", "explain": "full", "estate": None})
     try:
         old = run_decision(comparison_spec, old_snapshot, facets=facets, comparison=True)
         new = run_decision(comparison_spec, new_snapshot, facets=facets, comparison=True)

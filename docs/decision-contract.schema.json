@@ -664,8 +664,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.2",
-          "default": "2.2",
+          "const": "2.3",
+          "default": "2.3",
           "title": "Contract Version",
           "type": "string"
         },
@@ -789,6 +789,17 @@
           },
           "title": "Warnings",
           "type": "array"
+        },
+        "with_estate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WithEstate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -850,6 +861,182 @@
         }
       },
       "title": "Eliminated",
+      "type": "object"
+    },
+    "Estate": {
+      "additionalProperties": false,
+      "description": "What the caller holds, sent with the spec and never stored. Added in 2.3.\n\n``providers`` are provider IDs the caller has a key for, ``plans`` are\nsubscription plan IDs, ``devices`` are hardware SKU IDs. ``exhausted`` lists\nproviders or plans that cannot be used right now; an exhausted provider\ntakes its key and its plans with it.",
+      "properties": {
+        "devices": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Devices",
+          "type": "array"
+        },
+        "exhausted": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Exhausted",
+          "type": "array"
+        },
+        "plans": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Plans",
+          "type": "array"
+        },
+        "providers": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 64,
+          "title": "Providers",
+          "type": "array"
+        }
+      },
+      "title": "Estate",
+      "type": "object"
+    },
+    "EstateGap": {
+      "additionalProperties": false,
+      "description": "Why the two answers differ, or that they do not.",
+      "properties": {
+        "same_answer": {
+          "title": "Same Answer",
+          "type": "boolean"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "unreachable_models": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Unreachable Models",
+          "type": "array"
+        }
+      },
+      "required": [
+        "same_answer",
+        "summary"
+      ],
+      "title": "EstateGap",
+      "type": "object"
+    },
+    "EstateHold": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "provider",
+            "plan",
+            "device"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "title": "EstateHold",
+      "type": "object"
+    },
+    "EstateMark": {
+      "additionalProperties": false,
+      "description": "How the estate reaches one row, and what one more task costs the caller.",
+      "properties": {
+        "cost_basis": {
+          "enum": [
+            "list_price",
+            "plan_included",
+            "owned_hardware"
+          ],
+          "title": "Cost Basis",
+          "type": "string"
+        },
+        "marginal_cost_per_task_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Marginal Cost Per Task Usd"
+        },
+        "via": {
+          "$ref": "#/$defs/EstateHold"
+        }
+      },
+      "required": [
+        "via",
+        "cost_basis"
+      ],
+      "title": "EstateMark",
+      "type": "object"
+    },
+    "EstateResult": {
+      "additionalProperties": false,
+      "properties": {
+        "estate": {
+          "$ref": "#/$defs/EstateMark"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        },
+        "rank": {
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "soft_penalty": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Soft Penalty",
+          "type": "number"
+        },
+        "warnings": {
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rank",
+        "offering",
+        "estate"
+      ],
+      "title": "EstateResult",
       "type": "object"
     },
     "Estimate": {
@@ -1297,6 +1484,69 @@
         "after"
       ],
       "title": "FunnelStep",
+      "type": "object"
+    },
+    "GainItem": {
+      "additionalProperties": false,
+      "description": "One hold the caller does not have whose addition would change the answer.",
+      "properties": {
+        "add": {
+          "$ref": "#/$defs/EstateHold"
+        },
+        "answer": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "separated": "#/$defs/SeparatedAnswer",
+                  "tied": "#/$defs/TiedAnswer"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SeparatedAnswer"
+                },
+                {
+                  "$ref": "#/$defs/TiedAnswer"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
+        },
+        "leader": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Leader"
+        },
+        "status": {
+          "enum": [
+            "answered",
+            "partial",
+            "no_feasible"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "add",
+        "status"
+      ],
+      "title": "GainItem",
       "type": "object"
     },
     "Hardware": {
@@ -2768,6 +3018,17 @@
           "default": null,
           "title": "Capabilities"
         },
+        "estate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Estate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "exclude_benchmarks": {
           "items": {
             "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
@@ -3277,6 +3538,80 @@
       ],
       "title": "Window",
       "type": "object"
+    },
+    "WithEstate": {
+      "additionalProperties": false,
+      "description": "The same question answered from what the caller holds. Added in 2.3.",
+      "properties": {
+        "answer": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "separated": "#/$defs/SeparatedAnswer",
+                  "tied": "#/$defs/TiedAnswer"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SeparatedAnswer"
+                },
+                {
+                  "$ref": "#/$defs/TiedAnswer"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Answer"
+        },
+        "gain": {
+          "items": {
+            "$ref": "#/$defs/GainItem"
+          },
+          "title": "Gain",
+          "type": "array"
+        },
+        "gap": {
+          "$ref": "#/$defs/EstateGap"
+        },
+        "may_qualify": {
+          "items": {
+            "$ref": "#/$defs/MayQualify"
+          },
+          "title": "May Qualify",
+          "type": "array"
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/EstateResult"
+          },
+          "title": "Results",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "answered",
+            "partial",
+            "no_feasible"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "truncated": {
+          "$ref": "#/$defs/Truncated"
+        }
+      },
+      "required": [
+        "status",
+        "gap"
+      ],
+      "title": "WithEstate",
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3290,5 +3625,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.2"
+  "x-contract-version": "2.3"
 }

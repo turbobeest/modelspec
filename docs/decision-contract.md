@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.2**
+Contract version: **2.3**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -77,6 +77,7 @@ save_as: acme-rust-refactor
 | `explain` | `none`, `summary`, `full` | `summary` | How much explanation to return. |
 | `limit` | integer, 1–500 | `20` | The maximum number of results. |
 | `save_as` | lowercase slug | none | A name to save the spec under. Saved specs and alerts arrive in a later slice. |
+| `estate` | object, see [The estate](#the-estate-model-179) | none | What the caller holds: provider keys, subscription plans, devices, and what is exhausted right now. It adds a second answer, `with_estate`; the unrestricted answer does not change. |
 
 A spec with a field not named here is refused. Nothing is silently ignored.
 
@@ -367,6 +368,63 @@ The `max`, `min`, `lexicographic` and `pareto` forms must name ordered facets.
 A `bool`, `enum` or `string` facet cannot be maximised, windowed or compared
 with `<`; boolean and enum facets are usable only as value terms in `weights`.
 
+## The estate (MODEL-179)
+
+A caller holds some things and not others: a key for one provider, a
+subscription plan, a GPU. `estate` says which, and the decision answers twice:
+the unrestricted answer, exactly as without an estate ("if you could use
+anything"), and `with_estate` ("with what you have"). An estate is optional; a
+spec without one gets a decision with no `with_estate` and is unchanged.
+
+```yaml
+estate:
+  providers: [anthropic, together-ai]
+  plans: [anthropic/subscription/pro]
+  devices: [apple_m3_max]
+  exhausted: [anthropic/subscription/pro]
+```
+
+| Field | Meaning |
+|---|---|
+| `providers` | Provider IDs the caller has a key for. Their offerings are reachable at list price. |
+| `plans` | Subscription plan IDs (`<provider>/subscription/<plan>`) the caller pays for. The plan's documented models are reachable from that provider at a marginal cost of 0: the fee is already paid. A plan that does not disclose its coverage reaches nothing for certain; the provider's offerings are `may_qualify` on `offering.subscription.models_covered`. |
+| `devices` | Hardware SKU IDs. Open-weights models whose published fit includes the device are added as self-hosted rows at a marginal cost of 0. A device the fit is indeterminate on makes the model `may_qualify` on `model.fits_hardware`. |
+| `exhausted` | Providers or plans that cannot be used right now (a spent window, a hit rate limit). An exhausted plan drops out of `with_estate` only, and the key path to the same provider stays usable. An exhausted provider takes its key and its plans with it. |
+
+IDs come from the published vocabulary's `estate` section. An ID it does not
+list is refused as `invalid_spec`, naming the path (`estate.providers[1]`).
+Each list is sorted and deduplicated before hashing, so `spec_hash` does not
+depend on order. A key the caller holds is never sent: an estate names a
+provider, not a secret.
+
+**Not stored.** The estate travels in the spec and is used for that one
+decision. ModelSpec keeps no estate server-side, writes none to a log and
+echoes it nowhere but the `with_estate` block of the reply. A caller who wants
+the same answer sends the same spec again.
+
+### `with_estate`
+
+The same question over the rows the estate reaches. The unrestricted `answer`,
+`results`, `may_qualify` and probabilities are computed without the estate and
+are byte-identical to the decision for the same spec without one.
+
+| Field | Meaning |
+|---|---|
+| `status` | `answered`, `partial` or `no_feasible`, as for the decision. `no_feasible` here means the estate reaches nothing that qualifies; it carries no `relax`, because the gap and `gain` say what to add. |
+| `answer` | The model-level answer over the estate, as in [The answer](#the-answer). Null when the estate reaches no scored model. |
+| `results` | Ranked as the decision's results are. Each is `rank`, `offering` (a self-hosted row has no `provider`), `soft_penalty`, `warnings` and `estate`. |
+| `results[].estate` | How the estate reaches the row: `via` is `{kind, id}` with `kind` one of `provider`, `plan` or `device`; `cost_basis` is `list_price`, `plan_included` or `owned_hardware`; `marginal_cost_per_task_usd` is what one more task costs the caller (0 inside a plan or on an owned device, the list `offering.cost_per_task` on a key, null when the price is unknown). The marginal cost drives a cost objective. When several holds reach a row the plan wins, then the key, then the device. |
+| `may_qualify` | As for the decision, over the estate. |
+| `truncated` | As for the decision. |
+| `gap` | Why the two answers differ. `same_answer` is true when the estate reaches the unrestricted answer, `unreachable_models` lists the models the unrestricted ranking puts above the estate's leader that it cannot reach, and `summary` says so in a sentence. |
+| `gain` | Holds the caller lacks whose addition would change the `with_estate` answer, each as `add` (`{kind, id}`), the `status` and `leader` it would give, and the `answer`. A hold that reaches nothing new, an exhausted one and one already held are not offered. |
+
+### Contract note
+
+`with_estate` and `estate` are new optional fields, so this is a minor bump.
+No closed value is widened: `status` is reused, and the error for an unknown
+estate ID is the existing `invalid_spec`.
+
 ## The canonical spec hash
 
 `spec_hash` identifies a spec independent of how it was written:
@@ -389,7 +447,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.2",
+  "contract_version": "2.3",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -465,7 +523,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.2"`. |
+| `contract_version` | `"2.3"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -789,6 +847,10 @@ it instead of carrying its own list of facets or benchmarks. Built by
   `no_feasible` relaxation when no Must does. Rows stay present so clients can
   explain why a template is unavailable. Adding this field is compatible, so
   `vocabulary_version` remains `1`.
+- `estate`: the IDs a spec's `estate` accepts: `providers` (every registered
+  provider ID), `plans` (each subscription plan in the snapshot as `id`,
+  `provider` and `name`) and `devices` (every hardware SKU ID). Adding it is
+  compatible, so `vocabulary_version` remains `1`.
 - `coverage`: what the lineup holds, so a client can say what an empty answer
   was measured against without writing it per question: `as_of` (the snapshot
   date), `models` (lineup size) and `verified` (lineup models with at least one
@@ -831,6 +893,11 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.3 — MODEL-179:** A spec adds the optional `estate` (`providers`, `plans`,
+  `devices`, `exhausted`) and a decision adds `with_estate`, the same question
+  answered from what the caller holds, with a `gap` to the unrestricted answer
+  and a `gain` list. The vocabulary adds `estate`. The estate is never stored.
+  No closed value widens.
 - **2.2 — MODEL-189:** The vocabulary adds registered refinements and their
   evidence coverage. Until MODEL-190 adds refinement estimates, the hosted
   decide API rejects a refinement weight with the existing closed error code
