@@ -1,13 +1,21 @@
 name: Decision accuracy nightly
 
+# A failing night is reported by the coverage report (MODEL-215): its
+# `workflow-health` target watches this workflow and keeps one issue open while
+# the latest run on main is red or overdue. This job files no issue of its own.
+
 on:
   schedule:
     - cron: '23 6 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      stage_failure:
+        description: 'Add a synthetic failing gate, to prove the alert path'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
   group: decision-accuracy-nightly
@@ -17,6 +25,10 @@ jobs:
   accuracy:
     name: Source fidelity and reference agreement
     runs-on: ubuntu-latest
+    # Runs take 5-8 minutes; the default limit is six hours.
+    timeout-minutes: 20
+    env:
+      STAGE_FAILURE: ${{ inputs.stage_failure }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,7 +44,18 @@ jobs:
 
       - name: Run network accuracy layers
         # Layers 2 and 4 gate. Recall regressions are included as a report-only layer.
-        run: python scripts/accuracy.py --profile nightly --output-dir accuracy-report
+        run: |
+          stage=()
+          if [ "$STAGE_FAILURE" = "true" ]; then stage=(--stage-failure); fi
+          python scripts/accuracy.py --profile nightly --output-dir accuracy-report "${stage[@]}"
+
+      - name: Summarise the layers on the run page
+        if: always()
+        # The coverage report links failing runs here: the layer table, not the details.
+        run: |
+          if [ -f accuracy-report/accuracy.md ]; then
+            sed '/^## /,$d' accuracy-report/accuracy.md >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload accuracy report
         if: always()
@@ -40,38 +63,3 @@ jobs:
         with:
           name: decision-accuracy-nightly
           path: accuracy-report/
-
-      - name: Open an issue for a failed nightly report
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const title = 'Decision accuracy nightly failed';
-            const body = [
-              `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              '',
-              'Download the decision-accuracy-nightly artifact for the Markdown and JSON reports.'
-            ].join('\n');
-            // One open issue collects every failing night; don't file a new one each run.
-            const { data: open } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              per_page: 100
-            });
-            const existing = open.find((issue) => !issue.pull_request && issue.title === title);
-            if (existing) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: existing.number,
-                body
-              });
-            } else {
-              await github.rest.issues.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title,
-                body
-              });
-            }

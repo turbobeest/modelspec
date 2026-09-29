@@ -9,6 +9,9 @@ data_fidelity:
   sample_size: 12
   random_seed: modelspec-nightly-accuracy-v1
   max_firecrawl_credits: 10
+  # The most values the nightly draws to find sample_size it can assess. When no
+  # nightly reader can read a value from its changed source, it draws another.
+  max_values_drawn: 48
 
 reference:
   top_k: 5

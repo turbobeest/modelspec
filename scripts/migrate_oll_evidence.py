@@ -194,7 +194,7 @@ def _agrees(card: float, published: float) -> bool:
     return abs(float(card) - published) <= (0.5 * 10 ** -places) + 1e-12
 
 
-def _projection(identity: str, evaluated: date, scores: dict[str, float], *,
+def project_result(identity: str, evaluated: date, scores: dict[str, float], *,
                 source_url: str, raw_ref: str) -> bytes:
     row = {"model": identity, "date": evaluated.isoformat(),
            **{key: f"{value}%" for key, value in scores.items()}}
@@ -219,7 +219,7 @@ def _published(version: str, path: str, repository: str, revision: str,
     identity, evaluated, scores = (
         extract_v1_scores(data, path) if version == "v1" else extract_v2_scores(data, path)
     )
-    projection = _projection(identity, evaluated, scores, source_url=source_url, raw_ref=raw_ref)
+    projection = project_result(identity, evaluated, scores, source_url=source_url, raw_ref=raw_ref)
     source_id = f"oll-{version}-{hashlib.sha256(path.encode()).hexdigest()[:12]}"
     return PublishedResult(version, path, source_url, source_id, identity, evaluated, scores,
                            store.put(projection))
