@@ -1,0 +1,1022 @@
+{
+  "near_misses": [],
+  "top": [
+    {
+      "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.context_window",
+          "value": 500000,
+          "unit": "tokens",
+          "record_id": "other/huge#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "other/huge#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 30.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "openai/other/huge/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 30.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "openai/other/huge/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 1.32,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "openai/other/huge/global/standard#offering.price.input",
+            "openai/other/huge/global/standard#offering.price.output"
+          ],
+          "formula": "(30 USD per 1M input tokens × 40,000 input tokens + 30 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 1.32 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    },
+    {
+      "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "anthropic/claude-opus-5-5#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "anthropic/claude-opus-5-5#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 15.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 15.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 0.66,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.input",
+            "anthropic/anthropic/claude-opus-5-5/global/standard#offering.price.output"
+          ],
+          "formula": "(15 USD per 1M input tokens × 40,000 input tokens + 15 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.66 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    },
+    {
+      "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "anthropic/claude-sonnet-5#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "anthropic/claude-sonnet-5#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 3.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "anthropic/anthropic/claude-sonnet-5/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 3.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "anthropic/anthropic/claude-sonnet-5/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 0.132,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "anthropic/anthropic/claude-sonnet-5/global/standard#offering.price.input",
+            "anthropic/anthropic/claude-sonnet-5/global/standard#offering.price.output"
+          ],
+          "formula": "(3 USD per 1M input tokens × 40,000 input tokens + 3 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.132 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    },
+    {
+      "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+      },
+      "facts": [
+        {
+          "facet": "model.context_window",
+          "value": 200000,
+          "unit": "tokens",
+          "record_id": "anthropic/claude-opus-5-5#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "closed_weights",
+          "unit": null,
+          "record_id": "anthropic/claude-opus-5-5#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "offering.price.input",
+          "value": 18.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "aws-bedrock/anthropic/claude-opus-5-5/global/standard#offering.price.input",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.price.output",
+          "value": 18.0,
+          "unit": "usd_per_1m_tokens",
+          "record_id": "aws-bedrock/anthropic/claude-opus-5-5/global/standard#offering.price.output",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-pricing"
+          ]
+        },
+        {
+          "facet": "offering.cost_per_task",
+          "value": 0.792,
+          "unit": "usd_per_task",
+          "record_id": null,
+          "records": [
+            "aws-bedrock/anthropic/claude-opus-5-5/global/standard#offering.price.input",
+            "aws-bedrock/anthropic/claude-opus-5-5/global/standard#offering.price.output"
+          ],
+          "formula": "(18 USD per 1M input tokens × 40,000 input tokens + 18 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.792 USD per task",
+          "source_ids": [
+            "src-pricing"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    }
+  ],
+  "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 220\" role=\"img\" aria-label=\"Objective contributions in original units\"><text x=\"8\" y=\"18\">other/huge · model.context_window: 500000 tokens</text><rect x=\"8\" y=\"27\" width=\"300\" height=\"12\" /><text x=\"8\" y=\"73\">anthropic/claude-opus-5-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"82\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"128\">anthropic/claude-sonnet-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"137\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"183\">anthropic/claude-opus-5-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"192\" width=\"120\" height=\"12\" /></svg>",
+  "number_origins": [
+    {
+      "path": "/results/0/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "other/huge#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "other/huge#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    },
+    {
+      "path": "/results/1/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "anthropic/claude-opus-5-5#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    },
+    {
+      "path": "/results/1/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "anthropic/claude-opus-5-5#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    },
+    {
+      "path": "/results/1/plans/0/price/amount",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/plans/0/price_monthly_usd",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/plans/0/allowance/multiplier",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/1/plans/0/break_even_tasks_per_month",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "anthropic/claude-sonnet-5#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    },
+    {
+      "path": "/results/2/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "anthropic/claude-sonnet-5#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    },
+    {
+      "path": "/results/2/plans/0/price/amount",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/plans/0/price_monthly_usd",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/plans/0/break_even_tasks_per_month",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/plans/1/price/amount",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/plans/1/price_monthly_usd",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/plans/1/allowance/multiplier",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/2/plans/1/break_even_tasks_per_month",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/cost_per_task",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/3/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "anthropic/claude-opus-5-5#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    },
+    {
+      "path": "/results/3/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "anthropic/claude-opus-5-5#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "src-lab-docs",
+      "url": "https://lab.example.com/docs/models",
+      "title": null,
+      "date": "2026-09-20"
+    },
+    {
+      "id": "src-pricing",
+      "url": "https://lab.example.com/pricing",
+      "title": null,
+      "date": "2026-09-20"
+    }
+  ],
+  "contract_version": "2.6",
+  "decision_id": "dec_d51b7ffcd4ad2ca834167bc1",
+  "snapshot": "snap_71b689ca16c5a402",
+  "signature_verified": false,
+  "spec_hash": "sha256:c45b4c3d467f75fc67ef115bee03549c8db7f3c535644ed4f4b79c1e276dc860",
+  "explain": "full",
+  "status": "answered",
+  "answer": {
+    "kind": "separated",
+    "members": [
+      "other/huge"
+    ],
+    "leader": "other/huge",
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "tie_breakers": {
+      "cheapest": null,
+      "open_weights": null,
+      "most_independently_measured": null,
+      "fastest": null
+    },
+    "deterministic_order": [
+      "other/huge"
+    ]
+  },
+  "results": [
+    {
+      "rank": 1,
+      "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "other/huge",
+      "model_rank": 1,
+      "cost_per_task": 1.32,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 500000.0,
+          "unit": "tokens",
+          "records": [
+            "other/huge#model.context_window"
+          ],
+          "dimension": "model.context_window",
+          "weight": 1.0,
+          "value": 1.0,
+          "normalisation": "feasible min-max; max; minimum=200000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": null,
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "rank": 2,
+      "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "anthropic/claude-opus-5-5",
+      "model_rank": 2,
+      "cost_per_task": 0.66,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 200000.0,
+          "unit": "tokens",
+          "records": [
+            "anthropic/claude-opus-5-5#model.context_window"
+          ],
+          "dimension": "model.context_window",
+          "weight": 1.0,
+          "value": 0.0,
+          "normalisation": "feasible min-max; max; minimum=200000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": null,
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": [],
+      "plans": [
+        {
+          "plan": "anthropic/subscription/max-20x",
+          "name": "Claude Max 20x",
+          "surface": "coding_tool:claude-code",
+          "price": {
+            "amount": 200.0,
+            "currency": "USD",
+            "period": "monthly"
+          },
+          "price_monthly_usd": 200.0,
+          "coverage": {
+            "family": "anthropic/claude-opus",
+            "quote": "Opus and Sonnet models",
+            "resolves_to": [
+              "anthropic/claude-opus-5-5"
+            ],
+            "rule": "Claude Opus: every model in the snapshot's lineup, not retired, whose ID starts with anthropic/claude-opus-"
+          },
+          "allowance": {
+            "relative_to": "anthropic/subscription/pro",
+            "multiplier": 20.0,
+            "window": null,
+            "tokens": null
+          },
+          "break_even_tasks_per_month": 303.0,
+          "basis": "Claude Max 20x costs 200 USD a month; one task costs 0.66 USD pay-per-use on anthropic/claude-opus-5-5 through anthropic at list price, so the plan pays for itself above 303 tasks a month. The page gives the allowance only as 20x anthropic/subscription/pro's. The allowance in tokens is not published, so whether that many tasks fit inside the plan is unknown."
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "anthropic/claude-sonnet-5",
+      "model_rank": 3,
+      "cost_per_task": 0.132,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 200000.0,
+          "unit": "tokens",
+          "records": [
+            "anthropic/claude-sonnet-5#model.context_window"
+          ],
+          "dimension": "model.context_window",
+          "weight": 1.0,
+          "value": 0.0,
+          "normalisation": "feasible min-max; max; minimum=200000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": null,
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": [],
+      "plans": [
+        {
+          "plan": "anthropic/subscription/pro",
+          "name": "Claude Pro",
+          "surface": "coding_tool:claude-code",
+          "price": {
+            "amount": 20.0,
+            "currency": "USD",
+            "period": "monthly"
+          },
+          "price_monthly_usd": 20.0,
+          "coverage": {
+            "family": "anthropic/claude-sonnet",
+            "quote": "Sonnet models",
+            "resolves_to": [
+              "anthropic/claude-sonnet-5"
+            ],
+            "rule": "Claude Sonnet: every model in the snapshot's lineup, not retired, whose ID starts with anthropic/claude-sonnet-"
+          },
+          "allowance": {
+            "relative_to": null,
+            "multiplier": null,
+            "window": null,
+            "tokens": null
+          },
+          "break_even_tasks_per_month": 151.5,
+          "basis": "Claude Pro costs 20 USD a month; one task costs 0.132 USD pay-per-use on anthropic/claude-sonnet-5 through anthropic at list price, so the plan pays for itself above 151.5 tasks a month. The allowance in tokens is not published, so whether that many tasks fit inside the plan is unknown."
+        },
+        {
+          "plan": "anthropic/subscription/max-20x",
+          "name": "Claude Max 20x",
+          "surface": "coding_tool:claude-code",
+          "price": {
+            "amount": 200.0,
+            "currency": "USD",
+            "period": "monthly"
+          },
+          "price_monthly_usd": 200.0,
+          "coverage": {
+            "family": "anthropic/claude-sonnet",
+            "quote": "Opus and Sonnet models",
+            "resolves_to": [
+              "anthropic/claude-sonnet-5"
+            ],
+            "rule": "Claude Sonnet: every model in the snapshot's lineup, not retired, whose ID starts with anthropic/claude-sonnet-"
+          },
+          "allowance": {
+            "relative_to": "anthropic/subscription/pro",
+            "multiplier": 20.0,
+            "window": null,
+            "tokens": null
+          },
+          "break_even_tasks_per_month": 1515.2,
+          "basis": "Claude Max 20x costs 200 USD a month; one task costs 0.132 USD pay-per-use on anthropic/claude-sonnet-5 through anthropic at list price, so the plan pays for itself above 1,515.2 tasks a month. The page gives the allowance only as 20x anthropic/subscription/pro's. The allowance in tokens is not published, so whether that many tasks fit inside the plan is unknown."
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+      },
+      "model": "anthropic/claude-opus-5-5",
+      "model_rank": 2,
+      "cost_per_task": 0.792,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 200000.0,
+          "unit": "tokens",
+          "records": [
+            "anthropic/claude-opus-5-5#model.context_window"
+          ],
+          "dimension": "model.context_window",
+          "weight": 1.0,
+          "value": 0.0,
+          "normalisation": "feasible min-max; max; minimum=200000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": null,
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "by_model": [
+    {
+      "model": "other/huge",
+      "status": "ranked",
+      "rank": 1,
+      "cost_per_task": 1.32,
+      "offerings": [
+        {
+          "offering": {
+            "model": "other/huge",
+            "provider": "openai",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 1,
+          "cost_per_task": 1.32,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "anthropic/claude-opus-5-5",
+      "status": "ranked",
+      "rank": 2,
+      "cost_per_task": 0.66,
+      "offerings": [
+        {
+          "offering": {
+            "model": "anthropic/claude-opus-5-5",
+            "provider": "anthropic",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 2,
+          "cost_per_task": 0.66,
+          "unknown": [],
+          "reason": null
+        },
+        {
+          "offering": {
+            "model": "anthropic/claude-opus-5-5",
+            "provider": "aws-bedrock",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 4,
+          "cost_per_task": 0.792,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "anthropic/claude-sonnet-5",
+      "status": "ranked",
+      "rank": 3,
+      "cost_per_task": 0.132,
+      "offerings": [
+        {
+          "offering": {
+            "model": "anthropic/claude-sonnet-5",
+            "provider": "anthropic",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "ranked",
+          "rank": 3,
+          "cost_per_task": 0.132,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    }
+  ],
+  "may_qualify": [],
+  "eliminated": {
+    "funnel": [],
+    "models": [],
+    "model_groups": []
+  },
+  "truncated": {
+    "offerings": 0,
+    "models": 0
+  },
+  "constraint_costs": [],
+  "tipping_points": [],
+  "relax": [],
+  "relax_to": [],
+  "warnings": [],
+  "out_of_lineup": 0,
+  "with_estate": {
+    "status": "answered",
+    "answer": {
+      "kind": "tied",
+      "members": [
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5"
+      ],
+      "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+      "tie_breakers": {
+        "cheapest": null,
+        "open_weights": null,
+        "most_independently_measured": null,
+        "fastest": null
+      },
+      "deterministic_order": [
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5"
+      ]
+    },
+    "results": [
+      {
+        "rank": 1,
+        "offering": {
+          "model": "anthropic/claude-opus-5-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "estate": {
+          "via": {
+            "kind": "plan",
+            "id": "anthropic/subscription/max-20x"
+          },
+          "cost_basis": "plan_included",
+          "marginal_cost_per_task_usd": 0.0,
+          "coverage": {
+            "family": "anthropic/claude-opus",
+            "quote": "Opus and Sonnet models",
+            "resolves_to": [
+              "anthropic/claude-opus-5-5"
+            ],
+            "rule": "Claude Opus: every model in the snapshot's lineup, not retired, whose ID starts with anthropic/claude-opus-"
+          }
+        },
+        "soft_penalty": 0.0,
+        "warnings": [
+          "not_separable"
+        ]
+      },
+      {
+        "rank": 2,
+        "offering": {
+          "model": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "estate": {
+          "via": {
+            "kind": "plan",
+            "id": "anthropic/subscription/max-20x"
+          },
+          "cost_basis": "plan_included",
+          "marginal_cost_per_task_usd": 0.0,
+          "coverage": {
+            "family": "anthropic/claude-sonnet",
+            "quote": "Opus and Sonnet models",
+            "resolves_to": [
+              "anthropic/claude-sonnet-5"
+            ],
+            "rule": "Claude Sonnet: every model in the snapshot's lineup, not retired, whose ID starts with anthropic/claude-sonnet-"
+          }
+        },
+        "soft_penalty": 0.0,
+        "warnings": [
+          "not_separable"
+        ]
+      }
+    ],
+    "may_qualify": [],
+    "truncated": {
+      "offerings": 0,
+      "models": 0
+    },
+    "gap": {
+      "same_answer": false,
+      "unreachable_models": [
+        "other/huge"
+      ],
+      "summary": "Unrestricted, the best is other/huge. With what you hold it is a tie of anthropic/claude-opus-5-5, anthropic/claude-sonnet-5; 1 model(s) ranked at or above it are outside your estate: other/huge."
+    },
+    "gain": [
+      {
+        "add": {
+          "kind": "provider",
+          "id": "openai"
+        },
+        "status": "answered",
+        "leader": "other/huge",
+        "answer": {
+          "kind": "separated",
+          "members": [
+            "other/huge"
+          ],
+          "leader": "other/huge",
+          "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "other/huge"
+          ]
+        }
+      },
+      {
+        "add": {
+          "kind": "plan",
+          "id": "openai/subscription/plus"
+        },
+        "status": "partial",
+        "leader": "anthropic/claude-opus-5-5",
+        "answer": {
+          "kind": "tied",
+          "members": [
+            "anthropic/claude-opus-5-5",
+            "anthropic/claude-sonnet-5"
+          ],
+          "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "anthropic/claude-opus-5-5",
+            "anthropic/claude-sonnet-5"
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -97,6 +97,48 @@ const contributionSchema = z
   })
   .strict();
 
+// 2.6 (MODEL-200): a subscription plan that reaches a result on the spec's
+// `access`. Each part the plan page does not publish is null.
+const planPriceSchema = z
+  .object({
+    amount: z.number().nonnegative(),
+    currency: z.literal("USD"),
+    period: z.enum(["monthly", "annual"]),
+  })
+  .strict();
+
+export const planCoverageSchema = z
+  .object({
+    family: nullableString.optional(),
+    quote: nullableString.optional(),
+    resolves_to: z.array(modelId).optional().default([]),
+    rule: z.string(),
+  })
+  .strict();
+
+const planAllowanceSchema = z
+  .object({
+    relative_to: nullableString.optional(),
+    multiplier: z.number().nonnegative().nullable().optional(),
+    window: nullableString.optional(),
+    tokens: z.number().nonnegative().nullable().optional(),
+  })
+  .strict();
+
+const planRouteSchema = z
+  .object({
+    plan: z.string(),
+    name: z.string(),
+    surface: z.string(),
+    price: planPriceSchema.nullable().optional(),
+    price_monthly_usd: z.number().nonnegative().nullable().optional(),
+    coverage: planCoverageSchema,
+    allowance: planAllowanceSchema.optional(),
+    break_even_tasks_per_month: z.number().nonnegative().nullable().optional(),
+    basis: z.string(),
+  })
+  .strict();
+
 const resultSchema = z
   .object({
     rank: z.number().int().positive(),
@@ -117,6 +159,8 @@ const resultSchema = z
     soft_penalty: z.number().nonnegative(),
     contributions: z.array(contributionSchema),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)),
+    // 2.6: absent without `access`.
+    plans: z.array(planRouteSchema).optional(),
   })
   .strict();
 
@@ -295,6 +339,7 @@ export const decisionSchema = z
       "2.3",
       "2.4",
       "2.5",
+      "2.6",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -529,6 +574,19 @@ export const decisionSpecSchema = z
       .regex(/^[a-z0-9][a-z0-9-]{0,63}$/)
       .nullable()
       .optional(),
+    // 2.6 (MODEL-200): how the caller will use the model, as an object or the bare kind.
+    access: z
+      .union([
+        z.enum(["chat_app", "coding_tool", "own_software", "own_hardware"]),
+        z
+          .object({
+            kind: z.enum(["chat_app", "coding_tool", "own_software", "own_hardware"]),
+            harness: z.string().regex(/^[a-z0-9][a-z0-9-]*$/).nullable().optional(),
+          })
+          .strict(),
+      ])
+      .nullable()
+      .optional(),
   })
   .strict();
 
@@ -539,3 +597,4 @@ export type ModelRow = z.infer<typeof modelRowSchema>;
 export type Decision = z.infer<typeof decisionSchema>;
 export type DecisionSpec = z.infer<typeof decisionSpecSchema>;
 export type Contribution = z.infer<typeof contributionSchema>;
+export type PlanRoute = z.infer<typeof planRouteSchema>;

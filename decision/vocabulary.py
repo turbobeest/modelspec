@@ -430,14 +430,26 @@ def _template_rows(snapshot: Any, registry: Any) -> list[dict[str, Any]]:
     return rows
 
 
+def _plan_record(plan: Any) -> dict[str, Any]:
+    """A plan as the engine reads it (MODEL-200): each part null when not known."""
+    return {
+        "id": plan.id, "provider": plan.provider, "name": plan.name,
+        "price": None if plan.price is None else plan.price.model_dump(mode="json"),
+        "surfaces": None if plan.surfaces is None else sorted(plan.surfaces),
+        "coverage": None if plan.coverage is None else [
+            entry.model_dump(mode="json") for entry in plan.coverage],
+        "allowance": plan.allowance.model_dump(mode="json"),
+    }
+
+
 def _estate_ids(snapshot: Any, registry: Any) -> dict[str, Any]:
+    from decision.plans import load_plans
+
     fits = registry.allowed_values(registry.facet("model.fits_hardware")) or frozenset()
+    plans = load_plans(snapshot, registry)
     return {
         "providers": sorted(p.id for p in registry.providers()),
-        "plans": [
-            {"id": plan["id"], "provider": plan["provider"], "name": plan["name"]}
-            for plan in sorted(snapshot.subscription_offerings(), key=lambda p: p["id"])
-        ],
+        "plans": [_plan_record(plans[plan_id]) for plan_id in sorted(plans)],
         "devices": sorted(fits),
     }
 
@@ -463,7 +475,8 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
     for facet in registry.facets():
         # Subscription facts are snapshot metadata until MODEL-179 teaches the
         # holder-cost engine how to compare allowances and plan prices.
-        if facet.id.startswith("offering.subscription."):
+        # offering.plan.price_monthly exists only for a spec with access (MODEL-200).
+        if facet.id.startswith(("offering.subscription.", "offering.plan.")):
             continue
         if facet.parameter is not None:
             continue

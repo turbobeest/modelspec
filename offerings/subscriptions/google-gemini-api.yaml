@@ -1,5 +1,9 @@
 # MODEL-173. Primary sources read 2026-09-28. The Plus price is deliberately
 # not disclosed: the primary page rendered no US price for that plan.
+# MODEL-200 added the plan facts (surfaces, families_covered, coverage_quote,
+# allowance.*) from the facts and sources above only; nothing was re-read.
+# `unknown` means not yet researched (MODEL-201). Each new known fact enters
+# a snapshot once an independent second key verifies it.
 - kind: subscription
   provider: google-gemini-api
   plan: ai-plus
@@ -52,6 +56,41 @@
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:c73f62659cac0324a7e2bad558c456d6f8cee0a9c89d4b98824172f3c2895f7f
       cited_regions: [comparison]
+  - id: google-gemini-api/subscription/ai-plus#offering.subscription.surfaces
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
+    facet: offering.subscription.surfaces
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-plus#offering.subscription.families_covered
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-plus#offering.subscription.coverage_quote
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-plus#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-plus#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-plus#offering.subscription.allowance.window
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-plus#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-plus}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
 - kind: subscription
   provider: google-gemini-api
   plan: ai-pro
@@ -104,6 +143,41 @@
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:c73f62659cac0324a7e2bad558c456d6f8cee0a9c89d4b98824172f3c2895f7f
       cited_regions: [comparison]
+  - id: google-gemini-api/subscription/ai-pro#offering.subscription.surfaces
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
+    facet: offering.subscription.surfaces
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-pro#offering.subscription.families_covered
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-pro#offering.subscription.coverage_quote
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-pro#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-pro#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-pro#offering.subscription.allowance.window
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-pro#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-pro}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
 - kind: subscription
   provider: google-gemini-api
   plan: ai-ultra
@@ -156,3 +230,38 @@
     - source_id: model-173-google-ai-plans
       snapshot_ref: sha256:c73f62659cac0324a7e2bad558c456d6f8cee0a9c89d4b98824172f3c2895f7f
       cited_regions: [comparison]
+  - id: google-gemini-api/subscription/ai-ultra#offering.subscription.surfaces
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
+    facet: offering.subscription.surfaces
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-ultra#offering.subscription.families_covered
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-ultra#offering.subscription.coverage_quote
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-ultra#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-ultra#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-ultra#offering.subscription.allowance.window
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: google-gemini-api/subscription/ai-ultra#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: google-gemini-api/subscription/ai-ultra}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null

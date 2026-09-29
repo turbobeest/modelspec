@@ -1,5 +1,9 @@
 # MODEL-173. Primary sources read 2026-09-28. Unknown model-version coverage is
 # deliberate: the pricing table names model families, not exact model IDs.
+# MODEL-200 added the plan facts (surfaces, families_covered, coverage_quote,
+# allowance.*) from the facts and sources above only; nothing was re-read.
+# `unknown` means not yet researched (MODEL-201). Each new known fact enters
+# a snapshot once an independent second key verifies it.
 - kind: subscription
   provider: anthropic
   plan: pro
@@ -51,6 +55,45 @@
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
       cited_regions: [page]
+  - id: anthropic/subscription/pro#offering.subscription.surfaces
+    subject: {kind: offering, id: anthropic/subscription/pro}
+    facet: offering.subscription.surfaces
+    state: known
+    value: [chat_app, coding_tool:claude-code, desktop_app, mobile_app]
+    sources:
+    - source_id: model-173-anthropic-claude-code
+      snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
+      cited_regions: [page]
+  - id: anthropic/subscription/pro#offering.subscription.families_covered
+    subject: {kind: offering, id: anthropic/subscription/pro}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: anthropic/subscription/pro#offering.subscription.coverage_quote
+    subject: {kind: offering, id: anthropic/subscription/pro}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: anthropic/subscription/pro#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: anthropic/subscription/pro}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: anthropic/subscription/pro#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: anthropic/subscription/pro}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: anthropic/subscription/pro#offering.subscription.allowance.window
+    subject: {kind: offering, id: anthropic/subscription/pro}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: anthropic/subscription/pro#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: anthropic/subscription/pro}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
 - kind: subscription
   provider: anthropic
   plan: max-5x
@@ -102,6 +145,53 @@
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
       cited_regions: [page]
+  - id: anthropic/subscription/max-5x#offering.subscription.surfaces
+    subject: {kind: offering, id: anthropic/subscription/max-5x}
+    facet: offering.subscription.surfaces
+    state: known
+    value: [chat_app, coding_tool:claude-code, desktop_app, mobile_app]
+    sources:
+    - source_id: model-173-anthropic-claude-code
+      snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
+      cited_regions: [page]
+  - id: anthropic/subscription/max-5x#offering.subscription.families_covered
+    subject: {kind: offering, id: anthropic/subscription/max-5x}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: anthropic/subscription/max-5x#offering.subscription.coverage_quote
+    subject: {kind: offering, id: anthropic/subscription/max-5x}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: anthropic/subscription/max-5x#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: anthropic/subscription/max-5x}
+    facet: offering.subscription.allowance.relative_to
+    state: known
+    value: anthropic/subscription/pro
+    sources:
+    - source_id: model-173-anthropic-consumer-pricing
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
+      cited_regions: [page]
+  - id: anthropic/subscription/max-5x#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: anthropic/subscription/max-5x}
+    facet: offering.subscription.allowance.multiplier
+    state: known
+    value: 5
+    sources:
+    - source_id: model-173-anthropic-consumer-pricing
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
+      cited_regions: [page]
+  - id: anthropic/subscription/max-5x#offering.subscription.allowance.window
+    subject: {kind: offering, id: anthropic/subscription/max-5x}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: anthropic/subscription/max-5x#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: anthropic/subscription/max-5x}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
 - kind: subscription
   provider: anthropic
   plan: max-20x
@@ -154,3 +244,50 @@
     - source_id: model-173-anthropic-claude-code
       snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
       cited_regions: [page]
+  - id: anthropic/subscription/max-20x#offering.subscription.surfaces
+    subject: {kind: offering, id: anthropic/subscription/max-20x}
+    facet: offering.subscription.surfaces
+    state: known
+    value: [chat_app, coding_tool:claude-code, desktop_app, mobile_app]
+    sources:
+    - source_id: model-173-anthropic-claude-code
+      snapshot_ref: sha256:a299de1de6b70beb193f40dd4026ba3a8d62bdb589217dc43dcf8757b1c4f752
+      cited_regions: [page]
+  - id: anthropic/subscription/max-20x#offering.subscription.families_covered
+    subject: {kind: offering, id: anthropic/subscription/max-20x}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: anthropic/subscription/max-20x#offering.subscription.coverage_quote
+    subject: {kind: offering, id: anthropic/subscription/max-20x}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: anthropic/subscription/max-20x#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: anthropic/subscription/max-20x}
+    facet: offering.subscription.allowance.relative_to
+    state: known
+    value: anthropic/subscription/pro
+    sources:
+    - source_id: model-173-anthropic-consumer-pricing
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
+      cited_regions: [page]
+  - id: anthropic/subscription/max-20x#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: anthropic/subscription/max-20x}
+    facet: offering.subscription.allowance.multiplier
+    state: known
+    value: 20
+    sources:
+    - source_id: model-173-anthropic-consumer-pricing
+      snapshot_ref: sha256:12300860f5e9a308942a69c3d81025c7b31eb81b4c8b0ec33d288439389b1ca4
+      cited_regions: [page]
+  - id: anthropic/subscription/max-20x#offering.subscription.allowance.window
+    subject: {kind: offering, id: anthropic/subscription/max-20x}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: anthropic/subscription/max-20x#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: anthropic/subscription/max-20x}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null

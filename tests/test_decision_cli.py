@@ -70,7 +70,7 @@ def cached_vocabulary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict:
     ), gate=False, as_of=date(2026, 9, 27))
     vocabulary = {
         "vocabulary_version": 1,
-        "contract_version": "2.5",
+        "contract_version": "2.6",
         "snapshot": snapshot.snapshot_id,
         "task_types": ["new_feature", "bug_fix"],
         "facets": [
@@ -223,7 +223,7 @@ def test_json_reports_the_spec_hash_and_the_error_code(
     assert result.exit_code == 1
     payload = json.loads(result.stderr)
     assert payload["command"] == "decide"
-    assert payload["contract_version"] == "2.5"
+    assert payload["contract_version"] == "2.6"
     assert payload["spec_hash"].startswith("sha256:")
     assert payload["error"]["code"] == "snapshot_required"
 

@@ -160,7 +160,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.5"
+    assert c.CONTRACT_VERSION == "2.6"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -742,6 +742,12 @@ def test_ranks_are_one_to_n() -> None:
 
 
 def _samples() -> list:
+    plan_price = c.PlanPrice(amount=200, currency="USD", period="monthly")
+    plan_coverage = c.PlanCoverage(
+        family="anthropic/claude-opus", quote="Opus and Sonnet models",
+        resolves_to=["anthropic/claude-opus-5-5"],
+        rule="every lineup model whose ID starts with anthropic/claude-opus-")
+    plan_allowance = c.PlanAllowance(relative_to="anthropic/subscription/pro", multiplier=20)
     spec = _spec()
     decision = c.Decision.model_validate(DECISION)
     result = decision.results[0]
@@ -849,6 +855,14 @@ def _samples() -> list:
         c.Relaxation(condition="offering.price.input <= 0.2",
                      relaxed="offering.price.input <= 0.75", facet="offering.price.input",
                      value=0.75, unit="usd_per_1m_tokens", admits=2),
+        c.Access(kind="coding_tool", harness="claude-code"),
+        plan_price,
+        plan_coverage,
+        plan_allowance,
+        c.PlanRoute(plan="anthropic/subscription/max-20x", name="Claude Max 20x",
+                    surface="coding_tool:claude-code", price=plan_price, price_monthly_usd=200,
+                    coverage=plan_coverage, allowance=plan_allowance,
+                    break_even_tasks_per_month=303.0, basis="200 USD a month ÷ 0.66 USD a task"),
     ]
 
 

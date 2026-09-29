@@ -485,6 +485,17 @@ class SubscriptionOffering(Record):
         "offering.subscription.usage_allowance",
         "offering.subscription.programmatic_or_agent_use",
     })
+    #: MODEL-200's plan facts. Each may be stated once; an absent one is unknown.
+    #: ``unknown`` means not yet researched, so it needs no checked sources.
+    PLAN_FACETS: ClassVar[frozenset[str]] = frozenset({
+        "offering.subscription.surfaces",
+        "offering.subscription.families_covered",
+        "offering.subscription.coverage_quote",
+        "offering.subscription.allowance.relative_to",
+        "offering.subscription.allowance.multiplier",
+        "offering.subscription.allowance.window",
+        "offering.subscription.allowance.tokens",
+    })
 
     @property
     def id(self) -> str:
@@ -495,14 +506,16 @@ class SubscriptionOffering(Record):
         _registered(info, "provider", self.provider)
         _check_facts(self.facts, "offering", self.id)
         facets = {fact.facet for fact in self.facts}
-        if facets != self.REQUIRED_FACETS:
+        if not self.REQUIRED_FACETS <= facets <= self.REQUIRED_FACETS | self.PLAN_FACETS:
             missing = sorted(self.REQUIRED_FACETS - facets)
-            extra = sorted(facets - self.REQUIRED_FACETS)
+            extra = sorted(facets - self.REQUIRED_FACETS - self.PLAN_FACETS)
             raise ValueError(
                 "a subscription requires exactly one fact for every subscription facet; "
                 f"missing={missing}, extra={extra}"
             )
         for fact in self.facts:
+            if fact.state == "unknown" and fact.facet in self.PLAN_FACETS:
+                continue
             if fact.state != "known" and not fact.checked_sources:
                 raise ValueError(
                     f"{fact.id}: a non-known subscription fact requires checked_sources"

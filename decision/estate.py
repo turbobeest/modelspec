@@ -17,6 +17,13 @@ the same question over the rows the estate reaches:
 ``exhausted`` removes a plan, or a provider with its key and its plans.
 ``gain`` reruns the question once per hold the caller lacks and keeps those
 that change the answer.
+
+With an ``access`` (MODEL-200) only the routes that serve it count: a plan
+reaches rows only when one of its surfaces matches (a plan whose surfaces are
+unknown makes its rows may-qualify), a provider key only for ``coding_tool``
+and ``own_software``, a device only for ``own_hardware``. ``access_reach`` is
+the same rule over everything the catalogue offers, for the unrestricted
+answer; there a plan-only row has no per-task price.
 """
 
 from __future__ import annotations
@@ -25,7 +32,10 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from decision import plans as plans_module
+from decision.computed import Computed
 from decision.contract import (
+    Access,
     Decision,
     Estate,
     EstateGap,
@@ -39,8 +49,12 @@ from decision.contract import (
 )
 from decision.registry import default as default_registry
 
-COVERAGE = "offering.subscription.models_covered"
+COVERAGE = plans_module.MODELS_COVERED
+SURFACES = plans_module.SURFACES
 FITS = "model.fits_hardware"
+WEIGHTS = "model.weights_openness"
+#: The ``with_estate`` warning for a held plan that cannot serve own software.
+PLAN_EXCLUDES_OWN_SOFTWARE = "plan_excludes_own_software"
 FIT_INDETERMINATE = "model.hardware_fit_indeterminate"
 
 _COST_BASIS = {"provider": "list_price", "plan": "plan_included", "device": "owned_hardware"}
@@ -55,6 +69,14 @@ class Reach:
     hosted: frozenset[str]
     marginal: Mapping[str, str]
     signature: frozenset[tuple[str, str]] = field(default_factory=frozenset)
+    #: Rows reached only through a plan, outside an estate: no per-task price.
+    unpriced: frozenset[str] = field(default_factory=frozenset)
+    #: Row -> (plan ID, surface, coverage) for each plan that reaches it.
+    routes: Mapping[str, tuple[tuple[str, str | None, Any], ...]] = field(default_factory=dict)
+    #: Row -> the cheapest reaching plan's monthly price (``offering.plan.price_monthly``).
+    plan_prices: Mapping[str, Computed] = field(default_factory=dict)
+    #: The plans ``routes`` names, by ID.
+    plans: Mapping[str, Any] = field(default_factory=dict)
 
     def holds(self, cid: str) -> bool:
         return cid in self.via or cid in self.unknown
@@ -76,14 +98,33 @@ class Catalogue:
                 self.by_provider.setdefault(provider, []).append(cid)
             else:
                 self.bare.add(cid)
-        self.plans = {plan["id"]: plan for plan in snapshot.subscription_offerings()}
+        self.plans = plans_module.load_plans(snapshot)
+        self._price_sources = {
+            plan["id"]: tuple(getattr(plan["facts"].get(plans_module.PRICE), "sources", ()))
+            for plan in snapshot.subscription_offerings()}
         self._devices: dict[str, tuple[frozenset[str], frozenset[str]]] = {}
 
     def coverage(self, plan_id: str) -> frozenset[str] | None:
-        fact = self.plans[plan_id]["facts"].get(COVERAGE)
-        if fact is None or fact.state != "known" or fact.value is None:
+        return self.plans[plan_id].models
+
+    def plan_price(self, plan_id: str) -> Computed | None:
+        plan = self.plans[plan_id]
+        formula = plan.monthly_formula()
+        if formula is None:
             return None
-        return frozenset(fact.value)
+        return Computed(plan.monthly, (), self._price_sources[plan_id], formula)
+
+    def self_hosted(self) -> tuple[frozenset[str], frozenset[str]]:
+        """Bare rows with a published fit on some device, and bare rows that may
+        be self-hostable: not closed weights, fit not published."""
+        fits, maybe = set(), set()
+        for cid in self.bare:
+            fact = self.snapshot.fact(cid, FITS)
+            if fact.state == "known" and fact.value:
+                fits.add(cid)
+            elif self.snapshot.fact(cid, WEIGHTS).value != "closed_weights":
+                maybe.add(cid)
+        return frozenset(fits), frozenset(maybe)
 
     def device(self, device_id: str) -> tuple[frozenset[str], frozenset[str]]:
         """Bare rows that fit ``device_id``, and bare rows whose fit is indeterminate."""
@@ -110,51 +151,104 @@ def held(estate: Estate) -> tuple[frozenset[str], frozenset[str], frozenset[str]
     return providers, plans, frozenset(estate.devices)
 
 
+def _plan_rows(catalogue: Catalogue, plan: plans_module.Plan,
+               covered: frozenset[str] | None) -> list[str]:
+    """The rows ``plan`` could reach: its provider's rows of covered models, and
+    the bare rows of covered models that provider does not sell. With unknown
+    coverage, every row of its provider."""
+    rows = catalogue.by_provider.get(plan.provider, ())
+    if covered is None:
+        return list(rows)
+    sold = {catalogue.snapshot.model_of(cid) for cid in rows}
+    return ([cid for cid in rows if catalogue.snapshot.model_of(cid) in covered]
+            + [model for model in sorted(covered - sold) if model in catalogue.bare])
+
+
 def reach(catalogue: Catalogue, providers: Iterable[str], plans: Iterable[str],
-          devices: Iterable[str]) -> Reach:
+          devices: Iterable[str], access: Access | None = None, *, held: bool = True) -> Reach:
+    """The rows ``providers``, ``plans`` and ``devices`` reach on ``access``.
+
+    ``held`` rows are the caller's: a plan row costs 0 at the margin. Otherwise
+    (the unrestricted answer on an ``access``) a row only a plan reaches has no
+    per-task price."""
     via: dict[str, tuple[str, str]] = {}
-    coverage_unknown: set[str] = set()
-    indeterminate: set[str] = set()
+    pending: dict[str, list[str]] = {}
+    routes: dict[str, list[tuple[str, str | None, Any]]] = {}
+    paid: set[str] = set()
     marginal: dict[str, str] = {}
-    for plan_id in sorted(plans):
-        provider = catalogue.plans[plan_id]["provider"]
-        covered = catalogue.coverage(plan_id)
-        rows = catalogue.by_provider.get(provider, ())
-        if covered is None:
-            coverage_unknown.update(rows)
-            continue
-        sold_here = set()
+
+    def unknown_on(rows: Iterable[str], facet: str) -> None:
         for cid in rows:
-            model = catalogue.snapshot.model_of(cid)
-            if model in covered:
-                sold_here.add(model)
-                via.setdefault(cid, ("plan", plan_id))
-        for model in sorted(covered - sold_here):
-            if model in catalogue.bare:
-                via.setdefault(model, ("plan", plan_id))
-    for provider in sorted(providers):
+            facets = pending.setdefault(cid, [])
+            if facet not in facets:
+                facets.append(facet)
+
+    use_plans = access is None or access.kind != "own_hardware"
+    use_keys = access is None or access.kind in plans_module.PAY_PER_USE
+    use_devices = access is None or access.kind == "own_hardware"
+    for plan_id in sorted(plans) if use_plans else ():
+        plan = catalogue.plans[plan_id]
+        covered = plan.models
+        surface = None
+        if access is not None:
+            if plan.surfaces is None:
+                rows = _plan_rows(catalogue, plan, covered)
+                if covered is None:
+                    unknown_on(rows, COVERAGE)
+                unknown_on(rows, SURFACES)
+                continue
+            surface = plan.surface(access)
+            if surface is None:
+                continue
+        if covered is None:
+            unknown_on(catalogue.by_provider.get(plan.provider, ()), COVERAGE)
+            continue
+        for cid in _plan_rows(catalogue, plan, covered):
+            via.setdefault(cid, ("plan", plan_id))
+            routes.setdefault(cid, []).append(
+                (plan_id, surface, plan.covers(catalogue.snapshot.model_of(cid))))
+    for provider in sorted(providers) if use_keys else ():
         for cid in catalogue.by_provider.get(provider, ()):
             via.setdefault(cid, ("provider", provider))
-    for device_id in sorted(devices):
+            paid.add(cid)
+    for device_id in sorted(devices) if use_devices else ():
         fits, maybe = catalogue.device(device_id)
         for cid in sorted(fits):
             via.setdefault(cid, ("device", device_id))
-        indeterminate.update(maybe)
-    unknown: dict[str, tuple[str, ...]] = {}
-    for cid in sorted(coverage_unknown - via.keys()):
-        unknown[cid] = (COVERAGE,)
-    for cid in sorted(indeterminate - via.keys()):
-        unknown[cid] = (*unknown.get(cid, ()), FITS)
-    for cid, (kind, hold_id) in via.items():
-        if kind == "plan":
-            marginal[cid] = (f"included in {hold_id}: one more task inside a plan that is not "
-                             "exhausted costs nothing extra")
-        elif kind == "device":
-            marginal[cid] = f"runs on {hold_id}, which the caller holds: no per-task price"
+        unknown_on(maybe, FITS)
+    unknown = {cid: tuple(pending[cid]) for cid in sorted(pending) if cid not in via}
+    if held:
+        for cid, (kind, hold_id) in via.items():
+            if kind == "plan":
+                marginal[cid] = (f"included in {hold_id}: one more task inside a plan that is "
+                                 "not exhausted costs nothing extra")
+            elif kind == "device":
+                marginal[cid] = f"runs on {hold_id}, which the caller holds: no per-task price"
+    unpriced = frozenset() if held else frozenset(
+        cid for cid, (kind, _) in via.items() if kind == "plan" and cid not in paid)
+    plan_prices: dict[str, Computed] = {}
+    for cid, reached in routes.items():
+        prices = [price for price in (catalogue.plan_price(plan_id) for plan_id, _, _ in reached)
+                  if price is not None]
+        if prices:
+            plan_prices[cid] = min(prices, key=lambda price: price.value)
     hosted = frozenset(
         cid for cid in (*via, *unknown) if cid in catalogue.bare)
     signature = frozenset((*(("row", cid) for cid in via), *(("unk", cid) for cid in unknown)))
-    return Reach(via, unknown, hosted, marginal, signature)
+    return Reach(via, unknown, hosted, marginal, signature, unpriced,
+                 {cid: tuple(r) for cid, r in routes.items()}, plan_prices, catalogue.plans)
+
+
+def access_reach(catalogue: Catalogue, access: Access) -> Reach:
+    """Every route the catalogue offers on ``access``, for the unrestricted answer."""
+    if access.kind == "own_hardware":
+        fits, maybe = catalogue.self_hosted()
+        via = {cid: ("device", "published fit") for cid in sorted(fits)}
+        unknown = {cid: (FITS,) for cid in sorted(maybe)}
+        return Reach(via, unknown, fits | maybe, {},
+                     frozenset((*(("row", c) for c in via), *(("unk", c) for c in unknown))))
+    return reach(catalogue, catalogue.offered_providers(), catalogue.plans, (), access,
+                 held=False)
 
 
 def check(estate: Estate, snapshot: Any) -> None:
@@ -197,17 +291,21 @@ def _answered(ran: Ran) -> tuple[Any, ...]:
     return (ran.decision.status, ran.decision.answer, lead)
 
 
-def _mark(computed: Any, cid: str, via: tuple[str, str]) -> EstateMark:
-    kind, hold_id = via
+def _mark(computed: Any, cid: str, current: Reach, access: Access | None) -> EstateMark:
+    kind, hold_id = current.via[cid]
     cost = None
     if kind == "provider":
         fact = computed.fact(cid, "offering.cost_per_task")
         cost = fact.value if fact.state == "known" else None
     else:
         cost = 0
+    coverage = None
+    if kind == "plan" and access is not None:
+        coverage = next((c for plan_id, _, c in current.routes.get(cid, ()) if plan_id == hold_id),
+                        None)
     return EstateMark(
         via=EstateHold(kind=kind, id=hold_id), cost_basis=_COST_BASIS[kind],
-        marginal_cost_per_task_usd=cost)
+        marginal_cost_per_task_usd=cost, coverage=coverage)
 
 
 def _label(answer: Any, models: list[str]) -> str:
@@ -242,11 +340,13 @@ def with_estate(
     unrestricted: Ran,
     run: Run,
     limit: int,
+    access: Access | None = None,
+    catalogue: Catalogue | None = None,
 ) -> WithEstate:
     """The reply's ``with_estate`` block."""
-    catalogue = Catalogue(snapshot)
+    catalogue = catalogue or Catalogue(snapshot)
     providers, plans, devices = held(estate)
-    current = reach(catalogue, providers, plans, devices)
+    current = reach(catalogue, providers, plans, devices, access)
     ran = run(current, limit)
     decision = ran.decision
 
@@ -254,7 +354,7 @@ def with_estate(
         EstateResult(
             rank=row.rank, offering=row.offering, soft_penalty=row.soft_penalty,
             warnings=row.warnings,
-            estate=_mark(ran.computed, cid, current.via[cid]))
+            estate=_mark(ran.computed, cid, current, access))
         for row, cid in zip(decision.results, ran.rows, strict=True)
     ]
     same = _answered(unrestricted) == _answered(ran)
@@ -268,13 +368,21 @@ def with_estate(
     gap = EstateGap(
         same_answer=same, unreachable_models=unreachable,
         summary=_summary(same, unrestricted, ran, unreachable))
-    gain = _gain(catalogue, estate, (providers, plans, devices), current, ran, run)
+    gain = _gain(catalogue, estate, (providers, plans, devices), current, ran, run, access)
+    warnings = []
+    if access is not None and access.kind == "own_software" and any(
+        catalogue.plans[plan_id].surfaces is not None
+        and plans_module.API not in catalogue.plans[plan_id].surfaces
+        for plan_id in plans
+    ):
+        warnings.append(PLAN_EXCLUDES_OWN_SOFTWARE)
     return WithEstate(
         status=decision.status, answer=decision.answer, results=results,
-        may_qualify=decision.may_qualify, truncated=decision.truncated, gap=gap, gain=gain)
+        may_qualify=decision.may_qualify, truncated=decision.truncated, gap=gap, gain=gain,
+        warnings=warnings)
 
 
-def _gain(catalogue, estate, holds, current, ran, run):
+def _gain(catalogue, estate, holds, current, ran, run, access=None):
     providers, plans, devices = holds
     base = _answered(ran)
     candidates: list[tuple[EstateHold, Reach]] = []
@@ -282,7 +390,7 @@ def _gain(catalogue, estate, holds, current, ran, run):
         if provider not in providers and provider not in estate.exhausted:
             candidates.append((
                 EstateHold(kind="provider", id=provider),
-                reach(catalogue, providers | {provider}, plans, devices)))
+                reach(catalogue, providers | {provider}, plans, devices, access)))
     for plan_id in sorted(catalogue.plans):
         provider = plan_id.partition("/subscription/")[0]
         if (plan_id in plans or plan_id in estate.exhausted or provider in estate.exhausted
@@ -290,13 +398,13 @@ def _gain(catalogue, estate, holds, current, ran, run):
             continue
         candidates.append((
             EstateHold(kind="plan", id=plan_id),
-            reach(catalogue, providers, plans | {plan_id}, devices)))
+            reach(catalogue, providers, plans | {plan_id}, devices, access)))
     registry = default_registry()
     for device_id in sorted(registry.allowed_values(registry.facet(FITS)) or ()):
         if device_id not in devices:
             candidates.append((
                 EstateHold(kind="device", id=device_id),
-                reach(catalogue, providers, plans, devices | {device_id})))
+                reach(catalogue, providers, plans, devices | {device_id}, access)))
     seen: dict[frozenset, Ran] = {}
     items = []
     for hold, trial in candidates:

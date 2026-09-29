@@ -48,6 +48,10 @@ PROVIDER_KINDS = ("lab_api", "cloud", "inference", "aggregator")
 SHOWN_BY = ("address", "incorporation", "governing_law")
 BASES = ("service_terms", "website_terms")
 REFINEMENT_KINDS = ("language", "task", "mode", "material")
+#: The surfaces a subscription plan can be used through (MODEL-200), besides
+#: ``coding_tool:<harness>`` for each harness in harnesses.yaml.
+PLAN_SURFACES = ("chat_app", "desktop_app", "mobile_app", "api")
+CODING_TOOL = "coding_tool:"
 
 #: Each registry document has its own compatibility gate. Facets moved to v2
 #: when MODEL-173 added ``string`` to the closed ``value_type.kind`` range;
@@ -58,6 +62,7 @@ REGISTRY_SCHEMA_VERSIONS = {
     "harnesses": 1,
     "domains": 1,
     "refinements": 1,
+    "families": 1,
 }
 
 #: A facet definition shorter than this is a label, not a definition.
@@ -66,6 +71,7 @@ MIN_DEFINITION_WORDS = 12
 FACET_ID = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$")
 SNAKE_ID = re.compile(r"^[a-z][a-z0-9_]*$")
 KEBAB_ID = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+FAMILY_ID = re.compile(r"^[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9.-]*$")
 COUNTRY = re.compile(r"^[A-Z]{2}$")
 HARNESS_REF = re.compile(r"^([a-z0-9][a-z0-9-]*)@(\d+)\.(\d+)(?:[.+-][0-9A-Za-z.+-]*)?$")
 
@@ -90,7 +96,7 @@ class UnknownIdError(RegistryError, KeyError):
 _FILE_FOR = {
     "facet": "facets.yaml", "unit": "facets.yaml", "source_kind": "facets.yaml",
     "provider": "providers.yaml", "harness": "harnesses.yaml", "domain": "domains.yaml",
-    "refinement": "refinements.yaml",
+    "refinement": "refinements.yaml", "family": "families.yaml",
 }
 
 
@@ -213,6 +219,17 @@ class Harness:
 
 
 @dataclass(frozen=True)
+class Family:
+    """A model family a plan page may name, and the model-ID prefix it resolves by."""
+    id: str
+    name: str
+    prefix: str
+
+    def resolves(self, model_id: str) -> bool:
+        return model_id.startswith(self.prefix)
+
+
+@dataclass(frozen=True)
 class Domain:
     id: str
     name: str
@@ -246,7 +263,7 @@ class Registry:
 
     def __init__(self, *, units, source_kinds, facets, providers, harnesses, domains,
                  named_lists: Mapping[str, Callable[[], frozenset[str]] | None],
-                 refinements=None):
+                 refinements=None, families=None):
         self._units: Mapping[str, Unit] = MappingProxyType(units)
         self._source_kinds: Mapping[str, SourceKind] = MappingProxyType(source_kinds)
         self._facets: Mapping[str, Facet] = MappingProxyType(facets)
@@ -257,6 +274,7 @@ class Registry:
             refinements or {}
         )
         self._named_lists = named_lists
+        self._families: Mapping[str, Family] = MappingProxyType(families or {})
         self._harness_versions = frozenset(v for h in harnesses.values() for v in h.versions)
 
     @staticmethod
@@ -302,6 +320,12 @@ class Registry:
 
     def domain(self, id_: str) -> Domain:
         return self._get("domain", self._domains, id_)
+
+    def family(self, id_: str) -> Family:
+        return self._get("family", self._families, id_)
+
+    def families(self) -> tuple[Family, ...]:
+        return tuple(self._families.values())
 
     def refinement(self, parent_domain: str, id_: str) -> Refinement:
         try:
@@ -373,6 +397,10 @@ def _named_lists(repo_root: Path, raw: Mapping[str, list[dict]]) -> dict[str, Ca
     def harness_versions() -> frozenset[str]:
         return frozenset(str(v.get("id")) for h in raw.get("harnesses", []) for v in h.get("versions") or [])
 
+    def plan_surfaces() -> frozenset[str]:
+        harnesses = (str(h.get("id")) for h in raw.get("harnesses", []))
+        return frozenset((*PLAN_SURFACES, *(CODING_TOOL + h for h in harnesses)))
+
     def model_classes() -> frozenset[str]:
         from api.classes import CLASS_BY_ID
         return frozenset(CLASS_BY_ID)
@@ -390,6 +418,8 @@ def _named_lists(repo_root: Path, raw: Mapping[str, list[dict]]) -> dict[str, Ca
         "registry:providers": ids("providers"),
         "registry:harnesses": harness_versions,
         "registry:domains": ids("domains"),
+        "registry:families": ids("families"),
+        "plan_surfaces": plan_surfaces,
         "model_classes": model_classes,
         "architecture_types": architecture_types,
         "benchmarks": stems("benchmarks", "*.md"),
@@ -801,6 +831,25 @@ def _load_refinements(
     return out
 
 
+def _load_families(err: _Errors, entries: list[dict]) -> dict[str, Family]:
+    _unique(err, "families.yaml", entries, FAMILY_ID, "lab/family, such as anthropic/claude-opus")
+    out: dict[str, Family] = {}
+    for e in entries:
+        where = f"families.yaml {e.get('id')!r}"
+        _keys(err, where, e, {"id", "name", "prefix"}, set())
+        id_, prefix = e.get("id"), e.get("prefix")
+        if not isinstance(e.get("name"), str) or not e.get("name", "").strip():
+            err.add(where, "name must be a non-empty string")
+        if not isinstance(id_, str) or not isinstance(prefix, str):
+            err.add(where, "id and prefix must be strings")
+            continue
+        lab = id_.partition("/")[0]
+        if not prefix.startswith(lab + "/") or prefix == lab + "/":
+            err.add(where, f"prefix must start with {lab}/ and name more than the lab")
+        out.setdefault(id_, Family(id=id_, name=str(e.get("name")), prefix=prefix))
+    return out
+
+
 def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry:
     """Read and validate every registry file under `root` (default `registry/`).
 
@@ -816,6 +865,7 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
         "harnesses": _read(root, "harnesses", "harnesses"),
         "domains": _read(root, "domains", "domains"),
         "refinements": _read(root, "refinements", "refinements"),
+        "families": _read(root, "families", "families"),
     }
     lists = _named_lists(repo_root, raw)
     units, kinds = _load_units_and_kinds(err, root)
@@ -825,10 +875,11 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
     domains = _load_domains(err, root)
     model_classes = lists["model_classes"]()
     refinements = _load_refinements(err, root, domains, model_classes)
+    families = _load_families(err, raw["families"])
     err.raise_if_any()
     return Registry(units=units, source_kinds=kinds, facets=facets, providers=providers,
                     harnesses=harnesses, domains=domains, refinements=refinements,
-                    named_lists=lists)
+                    named_lists=lists, families=families)
 
 
 @cache

@@ -34,11 +34,14 @@ from pydantic import (
     Tag,
     ValidationError,
     WithJsonSchema,
+    SerializerFunctionWrapHandler,
     field_validator,
+    model_serializer,
     model_validator,
 )
+from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.5"
+CONTRACT_VERSION = "2.6"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -50,6 +53,7 @@ REFINEMENT_KEY_PATTERN = r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_]*$"
 WEIGHT_KEY_PATTERN = r"^-?[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$"
 MODEL_PATTERN = r"^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$"
 HARNESS_PATTERN = r"^[a-z0-9][a-z0-9-]*@[0-9]+\.[0-9]+$"
+HARNESS_NAME_PATTERN = r"^[a-z0-9][a-z0-9-]*$"
 EFFORT_PATTERN = r"^[a-z0-9_-]+$"
 SNAPSHOT_PATTERN = r"^snap_[A-Za-z0-9:._-]+$"
 PROFILE_PATTERN = r"^profile:[a-z0-9][a-z0-9-]*$"
@@ -85,6 +89,8 @@ RefinementKey = _matching(
 )
 ModelId = _matching(MODEL_PATTERN, "a model ID is lab/model")
 HarnessId = _matching(HARNESS_PATTERN, "a harness ID is name@major.minor, e.g. claude-code@2.1")
+HarnessName = _matching(HARNESS_NAME_PATTERN,
+                        "a harness is a registered name without a version, e.g. claude-code")
 Effort = _matching(EFFORT_PATTERN, "an effort is a lowercase word")
 SnapshotId = _matching(SNAPSHOT_PATTERN,
                        "a decision cites a snapshot ID like snap_2026-09-24T06:00Z")
@@ -161,8 +167,33 @@ Scalar = Annotated[bool | int | float | date | str, BeforeValidator(_iso_date)]
 Day = date
 
 
+#: ``Field(exclude_if=...)`` arrived in pydantic 2.12. Older versions, such as
+#: the 2.10.6 that Pyodide gives the Worker, keep the predicate in
+#: ``json_schema_extra`` and emit the field anyway, so the Worker's bytes drifted
+#: from the CLI's. On those versions ``_Strict`` applies the predicate itself.
+NATIVE_EXCLUDE_IF = "exclude_if" in FieldInfo.__slots__
+
+
+def apply_exclude_if(model: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
+    """Drop from ``data`` (``model``'s own dump) each field whose
+    ``exclude_if`` predicate holds, as pydantic 2.12 and later do natively."""
+    for name, field in type(model).model_fields.items():
+        extra = field.json_schema_extra
+        excluded = getattr(field, "exclude_if", None) or (
+            extra.get("exclude_if") if isinstance(extra, dict) else None)
+        key = name if name in data else field.serialization_alias or field.alias
+        if callable(excluded) and key in data and excluded(getattr(model, name)):
+            del data[key]
+    return data
+
+
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    if not NATIVE_EXCLUDE_IF:
+        @model_serializer(mode="wrap")
+        def _exclude_if(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+            return apply_exclude_if(self, handler(self))
 
 
 # ── conditions ─────────────────────────────────────────────────────────────
@@ -1038,6 +1069,35 @@ class Estate(_Strict):
     _sorted = field_validator("providers", "plans", "devices", "exhausted")(_canonical_ids)
 
 
+AccessKind = Literal["chat_app", "coding_tool", "own_software", "own_hardware"]
+
+
+class Access(_Strict):
+    """How the caller will use the model. Added in 2.6.
+
+    ``chat_app``: a provider's chat app, through a subscription plan.
+    ``coding_tool``: a coding harness, through a plan or pay-per-use;
+    ``harness`` names one from ``registry/harnesses.yaml`` (any when absent).
+    ``own_software``: the caller's own software, pay-per-use (or a plan whose
+    surfaces include ``api``). ``own_hardware``: self-hosted on the caller's
+    devices. A spec may give the bare kind as a string.
+    """
+
+    kind: AccessKind
+    harness: HarnessName | None = Field(default=None, exclude_if=lambda value: value is None)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _bare_kind(cls, value: Any) -> Any:
+        return {"kind": value} if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def _harness_only_for_a_coding_tool(self) -> Access:
+        if self.harness is not None and self.kind != "coding_tool":
+            raise ValueError("harness is only for access kind coding_tool")
+        return self
+
+
 class Spec(_Strict):
     """A request for a decision."""
 
@@ -1062,6 +1122,8 @@ class Spec(_Strict):
     save_as: SaveAs | None = None
     #: What the caller holds. Added in 2.3.
     estate: Estate | None = Field(default=None, exclude_if=lambda value: value is None)
+    #: How the caller will use the model; absent means it does not matter. Added in 2.6.
+    access: Access | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @field_validator("exclude_benchmarks")
     @classmethod
@@ -1181,6 +1243,58 @@ class Contribution(_Strict):
     refinement: FacetId | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
+class PlanPrice(_Strict):
+    """A plan's published list price for one billing period. Added in 2.6."""
+
+    amount: float = Field(ge=0)
+    currency: Literal["USD"]
+    period: Literal["monthly", "annual"]
+
+
+class PlanCoverage(_Strict):
+    """Why a plan counts as covering a model. Added in 2.6.
+
+    ``family`` and ``quote`` are the family the plan page names and the page's
+    own words; both are absent when the plan's ``models_covered`` names the
+    model directly. ``resolves_to`` is every model the entry reaches, by
+    ``rule``.
+    """
+
+    family: str | None = None
+    quote: str | None = None
+    resolves_to: list[ModelId] = Field(default_factory=list)
+    rule: str
+
+
+class PlanAllowance(_Strict):
+    """A plan's published usage allowance; each part is null unless published. Added in 2.6."""
+
+    relative_to: str | None = None
+    multiplier: float | None = Field(default=None, ge=0)
+    window: str | None = None
+    tokens: float | None = Field(default=None, ge=0)
+
+
+class PlanRoute(_Strict):
+    """A subscription plan that reaches a result on the spec's ``access``. Added in 2.6.
+
+    ``break_even_tasks_per_month`` is the plan's monthly price divided by this
+    result's pay-per-use cost per task, for ``access: coding_tool`` only, and
+    null when either is unknown. ``basis`` says how it was computed or why not.
+    ModelSpec never turns a plan price into a per-task cost.
+    """
+
+    plan: EstateId
+    name: str
+    surface: str
+    price: PlanPrice | None = None
+    price_monthly_usd: float | None = Field(default=None, ge=0)
+    coverage: PlanCoverage
+    allowance: PlanAllowance = Field(default_factory=PlanAllowance)
+    break_even_tasks_per_month: float | None = Field(default=None, ge=0)
+    basis: str
+
+
 class Result(_Strict):
     rank: int = Field(ge=1)
     offering: OfferingRef
@@ -1207,6 +1321,9 @@ class Result(_Strict):
     soft_penalty: float = Field(default=0.0, ge=0)
     contributions: list[Contribution] = Field(default_factory=list)
     warnings: list[Code] = Field(default_factory=list)
+    #: The plans that reach this result on the spec's ``access``, cheapest
+    #: first. Absent without ``access``. Added in 2.6.
+    plans: list[PlanRoute] = Field(default_factory=list, exclude_if=lambda value: not value)
 
     @model_validator(mode="after")
     def _model_is_the_offerings(self) -> Result:
@@ -1451,6 +1568,8 @@ class EstateMark(_Strict):
     via: EstateHold
     cost_basis: CostBasis
     marginal_cost_per_task_usd: float | None = Field(default=None, ge=0)
+    #: For a plan, why it covers this row's model. Added in 2.6.
+    coverage: PlanCoverage | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class EstateResult(_Strict):
@@ -1490,6 +1609,9 @@ class WithEstate(_Strict):
     truncated: Truncated = Field(default_factory=Truncated)
     gap: EstateGap
     gain: list[GainItem] = Field(default_factory=list)
+    #: Codes about what the estate holds, such as ``plan_excludes_own_software``.
+    #: Added in 2.6.
+    warnings: list[Code] = Field(default_factory=list, exclude_if=lambda value: not value)
 
 
 class ModelOffering(_Strict):
@@ -1536,7 +1658,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.5"] = CONTRACT_VERSION
+    contract_version: Literal["2.6"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1592,6 +1714,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     ModelEliminationGroup, ConstraintCost, TippingPoint, ModelRow, ModelOffering,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
+    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute,
 )
 
 
@@ -1599,7 +1722,8 @@ def closed_values() -> list[str]:
     """Every value of every closed vocabulary in the contract, for the doc agreement test."""
     values: list[str] = []
     for alias in (Op, UnknownPolicy, MeasuredByQualifier, MeasuredBy, Explain, Status, DateType,
-                  Directness, CapabilityLevel, PreferenceStatus, TaskType, ModelRowStatus):
+                  Directness, CapabilityLevel, PreferenceStatus, TaskType, ModelRowStatus,
+                  AccessKind):
         values.extend(str(v) for v in typing.get_args(alias))
     values.extend(QUALIFIER_KEYWORDS)
     return sorted(set(values))

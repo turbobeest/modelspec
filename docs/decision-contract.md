@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.5**
+Contract version: **2.6**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -450,6 +450,97 @@ are byte-identical to the decision for the same spec without one.
 No closed value is widened: `status` is reused, and the error for an unknown
 estate ID is the existing `invalid_spec`.
 
+## Access and plans (MODEL-200)
+
+People choose a model by how they will use it. `access` says how; leaving it
+out means it does not matter, and the decision is byte-identical to one from
+before 2.6 but for `contract_version`.
+
+```yaml spec
+spec_version: 1
+optimize: {max: model.context_window}
+access: {kind: coding_tool, harness: claude-code}
+estate:
+  plans: [anthropic/subscription/max-20x]
+```
+
+`access` is `{kind, harness}`, or the bare kind as a string
+(`access: chat_app`). `harness` is a harness name from
+`registry/harnesses.yaml`, without a version, and only for `coding_tool`; an
+unregistered one is `invalid_spec` at `access.harness`.
+
+| `kind` | Routes that count |
+|---|---|
+| `chat_app` | Subscription plans whose surfaces include `chat_app`, `desktop_app` or `mobile_app`. Ranked on capability. A plan has no per-task price, so `cost_per_task` is null; the plan's monthly price is the `where` facet `offering.plan.price_monthly` and breaks ties (`answer.tie_breakers.cheapest` is the model with the cheapest plan). |
+| `coding_tool` | Pay-per-use offerings, and plans whose surfaces include `coding_tool:<harness>` (any harness when `harness` is absent). Each result lists its plans with a break-even. |
+| `own_software` | Pay-per-use offerings, and plans whose surfaces include `api`. A plan without `api` does not cover the caller's own software. |
+| `own_hardware` | Self-hosting only: models with a published fit on some device. An open-weights model with no published fit is `may_qualify` on `model.fits_hardware`; a closed-weights one is not a route. |
+
+A route outside the access is not in the lineup at all. A plan whose surfaces
+are unknown makes the rows it may cover `may_qualify` on
+`offering.subscription.surfaces`, and a plan whose coverage is unknown on
+`offering.subscription.models_covered`, as for an estate. A row another route
+reaches is ranked through that route.
+
+### Plans
+
+A plan is a set of sourced facts on `offering.subscription.*`, each under the
+fact and two-key rules, each null until published:
+
+- **price**: `offering.subscription.price` and `offering.subscription.billing_period`,
+  in US dollars.
+- **coverage**: `offering.subscription.models_covered` names model IDs, and
+  `offering.subscription.families_covered` names families from
+  `registry/families.yaml`, with the plan page's exact words in
+  `offering.subscription.coverage_quote`. Providers name families, not model
+  IDs. **The resolution rule:** a family resolves to every model in the
+  snapshot's lineup, not retired, whose ID starts with the family's `prefix`
+  (`anthropic/claude-opus` resolves by `anthropic/claude-opus-`). A plan
+  covers the union of the models named and the families resolved. Coverage is
+  unknown only when both facts are.
+- **surfaces**: `offering.subscription.surfaces`, from `chat_app`,
+  `desktop_app`, `mobile_app`, `coding_tool:<harness>` and `api`.
+- **allowance**: `offering.subscription.allowance.relative_to` (a plan ID),
+  `.multiplier`, `.window` and `.tokens`. `tokens` is null unless the provider
+  publishes it; it is never derived.
+
+The vocabulary's `estate.plans` publishes each plan as this record: `price`,
+`surfaces`, `coverage` (each entry as below) and `allowance`, with null for
+anything unknown.
+
+A result reached by plans lists them in `plans`, cheapest first. Each is a
+plan route:
+
+| Field | Meaning |
+|---|---|
+| `plan`, `name` | The plan's ID and name. |
+| `surface` | The plan surface the access uses. |
+| `price` | `amount`, `currency` and `period`: `currency` is `USD`, `period` `monthly` or `annual`. Null when not published. |
+| `price_monthly_usd` | The price per month: an annual price divided by twelve. |
+| `coverage` | Why the plan covers this model: `family` and `quote` (absent when `models_covered` names the model), `resolves_to`, every model the entry reaches, and the `rule` it resolved by. |
+| `allowance` | `relative_to`, `multiplier`, `window` and `tokens`, each null unless published. |
+| `break_even_tasks_per_month` | For `coding_tool`: the plan's monthly price divided by this result's pay-per-use `cost_per_task`. Above it the plan is cheaper, provided the tasks fit the allowance. Null when either number is unknown, and for any other access. |
+| `basis` | How the break-even was computed or why there is none. It says when the allowance in tokens is not published. |
+
+ModelSpec never turns a plan's price into a per-task cost.
+
+With an estate, a held plan reaches its covered models only on a matching
+surface, at a marginal cost of 0 inside its window; `exhausted` removes it
+from `with_estate` only. A provider key reaches pay-per-use rows only for
+`coding_tool` and `own_software`, a device only for `own_hardware`. A plan
+row's `estate` adds `coverage`, as above. For `own_software`, `with_estate`
+adds `warnings: [plan_excludes_own_software]` when a held plan's surfaces are
+known and lack `api`.
+
+### Contract note
+
+`access`, `plans`, `estate.coverage` and `with_estate.warnings` are new
+optional fields, so this is a minor bump. `kind` (`chat_app`, `coding_tool`,
+`own_software`, `own_hardware`) is a new closed value set on a new field; no
+existing closed field widens. `EstateMark.cost_basis`, `EstateHold.kind` and
+the error codes are unchanged, and `plan_excludes_own_software` is a warning,
+which is an open set.
+
 ## The canonical spec hash
 
 `spec_hash` identifies a spec independent of how it was written:
@@ -472,7 +563,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.5",
+  "contract_version": "2.6",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -564,7 +655,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.5"`. |
+| `contract_version` | `"2.6"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -959,6 +1050,18 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **2.6 — MODEL-200:** A spec adds the optional `access` (`chat_app`,
+  `coding_tool` with an optional `harness`, `own_software`, `own_hardware`).
+  Results add `plans` (plan routes with price, coverage, allowance and, for a
+  coding tool, `break_even_tasks_per_month` and its `basis`); an estate row
+  reached by a plan adds `coverage`; `with_estate` adds `warnings`. Plan facts
+  add surfaces, quoted family coverage and allowance, and the vocabulary's
+  `estate.plans` publishes each plan record. All new and optional, so the
+  major stays 2. Without `access`, a decision is byte-identical to 2.5's but
+  for `contract_version`. That now holds on the Worker too: its pydantic
+  (2.10, from Pyodide) ignored `exclude_if` and sent absent optional fields
+  as `null` or `[]`, which the contract applies itself from 2.6.
 
 - **2.5 — MODEL-180:** Each result adds the flat `model`, `model_rank` and
   `cost_per_task`, and the decision adds `by_model`, the model-grouped view

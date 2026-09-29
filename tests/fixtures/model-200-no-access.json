@@ -1,0 +1,3651 @@
+{
+ "_comment": "MODEL-200: decisions from origin/main (5b52373e) for tests/plan_records.py NO_ACCESS_SPECS. A spec without access must reproduce them; only contract_version moves.",
+ "sourced_without_estate": [
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "other/huge"
+    ],
+    "kind": "separated",
+    "leader": "other/huge",
+    "members": [
+     "other/huge"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 5,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 4,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 6,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 5,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 7,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 6,
+     "status": "ranked"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_af14ea77cd02ee6ec4445b25",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "none",
+   "may_qualify": [],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 1,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 3,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/closed",
+     "model_rank": 4,
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 5,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/unfit",
+     "model_rank": 5,
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 6,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/tiny",
+     "model_rank": 6,
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 7,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_c82c1922c2f95d89",
+   "sources": [],
+   "spec_hash": "sha256:20489261a056ff24a08f836cde236e8b1af77fe20cc89b9b543eb0c41f0bc0c7",
+   "status": "answered",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": []
+  },
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "other/huge"
+    ],
+    "kind": "separated",
+    "leader": "other/huge",
+    "members": [
+     "other/huge"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 5,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 4,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 6,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 5,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 7,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 6,
+     "status": "ranked"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_04f63b487c6cfafe685f1902",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "summary",
+   "may_qualify": [],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 500000.0,
+       "records": [
+        "other/huge#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 1.0,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 1,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 200000.0,
+       "records": [
+        "anthropic/claude-opus-5-5#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.3333333333333333,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 200000.0,
+       "records": [
+        "anthropic/claude-sonnet-5#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.3333333333333333,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 3,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 200000.0,
+       "records": [
+        "anthropic/claude-opus-5-5#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.3333333333333333,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 70000.0,
+       "records": [
+        "acme/closed#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.044444444444444446,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/closed",
+     "model_rank": 4,
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 5,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 60000.0,
+       "records": [
+        "acme/unfit#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.022222222222222223,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/unfit",
+     "model_rank": 5,
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 6,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 50000.0,
+       "records": [
+        "acme/tiny#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.0,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/tiny",
+     "model_rank": 6,
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 7,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_c82c1922c2f95d89",
+   "sources": [],
+   "spec_hash": "sha256:b4bcf83243d2f6f98f63ffd6bd47bb58f32a8998a18e0ad3d4f8605c874ef36f",
+   "status": "answered",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": []
+  },
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "anthropic/claude-sonnet-5"
+    ],
+    "kind": "separated",
+    "leader": "anthropic/claude-sonnet-5",
+    "members": [
+     "anthropic/claude-sonnet-5"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": null,
+       "reason": null,
+       "status": "may_qualify",
+       "unknown": [
+        "offering.cost_per_task"
+       ]
+      }
+     ],
+     "rank": null,
+     "status": "may_qualify"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": null,
+       "reason": null,
+       "status": "may_qualify",
+       "unknown": [
+        "offering.cost_per_task"
+       ]
+      }
+     ],
+     "rank": null,
+     "status": "may_qualify"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": null,
+       "reason": null,
+       "status": "may_qualify",
+       "unknown": [
+        "offering.cost_per_task"
+       ]
+      }
+     ],
+     "rank": null,
+     "status": "may_qualify"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_995d183dd19211d3012e79d0",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "none",
+   "may_qualify": [
+    {
+     "model": "acme/closed",
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "unknown": [
+      "offering.cost_per_task"
+     ]
+    },
+    {
+     "model": "acme/tiny",
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "unknown": [
+      "offering.cost_per_task"
+     ]
+    },
+    {
+     "model": "acme/unfit",
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "unknown": [
+      "offering.cost_per_task"
+     ]
+    }
+   ],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 1,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 3,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_c82c1922c2f95d89",
+   "sources": [],
+   "spec_hash": "sha256:b8de6fa1e85afe9db7a970d77cb1ae48a93f6038a2f9a331708fd903397588aa",
+   "status": "partial",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": []
+  }
+ ],
+ "undisclosed": [
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "other/huge"
+    ],
+    "kind": "separated",
+    "leader": "other/huge",
+    "members": [
+     "other/huge"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 5,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 4,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 6,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 5,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 7,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 6,
+     "status": "ranked"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_94ac77d3076a3b96b3dba33e",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "none",
+   "may_qualify": [],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 1,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 3,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/closed",
+     "model_rank": 4,
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 5,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/unfit",
+     "model_rank": 5,
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 6,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/tiny",
+     "model_rank": 6,
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 7,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_5ceca801e3e556d8",
+   "sources": [],
+   "spec_hash": "sha256:20489261a056ff24a08f836cde236e8b1af77fe20cc89b9b543eb0c41f0bc0c7",
+   "status": "answered",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": []
+  },
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "other/huge"
+    ],
+    "kind": "separated",
+    "leader": "other/huge",
+    "members": [
+     "other/huge"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 5,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 4,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 6,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 5,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 7,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 6,
+     "status": "ranked"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_fbdac6d0bdcdf6ac4d43f220",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "summary",
+   "may_qualify": [],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 500000.0,
+       "records": [
+        "other/huge#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 1.0,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 1,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 200000.0,
+       "records": [
+        "anthropic/claude-opus-5-5#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.3333333333333333,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 200000.0,
+       "records": [
+        "anthropic/claude-sonnet-5#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.3333333333333333,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 3,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 200000.0,
+       "records": [
+        "anthropic/claude-opus-5-5#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.3333333333333333,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 70000.0,
+       "records": [
+        "acme/closed#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.044444444444444446,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/closed",
+     "model_rank": 4,
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 5,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 60000.0,
+       "records": [
+        "acme/unfit#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.022222222222222223,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/unfit",
+     "model_rank": 5,
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 6,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [
+      {
+       "dimension": "model.context_window",
+       "evidence": [],
+       "formula": null,
+       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
+       "preference_status": null,
+       "preferred_value": null,
+       "raw_value": 50000.0,
+       "records": [
+        "acme/tiny#model.context_window"
+       ],
+       "unit": "tokens",
+       "value": 0.0,
+       "weight": 1.0
+      }
+     ],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/tiny",
+     "model_rank": 6,
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 7,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_5ceca801e3e556d8",
+   "sources": [],
+   "spec_hash": "sha256:b4bcf83243d2f6f98f63ffd6bd47bb58f32a8998a18e0ad3d4f8605c874ef36f",
+   "status": "answered",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": []
+  },
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "anthropic/claude-sonnet-5"
+    ],
+    "kind": "separated",
+    "leader": "anthropic/claude-sonnet-5",
+    "members": [
+     "anthropic/claude-sonnet-5"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": null,
+       "reason": null,
+       "status": "may_qualify",
+       "unknown": [
+        "offering.cost_per_task"
+       ]
+      }
+     ],
+     "rank": null,
+     "status": "may_qualify"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": null,
+       "reason": null,
+       "status": "may_qualify",
+       "unknown": [
+        "offering.cost_per_task"
+       ]
+      }
+     ],
+     "rank": null,
+     "status": "may_qualify"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": null,
+       "reason": null,
+       "status": "may_qualify",
+       "unknown": [
+        "offering.cost_per_task"
+       ]
+      }
+     ],
+     "rank": null,
+     "status": "may_qualify"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_cbc77900cc26a0640d203d1d",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "none",
+   "may_qualify": [
+    {
+     "model": "acme/closed",
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "unknown": [
+      "offering.cost_per_task"
+     ]
+    },
+    {
+     "model": "acme/tiny",
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "unknown": [
+      "offering.cost_per_task"
+     ]
+    },
+    {
+     "model": "acme/unfit",
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "unknown": [
+      "offering.cost_per_task"
+     ]
+    }
+   ],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 1,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 3,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_5ceca801e3e556d8",
+   "sources": [],
+   "spec_hash": "sha256:b8de6fa1e85afe9db7a970d77cb1ae48a93f6038a2f9a331708fd903397588aa",
+   "status": "partial",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": []
+  },
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "other/huge"
+    ],
+    "kind": "separated",
+    "leader": "other/huge",
+    "members": [
+     "other/huge"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 5,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 4,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 6,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 5,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 7,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 6,
+     "status": "ranked"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_ff4f840b3d2e849e3fcb2ef3",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "none",
+   "may_qualify": [],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 1,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 3,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/closed",
+     "model_rank": 4,
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 5,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/unfit",
+     "model_rank": 5,
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 6,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/tiny",
+     "model_rank": 6,
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 7,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_5ceca801e3e556d8",
+   "sources": [],
+   "spec_hash": "sha256:7cf41d82e34b98ec9977f53ae434d96ed949199e32368d1edd7ba78f20bd3e0d",
+   "status": "answered",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": [],
+   "with_estate": {
+    "answer": null,
+    "gain": [
+     {
+      "add": {
+       "id": "anthropic",
+       "kind": "provider"
+      },
+      "answer": {
+       "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+       "deterministic_order": [
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-opus-5-5"
+       ],
+       "kind": "tied",
+       "members": [
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-opus-5-5"
+       ],
+       "tie_breakers": {
+        "cheapest": "anthropic/claude-sonnet-5",
+        "fastest": null,
+        "most_independently_measured": null,
+        "open_weights": null
+       }
+      },
+      "leader": "anthropic/claude-opus-5-5",
+      "status": "answered"
+     },
+     {
+      "add": {
+       "id": "aws-bedrock",
+       "kind": "provider"
+      },
+      "answer": {
+       "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+       "deterministic_order": [
+        "anthropic/claude-opus-5-5"
+       ],
+       "kind": "separated",
+       "leader": "anthropic/claude-opus-5-5",
+       "members": [
+        "anthropic/claude-opus-5-5"
+       ],
+       "tie_breakers": {
+        "cheapest": null,
+        "fastest": null,
+        "most_independently_measured": null,
+        "open_weights": null
+       }
+      },
+      "leader": "anthropic/claude-opus-5-5",
+      "status": "partial"
+     },
+     {
+      "add": {
+       "id": "openai",
+       "kind": "provider"
+      },
+      "answer": {
+       "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+       "deterministic_order": [
+        "other/huge"
+       ],
+       "kind": "separated",
+       "leader": "other/huge",
+       "members": [
+        "other/huge"
+       ],
+       "tie_breakers": {
+        "cheapest": null,
+        "fastest": null,
+        "most_independently_measured": null,
+        "open_weights": null
+       }
+      },
+      "leader": "other/huge",
+      "status": "partial"
+     },
+     {
+      "add": {
+       "id": "anthropic/subscription/team-api",
+       "kind": "plan"
+      },
+      "answer": {
+       "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+       "deterministic_order": [
+        "anthropic/claude-sonnet-5"
+       ],
+       "kind": "separated",
+       "leader": "anthropic/claude-sonnet-5",
+       "members": [
+        "anthropic/claude-sonnet-5"
+       ],
+       "tie_breakers": {
+        "cheapest": null,
+        "fastest": null,
+        "most_independently_measured": null,
+        "open_weights": null
+       }
+      },
+      "leader": "anthropic/claude-sonnet-5",
+      "status": "partial"
+     },
+     {
+      "add": {
+       "id": "apple_m3_max",
+       "kind": "device"
+      },
+      "answer": {
+       "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+       "deterministic_order": [
+        "acme/tiny"
+       ],
+       "kind": "separated",
+       "leader": "acme/tiny",
+       "members": [
+        "acme/tiny"
+       ],
+       "tie_breakers": {
+        "cheapest": null,
+        "fastest": null,
+        "most_independently_measured": null,
+        "open_weights": null
+       }
+      },
+      "leader": "acme/tiny",
+      "status": "partial"
+     }
+    ],
+    "gap": {
+     "same_answer": false,
+     "summary": "What you hold reaches no model that qualifies. Unrestricted, the best is other/huge.",
+     "unreachable_models": [
+      "other/huge",
+      "anthropic/claude-opus-5-5",
+      "anthropic/claude-sonnet-5",
+      "acme/closed",
+      "acme/unfit",
+      "acme/tiny"
+     ]
+    },
+    "may_qualify": [
+     {
+      "model": "anthropic/claude-opus-5-5",
+      "offering": {
+       "model": "anthropic/claude-opus-5-5",
+       "provider": "anthropic",
+       "region": "global",
+       "tier": "standard"
+      },
+      "unknown": [
+       "offering.subscription.models_covered"
+      ]
+     },
+     {
+      "model": "anthropic/claude-sonnet-5",
+      "offering": {
+       "model": "anthropic/claude-sonnet-5",
+       "provider": "anthropic",
+       "region": "global",
+       "tier": "standard"
+      },
+      "unknown": [
+       "offering.subscription.models_covered"
+      ]
+     }
+    ],
+    "results": [],
+    "status": "no_feasible",
+    "truncated": {
+     "models": 0,
+     "offerings": 0
+    }
+   }
+  },
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "other/huge"
+    ],
+    "kind": "separated",
+    "leader": "other/huge",
+    "members": [
+     "other/huge"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 5,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 4,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 6,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 5,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 7,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 6,
+     "status": "ranked"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_76aa6619e8ccda18f324cfb3",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "none",
+   "may_qualify": [],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 1,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 3,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/closed",
+     "model_rank": 4,
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 5,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/unfit",
+     "model_rank": 5,
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 6,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/tiny",
+     "model_rank": 6,
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 7,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_5ceca801e3e556d8",
+   "sources": [],
+   "spec_hash": "sha256:0c5be124dcde53e2d401292a1114e9209ef902c4f89106cc2aa9c4a3c2d89a2f",
+   "status": "answered",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": [],
+   "with_estate": {
+    "answer": {
+     "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+     "deterministic_order": [
+      "other/huge"
+     ],
+     "kind": "separated",
+     "leader": "other/huge",
+     "members": [
+      "other/huge"
+     ],
+     "tie_breakers": {
+      "cheapest": null,
+      "fastest": null,
+      "most_independently_measured": null,
+      "open_weights": null
+     }
+    },
+    "gain": [
+     {
+      "add": {
+       "id": "anthropic",
+       "kind": "provider"
+      },
+      "answer": {
+       "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+       "deterministic_order": [
+        "other/huge"
+       ],
+       "kind": "separated",
+       "leader": "other/huge",
+       "members": [
+        "other/huge"
+       ],
+       "tie_breakers": {
+        "cheapest": null,
+        "fastest": null,
+        "most_independently_measured": null,
+        "open_weights": null
+       }
+      },
+      "leader": "other/huge",
+      "status": "answered"
+     }
+    ],
+    "gap": {
+     "same_answer": false,
+     "summary": "Unrestricted, the best is other/huge. With what you hold it is other/huge; no model ranked at or above it is outside your estate, so the answer differs only in cost or how the tie is broken.",
+     "unreachable_models": []
+    },
+    "may_qualify": [
+     {
+      "model": "anthropic/claude-opus-5-5",
+      "offering": {
+       "model": "anthropic/claude-opus-5-5",
+       "provider": "anthropic",
+       "region": "global",
+       "tier": "standard"
+      },
+      "unknown": [
+       "offering.subscription.models_covered"
+      ]
+     },
+     {
+      "model": "anthropic/claude-sonnet-5",
+      "offering": {
+       "model": "anthropic/claude-sonnet-5",
+       "provider": "anthropic",
+       "region": "global",
+       "tier": "standard"
+      },
+      "unknown": [
+       "offering.subscription.models_covered"
+      ]
+     }
+    ],
+    "results": [
+     {
+      "estate": {
+       "cost_basis": "list_price",
+       "marginal_cost_per_task_usd": 1.32,
+       "via": {
+        "id": "openai",
+        "kind": "provider"
+       }
+      },
+      "offering": {
+       "model": "other/huge",
+       "provider": "openai",
+       "region": "global",
+       "tier": "standard"
+      },
+      "rank": 1,
+      "soft_penalty": 0.0,
+      "warnings": []
+     },
+     {
+      "estate": {
+       "cost_basis": "owned_hardware",
+       "marginal_cost_per_task_usd": 0.0,
+       "via": {
+        "id": "apple_m3_max",
+        "kind": "device"
+       }
+      },
+      "offering": {
+       "model": "acme/tiny",
+       "provider": null,
+       "region": null,
+       "tier": null
+      },
+      "rank": 2,
+      "soft_penalty": 0.0,
+      "warnings": []
+     }
+    ],
+    "status": "partial",
+    "truncated": {
+     "models": 0,
+     "offerings": 0
+    }
+   }
+  },
+  {
+   "answer": {
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "deterministic_order": [
+     "other/huge"
+    ],
+    "kind": "separated",
+    "leader": "other/huge",
+    "members": [
+     "other/huge"
+    ],
+    "tie_breakers": {
+     "cheapest": null,
+     "fastest": null,
+     "most_independently_measured": null,
+     "open_weights": null
+    }
+   },
+   "by_model": [
+    {
+     "cost_per_task": 1.32,
+     "model": "other/huge",
+     "offerings": [
+      {
+       "cost_per_task": 1.32,
+       "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 1,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 1,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.66,
+     "model": "anthropic/claude-opus-5-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.66,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 2,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      },
+      {
+       "cost_per_task": 0.792,
+       "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "aws-bedrock",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 4,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 2,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": 0.132,
+     "model": "anthropic/claude-sonnet-5",
+     "offerings": [
+      {
+       "cost_per_task": 0.132,
+       "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+       },
+       "rank": 3,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 3,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/closed",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/closed",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 5,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 4,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/unfit",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 6,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 5,
+     "status": "ranked"
+    },
+    {
+     "cost_per_task": null,
+     "model": "acme/tiny",
+     "offerings": [
+      {
+       "cost_per_task": null,
+       "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+       },
+       "rank": 7,
+       "reason": null,
+       "status": "ranked",
+       "unknown": []
+      }
+     ],
+     "rank": 6,
+     "status": "ranked"
+    }
+   ],
+   "chart": null,
+   "constraint_costs": [],
+   "contract_version": "2.5",
+   "decision_id": "dec_7295a9eb5d698054b36d7b13",
+   "eliminated": {
+    "funnel": [],
+    "model_groups": [],
+    "models": []
+   },
+   "explain": "none",
+   "may_qualify": [],
+   "near_misses": [],
+   "number_origins": [],
+   "out_of_lineup": 0,
+   "relax": [],
+   "relax_to": [],
+   "results": [
+    {
+     "contributions": [],
+     "cost_per_task": 1.32,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "other/huge",
+     "model_rank": 1,
+     "offering": {
+      "model": "other/huge",
+      "provider": "openai",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 1,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.66,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 2,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.132,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-sonnet-5",
+     "model_rank": 3,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5",
+      "provider": "anthropic",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 3,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": 0.792,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "anthropic/claude-opus-5-5",
+     "model_rank": 2,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5",
+      "provider": "aws-bedrock",
+      "region": "global",
+      "tier": "standard"
+     },
+     "p_best": null,
+     "rank": 4,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/closed",
+     "model_rank": 4,
+     "offering": {
+      "model": "acme/closed",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 5,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/unfit",
+     "model_rank": 5,
+     "offering": {
+      "model": "acme/unfit",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 6,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    },
+    {
+     "contributions": [],
+     "cost_per_task": null,
+     "effort": null,
+     "estimates": null,
+     "evidence": [],
+     "harness": null,
+     "model": "acme/tiny",
+     "model_rank": 6,
+     "offering": {
+      "model": "acme/tiny",
+      "provider": null,
+      "region": null,
+      "tier": null
+     },
+     "p_best": null,
+     "rank": 7,
+     "soft_penalty": 0.0,
+     "top3_stability": null,
+     "warnings": []
+    }
+   ],
+   "signature_verified": true,
+   "snapshot": "snap_5ceca801e3e556d8",
+   "sources": [],
+   "spec_hash": "sha256:99c901d5d66661c0042578062715752858f67725f658e01841e60cc0c665eee2",
+   "status": "answered",
+   "tipping_points": [],
+   "top": [],
+   "truncated": {
+    "models": 0,
+    "offerings": 0
+   },
+   "warnings": [],
+   "with_estate": {
+    "answer": {
+     "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+     "deterministic_order": [
+      "anthropic/claude-sonnet-5",
+      "anthropic/claude-opus-5-5"
+     ],
+     "kind": "tied",
+     "members": [
+      "anthropic/claude-sonnet-5",
+      "anthropic/claude-opus-5-5"
+     ],
+     "tie_breakers": {
+      "cheapest": "anthropic/claude-sonnet-5",
+      "fastest": null,
+      "most_independently_measured": null,
+      "open_weights": null
+     }
+    },
+    "gain": [
+     {
+      "add": {
+       "id": "openai",
+       "kind": "provider"
+      },
+      "answer": {
+       "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+       "deterministic_order": [
+        "other/huge"
+       ],
+       "kind": "separated",
+       "leader": "other/huge",
+       "members": [
+        "other/huge"
+       ],
+       "tie_breakers": {
+        "cheapest": null,
+        "fastest": null,
+        "most_independently_measured": null,
+        "open_weights": null
+       }
+      },
+      "leader": "other/huge",
+      "status": "answered"
+     },
+     {
+      "add": {
+       "id": "openai/subscription/plus",
+       "kind": "plan"
+      },
+      "answer": {
+       "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+       "deterministic_order": [
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-opus-5-5"
+       ],
+       "kind": "tied",
+       "members": [
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-opus-5-5"
+       ],
+       "tie_breakers": {
+        "cheapest": "anthropic/claude-sonnet-5",
+        "fastest": null,
+        "most_independently_measured": null,
+        "open_weights": null
+       }
+      },
+      "leader": "anthropic/claude-opus-5-5",
+      "status": "partial"
+     }
+    ],
+    "gap": {
+     "same_answer": false,
+     "summary": "Unrestricted, the best is other/huge. With what you hold it is a tie of anthropic/claude-sonnet-5, anthropic/claude-opus-5-5; 1 model(s) ranked at or above it are outside your estate: other/huge.",
+     "unreachable_models": [
+      "other/huge"
+     ]
+    },
+    "may_qualify": [],
+    "results": [
+     {
+      "estate": {
+       "cost_basis": "list_price",
+       "marginal_cost_per_task_usd": 0.66,
+       "via": {
+        "id": "anthropic",
+        "kind": "provider"
+       }
+      },
+      "offering": {
+       "model": "anthropic/claude-opus-5-5",
+       "provider": "anthropic",
+       "region": "global",
+       "tier": "standard"
+      },
+      "rank": 1,
+      "soft_penalty": 0.0,
+      "warnings": [
+       "not_separable"
+      ]
+     },
+     {
+      "estate": {
+       "cost_basis": "list_price",
+       "marginal_cost_per_task_usd": 0.132,
+       "via": {
+        "id": "anthropic",
+        "kind": "provider"
+       }
+      },
+      "offering": {
+       "model": "anthropic/claude-sonnet-5",
+       "provider": "anthropic",
+       "region": "global",
+       "tier": "standard"
+      },
+      "rank": 2,
+      "soft_penalty": 0.0,
+      "warnings": [
+       "not_separable"
+      ]
+     }
+    ],
+    "status": "answered",
+    "truncated": {
+     "models": 0,
+     "offerings": 0
+    }
+   }
+  }
+ ]
+}

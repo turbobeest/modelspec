@@ -6,7 +6,10 @@ offering's list price for one task at the spec's ``task_tokens``:
 
     (offering.price.input × input + offering.price.output × output) / 1,000,000
 
-It is unknown when either price is unknown. ``with_computed`` wraps a loaded
+It is unknown when either price is unknown, and for a row only a subscription
+plan reaches (MODEL-200): a plan has no per-task price. ``offering.plan.price_monthly``
+is the monthly price of the cheapest plan reaching a row on the spec's
+``access``, unknown without one. ``with_computed`` wraps a loaded
 snapshot so the filter, the optimiser and the explanations read the computed
 value exactly as they read a stored one, and can ask ``computed()`` for the
 records and the formula behind it.
@@ -22,7 +25,8 @@ from decision.contract import TaskTokens
 from decision.snapshot import UNKNOWN, Bitset3, FactValue, _FacetBitsets, _holds
 
 COST_PER_TASK = "offering.cost_per_task"
-COMPUTED_FACETS = (COST_PER_TASK,)
+PLAN_PRICE_MONTHLY = "offering.plan.price_monthly"
+COMPUTED_FACETS = (COST_PER_TASK, PLAN_PRICE_MONTHLY)
 _PRICE_INPUT = "offering.price.input"
 _PRICE_OUTPUT = "offering.price.output"
 
@@ -53,12 +57,15 @@ class ComputedFacets:
 
     def __init__(
         self, base: Any, task_tokens: TaskTokens, marginal: Mapping[str, str] | None = None,
+        unpriced: frozenset[str] = frozenset(), plan_prices: Mapping[str, Computed] | None = None,
     ) -> None:
         self._base = base
         self.task_tokens = task_tokens
         self._marginal = marginal or {}
+        self._unpriced = unpriced
+        self._plan_prices = plan_prices or {}
         self._values: dict[str, Computed | None] = {}
-        self._column: _FacetBitsets | None = None
+        self._columns: dict[str, _FacetBitsets] = {}
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._base, name)
@@ -66,10 +73,14 @@ class ComputedFacets:
     def computed(self, cid: str, facet_id: str) -> Computed | None:
         """The computed value of ``facet_id`` for ``cid``, or ``None`` when unknown
         or when ``facet_id`` is not computed."""
+        if facet_id == PLAN_PRICE_MONTHLY:
+            return self._plan_prices.get(cid)
         if facet_id != COST_PER_TASK:
             return None
         if cid in self._marginal:
             return Computed(0.0, (), (), self._marginal[cid])
+        if cid in self._unpriced:
+            return None
         if cid not in self._values:
             self._values[cid] = self._cost_per_task(cid)
         return self._values[cid]
@@ -104,14 +115,14 @@ class ComputedFacets:
             return self._base.ids_where(facet_id, op, arg)
         ids = self._base.candidates()
         everyone = (1 << len(ids)) - 1
-        if self._column is None:
+        if facet_id not in self._columns:
             rows = []
             for row, cid in enumerate(ids):
                 found = self.computed(cid, facet_id)
                 if found is not None:
                     rows.append((row, found.value))
-            self._column = _FacetBitsets(rows)
-        column = self._column
+            self._columns[facet_id] = _FacetBitsets(rows)
+        column = self._columns[facet_id]
         if op == "known":
             return Bitset3(column.known, everyone & ~column.known, 0)
         passing = column.passing(op, arg)
@@ -126,13 +137,16 @@ class ComputedFacets:
 
 def with_computed(
     snapshot: Any, task_tokens: TaskTokens, marginal: Mapping[str, str] | None = None,
+    unpriced: frozenset[str] = frozenset(), plan_prices: Mapping[str, Computed] | None = None,
 ) -> ComputedFacets:
     """``snapshot``, answering the computed facets at ``task_tokens``.
 
     ``marginal`` maps a row the caller already pays for (an estate plan or
     device, MODEL-179) to the reason one more task costs nothing; that row's
-    ``offering.cost_per_task`` is 0 instead of its list price.
+    ``offering.cost_per_task`` is 0 instead of its list price. ``unpriced`` rows
+    have no per-task price at all, and ``plan_prices`` gives
+    ``offering.plan.price_monthly`` (MODEL-200).
     """
     if isinstance(snapshot, ComputedFacets):
         snapshot = snapshot._base
-    return ComputedFacets(snapshot, task_tokens, marginal)
+    return ComputedFacets(snapshot, task_tokens, marginal, unpriced, plan_prices)

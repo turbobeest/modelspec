@@ -107,7 +107,8 @@ def test_subscription_facets_are_record_only_until_holder_costs_exist(registry):
         if facet.id.startswith("offering.subscription.")
     ]
 
-    assert len(subscriptions) == 5
+    # MODEL-173's five, plus MODEL-200's surfaces, families, quote and allowance.
+    assert len(subscriptions) == 12
     assert all(not facet.addressable for facet in subscriptions)
 
 
@@ -342,6 +343,7 @@ def test_registry_schema_versions_are_independent_compatibility_gates():
         "harnesses": 1,
         "domains": 1,
         "refinements": 1,
+        "families": 1,
     }
 
     assert reg.REGISTRY_SCHEMA_VERSIONS == expected
@@ -575,8 +577,10 @@ def test_every_closed_enum_value_has_a_plain_label(registry):
             "offering.harness_compatibility",
             "model.fits_hardware",
             "model.hardware_fit_indeterminate",
+            "offering.subscription.surfaces",
+            "offering.subscription.families_covered",
         ):
-            continue  # named by registry/providers.yaml, harnesses.yaml and hardware/
+            continue  # named by providers.yaml, harnesses.yaml, families.yaml and hardware/
         for value in sorted(registry.allowed_values(facet) or ()):
             if not facet.value_label(value):
                 missing.append(f"{facet.id}={value}")

@@ -8,6 +8,7 @@ from dataclasses import replace
 from math import inf, isfinite, sqrt
 
 from decision import estate as estate_module
+from decision import plans as plans_module
 from decision.by_model import build_by_model
 from decision.computed import with_computed
 from decision.contract import (
@@ -156,6 +157,8 @@ def validate(
             raise SpecError(issues)
     if spec.estate is not None:
         estate_module.check(spec.estate, snapshot)
+    if spec.access is not None:
+        plans_module.check_access(spec.access)
     snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
     if spec.explain in ("summary", "full"):
         snapshot.require_explanation_records()
@@ -252,8 +255,12 @@ def _offering_costs(snapshot) -> Callable[[OfferingRef], float | None]:
     return cost_of
 
 
+def _plan_price(snapshot, cid: str) -> float | None:
+    return _known_number(snapshot, cid, plans_module.PRICE_MONTHLY)
+
+
 def _representative_rows(
-    rows: tuple[OptimisedResult, ...], snapshot
+    rows: tuple[OptimisedResult, ...], snapshot, cost=_candidate_cost,
 ) -> list[OptimisedResult]:
     """One best offering per model, ordered by point score, cost, then model ID."""
     by_model: dict[str, list[OptimisedResult]] = {}
@@ -267,8 +274,8 @@ def _representative_rows(
             choices,
             key=lambda row: (
                 -row.score,
-                _candidate_cost(snapshot, row.candidate_id)
-                if _candidate_cost(snapshot, row.candidate_id) is not None
+                cost(snapshot, row.candidate_id)
+                if cost(snapshot, row.candidate_id) is not None
                 else inf,
                 row.candidate_id,
             ),
@@ -277,8 +284,8 @@ def _representative_rows(
         representatives,
         key=lambda row: (
             -row.score,
-            _candidate_cost(snapshot, row.candidate_id)
-            if _candidate_cost(snapshot, row.candidate_id) is not None
+            cost(snapshot, row.candidate_id)
+            if cost(snapshot, row.candidate_id) is not None
             else inf,
             snapshot.model_of(row.candidate_id),
         ),
@@ -312,10 +319,10 @@ def _independent_measurements(snapshot, model_id: str) -> int:
     return len(records)
 
 
-def _tie_breakers(rows: list[OptimisedResult], snapshot) -> TieBreakers:
+def _tie_breakers(rows: list[OptimisedResult], snapshot, cost=_candidate_cost) -> TieBreakers:
     by_model = {snapshot.model_of(row.candidate_id): row for row in rows}
     costs = {
-        model_id: _candidate_cost(snapshot, row.candidate_id)
+        model_id: cost(snapshot, row.candidate_id)
         for model_id, row in by_model.items()
     }
     speeds = {
@@ -339,7 +346,7 @@ def _tie_breakers(rows: list[OptimisedResult], snapshot) -> TieBreakers:
     )
 
 
-def _answer(rows: list[OptimisedResult], snapshot):
+def _answer(rows: list[OptimisedResult], snapshot, cost=_candidate_cost):
     if not rows or rows[0].score_interval is None:
         return None
     leader = rows[0]
@@ -365,7 +372,7 @@ def _answer(rows: list[OptimisedResult], snapshot):
         kind="tied",
         members=model_ids,
         basis=_ANSWER_BASIS,
-        tie_breakers=_tie_breakers(members, snapshot),
+        tie_breakers=_tie_breakers(members, snapshot, cost),
         deterministic_order=model_ids,
     )
 
@@ -411,6 +418,24 @@ def _refinement_estimate(key: str, found) -> RefinementEstimate | None:
     )
 
 
+def _plan_routes(cid: str, snapshot, access, reach) -> list:
+    """The plans that reach ``cid`` on ``access``, cheapest first (MODEL-200).
+
+    None for a row the caller already holds: at the margin it has no
+    pay-per-use cost to break even against."""
+    if cid in reach.marginal:
+        return []
+    ref = offering_ref(snapshot, cid)
+    where = f"{ref.model} through {ref.provider}" if ref.provider else ref.model
+    cost = _candidate_cost(snapshot, cid)
+    routes = [
+        plans_module.route(reach.plans[plan_id], surface, coverage, access, cost, where)
+        for plan_id, surface, coverage in reach.routes.get(cid, ())
+    ]
+    return sorted(routes, key=lambda r: (r.price_monthly_usd is None,
+                                         r.price_monthly_usd or 0, r.plan))
+
+
 def decide(
     spec: Spec,
     snapshot: ExplanationIndex,
@@ -429,20 +454,36 @@ def decide(
     A spec with an ``estate`` (MODEL-179) is answered twice: the unrestricted
     decision is computed as if the estate were absent, and ``with_estate``
     carries the same question over what the estate holds.
+
+    A spec with an ``access`` (MODEL-200) is answered over the routes that
+    serve it: plans whose surfaces match, pay-per-use offerings for a coding
+    tool or the caller's own software, self-hosting for their own hardware.
     """
-    if spec.estate is None:
+    if spec.estate is None and spec.access is None:
         return _decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
             comparison=comparison,
         )
-    estate_module.check(spec.estate, snapshot)
+    if spec.estate is not None:
+        estate_module.check(spec.estate, snapshot)
+    if spec.access is not None:
+        plans_module.check_access(spec.access)
+    catalogue = estate_module.Catalogue(snapshot)
+    routes = (None if spec.access is None
+              else estate_module.access_reach(catalogue, spec.access))
+    if spec.estate is None:
+        return _decide(
+            spec, snapshot, facets=facets, profiles=profiles,
+            evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
+            comparison=comparison, _reach=routes,
+        )
     question = spec.model_copy(update={"estate": None})
     capture: dict = {}
     decision = _decide(
         question, snapshot, facets=facets, profiles=profiles,
         evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
-        comparison=comparison, _capture=capture, _identity=spec,
+        comparison=comparison, _capture=capture, _identity=spec, _reach=routes,
     )
 
     def run(reach, limit):
@@ -457,7 +498,7 @@ def decide(
     unrestricted = estate_module.Ran(
         decision, capture["models"], capture["rows"], capture["computed"])
     decision.with_estate = estate_module.with_estate(
-        spec.estate, snapshot, unrestricted, run, spec.limit)
+        spec.estate, snapshot, unrestricted, run, spec.limit, spec.access, catalogue)
     return decision
 
 
@@ -484,7 +525,13 @@ def _decide(
     snapshot = with_computed(
         snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS,
         None if _reach is None else _reach.marginal,
+        frozenset() if _reach is None else _reach.unpriced,
+        None if _reach is None else _reach.plan_prices,
     )
+    access = spec.access
+    # A chat app route is paid by the month: order and break ties on the plan's price.
+    tie_cost = (_plan_price if access is not None and access.kind == "chat_app"
+                else _candidate_cost)
     domains = frozenset(snapshot.domain_ids())
     requested = frozenset(spec.capabilities or {})
     selectors = dict(evidence_selectors or {})
@@ -532,8 +579,8 @@ def _decide(
     )
     probabilities = {}
     model_estimates = {}
-    representative_rows = _representative_rows(ordered.results, snapshot)
-    answer = _answer(representative_rows, snapshot)
+    representative_rows = _representative_rows(ordered.results, snapshot, tie_cost)
+    answer = _answer(representative_rows, snapshot, tie_cost)
     if spec.optimize.lexicographic is None and spec.optimize.pareto is None:
         from decision.capability import deterministic_probabilities
 
@@ -611,6 +658,10 @@ def _decide(
         ):
             warnings.append("not_separable")
         p_best, top3 = probabilities.get(model_id, (None, None))
+        plan_routes = (
+            _plan_routes(row.candidate_id, snapshot, access, _reach)
+            if access is not None and _reach is not None else []
+        )
         results.append(Result(
             rank=i + 1,
             offering=offering_ref(snapshot, row.candidate_id),
@@ -622,6 +673,7 @@ def _decide(
             top3_stability=top3,
             soft_penalty=row.soft_penalty,
             warnings=warnings,
+            plans=plan_routes,
         ))
     relax, relax_to = [], []
     if ordered.status == "no_feasible":
