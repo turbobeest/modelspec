@@ -122,6 +122,22 @@ describe("the banded answer on the board", () => {
     expect(within(row).queryByText("tied")).not.toBeInTheDocument();
   });
 
+  it("says no model can lead when every ranked model is thin", () => {
+    const { best, rest, thin } = bandsJson.bands;
+    const allThin = {
+      ...bandsJson,
+      answer: null,
+      bands: { ...bandsJson.bands, leader: null, best: [], rest: [],
+        thin: [...best, ...rest, ...thin].map((entry) => ({ ...entry, p_beats_leader: null })) },
+    };
+    show(allThin, blended);
+    const block = screen.getByRole("heading", { name: "No model has enough evidence to lead yet" }).closest("section")!;
+    expect(block.querySelector(".board-tie-group")).toBeNull();
+    expect(within(block).queryByRole("heading", { name: "What breaks the tie" })).not.toBeInTheDocument();
+    expect(within(block.querySelector(".board-band-thin") as HTMLElement).getAllByRole("listitem")).toHaveLength(5);
+    expect(block).not.toHaveTextContent(/likely to score at least as well/);
+  });
+
   it("names the most independently measured model with no count", () => {
     const named = { ...tiedJson, answer: {
       ...tiedJson.answer,

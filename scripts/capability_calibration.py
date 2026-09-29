@@ -222,7 +222,12 @@ def log_likelihood(cases: Iterable[HeldOut], noise: Noise) -> float:
     return total / count if count else -math.inf
 
 
-def fit_noise(cases: Sequence[HeldOut], *, single: bool = False) -> Noise:
+#: The splits searched: a model with at least this many direct measurements is well measured.
+SPLITS = tuple(range(2, 10))
+
+
+def fit_noise(cases: Sequence[HeldOut], *, single: bool = False,
+              well_measured: int = capability._WELL_MEASURED) -> Noise:
     """The noise variances that best predict held-out direct cells.
 
     Direct cells only: a domain's capability is what its direct benchmarks
@@ -230,9 +235,11 @@ def fit_noise(cases: Sequence[HeldOut], *, single: bool = False) -> Noise:
     ``single`` fits one variance for every model, for comparison.
     """
     if single:
-        candidates = [Noise(value, value) for value in sorted(set(WELL_GRID + SPARSE_GRID))]
+        candidates = [Noise(value, value, well_measured)
+                      for value in sorted(set(WELL_GRID + SPARSE_GRID))]
     else:
-        candidates = [Noise(well, sparse) for well in WELL_GRID for sparse in SPARSE_GRID]
+        candidates = [Noise(well, sparse, well_measured)
+                      for well in WELL_GRID for sparse in SPARSE_GRID]
     return max(candidates, key=lambda noise: (
         log_likelihood(cases, noise), -noise.well, -noise.sparse))
 
@@ -309,6 +316,12 @@ def audit(snapshot: Any) -> dict[str, Any]:
         },
         "single": single,
         "fitted": fitted,
+        "splits": {
+            split: log_likelihood(cases, fit_noise(cases, well_measured=split))
+            for split in SPLITS
+        },
+        "direct_totals": sorted({case.direct_total for case in cases
+                                 if case.directness == "direct"}),
         "current": used,
         "before": coverage(cases, UNCALIBRATED),
         "single_coverage": coverage(cases, single),
@@ -398,9 +411,21 @@ def markdown(result: Mapping[str, Any]) -> str:
         "errors are larger than one variance allows, so one variance makes their",
         "intervals overconfident. The noise variance was therefore fitted separately",
         f"for models with {used.well_measured} or more direct measurements in the domain",
-        "and for models with fewer. The split point is where the likelihood stops",
-        "improving; the data cannot place it more precisely. Fitted: "
-        f"**{fitted.label()}**.",
+        "and for models with fewer. Each split below was refitted; the likelihood",
+        "rises to the split the code uses and is flat beyond it:",
+        "",
+        "| Well measured from | Mean predictive log density (direct cells) |",
+        "|---:|---:|",
+        *[f"| {split} direct | {value:.4f} |" for split, value in result["splits"].items()],
+        "",
+        "Held-out direct cells come from models with these direct counts: "
+        + ", ".join(str(total) for total in result["direct_totals"]) + ". Where a",
+        "count is missing, neighbouring splits fit identically: the data separates the",
+        "counts either side of the gap, not the split within it. The code takes the",
+        "smallest split at the maximum, so a model with a direct count inside the gap",
+        "is treated as well measured without this audit testing it. Fitted at the split",
+        f"the code uses: **{fitted.label()}**. The sparse value is the less certain of",
+        "the two: it rests on the fewer cells, and it moves between folds below.",
         "",
         "| Noise model | Mean predictive log density (direct cells) |",
         "|---|---:|",
@@ -434,6 +459,10 @@ def markdown(result: Mapping[str, Any]) -> str:
         "  sparsely measured models tend to sit on benchmarks with different populations.",
         "  The bifactor fit learns benchmark intercepts; the projection does not. This is",
         "  recorded here, not fixed.",
+        f"- A cell is audited only when {MIN_TRAINING_MODELS + 1} or more models share its",
+        "  benchmark. Benchmarks measured on fewer models have the noisiest",
+        "  standardisation and are used in production with the same variance, so",
+        "  their intervals are, if anything, still optimistic.",
         "- Proxy cells are still above 80%. The proxy loading keeps proxy evidence",
         "  deliberately weak as an input, and a proxy value is not the quantity a domain",
         "  estimate is about.",

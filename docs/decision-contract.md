@@ -803,6 +803,11 @@ without their sampling error.
   alone is 5.1. A thin model is never in the leader's band, whatever its point
   score. In score order.
 
+The result warning `not_separable` is unchanged by the bands: it still marks a
+row whose interval overlaps any other model's, a weaker test. A separated
+leader can carry it. Read the bands for the answer, and the warning as a hint
+that intervals touch.
+
 The width threshold is on the capability scale, not on `score_interval`: a
 score interval is in feasible-set normalised units, which change with the
 lineup, so a fixed width there would mean different evidence in different
@@ -826,7 +831,7 @@ Each band entry:
 | `offering` | The model's best offering under the objective. |
 | `score` | The weighted score, rounded to 6 places. |
 | `score_interval` | The weighted interval, rounded to 6 places. |
-| `p_best` | The result's `p_best` for this model: its probability of being best among every ranked model, thin ones included. Null when the objective has no capability posterior. |
+| `p_best` | The result's `p_best` for this model: its probability of being best among every ranked model, thin ones included. It resamples the capability posteriors only, so a measured benchmark term's published interval widens `p_beats_leader` but not `p_best`. Null when the objective has no capability posterior. |
 | `p_beats_leader` | P(this score ≥ the leader's), to 4 places. Null for the leader, and for every entry when there is no leader. |
 | `cost_per_task` | The offering's cost per task, as in `results`. |
 | `estimates` | One per weighted capability, in objective order: the signed weight key as `dimension`, the estimate's `value`, its 80% `interval`, `benchmarks`, the distinct fitted benchmarks the model is measured on for it, and `direct_benchmarks`, how many of those are tagged direct for it. |

@@ -74,8 +74,27 @@ Models measured directly on few benchmarks miss more often. Their held-out
 errors are larger than one variance allows, so one variance makes their
 intervals overconfident. The noise variance was therefore fitted separately
 for models with 5 or more direct measurements in the domain
-and for models with fewer. The split point is where the likelihood stops
-improving; the data cannot place it more precisely. Fitted: **0.45 with 5+ direct measurements, 0.75 with fewer**.
+and for models with fewer. Each split below was refitted; the likelihood
+rises to the split the code uses and is flat beyond it:
+
+| Well measured from | Mean predictive log density (direct cells) |
+|---:|---:|
+| 2 direct | -1.1757 |
+| 3 direct | -1.1705 |
+| 4 direct | -1.1689 |
+| 5 direct | -1.1676 |
+| 6 direct | -1.1676 |
+| 7 direct | -1.1676 |
+| 8 direct | -1.1676 |
+| 9 direct | -1.1676 |
+
+Held-out direct cells come from models with these direct counts: 1, 2, 3, 4, 14, 19, 24, 26, 29, 31, 32, 33, 34, 36. Where a
+count is missing, neighbouring splits fit identically: the data separates the
+counts either side of the gap, not the split within it. The code takes the
+smallest split at the maximum, so a model with a direct count inside the gap
+is treated as well measured without this audit testing it. Fitted at the split
+the code uses: **0.45 with 5+ direct measurements, 0.75 with fewer**. The sparse value is the less certain of
+the two: it rests on the fewer cells, and it moves between folds below.
 
 | Noise model | Mean predictive log density (direct cells) |
 |---|---:|
@@ -131,6 +150,10 @@ fifth. Fitted per fold: 0.45 with 5+ direct measurements, 0.65 with fewer; 0.4 w
   sparsely measured models tend to sit on benchmarks with different populations.
   The bifactor fit learns benchmark intercepts; the projection does not. This is
   recorded here, not fixed.
+- A cell is audited only when 4 or more models share its
+  benchmark. Benchmarks measured on fewer models have the noisiest
+  standardisation and are used in production with the same variance, so
+  their intervals are, if anything, still optimistic.
 - Proxy cells are still above 80%. The proxy loading keeps proxy evidence
   deliberately weak as an input, and a proxy value is not the quantity a domain
   estimate is about.
