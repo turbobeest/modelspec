@@ -162,22 +162,37 @@ def dead_links(tree: Path) -> list[str]:
     return dead
 
 
+#: What the deployed origin must answer beyond 200. The api-catalog type and
+#: the Link header were both lost once by a `_headers` that replaced the build's.
+EXPECTED_TYPES = {"/.well-known/api-catalog": "application/linkset+json"}
+EXPECTED_LINKS = ('rel="describedby"', 'rel="api-catalog"', 'rel="sitemap"')
+#: Written only on main (MAIN_ONLY), so the build cannot check it; production can.
+DEPLOYED_ONLY = ("/api/decision/vocabulary.json",)
+
+
 def smoke(origin: str, fetch=None) -> list[str]:
-    """Each discovery path or page the deployed `origin` does not serve with 200."""
-    def get(url: str) -> tuple[int, bytes]:
+    """Each way the deployed `origin` fails to serve discovery as built."""
+    def get(url: str) -> tuple[int, dict[str, str], bytes]:
         request = urllib.request.Request(url, headers={"User-Agent": "modelspec-smoke"})
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
-                return response.status, response.read()
+                return response.status, {k.lower(): v for k, v in response.headers.items()}, response.read()
         except urllib.error.HTTPError as error:
-            return error.code, b""
+            return error.code, {}, b""
 
     fetch = fetch or get
     failed: list[str] = []
-    for path in (*(f"/{rel}" for rel in DISCOVERY), "/openapi.yaml", *PAGES):
-        status, body = fetch(origin.rstrip("/") + path)
+    for path in (*(f"/{rel}" for rel in DISCOVERY), "/openapi.yaml", *PAGES, *DEPLOYED_ONLY):
+        status, headers, body = fetch(origin.rstrip("/") + path)
         if status != 200 or not body:
             failed.append(f"{path}: {status}")
+            continue
+        expected = EXPECTED_TYPES.get(path)
+        if expected and not headers.get("content-type", "").startswith(expected):
+            failed.append(f"{path}: Content-Type {headers.get('content-type')!r}, not {expected}")
+        if path == "/":
+            link = headers.get("link", "")
+            failed.extend(f"/: Link header lacks {rel}" for rel in EXPECTED_LINKS if rel not in link)
     return failed
 
 
@@ -197,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
         for line in failed:
             print(f"::error::{args.origin}{line}", file=sys.stderr)
         if not failed:
-            print(f"{args.origin}: every discovery file and page answers 200")
+            print(f"{args.origin}: every discovery file and page answers as built")
         return 1 if failed else 0
 
     out = Path(args.out).resolve()

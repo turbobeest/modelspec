@@ -353,10 +353,23 @@ def test_dead_links_names_a_discovery_file_the_tree_lacks(tmp_path):
     assert "_headers: /sitemap.xml" in dead
 
 
-def test_smoke_reports_each_discovery_path_that_is_not_200():
+def test_smoke_reports_each_discovery_path_that_is_not_served_as_built():
+    link = '</llms.txt>; rel="describedby", </.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap"'
+
     def fetch(url):
-        return (404, b"") if url.endswith("/llms.txt") else (200, b"ok")
-    assert live.smoke("https://modelspec.dev", fetch) == ["/llms.txt: 404"]
+        if url.endswith("/llms.txt"):
+            return 404, {}, b""
+        if url.endswith("/api-catalog"):
+            return 200, {"content-type": "application/octet-stream"}, b"{}"
+        if url == "https://modelspec.dev/":
+            return 200, {"link": link.replace(', </sitemap.xml>; rel="sitemap"', "")}, b"ok"
+        return 200, {"content-type": "application/linkset+json", "link": link}, b"ok"
+
+    assert live.smoke("https://modelspec.dev", fetch) == [
+        "/llms.txt: 404",
+        "/.well-known/api-catalog: Content-Type 'application/octet-stream', not application/linkset+json",
+        '/: Link header lacks rel="sitemap"',
+    ]
 
 
 def test_the_workflow_assembles_live_with_the_module_and_smokes_discovery():
