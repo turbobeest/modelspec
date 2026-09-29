@@ -12,6 +12,8 @@ from collections.abc import Mapping, Sequence
 
 from release_blog.model import Headline
 
+#: Search engines cut a headline at 110 characters; a longer one loses its suffix.
+HEADLINE_MAX = 110
 #: How a unit reads after a difference: "2.1 points lower".
 DIFFERENCE_UNITS = {"percent": "points", None: "points"}
 
@@ -81,6 +83,8 @@ def headline(
         suffix, part = "; the lab's figures await independent readings", "awaiting"
     else:
         suffix, part = "", "no_claims"
+    if len(main + suffix) > HEADLINE_MAX:
+        suffix, part = "", part + ",dropped_for_length"
     return Headline(text=main + suffix, rule=f"{rule}+{part}")
 
 

@@ -304,7 +304,7 @@ class Disclosures(_Strict):
 
 
 class Headline(_Strict):
-    text: str
+    text: str = Field(max_length=110)
     #: The rule that chose it, so a reader can see why this sentence.
     rule: str
 

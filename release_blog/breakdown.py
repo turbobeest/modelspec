@@ -165,9 +165,11 @@ class _Compiler:
             comparability = "different_setup" if differs else "same_setup"
         difference = None
         if comparability == "same_setup":
+            if claim.record_id is None or row.record_id is None:
+                raise BreakdownError(f"{self.model_id}: {row.benchmark_id} row has no record")
             difference = self.computed(
                 round(row.value - claim.value, 6), row.unit, "difference",
-                records=[claim.record_id or "", row.record_id or ""])
+                records=[claim.record_id, row.record_id])
         within = None
         if row.interval is not None:
             low, high = row.interval

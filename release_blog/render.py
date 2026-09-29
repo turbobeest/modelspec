@@ -414,8 +414,16 @@ def _standing(b: Breakdown, n: Footnotes, chart: bool) -> list[str]:
         if s.band == "best" and s.band_size.value > 1:
             others = f"{s.band_size.value - 1:,.0f}" + n.ref(s.band_size)
         if s.band in ("rest", "thin"):
-            rank = "unknown" if s.rank is None else _fmt(n, s.rank)
-            ranked = _fmt(n, s.ranked_models)
+            # Footnotes number in reading order: the thin sentence names the
+            # ranked count before the place, the rest sentence the other way.
+            def place() -> str:
+                return "unknown" if s.rank is None else _fmt(n, s.rank)
+
+            if s.band == "thin":
+                ranked, rank = _fmt(n, s.ranked_models), place()
+            else:
+                rank = place()
+                ranked = _fmt(n, s.ranked_models)
         name = s.domain.name[:1].lower() + s.domain.name[1:]
         sentence = wording.standing(domain=name, band=s.band, others=others, rank=rank,
                                     ranked=ranked, single=s.band_size.value == 2)

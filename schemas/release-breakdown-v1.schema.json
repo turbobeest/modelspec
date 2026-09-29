@@ -553,6 +553,7 @@
           "type": "string"
         },
         "text": {
+          "maxLength": 110,
           "title": "Text",
           "type": "string"
         }

@@ -443,6 +443,12 @@ def test_headline_rules_are_neutral_and_digit_free() -> None:
                     claims_read=0, same_setup=0).text == (
         "Alpha: evidence is too thin to rank yet in maths; "
         "the lab's figures await independent readings")
+    long = headline(name="Alpha", best=[("Software engineering", False),
+                                        ("Agentic and tool use", False)],
+                    ranked_outside=[], thin=[], claims=1, claims_read=0, same_setup=0)
+    assert long.text == ("Alpha is in the leading band for software engineering, "
+                         "and agentic and tool use")
+    assert long.rule == "leading_band+awaiting,dropped_for_length"
     assert headline(name="Alpha", best=[], ranked_outside=[], thin=[], claims=0,
                     claims_read=0, same_setup=0).rule == "no_estimate+no_claims"
 
