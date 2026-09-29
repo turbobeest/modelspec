@@ -466,46 +466,6 @@ def benchmark_jsonld(bench: Benchmark, catalogue: Catalogue) -> dict[str, Any]:
     return data
 
 
-def modelspec_landing_jsonld(models: list[Model], benchmarks: list[Benchmark]) -> list[dict[str, Any]]:
-    return [
-        {
-            "@context": "https://schema.org",
-            "@type": "Dataset",
-            "name": "ModelSpec catalogue",
-            "url": f"{MS_BASE}/",
-            "description": (
-                f"{len(models)} model cards and {len(benchmarks)} benchmark pages. "
-                "Null means not researched."
-            ),
-            "license": "https://creativecommons.org/licenses/by-sa/4.0/",
-            "creator": {"@type": "Organization", "name": "Sparks and Sawdust LLC"},
-            "isAccessibleForFree": True,
-            "distribution": [
-                {"@type": "DataDownload", "contentUrl": f"{MS_BASE}/api/index.json",
-                 "encodingFormat": "application/json"},
-                {"@type": "DataDownload", "contentUrl": f"{MS_BASE}/llms-full.txt",
-                 "encodingFormat": "text/plain"},
-            ],
-        },
-        {
-            "@context": "https://schema.org",
-            "@type": "WebAPI",
-            "name": "ModelSpec Rank API",
-            "url": RANK_API,
-            "documentation": API_DOCS,
-            "provider": {"@type": "Organization", "name": "Sparks and Sawdust LLC"},
-        },
-        {
-            "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            "name": "ModelSpec MCP server",
-            "url": MCP_ENDPOINT,
-            "applicationCategory": "DeveloperApplication",
-            "codeRepository": "https://github.com/turbobeest/modelspec",
-        },
-    ]
-
-
 def api_catalog() -> dict[str, Any]:
     """RFC 9727 linkset (application/linkset+json)."""
     def entry(anchor: str, doc: str, doc_type: str = "text/html") -> dict[str, Any]:
@@ -927,7 +887,7 @@ def ship(*, root: Path, ms: Path, models: list[Model],
     if ms_index.is_file():
         ms_index.write_text(
             _insert_head(ms_index.read_text(encoding="utf-8"),
-                         _head_for("/index.md", modelspec_landing_jsonld(models, benchmarks))),
+                         _head_for("/index.md")),
             encoding="utf-8")
     for model in models:
         page = ms / "m" / model.model_id / "index.html"

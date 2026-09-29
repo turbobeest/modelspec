@@ -52,7 +52,7 @@ import "./decide.css";
 import { mapDecisionToViewModel } from "./adapter/view-model";
 import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
-import { FacetBoard, readEstate, writeEstate } from "./facet-board/FacetBoard";
+import { BoardIntro, FacetBoard, readEstate, writeEstate } from "./facet-board/FacetBoard";
 import {
   boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, hasEstate,
   allocateBoardWeights, nextMustOrder, legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys,
@@ -908,6 +908,7 @@ export function DesignedApp({
         </button>
       </header>
       <main className="work">
+          <BoardIntro />
           {vocabAlert}
           {vocabState.kind === "loading" && (
             <div role="status" aria-busy="true" className="loading">

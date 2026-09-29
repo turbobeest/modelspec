@@ -1,16 +1,14 @@
-"""Social profile assets and opt-in structured-data wiring (MODEL-115)."""
+"""Social profile assets and handles (MODEL-115). The JSON-LD wiring is tested in
+tests/test_structured_data.py."""
 
 from __future__ import annotations
 
 import json
-import os
-import re
 import struct
 from pathlib import Path
 
 import pytest
 
-from pipeline import build as builder
 from pipeline import social_profiles
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,77 +18,6 @@ def _png_size(path: Path) -> tuple[int, int]:
     data = path.read_bytes()
     assert data[:8] == b"\x89PNG\r\n\x1a\n"
     return struct.unpack(">II", data[16:24])
-
-
-def test_empty_profile_config_emits_no_same_as() -> None:
-    html = (ROOT / "site" / "holding" / "index.html").read_text(encoding="utf-8")
-
-    result = social_profiles.add_same_as(html, ROOT / "brand" / "social" / "profiles.json")
-
-    assert '"sameAs"' not in result
-    assert result == html
-
-
-def test_filled_profile_config_adds_canonical_urls(tmp_path: Path) -> None:
-    config = tmp_path / "profiles.json"
-    config.write_text(json.dumps({
-        "x": "modelspecdev",
-        "instagram": "modelspec.dev",
-        "tiktok": "modelspec_dev",
-        "linkedin": "modelspec-dev",
-    }), encoding="utf-8")
-    html = (ROOT / "site" / "holding" / "index.html").read_text(encoding="utf-8")
-
-    result = social_profiles.add_same_as(html, config)
-
-    assert '"sameAs"' in result
-    assert "https://x.com/modelspecdev" in result
-    assert "https://www.instagram.com/modelspec.dev/" in result
-    assert "https://www.tiktok.com/@modelspec_dev" in result
-    assert "https://www.linkedin.com/company/modelspec-dev/" in result
-
-
-def test_site_build_publishes_configured_profiles_in_homepage_json_ld(
-    tmp_path: Path,
-) -> None:
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    for source in ROOT.iterdir():
-        if source.name != "brand":
-            os.symlink(source, repo / source.name)
-
-    brand = repo / "brand"
-    brand.mkdir()
-    for source in (ROOT / "brand").iterdir():
-        if source.name != "social":
-            os.symlink(source, brand / source.name)
-
-    profiles = brand / "social" / "profiles.json"
-    profiles.parent.mkdir()
-    profiles.write_text(json.dumps({
-        "x": "modelspecdev",
-        "instagram": "modelspec.dev",
-        "tiktok": "modelspec_dev",
-        "linkedin": "modelspec-dev",
-    }), encoding="utf-8")
-
-    out = tmp_path / "dist"
-    assert builder.main(["--root", str(repo), "--out", str(out)]) == 0
-
-    homepage = (out / "modelspec" / "index.html").read_text(encoding="utf-8")
-    match = re.search(
-        r'<script\s+type="application/ld\+json"\s*>(.*?)</script>',
-        homepage,
-        re.DOTALL,
-    )
-    assert match is not None
-    structured_data = json.loads(match.group(1))
-    assert structured_data["sameAs"] == [
-        "https://x.com/modelspecdev",
-        "https://www.instagram.com/modelspec.dev/",
-        "https://www.tiktok.com/@modelspec_dev",
-        "https://www.linkedin.com/company/modelspec-dev/",
-    ]
 
 
 @pytest.mark.parametrize("platform,handle", [

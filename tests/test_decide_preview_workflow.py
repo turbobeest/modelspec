@@ -9,7 +9,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pipeline import brand, live as live_site, social_cards  # noqa: E402
+from pipeline import brand, live as live_site, social_cards, structured_data  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +29,8 @@ def files(root):
 def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_path):
     fixture = {
         'dist/modelspec/index.html': b'<link rel="canonical" href="https://modelspec.dev/">landing',
-        'dist/modelspec/api/index.json': b'{"live":true}',
+        'dist/modelspec/api/index.json': b'{"live":true,"count":1}',
+        'dist/modelspec/api/build.json': b'{"built_at":"2026-09-29T00:00:00+00:00","export_schema_version":"3.0"}',
         'dist/modelspec/.well-known/api-catalog': b'catalog',
         'dist/modelspec/.well-known/mcp.json': b'{}',
         'dist/modelspec/.well-known/agent-skills/index.json': b'{}',
@@ -58,7 +59,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2': b'instrument font',
         'dist/benchgraph/_redirects': b'redirects',
         'dist-holding/modelspec/index.html': b'holding page',
-        'dist-holding/modelspec/api/index.json': b'{"live":true}',
+        'dist-holding/modelspec/api/index.json': b'{"live":true,"count":1}',
         'dist-holding/modelspec/legal/terms/index.html': b'terms',
         'web/dist/index.html': b'old graph app, do not replace the site',
         # As Vite writes it: the source entry becomes the hashed bundle.
@@ -84,9 +85,11 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert files(tmp_path / 'dist-holding') == holding
     assert files(tmp_path / 'dist-internal') == files(tmp_path / 'dist')
     live = files(tmp_path / 'dist')
-    assert live['modelspec/index.html'] == fixture['dist/modelspec/index.html']
-    assert live['modelspec/decide/index.html'] == fixture['web/dist/decide.html']
-    assert live['modelspec/graph/index.html'] == fixture['dist/modelspec/graph/index.html']
+    # Pages are copied unchanged apart from the JSON-LD block (MODEL-218).
+    page = lambda rel: structured_data.strip(live[rel].decode()).encode()
+    assert page('modelspec/index.html') == fixture['dist/modelspec/index.html']
+    assert page('modelspec/decide/index.html') == fixture['web/dist/decide.html']
+    assert page('modelspec/graph/index.html') == fixture['dist/modelspec/graph/index.html']
     assert live['modelspec/graph/vendor/three.min.js'] == b'three'
     assert live['modelspec/404.html'] == fixture['web/dist/decide.html']
     index = live['modelspec/index.html'].decode()
@@ -100,9 +103,9 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     for name in ('llms.txt', 'llms-full.txt', 'index.md', 'auth.md'):
         assert live[f'modelspec/{name}'] == fixture[f'dist/modelspec/{name}'], name
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
-    assert live['modelspec/legal/terms/index.html'] == b'terms'
-    assert live['modelspec/pricing/index.html'] == b'v1 pricing'
-    assert live['modelspec/method/index.html'] == b'v1 method'
+    assert page('modelspec/legal/terms/index.html') == b'terms'
+    assert page('modelspec/pricing/index.html') == b'v1 pricing'
+    assert page('modelspec/method/index.html') == b'v1 method'
     assert live['modelspec/pricing-assets/pricing.js'] == b'pricing script'
     assert live['modelspec/openapi.yaml'] == b'openapi'
     assert live['modelspec/.well-known/api-catalog'] == b'catalog'

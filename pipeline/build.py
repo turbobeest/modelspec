@@ -586,12 +586,6 @@ def main(argv: list[str] | None = None) -> int:
         landing.write_text(with_site_nav(landing.read_text(encoding="utf-8"),
                                          r.site_nav(r.MS_NAV),
                                          "site/holding/index.html"), encoding="utf-8")
-        from pipeline.social_profiles import add_same_as
-        landing.write_text(
-            add_same_as(landing.read_text(encoding="utf-8"),
-                        root / "brand" / "social" / "profiles.json"),
-            encoding="utf-8",
-        )
     elif True:
         (ms / "index.html").write_text(_fallback_home(
             "ModelSpec", "ModelSpec",
@@ -634,12 +628,10 @@ def main(argv: list[str] | None = None) -> int:
     agent_counts = agent_ready.ship(
         root=root, ms=ms, models=models, benchmarks=benchmarks,
         catalogue=catalogue, build=build, by_provider=by_provider)
-    from pipeline.social_profiles import add_same_as
-    home = ms / "index.html"
-    home.write_text(
-        add_same_as(home.read_text(encoding="utf-8"), root / "brand" / "social" / "profiles.json"),
-        encoding="utf-8",
-    )
+    # Here as well as in `live.build`: the holding and live trees copy the legal
+    # pages from this tree, and the deploy workflow diffs them byte for byte.
+    from pipeline import structured_data
+    structured_data.inject(ms, root)
 
     missing = missing_internal_hrefs(ms)
     if missing:

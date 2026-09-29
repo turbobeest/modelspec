@@ -340,12 +340,6 @@ def test_built_auth_mcp_and_skills_are_modelspec_only(dist: Path) -> None:
 
 
 def test_built_jsonld_dataset_and_per_page(dist: Path) -> None:
-    ms_html = (dist / "modelspec" / "index.html").read_text(encoding="utf-8")
-    assert '"@type": "Dataset"' in ms_html
-    assert '"@type": "WebAPI"' in ms_html
-    assert ar.RANK_API in ms_html
-    assert ar.MCP_ENDPOINT in ms_html
-    assert "aggregateRating" not in ms_html
     model_html = next((dist / "modelspec" / "m").glob("*/*/index.html")).read_text(encoding="utf-8")
     assert '"@type": "SoftwareApplication"' in model_html
     assert "aggregateRating" not in model_html

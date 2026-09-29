@@ -784,6 +784,10 @@ body {
 }
 .work {
   max-width: 1640px;
+  /* The board loads after first paint. Filling the viewport keeps the footer
+     below the fold until it does, instead of painting it and shoving it down
+     (CLS 0.18 on mobile, MODEL-218). */
+  min-height: 100vh;
   margin: 0 auto;
   padding: 18px 24px 72px;
   display: flex;
