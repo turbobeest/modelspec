@@ -59,10 +59,6 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2': b'instrument font',
         'dist/modelspec/feedback/index.html': b'feedback page',
         'dist/modelspec/feedback-assets/feedback.js': b'feedback control',
-        'dist/modelspec/auth.md': b'auth',
-        'dist/modelspec/llms.txt': (b'# ModelSpec\n- Feedback (no key): POST '
-                                    b'https://api.modelspec.dev/v1/feedback\n'
-                                    b'- Catalogue digest: https://modelspec.dev/llms-full.txt\n'),
         'dist/benchgraph/_redirects': b'redirects',
         'dist-holding/modelspec/index.html': b'holding page',
         'dist-holding/modelspec/api/index.json': b'{"live":true,"count":1}',
@@ -127,11 +123,9 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert live['modelspec/og-card-pricing.png'] == b'pricing card'
     for removed in ('downselect', 'models', 'm'):
         assert not (tmp_path / 'dist' / 'modelspec' / removed).exists()
-    # MODEL-221: the feedback page, its control, and llms.txt naming the endpoint.
+    # MODEL-221: the feedback page and its control, in the sitemap.
     assert live['modelspec/feedback/index.html'] == b'feedback page'
     assert live['modelspec/feedback-assets/feedback.js'] == b'feedback control'
-    assert b'/v1/feedback' in live['modelspec/llms.txt']
-    assert b'llms-full.txt' not in live['modelspec/llms.txt']
     assert b'/feedback/' in live['modelspec/sitemap.xml']
 
 

@@ -42,6 +42,8 @@ BASE = "https://modelspec.dev"
 KEEP_DIRS = (
     "api", "legal", ".well-known", "method", landing.ASSET_DIR, "pricing",
     "pricing-assets", "fonts", "graph",
+    # MODEL-221: the feedback page, and the control every page loads.
+    "feedback", "feedback-assets",
 )
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
@@ -51,7 +53,7 @@ KEEP_FILES = (
 )
 #: The public pages, in sitemap order.
 PAGES = (
-    "/", "/method/", "/decide/", "/graph/", "/pricing/",
+    "/", "/method/", "/decide/", "/graph/", "/pricing/", "/feedback/",
     "/legal/terms/", "/legal/privacy/", "/legal/neutrality/",
 )
 #: Files an agent is pointed at. Every modelspec.dev link in them must resolve.

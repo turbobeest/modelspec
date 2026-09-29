@@ -83,6 +83,7 @@ info:
     /v1/compare: 65536
     /v1/policy-check: 262144
     /v1/signals: 4096
+    /v1/signals/discovered: 4096
     /v1/feedback: 4096
 x-modelspec-access:
   status: wired; enforcement off
@@ -839,6 +840,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransportError'
+  /v1/signals/discovered:
+    post:
+      operationId: releaseDiscoveryIntake
+      summary: Accept a primary-source watcher discovery (MODEL-216), once per ID.
+      security:
+      - signalReadKey: []
+      x-modelspec-probe: skip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseDiscovery'
+      responses:
+        '200':
+          description: The watcher filed this discovery before.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalMutation'
+        '202':
+          description: The discovery was accepted into the pending queue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalMutation'
+        '400': *id009
+        '401': *id009
+        '404': *id009
+        '413': *id009
+        '503': *id009
+        '405': *id010
   /v1/signals/pending:
     get:
       operationId: releaseSignalsPending
@@ -7999,7 +8032,52 @@ components:
           type: string
           minLength: 1
           maxLength: 128
-          pattern: ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$
+          pattern: ^(?!watch:)[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$
+    ReleaseDiscovery:
+      title: ModelSpec release discovery v1
+      description: 'A primary-source watcher discovery (MODEL-216). The same six fields as release-signal
+        v1; the signal ID starts with watch: and first_seen_url is the lab or provider page that listed
+        the model. A discovery is a trigger, never evidence.'
+      type: object
+      additionalProperties: false
+      required:
+      - model_name
+      - provider
+      - first_seen_url
+      - timestamp
+      - confidence
+      - signal_id
+      properties:
+        model_name:
+          type: string
+          minLength: 1
+          maxLength: 300
+          pattern: ^\S(?:[\s\S]*\S)?$
+        provider:
+          type: string
+          minLength: 1
+          maxLength: 300
+          pattern: ^\S(?:[\s\S]*\S)?$
+        first_seen_url:
+          type: string
+          maxLength: 300
+          format: uri
+          pattern: ^https://
+          not:
+            pattern: ^https://([^/]*\.)?(x\.com|twitter\.com|t\.co)(/|$)
+        timestamp:
+          type: string
+          maxLength: 300
+          format: date-time
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        signal_id:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: ^watch:[A-Za-z0-9._:-]{1,122}$
     SignalAcknowledgement:
       type: object
       additionalProperties: false
@@ -8068,7 +8146,7 @@ components:
         schema_version:
           type: string
           enum:
-          - '1'
+          - '2'
         service_commit:
           type: string
         endpoint:
@@ -8078,7 +8156,9 @@ components:
         signals:
           type: array
           items:
-            $ref: '#/components/schemas/ReleaseSignal'
+            oneOf:
+            - $ref: '#/components/schemas/ReleaseSignal'
+            - $ref: '#/components/schemas/ReleaseDiscovery'
         rechecks:
           type: array
           items:
