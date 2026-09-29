@@ -685,6 +685,7 @@ benchmarks:
       Competitor columns were not taken. Publication date is OpenAI''s own dating
       of this article (Research, Sep 3, 2026) on openai.com/index/gpt-5-6/.'
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: GPT-6 Astra
     score: 57.9
@@ -698,6 +699,7 @@ benchmarks:
     configuration: Launch-page Coding table, Astra column only. Not attached to
       terminal_bench (v1.0, superseded). Competitor columns were not taken.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: terminal_bench_science
     model_id_as_evaluated: GPT-6 Astra
     score: 64.6

@@ -742,6 +742,7 @@ benchmarks:
       Gemini API, model id gemini-3.8-flash, default sampling. Self-computed with the
       default Terminus 2 harness (evaluation methodology PDF).
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: charxiv_reasoning
     model_id_as_evaluated: Gemini 3.8 Flash
     score: 86.2
@@ -756,6 +757,7 @@ benchmarks:
       table, Gemini 3.8 Flash column only; competitor columns not taken. Run via the
       Gemini API, model id gemini-3.8-flash, default sampling. No-tools row.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemini-3.8-flash-high
     score: 1493.01

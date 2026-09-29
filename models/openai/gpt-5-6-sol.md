@@ -682,6 +682,7 @@ benchmarks:
       and does not pin a reasoning-effort setting in the cell. Scores are as published
       for that tier, not the Ultra multi-agent configuration.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gpt-5.6-sol-xhigh
     score: 1483.47

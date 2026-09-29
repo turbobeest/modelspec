@@ -707,6 +707,7 @@ benchmarks:
     configuration: Same JSON read, field scoresByTaskType.Retrieval times 100. Dated
       by the day the board was read.
     limitations: ''
+    measured_by: benchmark_author
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

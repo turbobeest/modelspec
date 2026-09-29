@@ -691,6 +691,7 @@ benchmarks:
       style-controlled. Style-control overall is not raw overall and is not a category
       Elo. evidence_date observation_fetch_date=2026-09-10.
     limitations: ''
+    measured_by: independent_evaluator
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: gemma-4-26b-a4b-it_minimal
     score: 73.23

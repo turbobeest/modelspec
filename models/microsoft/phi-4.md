@@ -769,6 +769,7 @@ benchmarks:
       votes, rank 292.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: phi-4
     score: 1277.71
@@ -785,6 +786,7 @@ benchmarks:
       votes, rank 295.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: phi-4
     score: 1264.71
@@ -800,6 +802,7 @@ benchmarks:
       max-effort rule). Rating 1264.71 [1254.21, 1275.20], 2764 votes, rank 269.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: phi-4
     score: 1209.93
@@ -816,6 +819,7 @@ benchmarks:
       votes, rank 306.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: phi-4
     score: 1245.39
@@ -832,6 +836,7 @@ benchmarks:
       votes, rank 300.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: phi-4
     score: 1241.97
@@ -848,6 +853,7 @@ benchmarks:
       votes, rank 300.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: phi-4
     score: 1267.83
@@ -864,6 +870,7 @@ benchmarks:
       votes, rank 275.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: phi-4
     score: 1266.76
@@ -880,6 +887,7 @@ benchmarks:
       votes, rank 300.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: phi-4
     score: 1232.88
@@ -896,6 +904,7 @@ benchmarks:
       votes, rank 305.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: phi-4
     score: 1272.5
@@ -913,6 +922,7 @@ benchmarks:
       votes, rank 288.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: phi-4
     score: 1298.76
@@ -930,6 +940,7 @@ benchmarks:
       votes, rank 283.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: phi-4
     score: 1256.01
@@ -947,6 +958,7 @@ benchmarks:
       votes, rank 297.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: phi-4
     score: 1264.54
@@ -964,6 +976,7 @@ benchmarks:
       votes, rank 307.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: phi-4
     score: 1229.01
@@ -981,6 +994,7 @@ benchmarks:
       votes, rank 306.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    measured_by: independent_evaluator
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: phi-4
     score: 56.06
@@ -995,6 +1009,7 @@ benchmarks:
       read 2026-09-24. Run started 2025-01-31T23:03:31.781Z; effort default; highest-effort
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 2.59 points.
     limitations: Epoch AI data, CC BY 4.0.
+    measured_by: independent_evaluator
 deployment:
   api_only: false
   local_inference: true

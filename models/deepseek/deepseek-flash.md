@@ -708,6 +708,7 @@ benchmarks:
       The Base-model table was not used (different model). Full-set value; the text-only-subset
       value (39.1) was not taken.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: hle_tools
     model_id_as_evaluated: DeepSeek-V4.1-Flash
     score: 63.9
@@ -723,6 +724,7 @@ benchmarks:
       column only. Instruct model at reasoning_effort=100, temperature 1.0, top_p 0.95.
       The Base-model table was not used (different model).
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: terminal_bench_v2_1
     model_id_as_evaluated: DeepSeek-V4.1-Flash
     score: 90.6
@@ -739,6 +741,7 @@ benchmarks:
       The Base-model table was not used (different model). DeepSeek Harness, Minimal
       mode, 1M context.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: terminal_bench_3_0
     model_id_as_evaluated: DeepSeek-V4.1-Flash
     score: 30.0
@@ -755,6 +758,7 @@ benchmarks:
       The Base-model table was not used (different model). DeepSeek Harness, Minimal
       mode, 1M context.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: DeepSeek-V4.1-Flash
     score: 31.2
@@ -771,6 +775,7 @@ benchmarks:
       The Base-model table was not used (different model). DeepSeek Harness, Minimal
       mode, 1M context.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: cybergym
     model_id_as_evaluated: DeepSeek-V4.1-Flash
     score: 88.1
@@ -787,6 +792,7 @@ benchmarks:
       The Base-model table was not used (different model). DeepSeek does not say which
       CyberGym metric Pass@1 denotes (reproduction vs new-vulnerability rate).
     limitations: ''
+    measured_by: provider_self_report
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

@@ -703,6 +703,7 @@ benchmarks:
     configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Retrieval
       times 100. The JSON states no snapshot date, so the reading is dated by the observation.
     limitations: The leaderboard reports this model as 95% zero-shot on the benchmark's tasks.
+    measured_by: benchmark_author
   - benchmark_id: mteb_v2_classification
     model_id_as_evaluated: Qwen/Qwen3-Embedding-8B
     score: 90.43
@@ -716,6 +717,7 @@ benchmarks:
     configuration: MTEB leaderboard backend JSON read 2026-09-24; field scoresByTaskType.Classification
       times 100. The JSON states no snapshot date, so the reading is dated by the observation.
     limitations: The leaderboard reports this model as 95% zero-shot on the benchmark's tasks.
+    measured_by: benchmark_author
   - benchmark_id: mteb_multilingual_v2
     model_id_as_evaluated: Qwen/Qwen3-Embedding-8B
     score: 70.58
@@ -729,6 +731,7 @@ benchmarks:
     configuration: MTEB leaderboard backend JSON read 2026-09-24; field meanTask times 100.
       The JSON states no snapshot date, so the reading is dated by the observation.
     limitations: The leaderboard reports this model as 99% zero-shot on the benchmark's tasks.
+    measured_by: benchmark_author
   benchmark_source: mteb-leaderboard
   benchmark_as_of: 2026-04
   benchmark_notes: ''

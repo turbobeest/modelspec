@@ -682,6 +682,7 @@ benchmarks:
       not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page
       and was not attached to live_code_bench.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: mmlu_pro
     model_id_as_evaluated: DeepSeek-V4-Pro (max)
     score: 87.5
@@ -721,6 +722,7 @@ benchmarks:
       not a third-party agent scaffold. LiveCodeBench is reported as v6 on this page
       and was not attached to live_code_bench.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: deepseek-v4-pro
     score: 1457.34

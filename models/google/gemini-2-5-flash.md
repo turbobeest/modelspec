@@ -1178,6 +1178,7 @@ benchmarks:
       model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
+    measured_by: independent_evaluator
 deployment:
   api_only: false
   local_inference: false

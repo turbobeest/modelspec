@@ -682,6 +682,7 @@ benchmarks:
       top_p), mean of 5 trials, thinking blocks included in sampling. 500-problem
       SWE-bench Verified subset.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: claude-opus-5-max
     score: 1487.36

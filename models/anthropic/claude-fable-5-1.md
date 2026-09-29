@@ -683,6 +683,7 @@ benchmarks:
       5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
       copied to either card. Adaptive thinking, max effort. Average over five trials.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: swe_bench_multilingual
     model_id_as_evaluated: Claude Fable 5.1
     score: 89.1
@@ -698,6 +699,7 @@ benchmarks:
       5.1 by name; the summary table's shared 'Fable 5.1 / Mythos 5.1' column was not
       copied to either card. Adaptive thinking, max effort. Average over five trials.
     limitations: ''
+    measured_by: provider_self_report
   - benchmark_id: swe_bench_multimodal
     model_id_as_evaluated: Claude Fable 5.1
     score: 54.7
