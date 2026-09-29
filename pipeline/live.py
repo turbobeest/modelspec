@@ -34,7 +34,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from pipeline import brand, landing, social_cards
+from pipeline import brand, landing, social_cards, structured_data
 
 BASE = "https://modelspec.dev"
 
@@ -117,6 +117,7 @@ def build(src: Path, web: Path, out: Path) -> None:
     (tree / "_redirects").write_text(REDIRECTS, encoding="utf-8")
     (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     (tree / "sitemap.xml").write_text(sitemap(), encoding="utf-8")
+    structured_data.inject(tree)
     headers = (real / "_headers").read_text(encoding="utf-8")
     (tree / "_headers").write_text(headers.rstrip("\n") + "\n" + HEADERS, encoding="utf-8")
     (out / "benchgraph").mkdir()

@@ -8,6 +8,7 @@ variable is unset). benchgraph.dev is the same redirect file in both.
 
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import sys
@@ -26,6 +27,7 @@ from pipeline import legal  # noqa: E402
 from pipeline import live  # noqa: E402
 from pipeline import landing  # noqa: E402
 from pipeline import social_cards  # noqa: E402
+from pipeline import structured_data  # noqa: E402
 from pipeline.load import load_models  # noqa: E402
 
 SITES = tuple(holding.SITES)
@@ -311,6 +313,16 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
         assert live.resolves(ms, page), page
 
 
+def test_every_live_page_carries_one_json_ld_graph(trees):
+    ms = trees["live"] / "modelspec"
+    assert set(live.PAGES) == {"/", *structured_data.CRUMBS}
+    for page in live.PAGES:
+        html = (ms / page.lstrip("/") / "index.html").read_text(encoding="utf-8")
+        blocks = re.findall(r'<script type="application/ld\+json"[^>]*>(.*?)</script>', html, re.S)
+        assert len(blocks) == 1, page
+        assert json.loads(blocks[0])["@graph"], page
+
+
 def test_the_live_tree_is_an_allowlist(trees):
     ms = trees["live"] / "modelspec"
     for gone in ("m", "p", "b", "models", "providers", "benchmarks", "downselect",
@@ -318,7 +330,8 @@ def test_the_live_tree_is_an_allowlist(trees):
                  "assets/main-x.js"):
         assert not (ms / gone).exists(), gone
     assert (ms / "assets" / "decide-x.js").is_file()
-    assert (ms / "decide" / "index.html").read_bytes() == (ms / "404.html").read_bytes()
+    decide = (ms / "decide" / "index.html").read_text(encoding="utf-8")
+    assert structured_data.strip(decide) == (ms / "404.html").read_text(encoding="utf-8")
     assert _files(trees["live"] / "benchgraph") == _files(trees["real"] / "benchgraph")
     for rel in ("api", "legal"):
         assert _files(ms / rel) == _files(trees["real"] / "modelspec" / rel), rel

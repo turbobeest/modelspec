@@ -235,7 +235,6 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     onSpec(boardToSpec(spec, vocabulary, empty.selections, []));
   };
   return <div className="facet-board">
-    <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div></div>
     <TemplatePicker vocabulary={vocabulary} active={activeTemplate} open={templatesOpen} onOpen={setTemplatesOpen} onApply={applyTemplate} />
     {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}
     {onAccess && <AccessQuestion access={access} onAccess={onAccess} />}
@@ -259,3 +258,9 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
 }
 
 export { readEstate, writeEstate };
+
+/** The board's heading. App renders it before the vocabulary loads, so the
+ * page's largest paint does not wait on a fetch (MODEL-218). */
+export function BoardIntro() {
+  return <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div></div>;
+}
