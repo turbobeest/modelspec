@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sys
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
@@ -133,8 +134,19 @@ def front(path: Path) -> dict[str, Any]:
 def replace_or_append_model_fact(path: Path, fact: dict[str, Any]) -> bool:
     text = path.read_text(encoding="utf-8")
     dumped = yaml.safe_dump([fact], sort_keys=False, allow_unicode=True, width=100).rstrip() + "\n"
-    starts = [match.start() for match in re.finditer(r"(?m)^- (?:id|facet):", text)]
-    starts.append(text.index("card_schema_version:"))
+    facts_key = re.search(r"(?m)^facts:\n", text)
+    if facts_key is None:
+        raise RuntimeError(f"{path}: card has no facts block")
+    # The facts block runs to the next top-level key or the closing fence; card
+    # layouts differ on whether card_schema_version comes before or after it.
+    following = re.search(r"(?m)^(?![ \-\n])|^---\s*$", text[facts_key.end():])
+    facts_end = facts_key.end() + (following.start() if following else len(text) - facts_key.end())
+    starts = [
+        match.start()
+        for match in re.finditer(r"(?m)^- (?:id|facet):", text)
+        if facts_key.end() <= match.start() < facts_end
+    ]
+    starts.append(facts_end)
     bounds = None
     for start, end in zip(starts, starts[1:]):
         candidate = yaml.safe_load(text[start:end])
@@ -142,8 +154,7 @@ def replace_or_append_model_fact(path: Path, fact: dict[str, Any]) -> bool:
             bounds = (start, end)
             break
     if bounds is None:
-        at = text.index("card_schema_version:")
-        updated = text[:at] + dumped + text[at:]
+        updated = text[:facts_end] + dumped + text[facts_end:]
     else:
         updated = text[:bounds[0]] + dumped + text[bounds[1]:]
     updated = re.sub(r"(?m)^card_updated:.*$", f"card_updated: '{READ_DATE}'", updated)
@@ -212,7 +223,7 @@ def hardware_registry_hash() -> str:
 
 
 def collect_hardware(store: CopyStore, registrations: list[dict[str, Any]],
-                     claims: list[Claim]) -> None:
+                     claims: list[Claim], only: frozenset[str] | None = None) -> None:
     lineup = yaml.safe_load((ROOT / "premier/slice-1.yaml").read_text())["models"]
     registered = load_sources(ROOT / "registry/sources.yaml")
     device_inputs = devices()
@@ -220,6 +231,8 @@ def collect_hardware(store: CopyStore, registrations: list[dict[str, Any]],
 
     for lineup_row in lineup:
         model_id = lineup_row["model_id"]
+        if only is not None and model_id not in only:
+            continue
         path = card_path(model_id)
         data = front(path)
         facts = data.get("facts") or []
@@ -350,11 +363,14 @@ def offering_paths() -> list[Path]:
 
 
 def collect_private_deployment(store: CopyStore, registrations: list[dict[str, Any]],
-                               claims: list[Claim]) -> None:
+                               claims: list[Claim],
+                               only: frozenset[str] | None = None) -> None:
     source_registry = load_sources(ROOT / "registry/sources.yaml")
     for path in offering_paths():
         rows = yaml.safe_load(path.read_text(encoding="utf-8"))
         for offering in rows:
+            if only is not None and offering["model"] not in only:
+                continue
             offering_id = (
                 f"{offering['provider']}/{offering['model']}/"
                 f"{offering['region']}/{offering['tier']}"
@@ -416,11 +432,12 @@ def collect_private_deployment(store: CopyStore, registrations: list[dict[str, A
 
 
 def main() -> None:
+    only = frozenset(sys.argv[2:]) if sys.argv[1:2] == ["--only"] else None
     store = CopyStore()
     registrations: list[dict[str, Any]] = []
     claims: list[Claim] = []
-    collect_hardware(store, registrations, claims)
-    collect_private_deployment(store, registrations, claims)
+    collect_hardware(store, registrations, claims, only)
+    collect_private_deployment(store, registrations, claims, only)
     register(registrations)
     queue = Queue(ROOT / "verification")
     filed_at = datetime.now(UTC)

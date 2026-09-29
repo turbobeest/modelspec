@@ -207,6 +207,16 @@ def test_html_is_self_contained_escaped_and_labels_lab_reports(index):
     assert "<img" not in render_html(decision, index)
 
 
+def test_html_without_estimates_says_capability_estimates_are_not_available(index):
+    from decision.explain import render_html
+
+    decision = decide(spec(where=[]), index, facets=facets)
+    assert decision.results and not any(result.estimates for result in decision.results)
+    html = render_html(decision, index)
+    assert "Capability estimates and probabilities are not available." in html
+    assert "include uncertainty intervals" not in html
+
+
 def test_none_latency_is_within_noise_of_bypassed_explanation(index, monkeypatch):
     import gc
     import timeit

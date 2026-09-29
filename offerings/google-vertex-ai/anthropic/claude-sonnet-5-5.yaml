@@ -1,0 +1,163 @@
+- model: anthropic/claude-sonnet-5-5
+  provider: google-vertex-ai
+  region: global
+  tier: standard
+  facts:
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.input
+    value: 2.0
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:01222ced032f935938e50f889f6a869911a907416c26c42596cc37714bbd80fb
+      cited_regions:
+      - partner-anthropic-regional
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.output
+    value: 10.0
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:01222ced032f935938e50f889f6a869911a907416c26c42596cc37714bbd80fb
+      cited_regions:
+      - partner-anthropic-regional
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.cached_input
+    value: 0.2
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:01222ced032f935938e50f889f6a869911a907416c26c42596cc37714bbd80fb
+      cited_regions:
+      - partner-anthropic-regional
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.batch_input
+    value: 1.0
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:01222ced032f935938e50f889f6a869911a907416c26c42596cc37714bbd80fb
+      cited_regions:
+      - partner-anthropic-regional
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.batch_output
+    value: 5.0
+    state: known
+    sources:
+    - source_id: vertex-pricing
+      snapshot_ref: sha256:01222ced032f935938e50f889f6a869911a907416c26c42596cc37714bbd80fb
+      cited_regions:
+      - partner-anthropic-regional
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.data.retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: model-s55-vertex-data-rendered
+      snapshot_ref: sha256:a5ea26244e595415a14b7ba42a98ac269de0b3b9cb28694387c74ad1cad407e9
+      cited_regions:
+      - vertex-policy
+    checked_sources:
+    - model-s55-vertex-data-rendered
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: model-s55-vertex-data-rendered
+      snapshot_ref: sha256:a5ea26244e595415a14b7ba42a98ac269de0b3b9cb28694387c74ad1cad407e9
+      cited_regions:
+      - vertex-policy
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: model-s55-vertex-data-rendered
+      snapshot_ref: sha256:a5ea26244e595415a14b7ba42a98ac269de0b3b9cb28694387c74ad1cad407e9
+      cited_regions:
+      - vertex-policy
+    checked_sources:
+    - model-s55-vertex-data-rendered
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: model-s55-google-attestations-rendered
+      snapshot_ref: sha256:414b4ff1e86ac49500110a1a48c74aaa41dea6682b3644f371cd42c48bd76d9b
+      cited_regions:
+      - vertex-policy
+    checked_sources:
+    - model-s55-google-attestations-rendered
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.attestation.baa
+    value: true
+    state: known
+    sources:
+    - source_id: model-s55-google-attestations-rendered
+      snapshot_ref: sha256:414b4ff1e86ac49500110a1a48c74aaa41dea6682b3644f371cd42c48bd76d9b
+      cited_regions:
+      - vertex-policy
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - vertex-pricing
+    - model-s55-anthropic-claude-sonnet-5-5
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - vertex-pricing
+    - model-s55-anthropic-claude-sonnet-5-5
+  - id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: google-vertex-ai/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - model-s55-anthropic-claude-sonnet-5-5
+    - model-s55-google-attestations-rendered
+    - model-s55-vertex-data-rendered
+    - vertex-pricing

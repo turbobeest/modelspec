@@ -335,7 +335,16 @@ def decide(payload: Any, snapshot, *,
             status=HTTP_CONFLICT,
             snapshot_id=snapshot.snapshot_id,
         )
-    decision = run_decision(spec, snapshot, facets=facets)
+    try:
+        decision = run_decision(spec, snapshot, facets=facets)
+    except contract.SpecError as exc:
+        return error_response(
+            "invalid_spec",
+            "the request body is not a valid decision spec",
+            status=HTTP_BAD_REQUEST,
+            snapshot_id=snapshot.snapshot_id,
+            issues=_issues(exc),
+        )
     return HTTP_OK, decision.model_dump(mode="json")
 
 
@@ -376,8 +385,18 @@ def compare(payload: Any, old_snapshot, new_snapshot, *,
             endpoint="compare",
         )
     comparison_spec = spec.model_copy(update={"snapshot": "latest", "explain": "full"})
-    old = run_decision(comparison_spec, old_snapshot, facets=facets, comparison=True)
-    new = run_decision(comparison_spec, new_snapshot, facets=facets, comparison=True)
+    try:
+        old = run_decision(comparison_spec, old_snapshot, facets=facets, comparison=True)
+        new = run_decision(comparison_spec, new_snapshot, facets=facets, comparison=True)
+    except contract.SpecError as exc:
+        return error_response(
+            "invalid_spec",
+            "the request body does not contain a valid decision spec",
+            status=HTTP_BAD_REQUEST,
+            snapshot_id=new_snapshot.snapshot_id,
+            issues=_issues(exc),
+            endpoint="compare",
+        )
     result = compare_decisions(
         old,
         new,

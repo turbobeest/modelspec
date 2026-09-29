@@ -22,7 +22,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Literal
+from typing import Any, Literal, cast
 
 Direction = Literal["higher_is_better", "lower_is_better"]
 Directness = Literal["direct", "proxy"]
@@ -40,6 +40,7 @@ _RIDGE_ITEM = 0.25
 _MIN_ITEM_MODELS = 2
 _DOMAIN_PRIOR_PRECISION = 0.25
 _PROJECTION_PROXY_LOADING = 0.35
+_EXCLUSION_CACHE_SIZE = 16
 
 
 @dataclass(frozen=True)
@@ -704,6 +705,142 @@ def fit_capabilities(
         drivers=drivers,
         domain_estimates=domain_estimates,
     )
+
+
+class BenchmarkExclusionView:
+    """A per-spec snapshot view with selected benchmark evidence removed."""
+
+    def __init__(self, base: Any, excluded: frozenset[str], fit: CapabilityFit) -> None:
+        self._base = base
+        self.excluded_benchmarks = tuple(sorted(excluded))
+        self._excluded = excluded
+        self._fit = fit
+        payload = fit.to_payload()
+        self.capability_method = payload["method"]
+        self.capability_items = payload["items"]
+        self.capability_source_offsets = payload["source_offsets"]
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._base, name)
+
+    def evidence(self, cid: str, benchmark_id: str, **qualifiers: Any) -> Sequence[Any]:
+        if benchmark_id in self._excluded:
+            return ()
+        return self._base.evidence(cid, benchmark_id, **qualifiers)
+
+    def evidence_where(self, benchmark_id: str, op: str, arg: Any, **qualifiers: Any) -> Any:
+        if benchmark_id not in self._excluded:
+            return self._base.evidence_where(benchmark_id, op, arg, **qualifiers)
+        from decision.snapshot import Bitset3
+
+        everyone = (1 << len(self.candidates())) - 1
+        return Bitset3(0, 0, everyone)
+
+    def evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[Any]:
+        return tuple(
+            row
+            for row in self._base.evidence_for_domain(cid, domain_id)
+            if row.benchmark_id not in self._excluded
+        )
+
+    def capability_estimate(self, cid: str, domain_id: str) -> Any:
+        from decision.snapshot import CapabilityEstimateValue
+
+        estimate = self._fit.estimate(self.model_of(cid), domain_id)
+        if estimate is None:
+            return None
+        return CapabilityEstimateValue(estimate.value, estimate.low, estimate.high, estimate.sd)
+
+    def capability_drivers(self, cid: str, domain_id: str) -> Sequence[Any]:
+        from decision.snapshot import CapabilityDriverValue
+
+        return tuple(
+            CapabilityDriverValue(
+                row.record_id,
+                row.benchmark_id,
+                row.version,
+                row.loading,
+                row.weight,
+                row.recency_weight,
+            )
+            for row in self._fit.explain(self.model_of(cid), domain_id)
+        )
+
+    def evidence_record(self, cid: str, record_id: str) -> Any:
+        row = self._base.evidence_record(cid, record_id)
+        if row is not None and row.benchmark_id in self._excluded:
+            return None
+        return row
+
+    def baseline_capability_estimate(self, cid: str, domain_id: str) -> Any:
+        return self._base.capability_estimate(cid, domain_id)
+
+    def baseline_capability_drivers(self, cid: str, domain_id: str) -> Sequence[Any]:
+        return self._base.capability_drivers(cid, domain_id)
+
+    def removed_evidence_for_domain(self, cid: str, domain_id: str) -> Sequence[Any]:
+        return tuple(
+            row
+            for row in self._base.evidence_for_domain(cid, domain_id)
+            if row.benchmark_id in self._excluded
+        )
+
+
+def excluding_benchmarks(snapshot: Any, benchmark_ids: Iterable[str]) -> BenchmarkExclusionView:
+    """Refit one snapshot without ``benchmark_ids``, cached by excluded set."""
+    excluded = frozenset(benchmark_ids)
+    if not excluded:
+        return snapshot
+    if snapshot.as_of is None:
+        raise ValueError("benchmark exclusion requires a dated snapshot")
+
+    cache = getattr(snapshot, "_benchmark_exclusion_cache", None)
+    if cache is None:
+        cache = {}
+        setattr(snapshot, "_benchmark_exclusion_cache", cache)
+    fit = cache.get(excluded)
+    if fit is None:
+        tags = snapshot.benchmark_domain_tags()
+        observations = []
+        for model_id, row in snapshot.corpus_evidence():
+            if row.benchmark_id in excluded or row.date is None:
+                continue
+            domains = tuple(
+                (domain_id, cast(Directness, directness))
+                for domain_id, directness in tags.get(row.benchmark_id, ())
+            )
+            if not domains:
+                continue
+            observations.append(CapabilityObservation(
+                model_id=model_id,
+                benchmark_id=row.benchmark_id,
+                value=float(row.value),
+                unit=row.unit,
+                measured_by=str(row.measured_by or ""),
+                date=row.date,
+                record_id=str(row.record_id or ""),
+                version=row.version,
+                domains=domains,
+            ))
+        specs = {}
+        for item in snapshot.capability_items.values():
+            benchmark_id = str(item["benchmark"])
+            specs.setdefault(
+                benchmark_id,
+                BenchmarkSpec(
+                    random_baseline=item.get("random_baseline"),
+                    sample_size=item.get("sample_size"),
+                    direction=item.get("direction", "higher_is_better"),
+                ),
+            )
+        fit = fit_capabilities(observations, specs, as_of=snapshot.as_of)
+        if len(cache) >= _EXCLUSION_CACHE_SIZE:
+            cache.pop(next(iter(cache)))
+        cache[excluded] = fit
+    else:
+        cache.pop(excluded)
+        cache[excluded] = fit
+    return BenchmarkExclusionView(snapshot, excluded, fit)
 
 
 def _heldout_cells(

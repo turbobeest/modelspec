@@ -13,10 +13,12 @@ from decision.contract import (
     Estimate,
     FacetLookup,
     InventoryProfile,
+    Issue,
     MayQualify,
     OfferingRef,
     Result,
     Spec,
+    SpecError,
     Truncated,
     spec_hash,
 )
@@ -90,6 +92,20 @@ def validate(
     """Run the decision stages through resolve, stopping before filtering."""
     if snapshot is None:
         raise ValueError("a loaded decision snapshot is required")
+    if spec.exclude_benchmarks:
+        known_benchmarks = set(snapshot.benchmark_ids())
+        issues = [
+            Issue(
+                None,
+                benchmark_id,
+                "unknown benchmark ID in this snapshot",
+                f"exclude_benchmarks[{index}]",
+            )
+            for index, benchmark_id in enumerate(spec.exclude_benchmarks)
+            if benchmark_id not in known_benchmarks
+        ]
+        if issues:
+            raise SpecError(issues)
     snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)
     if spec.explain in ("summary", "full"):
         snapshot.require_explanation_records()
@@ -155,6 +171,10 @@ def decide(
     intermediate Decision. Ordinary full decisions still cap ``top`` at 20.
     """
     resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
+    if spec.exclude_benchmarks:
+        from decision.capability import excluding_benchmarks
+
+        snapshot = excluding_benchmarks(snapshot, spec.exclude_benchmarks)
     # Computed facets (offering.cost_per_task) depend on the spec, so the
     # remaining stages use the same per-decision view validation prepared for.
     snapshot = with_computed(snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS)

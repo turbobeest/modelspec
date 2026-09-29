@@ -297,6 +297,132 @@ sources:
     locator:
       kind: page
       value: ''
+- id: model-s55-anthropic-claude-sonnet-5-5
+  url: https://platform.claude.com/docs/en/models/sonnet-5-5/overview
+  fetch: http
+  normaliser: html-default
+  cited_regions:
+  - id: model-spec
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-anthropic-claude-sonnet-5-5-launch
+  url: https://www.anthropic.com/claude-sonnet-5-5
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: benchmark-data
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-anthropic-pricing-rendered
+  url: https://platform.claude.com/docs/en/about-claude/pricing
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: sonnet-5-5-pricing
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-anthropic-model-facts-rendered
+  url: https://platform.claude.com/docs/en/models/sonnet-5-5/overview
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: guaranteed-facts
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-anthropic-commercial-terms-rendered
+  url: https://www.anthropic.com/legal/commercial-terms
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: guaranteed-facts
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-anthropic-retention-rendered
+  url: https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: api-policy
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-anthropic-training-rendered
+  url: https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: api-policy
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-anthropic-zdr-rendered
+  url: https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: api-policy
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-anthropic-attestations-rendered
+  url: https://privacy.claude.com/en/articles/10015870-what-certifications-has-anthropic-obtained
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: api-policy
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-aws-retention-rendered
+  url: https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: bedrock-policy
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-aws-attestations-rendered
+  url: https://aws.amazon.com/bedrock/security-compliance/
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: bedrock-policy
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-vertex-data-rendered
+  url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/vertex-ai-zero-data-retention
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: vertex-policy
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-google-attestations-rendered
+  url: https://cloud.google.com/security/compliance/hipaa-compliance
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: vertex-policy
+    locator:
+      kind: page
+      value: ''
+- id: model-s55-aws-bedrock-pricing-rendered
+  url: https://aws.amazon.com/bedrock/pricing/
+  fetch: rendered
+  normaliser: text-default
+  cited_regions:
+  - id: sonnet-5-5-global-cross-region
+    locator:
+      kind: page
+      value: ''
 - id: model-143-anthropic-commercial-terms
   url: https://www.anthropic.com/legal/commercial-terms
   fetch: http
@@ -4149,6 +4275,16 @@ sources:
       value: ''
 - id: model-174-openai-openai-gpt-5-6-sol-global-standard-primary
   url: https://openai.com/api-reserved-tier/
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+# MODEL-174: hardware fit and private deployment, read 2026-09-28.
+- id: model-174-aws-bedrock-anthropic-claude-sonnet-5-5-global-cross-region-standard-primary
+  url: https://docs.aws.amazon.com/bedrock/latest/userguide/prov-thru-supported.html
   fetch: http
   normaliser: text-default
   cited_regions:

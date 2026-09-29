@@ -198,6 +198,23 @@ def test_a_valid_spec_requires_a_local_snapshot(
     assert "modelspec snapshot fetch" in result.output
 
 
+def test_cli_accepts_benchmark_exclusions(
+    tmp_path: Path,
+    cached_vocabulary: dict,
+) -> None:
+    text = VALID.replace(
+        "where:",
+        "exclude_benchmarks: [swe_bench_pro]\nwhere:",
+    )
+
+    result = _run(tmp_path, text, "--json")
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["benchmark_exclusions"]["benchmarks"] == [
+        "swe_bench_pro"
+    ]
+
+
 def test_json_reports_the_spec_hash_and_the_error_code(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -206,7 +223,7 @@ def test_json_reports_the_spec_hash_and_the_error_code(
     assert result.exit_code == 1
     payload = json.loads(result.stderr)
     assert payload["command"] == "decide"
-    assert payload["contract_version"] == "1.11"
+    assert payload["contract_version"] == "1.12"
     assert payload["spec_hash"].startswith("sha256:")
     assert payload["error"]["code"] == "snapshot_required"
 

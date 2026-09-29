@@ -2,7 +2,7 @@
 <img width="2816" height="797" alt="modelspec" src="https://github.com/user-attachments/assets/1e344d67-605d-4577-8ea4-84148d5ae3d5" />
 </p>
 
-ModelSpec catalogs AI models as YAML+Markdown cards, exports them to versioned JSON on Cloudflare Pages ([modelspec.dev](https://modelspec.dev)), and ranks from that export — in the browser, or offline from a local snapshot. **No database is on the serving path.**
+ModelSpec is a decision engine for AI models. It reads a spec, filters models and offerings against its constraints, and explains the decision from a versioned offline snapshot. The catalogue starts as YAML and Markdown, then exports to JSON on Cloudflare Pages ([modelspec.dev](https://modelspec.dev)). **No database is on the serving path.**
 
 - Site: [modelspec.dev](https://modelspec.dev) · [decide](https://modelspec.dev/decide/) · [graph](https://modelspec.dev/graph/)
 - CLI contract: [`docs/cli-contract.md`](docs/cli-contract.md)
@@ -14,21 +14,35 @@ ModelSpec catalogs AI models as YAML+Markdown cards, exports them to versioned J
 ```bash
 pipx install modelspec-dev
 modelspec snapshot fetch
-modelspec offline rank coding --json
+modelspec vocab templates
+modelspec decide --template budget-coding
 ```
 
-`snapshot fetch` is the only networked command. After that, rank and fit read the cache.
+`snapshot fetch` is the only networked command. After that, `vocab` and `decide` read the cache.
 
 The supported interface is [`docs/cli-contract.md`](docs/cli-contract.md):
 
 ```
 modelspec snapshot fetch [--origin URL]
 modelspec snapshot status [--json]
-modelspec offline rank <use-case> [...]
-modelspec offline fit [<hardware-id>]
+modelspec vocab [SECTION] [--json]
+modelspec decide [SPEC.yaml] [--template ID] [--check] [--json]
 ```
 
-Graph commands (`stats`, `search`, `info`, `compare`, `rank`, `hardware`, …) need a local FalkorDB and are outside this contract.
+### Legacy (v1)
+
+The following commands keep the retired fixed-benchmark contract for existing callers:
+
+```
+modelspec offline rank <use-case> [...]
+modelspec offline fit [<hardware-id>]
+modelspec offline class-fit [<task>]
+```
+
+The root `rank`, `search`, `compare`, `hardware`, `info`, `stats`, and `gaps`
+commands are also legacy v1 commands and are outside the contract. `gaps`
+works offline from the local YAML cards; the other root legacy commands need a
+local FalkorDB.
 
 ## Serving path
 

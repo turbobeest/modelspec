@@ -297,6 +297,7 @@ describe("modelspec MCP worker", () => {
     const spec = {
       spec_version: 1,
       snapshot: "latest",
+      exclude_benchmarks: ["swe_bench_pro"],
       where: ["model.context_window >= 200000"],
       optimize: { min: "offering.cost_per_task" },
     };

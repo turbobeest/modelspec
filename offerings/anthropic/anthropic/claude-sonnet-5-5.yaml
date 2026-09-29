@@ -1,0 +1,160 @@
+- model: anthropic/claude-sonnet-5-5
+  provider: anthropic
+  region: global
+  tier: standard
+  facts:
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.input
+    value: 2.0
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-pricing-rendered
+      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+      cited_regions:
+      - sonnet-5-5-pricing
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.output
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.output
+    value: 10.0
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-pricing-rendered
+      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+      cited_regions:
+      - sonnet-5-5-pricing
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.cached_input
+    value: 0.2
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-pricing-rendered
+      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+      cited_regions:
+      - sonnet-5-5-pricing
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.batch_input
+    value: 1.0
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-pricing-rendered
+      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+      cited_regions:
+      - sonnet-5-5-pricing
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.price.batch_output
+    value: 5.0
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-pricing-rendered
+      snapshot_ref: sha256:a60df7ad1e72e2c80170b175c3cb380a91aed719cab6203dcc75d7029ec45f77
+      cited_regions:
+      - sonnet-5-5-pricing
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.data.retention
+    value: 30
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-retention-rendered
+      snapshot_ref: sha256:64cc3ea35ae0f9ce40f2dd7f39902ce2fb88348c32ed0d51b589c0e500a1257a
+      cited_regions:
+      - api-policy
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-training-rendered
+      snapshot_ref: sha256:a5ea26244e595415a14b7ba42a98ac269de0b3b9cb28694387c74ad1cad407e9
+      cited_regions:
+      - api-policy
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: requires_contract
+    sources:
+    - source_id: model-s55-anthropic-zdr-rendered
+      snapshot_ref: sha256:f905bc9f689d823551113811a11ae7bd39ea83f2769746e734caf47f93b44932
+      cited_regions:
+      - api-policy
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.attestation.soc2
+    value: type_2
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-attestations-rendered
+      snapshot_ref: sha256:8e64bb2c754e7596f0125e95912a9455ac97eeb8682299bcaf45e073d72d21c3
+      cited_regions:
+      - api-policy
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.attestation.baa
+    value: true
+    state: known
+    sources:
+    - source_id: model-s55-anthropic-attestations-rendered
+      snapshot_ref: sha256:8e64bb2c754e7596f0125e95912a9455ac97eeb8682299bcaf45e073d72d21c3
+      cited_regions:
+      - api-policy
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-pricing
+    - model-s55-anthropic-claude-sonnet-5-5
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-pricing
+    - model-s55-anthropic-claude-sonnet-5-5
+  - id: anthropic/anthropic/claude-sonnet-5-5/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: anthropic/anthropic/claude-sonnet-5-5/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - anthropic-pricing
+    - model-s55-anthropic-attestations-rendered
+    - model-s55-anthropic-claude-sonnet-5-5
+    - model-s55-anthropic-pricing-rendered
+    - model-s55-anthropic-retention-rendered
+    - model-s55-anthropic-training-rendered
+    - model-s55-anthropic-zdr-rendered

@@ -234,7 +234,7 @@ def test_rule_based_must_flag_ignores_models_that_fail_another_condition() -> No
     index = load_snapshot_bytes(
         snapshot.to_bytes(key=None),
         key=None,
-        public_keys=None,
+        public_keys={},
     )
     registry = default_registry()
     spec = parse_spec(

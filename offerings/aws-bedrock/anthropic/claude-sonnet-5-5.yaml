@@ -1,0 +1,165 @@
+- model: anthropic/claude-sonnet-5-5
+  provider: aws-bedrock
+  region: global-cross-region
+  tier: standard
+  facts:
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.price.input
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.price.input
+    value: 2.0
+    state: known
+    sources:
+    - source_id: model-s55-aws-bedrock-pricing-rendered
+      snapshot_ref: sha256:4eab7830d2d3062961c889475080be50fcc5915e7c4f3d2d8871ab9ca65e0e2f
+      cited_regions:
+      - sonnet-5-5-global-cross-region
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.price.output
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.price.output
+    value: 10.0
+    state: known
+    sources:
+    - source_id: model-s55-aws-bedrock-pricing-rendered
+      snapshot_ref: sha256:4eab7830d2d3062961c889475080be50fcc5915e7c4f3d2d8871ab9ca65e0e2f
+      cited_regions:
+      - sonnet-5-5-global-cross-region
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.price.cached_input
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.price.cached_input
+    value: 0.2
+    state: known
+    sources:
+    - source_id: model-s55-aws-bedrock-pricing-rendered
+      snapshot_ref: sha256:4eab7830d2d3062961c889475080be50fcc5915e7c4f3d2d8871ab9ca65e0e2f
+      cited_regions:
+      - sonnet-5-5-global-cross-region
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.price.batch_input
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.price.batch_input
+    value: not_offered
+    state: known
+    sources:
+    - source_id: model-s55-aws-bedrock-pricing-rendered
+      snapshot_ref: sha256:4eab7830d2d3062961c889475080be50fcc5915e7c4f3d2d8871ab9ca65e0e2f
+      cited_regions:
+      - sonnet-5-5-global-cross-region
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.price.batch_output
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.price.batch_output
+    value: not_offered
+    state: known
+    sources:
+    - source_id: model-s55-aws-bedrock-pricing-rendered
+      snapshot_ref: sha256:4eab7830d2d3062961c889475080be50fcc5915e7c4f3d2d8871ab9ca65e0e2f
+      cited_regions:
+      - sonnet-5-5-global-cross-region
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.data.retention
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.data.retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: model-s55-aws-retention-rendered
+      snapshot_ref: sha256:d37393c6b8e02647d64c64e1ef82f5ba27112d452e2ecba885ebeb992929e944
+      cited_regions:
+      - bedrock-policy
+    checked_sources:
+    - model-s55-aws-retention-rendered
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.data.trains_on_customer_data
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.data.trains_on_customer_data
+    value: false
+    state: known
+    sources:
+    - source_id: aws-training
+      snapshot_ref: sha256:7370081c504091d7bf76876ca29470c605f05748648efd470844c7cbd0ccfc04
+      cited_regions:
+      - page
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.data.zero_retention
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.data.zero_retention
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: model-s55-aws-retention-rendered
+      snapshot_ref: sha256:d37393c6b8e02647d64c64e1ef82f5ba27112d452e2ecba885ebeb992929e944
+      cited_regions:
+      - bedrock-policy
+    checked_sources:
+    - model-s55-aws-retention-rendered
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.attestation.soc2
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.attestation.soc2
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: model-s55-aws-attestations-rendered
+      snapshot_ref: sha256:48cecadb3ef848870c1b45bcb46a6a9677db47e76499f5e30fc2488cc845efb1
+      cited_regions:
+      - bedrock-policy
+    checked_sources:
+    - model-s55-aws-attestations-rendered
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.attestation.baa
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.attestation.baa
+    value: null
+    state: not_disclosed
+    sources:
+    - source_id: model-s55-aws-attestations-rendered
+      snapshot_ref: sha256:48cecadb3ef848870c1b45bcb46a6a9677db47e76499f5e30fc2488cc845efb1
+      cited_regions:
+      - bedrock-policy
+    checked_sources:
+    - model-s55-aws-attestations-rendered
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.speed.time_to_first_token
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.speed.time_to_first_token
+    value: null
+    state: unknown
+    checked_sources:
+    - aws-pricing
+    - model-s55-anthropic-claude-sonnet-5-5
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.speed.throughput
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.speed.throughput
+    value: null
+    state: unknown
+    checked_sources:
+    - aws-pricing
+    - model-s55-anthropic-claude-sonnet-5-5
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.private_deployment
+    value: false
+    state: known
+    sources:
+    - source_id: model-174-aws-bedrock-anthropic-claude-sonnet-5-5-global-cross-region-standard-primary
+      snapshot_ref: sha256:f479a2cbe5f9541c71412217c4cb3f54574d46c79e86283f13f3d798f77c4e56
+      cited_regions:
+      - rows

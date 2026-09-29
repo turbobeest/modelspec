@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import sys
 from collections.abc import Iterable
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -141,13 +142,16 @@ def _record(
     queue.checked(Result(target, "verified", verification), at=CHECKED_AT)
 
 
-def verify_hardware(store: CopyStore, log: VerificationLog, queue: Queue) -> int:
+def verify_hardware(store: CopyStore, log: VerificationLog, queue: Queue,
+                    only: frozenset[str] | None = None) -> int:
     devices = _devices()
     manifest_hash = hardware_registry_hash()
     count = 0
     lineup = yaml.safe_load((ROOT / "premier/slice-1.yaml").read_text())["models"]
     for row in lineup:
         model_id = row["model_id"]
+        if only is not None and model_id not in only:
+            continue
         data = _front(ROOT / "models" / f"{model_id}.md")
         facts = {fact["facet"]: fact for fact in data.get("facts", [])}
         openness = facts["model.weights_openness"]["value"]
@@ -196,10 +200,13 @@ def verify_hardware(store: CopyStore, log: VerificationLog, queue: Queue) -> int
     return count
 
 
-def verify_private(store: CopyStore, log: VerificationLog, queue: Queue) -> int:
+def verify_private(store: CopyStore, log: VerificationLog, queue: Queue,
+                   only: frozenset[str] | None = None) -> int:
     count = 0
     for path in sorted((ROOT / "offerings").glob("*/*/*.yaml")):
         for offering in yaml.safe_load(path.read_text(encoding="utf-8")):
+            if only is not None and offering["model"] not in only:
+                continue
             for fact in offering.get("facts", []):
                 if fact["facet"] != "offering.private_deployment" or fact["state"] != "known":
                     continue
@@ -222,11 +229,12 @@ def verify_private(store: CopyStore, log: VerificationLog, queue: Queue) -> int:
 
 
 def main() -> None:
+    only = frozenset(sys.argv[2:]) if sys.argv[1:2] == ["--only"] else None
     store = CopyStore()
     log = VerificationLog(ROOT / "verification")
     queue = Queue(ROOT / "verification")
-    hardware = verify_hardware(store, log, queue)
-    private = verify_private(store, log, queue)
+    hardware = verify_hardware(store, log, queue, only)
+    private = verify_private(store, log, queue, only)
     print(f"verified {hardware} hardware facts and {private} private-deployment facts")
 
 

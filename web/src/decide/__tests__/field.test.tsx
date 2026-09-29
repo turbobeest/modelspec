@@ -9,7 +9,7 @@ import { baseSpec } from "../state/spec";
 it("reports a qualifying model omitted by the result limit", () => {
   const decision = decisionSchema.parse({
     ...fixtureJson,
-    contract_version: "1.10",
+    contract_version: "1.12",
     truncated: { offerings: 0, models: 1 },
   });
   const view = mapDecisionToViewModel(

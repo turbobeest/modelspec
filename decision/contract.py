@@ -37,7 +37,7 @@ from pydantic import (
     model_validator,
 )
 
-CONTRACT_VERSION = "1.11"
+CONTRACT_VERSION = "1.12"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -993,6 +993,11 @@ class Spec(_Strict):
     task: str | None = None
     task_type: TaskType | None = None
     capabilities: dict[FacetId, CapabilityLevel] | None = None
+    #: Benchmarks whose evidence must not contribute to this decision. Added in 1.12.
+    exclude_benchmarks: list[FacetId] = Field(
+        default_factory=list,
+        exclude_if=lambda value: not value,
+    )
     #: Tokens per task, for ``offering.cost_per_task``. Added in 1.3.
     task_tokens: TaskTokens | None = None
     where: list[Condition] = Field(default_factory=list)
@@ -1001,6 +1006,11 @@ class Spec(_Strict):
     explain: Explain = "summary"
     limit: int = Field(default=20, ge=1, le=500)
     save_as: SaveAs | None = None
+
+    @field_validator("exclude_benchmarks")
+    @classmethod
+    def _canonical_excluded_benchmarks(cls, value: list[str]) -> list[str]:
+        return sorted(set(value))
 
 
 # ── the decision ───────────────────────────────────────────────────────────
@@ -1062,6 +1072,23 @@ class Estimate(_Strict):
     interval: tuple[float, float]
     harness: HarnessId | None = None
     effort: Effort | None = None
+
+
+class BenchmarkEstimateChange(_Strict):
+    """How one model's domain estimate changed after removing evidence. Added in 1.12."""
+
+    model: ModelId
+    domain: FacetId
+    before: Estimate | None = None
+    after: Estimate | None = None
+    removed_drivers: list[EvidenceItem] = Field(default_factory=list)
+
+
+class BenchmarkExclusions(_Strict):
+    """Benchmarks a spec distrusted and their visible estimate effects. Added in 1.12."""
+
+    benchmarks: list[FacetId]
+    estimate_changes: list[BenchmarkEstimateChange] = Field(default_factory=list)
 
 
 class Contribution(_Strict):
@@ -1255,7 +1282,11 @@ class Decision(_Strict):
     number_origins: list[NumberOrigin] = Field(default_factory=list)
     #: Every source the number origins cite, once each. Added in 1.4.
     sources: list[CitedSource] = Field(default_factory=list)
-    contract_version: Literal["1.11"] = CONTRACT_VERSION
+    benchmark_exclusions: BenchmarkExclusions | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
+    contract_version: Literal["1.12"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1296,7 +1327,8 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Spec, TaskTokens, Objective, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
     Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
-    Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate, Contribution,
+    Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate,
+    BenchmarkEstimateChange, BenchmarkExclusions, Contribution,
     MayQualify, Eliminated, FunnelStep, ModelElimination, OfferingElimination,
     Truncated,
     ModelEliminationGroup, ConstraintCost, TippingPoint,

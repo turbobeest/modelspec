@@ -4,12 +4,13 @@ import http from "node:http";
 import path from "node:path";
 import { chromium } from "playwright";
 
-const [livePath, holdingPath, assembledPath] = process.argv.slice(2);
+const [livePath, holdingPath, methodPath, assembledPath] = process.argv.slice(2);
 const root = new URL("../../", import.meta.url);
 const cssPath = new URL("pipeline/landing_assets/landing.css", root).pathname;
 const scriptPath = new URL("pipeline/landing_assets/landing.js", root).pathname;
 const live = fs.readFileSync(livePath, "utf8");
 const holding = fs.readFileSync(holdingPath, "utf8");
+const method = fs.readFileSync(methodPath, "utf8");
 const assembledRoot = path.resolve(assembledPath);
 const results = {};
 const browser = await chromium.launch({ headless: true });
@@ -108,6 +109,16 @@ try {
   assert.equal(await page.locator(".sticky").isVisible(), true);
   results.responsive = true;
   await context.close();
+
+  const methodContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const methodPage = await methodContext.newPage();
+  await methodPage.setContent(method);
+  await methodPage.addStyleTag({ path: cssPath });
+  await methodPage.addStyleTag({ path: new URL("pipeline/landing_assets/method.css", root).pathname });
+  const methodWidth = await methodPage.evaluate(() => document.documentElement.scrollWidth);
+  assert.equal(methodWidth <= 390, true, `method scrollWidth=${methodWidth}`);
+  results.method_responsive = true;
+  await methodContext.close();
 
   const reduced = await browser.newContext({
     viewport: { width: 1440, height: 900 },

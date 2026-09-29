@@ -113,6 +113,26 @@ models:
     release_date: '2026-09-22'
     lab: anthropic
     note: Released on or after 2026-06-26 by anthropic, a lab with a top-10 model on a current board.
+- model_id: anthropic/claude-sonnet-5-5
+  display_name: Claude Sonnet 5.5
+  class: text-generator
+  model_type: llm-reasoning
+  slice1_group: frontier-generation
+  open_weights: false
+  status: active
+  release_date: '2026-09-28'
+  lab: anthropic
+  clauses:
+  - clause: 2
+    release_date: '2026-09-28'
+    lab: anthropic
+    note: Released on or after 2026-06-26 by anthropic, a lab with a top-10 model on a current board.
+  - clause: 3
+    providers:
+    - lab_api
+    - aws_bedrock
+    - google_vertex_ai
+    note: At least three recorded major providers on the card.
 - model_id: google/gemini-2-5-flash
   display_name: Gemini 2.5 Flash
   class: text-generator
@@ -1586,8 +1606,8 @@ near_misses:
   slice1_group: open-weights-generation
   why: clause 2; among the three newest zhipu releases in the window and not needed to fill a quota
 counts:
-  selected: 43
+  selected: 44
   clause_1_cards: 70
-  clause_2_pool: 40
-  clause_3_pool: 6
+  clause_2_pool: 41
+  clause_3_pool: 7
   missing_top10_rows: 0
