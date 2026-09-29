@@ -388,7 +388,7 @@ body {
   font-size: 14px;
 }
 .global-header {
-  height: 56px;
+  min-height: 56px;
   position: sticky;
   top: 0;
   z-index: 40;
@@ -562,17 +562,25 @@ body {
 }
 
 /* MODEL-168 preview board. It inherits the decision page's light/dark tokens. */
-.facet-board { display: grid; gap: 14px; }
+.facet-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.facet-board > *, .board-intro > *, .estate-strip > *, .board-workspace > * { min-width: 0; }
 .board-intro, .estate-strip, .board-templates, .facet-list, .board-answer-head {
   background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink);
   padding: 14px 16px;
 }
+.legacy-notes { margin: 0 0 12px; padding: 12px 16px; border: 1px solid var(--warning, #b7791f); border-radius: 8px; background: color-mix(in srgb, var(--warning, #b7791f) 8%, transparent); }
+.legacy-notes ul { margin: 6px 0 0; padding-left: 20px; }
+.legacy-notes li + li { margin-top: 4px; }
 .board-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .board-intro h1 { margin: 4px 0; font-size: clamp(1.8rem, 4vw, 2.3rem); font-weight: 300; }
 .board-intro p { margin: 0; color: var(--muted); }
 .board-templates > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
 .board-templates button { min-height: 82px; text-align: left; display: flex; flex-direction: column; gap: 5px; }
 .board-templates button span { color: var(--muted); }
+.board-templates article { min-height: 82px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px; display: flex; flex-direction: column; gap: 5px; background: var(--surface2); }
+.board-templates article > span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-templates article details { color: var(--muted); font-size: 11px; }
+.board-templates article details p { margin: 5px 0; white-space: normal; }
 .estate-strip { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; align-items: center; }
 .estate-strip > div { display: flex; gap: 6px; flex-wrap: wrap; }
 .board-workspace { display: grid; grid-template-columns: minmax(520px, 600px) minmax(0, 1fr); gap: 14px; align-items: start; }
@@ -596,7 +604,7 @@ body {
 .facet-definition { padding: 5px 7px; margin-top: 3px; background: var(--surface2); }
 .facet-known { text-align: right; padding-top: 3px; font: 11px var(--mono); }
 .template-reason { color: var(--accent) !important; }
-.template-unavailable { color: var(--muted); }
+.template-unavailable { color: var(--muted); opacity: .65; }
 .facet-controls { min-width: 0; }
 .facet-state { display: flex; border: 1px solid var(--line); width: 100%; min-height: 28px; }
 .facet-state label { flex: 1; padding: 5px 4px; border-left: 1px solid var(--line); cursor: pointer; white-space: nowrap; font-size: 11px; text-align: center; }
@@ -667,9 +675,17 @@ body {
   .mobile-answer-bar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; padding: 9px 12px; color: var(--accentText); background: var(--surface); border: 1px solid var(--accent); font-weight: 650; text-decoration: none; }
 }
 @media (max-width: 620px) {
+  .global-header { position: static; padding: 8px 12px; flex-wrap: wrap; gap: 6px 8px; }
+  .global-header .brand { margin-right: auto; }
+  .global-header .spacer { display: none; }
+  .global-header .segments { order: 3; flex: 1 1 100%; }
+  .global-header .segments button { flex: 1; }
+  .global-header > button:not(.brand) { flex: 1; }
+  .work { padding: 12px 10px 48px; }
   .board-intro { display: grid; align-items: start; gap: 10px; }
   .board-intro h1 { font-size: 27px; }
-  .board-templates > div { grid-template-columns: 1fr; }
+  .board-templates > div { grid-template-columns: minmax(0, 1fr); }
+  .board-templates button, .board-templates article { min-width: 0; }
   .estate-strip { grid-template-columns: 1fr; }
   .facet-columns { display: none; }
   .facet-row { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 8px; }
@@ -1162,6 +1178,24 @@ body {
 }
 .interval.may {
   background: var(--warn);
+}
+.axis-interval {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+.axis-interval.x {
+  height: 2px;
+  transform: translateY(-1px);
+}
+.axis-interval.y {
+  width: 2px;
+  transform: translateX(-1px);
+}
+.free-axis-canvas .chart-tooltip {
+  left: 1rem;
+  top: 1rem;
 }
 .point-label {
   position: absolute;

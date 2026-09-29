@@ -43,6 +43,36 @@ const ALL_TYPES: TypeKey[] = [
   "decision",
 ];
 
+const TYPE_BY_CLASS = new Map(
+  Object.entries(CLASS_TO_TYPE).map(([modelClass, type]) => [modelClass, type]),
+);
+
+/** Model classes constrained by the same conditions sent to the decision engine. */
+export function selectedModelTypes(spec: Spec): ReadonlySet<TypeKey> | null {
+  let selected = new Set<TypeKey>(ALL_TYPES);
+  let constrained = false;
+  for (const condition of spec.conds) {
+    if (condition.f === "type") {
+      constrained = true;
+      selected = new Set([...selected].filter((type) => type === condition.v));
+      continue;
+    }
+    if (condition.f !== "facet" || condition.facet !== "model.class") continue;
+    constrained = true;
+    const values = Array.isArray(condition.value) ? condition.value : [condition.value];
+    const types = new Set(values.flatMap((value) => {
+      const type = typeof value === "string" ? TYPE_BY_CLASS.get(value) : undefined;
+      return type ? [type] : [];
+    }));
+    selected = new Set([...selected].filter((type) =>
+      condition.op === "!=" || condition.op === "not in"
+        ? !types.has(type)
+        : types.has(type),
+    ));
+  }
+  return constrained ? selected : null;
+}
+
 const slug = (value: string) =>
   value
     .toLowerCase()
@@ -51,7 +81,7 @@ const slug = (value: string) =>
 
 /** Display and lab names by model ID, from the published vocabulary. */
 export type ModelNames = Readonly<
-  Record<string, { display_name: string | null; lab: string; lab_name: string | null }>
+  Record<string, { display_name: string | null; lab: string; lab_name: string | null; class?: string | null }>
 >;
 interface Names {
   models: ModelNames;
@@ -370,7 +400,7 @@ function modelAndOffering(
     lab,
     labName: named?.lab_name ?? named?.lab ?? lab,
     origin: stringFact(facts, "origin.lab_jurisdiction", sources),
-    type: className ? (CLASS_TO_TYPE[className] ?? null) : null,
+    type: CLASS_TO_TYPE[className ?? named?.class ?? ""] ?? null,
     status: lifecycle === "active" || lifecycle === "retired" ? lifecycle : null,
     open,
     lic: licence === null ? null : valueLabel("licence.commercial_use", licence),
@@ -448,15 +478,9 @@ function rankedRow(
     sources,
     names,
   );
-  const boardWeights = spec.boardWeights;
-  const boardMode = boardWeights !== undefined;
-  const boardCapability = boardMode && spec.domain !== undefined &&
-    Object.hasOwn(boardWeights, spec.domain);
-  const needsCapability = !boardMode || boardCapability;
-  const selected = needsCapability
-    ? evidence.find((item) => item.b === spec.bench) ?? null
-    : null;
-  const estimate = needsCapability && usesDomainEstimate(spec)
+  const boardMode = spec.boardWeights !== undefined;
+  const selected = evidence.find((item) => item.b === spec.bench) ?? null;
+  const estimate = usesDomainEstimate(spec)
     ? result.estimates?.find((item) => item.domain === spec.domain) ?? null
     : null;
   const estimatePart = estimate
@@ -497,9 +521,7 @@ function rankedRow(
         src: estimateItems[0]?.source ?? selected?.src ?? provenance!.source,
       }
     : null;
-  const capability = boardCapability
-    ? estimateEvidence
-    : estimateEvidence ?? selected;
+  const capability = estimateEvidence ?? selected;
   const norm = {
     cap:
       result.contributions.find(
@@ -752,7 +774,7 @@ export function mapDecisionToViewModel(
 ): AdapterDecision {
   const sources = sourceRecords(decision);
   const names: Names = { models: options.models ?? {}, providers: options.providers ?? {} };
-  const modelGrained = ["1.6", "1.7", "1.8", "1.9", "1.10"].includes(
+  const modelGrained = ["1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12", "2.0"].includes(
     decision.contract_version,
   );
   const rawFeasible: CandidateRow<RankedRow>[] = decision.results.map((result) => ({
@@ -845,7 +867,17 @@ export function mapDecisionToViewModel(
     };
   }
   const bench = benchmarks[spec.bench];
-  const frontier = pareto(feasible, options.axis, bench.hi);
+  const constrainedTypes = selectedModelTypes(spec);
+  const selectedTypes = constrainedTypes ?? new Set<TypeKey>(["llm"]);
+  const hasPublishedClasses = Object.values(options.models ?? {}).some(
+    (model) => model.class !== undefined,
+  );
+  const canvasRows = feasible.filter((row) =>
+    (row.m.type !== null && selectedTypes.has(row.m.type)) ||
+      (!hasPublishedClasses && row.m.type === null && row.cap !== null),
+  );
+  const canvasClassExcluded = feasible.filter((row) => !canvasRows.includes(row));
+  const frontier = pareto(canvasRows, options.axis, bench.hi);
   const firstStep = decision.eliminated.funnel[0];
   const legacyRefs = new Map<string, OfferingRef>();
   [...decision.results.map((row) => row.offering),
@@ -949,9 +981,9 @@ export function mapDecisionToViewModel(
     tip: undefined,
   };
   const notPlotted = axisRecord((axis) =>
-    evalView.inScope
-      .filter((row) => axisValue(row, axis) === null)
-      .map((row) => row.m.lab + "/" + row.m.id),
+    [...canvasClassExcluded, ...canvasRows
+      .filter((row) => axisValue(row, axis) === null || row.cap === null)
+    ].map((row) => row.m.lab + "/" + row.m.id),
   );
   return {
     ...decision,
@@ -962,11 +994,13 @@ export function mapDecisionToViewModel(
       (question) => !options.dismissed.includes(question.id),
     ),
     frontier,
-    winning_strip: winningStrip(feasible, options.axis, bench.hi),
+    canvas_rows: canvasRows,
+    canvas_class_excluded: canvasClassExcluded,
+    winning_strip: winningStrip(canvasRows, options.axis, bench.hi),
     benchmarks,
     not_plotted: notPlotted,
     available_axes: axisRecord((axis) =>
-      evalView.inScope.some((row) => axisValue(row, axis) !== null),
+      canvasRows.some((row) => axisValue(row, axis) !== null && row.cap !== null),
     ),
   };
 }

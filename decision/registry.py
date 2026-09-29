@@ -131,6 +131,8 @@ class Facet:
     #: Plain labels for enum or set values, as ``(value, label)`` pairs, so a
     #: page never shows a token such as ``permitted_with_conditions``.
     value_labels: tuple[tuple[str, str], ...] = ()
+    #: Values accepted by an enum preference. ``None`` means the set is open.
+    preference_values: tuple[str, ...] | None = None
 
     def value_label(self, value: str) -> str | None:
         return dict(self.value_labels).get(value)
@@ -530,6 +532,15 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             tier=e.get("tier"), risk=e.get("risk"), permitted_source_kinds=tuple(psk),
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
             computed_by=e.get("computed_by"), label=label, value_labels=value_labels,
+            preference_values=(
+                tuple(sorted(lists[vt.values_from]()))
+                if (
+                    vt.kind == "enum"
+                    and vt.values_from in lists
+                    and lists[vt.values_from] is not None
+                )
+                else vt.values
+            ),
         ))
     return out
 

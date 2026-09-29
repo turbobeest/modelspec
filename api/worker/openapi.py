@@ -140,6 +140,7 @@ sandbox = _load("access_sandbox")
 access = importlib.import_module("access")
 access_config = importlib.import_module("access_config")
 billing_mod = importlib.import_module("billing")
+signals = importlib.import_module("signals_service")
 #: Same reason as `access`: `x402.Config` is a dataclass, and `_load` does not
 #: put the module in `sys.modules` before the decorator runs.
 x402 = importlib.import_module("x402")
@@ -1555,6 +1556,147 @@ def _billing_paths() -> dict[str, Any]:
     }
 
 
+def _signal_paths() -> dict[str, Any]:
+    """Internal signal automation, documented but never called by the live probe."""
+    skip = {"x-modelspec-probe": "skip"}
+    error = _json_body(
+        "The feature is off, authentication failed, the request is invalid, or storage "
+        "is unavailable.",
+        {"$ref": "#/components/schemas/SignalError"},
+    )
+    method = _json_body(
+        "Wrong method for this path.", {"$ref": "#/components/schemas/TransportError"}
+    )
+    return {
+        "/v1/signals": {
+            "post": {
+                "operationId": "releaseSignalIntake",
+                "summary": "Accept an HMAC-authenticated Grok Bot release signal.",
+                "security": [{"signalHmac": []}],
+                **skip,
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {
+                        "schema": {"$ref": "#/components/schemas/ReleaseSignal"},
+                    }},
+                },
+                "responses": {
+                    "200": _json_body("The identical signal was already pending.", {
+                        "$ref": "#/components/schemas/SignalMutation",
+                    }),
+                    "202": _json_body("The signal was accepted into the pending queue.", {
+                        "$ref": "#/components/schemas/SignalMutation",
+                    }),
+                    **{status: error for status in ("400", "401", "404", "409", "413", "503")},
+                    "405": method,
+                },
+            },
+        },
+        "/v1/signals/pending": {
+            "get": {
+                "operationId": "releaseSignalsPending",
+                "summary": "List pending signals and due re-checks for repository automation.",
+                "security": [{"signalReadKey": []}],
+                **skip,
+                "responses": {
+                    "200": _json_body("Pending work, ordered deterministically.", {
+                        "$ref": "#/components/schemas/SignalsPending",
+                    }),
+                    **{status: error for status in ("401", "404", "503")},
+                    "405": method,
+                },
+            },
+        },
+        "/v1/signals/ack": {
+            "post": {
+                "operationId": "releaseSignalAcknowledge",
+                "summary": "Audit completed work and schedule or finish its re-checks.",
+                "security": [{"signalReadKey": []}],
+                **skip,
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {
+                        "schema": {"$ref": "#/components/schemas/SignalAcknowledgement"},
+                    }},
+                },
+                "responses": {
+                    "200": _json_body("The work was audited and acknowledged.", {
+                        "$ref": "#/components/schemas/SignalMutation",
+                    }),
+                    **{status: error for status in ("400", "401", "404", "503")},
+                    "405": method,
+                },
+            },
+        },
+    }
+
+
+def _signal_schemas() -> dict[str, Any]:
+    contract = json.loads(
+        (REPO_ROOT / "schemas" / "release-signal-v1.schema.json").read_text(encoding="utf-8")
+    )
+    contract.pop("$schema", None)
+    contract.pop("$id", None)
+    return {
+        "ReleaseSignal": contract,
+        "SignalAcknowledgement": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["signal_id", "result"],
+            "properties": {
+                "signal_id": contract["properties"]["signal_id"],
+                "result": {"type": "string", "nullable": True},
+                "pr_url": {"type": "string", "nullable": True, "format": "uri"},
+                "recheck_due": {"type": "string", "format": "date"},
+                "recheck_day": {"type": "integer", "enum": [1, 7, 30]},
+            },
+        },
+        "SignalMutation": {
+            "type": "object",
+            "required": ["schema_version", "service_commit", "endpoint", "status", "signal_id"],
+            "properties": {
+                "schema_version": {"type": "string", "enum": [signals.SCHEMA_VERSION]},
+                "service_commit": {"type": "string"},
+                "endpoint": {"type": "string"},
+                "status": {"type": "string", "enum": ["accepted", "duplicate", "acknowledged"]},
+                "signal_id": contract["properties"]["signal_id"],
+                "recheck_days": {"type": "array", "items": {"type": "integer", "enum": [1, 7, 30]}},
+            },
+        },
+        "SignalsPending": {
+            "type": "object",
+            "required": ["schema_version", "service_commit", "endpoint", "signals", "rechecks"],
+            "properties": {
+                "schema_version": {"type": "string", "enum": [signals.SCHEMA_VERSION]},
+                "service_commit": {"type": "string"},
+                "endpoint": {"type": "string", "enum": ["signals.pending"]},
+                "signals": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/ReleaseSignal"},
+                },
+                "rechecks": {"type": "array", "items": {"type": "object"}},
+            },
+        },
+        "SignalError": {
+            "type": "object",
+            "required": ["schema_version", "service_commit", "endpoint", "error"],
+            "properties": {
+                "schema_version": {"type": "string", "enum": [signals.SCHEMA_VERSION]},
+                "service_commit": {"type": "string"},
+                "endpoint": {"type": "string"},
+                "error": {
+                    "type": "object",
+                    "required": ["code", "message"],
+                    "properties": {
+                        "code": {"type": "string"},
+                        "message": {"type": "string"},
+                    },
+                },
+            },
+        },
+    }
+
+
 # ── the policy verdicts: a tagged union, inferred per variant ────────────────
 
 def _tag_key(sample: dict[str, Any], common: set[str]) -> str:
@@ -2290,6 +2432,14 @@ def build_spec() -> dict[str, Any]:
                    "description": "Authorization: Bearer <key>. Takes precedence."},
         "apiKey": {"type": "apiKey", "in": "header", "name": "X-API-Key",
                    "description": "X-API-Key: <key>. Never in the query string."},
+        "signalHmac": {
+            "type": "apiKey", "in": "header", "name": "X-ModelSpec-Signature",
+            "description": "sha256=<HMAC-SHA256 of the exact request bytes>.",
+        },
+        "signalReadKey": {
+            "type": "http", "scheme": "bearer",
+            "description": "Repository-only key for pending and acknowledgement automation.",
+        },
     }
     security = [{"bearer": []}, {"apiKey": []}]
     if not access_enforced():
@@ -2340,7 +2490,8 @@ def build_spec() -> dict[str, Any]:
             "x-max-request-bytes": {"/v1/rank": service.MAX_BODY_BYTES,
                                     "/v1/decide": decide_service.MAX_BODY_BYTES,
                                     "/v1/compare": decide_service.MAX_BODY_BYTES,
-                                    "/v1/policy-check": policy.MAX_BODY_BYTES},
+                                    "/v1/policy-check": policy.MAX_BODY_BYTES,
+                                    "/v1/signals": signals.MAX_BODY_BYTES},
         },
         "x-modelspec-access": _access(),
         "x-modelspec-billing": {
@@ -2598,6 +2749,7 @@ def build_spec() -> dict[str, Any]:
                     },
                 },
             },
+            **_signal_paths(),
             **_billing_paths(),
         },
         "components": {
@@ -2628,6 +2780,7 @@ def build_spec() -> dict[str, Any]:
                         "accepted": {"type": "array", "items": {"type": "string"}},
                     },
                 }),
+                **_signal_schemas(),
             },
         },
     }

@@ -160,10 +160,10 @@ def test_every_template_parses_resolves_and_runs_against_the_engine(snapshot, te
 
 def test_every_lineup_and_archive_model_is_named_from_its_card(vocabulary):
     assert vocabulary["models"] == {
-        "lab/a": {"display_name": "Alpha 4.7", "lab": "lab", "lab_name": "Lab Inc."},
-        "lab/b": {"display_name": None, "lab": "lab", "lab_name": None},
-        "lab/c": {"display_name": None, "lab": "lab", "lab_name": None},
-        "lab/old": {"display_name": "Old One", "lab": "lab", "lab_name": "Lab Inc."},
+        "lab/a": {"display_name": "Alpha 4.7", "lab": "lab", "lab_name": "Lab Inc.", "class": "text-generator"},
+        "lab/b": {"display_name": None, "lab": "lab", "lab_name": None, "class": "text-generator"},
+        "lab/c": {"display_name": None, "lab": "lab", "lab_name": None, "class": "text-generator"},
+        "lab/old": {"display_name": "Old One", "lab": "lab", "lab_name": "Lab Inc.", "class": None},
     }
 
 
@@ -331,6 +331,25 @@ def test_every_condition_and_objective_the_page_can_build_is_a_valid_spec(snapsh
     assert built > 100
 
 
+def test_every_facet_reports_whether_and_how_it_can_be_preferred(vocabulary) -> None:
+    by_id = {row["id"]: row for row in vocabulary["facets"]}
+
+    assert by_id["model.context_window"]["preference"] == {
+        "kind": "continuous",
+        "directions": ["max", "min"],
+        "threshold": "where",
+    }
+    assert by_id["model.weights_openness"]["preference"] == {
+        "kind": "value",
+        "term": {"prefer": "enum value", "weight": "positive number"},
+    }
+    assert by_id["offering.data.zero_retention"]["preference"] == {
+        "kind": "value",
+        "term": {"prefer": "boolean value", "weight": "positive number"},
+    }
+    assert by_id["model.input_modalities"]["preference"] is None
+
+
 def test_the_site_build_writes_the_vocabulary_beside_the_snapshot(tmp_path, monkeypatch):
     from decision import snapshot as snap
     from pipeline import build as site_build
@@ -353,7 +372,8 @@ def test_the_site_build_writes_the_vocabulary_beside_the_snapshot(tmp_path, monk
     assert written["snapshot"] == snap.load_snapshot(target, key=KEY).snapshot_id
     assert [b["id"] for b in written["benchmarks"]] == ["swe_bench_pro"]
     assert written["models"] == {
-        "lab/alpha": {"display_name": None, "lab": "lab", "lab_name": None}}
+        "lab/alpha": {"display_name": None, "lab": "lab", "lab_name": None,
+                      "class": None}}
 
 
 def test_no_snapshot_means_no_vocabulary(tmp_path, monkeypatch):

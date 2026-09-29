@@ -1,7 +1,13 @@
 # The ModelSpec CLI contract
 
-The offline commands are an interface other programs call — dpf's ticket author
-first among them. This is what they can rely on.
+The decision commands are the primary interface for agents. Start with
+`modelspec snapshot fetch`, inspect valid spec values with `modelspec vocab`,
+then run `modelspec decide --template ID` or pass a spec file. DPF's ticket
+author calls this CLI.
+
+The offline v1 commands remain a legacy contract for existing callers. Their
+stdout, JSON envelopes, and exit codes stay unchanged unless the contract's
+major version changes.
 
 ## The interface
 
@@ -13,6 +19,11 @@ modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
 modelspec snapshot status [--json]        what is cached, how old, which build or decision
 modelspec vocab [SECTION] [--json]        inspect the cached decision vocabulary
 modelspec decide SPEC.yaml --check        validate a spec without running a decision
+```
+
+Legacy v1 commands:
+
+```
 modelspec offline rank <use-case> [...]   rank models for a use case
 modelspec offline fit [<hardware-id>]     what a given machine can run, or list the machines
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
@@ -35,6 +46,11 @@ limits benchmarks to a domain. `--class CLASS` limits benchmarks to domains
 where that class has verified coverage. The vocabulary does not declare facet
 applicability by class, so `--class` does not remove facets. A missing cache
 exits 3 and tells the caller to run `modelspec snapshot fetch`.
+
+Vocabulary domain rows may include `estimate_benchmarks`, the benchmark IDs
+that drive stored capability estimates. This list can differ from the domain's
+`benchmarks` drill-down. Vocabulary model rows may include `class`, the model's
+class from the snapshot; older cached vocabularies can omit both fields.
 
 `modelspec decide SPEC.yaml --check` loads the cached decision snapshot, parses
 the spec with decide's registry, and runs decide's resolve stage. It stops before
@@ -71,7 +87,7 @@ IDs where the decision exposes them. `spec_snapshot_ignored` records whether
 the input spec contained a non-`latest` pin. No change is a successful result with
 `changed: false`; both changed and unchanged comparisons exit 0.
 
-Options on `rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
+Options on legacy v1 `offline rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
 `--json`, `--require-fresh`, `--include-rehosts`.
 
@@ -105,7 +121,7 @@ It is a **new command under the existing envelope**: `schema_version` stays
 
 ### `class-fit`: which class, before which model (MODEL-100)
 
-`rank` answers "which model?" once you have decided you want an LLM.
+Legacy v1 `offline rank` answers "which model?" once you have decided you want an LLM.
 `class-fit` answers the question before that one, and it is the only command
 that will tell you the catalogue has nothing for you.
 

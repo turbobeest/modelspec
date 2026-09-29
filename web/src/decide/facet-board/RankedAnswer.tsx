@@ -40,10 +40,6 @@ export function RankedAnswer({
 }) {
   const [expanded, setExpanded] = useState(false);
   const ranked = boardHasPreference(spec);
-  const allCandidates = [
-    ...decision.explanation.feasible,
-    ...decision.explanation.may,
-  ];
   const capability = vocabulary.domains.find((domain) =>
     Object.keys(spec.boardWeights ?? {}).includes(domain.id),
   );
@@ -52,7 +48,7 @@ export function RankedAnswer({
   );
   const rows = ranked
     ? decision.explanation.feasible
-    : allCandidates.sort((left, right) =>
+    : decision.explanation.feasible.slice().sort((left, right) =>
         left.m.name.localeCompare(right.m.name),
       );
   const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
@@ -80,7 +76,7 @@ export function RankedAnswer({
   );
 
   return <section className="panel board-ranked-answer">
-    {!ranked && <p className="board-unranked">Not ranked — set a Prefer to rank these</p>}
+    {!ranked && <p className="board-unranked">{rows.length} qualify — set a Prefer to rank them</p>}
     {ranked && inseparable.length > 0 && <p className="board-inseparable">
       The evidence can't separate {inseparable.map((row) => row.m.name).join(", ")}.
     </p>}

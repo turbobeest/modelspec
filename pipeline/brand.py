@@ -96,15 +96,17 @@ def head_links() -> str:
     )
 
 
-def social_meta(title: str) -> str:
-    """og:image and twitter:card for `/`, pointing at the social card."""
-    image = f"{SITE}/og-card.png"
+def social_meta(title: str, *, path: str = "/", image_name: str = "og-card.png",
+                image_alt: str = "ModelSpec") -> str:
+    """Social metadata for a page, defaulting to the site-wide fallback card."""
+    image = f"{SITE}/{image_name}"
     return (
         f'<meta property="og:title" content="{title}">\n'
-        f'<meta property="og:url" content="{SITE}/">\n'
+        f'<meta property="og:url" content="{SITE}{path}">\n'
         f'<meta property="og:image" content="{image}">\n'
         '<meta property="og:image:width" content="1200">\n'
         '<meta property="og:image:height" content="630">\n'
+        f'<meta property="og:image:alt" content="{image_alt}">\n'
         '<meta name="twitter:card" content="summary_large_image">\n'
         f'<meta name="twitter:image" content="{image}">\n'
     )

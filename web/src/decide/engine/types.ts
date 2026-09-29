@@ -132,6 +132,13 @@ export interface Weights {
   speed: number;
 }
 
+export interface ValuePreference {
+  prefer: string | boolean;
+  weight: number;
+}
+
+export type BoardWeight = number | ValuePreference;
+
 /** The handoff's spec: task, tokens per task, primary benchmark, weights, conditions. */
 export interface Spec {
   task?: string;
@@ -146,7 +153,7 @@ export interface Spec {
   /** Real mode ranks on the domain estimate by default; benchmark is an explicit drill-down. */
   basis?: "estimate" | "benchmark";
   /** Exact objective emitted by the preview facet board. */
-  boardWeights?: Record<string, number>;
+  boardWeights?: Record<string, BoardWeight>;
 }
 
 export function usesDomainEstimate(

@@ -69,6 +69,7 @@ jobs:
         working-directory: web
         run: |
           npm ci
+          npx playwright install --with-deps chromium
           npm run build
 
       - name: Test the decide app
@@ -81,6 +82,7 @@ jobs:
       - name: Build
         id: build
         env:
+          MODELSPEC_RENDER_SOCIAL_CARDS: '1'
           MODELSPEC_SNAPSHOT_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY || '' }}
           MODELSPEC_SNAPSHOT_ED25519_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_ED25519_KEY || '' }}
         run: |
@@ -133,6 +135,7 @@ jobs:
           cp -a dist-v1/modelspec/openapi.yaml dist/modelspec/openapi.yaml
           cp -a dist-v1/benchgraph/_redirects dist/benchgraph/_redirects
           cp dist-v1/modelspec/index.html dist/modelspec/index.html
+          cp -a dist-v1/modelspec/method dist/modelspec/method
           mkdir -p dist/modelspec/decide
           cp web/dist/decide.html dist/modelspec/decide/index.html
           cp web/dist/decide.html dist/modelspec/404.html
@@ -143,8 +146,8 @@ jobs:
           cp -a dist-v1/modelspec/fonts dist/modelspec/fonts
           cp -a dist-v1/modelspec/graph dist/modelspec/graph
           find dist/modelspec/assets -type f -name 'main-*' -delete
-          # The 2a icon set and social card, as pipeline.brand wrote them into the real build.
-          for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest; do
+          # The 2a icon set, fallback card, and build-rendered page cards.
+          for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest $(python -m pipeline.social_cards filenames); do
             cp dist-v1/modelspec/$icon dist/modelspec/$icon
           done
           python - <<'PY'
@@ -161,7 +164,7 @@ jobs:
               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
               + "".join(
                   f"  <url><loc>https://modelspec.dev{path}</loc></url>\n"
-                  for path in ("/", "/decide/", "/graph/", "/pricing/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
+                  for path in ("/", "/method/", "/decide/", "/graph/", "/pricing/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
               )
               + "</urlset>\n",
               encoding="utf-8",
@@ -220,6 +223,7 @@ jobs:
         run: |
           set -e
           test -s dist/modelspec/index.html
+          test -s dist/modelspec/method/index.html
           test -s dist/modelspec/decide/index.html
           test -s dist/modelspec/graph/index.html
           test -s dist/modelspec/graph/vendor/three.min.js
@@ -231,10 +235,12 @@ jobs:
           test -s dist/modelspec/pricing-assets/pricing.js
           test -s dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
+          grep -Fq '<link rel="canonical" href="https://modelspec.dev/method/"' dist/modelspec/method/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/decide/"' dist/modelspec/decide/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/graph/"' dist/modelspec/graph/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/pricing/"' dist/modelspec/pricing/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html
+          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/method/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/decide/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/graph/index.html
           ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/pricing/index.html
@@ -260,6 +266,7 @@ jobs:
           test -s dist/modelspec/icon-192.png
           test -s dist/modelspec/icon-512.png
           test -s dist/modelspec/og-card.png
+          for card in $(python -m pipeline.social_cards filenames); do test -s dist/modelspec/$card; done
           test -s dist/modelspec/site.webmanifest
           test ! -e dist/modelspec/downselect
           test ! -e dist/modelspec/models

@@ -61,7 +61,9 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"- Machine-readable index: {base}/api/index.json\n"
         f"- Benchmark catalogue: {base}/api/catalogue.json\n"
         f"- Decide: {base}/decide/\n"
-        f"- Rank API: {RANK_API}\n"
+        f"- Decision CLI: modelspec snapshot fetch; modelspec vocab; "
+        f"modelspec decide --template <id>\n"
+        f"- Legacy v1 rank API: {RANK_API}\n"
         f"- API docs: {API_DOCS}\n"
         f"- MCP: {MCP_ENDPOINT}\n"
         f"- Source: https://github.com/turbobeest/modelspec\n"
@@ -601,6 +603,12 @@ def main(argv: list[str] | None = None) -> int:
     from pipeline import landing as landing_page
     landing_data = landing_page.build_data(str(root), today)
     landing_page.write(ms, landing_data, variant="live")
+    from pipeline import method
+    method_counts = method.write(ms, root, landing_data)
+    ms_paths.extend(method_counts["sitemap_paths"])
+    from pipeline import social_cards
+    if social_cards.render_enabled():
+        social_cards.render(ms, landing_data)
     (ms / "decide").mkdir(exist_ok=True)
     (ms / "decide/index.html").write_text(
         '<!doctype html><html><head><meta name="robots" content="noindex">'

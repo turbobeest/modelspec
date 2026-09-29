@@ -18,7 +18,7 @@ _spec = importlib.util.spec_from_file_location("modelspec_worker_vendor", ROOT /
 vendor = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(vendor)
 
-PACKAGES = {"api", "decision", "pipeline", "schema"}
+PACKAGES = {"api", "decision", "pipeline", "release_signals", "schema"}
 
 #: Imports that only build-time code reaches, so the Worker never runs them.
 BUILD_TIME = {
