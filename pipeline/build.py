@@ -628,6 +628,10 @@ def main(argv: list[str] | None = None) -> int:
     agent_counts = agent_ready.ship(
         root=root, ms=ms, models=models, benchmarks=benchmarks,
         catalogue=catalogue, build=build, by_provider=by_provider)
+    # Here as well as in `live.build`: the holding and live trees copy the legal
+    # pages from this tree, and the deploy workflow diffs them byte for byte.
+    from pipeline import structured_data
+    structured_data.inject(ms, root)
 
     missing = missing_internal_hrefs(ms)
     if missing:

@@ -333,11 +333,8 @@ def test_the_live_tree_is_an_allowlist(trees):
     decide = (ms / "decide" / "index.html").read_text(encoding="utf-8")
     assert structured_data.strip(decide) == (ms / "404.html").read_text(encoding="utf-8")
     assert _files(trees["live"] / "benchgraph") == _files(trees["real"] / "benchgraph")
-    assert _files(ms / "api") == _files(trees["real"] / "modelspec" / "api")
-    # The legal prose is copied unchanged; only the JSON-LD block is added.
-    real_legal = _files(trees["real"] / "modelspec" / "legal")
-    assert {rel: structured_data.strip(body.decode()) for rel, body in _files(ms / "legal").items()} \
-        == {rel: body.decode() for rel, body in real_legal.items()}
+    for rel in ("api", "legal"):
+        assert _files(ms / rel) == _files(trees["real"] / "modelspec" / rel), rel
     assert "Sitemap: https://modelspec.dev/sitemap.xml" in (ms / "robots.txt").read_text(encoding="utf-8")
     headers = (ms / "_headers").read_text(encoding="utf-8")
     assert "X-Robots-Tag" not in headers
