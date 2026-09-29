@@ -137,3 +137,24 @@ def test_the_plan_page_fixtures_are_the_engines_answer(name):
         f"{path.name} is stale; regenerate with "
         "MODELSPEC_WRITE_FIXTURES=1 pytest tests/test_decide_page_fixtures.py"
     )
+
+
+def test_the_vendor_vocabulary_fixture_is_the_builders_output():
+    """MODEL-205: the page parses a real vocabulary carrying ``vendors``
+    (``vendor-vocabulary.test.ts``), so a schema that refused the field fails there."""
+    from decision.vocabulary import build_vocabulary
+    from tests.plan_records import vendor_inputs
+
+    snapshot = load_built_snapshot(
+        build_snapshot(vendor_inputs(), as_of=date(2026, 9, 29)),
+        include_archive=True, source="vendor vocabulary fixture build")
+    vocabulary = build_vocabulary(snapshot)
+    assert vocabulary["vendors"]["cursor"] == "Cursor"
+    path = WEB / "vocabulary-vendors.json"
+    fresh = json.dumps(vocabulary, indent=2, ensure_ascii=False) + "\n"
+    if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
+        path.write_text(fresh, encoding="utf-8")
+    assert path.read_text(encoding="utf-8") == fresh, (
+        f"{path.name} is stale; regenerate with "
+        "MODELSPEC_WRITE_FIXTURES=1 pytest tests/test_decide_page_fixtures.py"
+    )
