@@ -341,6 +341,7 @@ def test_registry_schema_versions_are_independent_compatibility_gates():
         "providers": 1,
         "harnesses": 1,
         "domains": 1,
+        "refinements": 1,
     }
 
     assert reg.REGISTRY_SCHEMA_VERSIONS == expected
