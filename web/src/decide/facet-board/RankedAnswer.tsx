@@ -1,9 +1,14 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { money } from "../adapter";
 import type { AdapterDecision, Spec } from "../adapter";
-import type { Vocabulary } from "../vocabulary";
+import type { EstateMark } from "../adapter/contract";
+import type { VocabPlan, Vocabulary } from "../vocabulary";
 import { boardHasPreference } from "./model";
 import { TieAwareAnswer } from "./TieAwareAnswer";
+import {
+  cheapestMetered, COST_HEADING, estateRouteView, mayQualifyNote, modelRoutes, offeringKey, payee, providerName,
+} from "./routes";
+import type { AccessAnswer, HeldEstate, RouteView } from "./routes";
 
 const COLLAPSED_COUNT = 8;
 
@@ -30,15 +35,49 @@ function domainName(vocabulary: Vocabulary, id: string): string | undefined {
     ?? vocabulary.coverage?.domains.find((domain) => domain.id === id)?.name;
 }
 
+function Route({ route }: { route: RouteView }) {
+  const id = useId();
+  return <li className={`board-route route-${route.kind}`}>
+    <span className="route-name" tabIndex={0} aria-describedby={id}>{route.name}</span>
+    <span className="route-explain" role="tooltip" id={id}>{route.explain}</span>
+    <span className="route-figure">{route.figure}</span>
+    {route.note && <small className="route-note">{route.note}</small>}
+  </li>;
+}
+
+const NO_HOLDINGS: HeldEstate = { providers: [], plans: [], hardware: [] };
+
 export function RankedAnswer({
   decision,
   spec,
   vocabulary,
+  access = "any",
+  held = NO_HOLDINGS,
+  marks,
+  excludedPlans = [],
 }: {
   decision: AdapterDecision;
   spec: Spec;
   vocabulary: Vocabulary;
+  /** The board's "How will you use it?" answer. */
+  access?: AccessAnswer;
+  /** What the caller holds, for may-qualify notes. */
+  held?: HeldEstate;
+  /** For the estate answer: how the estate reaches each offering. */
+  marks?: ReadonlyMap<string, EstateMark>;
+  /** Held plans the engine says cannot serve your own software. */
+  excludedPlans?: readonly VocabPlan[];
 }) {
+  const routeContext = { vocabulary };
+  const resultsFor = (model: string) =>
+    decision.results.filter((result) => result.offering.model === model);
+  const routesFor = (model: string): RouteView[] => marks
+    ? resultsFor(model).flatMap((result) => {
+        const mark = marks.get(offeringKey(result.offering));
+        return mark ? [estateRouteView(routeContext, mark, result, result.offering)] : [];
+      })
+    : modelRoutes(routeContext, resultsFor(model), access);
+  const costHeading = marks ? "Costs you" : COST_HEADING[access];
   const [expanded, setExpanded] = useState(false);
   const ranked = boardHasPreference(spec);
   const capability = vocabulary.domains.find((domain) =>
@@ -53,7 +92,17 @@ export function RankedAnswer({
         left.m.name.localeCompare(right.m.name),
       );
   const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
-  const may = ranked && capability ? decision.explanation.may : [];
+  const mayNote = (model: string): string | null => {
+    for (const row of decision.may_qualify.filter((item) => item.model === model)) {
+      const note = mayQualifyNote(routeContext, row, held);
+      if (note) return note;
+    }
+    return null;
+  };
+  const may = decision.explanation.may.filter((row) =>
+    (ranked && capability) || mayNote(`${row.m.lab}/${row.m.id}`) !== null,
+  );
+  const mayReasoned = may.some((row) => mayNote(`${row.m.lab}/${row.m.id}`) !== null);
   const lineupMedian = useMemo(
     () => median(rows.flatMap((row) => row.cap === null ? [] : [row.cap])),
     [rows],
@@ -96,13 +145,20 @@ export function RankedAnswer({
         const radius = row.capR?.ci ?? 0;
         const left = 100 * (value - radius - extent.min) / extent.span;
         const width = Math.max(2, 100 * (radius * 2) / extent.span);
-        const otherProviders = [...new Set(row.offs
-          .filter((offering) => offering.o.id !== row.best.o.id)
-          .map((offering) => offering.o.provider))];
-        return <li className={capability ? "" : "without-capability"} key={`${row.m.lab}/${row.m.id}`}>
+        const model = `${row.m.lab}/${row.m.id}`;
+        const routes = routesFor(model);
+        const shownProvider = access === "any" && !marks
+          ? cheapestMetered(resultsFor(model))?.offering.provider ?? resultsFor(model)[0]?.offering.provider
+          : undefined;
+        const otherProviders = access === "any" && !marks ? [...new Set(resultsFor(model)
+          .filter((result) => result.offering.provider !== null && result.offering.provider !== shownProvider)
+          .map((result) => providerName(routeContext, result.offering.provider ?? "")))] : [];
+        const excluded = excludedPlans.filter((plan) =>
+          resultsFor(model).some((result) => result.offering.provider === plan.provider));
+        return <li className={capability ? "" : "without-capability"} key={model}>
           <div className="board-ranked-copy">
-            <strong>{row.m.name}{tied.has(`${row.m.lab}/${row.m.id}`) && <span className="board-tie-tag">tied</span>}</strong>
-            <small>{row.m.labName} · via {row.best.o.provider}</small>
+            <strong>{row.m.name}{tied.has(model) && <span className="board-tie-tag">tied</span>}</strong>
+            <small>{row.m.labName}</small>
             {otherProviders.length > 0 && <small>also via {otherProviders.join(", ")}</small>}
             {activeRefinements.map((refinement) => {
               const result = decision.results.find((item) => item.offering.model === `${row.m.lab}/${row.m.id}`);
@@ -111,7 +167,7 @@ export function RankedAnswer({
               return !hasEvidence && parentName && <small key={refinement.id}>no {refinement.name} evidence — estimated from general {sentenceCase(parentName)}</small>;
             })}
           </div>
-          <div className="board-ranked-cost"><small>Cost per task</small><span>{money(row.cost)}</span></div>
+          <div className="board-ranked-cost"><small>{costHeading}</small><span>{routes[0] ? routes[0].column ?? routes[0].figure : money(row.cost)}</span></div>
           {capability && <div className="board-capability">
             {row.cap === null
               ? <small>no evidence for {capability.name}</small>
@@ -123,6 +179,10 @@ export function RankedAnswer({
                 <small>{lineupMedian === null ? "near the median" : medianPosition(row.cap, radius, lineupMedian)}</small>
               </>}
           </div>}
+          {(routes.length > 0 || excluded.length > 0) && <ul className="board-routes" aria-label={`Routes to ${row.m.name}`}>
+            {routes.map((route) => <Route key={route.key} route={route} />)}
+            {excluded.map((plan) => <li className="board-route route-excluded" key={plan.id}><small>Your {plan.name} doesn't cover this</small></li>)}
+          </ul>}
         </li>;
       })}
     </ol>
@@ -130,15 +190,21 @@ export function RankedAnswer({
       {expanded ? "Show fewer" : `Show all ${rows.length}`}
     </button>}
     {may.length > 0 && <section className="board-may-qualify">
-      <h2>May qualify — no {capability?.name} evidence ({may.length})</h2>
+      <h2>{mayReasoned || !capability ? `May qualify — not verified yet (${may.length})` : `May qualify — no ${capability.name} evidence (${may.length})`}</h2>
       <ul>
-        {may.map((row) => <li key={row.best.o.id}>
-          <div className="board-ranked-copy">
-            <strong>{row.m.name}</strong>
-            <small>{row.m.labName} · via {row.best.o.provider}</small>
-          </div>
-          <div className="board-ranked-cost"><small>Cost per task</small><span>{money(row.cost)}</span></div>
-        </li>)}
+        {may.map((row) => {
+          const note = mayNote(`${row.m.lab}/${row.m.id}`);
+          const priced = !marks && (access === "any" || access === "coding_tool" || access === "own_software");
+          const via = row.best.o.provider === "Provider not available" ? null : payee(row.best.o.provider);
+          return <li key={row.best.o.id}>
+            <div className="board-ranked-copy">
+              <strong>{row.m.name}</strong>
+              <small>{row.m.labName}{via && via !== row.m.labName ? ` · via ${via}` : ""}</small>
+            </div>
+            <div className="board-ranked-cost"><small>{priced ? "Cost per task" : costHeading}</small><span>{priced ? money(row.cost) : "—"}</span></div>
+            {note && <p className="board-may-note">{note}</p>}
+          </li>;
+        })}
       </ul>
     </section>}
     {rows.length === 0 && <small>No model qualifies yet.</small>}

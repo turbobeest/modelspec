@@ -154,6 +154,8 @@ export interface Spec {
   basis?: "estimate" | "benchmark";
   /** Exact objective emitted by the preview facet board. */
   boardWeights?: Record<string, BoardWeight>;
+  /** How the model will be used (MODEL-200); absent when it doesn't matter. */
+  access?: "chat_app" | "coding_tool" | "own_software" | "own_hardware";
 }
 
 export function usesDomainEstimate(

@@ -53,13 +53,25 @@ import { evaluateQuestionOptions } from "./adapter/questions";
 import type { Question } from "./engine/reference";
 import { FacetBoard, readEstate } from "./facet-board/FacetBoard";
 import {
-  boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights,
+  boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, hasEstate,
   allocateBoardWeights, nextMustOrder, legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys,
   sanitizeBoardState,
   toBoardDecisionSpec,
 } from "./facet-board/model";
 import type { BoardSelections, Estate, FacetSelection } from "./facet-board/model";
 import type { CanvasAxisOption } from "./components/canvas-axis";
+import {
+  accessAnswer, estateAsDecision, ownSoftwareNote, plansExcludingOwnSoftware,
+} from "./facet-board/routes";
+import type { AccessAnswer } from "./facet-board/routes";
+
+/** The spec with `access` set, or without the key for "Doesn't matter". */
+function withAccess(spec: Spec, access: AccessAnswer): Spec {
+  const next = { ...spec };
+  if (access === "any") delete next.access;
+  else next.access = access;
+  return next;
+}
 
 /**
  * The main decision shows Retry if it has not resolved by then, whatever it is
@@ -268,20 +280,31 @@ export function DesignedApp({
     vocabulary,
     reloadVocabulary,
   ]);
-  const estateDecision = useMemo(() => {
+  const access = accessAnswer(boardBaseSpec.access);
+  // Routes are drawn for the access the shown decision answered, not the one
+  // just chosen: until the new answer arrives, the old one keeps its routes.
+  const answeredAccess = accessAnswer((lastSentSpec ?? spec).access);
+  const estateAnswer = useMemo(() => {
     if (estateRequest.kind !== "done" || !vocabulary) return null;
+    const estateView = estateAsDecision(estateRequest.decision);
+    if (!estateView) return null;
     try {
-      return mapDecisionToViewModel(estateRequest.decision, shownSpec, {
-        axis: shownAxis,
-        dismissed,
-        benchmarks: vocab.benchmarks,
-        models: vocabulary.models,
-        providers: vocabulary.providers,
-      });
+      return {
+        decision: mapDecisionToViewModel(estateView.decision, shownSpec, {
+          axis: shownAxis,
+          dismissed,
+          benchmarks: vocab.benchmarks,
+          models: vocabulary.models,
+          providers: vocabulary.providers,
+        }),
+        marks: estateView.marks,
+        excludedPlans: plansExcludingOwnSoftware({ vocabulary }, estateRequest.decision, estate),
+      };
     } catch {
       return null;
     }
-  }, [estateRequest, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
+  }, [estateRequest, shownSpec, shownAxis, dismissed, vocabulary, vocab, estate]);
+  const estateDecision = estateAnswer?.decision ?? null;
   const decision = liveDecision,
     e = decision?.explanation,
     boardIsRanked = shownSpec.boardWeights === undefined || Object.values(shownSpec.boardWeights).some((weight) => (typeof weight === "number" ? weight : weight.weight) > 0),
@@ -449,6 +472,11 @@ export function DesignedApp({
     scheduleDecision(nextSpec);
   }
 
+  function changeAccess(next: AccessAnswer) {
+    setBoardBaseSpec((current) => withAccess(current, next));
+    changeSpec(withAccess(spec, next));
+  }
+
   function setCanvasMust(axisOption: CanvasAxisOption, value: number | string) {
     if (!vocabulary || !axisOption.mustOp) return;
     const selectionId =
@@ -612,7 +640,7 @@ export function DesignedApp({
   useEffect(() => {
     if (
       !vocabulary ||
-      estate.providers.length === 0 ||
+      !hasEstate(estate) ||
       estateRequest.settledSpecHash !== specHash(spec)
     ) {
       setEstateRequest((current) => ({
@@ -650,15 +678,17 @@ export function DesignedApp({
         vocabulary,
         (current) => {
           const pinned = current ?? vocabulary;
-          return hostedEngine.decide(toBoardDecisionSpec(
-            estateSpec(sendableSpec(pinned, effectiveSpec), estate.providers), "summary",
-          ), {
+          return hostedEngine.decide({
+            ...toBoardDecisionSpec(sendableSpec(pinned, effectiveSpec), "summary"),
+            estate: estatePayload(estate),
+          }, {
             signal: controller.signal,
             snapshot: pinned.snapshot,
           });
         },
         reloadVocabulary,
       ).then((answer) => {
+        if (!answer.result.with_estate) throw new Error("The engine did not answer with what you have.");
         if (!controller.signal.aborted) {
           active = false;
           setEstateRequest({
@@ -883,6 +913,8 @@ export function DesignedApp({
             onMustOrder={setBoardMustOrder}
             estate={estate}
             onEstate={setEstate}
+            access={access}
+            onAccess={changeAccess}
             fit={decision?.explanation.feasible.length}
             may={decision?.explanation.may.length}
             notes={legacyNotes}
@@ -900,14 +932,15 @@ export function DesignedApp({
               />
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                {estate.providers.length > 0 && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 }))}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+                {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 }))}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+                {answeredAccess === "own_software" && estateAnswer?.excludedPlans.map((plan) => <p className="board-own-software-note" role="note" key={plan.id}>{ownSoftwareNote(plan)}</p>)}
               </section>
-              {estate.providers.length > 0 && estateDecision
+              {hasEstate(estate) && estateAnswer
                 ? <div className="answer-lists">
-                    <section><strong>With what you have</strong><RankedAnswer decision={estateDecision} spec={shownSpec} vocabulary={vocabulary} /></section>
-                    <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} /></section>
+                    <section><strong>With what you have</strong><RankedAnswer decision={estateAnswer.decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} marks={estateAnswer.marks} /></section>
+                    <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} excludedPlans={answeredAccess === "own_software" ? estateAnswer.excludedPlans : []} /></section>
                   </div>
-                : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} />}
+                : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
             </> : <section className="panel board-answer-loading" aria-live="polite">The live answer will appear here.</section>}
           />}
           {error ? (

@@ -218,6 +218,84 @@ const answerSchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
+const accessKind = z.enum(["chat_app", "coding_tool", "own_software", "own_hardware"]);
+
+const truncatedSchema = z
+  .object({
+    offerings: z.number().int().nonnegative(),
+    models: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const mayQualifySchema = z
+  .object({
+    model: modelId,
+    offering: offeringRefSchema.nullable(),
+    unknown: z.array(facetId),
+  })
+  .strict();
+
+const decisionStatus = z.enum(["answered", "partial", "no_feasible"]);
+
+// 2.3 (MODEL-179): the same question answered from what the caller holds.
+// 2.6 (MODEL-200): a plan mark carries its coverage; `warnings` is new.
+const estateHoldSchema = z
+  .object({ kind: z.enum(["provider", "plan", "device"]), id: z.string() })
+  .strict();
+
+const estateMarkSchema = z
+  .object({
+    via: estateHoldSchema,
+    cost_basis: z.enum(["list_price", "plan_included", "owned_hardware"]),
+    marginal_cost_per_task_usd: z.number().nonnegative().nullable().optional(),
+    coverage: planCoverageSchema.nullable().optional(),
+  })
+  .strict();
+
+export const withEstateSchema = z
+  .object({
+    status: decisionStatus,
+    answer: answerSchema.nullable().optional(),
+    results: z
+      .array(
+        z
+          .object({
+            rank: z.number().int().positive(),
+            offering: offeringRefSchema,
+            estate: estateMarkSchema,
+            soft_penalty: z.number().nonnegative().optional().default(0),
+            warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional().default([]),
+          })
+          .strict(),
+      )
+      .optional()
+      .default([]),
+    may_qualify: z.array(mayQualifySchema).optional().default([]),
+    truncated: truncatedSchema.optional().default({ offerings: 0, models: 0 }),
+    gap: z
+      .object({
+        same_answer: z.boolean(),
+        unreachable_models: z.array(modelId).optional().default([]),
+        summary: z.string(),
+      })
+      .strict(),
+    gain: z
+      .array(
+        z
+          .object({
+            add: estateHoldSchema,
+            status: decisionStatus,
+            leader: modelId.nullable().optional(),
+            answer: answerSchema.nullable().optional(),
+          })
+          .strict(),
+      )
+      .optional()
+      .default([]),
+    warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional().default([]),
+  })
+  .strict();
+
 export const decisionSchema = z
   .object({
     near_misses: z
@@ -301,8 +379,8 @@ export const decisionSchema = z
       )
       .optional()
       .default([]),
-    // MODEL-179 estate answer; the board renders it in MODEL-202. Parsed opaquely until then.
-    with_estate: z.unknown().nullish(),
+    // MODEL-179 estate answer, present when the spec sent an `estate`.
+    with_estate: withEstateSchema.nullish(),
     benchmark_exclusions: z
       .object({
         benchmarks: z.array(facetId),
@@ -346,22 +424,14 @@ export const decisionSchema = z
     signature_verified: z.boolean().optional().default(false),
     spec_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     explain: z.enum(["none", "summary", "full"]),
-    status: z.enum(["answered", "partial", "no_feasible"]),
+    status: decisionStatus,
     // Older saved decisions predate 2.1. New responses always send the block,
     // while the adapter keeps those local fixtures readable.
     answer: answerSchema.nullable().optional(),
     results: z.array(resultSchema),
     // Older saved decisions predate 2.5; the page then groups by model itself.
     by_model: z.array(modelRowSchema).optional().default([]),
-    may_qualify: z.array(
-      z
-        .object({
-          model: modelId,
-          offering: offeringRefSchema.nullable(),
-          unknown: z.array(facetId),
-        })
-        .strict(),
-    ),
+    may_qualify: z.array(mayQualifySchema),
     eliminated: z
       .object({
         funnel: z.array(
@@ -432,12 +502,7 @@ export const decisionSchema = z
           .default([]),
       })
       .strict(),
-    truncated: z
-      .object({
-        offerings: z.number().int().nonnegative(),
-        models: z.number().int().nonnegative(),
-      })
-      .strict()
+    truncated: truncatedSchema
       .optional()
       .default({ offerings: 0, models: 0 }),
     constraint_costs: z.array(
@@ -577,14 +642,25 @@ export const decisionSpecSchema = z
     // 2.6 (MODEL-200): how the caller will use the model, as an object or the bare kind.
     access: z
       .union([
-        z.enum(["chat_app", "coding_tool", "own_software", "own_hardware"]),
+        accessKind,
         z
           .object({
-            kind: z.enum(["chat_app", "coding_tool", "own_software", "own_hardware"]),
+            kind: accessKind,
             harness: z.string().regex(/^[a-z0-9][a-z0-9-]*$/).nullable().optional(),
           })
           .strict(),
       ])
+      .nullable()
+      .optional(),
+    // 2.3 (MODEL-179): what the caller holds. Sent for one decision, never stored.
+    estate: z
+      .object({
+        providers: z.array(z.string().min(1).max(120)).max(64).optional(),
+        plans: z.array(z.string().min(1).max(120)).max(64).optional(),
+        devices: z.array(z.string().min(1).max(120)).max(64).optional(),
+        exhausted: z.array(z.string().min(1).max(120)).max(64).optional(),
+      })
+      .strict()
       .nullable()
       .optional(),
   })
@@ -598,3 +674,9 @@ export type Decision = z.infer<typeof decisionSchema>;
 export type DecisionSpec = z.infer<typeof decisionSpecSchema>;
 export type Contribution = z.infer<typeof contributionSchema>;
 export type PlanRoute = z.infer<typeof planRouteSchema>;
+export type PlanCoverage = z.infer<typeof planCoverageSchema>;
+export type WithEstate = z.infer<typeof withEstateSchema>;
+export type EstateResult = WithEstate["results"][number];
+export type EstateMark = EstateResult["estate"];
+export type AccessKind = z.infer<typeof accessKind>;
+export type MayQualify = z.infer<typeof mayQualifySchema>;

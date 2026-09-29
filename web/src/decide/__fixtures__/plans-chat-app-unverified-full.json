@@ -1,0 +1,185 @@
+{
+  "near_misses": [],
+  "top": [],
+  "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 60\" role=\"img\" aria-label=\"Objective contributions in original units\"></svg>",
+  "number_origins": [],
+  "sources": [],
+  "contract_version": "2.6",
+  "decision_id": "dec_448fe4b91f52b275446345cf",
+  "snapshot": "snap_141109ae8938652c",
+  "signature_verified": false,
+  "spec_hash": "sha256:4e7be035c5fad7b81caf027ffa5a665b7ccb564b24adf7991e16a0de044d1f75",
+  "explain": "full",
+  "status": "no_feasible",
+  "answer": null,
+  "results": [],
+  "by_model": [
+    {
+      "model": "anthropic/claude-opus-5-5",
+      "status": "may_qualify",
+      "rank": null,
+      "cost_per_task": null,
+      "offerings": [
+        {
+          "offering": {
+            "model": "anthropic/claude-opus-5-5",
+            "provider": "anthropic",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "may_qualify",
+          "rank": null,
+          "cost_per_task": 0.66,
+          "unknown": [
+            "offering.subscription.models_covered"
+          ],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "anthropic/claude-sonnet-5",
+      "status": "may_qualify",
+      "rank": null,
+      "cost_per_task": null,
+      "offerings": [
+        {
+          "offering": {
+            "model": "anthropic/claude-sonnet-5",
+            "provider": "anthropic",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "may_qualify",
+          "rank": null,
+          "cost_per_task": 0.132,
+          "unknown": [
+            "offering.subscription.models_covered"
+          ],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "other/huge",
+      "status": "may_qualify",
+      "rank": null,
+      "cost_per_task": null,
+      "offerings": [
+        {
+          "offering": {
+            "model": "other/huge",
+            "provider": "openai",
+            "region": "global",
+            "tier": "standard"
+          },
+          "status": "may_qualify",
+          "rank": null,
+          "cost_per_task": 1.32,
+          "unknown": [
+            "offering.subscription.models_covered",
+            "offering.subscription.surfaces"
+          ],
+          "reason": null
+        }
+      ]
+    }
+  ],
+  "may_qualify": [
+    {
+      "model": "anthropic/claude-opus-5-5",
+      "offering": {
+        "model": "anthropic/claude-opus-5-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "unknown": [
+        "offering.subscription.models_covered"
+      ]
+    },
+    {
+      "model": "anthropic/claude-sonnet-5",
+      "offering": {
+        "model": "anthropic/claude-sonnet-5",
+        "provider": "anthropic",
+        "region": "global",
+        "tier": "standard"
+      },
+      "unknown": [
+        "offering.subscription.models_covered"
+      ]
+    },
+    {
+      "model": "other/huge",
+      "offering": {
+        "model": "other/huge",
+        "provider": "openai",
+        "region": "global",
+        "tier": "standard"
+      },
+      "unknown": [
+        "offering.subscription.models_covered",
+        "offering.subscription.surfaces"
+      ]
+    }
+  ],
+  "eliminated": {
+    "funnel": [],
+    "models": [],
+    "model_groups": []
+  },
+  "truncated": {
+    "offerings": 0,
+    "models": 0
+  },
+  "constraint_costs": [],
+  "tipping_points": [],
+  "relax": [
+    "no complete objective values"
+  ],
+  "relax_to": [],
+  "warnings": [],
+  "out_of_lineup": 0,
+  "with_estate": {
+    "status": "no_feasible",
+    "answer": null,
+    "results": [],
+    "may_qualify": [
+      {
+        "model": "anthropic/claude-opus-5-5",
+        "offering": {
+          "model": "anthropic/claude-opus-5-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unknown": [
+          "offering.subscription.models_covered"
+        ]
+      },
+      {
+        "model": "anthropic/claude-sonnet-5",
+        "offering": {
+          "model": "anthropic/claude-sonnet-5",
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        "unknown": [
+          "offering.subscription.models_covered"
+        ]
+      }
+    ],
+    "truncated": {
+      "offerings": 0,
+      "models": 0
+    },
+    "gap": {
+      "same_answer": true,
+      "unreachable_models": [],
+      "summary": "What you hold reaches no model that qualifies. Unrestricted, the best is none."
+    },
+    "gain": []
+  }
+}
