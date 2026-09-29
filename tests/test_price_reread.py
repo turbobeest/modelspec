@@ -21,7 +21,14 @@ from decision.verify import (
 )
 from decision.verify import run as verify_run
 from scripts import price_reread
-from scripts.price_reread import BRANCH, Status, check_value_only, render_report, rewrite_fact
+from scripts.price_reread import (
+    BRANCH,
+    RECONFIRM_BRANCH,
+    Status,
+    check_value_only,
+    render_report,
+    rewrite_fact,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = Path(__file__).parent / "fixtures" / "price_reread"
@@ -231,16 +238,26 @@ def by_id(report: price_reread.Report) -> dict[str, price_reread.FactResult]:
     return {f.fact_id: f for f in report.facts}
 
 
-def test_an_unchanged_page_reconfirms_every_value_and_writes_nothing(estate) -> None:
+def test_an_unchanged_page_logs_a_dated_reconfirmation_and_edits_no_offering(estate) -> None:
     root, _ = estate
     before = {p: p.read_text() for p in (root / "offerings").glob("**/*.yaml")}
+    queue_before = (root / "verification" / "queue" / "events.jsonl").read_text()
     report, fetcher = reread(estate, [page("plans.html")], write=True)
 
     assert report.counts() == {"unchanged": 5, "changed": 0, "needs_review": 0,
                                "unreadable": 0, "unreachable": 0, "not_reread": 1}
     assert report.alerts == [] and report.changes == []
     assert {p: p.read_text() for p in before} == before
+    assert (root / "verification" / "queue" / "events.jsonl").read_text() == queue_before
     assert RENDERED_URL not in fetcher.fetched
+
+    latest = VerificationLog(root / "verification").latest()
+    reconfirmed = {key[1]: v for key, v in latest.items() if v.date == TODAY}
+    assert sorted(reconfirmed) == sorted(report.to_dict()["reconfirmed"])
+    assert len(reconfirmed) == 5
+    assert all(v.outcome == "verified" and v.verifier.model_family == DETERMINISTIC
+               and v.collector == COLLECTOR for v in reconfirmed.values())
+    assert reconfirmed[PRO_PRICE].target.value_hash == value_hash(20)
 
 
 def test_a_changed_plan_price_is_rewritten_verified_and_reported(estate) -> None:
@@ -359,6 +376,9 @@ def test_price_pull_requests_are_never_auto_merged() -> None:
     assert f"github.head_ref != '{BRANCH}'" in automerge
     assert f"branch: {BRANCH}" in workflow
     assert "gh pr merge" not in workflow
+    # The log-only reconfirmation branch is the one this job lets auto-merge.
+    assert f"branch: {RECONFIRM_BRANCH}" in workflow
+    assert RECONFIRM_BRANCH not in automerge
 
 
 def test_a_runner_store_keeps_only_cited_and_fetched_copies(estate) -> None:

@@ -4,8 +4,11 @@ name: Weekly price and plan re-read
 # HTTP and re-reads it with the verifier's deterministic readers
 # (scripts/price_reread.py). A changed value opens a pull request on
 # data/weekly-price-reread, which automerge.yml skips: a person reviews every
-# price change. A page the readers no longer understand, or cannot fetch, opens
-# or updates one issue and fails the run. The job never guesses a value.
+# price change. A week with no change opens a log-only pull request on
+# data/weekly-price-reconfirm that auto-merges: each unchanged value verified
+# again today, so its 7-day age restarts. A page the readers no longer
+# understand, or cannot fetch, opens or updates one issue and fails the run.
+# The job never guesses a value.
 #
 # Cost (measured 2026-09-29): 33 plain fetches and about a minute of re-reading
 # from a cold cache, plus about 20 s of setup, on one Linux job: 2 runner minutes
@@ -96,6 +99,7 @@ jobs:
           report = json.load(open(sys.argv[1]))
           with open(sys.argv[2], "a") as out:
               print(f"changes={len(report['changes'])}", file=out)
+              print(f"reconfirmed={len(report['reconfirmed'])}", file=out)
               print(f"alerts={len(report['alerts'])}", file=out)
           PY
 
@@ -133,6 +137,40 @@ jobs:
           commit-message: 'data: re-read prices and plans (MODEL-217)'
           title: 'data: re-read prices and plans (MODEL-217)'
           body-path: ${{ runner.temp }}/pr-body.md
+
+      - name: Prove a no-change run only appended to the verification log
+        id: reconfirm
+        if: >-
+          inputs.dry_run != true &&
+          steps.result.outputs.changes == '0' &&
+          steps.result.outputs.reconfirmed != '0'
+        run: |
+          changed="$(git status --porcelain)"
+          if [ "$changed" != " M verification/log.jsonl" ]; then
+            echo "::error::a run with no value change touched more than the log:"
+            echo "$changed"
+            exit 1
+          fi
+          if git diff --numstat verification/log.jsonl | awk '$2 != 0 { bad = 1 } END { exit !bad }'; then
+            echo "::error::the log was edited, not appended to"
+            exit 1
+          fi
+          echo "log_only=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open the reconfirmation pull request
+        # Only dated verified records for unchanged values: no price moves, so
+        # automerge.yml may queue it like any agent PR.
+        if: steps.reconfirm.outputs.log_only == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.RESEARCH_PR_TOKEN }}
+          branch: data/weekly-price-reconfirm
+          delete-branch: true
+          add-paths: verification/log.jsonl
+          signoff: true
+          commit-message: 'data: reconfirm prices and plans (MODEL-217)'
+          title: 'data: reconfirm prices and plans (MODEL-217)'
+          body-path: ${{ runner.temp }}/report.md
 
       - name: Open or update the alert issue
         if: inputs.dry_run != true && steps.result.outputs.alerts != '0'

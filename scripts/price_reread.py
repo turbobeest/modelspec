@@ -7,7 +7,9 @@ fetches each of those pages again over plain HTTP and asks the same readers,
 under the same two-key rules, whether the page still says what the fact says.
 Each fact ends in one status:
 
-- ``unchanged``: the recorded value verifies against the new copy.
+- ``unchanged``: the recorded value verifies against the new copy. With
+  ``--write`` that verification is logged with today's date, so the value's age
+  restarts; the offering file is not touched.
 - ``changed``: it does not, and exactly one new value for the same subject
   verifies against the new copy. With ``--write`` the fact takes that value and
   the new copy, and the verification is logged. A price change is never merged
@@ -52,7 +54,7 @@ from typing import Any
 import yaml
 
 from decision.excluded import excluded_sources
-from decision.model import DETERMINISTIC, VerificationActor, value_hash
+from decision.model import DETERMINISTIC, Verification, VerificationActor, value_hash
 from decision.normalise import (
     NORMALISERS,
     UnsupportedContentError,
@@ -77,6 +79,8 @@ from decision.verify import (
 ROOT = Path(__file__).resolve().parents[1]
 #: ``automerge.yml`` must never queue this branch (tests/test_price_reread.py).
 BRANCH = "data/weekly-price-reread"
+#: A week with no change: dated reconfirmations only, which may auto-merge.
+RECONFIRM_BRANCH = "data/weekly-price-reconfirm"
 USER_AGENT = "ModelSpec-Price-Reread/1.0 (+https://modelspec.dev)"
 FACET_PREFIXES = ("offering.price.", "offering.subscription.")
 REREAD = VerificationActor(
@@ -115,6 +119,8 @@ class FactResult:
     copies: Mapping[str, tuple[str, str]] = field(default_factory=dict)
     #: The claim as re-read, sources pinned to the new copies.
     claim: Claim | None = field(default=None, compare=False, repr=False)
+    #: For an unchanged fact, the record that re-verified it against the new copy.
+    verification: Verification | None = field(default=None, compare=False, repr=False)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -164,6 +170,7 @@ class Report:
             "checked_on": self.checked_on.isoformat(),
             "counts": self.counts(),
             "changes": [f.to_dict() for f in self.changes],
+            "reconfirmed": [f.fact_id for f in self.facts if f.status is Status.UNCHANGED],
             "alerts": [f.to_dict() for f in self.alerts],
             "not_reread": dict(Counter(
                 f.reason or "" for f in self.facts if f.status is Status.NOT_REREAD)),
@@ -327,7 +334,7 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
 
     result = verify(claim, regions, deterministic_extractors(), today=today)
     if result.outcome == "verified":
-        return replace(base, status=Status.UNCHANGED)
+        return replace(base, status=Status.UNCHANGED, verification=result.verification)
     if result.outcome == "unreachable":
         return replace(base, status=Status.UNREADABLE,
                        reason=f"cited region not found in the new copy: {result.reason}"
@@ -421,6 +428,12 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
     report.facts += results
 
     report.diffs = source_diffs(report, sources, store)
+    if write:
+        # A value that still reads the same is verified again today, so its age
+        # restarts (the 7-day price interval, decision.sources.DEFAULT_INTERVALS).
+        for fact in report.facts:
+            if fact.status is Status.UNCHANGED and fact.verification is not None:
+                log.append(fact.verification)
     if write and report.changes:
         apply_changes(root, report.changes, at=at, today=today, regions=regions)
     return report
@@ -606,6 +619,9 @@ def render_report(report: Report) -> str:
         "| " + " | ".join(counts) + " |",
         "|" + "---|" * len(counts),
         "| " + " | ".join(str(n) for n in counts.values()) + " |",
+        "",
+        f"Each unchanged value was verified again on {report.checked_on.isoformat()} against "
+        "a fresh copy of its page.",
         "",
     ]
     if report.changes:

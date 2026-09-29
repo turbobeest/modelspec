@@ -118,7 +118,12 @@ Tuesdays (MODEL-217). It takes every `offering.price.*` and
 deterministic reader, fetches each cited page once more over plain HTTP, pins
 the fact's filed claim to the new copy and verifies it again. Each fact ends as:
 
-- `unchanged`: the recorded value still verifies.
+- `unchanged`: the recorded value still verifies. The verification is logged
+  with the run's date, so the value's age restarts; the offering file is not
+  touched. A week with no change opens a log-only pull request on
+  `data/weekly-price-reconfirm`. The workflow first proves that only
+  `verification/log.jsonl` changed, and only by appends, and then the PR may
+  auto-merge. This adds about 160 KB of log a week.
 - `changed`: it does not, and exactly one new value for the same subject
   verifies. The job writes that value and the new copy ref into the offering
   file (nothing else in the file changes), files a claim from
