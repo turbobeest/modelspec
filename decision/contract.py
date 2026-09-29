@@ -42,7 +42,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.10"
+CONTRACT_VERSION = "2.11"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -158,6 +158,8 @@ QUALIFIER_KEYWORDS = (*_FLAG_QUALIFIERS, "@effort(x)", "@harness(x)", "measured_
 # on them are refused. Any other value type from the registry is taken as ordered.
 UNORDERED_VALUE_TYPES = frozenset({"bool", "boolean", "enum", "string", "str", "text", "set",
                                    "list"})
+#: Value types ``best(m)`` can subtract a margin from.
+NUMERIC_VALUE_TYPES = frozenset({"number", "range"})
 
 
 def _iso_date(value: Any) -> Any:
@@ -234,6 +236,25 @@ class ModelRef(_Strict):
     model: ModelId
 
 
+class BestRef(_Strict):
+    """``facet >= best(m)``: within ``m`` of the highest value among the candidates
+    that pass every other hard condition. Added in 2.11."""
+
+    best: float = Field(ge=0)
+
+    @field_validator("best", mode="before")
+    @classmethod
+    def _margin(cls, value: Any) -> Any:
+        # Before pydantic's own checks, so a bad margin is not reported as a
+        # missing model(…) by the value union.
+        if isinstance(value, bool) or not isinstance(value, int | float) or value < 0:
+            raise ValueError(f"the margin in best(m) is a number, 0 or more; got {value!r}")
+        return value
+
+
+BEST_ONLY_GTE = "best(m) keeps candidates within m of the highest value; write facet >= best(m)"
+
+
 class EvidenceQualifiers(_Strict):
     """Which evidence may satisfy a condition on an evidence facet."""
 
@@ -255,14 +276,21 @@ Qualifiers = Annotated[EvidenceQualifiers | None, AfterValidator(_drop_empty_qua
 
 
 class Compare(_Strict):
-    """``facet op value``; the value may be ``model(<id>)`` for a relative condition."""
+    """``facet op value``; the value may be ``model(<id>)`` or ``best(m)`` for a relative
+    condition."""
 
     facet: FacetId
     op: Op
-    value: ModelRef | Scalar
+    value: ModelRef | BestRef | Scalar
     qualifiers: Qualifiers = None
     soft: Soft | None = None
     unknown: UnknownPolicy | None = None
+
+    @model_validator(mode="after")
+    def _best_is_a_floor(self) -> Compare:
+        if isinstance(self.value, BestRef) and self.op != ">=":
+            raise ValueError(BEST_ONLY_GTE)
+        return self
 
 
 class Window(_Strict):
@@ -666,6 +694,13 @@ def _compact_value(reader: _Reader, after: str) -> Any:
             parts.append(reader.take().text)  # type: ignore[union-attr]
         reader.expect(")", "to close model(")
         return {"model": " ".join(parts)}
+    if tok.text == "best" and reader.peek() and reader.peek().text == "(":  # type: ignore[union-attr]
+        reader.take()
+        margin = reader.take()
+        if margin is None or margin.kind != "word" or margin.text == ")":
+            raise _SyntaxError(reader.field, "best( needs a margin, e.g. best(1.0)")
+        reader.expect(")", "to close best(")
+        return {"best": _classify(margin.text)}
     return _classify(tok.text)
 
 
@@ -742,6 +777,8 @@ _RESERVED_WORDS = {"in", "not", "measured_after", "soft", "unknown"}
 def _render_value(value: Any) -> str:
     if isinstance(value, ModelRef):
         return f"model({value.model})"
+    if isinstance(value, BestRef):
+        return f"best({json.dumps(value.best)})"
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, int | float):
@@ -1794,7 +1831,7 @@ class Decision(_ExcludeIf):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.10"] = CONTRACT_VERSION
+    contract_version: Literal["2.11"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1849,7 +1886,7 @@ class Decision(_ExcludeIf):
 
 CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Spec, TaskTokens, Objective, Preference, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
-    Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
+    BestRef, Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate,
     BenchmarkEstimateChange, BenchmarkExclusions, Contribution,
@@ -1928,7 +1965,7 @@ def _loc(loc: tuple[Any, ...]) -> str:
 _ALIASES = {"in_": "in", "not_": "not", "class_": "class"}
 
 
-_UNION_TAGS = {"bool", "int", "float", "date", "str", "ModelRef", "tuple"}
+_UNION_TAGS = {"bool", "int", "float", "date", "str", "ModelRef", "BestRef", "tuple"}
 
 
 def _message(error: Mapping[str, Any]) -> str:
@@ -1990,6 +2027,7 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
         path: str,
         condition: str | None,
         qualifiers: EvidenceQualifiers | None = None,
+        best: bool = False,
     ) -> None:
         try:
             info = facets(facet_id)
@@ -2021,6 +2059,10 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
             issues.append(Issue(condition, facet_id,
                                 f"{facet_id} is a {kind} facet, which has no order; "
                                 "use = or in {…}", path))
+        elif best and kind not in NUMERIC_VALUE_TYPES:
+            issues.append(Issue(condition, facet_id,
+                                f"{facet_id} is a {kind} facet; best(m) needs a numeric facet",
+                                path))
 
     def walk(cond: Any, path: str) -> None:
         if isinstance(cond, AnyOf | AllOf):
@@ -2040,6 +2082,7 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
                 path,
                 render_condition(cond),
                 getattr(cond, "qualifiers", None),
+                best=isinstance(cond, Compare) and isinstance(cond.value, BestRef),
             )
 
     for i, cond in enumerate(spec.where):

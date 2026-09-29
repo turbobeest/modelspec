@@ -295,6 +295,19 @@ cases:
   expect: {http: 200, status: no_feasible}
   covers: [answer:no_feasible]
 
+- id: best-floor-evidence
+  intent: A floor 10 points below the best eligible quality keeps alpha and gamma, and drops beta and delta.
+  snapshot: lineup
+  spec: {spec_version: 1, where: ["quality >= best(10) @independent", model.class = text-generator],
+         optimize: {weights: {-offering.cost_per_task: 1}}, explain: full}
+  expect: {http: 200, status: answered}
+
+- id: best-floor-domain-repo
+  intent: A coding floor within 1.0 of the strongest eligible model's estimate, on the real lineup.
+  spec: {spec_version: 1, where: [model.class = text-generator, "software_engineering >= best(1.0)"],
+         optimize: {weights: {-offering.cost_per_task: 1}}, explain: full, limit: 10}
+  expect: {http: 200, status: [answered, partial]}
+
 - id: explain-none-lineup
   intent: The default task at explain none.
   snapshot: lineup

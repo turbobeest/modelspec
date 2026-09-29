@@ -527,6 +527,91 @@ def test_a_relative_domain_condition_compares_estimates() -> None:
     assert (failed.value, failed.threshold) == (0.9, 1.2)
 
 
+SE = "software_engineering"
+
+
+def test_best_keeps_the_candidates_within_the_margin_of_the_highest() -> None:
+    rows = {cid: {"model.context_window": 1} for cid in ("lab/a", "lab/b", "lab/c", "lab/d")}
+    estimates = {"lab/a": {SE: 1.5}, "lab/b": {SE: 0.75}, "lab/c": {SE: 0.25}}
+    result, _, _ = run("software_engineering >= best(1.0)", rows=rows, estimates=estimates)
+    assert names(result, "feasible") == ["lab/a", "lab/b"]
+    assert names(result, "maybe") == ["lab/d"]
+    [failed] = result.eliminated
+    assert (failed.candidate, failed.value, failed.threshold) == ("lab/c", 0.25, 0.5)
+    assert failed.condition == "software_engineering >= best(1.0)"
+
+
+def test_best_anchors_on_what_every_other_condition_leaves() -> None:
+    """Listed first, best(m) still runs last: the leader the context floor
+    removes, and the model that only may qualify, set no bar."""
+    rows = {
+        "lab/lead": {"model.context_window": 5},
+        "lab/maybe": {"model.context_window": FactValue("unknown")},
+        "lab/a": {"model.context_window": 50},
+        "lab/b": {"model.context_window": 50},
+    }
+    estimates = {"lab/lead": {SE: 3.0}, "lab/maybe": {SE: 2.5},
+                 "lab/a": {SE: 1.0}, "lab/b": {SE: 0.25}}
+    result, _, _ = run("software_engineering >= best(0.5)", "model.context_window >= 10",
+                       rows=rows, estimates=estimates)
+    assert names(result, "feasible") == ["lab/a"]
+    assert names(result, "maybe") == ["lab/maybe"]
+    assert [step.condition for step in result.funnel] == [
+        "model.context_window >= 10", "software_engineering >= best(0.5)",
+    ]
+    failed = next(row for row in result.eliminated if row.candidate == "lab/b")
+    assert (failed.value, failed.threshold) == (0.25, 0.5)
+
+
+def test_two_best_conditions_share_one_anchor() -> None:
+    rows = {cid: {"model.context_window": 1} for cid in ("lab/a", "lab/b", "lab/c")}
+    estimates = {
+        "lab/a": {SE: 2.0, "reasoning": 0.0},
+        "lab/b": {SE: 1.5, "reasoning": 1.0},
+        "lab/c": {SE: 0.0, "reasoning": 2.0},
+    }
+    forward, _, _ = run("software_engineering >= best(1.0)", "reasoning >= best(1.0)",
+                        rows=rows, estimates=estimates)
+    backward, _, _ = run("reasoning >= best(1.0)", "software_engineering >= best(1.0)",
+                         rows=rows, estimates=estimates)
+    assert names(forward, "feasible") == names(backward, "feasible") == ["lab/b"]
+    thresholds = {(row.candidate, row.threshold) for row in forward.eliminated}
+    assert thresholds == {("lab/a", 1.0), ("lab/c", 1.0)}
+
+
+def test_best_with_no_known_value_is_unknown_for_everyone() -> None:
+    rows = {cid: {"model.context_window": 1} for cid in ("lab/a", "lab/b")}
+    result, _, _ = run("software_engineering >= best(1.0)", rows=rows)
+    assert names(result, "maybe") == ["lab/a", "lab/b"]
+    assert result.eliminated == ()
+
+
+def test_best_on_evidence_reads_each_candidates_admitted_best_value() -> None:
+    bench = "swe_bench_pro"
+    evidence = {
+        ("lab/a", bench): (evidence_row(bench, 70),
+                           evidence_row(bench, 90, measured_by="provider_self_report")),
+        ("lab/b", bench): (evidence_row(bench, 62),),
+        ("lab/c", bench): (evidence_row(bench, 55),),
+    }
+    rows = {cid: {"model.context_window": 1} for cid, _ in evidence}
+    result, _, _ = run("swe_bench_pro >= best(10) @independent", rows=rows, evidence=evidence)
+    assert names(result, "feasible") == ["lab/a", "lab/b"]
+    [failed] = result.eliminated
+    assert (failed.candidate, failed.value, failed.threshold) == ("lab/c", 55, 60)
+
+
+def test_a_soft_best_penalises_and_removes_no_one() -> None:
+    rows = {cid: {"model.context_window": 1} for cid in ("lab/a", "lab/b")}
+    estimates = {"lab/a": {SE: 2.0}, "lab/b": {SE: 0.5}}
+    result, _, _ = run("software_engineering >= best(1.0) soft(0.3)", rows=rows,
+                       estimates=estimates)
+    assert names(result, "feasible") == ["lab/a", "lab/b"]
+    [penalty] = result.penalties
+    assert (penalty.condition, penalty.penalty, penalty.failing) == (
+        "software_engineering >= best(1.0) soft(0.3)", 0.3, ("lab/b",))
+
+
 def test_an_unknown_reference_makes_the_condition_unknown() -> None:
     rows = {"lab/a": {"model.context_window": 10}}
     result, _, _ = run(

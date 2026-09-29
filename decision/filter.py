@@ -19,7 +19,9 @@ whether the benchmark is direct for a capability the spec requests. Retired
 candidates are excluded unless the resolved spec asks for lifecycle ``retired``.
 
 A capability domain (``software_engineering``) has no fact: its value is the
-capability estimate.
+capability estimate. ``facet >= best(m)`` is within ``m`` of the highest value
+among the candidates feasible once every condition without ``best`` has run, so
+such a condition runs after them, and the funnel lists it after them.
 
 A model with offerings is represented by them (MODEL-159). Its bare model row
 would tie with them on the evidence they inherit, so it never enters the
@@ -38,6 +40,7 @@ from typing import Any, Literal
 from decision.contract import (
     AllOf,
     AnyOf,
+    BestRef,
     Compare,
     EvidenceQualifiers,
     FunnelStep,
@@ -299,6 +302,16 @@ def _children(cond: Any) -> tuple[Any, ...]:
     return ()
 
 
+def _has_best(cond: Any) -> bool:
+    if isinstance(cond, Compare):
+        return isinstance(cond.value, BestRef)
+    return any(_has_best(child) for child in _children(cond))
+
+
+def _numeric(value: Any) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
 def _facet_of(cond: Any) -> str | None:
     if isinstance(cond, Known):
         return cond.known
@@ -347,6 +360,10 @@ class _Run:
         self.penalties: list[SoftPenalty] = []
         self.path = ""
         self.lineup = 0
+        #: Who ``best(m)`` is relative to: the feasible set once every
+        #: condition without ``best`` has run. Fixed once, so two ``best``
+        #: conditions do not depend on each other's order.
+        self.anchor: int | None = None
         #: The capabilities asked about, which ``@direct`` is relative to.
         self.domains = frozenset(resolved.spec.capabilities or {})
 
@@ -510,6 +527,25 @@ class _Run:
         self.resolved_threshold[key] = got
         return got
 
+    def _best(self, cond: Compare) -> Any:
+        """The highest value among the anchor candidates, less the margin."""
+        assert isinstance(cond.value, BestRef) and self.anchor is not None
+        key = id(cond)
+        if key in self.resolved_threshold:
+            return self.resolved_threshold[key]
+        values = []
+        for cid in self._ids_of(self.anchor):
+            if self._is_evidence(cond):
+                admitted = self._admitted(cid, cond)
+                value = _shown(admitted, cond.op) if admitted else None
+            else:
+                value = self._known_value(cid, cond.facet)
+            if _numeric(value):
+                values.append(value)
+        got = max(values) - cond.value.best if values else _MISSING
+        self.resolved_threshold[key] = got
+        return got
+
     def _evidence_bits(self, cond: Any, op: str, arg: Any) -> Bits:
         qualifiers = cond.qualifiers or EvidenceQualifiers()
         measured = _measurers(qualifiers.measured_by)
@@ -548,8 +584,9 @@ class _Run:
         return Bits(passing, failing, self.universe & ~passing & ~failing)
 
     def _compare(self, cond: Compare) -> Bits:
-        if isinstance(cond.value, ModelRef):
-            threshold = self._reference(cond)
+        if isinstance(cond.value, ModelRef | BestRef):
+            threshold = (self._reference(cond) if isinstance(cond.value, ModelRef)
+                         else self._best(cond))
             if threshold is _MISSING:
                 return Bits(0, 0, self.universe)
         else:
@@ -728,6 +765,9 @@ class _Run:
                 if got is _MISSING:
                     got = self._reference(cond)
                 return None if got is _MISSING else got
+            if isinstance(cond.value, BestRef):
+                got = self._best(cond)
+                return None if got is _MISSING else got
             return cond.value
         if isinstance(cond, Window):
             return cond.between
@@ -805,7 +845,11 @@ class _Run:
         rules = 0 if self.resolved.profile is None else len(self.resolved.profile.rules)
         self._cover(feasible, maybe, eliminated)
 
-        for index, cond in enumerate(self.resolved.conditions):
+        # Stable: every condition without best(m) first, in the spec's order.
+        ordered = sorted(enumerate(self.resolved.conditions), key=lambda pair: _has_best(pair[1]))
+        for index, cond in ordered:
+            if self.anchor is None and _has_best(cond):
+                self.anchor = feasible
             self.path = (f"profile.rules[{index}]" if index < rules
                          else f"where[{index - rules}]")
             before = feasible.bit_count()
