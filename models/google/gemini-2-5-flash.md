@@ -682,12 +682,12 @@ benchmarks:
   - benchmark_id: arena_elo_overall
     model_id_as_evaluated: gemini-2.5-flash
     score: 1417.27
-    unit: elo
+    unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Text Arena overall, raw (not style-controlled)
     configuration: LMArena's official leaderboard dataset, split latest, subset `text`
       (raw, non-style-controlled), category overall; leaderboard_publish_date 2026-09-13
@@ -695,15 +695,22 @@ benchmarks:
       live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_elo_overall#17d486178227
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:6edcebedc5883fade268c96cf827cebf7e4d850529a482825a5afa1264bb1628
+      cited_regions:
+      - rows
   - benchmark_id: arena_elo_coding
     model_id_as_evaluated: gemini-2.5-flash
     score: 1423.43
-    unit: elo
+    unit: Arena score (Elo scale)
     source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Text Arena coding category, raw (not style-controlled)
     configuration: LMArena's official leaderboard dataset, split latest, subset `text`
       (raw, non-style-controlled), category coding. Raw to match arena_elo_overall;
@@ -712,6 +719,13 @@ benchmarks:
       live arena.ai board read 2026-09-24 still shows this snapshot (same vote counts).
     limitations: Normalization in api/ranking/engine.py bounds Arena Elo at 1400; values
       above clip.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_elo_coding#ad75c1f0ff66
+    sources:
+    - source_id: model-160-arena-text
+      snapshot_ref: sha256:2193da2be6b25678f25bfd34b1e6a6fda0ad3583dab485911d8a61f247dbadcc
+      cited_regions:
+      - rows
   - benchmark_id: arena_elo_style_control
     model_id_as_evaluated: gemini-2.5-flash
     score: 1409.69
@@ -720,7 +734,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -734,9 +748,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      snapshot_ref: sha256:bea7ea9d7344aeccaed159b64f2f3aa97e84231d3723b02f9d4a5672b6b889b8
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: gemini-2.5-flash
     score: 1423.54
@@ -745,7 +760,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -753,6 +768,13 @@ benchmarks:
       votes, rank 178.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_coding#5a188bd93f67
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:da249e40e0397ffcd8dd5f738c4c91f9a389869f8ae9e26c425a1187f04c7118
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: gemini-2.5-flash
     score: 1419.52
@@ -761,7 +783,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -769,6 +791,13 @@ benchmarks:
       votes, rank 148.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_hard_prompts#464141a5fbe8
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:5a69c3a3a5f23cf6bfd2b0ecae495ec9731f62df889f4147793616588a2d4f8b
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: gemini-2.5-flash
     score: 1405.78
@@ -777,13 +806,20 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
       2026-09-13; style control. Highest-effort row for the product (effort: default; MODEL-123
       max-effort rule). Rating 1405.78 [1398.97, 1412.60], 7772 votes, rank 134.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_math#9f45b381774b
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:41e622d3837a9ab1577d975e3c57ae92db367c09f45606ed1870a32a4591335a
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: gemini-2.5-flash
     score: 1395.92
@@ -792,7 +828,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -800,6 +836,13 @@ benchmarks:
       votes, rank 103.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_creative_writing#088b2ff3b94f
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4ca49a5b7efede8e577057d10266b363a837e56331ac79f7540f7da349a3eee5
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: gemini-2.5-flash
     score: 1400.34
@@ -808,7 +851,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -816,6 +859,13 @@ benchmarks:
       votes, rank 132.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_instruction_following#b011d68e2bc7
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:6bcc35b68ac189cda1a204de4fab84c84fcd9d853dc2c3265e68366133d9093b
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: gemini-2.5-flash
     score: 1403.26
@@ -824,7 +874,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -832,6 +882,13 @@ benchmarks:
       votes, rank 146.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_multi_turn#be27b6d636fb
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:76f93ba07e2611ee096faf4210eb6b965b5b113b375cb5edec5f224be61fc346
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: gemini-2.5-flash
     score: 1423.28
@@ -840,7 +897,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -848,6 +905,13 @@ benchmarks:
       votes, rank 138.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_expert#3fdbbd148d0e
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:ebf8116274f3815b353511b1829bd763a0817e2a0c5d3669072ebd5571271745
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: gemini-2.5-flash
     score: 1417.79
@@ -856,7 +920,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -864,6 +928,13 @@ benchmarks:
       votes, rank 133.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_longer_query#d1a82e3b913f
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:3c7de94587c842e12c134292a7df52a9faafb46f877d184d8f235d5c1d466737
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: gemini-2.5-flash
     score: 1400.17
@@ -872,7 +943,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -880,6 +951,13 @@ benchmarks:
       votes, rank 128.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_non_english#56d3f50839be
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:47f41bf8222f55644ca4a36db5ad4178546c5d3e2982bcda2dc08798f9776a65
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: gemini-2.5-flash
     score: 1426.64
@@ -888,7 +966,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
       revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
@@ -897,6 +975,13 @@ benchmarks:
       votes, rank 146.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_medicine#e717a384bcab
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:31163709a3917ed23ec956a2589a6a5ad30924817977652909218ecbbf9a8d0e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: gemini-2.5-flash
     score: 1426.59
@@ -905,7 +990,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
       1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
@@ -914,6 +999,13 @@ benchmarks:
       votes, rank 121.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_legal#57f9ae1c738c
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:6aec9d4dd9fc82958ffeceea56c977de5d8204f6c62ad5113657b828f9bc55da
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: gemini-2.5-flash
     score: 1399.28
@@ -922,7 +1014,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
       latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
@@ -931,6 +1023,13 @@ benchmarks:
       votes, rank 152.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_business#cffe91d040fc
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:ba565a81fbb65e9d13c80776fda09aabedc819d64793b355a5a5fe836212472e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: gemini-2.5-flash
     score: 1430.49
@@ -939,7 +1038,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
@@ -948,6 +1047,13 @@ benchmarks:
       votes, rank 131.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_science#95d87ed4c8b7
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:dff891db693196c263ad841fcb75cf135a4529936b386a76fc324e6b66bb2d2e
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: gemini-2.5-flash
     score: 1402.96
@@ -956,7 +1062,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
@@ -965,6 +1071,13 @@ benchmarks:
       votes, rank 110.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_writing#6c932ea5504f
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:451771d6d03dfcdc902ebbb505ce47bfc614e33bde751b42f3be31d89d416086
+      cited_regions:
+      - rows
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: gemini-2.5-flash
     score: 1215.04
@@ -973,7 +1086,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -981,35 +1094,56 @@ benchmarks:
       votes, rank 69.'
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#arena_sc_vision#07bd641d93c3
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:9da6b0bec36701b281c5b1b1e49bed1a536c78908b3d186f41a551360cb584c4
+      cited_regions:
+      - rows
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Gemini 2.5 Flash
     score: 548.84
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-24'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
     configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort default; the highest-effort
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#vending_bench_2#a848fba6ca93
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:94074584ec83e973b31884f48956a6bc43e36a33d47dc3feaa7c52adf23a9c12
+      cited_regions:
+      - rows
   - benchmark_id: hle
     model_id_as_evaluated: Gemini 2.5 Flash (April 2025)
     score: 12.08
     unit: percent
     source_url: https://labs.scale.com/leaderboard/humanitys_last_exam
     source_kind: independent_evaluator
-    evidence_date: '2025-04-17'
+    evidence_date: '2026-09-29'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: Humanity's Last Exam, Scale Labs leaderboard
     configuration: Scale Labs leaderboard entry read 2026-09-24; entry created 2025-04-17T19:55:59.000Z;
       effort default; ±1.28 (95% CI).
     limitations: 'Potential contamination warning: This model was evaluated after the public
       release of HLE, allowing model builder access to the prompts and solutions.'
+    observed_at: '2026-09-29'
+    id: google/gemini-2-5-flash#hle#4bd99ee3c2ef
+    sources:
+    - source_id: model-143-evidence-scale-hle-json
+      snapshot_ref: sha256:ed8318afc3b822d4f773ca68e50554d1e6104feee3439ef5b9b84952803a46e6
+      cited_regions:
+      - rows
   - benchmark_id: aime_2025
     model_id_as_evaluated: Gemini 2.5 Flash (Thinking)
     score: 70.83
