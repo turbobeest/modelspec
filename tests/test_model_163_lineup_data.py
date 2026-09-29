@@ -318,6 +318,7 @@ def test_local_rule_inputs_have_counting_two_key_verifications(
                 assert verification["method"] in {
                     "local-fact-structured-row@1",
                     "structured-row-match@1",
+                    "independent-derived-recompute@1",
                 }
             else:
                 assert verification["collector"]["agent"] == "openai-codex-model-163"
@@ -344,7 +345,7 @@ def test_local_candidates_publish_the_verified_hardware_fit_facet(
         assert len(facts) == 1
         assert facts[0]["state"] == "known"
         assert "nvidia_rtx_4090" in facts[0]["value"]
-        assert facts[0]["sources"][0]["source_id"].endswith("-hardware-fit")
+        assert facts[0]["sources"][0]["source_id"].endswith("-hardware-input")
 
         verification = latest_verifications[("fact", f"{row['model_id']}#model.fits_hardware")]
         assert verification["outcome"] == "verified"
