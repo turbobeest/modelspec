@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Process one pending Grok Bot release-signal work item.
+"""Process one pending release-signal work item, from Grok Bot or the watcher.
 
 The hourly workflow calls this script once per matrix item. Processing one item
 per branch keeps unrelated card changes out of the same pull request.
@@ -51,7 +51,7 @@ def work_items(payload: dict) -> list[dict[str, object]]:
     """Return every pending signal and due re-check as an isolated work item."""
     items = [
         {
-            "signal_id": ReleaseSignal.parse(row).signal_id,
+            "signal_id": ReleaseSignal.from_queue(row).signal_id,
             "recheck_day": 0,
             "pr_url": None,
         }
@@ -59,7 +59,7 @@ def work_items(payload: dict) -> list[dict[str, object]]:
     ]
     items.extend(
         {
-            "signal_id": ReleaseSignal.parse(row["signal"]).signal_id,
+            "signal_id": ReleaseSignal.from_queue(row["signal"]).signal_id,
             "recheck_day": int(row["day"]),
             "pr_url": row.get("pr_url"),
         }
@@ -72,10 +72,10 @@ def _select_signal(
     payload: dict, *, signal_id: str | None, recheck_day: int | None,
 ) -> tuple[ReleaseSignal | None, dict | None]:
     candidates: list[tuple[ReleaseSignal, dict | None]] = [
-        (ReleaseSignal.parse(row), None) for row in payload.get("signals") or []
+        (ReleaseSignal.from_queue(row), None) for row in payload.get("signals") or []
     ]
     candidates.extend(
-        (ReleaseSignal.parse(row["signal"]), row)
+        (ReleaseSignal.from_queue(row["signal"]), row)
         for row in payload.get("rechecks") or []
     )
     if signal_id is None:

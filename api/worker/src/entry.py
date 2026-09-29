@@ -118,7 +118,8 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 ACCEPTED_ENDPOINTS = (
     "POST /v1/rank", "POST /v1/decide", "POST /v1/compare",
     "POST /v1/policy-check", "GET /v1/health",
-    "POST /v1/signals", "GET /v1/signals/pending", "POST /v1/signals/ack",
+    "POST /v1/signals", "POST /v1/signals/discovered",
+    "GET /v1/signals/pending", "POST /v1/signals/ack",
     "GET /v1/credits",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
@@ -777,6 +778,15 @@ class Default(WorkerEntrypoint):
                 signature=request.headers.get("x-modelspec-signature"),
                 secret=str(getattr(self.env, SIGNALS_HMAC_SECRET_VAR, "") or "").encode(),
                 enabled=True,
+                kv=_access_store(self.env),
+            )
+        elif path == "/v1/signals/discovered":
+            if method != "POST":
+                return self._method_not_allowed(service_commit, path, "POST", method)
+            outcome = await signals_service.discovered(
+                raw=(await request.text()).encode("utf-8"),
+                authorization=request.headers.get("authorization"),
+                read_key=str(getattr(self.env, SIGNALS_READ_KEY_VAR, "") or "") or None,
                 kv=_access_store(self.env),
             )
         elif path == "/v1/signals/pending":

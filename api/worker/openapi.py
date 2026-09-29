@@ -1592,6 +1592,30 @@ def _signal_paths() -> dict[str, Any]:
                 },
             },
         },
+        "/v1/signals/discovered": {
+            "post": {
+                "operationId": "releaseDiscoveryIntake",
+                "summary": "Accept a primary-source watcher discovery (MODEL-216), once per ID.",
+                "security": [{"signalReadKey": []}],
+                **skip,
+                "requestBody": {
+                    "required": True,
+                    "content": {"application/json": {
+                        "schema": {"$ref": "#/components/schemas/ReleaseDiscovery"},
+                    }},
+                },
+                "responses": {
+                    "200": _json_body("The watcher filed this discovery before.", {
+                        "$ref": "#/components/schemas/SignalMutation",
+                    }),
+                    "202": _json_body("The discovery was accepted into the pending queue.", {
+                        "$ref": "#/components/schemas/SignalMutation",
+                    }),
+                    **{status: error for status in ("400", "401", "404", "413", "503")},
+                    "405": method,
+                },
+            },
+        },
         "/v1/signals/pending": {
             "get": {
                 "operationId": "releaseSignalsPending",
@@ -1637,8 +1661,14 @@ def _signal_schemas() -> dict[str, Any]:
     )
     contract.pop("$schema", None)
     contract.pop("$id", None)
+    discovery = json.loads(
+        (REPO_ROOT / "schemas" / "release-discovery-v1.schema.json").read_text(encoding="utf-8")
+    )
+    discovery.pop("$schema", None)
+    discovery.pop("$id", None)
     return {
         "ReleaseSignal": contract,
+        "ReleaseDiscovery": discovery,
         "SignalAcknowledgement": {
             "type": "object",
             "additionalProperties": False,
@@ -1667,12 +1697,15 @@ def _signal_schemas() -> dict[str, Any]:
             "type": "object",
             "required": ["schema_version", "service_commit", "endpoint", "signals", "rechecks"],
             "properties": {
-                "schema_version": {"type": "string", "enum": [signals.SCHEMA_VERSION]},
+                "schema_version": {"type": "string", "enum": [signals.PENDING_SCHEMA_VERSION]},
                 "service_commit": {"type": "string"},
                 "endpoint": {"type": "string", "enum": ["signals.pending"]},
                 "signals": {
                     "type": "array",
-                    "items": {"$ref": "#/components/schemas/ReleaseSignal"},
+                    "items": {"oneOf": [
+                        {"$ref": "#/components/schemas/ReleaseSignal"},
+                        {"$ref": "#/components/schemas/ReleaseDiscovery"},
+                    ]},
                 },
                 "rechecks": {"type": "array", "items": {"type": "object"}},
             },
@@ -2493,7 +2526,8 @@ def build_spec() -> dict[str, Any]:
                                     "/v1/decide": decide_service.MAX_BODY_BYTES,
                                     "/v1/compare": decide_service.MAX_BODY_BYTES,
                                     "/v1/policy-check": policy.MAX_BODY_BYTES,
-                                    "/v1/signals": signals.MAX_BODY_BYTES},
+                                    "/v1/signals": signals.MAX_BODY_BYTES,
+                                    "/v1/signals/discovered": signals.MAX_BODY_BYTES},
         },
         "x-modelspec-access": _access(),
         "x-modelspec-billing": {

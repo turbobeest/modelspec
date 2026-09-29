@@ -3,6 +3,12 @@
 Grok Bot reports a possible model release to ModelSpec. The report starts the
 research pipeline. It does not supply a fact or a piece of evidence for a card.
 
+Grok Bot is not the only sender. The release watcher (MODEL-216,
+[`release-watch.md`](release-watch.md)) reads the labs' own model pages,
+Hugging Face org feeds and OpenRouter's public model list, and files what is
+new into the same queue as `release-discovery` v1. Everything below applies
+to both.
+
 The Worker accepts the report, stores it in the existing `ACCESS` Workers KV
 namespace, and returns `202`. An hourly GitHub Action drains every pending
 signal and due re-check through isolated jobs, with at most four running at
