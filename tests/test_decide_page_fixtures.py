@@ -33,7 +33,12 @@ LINEUP = [
 ]
 
 
-def _snapshot():
+# Measurement intervals that make alpha and gamma overlap, so the engine answers "tied".
+TIED_INTERVALS = {"lab/alpha": [86.0, 98.0], "lab/gamma": [82.0, 94.0]}
+
+
+def _snapshot(intervals=None):
+    intervals = intervals or {}
     models, offerings, rows = [], [], []
     for mid, context, openness, quality, price_in, price_out, tps, ttft, days in LINEUP:
         models.append(model(mid, facts=[
@@ -51,7 +56,7 @@ def _snapshot():
             fact("offering", oid, "offering.speed.time_to_first_token", ttft),
             fact("offering", oid, "offering.data.retention", days),
         ]))
-        rows.append(evidence(mid, "quality", quality))
+        rows.append(evidence(mid, "quality", quality, interval=intervals.get(mid)))
     built = build_snapshot(
         SnapshotInputs(models=models, offerings=offerings, evidence=rows, sources=SOURCES,
                        benchmark_domains={"quality": [("software_engineering", "direct")]}),
@@ -91,6 +96,21 @@ def test_the_page_fixture_is_the_engines_answer(explain):
     status, body = service.decide(_spec(explain), _snapshot())
     assert status == 200, body
     path = WEB / f"compact-{explain}.json"
+    fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+    if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
+        path.write_text(fresh, encoding="utf-8")
+    assert path.read_text(encoding="utf-8") == fresh, (
+        f"{path.name} is stale; regenerate with "
+        "MODELSPEC_WRITE_FIXTURES=1 pytest tests/test_decide_page_fixtures.py"
+    )
+
+
+def test_the_tied_page_fixture_is_the_engines_answer():
+    service = _service()
+    status, body = service.decide(_spec("full"), _snapshot(TIED_INTERVALS))
+    assert status == 200, body
+    assert body["answer"]["kind"] == "tied"
+    path = WEB / "compact-tied-full.json"
     fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
     if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
         path.write_text(fresh, encoding="utf-8")
