@@ -45,9 +45,13 @@ it("collapses to a one-line bar and expands again", () => {
 
 it("names the applied template in the bar, and Reset all returns to the bar without it", () => {
   const { bar } = board();
-  fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
+  const cell = screen.getByRole("button", { name: /^Coding · Budget:/ });
+  cell.focus();
+  fireEvent.click(cell);
   expect(bar()).toHaveAttribute("aria-expanded", "false");
   expect(bar()).toHaveTextContent("Applied: Coding · Budget");
+  // The cell unmounted; focus lands on the bar that names the result.
+  expect(bar()).toHaveFocus();
 
   fireEvent.click(screen.getByRole("button", { name: "Reset all" }));
   expect(bar()).toBeVisible();

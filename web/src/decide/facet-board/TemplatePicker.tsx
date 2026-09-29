@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { VocabRefinement, VocabTemplate, Vocabulary } from "../vocabulary";
 import { activeTemplateLabel, refinementFor, templateGrid } from "./templates";
@@ -122,19 +122,26 @@ export function TemplatePicker({ vocabulary, active, open, onOpen, onApply }: {
   onApply: (template: VocabTemplate, refinement: VocabRefinement | null) => void;
 }) {
   const panel = useId();
+  const bar = useRef<HTMLButtonElement>(null);
   const templates = vocabulary.templates ?? [];
+  // Applying collapses the grid and unmounts the focused cell; land on the bar,
+  // which now names what was applied.
+  const apply = (template: VocabTemplate, refinement: VocabRefinement | null) => {
+    onApply(template, refinement);
+    bar.current?.focus();
+  };
   if (templates.length === 0) return null;
   const grid = templateGrid(vocabulary);
   const label = activeTemplateLabel(vocabulary, active);
   return (
     <section className="template-picker" aria-label="Templates">
-      <button type="button" className="template-bar" aria-expanded={open} aria-controls={panel} onClick={() => onOpen(!open)}>
+      <button ref={bar} type="button" className="template-bar" aria-expanded={open} aria-controls={panel} onClick={() => onOpen(!open)}>
         <span className="eyebrow">Start from a template</span>
         {label ? <span className="template-active">Applied: <strong>{label}</strong></span> : <span className="template-count">{templates.length} templates</span>}
         <b aria-hidden="true">{open ? "▴" : "▾"}</b>
       </button>
       <div className="board-templates" id={panel} hidden={!open}>
-        {open && (grid ? <Grid grid={grid} onApply={onApply} /> : <FlatList templates={templates} onApply={onApply} />)}
+        {open && (grid ? <Grid grid={grid} onApply={apply} /> : <FlatList templates={templates} onApply={apply} />)}
       </div>
     </section>
   );
