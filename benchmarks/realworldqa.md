@@ -111,6 +111,8 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: vision_documents, directness: direct}
+refinements:
+  - {id: photos_real_world_scenes, directness: direct}
 ---
 
 ## What it measures

@@ -95,6 +95,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice J"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: vision_prompts, directness: direct}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

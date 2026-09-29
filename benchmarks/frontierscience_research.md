@@ -116,6 +116,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice F"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: frontier_research_questions, directness: direct}
 ---
 
 ## What it measures

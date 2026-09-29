@@ -85,6 +85,9 @@ freshness:
 domains:
   - {id: chat_preference, directness: direct}
   - {id: multilingual, directness: proxy}
+refinements:
+  - {id: natural_language_of_the_task, directness: proxy}
+  - {id: non_english_prompts_preference_any_language, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

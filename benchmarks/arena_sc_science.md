@@ -91,6 +91,9 @@ freshness:
 domains:
   - {id: chat_preference, directness: direct}
   - {id: engineering_stem, directness: proxy}
+refinements:
+  - {id: industry_occupation, directness: direct}
+  - {id: science_prompts, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

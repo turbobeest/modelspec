@@ -101,6 +101,9 @@ freshness:
 domains:
   - {id: vision_documents, directness: direct}
   - {id: engineering_stem, directness: proxy}
+refinements:
+  - {id: tool_augmented_reasoning_with_vs_without_tools, directness: direct}
+  - {id: with_tools_vs_without, directness: direct}
 ---
 
 Part of the [LAB-Bench: FigQA](lab_bench_figqa.md) family.

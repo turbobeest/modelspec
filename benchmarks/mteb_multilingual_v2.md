@@ -91,6 +91,9 @@ freshness:
 domains:
   - {id: retrieval, directness: proxy}
   - {id: multilingual, directness: proxy}
+refinements:
+  - {id: english_vs_multilingual, directness: proxy}
+  - {id: multilingual_retrieval_embeddings, directness: proxy}
 ---
 
 Part of the [MTEB](mteb.md) family.

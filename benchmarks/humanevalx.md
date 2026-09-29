@@ -134,6 +134,10 @@ freshness:
   researched_by: "sonnet-5 agent, batch 6, slice A"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: go, directness: proxy}
+  - {id: java, directness: proxy}
+  - {id: migration_code_translation, directness: direct}
 ---
 
 ## What it measures

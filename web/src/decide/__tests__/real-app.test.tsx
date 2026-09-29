@@ -176,7 +176,7 @@ it("folds invalid refinement weights into the parent without losing board state"
       const sent = JSON.parse(String(init?.body));
       if ("software_engineering/python" in sent.optimize.weights) {
         unsupportedRequests += 1;
-        return json({ error: { code: "invalid_spec", message: "Unknown refinement objective.", issues: [] } }, 400);
+        return json({ error: { code: "invalid_spec", message: "Refinement weights are not rankable yet.", issues: [] } }, 400);
       }
       return json(decisionFor(init));
     },
@@ -306,7 +306,7 @@ it("lets a newer board request win when an in-flight folded retry is aborted", a
       const sent = JSON.parse(String(init?.body));
       if ("software_engineering/python" in sent.optimize.weights) {
         rejectedRefinement = true;
-        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+        return json({ error: { code: "invalid_spec", message: "Refinement weights are not rankable yet.", issues: [] } }, 400);
       }
       if (rejectedRefinement && sent.optimize.weights.software_engineering === 0.5) {
         fallbackStarted?.();
@@ -1149,7 +1149,7 @@ it("folds a rejected refinement with the vocabulary installed after a snapshot c
       if (snapshot === refinementVocabulary.snapshot && "software_engineering/python" in sent.optimize.weights)
         return json({ error: { code: "snapshot_changed", message: "reload the vocabulary and retry" } }, 409);
       if ("software_engineering/python" in sent.optimize.weights)
-        return json({ error: { code: "refinement_not_rankable_yet", message: "Nested estimates are not live yet.", issues: [] } }, 400);
+        return json({ error: { code: "invalid_spec", message: "Refinement weights are not rankable yet.", issues: [] } }, 400);
       return json(decisionFor(init));
     },
   });

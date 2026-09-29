@@ -27,6 +27,8 @@ sources:
     title: ZebraLogic primary task source
     accessed: "2026-09-09"
 freshness: {researched: "2026-09-09", researched_by: "GPT-5.6 Luna, luna-stream-b-002 (Codex coordinated)", reviewed: "", reviewed_by: ""}
+refinements:
+  - {id: abstraction_novel_puzzles, directness: direct}
 ---
 ## What it measures
 

@@ -71,7 +71,7 @@ const benchmarkSchema = z.object({
   ),
 });
 const refinementSchema = z.object({
-  id: z.string(),
+  id: z.string().regex(/^[a-z][a-z0-9_]*$/),
   parent_domain: z.string(),
   kind: z.enum(["language", "task", "mode", "material"]),
   name: z.string(),
@@ -79,10 +79,9 @@ const refinementSchema = z.object({
   evidence_state: z.enum(["live", "thin", "not_measured", "no_benchmark"]),
   measured_models: z.number().int().nonnegative(),
   of_models: z.number().int().nonnegative(),
-  benchmarks: z.array(z.object({
-    id: z.string(),
-    directness: z.enum(["direct", "proxy"]),
-  })),
+  benchmarks: z.array(
+    z.object({ id: z.string(), directness: z.enum(["direct", "proxy"]) }),
+  ),
   weight_key: z.string(),
 });
 const templateSchema = z.object({
@@ -135,7 +134,7 @@ export const vocabularySchema = z.object({
       benchmarks: z.array(z.string()),
     }),
   ),
-  /** Optional until the refinement registry is published (MODEL-189). */
+  /** Refinement estimates are published for discovery; MODEL-190 makes them rankable. */
   refinements: z.array(refinementSchema).optional(),
   /** Card names by model ID. A vocabulary published before MODEL-153 has none. */
   models: z

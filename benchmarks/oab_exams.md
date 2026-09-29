@@ -72,6 +72,9 @@ freshness:
   researched_by: GPT-5.6 Luna, luna-batch-017 (Codex coordinated)
   reviewed: "2026-09-08"
   reviewed_by: GPT-5.6 Luna independent review, luna-batch-017
+refinements:
+  - {id: bar_exam_knowledge, directness: direct}
+  - {id: jurisdiction_us_eu_cn_kr_br_uae_ch, directness: direct}
 ---
 
 ## What it measures

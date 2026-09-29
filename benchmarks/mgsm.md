@@ -95,6 +95,8 @@ freshness:
 domains:
   - {id: maths, directness: direct}
   - {id: multilingual, directness: direct}
+refinements:
+  - {id: multilingual_maths, directness: direct}
 ---
 
 ## What it measures

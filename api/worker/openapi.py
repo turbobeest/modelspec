@@ -2617,7 +2617,8 @@ def build_spec() -> dict[str, Any]:
                             "headers": decide_snapshot_headers,
                         },
                         str(decide_service.HTTP_BAD_REQUEST): _json_body(
-                            "The body is not a contract-v1 spec.",
+                            "The body is not a contract-v1 spec. This includes refinement "
+                            "weights, which remain unavailable until MODEL-190.",
                             {"$ref": "#/components/schemas/DecisionRequestRefused"},
                         ),
                         str(decide_service.HTTP_CONFLICT): _json_body(

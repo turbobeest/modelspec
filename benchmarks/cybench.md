@@ -147,6 +147,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 5, slice E"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: offensive_security_ctf, directness: direct}
 ---
 
 ## What it measures

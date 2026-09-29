@@ -403,7 +403,9 @@ describe("refinements", () => {
   });
 
   it("renders no Refine control when the optional field is absent", () => {
-    render(<FacetBoard vocabulary={realVocabulary} spec={realBaseSpec(realVocabulary)} selections={{ "capability.software_engineering": { mode: "prefer" } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    const { refinements, ...withoutRefinements } = realVocabulary;
+    expect(refinements).toBeDefined();
+    render(<FacetBoard vocabulary={withoutRefinements} spec={realBaseSpec(withoutRefinements)} selections={{ "capability.software_engineering": { mode: "prefer" } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "Refine" })).not.toBeInTheDocument();
   });
 });

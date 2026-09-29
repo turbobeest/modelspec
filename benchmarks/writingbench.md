@@ -119,6 +119,10 @@ freshness:
   researched_by: "sonnet-5 agent, batch 3, slice C"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: creative_writing, directness: proxy}
+  - {id: marketing_advertising_writing, directness: proxy}
+  - {id: professional_writing_by_domain_academic_business_legal_education_marketing, directness: direct}
 ---
 
 ## What it measures

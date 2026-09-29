@@ -124,6 +124,8 @@ freshness:
 domains:
   - {id: engineering_stem, directness: direct}
   - {id: reasoning, directness: proxy}
+refinements:
+  - {id: science_discipline_physics_chemistry_biology, directness: proxy}
 ---
 
 ## What it measures

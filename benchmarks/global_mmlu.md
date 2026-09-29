@@ -214,6 +214,17 @@ freshness:
   researched_by: "Grok Build, batch-045 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-045"
+refinements:
+  - {id: arabic, directness: proxy}
+  - {id: chinese, directness: proxy}
+  - {id: french, directness: proxy}
+  - {id: german, directness: proxy}
+  - {id: japanese, directness: proxy}
+  - {id: korean, directness: proxy}
+  - {id: low_resource_indic_african_languages, directness: direct}
+  - {id: polish, directness: proxy}
+  - {id: russian, directness: proxy}
+  - {id: spanish, directness: proxy}
 ---
 
 ## What it measures

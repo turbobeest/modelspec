@@ -69,6 +69,8 @@ freshness:
   researched_by: "GPT-5.6 Luna, luna-stream-c-007 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: video_understanding, directness: direct}
 ---
 
 ## What it measures

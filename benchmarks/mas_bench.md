@@ -146,6 +146,8 @@ freshness:
   researched_by: 'Grok Build, batch-078 (Codex coordinated)'
   reviewed: ''
   reviewed_by: ''
+refinements:
+  - {id: computer_use_gui, directness: proxy}
 ---
 
 ## What it measures

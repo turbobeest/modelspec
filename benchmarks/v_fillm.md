@@ -116,6 +116,8 @@ freshness:
   researched_by: "Grok Build, batch-084 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: filings_financial_statements_qa, directness: direct}
 ---
 
 ## What it measures

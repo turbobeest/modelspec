@@ -92,6 +92,8 @@ freshness:
   researched_by: Claude Opus 5.5, MODEL-123
   reviewed: ''
   reviewed_by: ''
+refinements:
+  - {id: factuality_hallucination, directness: direct}
 ---
 
 ## What it measures

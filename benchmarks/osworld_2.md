@@ -92,6 +92,9 @@ freshness:
 domains:
   - {id: agentic_tool_use, directness: direct}
   - {id: vision_documents, directness: proxy}
+refinements:
+  - {id: computer_use_gui, directness: direct}
+  - {id: screenshots_gui_grounding, directness: proxy}
 ---
 
 ## What it measures

@@ -134,6 +134,8 @@ freshness:
   researched_by: "Grok Build, batch-079 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: domain_retrieval_biomedical, directness: direct}
 ---
 
 ## What it measures

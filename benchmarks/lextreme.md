@@ -175,6 +175,9 @@ freshness:
   researched_by: "Grok Build, batch-053 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-053"
+refinements:
+  - {id: jurisdiction_us_eu_cn_kr_br_uae_ch, directness: direct}
+  - {id: regulatory_compliance, directness: direct}
 ---
 
 ## What it measures

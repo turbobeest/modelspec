@@ -90,6 +90,8 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: retrieval, directness: direct}
+refinements:
+  - {id: retrieval_vs_reranking_task_type, directness: direct}
 ---
 
 Part of the [MTEB](mteb.md) family.

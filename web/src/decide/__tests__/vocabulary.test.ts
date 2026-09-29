@@ -50,6 +50,27 @@ function parsedSpec(vocabulary: Vocabulary, task: string): Spec {
 const EDITABLE: FacetOp[] = ["=", "!=", "<=", ">=", "in", "not in"];
 
 describe("published templates", () => {
+  it("accepts the additive pinned refinements shape", () => {
+    const parsed = vocabularySchema.parse({
+      ...v,
+      refinements: [
+        {
+          id: "python",
+          parent_domain: "software_engineering",
+          kind: "language",
+          name: "Python",
+          definition: "Software engineering tasks whose implementation language is Python.",
+          evidence_state: "live",
+          measured_models: 7,
+          of_models: 25,
+          benchmarks: [{ id: "swe_bench_verified", directness: "direct" }],
+          weight_key: "software_engineering/python",
+        },
+      ],
+    });
+    expect(parsed.refinements?.[0]?.weight_key).toBe("software_engineering/python");
+  });
+
   it("accepts vocabularies published before templates existed", () => {
     const { templates: _templates, ...withoutTemplates } = v;
     expect(_templates?.length).toBeGreaterThan(0);

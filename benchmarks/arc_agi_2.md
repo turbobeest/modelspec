@@ -95,6 +95,8 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: reasoning, directness: direct}
+refinements:
+  - {id: abstraction_novel_puzzles, directness: direct}
 ---
 
 ## What it measures

@@ -130,6 +130,8 @@ freshness:
   researched_by: "Grok Build, batch-043 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-043"
+refinements:
+  - {id: financial_text_classification, directness: direct}
 ---
 
 ## What it measures

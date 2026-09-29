@@ -27,6 +27,8 @@ sources:
     title: SWE-rebench primary task source
     accessed: "2026-09-09"
 freshness: {researched: "2026-09-09", researched_by: "GPT-5.6 Luna, luna-stream-b-004 (Codex coordinated)", reviewed: "", reviewed_by: ""}
+refinements:
+  - {id: bug_fix, directness: direct}
 ---
 ## What it measures
 

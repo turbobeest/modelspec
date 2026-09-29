@@ -85,6 +85,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice C"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: other_csharp_php_ruby_kotlin_swift_scala_r_julia_lua_perl, directness: direct}
 ---
 
 Part of the [MultiPL-E](multipl_e.md) family, listed here as a subset id in this repository's catalogue

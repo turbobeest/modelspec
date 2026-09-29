@@ -133,6 +133,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice P"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: science_discipline_physics_chemistry_biology, directness: direct}
 ---
 
 ## What it measures

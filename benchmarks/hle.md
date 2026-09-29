@@ -142,6 +142,10 @@ domains:
   - {id: engineering_stem, directness: direct}
   - {id: maths, directness: proxy}
   - {id: reasoning, directness: proxy}
+refinements:
+  - {id: expert_multimodal_exam_style, directness: proxy}
+  - {id: frontier_research_questions, directness: direct}
+  - {id: science_discipline_physics_chemistry_biology, directness: proxy}
 ---
 
 ## What it measures

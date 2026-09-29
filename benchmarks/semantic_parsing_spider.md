@@ -126,6 +126,8 @@ freshness:
   researched_by: "Grok Build, batch-015 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-015"
+refinements:
+  - {id: sql_text_to_sql, directness: direct}
 ---
 
 Part of the [BIG-bench](big_bench.md) family.

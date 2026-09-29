@@ -85,6 +85,8 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: medical, directness: direct}
+refinements:
+  - {id: clinician_facing_tasks, directness: direct}
 ---
 
 ## What it measures

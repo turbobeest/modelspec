@@ -92,6 +92,9 @@ freshness:
 domains:
   - {id: agentic_tool_use, directness: direct}
   - {id: software_engineering, directness: proxy}
+refinements:
+  - {id: long_horizon_autonomy, directness: proxy}
+  - {id: long_horizon_autonomy_duration, directness: direct}
 ---
 
 Part of the [METR task-completion time horizon](metr_time_horizon.md) family.

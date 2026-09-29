@@ -82,6 +82,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1, slice C"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: c_cpp, directness: direct}
 ---
 
 Part of the [MultiPL-E](multipl_e.md) family.

@@ -100,6 +100,8 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: agentic_tool_use, directness: direct}
+refinements:
+  - {id: browser_web_research, directness: direct}
 ---
 
 ## What it measures

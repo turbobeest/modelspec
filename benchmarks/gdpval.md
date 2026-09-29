@@ -164,6 +164,9 @@ freshness:
   researched_by: "Grok Build, batch-045 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-045"
+refinements:
+  - {id: industry_occupation, directness: direct}
+  - {id: professional_deliverables_docs_sheets_slides, directness: direct}
 ---
 
 ## What it measures

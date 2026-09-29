@@ -144,6 +144,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 3, slice B"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: factuality_hallucination, directness: direct}
 ---
 
 ## What it measures

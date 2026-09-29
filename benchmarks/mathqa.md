@@ -128,6 +128,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 6, slice F"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: school_word_problems, directness: direct}
 ---
 
 ## What it measures

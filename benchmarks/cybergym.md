@@ -148,6 +148,8 @@ freshness:
   researched_by: "Grok Build, batch-037 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-037"
+refinements:
+  - {id: offensive_security_ctf, directness: direct}
 ---
 
 ## What it measures

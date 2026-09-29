@@ -72,6 +72,13 @@ freshness:
   researched_by: "GPT-5.6 Luna, luna-stream-c-005 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: bug_fix, directness: direct}
+  - {id: c_cpp, directness: proxy}
+  - {id: go, directness: proxy}
+  - {id: java, directness: proxy}
+  - {id: javascript_typescript, directness: proxy}
+  - {id: rust, directness: proxy}
 ---
 
 ## What it measures

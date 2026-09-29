@@ -124,6 +124,9 @@ freshness:
   researched_by: "Claude Sonnet 5, sonnet-batch-008 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Claude Sonnet 5 independent review, sonnet-batch-008"
+refinements:
+  - {id: medical_imaging_multimodal, directness: direct}
+  - {id: specialty_radiology_palliative_paediatrics, directness: direct}
 ---
 
 ## What it measures

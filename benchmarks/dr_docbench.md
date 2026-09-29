@@ -45,6 +45,8 @@ freshness:
   researched_by: "GPT-5.6 Luna, luna-stream-a-006 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: ocr_scanned_documents, directness: direct}
 ---
 ## What it measures
 

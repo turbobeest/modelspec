@@ -143,6 +143,8 @@ freshness:
   researched_by: "Grok Build, batch-024 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-024"
+refinements:
+  - {id: prompt_injection_robustness, directness: direct}
 ---
 
 ## What it measures

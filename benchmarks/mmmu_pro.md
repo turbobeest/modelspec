@@ -146,6 +146,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 3, slice A"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: expert_multimodal_exam_style, directness: direct}
 ---
 
 ## What it measures

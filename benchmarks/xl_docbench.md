@@ -131,6 +131,8 @@ freshness:
   researched_by: "Grok Build, batch-084 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: input_length_long_context, directness: direct}
 ---
 
 ## What it measures

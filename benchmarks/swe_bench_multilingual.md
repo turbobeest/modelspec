@@ -106,6 +106,15 @@ freshness:
   reviewed_by: ""
 domains:
   - {id: software_engineering, directness: direct}
+refinements:
+  - {id: agentic_repo_level, directness: direct}
+  - {id: bug_fix, directness: direct}
+  - {id: c_cpp, directness: proxy}
+  - {id: go, directness: proxy}
+  - {id: java, directness: proxy}
+  - {id: javascript_typescript, directness: proxy}
+  - {id: other_csharp_php_ruby_kotlin_swift_scala_r_julia_lua_perl, directness: proxy}
+  - {id: rust, directness: proxy}
 ---
 
 ## What it measures

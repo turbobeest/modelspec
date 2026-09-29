@@ -95,6 +95,14 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: multilingual, directness: direct}
+refinements:
+  - {id: arabic, directness: proxy}
+  - {id: chinese, directness: proxy}
+  - {id: french, directness: proxy}
+  - {id: german, directness: proxy}
+  - {id: japanese, directness: proxy}
+  - {id: korean, directness: proxy}
+  - {id: spanish, directness: proxy}
 ---
 
 ## What it measures

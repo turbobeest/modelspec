@@ -33,6 +33,8 @@ sources:
     title: MEDEC repository
     accessed: "2026-09-08"
 freshness: {researched: "2026-09-08", researched_by: GPT-5.6 Luna, luna-batch-057 (Codex coordinated), reviewed: "2026-09-08", reviewed_by: "Claude Sonnet 5 independent review, luna-batch-057"}
+refinements:
+  - {id: clinical_documentation_notes_summaries_coding, directness: direct}
 ---
 
 ## What it measures

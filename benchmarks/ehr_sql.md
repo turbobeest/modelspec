@@ -144,6 +144,8 @@ freshness:
   researched_by: "Grok Build, batch-040 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "GPT-5.6 Luna independent review, luna-batch-040"
+refinements:
+  - {id: sql_text_to_sql, directness: direct}
 ---
 
 ## What it measures

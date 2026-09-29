@@ -91,6 +91,9 @@ freshness:
 domains:
   - {id: chat_preference, directness: direct}
   - {id: medical, directness: proxy}
+refinements:
+  - {id: industry_occupation, directness: direct}
+  - {id: medicine_prompts, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

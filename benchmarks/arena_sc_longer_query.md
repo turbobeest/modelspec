@@ -83,6 +83,8 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: chat_preference, directness: direct}
+refinements:
+  - {id: input_length_long_context, directness: proxy}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

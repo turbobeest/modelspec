@@ -167,6 +167,8 @@ freshness:
   researched_by: "Grok Build, batch-025 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-025"
+refinements:
+  - {id: arabic, directness: direct}
 ---
 
 ## What it measures

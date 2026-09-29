@@ -138,6 +138,8 @@ freshness:
   researched_by: "Grok Build, batch-026 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-026"
+refinements:
+  - {id: school_word_problems, directness: direct}
 ---
 
 ## What it measures

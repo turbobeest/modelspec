@@ -60,6 +60,7 @@ def test_the_web_fixture_has_the_shape_the_builder_writes():
     assert set(VOCABULARY) == set(fresh)
     assert set(VOCABULARY["benchmarks"][0]) == set(fresh["benchmarks"][0])
     assert set(VOCABULARY["domains"][0]) == set(fresh["domains"][0])
+    assert set(VOCABULARY["refinements"][0]) == set(fresh["refinements"][0])
     fixture_facets = {row["id"]: set(row) for row in VOCABULARY["facets"]}
     for row in fresh["facets"]:
         assert fixture_facets[row["id"]] <= set(row) | {"range", "values", "literals"}, row["id"]

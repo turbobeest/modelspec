@@ -100,6 +100,8 @@ freshness:
   researched_by: sonnet-5 agent, batch 1, slice B
   reviewed: ''
   reviewed_by: ''
+refinements:
+  - {id: economics_quantitative, directness: direct}
 ---
 
 Part of the [MMLU](mmlu.md) family.

@@ -36,6 +36,8 @@ sources:
     title: Hugging Face dataset API record (license mit, five test-split configs)
     accessed: "2026-09-08"
 freshness: {researched: "2026-09-08", researched_by: GPT-5.6 Luna, luna-batch-048 (Codex coordinated), reviewed: "2026-09-08", reviewed_by: Claude Sonnet 5 independent review, luna-batch-048}
+refinements:
+  - {id: multilingual_maths, directness: direct}
 ---
 
 ## What it measures

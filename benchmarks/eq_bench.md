@@ -158,6 +158,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice B"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: emotional_intelligence_empathy, directness: direct}
 ---
 
 ## What it measures

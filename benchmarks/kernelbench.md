@@ -164,6 +164,10 @@ freshness:
   researched_by: "sonnet-5 agent, batch 6, slice E"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: cuda_gpu_kernels, directness: direct}
+  - {id: difficulty_tier, directness: proxy}
+  - {id: performance_optimisation, directness: direct}
 ---
 
 ## What it measures

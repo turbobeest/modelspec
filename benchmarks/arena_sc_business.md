@@ -92,6 +92,9 @@ freshness:
 domains:
   - {id: chat_preference, directness: direct}
   - {id: finance, directness: proxy}
+refinements:
+  - {id: business_finance_prompts_preference, directness: direct}
+  - {id: industry_occupation, directness: direct}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

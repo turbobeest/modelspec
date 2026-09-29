@@ -152,6 +152,8 @@ freshness:
   researched_by: "Grok Build, batch-020 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-020"
+refinements:
+  - {id: role_play_character, directness: direct}
 ---
 
 ## What it measures

@@ -388,7 +388,8 @@ paths:
               schema:
                 type: string
         '400':
-          description: The body is not a contract-v1 spec.
+          description: The body is not a contract-v1 spec. This includes refinement weights, which remain
+            unavailable until MODEL-190.
           content:
             application/json:
               schema:
@@ -3227,8 +3228,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.1'
-          default: '2.1'
+          const: '2.2'
+          default: '2.2'
           title: Contract Version
           type: string
         decision_id:
@@ -4827,7 +4828,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.1'
+          - '2.2'
         endpoint:
           type: string
           enum:
@@ -4879,7 +4880,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.1'
+          - '2.2'
         endpoint:
           type: string
           enum:
@@ -4904,7 +4905,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.1'
+          - '2.2'
         endpoint:
           type: string
           enum:
@@ -4958,7 +4959,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.1'
+          - '2.2'
         endpoint:
           type: string
           enum:
@@ -5298,7 +5299,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.1'
+          - '2.2'
         endpoint:
           type: string
           enum:

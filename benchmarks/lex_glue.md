@@ -152,6 +152,9 @@ freshness:
   researched_by: "Grok Build, batch-053 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-053"
+refinements:
+  - {id: case_law_litigation, directness: direct}
+  - {id: contracts_terms, directness: direct}
 ---
 
 ## What it measures

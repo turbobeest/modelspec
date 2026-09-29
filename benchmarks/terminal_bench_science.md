@@ -77,6 +77,10 @@ freshness:
 domains:
   - {id: agentic_tool_use, directness: direct}
   - {id: engineering_stem, directness: proxy}
+refinements:
+  - {id: research_science_agent, directness: direct}
+  - {id: scientific_computing_agent, directness: proxy}
+  - {id: scientific_research_code, directness: direct}
 ---
 
 ## What it measures

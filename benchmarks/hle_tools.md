@@ -102,6 +102,9 @@ domains:
   - {id: engineering_stem, directness: direct}
   - {id: maths, directness: proxy}
   - {id: agentic_tool_use, directness: proxy}
+refinements:
+  - {id: tool_augmented_reasoning_with_vs_without_tools, directness: proxy}
+  - {id: with_tools_vs_without, directness: direct}
 ---
 
 Part of the [Humanity's Last Exam](hle.md) family.

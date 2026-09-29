@@ -174,6 +174,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice A"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: function_level_completion, directness: direct}
+  - {id: python, directness: direct}
 ---
 
 ## What it measures

@@ -103,6 +103,9 @@ freshness:
 domains:
   - {id: vision_documents, directness: direct}
   - {id: agentic_tool_use, directness: proxy}
+refinements:
+  - {id: tool_augmented_reasoning_with_vs_without_tools, directness: proxy}
+  - {id: with_tools_vs_without, directness: direct}
 ---
 
 Part of the [ScreenSpot-Pro](screenspot_pro.md) family.

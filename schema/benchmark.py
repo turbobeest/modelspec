@@ -106,6 +106,15 @@ class DomainTag(BaseModel):
     directness: Literal["direct", "proxy"]
 
 
+class RefinementTag(BaseModel):
+    """One registered refinement isolated directly or measured by proxy."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    directness: Literal["direct", "proxy"]
+
+
 class Freshness(BaseModel):
     researched: str = ""                 # YYYY-MM-DD
     researched_by: str = ""              # "sonnet-5 agent, batch 1"
@@ -139,6 +148,8 @@ class BenchmarkCard(BaseModel):
     tags: list[str] = Field(default_factory=list)
     #: Optional and additive: pages without it still load (MODEL-133).
     domains: list[DomainTag] = Field(default_factory=list)
+    #: Optional and additive: tags name entries in registry/refinements.yaml.
+    refinements: list[RefinementTag] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)
     freshness: Freshness = Freshness()
 
@@ -156,6 +167,15 @@ class BenchmarkCard(BaseModel):
         repeated = sorted({i for i in ids if ids.count(i) > 1})
         if repeated:
             raise ValueError(f"a domain may be tagged once per page: {', '.join(repeated)}")
+        return v
+
+    @field_validator("refinements")
+    @classmethod
+    def _one_tag_per_refinement(cls, v: list[RefinementTag]) -> list[RefinementTag]:
+        ids = [tag.id for tag in v]
+        repeated = sorted({i for i in ids if ids.count(i) > 1})
+        if repeated:
+            raise ValueError(f"a refinement may be tagged once per page: {', '.join(repeated)}")
         return v
 
     @field_validator("summary")

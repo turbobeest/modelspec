@@ -150,6 +150,9 @@ freshness:
   researched_by: "Grok Build, batch-018 (Codex coordinated)"
   reviewed: "2026-09-08"
   reviewed_by: "Grok Build independent review, batch-018"
+refinements:
+  - {id: data_science_ml_engineering, directness: direct}
+  - {id: research_science_agent, directness: direct}
 ---
 
 ## What it measures

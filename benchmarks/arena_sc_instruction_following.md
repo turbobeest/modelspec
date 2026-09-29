@@ -83,6 +83,9 @@ freshness:
   reviewed_by: ''
 domains:
   - {id: chat_preference, directness: direct}
+refinements:
+  - {id: instruction_constraint_adherence, directness: direct}
+  - {id: instruction_following, directness: direct}
 ---
 
 Part of the [Arena Elo](arena_elo.md) family.

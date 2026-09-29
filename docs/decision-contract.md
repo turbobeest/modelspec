@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.1**
+Contract version: **2.2**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -389,7 +389,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.1",
+  "contract_version": "2.2",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -465,7 +465,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.1"`. |
+| `contract_version` | `"2.2"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -753,6 +753,11 @@ it instead of carrying its own list of facets or benchmarks. Built by
   `id`, `name`, `unit`, `higher_is_better`, `models` (lineup models with a
   verified row), `independent_models` (those with a row that `@independent`
   admits), the `range` of those values, and its `domains` with `directness`.
+- `refinements`: every registered refinement, with its parent domain, kind,
+  definition, benchmark tags, weight key, evidence state, and coverage as
+  `measured_models` of `of_models`. The denominator includes only the lineup
+  classes eligible for that refinement. Generative refinements count text
+  generators; retrieval refinements count vectorisers and orderers.
 - `domains`: every registered domain with a listed benchmark. Each row emits
   `id`, `name`, `proxy_only`, `default_basis`, `estimate_models`,
   `estimate_benchmarks`, `direct_models`, `default_benchmark` and `benchmarks`.
@@ -783,7 +788,7 @@ it instead of carrying its own list of facets or benchmarks. Built by
   describes the decision's first Must whose funnel reaches zero, or its
   `no_feasible` relaxation when no Must does. Rows stay present so clients can
   explain why a template is unavailable. Adding this field is compatible, so
-  `vocabulary_version` remains `1` and `contract_version` remains `1.7`.
+  `vocabulary_version` remains `1`.
 - `coverage`: what the lineup holds, so a client can say what an empty answer
   was measured against without writing it per question: `as_of` (the snapshot
   date), `models` (lineup size) and `verified` (lineup models with at least one
@@ -826,6 +831,10 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.2 — MODEL-189:** The vocabulary adds registered refinements and their
+  evidence coverage. Until MODEL-190 adds refinement estimates, the hosted
+  decide API rejects a refinement weight with the existing closed error code
+  `invalid_spec` and names its parent domain. The error-code enum is unchanged.
 - **2.1 — MODEL-170:** A decision adds the model-level `answer` block. Its
   `kind` is `separated` or `tied`; `members` overlap the point-estimate
   leader's weighted score interval, without following overlap chains. The

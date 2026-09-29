@@ -145,6 +145,9 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice A"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: data_science_ml_engineering, directness: direct}
+  - {id: research_science_agent, directness: direct}
 ---
 
 ## What it measures

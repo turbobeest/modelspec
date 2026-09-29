@@ -116,6 +116,8 @@ freshness:
 domains:
   - {id: vision_documents, directness: direct}
   - {id: engineering_stem, directness: proxy}
+refinements:
+  - {id: expert_multimodal_exam_style, directness: direct}
 ---
 
 ## What it measures

@@ -125,6 +125,8 @@ freshness:
   researched_by: "Grok Build, batch-082 (Codex coordinated)"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: factuality_hallucination, directness: direct}
 ---
 
 ## What it measures

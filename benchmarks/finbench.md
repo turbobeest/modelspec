@@ -132,6 +132,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 1b, slice P"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: financial_text_classification, directness: direct}
 ---
 
 ## What it measures

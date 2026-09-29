@@ -110,6 +110,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice C"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: photos_real_world_scenes, directness: direct}
 ---
 
 ## What it measures

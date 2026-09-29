@@ -30,6 +30,8 @@ sources:
     title: OpenCompass OJBench configuration
     accessed: "2026-09-08"
 freshness: {researched: "2026-09-08", researched_by: GPT-5.6 Luna, luna-batch-017 (Codex coordinated), reviewed: "2026-09-08", reviewed_by: GPT-5.6 Luna independent review, luna-batch-017}
+refinements:
+  - {id: competitive_programming, directness: direct}
 ---
 
 ## What it measures

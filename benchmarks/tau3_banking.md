@@ -96,6 +96,12 @@ freshness:
 domains:
   - {id: agentic_tool_use, directness: direct}
   - {id: finance, directness: proxy}
+refinements:
+  - {id: api_function_calling, directness: proxy}
+  - {id: banking_operations_agentic, directness: direct}
+  - {id: customer_support_under_policy, directness: direct}
+  - {id: input_length_long_context, directness: proxy}
+  - {id: multi_turn_conversation, directness: proxy}
 ---
 
 ## What it measures

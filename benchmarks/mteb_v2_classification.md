@@ -87,6 +87,8 @@ freshness:
   researched_by: Claude Opus 5.5, MODEL-123
   reviewed: ''
   reviewed_by: ''
+refinements:
+  - {id: other_embedding_tasks_classification_clustering_sts, directness: direct}
 ---
 
 Part of the [MTEB](mteb.md) family.

@@ -146,6 +146,8 @@ sources:
 freshness:
   researched: "2026-09-08"
   researched_by: "sonnet-5 agent, batch 2, slice E"
+refinements:
+  - {id: offensive_security_ctf, directness: direct}
 ---
 
 ## What it measures

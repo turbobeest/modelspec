@@ -128,6 +128,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 2, slice D"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: cuda_gpu_kernels, directness: direct}
 ---
 
 ## What it measures

@@ -149,6 +149,8 @@ freshness:
   researched_by: sonnet-5 agent, batch 4, slice D
   reviewed: ''
   reviewed_by: ''
+refinements:
+  - {id: abstraction_novel_puzzles, directness: direct}
 ---
 
 ## What it measures

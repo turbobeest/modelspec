@@ -94,6 +94,8 @@ freshness:
   researched_by: "sonnet-5 agent, batch 3, slice D"
   reviewed: ""
   reviewed_by: ""
+refinements:
+  - {id: multi_step_knowledge_light_reasoning, directness: direct}
 ---
 
 ## What it measures
