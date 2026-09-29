@@ -1479,11 +1479,15 @@ class ClaudeCLICompletion:
 
 
 class LLMCache:
-    """Persistent reader replies keyed by source copy, cited region and facet.
+    """Persistent reader replies keyed by source copy, cited region, facet and the
+    names the prompt asks about.
 
-    ``namespace`` keeps one reader's replies from answering for another's. The
-    Claude reader has none, so the replies it cached before there were two
-    readers still hit.
+    The names are in the key because the prompt carries them: a reader answers
+    mostly for the named subject, and reads a row with no subject as that one, so
+    a reply for one plan or model must not answer for a sibling on the same page
+    (MODEL-201). ``strict-reader-v3`` keys therefore miss every v2 reply.
+
+    ``namespace`` keeps one reader's replies from answering for another's.
     """
 
     def __init__(self, root: str | Path | None = None, *, namespace: str | None = None) -> None:
@@ -1491,19 +1495,19 @@ class LLMCache:
         self.root = Path(root or configured or Path.home() / ".cache/modelspec/llm-reader")
         self.namespace = namespace
 
-    def _path(self, key: tuple[str, str, str]) -> Path:
+    def _path(self, key: tuple[str, ...]) -> Path:
         scope = () if self.namespace is None else (self.namespace,)
         digest = hashlib.sha256(
-            json.dumps(("strict-reader-v2", *scope, *key), ensure_ascii=False,
+            json.dumps(("strict-reader-v3", *scope, *key), ensure_ascii=False,
                        separators=(",", ":")).encode("utf-8")
         ).hexdigest()
         return self.root / digest[:2] / f"{digest}.json"
 
-    def get(self, key: tuple[str, str, str]) -> str | None:
+    def get(self, key: tuple[str, ...]) -> str | None:
         path = self._path(key)
         return path.read_text(encoding="utf-8") if path.is_file() else None
 
-    def put(self, key: tuple[str, str, str], reply: str) -> None:
+    def put(self, key: tuple[str, ...], reply: str) -> None:
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists():
@@ -1528,7 +1532,7 @@ class LLMExtractor:
         return bool(text.strip())
 
     def extract(self, claim: Claim, text: str, *,
-                cache_key: tuple[str, str, str] | None = None) -> list[Reading]:
+                cache_key: tuple[str, ...] | None = None) -> list[Reading]:
         prompt = LLM_PROMPT.format(label=claim.label or claim.field.replace("_", " "),
                                    names=", ".join(claim.names), text=text)
         reply = self.cache.get(cache_key) if self.cache is not None and cache_key else None
@@ -2075,7 +2079,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                         readings = extractor.extract(
                             claim,
                             text,
-                            cache_key=(source.snapshot_ref, region_id, claim.field),
+                            cache_key=(source.snapshot_ref, region_id, claim.field,
+                                       *claim.names),
                         )
                     else:
                         readings = extractor.extract(claim, text)

@@ -337,10 +337,27 @@ export function sanitizeBoardState(
   const activeMusts = new Set(Object.entries(selections).flatMap(([id, choice]) =>
     choice.mode === "must" || choice.mode === "both" ? [id] : [],
   ));
+  // A held id the snapshot no longer lists (a plan split or withdrawn since the
+  // estate was saved) is dropped: the engine refuses an id outside its vocabulary.
+  const listed = {
+    providers: new Set(vocabulary.estate.providers),
+    plans: new Set(vocabulary.estate.plans.map((plan) => plan.id)),
+    hardware: new Set(vocabulary.estate.devices),
+  };
+  const estate = {
+    providers: state.estate.providers.filter((id) => listed.providers.has(id)),
+    plans: state.estate.plans.filter((id) => listed.plans.has(id)),
+    hardware: state.estate.hardware.filter((id) => listed.hardware.has(id)),
+  };
+  for (const kind of ["providers", "plans", "hardware"] as const) {
+    for (const id of state.estate[kind]) {
+      if (!listed[kind].has(id)) notes.push(`${id} is not in this snapshot, so it is not used.`);
+    }
+  }
   return {
     selections: selections as SanitizedBoardSelections,
     mustOrder: [...new Set(state.mustOrder.filter((id) => activeMusts.has(id)))],
-    estate: state.estate,
+    estate,
     ...(state.canvas ? { canvas: state.canvas } : {}),
     notes: [...new Set(notes)],
   };

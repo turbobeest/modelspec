@@ -1412,7 +1412,7 @@ def test_claude_reader_uses_the_requested_cli_and_unwraps_json(monkeypatch) -> N
     assert kwargs["stdin"] is subprocess.DEVNULL
 
 
-def test_llm_cache_key_is_copy_region_and_facet(tmp_path, store, regions) -> None:
+def test_llm_cache_key_is_copy_region_facet_and_names(tmp_path, store, regions) -> None:
     reply = json.dumps([{
         "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens",
         "quoted_sentence": "It accepts up to 400,000 tokens of context.",
@@ -1434,6 +1434,34 @@ def test_llm_cache_key_is_copy_region_and_facet(tmp_path, store, regions) -> Non
 
     assert first.outcome == second.outcome == "verified"
     assert len(llm.calls) == 2
+
+
+def test_sibling_claims_on_one_region_each_get_their_own_reading(tmp_path, store, regions) -> None:
+    # The prompt names the subject, and a reader answers mostly for it; a row with
+    # no subject is read as the named one. A reply cached for one sibling must not
+    # answer for another, or it can confirm a value the source never gave it.
+    replies = iter([
+        json.dumps([{"subject": None, "value": "400,000", "unit": "tokens",
+                     "quoted_sentence": "It accepts up to 400,000 tokens of context."}]),
+        json.dumps([]),
+    ])
+    seen: list[str] = []
+
+    def complete(prompt: str) -> str:
+        seen.append(prompt)
+        return next(replies)
+
+    extractor = verify.LLMExtractor(
+        complete, agent="claude-cli", model="claude-sonnet-5", model_family="anthropic",
+        cache=verify.LLMCache(tmp_path / "llm-cache"),
+    )
+    claim = _prose_claim(store)
+    sibling = verify.Claim(**{**claim.__dict__, "names": ("GPT-6 Luna",),
+                              "target": verify.TargetRef(kind="fact", id="luna#context")})
+
+    assert verify.verify(claim, regions, [extractor], today=TODAY).outcome == "verified"
+    assert verify.verify(sibling, regions, [extractor], today=TODAY).outcome == "mismatch"
+    assert len(seen) == 2 and "GPT-6 Luna" in seen[1]
 
 
 def test_claude_reader_stops_before_call_401(monkeypatch) -> None:

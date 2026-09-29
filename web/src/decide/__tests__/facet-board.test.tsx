@@ -617,3 +617,38 @@ it("reopens Must, Prefer and Must+Prefer selections and keeps them after another
   ]));
   expect(next.boardWeights).toEqual({ software_engineering: 0.6, "-offering.cost_per_task": 0.4 });
 });
+
+describe("a stored estate after the vocabulary changes", () => {
+  it("drops held ids the snapshot no longer lists, and says so", () => {
+    // MODEL-201 split google-gemini-api/subscription/ai-ultra into two tiers; an
+    // estate saved before that must not reach the engine, which refuses unknown ids.
+    const vocabulary: Vocabulary = {
+      ...realVocabulary,
+      estate: {
+        ...realVocabulary.estate,
+        plans: [{ id: "google-gemini-api/subscription/ai-ultra-5x", provider: "google-gemini-api", name: "Google AI Ultra 5x" }],
+      },
+    };
+    const sanitized = sanitizeBoardState({
+      selections: {},
+      mustOrder: [],
+      estate: {
+        providers: ["anthropic", "withdrawn-provider"],
+        plans: ["google-gemini-api/subscription/ai-ultra", "google-gemini-api/subscription/ai-ultra-5x"],
+        hardware: ["apple_m3_max", "quantum_toaster"],
+      },
+    }, vocabulary);
+
+    expect(sanitized.estate).toEqual({
+      providers: ["anthropic"],
+      plans: ["google-gemini-api/subscription/ai-ultra-5x"],
+      hardware: ["apple_m3_max"],
+    });
+    expect(estatePayload(sanitized.estate)).toEqual({
+      providers: ["anthropic"],
+      plans: ["google-gemini-api/subscription/ai-ultra-5x"],
+      devices: ["apple_m3_max"],
+    });
+    expect(sanitized.notes.join(" ")).toMatch(/google-gemini-api\/subscription\/ai-ultra .*not in this snapshot/);
+  });
+});

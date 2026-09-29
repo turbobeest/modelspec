@@ -234,4 +234,4 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   </div>;
 }
 
-export { readEstate };
+export { readEstate, writeEstate };
