@@ -219,10 +219,16 @@ def test_the_repository_records_each_vendors_plans_through_its_own_tool() -> Non
         "github-copilot/subscription/pro-plus",
         "perplexity/subscription/max", "perplexity/subscription/pro",
     ]
-    tool = {"cursor": ["coding_tool:cursor"], "github-copilot": ["coding_tool:copilot-cli"],
-            "perplexity": ["chat_app"]}
-    for plan_id, facts in plans.items():
-        assert facts["offering.subscription.surfaces"].value == tool[plan_id.split("/")[0]]
+    # Where a sentence ties the plan to its tool; unknown where none does (Cursor's Teams
+    # seats, Perplexity), never a guess.
+    surfaces = {plan_id: facts["offering.subscription.surfaces"].value
+                for plan_id, facts in plans.items()}
+    assert {p: s for p, s in surfaces.items() if s is not None} == {
+        **{f"cursor/subscription/{p}": ["coding_tool:cursor"] for p in ("pro", "pro-plus", "ultra")},
+        **{f"github-copilot/subscription/{p}": ["coding_tool:copilot-cli"]
+           for p in ("pro", "pro-plus", "max", "business", "enterprise")},
+    }
+    for facts in plans.values():
         for fact in facts.values():
             assert fact.state != "known" or fact.sources, fact.id
     pro = plans["cursor/subscription/pro"]

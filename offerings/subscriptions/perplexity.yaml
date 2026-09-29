@@ -51,12 +51,8 @@
   - id: perplexity/subscription/pro#offering.subscription.surfaces
     subject: {kind: offering, id: perplexity/subscription/pro}
     facet: offering.subscription.surfaces
-    state: known
-    value: [chat_app]
-    sources:
-    - source_id: model-205-perplexity-pro-help
-      snapshot_ref: sha256:31df9c450daa1b858ce71ee11b116bea3b3c8ff93fc26cd38c2589475b4b8b65
-      cited_regions: [page]
+    state: unknown
+    value: null
   - id: perplexity/subscription/pro#offering.subscription.families_covered
     subject: {kind: offering, id: perplexity/subscription/pro}
     facet: offering.subscription.families_covered
@@ -119,7 +115,7 @@
     subject: {kind: offering, id: perplexity/subscription/max}
     facet: offering.subscription.usage_allowance
     state: known
-    value: 35,000 bonus credits; 10,000 monthly credits
+    value: 10,000 monthly credits
     sources:
     - source_id: model-205-perplexity-pro
       snapshot_ref: sha256:b199367eff97ae6bcfbc3e04c1a717a163fcedce3a50b2a217aef1c0fd281d8f
@@ -136,12 +132,8 @@
   - id: perplexity/subscription/max#offering.subscription.surfaces
     subject: {kind: offering, id: perplexity/subscription/max}
     facet: offering.subscription.surfaces
-    state: known
-    value: [chat_app]
-    sources:
-    - source_id: model-205-perplexity-pro-help
-      snapshot_ref: sha256:31df9c450daa1b858ce71ee11b116bea3b3c8ff93fc26cd38c2589475b4b8b65
-      cited_regions: [page]
+    state: unknown
+    value: null
   - id: perplexity/subscription/max#offering.subscription.families_covered
     subject: {kind: offering, id: perplexity/subscription/max}
     facet: offering.subscription.families_covered

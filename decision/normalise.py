@@ -116,6 +116,9 @@ class RuleSet:
     #: Render ``<svg role="img" aria-label="…">`` as its label rather than dropping
     #: it, for pages whose table cells are icons (GitHub Docs' "Included").
     label_icons: bool = False
+    #: Skip footnote reference marks (``<sup><a data-footnote-ref>2</a></sup>``), which
+    #: otherwise run into the text they annotate ("Claude Fable 5.12").
+    drop_footnote_refs: bool = False
 
 
 _HTML_DROP_TAGS = frozenset(
@@ -146,7 +149,8 @@ NORMALISERS: dict[str, RuleSet] = {
         RuleSet("html-default", "html", drop_tags=_HTML_DROP_TAGS),
         # MODEL-205: a copy's fingerprint depends on its rules, so icon labels are a
         # recipe of their own; html-default's text, and every source's, is unchanged.
-        RuleSet("html-icon-labels", "html", drop_tags=_HTML_DROP_TAGS, label_icons=True),
+        RuleSet("html-icon-labels", "html", drop_tags=_HTML_DROP_TAGS, label_icons=True,
+                drop_footnote_refs=True),
         RuleSet("text-default", "text"),
     )
 }
@@ -410,6 +414,13 @@ def _icon_label(node: Node) -> str | None:
     return None
 
 
+def _footnote_ref(node: Node) -> bool:
+    if node.tag == "a" and "data-footnote-ref" in node.attrs:
+        return True
+    return node.tag == "sup" and any(
+        isinstance(c, Node) and _footnote_ref(c) for c in node.children)
+
+
 def _prune(node: Node, rules: RuleSet) -> None:
     kept: list[Node | str] = []
     for child in node.children:
@@ -417,6 +428,8 @@ def _prune(node: Node, rules: RuleSet) -> None:
             label = _icon_label(child) if rules.label_icons else None
             if label is not None:
                 kept.append(label)
+                continue
+            if rules.drop_footnote_refs and _footnote_ref(child):
                 continue
             if _is_furniture(child, rules):
                 continue

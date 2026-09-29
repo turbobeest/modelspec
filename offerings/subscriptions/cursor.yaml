@@ -335,12 +335,8 @@
   - id: cursor/subscription/teams-standard#offering.subscription.surfaces
     subject: {kind: offering, id: cursor/subscription/teams-standard}
     facet: offering.subscription.surfaces
-    state: known
-    value: ['coding_tool:cursor']
-    sources:
-    - source_id: model-205-cursor-models-and-pricing
-      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
-      cited_regions: [page]
+    state: unknown
+    value: null
   - id: cursor/subscription/teams-standard#offering.subscription.families_covered
     subject: {kind: offering, id: cursor/subscription/teams-standard}
     facet: offering.subscription.families_covered
@@ -426,12 +422,8 @@
   - id: cursor/subscription/teams-premium#offering.subscription.surfaces
     subject: {kind: offering, id: cursor/subscription/teams-premium}
     facet: offering.subscription.surfaces
-    state: known
-    value: ['coding_tool:cursor']
-    sources:
-    - source_id: model-205-cursor-models-and-pricing
-      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
-      cited_regions: [page]
+    state: unknown
+    value: null
   - id: cursor/subscription/teams-premium#offering.subscription.families_covered
     subject: {kind: offering, id: cursor/subscription/teams-premium}
     facet: offering.subscription.families_covered
