@@ -78,7 +78,7 @@ describe("tie-aware answer on the board", () => {
     expect(block.textContent).not.toMatch(/\d/);
   });
 
-  it("names a clear winner under a cost-weighted objective without a capability gap", () => {
+  it("prints no numbers for a clear winner when the spec carries a cost weight", () => {
     const costWeighted: Spec = { ...ranked, boardWeights: { software_engineering: 0.5, "-offering.cost_per_task": 0.5 } };
     show(separatedJson, costWeighted);
     const block = screen.getByRole("heading", { name: "Clear winner: Alpha" }).closest("section")!;
@@ -102,12 +102,12 @@ describe("tie-aware answer on the board", () => {
 
   it("marks tied members in the ranked list and says their order is not merit", () => {
     show(tiedJson);
-    expect(screen.getByText("Order within the tied group is by tie-breaker, not merit.")).toBeInTheDocument();
+    expect(screen.getByText("Order within the tied group is not evidence that one is better.")).toBeInTheDocument();
+    expect(screen.queryByText(/by tie-breaker/)).not.toBeInTheDocument();
     const list = screen.getAllByRole("list").find((candidate) => candidate.tagName === "OL")!;
     const rows = within(list).getAllByRole("listitem");
     const tagged = rows.filter((row) => within(row).queryByText("tied"));
     expect(tagged.map((row) => row.querySelector("strong")?.textContent?.replace("tied", ""))).toEqual(["Alpha", "Gamma"]);
-    expect(rows.length).toBeGreaterThan(tagged.length - 1);
   });
 
   it("marks nothing as tied after a clear winner", () => {

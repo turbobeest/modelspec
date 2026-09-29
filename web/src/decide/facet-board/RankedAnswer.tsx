@@ -89,7 +89,7 @@ export function RankedAnswer({
       <span />
       <small>{capability.name}, estimated · 80% interval</small>
     </div>}
-    {showsTied && <p className="board-tie-caption">Order within the tied group is by tie-breaker, not merit.</p>}
+    {showsTied && <p className="board-tie-caption">Order within the tied group is not evidence that one is better.</p>}
     <ol>
       {visible.map((row) => {
         const value = row.cap ?? extent.min;
