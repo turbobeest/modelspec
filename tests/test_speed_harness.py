@@ -25,13 +25,15 @@ from scripts.speed.aggregate import AggregateError, aggregate
 from scripts.speed.method import (
     MIN_SAMPLES,
     REPETITIONS_PER_SLOT,
+    SLOT_HOURS_UTC,
     WARMUPS_PER_SLOT,
     WORKLOADS,
     median_interval,
     summarise,
     throughput,
+    workload,
 )
-from scripts.speed.plan import calls, load_plan, slot_cost
+from scripts.speed.plan import Call, call_bound_usd, calls, load_plan, slot_cost
 from scripts.speed.providers import APIS, FIRST_PARTY_HOSTS, Request
 from scripts.speed.run import SpendRefusedError, run_slot
 from scripts.speed.transport import (
@@ -233,14 +235,22 @@ class _Overbilling:
 
 
 def test_the_cap_holds_even_when_a_provider_overbills():
+    """No request is sent unless the spend so far plus its worst case fits the cap,
+    whatever order the slot's shuffle puts the providers in."""
     plan = load_plan()
     cap = slot_cost(plan).bound_usd
-    run = run_slot(plan, _Overbilling(), cap_usd=cap, keys={api: "k" for api in APIS},
-                   vantage="test")
-    # Nothing is sent after the first reply that bills past the whole cap.
-    over = [i for i, s in enumerate(run["samples"]) if s["cost_usd"] > cap]
-    assert run["stopped"] == "cap"
-    assert over and over[0] == len(run["samples"]) - 1
+    entries = {e.offering: e for e in plan.entries}
+    for hour in SLOT_HOURS_UTC:
+        clock = datetime(2026, 9, 1, hour, tzinfo=UTC)
+        run = run_slot(plan, _Overbilling(), cap_usd=cap, keys={api: "k" for api in APIS},
+                       vantage="test", now=lambda clock=clock: clock)
+        assert run["stopped"] == "cap"
+        spent = 0.0
+        for sample in run["samples"]:
+            call = Call(entries[sample["offering"]], workload(sample["workload"]),
+                        sample["sample"], sample["warmup"])
+            assert spent + call_bound_usd(call) <= cap + 1e-9
+            spent += sample["cost_usd"]
 
 
 def test_keys_never_reach_a_run_record():
