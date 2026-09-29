@@ -9,10 +9,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "brand" / "social" / "profiles.json"
-_JSON_LD = re.compile(
-    r'(<script\s+type="application/ld\+json"\s*>)(.*?)(</script>)',
-    re.DOTALL,
-)
 
 
 @dataclass(frozen=True)
@@ -64,19 +60,3 @@ def profile_urls(path: Path = DEFAULT_CONFIG) -> tuple[str, ...]:
             raise ValueError(f"{name}: invalid handle {handle!r}")
         urls.append(platform.url.format(handle=handle))
     return tuple(urls)
-
-
-def add_same_as(html: str, path: Path = DEFAULT_CONFIG) -> str:
-    """Add configured profile URLs to the first JSON-LD object in ``html``."""
-    urls = profile_urls(path)
-    if not urls:
-        return html
-    match = _JSON_LD.search(html)
-    if match is None:
-        raise ValueError("social profiles are configured, but the page has no JSON-LD object")
-    data = json.loads(match.group(2))
-    if not isinstance(data, dict):
-        raise ValueError("the page's JSON-LD value is not an object")
-    data["sameAs"] = list(urls)
-    replacement = f"{match.group(1)}\n{json.dumps(data, indent=2)}\n{match.group(3)}"
-    return html[:match.start()] + replacement + html[match.end():]
