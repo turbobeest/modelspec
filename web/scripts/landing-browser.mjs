@@ -104,6 +104,25 @@ try {
 
   assert.equal(await page.locator(".sticky").evaluate((el) => getComputedStyle(el).display), "none");
   await assertLockup(page, 1440);
+  const hero = await page.evaluate(() => {
+    const box = (selector) => document.querySelector(selector).getBoundingClientRect();
+    const size = (selector) => parseFloat(getComputedStyle(document.querySelector(selector)).fontSize);
+    const copy = box(".hero-copy");
+    const plot = box("#plot");
+    return {
+      copyRight: copy.right, copyTop: copy.top, copyBottom: copy.bottom,
+      plotLeft: plot.left, plotTop: plot.top, plotWidth: plot.width,
+      h1: size(".hero h1"), tie: size(".receipt h2"),
+      scroll: document.documentElement.scrollWidth,
+    };
+  });
+  // MODEL-229: the graph sits beside the copy, larger than its old 680px
+  // column, and neither headline outgrows the smaller type.
+  assert.equal(hero.plotLeft >= hero.copyRight, true, JSON.stringify(hero));
+  assert.equal(hero.plotTop < hero.copyBottom && hero.plotTop >= hero.copyTop - 100, true, JSON.stringify(hero));
+  assert.equal(hero.plotWidth > 680, true, JSON.stringify(hero));
+  assert.equal(hero.h1 <= 56 && hero.tie <= 56, true, JSON.stringify(hero));
+  assert.equal(hero.scroll <= 1440, true, JSON.stringify(hero));
   await page.setViewportSize({ width: 390, height: 844 });
   await assertLockup(page, 390);
   const overflow = await page.evaluate(() => ({

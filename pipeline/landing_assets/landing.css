@@ -131,8 +131,8 @@ nav > a:not(.button) {
   min-height: 880px;
   padding: 64px 64px 80px 72px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 680px;
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 760px);
+  gap: 48px;
 }
 .hero-copy {
   display: flex;
@@ -151,8 +151,8 @@ nav > a:not(.button) {
 .hero h1 {
   margin: 0;
   color: #fff;
-  font-size: 76px;
-  line-height: 0.95;
+  font-size: 54px;
+  line-height: 1;
 }
 .eyebrow,
 .kicker {
@@ -262,8 +262,8 @@ nav > a:not(.button) {
 }
 .receipt h2 {
   margin: 0;
-  font-size: 76px;
-  line-height: 0.95;
+  font-size: 54px;
+  line-height: 1;
 }
 .receipt p {
   max-width: 650px;
@@ -693,7 +693,7 @@ footer a {
     margin-bottom: -6px;
   }
   .hero h1 {
-    font-size: 40px;
+    font-size: 32px;
     order: 0;
   }
   .fud {
@@ -743,7 +743,7 @@ footer a {
     gap: 18px;
   }
   .receipt h2 {
-    font-size: 40px;
+    font-size: 32px;
   }
   .receipt p {
     display: none;
