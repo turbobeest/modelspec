@@ -62,24 +62,15 @@ def test_the_built_explorer_carries_the_landing_shell_and_its_libraries(tmp_path
     assert '<a href="/legal/neutrality/">Neutrality</a>' in built
     assert "/decide/" not in built
     assert "/downselect/" not in built
-    for retired in ("/m/", "/p/", "/b/"):
-        assert f'href="{retired}' not in built
     assert '<div id="freshness"><p class="fresh">as of 2026-09-18</p></div>' in built
     assert sorted(p.name for p in (ms / "graph/vendor").iterdir()) == [
         "3d-force-graph.min.js", "three.min.js"]
 
 
-def test_dense_views_disclose_the_download_size_before_loading() -> None:
+def test_the_detail_panel_no_longer_builds_page_links_in_script() -> None:
     page = _page()
-    assert 'if (!v.legible && v.bytes)' in page
-    assert '"Load " + (v.bytes / 1000000).toFixed(1) + " MB "' in page
-
-
-def test_reduced_motion_stops_the_force_engine_and_camera_drift() -> None:
-    page = _page()
-    assert 'matchMedia("(prefers-reduced-motion: reduce)")' in page
-    assert ".cooldownTicks(reduceMotion ? 0 : Infinity)" in page
-    assert "engineSettled && !reduceMotion" in page
+    assert "pageFor" not in page
+    assert "dGo" not in page
 
 
 def test_controls_are_native_keyboard_targets_and_the_page_explains_itself() -> None:

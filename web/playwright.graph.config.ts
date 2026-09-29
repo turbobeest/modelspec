@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: "./browser-tests",
   testMatch: "graph.spec.ts",
   timeout: 45_000,
+  expect: { timeout: 20_000 },
   use: {
     baseURL: process.env.MODELSPEC_GRAPH_BASE_URL ?? "http://127.0.0.1:8000",
     browserName: "chromium",

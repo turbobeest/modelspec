@@ -794,7 +794,12 @@ font-size:13px;gap:20px;backdrop-filter:blur(8px)}
         lastInput = performance.now();
         // Frame what was actually laid out, once, rather than leaving the
         // viewer to find the graph themselves.
-        if (!graph.__framed) { graph.__framed = true; graph.zoomToFit(900, 60); }
+        if (!graph.__framed) {
+          graph.__framed = true;
+          var frameMs = reduceMotion ? 0 : 900;
+          el("scene").dataset.frameMs = String(frameMs);
+          graph.zoomToFit(frameMs, 60);
+        }
       });
 
     graph.scene().add(layer);
