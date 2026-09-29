@@ -1,0 +1,37 @@
+# The model-family registry (MODEL-200).
+#
+# Subscription plan pages name families ("Claude Opus"), not model IDs. A plan
+# fact `offering.subscription.families_covered` names families from this file;
+# the plan's own words are kept beside it in
+# `offering.subscription.coverage_quote`.
+#
+# A family is ModelSpec's grouping of its own model IDs. It is not a claim
+# about any plan. The resolution rule is exact and public
+# (docs/decision-contract.md, "Plans"): a family resolves to every model in the
+# snapshot's lineup, not retired, whose ID starts with `prefix`. Nothing else is
+# inferred: a family never resolves to a model of another lab, and a prefix
+# that would catch an unrelated model is a bug in this file.
+#
+# Entry fields
+#   id      lab/family, the lab part being the model IDs' lab
+#   name    the family's name as the lab writes it
+#   prefix  the model ID prefix the family resolves by; starts with `<lab>/`
+#
+# Families are added here by a registry PR, with the plan facts that need them
+# (MODEL-201).
+
+schema_version: 1
+
+families:
+  - id: anthropic/claude-opus
+    name: Claude Opus
+    prefix: anthropic/claude-opus-
+  - id: anthropic/claude-sonnet
+    name: Claude Sonnet
+    prefix: anthropic/claude-sonnet-
+  - id: anthropic/claude-haiku
+    name: Claude Haiku
+    prefix: anthropic/claude-haiku-
+  - id: anthropic/claude-fable
+    name: Claude Fable
+    prefix: anthropic/claude-fable-

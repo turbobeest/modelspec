@@ -204,7 +204,7 @@ def test_every_decision_facet_is_listed_with_label_unit_subject_type_and_operato
     families = {f.id for f in registry().facets() if f.parameter is not None}
     subscription_facets = {
         f.id for f in registry().facets()
-        if f.id.startswith("offering.subscription.")
+        if f.id.startswith(("offering.subscription.", "offering.plan."))
     }
     assert set(facets) == {
         f.id for f in registry().facets()

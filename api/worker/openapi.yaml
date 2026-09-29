@@ -2841,6 +2841,42 @@ components:
           type: array
           items: {}
           maxItems: 0
+    DecisionAccess:
+      additionalProperties: false
+      description: 'How the caller will use the model. Added in 2.6.
+
+
+        ``chat_app``: a provider''s chat app, through a subscription plan.
+
+        ``coding_tool``: a coding harness, through a plan or pay-per-use;
+
+        ``harness`` names one from ``registry/harnesses.yaml`` (any when absent).
+
+        ``own_software``: the caller''s own software, pay-per-use (or a plan whose
+
+        surfaces include ``api``). ``own_hardware``: self-hosted on the caller''s
+
+        devices. A spec may give the bare kind as a string.'
+      properties:
+        kind:
+          enum:
+          - chat_app
+          - coding_tool
+          - own_software
+          - own_hardware
+          title: Kind
+          type: string
+        harness:
+          anyOf:
+          - pattern: ^[a-z0-9][a-z0-9-]*$
+            type: string
+          - type: 'null'
+          default: null
+          title: Harness
+      required:
+      - kind
+      title: Access
+      type: object
     DecisionAllOf:
       additionalProperties: false
       properties:
@@ -3240,8 +3276,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.5'
-          default: '2.5'
+          const: '2.6'
+          default: '2.6'
           title: Contract Version
           type: string
         decision_id:
@@ -3495,6 +3531,11 @@ components:
           - type: 'null'
           default: null
           title: Marginal Cost Per Task Usd
+        coverage:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionPlanCoverage'
+          - type: 'null'
+          default: null
       required:
       - via
       - cost_basis
@@ -4509,6 +4550,158 @@ components:
       - model
       title: OfferingRef
       type: object
+    DecisionPlanAllowance:
+      additionalProperties: false
+      description: A plan's published usage allowance; each part is null unless published. Added in 2.6.
+      properties:
+        relative_to:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Relative To
+        multiplier:
+          anyOf:
+          - minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Multiplier
+        window:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Window
+        tokens:
+          anyOf:
+          - minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Tokens
+      title: PlanAllowance
+      type: object
+    DecisionPlanCoverage:
+      additionalProperties: false
+      description: 'Why a plan counts as covering a model. Added in 2.6.
+
+
+        ``family`` and ``quote`` are the family the plan page names and the page''s
+
+        own words; both are absent when the plan''s ``models_covered`` names the
+
+        model directly. ``resolves_to`` is every model the entry reaches, by
+
+        ``rule``.'
+      properties:
+        family:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Family
+        quote:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Quote
+        resolves_to:
+          items:
+            pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          title: Resolves To
+          type: array
+        rule:
+          title: Rule
+          type: string
+      required:
+      - rule
+      title: PlanCoverage
+      type: object
+    DecisionPlanPrice:
+      additionalProperties: false
+      description: A plan's published list price for one billing period. Added in 2.6.
+      properties:
+        amount:
+          minimum: 0
+          title: Amount
+          type: number
+        currency:
+          const: USD
+          title: Currency
+          type: string
+        period:
+          enum:
+          - monthly
+          - annual
+          title: Period
+          type: string
+      required:
+      - amount
+      - currency
+      - period
+      title: PlanPrice
+      type: object
+    DecisionPlanRoute:
+      additionalProperties: false
+      description: 'A subscription plan that reaches a result on the spec''s ``access``. Added in 2.6.
+
+
+        ``break_even_tasks_per_month`` is the plan''s monthly price divided by this
+
+        result''s pay-per-use cost per task, for ``access: coding_tool`` only, and
+
+        null when either is unknown. ``basis`` says how it was computed or why not.
+
+        ModelSpec never turns a plan price into a per-task cost.'
+      properties:
+        plan:
+          maxLength: 120
+          minLength: 1
+          title: Plan
+          type: string
+        name:
+          title: Name
+          type: string
+        surface:
+          title: Surface
+          type: string
+        price:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionPlanPrice'
+          - type: 'null'
+          default: null
+        price_monthly_usd:
+          anyOf:
+          - minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Price Monthly Usd
+        coverage:
+          $ref: '#/components/schemas/DecisionPlanCoverage'
+        allowance:
+          $ref: '#/components/schemas/DecisionPlanAllowance'
+        break_even_tasks_per_month:
+          anyOf:
+          - minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          title: Break Even Tasks Per Month
+        basis:
+          title: Basis
+          type: string
+      required:
+      - plan
+      - name
+      - surface
+      - coverage
+      - basis
+      title: PlanRoute
+      type: object
     DecisionPreference:
       additionalProperties: false
       description: A weighted preference for one value of a boolean or enum facet.
@@ -4761,6 +4954,11 @@ components:
             type: string
           title: Warnings
           type: array
+        plans:
+          items:
+            $ref: '#/components/schemas/DecisionPlanRoute'
+          title: Plans
+          type: array
       required:
       - rank
       - offering
@@ -4994,6 +5192,11 @@ components:
         estate:
           anyOf:
           - $ref: '#/components/schemas/DecisionEstate'
+          - type: 'null'
+          default: null
+        access:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionAccess'
           - type: 'null'
           default: null
       required:
@@ -5255,6 +5458,12 @@ components:
             $ref: '#/components/schemas/DecisionGainItem'
           title: Gain
           type: array
+        warnings:
+          items:
+            pattern: ^[a-z0-9_]+$
+            type: string
+          title: Warnings
+          type: array
       required:
       - status
       - gap
@@ -5272,7 +5481,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.5'
+          - '2.6'
         endpoint:
           type: string
           enum:
@@ -5324,7 +5533,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.5'
+          - '2.6'
         endpoint:
           type: string
           enum:
@@ -5349,7 +5558,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.5'
+          - '2.6'
         endpoint:
           type: string
           enum:
@@ -5403,7 +5612,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.5'
+          - '2.6'
         endpoint:
           type: string
           enum:
@@ -5743,7 +5952,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.5'
+          - '2.6'
         endpoint:
           type: string
           enum:

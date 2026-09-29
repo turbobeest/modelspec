@@ -618,10 +618,11 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
         "xai/subscription/supergrok-plus",
     ]
     facts = [fact for subscription in loaded for fact in subscription.facts]
-    assert len(facts) == 55
+    # MODEL-173's 55, plus MODEL-200's seven plan facts on each of 11 plans.
+    assert len(facts) == 55 + 7 * 11
     assert all(fact.sources for fact in facts if fact.state == "known")
     assert all(
-        fact.value is None and fact.checked_sources
+        fact.value is None and (fact.checked_sources or fact.state == "unknown")
         for fact in facts
         if fact.state != "known"
     )
@@ -631,6 +632,9 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
         "offering.subscription.models_covered",
         "offering.subscription.usage_allowance",
         "offering.subscription.programmatic_or_agent_use",
+        "offering.subscription.surfaces",
+        "offering.subscription.allowance.relative_to",
+        "offering.subscription.allowance.multiplier",
     }
     xai_programmatic = [
         fact

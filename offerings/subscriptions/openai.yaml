@@ -1,5 +1,9 @@
 # MODEL-173. Primary sources read 2026-09-28. These rendered Help Center pages
 # challenged plain HTTP during collection; modelspec verify decides quarantine.
+# MODEL-200 added the plan facts (surfaces, families_covered, coverage_quote,
+# allowance.*) from the facts and sources above only; nothing was re-read.
+# `unknown` means not yet researched (MODEL-201). Each new known fact enters
+# a snapshot once an independent second key verifies it.
 - kind: subscription
   provider: openai
   plan: plus
@@ -52,6 +56,41 @@
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
       cited_regions: [page]
+  - id: openai/subscription/plus#offering.subscription.surfaces
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.surfaces
+    state: unknown
+    value: null
+  - id: openai/subscription/plus#offering.subscription.families_covered
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: openai/subscription/plus#offering.subscription.coverage_quote
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: openai/subscription/plus#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: openai/subscription/plus#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: openai/subscription/plus#offering.subscription.allowance.window
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: openai/subscription/plus#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: openai/subscription/plus}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
 - kind: subscription
   provider: openai
   plan: pro-5x
@@ -104,6 +143,49 @@
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
       cited_regions: [page]
+  - id: openai/subscription/pro-5x#offering.subscription.surfaces
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.surfaces
+    state: unknown
+    value: null
+  - id: openai/subscription/pro-5x#offering.subscription.families_covered
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: openai/subscription/pro-5x#offering.subscription.coverage_quote
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: openai/subscription/pro-5x#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.allowance.relative_to
+    state: known
+    value: openai/subscription/plus
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-5x#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.allowance.multiplier
+    state: known
+    value: 5
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-5x#offering.subscription.allowance.window
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: openai/subscription/pro-5x#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: openai/subscription/pro-5x}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
 - kind: subscription
   provider: openai
   plan: pro-20x
@@ -156,3 +238,46 @@
     - source_id: model-173-openai-codex
       snapshot_ref: sha256:e3653e21513e5f6a4e89226b34fd75d6be94fa0184fc42f1942c69a7023c8519
       cited_regions: [page]
+  - id: openai/subscription/pro-20x#offering.subscription.surfaces
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.surfaces
+    state: unknown
+    value: null
+  - id: openai/subscription/pro-20x#offering.subscription.families_covered
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: openai/subscription/pro-20x#offering.subscription.coverage_quote
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: openai/subscription/pro-20x#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.allowance.relative_to
+    state: known
+    value: openai/subscription/plus
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-20x#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.allowance.multiplier
+    state: known
+    value: 20
+    sources:
+    - source_id: model-173-openai-pro
+      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      cited_regions: [page]
+  - id: openai/subscription/pro-20x#offering.subscription.allowance.window
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: openai/subscription/pro-20x#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: openai/subscription/pro-20x}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null

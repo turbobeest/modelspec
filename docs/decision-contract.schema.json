@@ -1,5 +1,39 @@
 {
   "$defs": {
+    "Access": {
+      "additionalProperties": false,
+      "description": "How the caller will use the model. Added in 2.6.\n\n``chat_app``: a provider's chat app, through a subscription plan.\n``coding_tool``: a coding harness, through a plan or pay-per-use;\n``harness`` names one from ``registry/harnesses.yaml`` (any when absent).\n``own_software``: the caller's own software, pay-per-use (or a plan whose\nsurfaces include ``api``). ``own_hardware``: self-hosted on the caller's\ndevices. A spec may give the bare kind as a string.",
+      "properties": {
+        "harness": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Harness"
+        },
+        "kind": {
+          "enum": [
+            "chat_app",
+            "coding_tool",
+            "own_software",
+            "own_hardware"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Access",
+      "type": "object"
+    },
     "AllOf": {
       "additionalProperties": false,
       "properties": {
@@ -691,8 +725,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.5",
-          "default": "2.5",
+          "const": "2.6",
+          "default": "2.6",
           "title": "Contract Version",
           "type": "string"
         },
@@ -1004,6 +1038,17 @@
           ],
           "title": "Cost Basis",
           "type": "string"
+        },
+        "coverage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlanCoverage"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "marginal_cost_per_task_usd": {
           "anyOf": [
@@ -2720,6 +2765,218 @@
       "title": "OfferingRef",
       "type": "object"
     },
+    "PlanAllowance": {
+      "additionalProperties": false,
+      "description": "A plan's published usage allowance; each part is null unless published. Added in 2.6.",
+      "properties": {
+        "multiplier": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Multiplier"
+        },
+        "relative_to": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relative To"
+        },
+        "tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tokens"
+        },
+        "window": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window"
+        }
+      },
+      "title": "PlanAllowance",
+      "type": "object"
+    },
+    "PlanCoverage": {
+      "additionalProperties": false,
+      "description": "Why a plan counts as covering a model. Added in 2.6.\n\n``family`` and ``quote`` are the family the plan page names and the page's\nown words; both are absent when the plan's ``models_covered`` names the\nmodel directly. ``resolves_to`` is every model the entry reaches, by\n``rule``.",
+      "properties": {
+        "family": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Family"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        },
+        "resolves_to": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Resolves To",
+          "type": "array"
+        },
+        "rule": {
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule"
+      ],
+      "title": "PlanCoverage",
+      "type": "object"
+    },
+    "PlanPrice": {
+      "additionalProperties": false,
+      "description": "A plan's published list price for one billing period. Added in 2.6.",
+      "properties": {
+        "amount": {
+          "minimum": 0,
+          "title": "Amount",
+          "type": "number"
+        },
+        "currency": {
+          "const": "USD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "period": {
+          "enum": [
+            "monthly",
+            "annual"
+          ],
+          "title": "Period",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "period"
+      ],
+      "title": "PlanPrice",
+      "type": "object"
+    },
+    "PlanRoute": {
+      "additionalProperties": false,
+      "description": "A subscription plan that reaches a result on the spec's ``access``. Added in 2.6.\n\n``break_even_tasks_per_month`` is the plan's monthly price divided by this\nresult's pay-per-use cost per task, for ``access: coding_tool`` only, and\nnull when either is unknown. ``basis`` says how it was computed or why not.\nModelSpec never turns a plan price into a per-task cost.",
+      "properties": {
+        "allowance": {
+          "$ref": "#/$defs/PlanAllowance"
+        },
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "break_even_tasks_per_month": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Break Even Tasks Per Month"
+        },
+        "coverage": {
+          "$ref": "#/$defs/PlanCoverage"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "plan": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Plan",
+          "type": "string"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlanPrice"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "price_monthly_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Price Monthly Usd"
+        },
+        "surface": {
+          "title": "Surface",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan",
+        "name",
+        "surface",
+        "coverage",
+        "basis"
+      ],
+      "title": "PlanRoute",
+      "type": "object"
+    },
     "Preference": {
       "additionalProperties": false,
       "description": "A weighted preference for one value of a boolean or enum facet.",
@@ -3044,6 +3301,13 @@
           "default": null,
           "title": "P Best"
         },
+        "plans": {
+          "items": {
+            "$ref": "#/$defs/PlanRoute"
+          },
+          "title": "Plans",
+          "type": "array"
+        },
         "rank": {
           "minimum": 1,
           "title": "Rank",
@@ -3285,6 +3549,17 @@
       "additionalProperties": false,
       "description": "A request for a decision.",
       "properties": {
+        "access": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Access"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "capabilities": {
           "anyOf": [
             {
@@ -3905,6 +4180,14 @@
         },
         "truncated": {
           "$ref": "#/$defs/Truncated"
+        },
+        "warnings": {
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
         }
       },
       "required": [
@@ -3926,5 +4209,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.5"
+  "x-contract-version": "2.6"
 }

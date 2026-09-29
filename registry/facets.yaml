@@ -89,6 +89,16 @@ units:
       price times the spec's input tokens per task, plus its output price times
       the spec's output tokens per task, divided by 1,000,000. Excludes cached,
       batch and committed-use pricing.
+  - id: usd_per_month
+    definition: >-
+      United States dollars for one calendar month of a subscription plan: the
+      plan's price when it is billed monthly, or its annual price divided by
+      twelve when it is billed yearly. Before taxes and introductory discounts.
+  - id: multiple
+    definition: >-
+      A plain multiplier of another published quantity, such as five times the
+      usage allowance of another plan. Dimensionless; the quantity it
+      multiplies is named by a companion fact.
   - id: capability_scale
     definition: >-
       The latent scale of the capability model (MODEL-129). Values are
@@ -917,6 +927,112 @@ facets:
     tier: best_effort
     risk: governance
     permitted_source_kinds: [provider_documentation, provider_terms]
+  # MODEL-200: what a plan can be used through, which model families its page
+  # names, and its allowance, as separate sourced facts. models_covered is kept
+  # as it is; the engine unions it with the families' resolution.
+  - id: offering.subscription.surfaces
+    label: Surfaces
+    subject: offering
+    addressable: false
+    value_type: {kind: set, values_from: plan_surfaces}
+    definition: >-
+      Where the provider documents the plan as usable: chat_app (the web chat),
+      desktop_app, mobile_app, coding_tool:<harness> for a harness registered
+      in registry/harnesses.yaml, and api for the customer's own software. A
+      surface the plan page does not name is absent; without api the plan does
+      not cover the customer's own software.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.subscription.families_covered
+    label: Families covered
+    subject: offering
+    addressable: false
+    value_type: {kind: set, values_from: "registry:families"}
+    definition: >-
+      The model families, from registry/families.yaml, that the plan page names
+      as included. The page's own words are offering.subscription.coverage_quote;
+      each family resolves to model IDs by the rule in that registry file.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.subscription.coverage_quote
+    label: Coverage wording
+    subject: offering
+    addressable: false
+    value_type: {kind: string}
+    definition: >-
+      The plan page's exact wording naming the models or model families the
+      plan includes, copied verbatim from a cited source, so a reader can check
+      how each family in offering.subscription.families_covered was read.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.subscription.allowance.relative_to
+    label: Allowance relative to
+    subject: offering
+    addressable: false
+    value_type: {kind: string}
+    definition: >-
+      The subscription plan ID, such as anthropic/subscription/pro, whose usage
+      allowance this plan's allowance is published as a multiple of. Unknown
+      when the page states no base plan.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.subscription.allowance.multiplier
+    label: Allowance multiplier
+    subject: offering
+    addressable: false
+    value_type: {kind: number}
+    unit: multiple
+    definition: >-
+      How many times the base plan's usage allowance this plan includes, as the
+      provider publishes it ("5x more usage than Pro" is 5). Meaningless without
+      offering.subscription.allowance.relative_to.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.subscription.allowance.window
+    label: Allowance window
+    subject: offering
+    addressable: false
+    value_type: {kind: string}
+    definition: >-
+      The period after which the plan's usage allowance resets, in the
+      provider's words, such as a five-hour session or a week. Unknown when the
+      page states no reset period.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.subscription.allowance.tokens
+    label: Allowance in tokens
+    subject: offering
+    addressable: false
+    value_type: {kind: number}
+    unit: tokens
+    definition: >-
+      The number of tokens the plan includes per allowance window, only when
+      the provider publishes that number. Never derived from a multiplier,
+      message count or observed usage.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.plan.price_monthly
+    label: Plan price per month
+    subject: offering
+    value_type: {kind: number}
+    unit: usd_per_month
+    definition: >-
+      For a spec with access, the monthly price of the cheapest plan that
+      reaches this row on that access surface: offering.subscription.price per
+      month, or per year divided by twelve. Computed per decision; unknown
+      without access, for a row no plan reaches, and when no reaching plan
+      publishes a price. Never a per-task cost.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [modelspec_estimate]
+    computed_by: MODEL-200
 
   # ── Evidence and estimates ────────────────────────────────────────────────
   - id: evidence.benchmark
