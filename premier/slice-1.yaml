@@ -147,7 +147,7 @@ models:
     class: text-generator
     input_price_per_million: 0.3
     output_price_per_million: 2.5
-    benchmark: arena_elo_style_control
+    benchmark: arena_elo_overall
     url: https://ai.google.dev/gemini-api/docs/pricing
     read_date: '2026-09-26'
     note: Within the cheapest verified, benchmarked candidates in its class.
