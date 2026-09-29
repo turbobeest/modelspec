@@ -1764,7 +1764,7 @@ def _feedback_schemas() -> dict[str, Any]:
                             "pattern": feedback.RECEIPT.pattern},
                 "retention_days": {"type": "integer", "nullable": True},
                 "redacted": {"type": "array", "items": {
-                    "type": "string", "enum": ["email", "ip", "phone", "secret", "url_query"]}},
+                    "type": "string", "enum": list(feedback.REDACTION_KINDS)}},
                 "message": {"type": "string"},
                 "privacy": {"type": "string", "format": "uri"},
             },

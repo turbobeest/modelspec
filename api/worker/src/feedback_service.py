@@ -30,12 +30,13 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import re
 import secrets
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 
 SCHEMA_VERSION = "1.0"
@@ -46,6 +47,8 @@ PRIVACY_URL = "https://modelspec.dev/legal/privacy/"
 
 #: The fixed choices. Order is the order a person sees them in.
 RATINGS = ("reliable", "unreliable", "trustworthy", "untrustworthy", "confusing")
+#: What `scrub` can replace, as named in a response's `redacted`.
+REDACTION_KINDS = ("card", "email", "id_number", "ip", "phone", "secret", "url_query")
 #: The ratings the weekly digest turns into issue drafts.
 NEGATIVE_RATINGS = ("unreliable", "untrustworthy", "confusing")
 #: Who sent it, as the caller says. Unverifiable, and used only to group.
@@ -78,13 +81,15 @@ RETENTION_DAYS = 180
 #: KV counter under an HMAC name that expires after two days.
 BURST_LIMIT = 5
 DAILY_LIMIT = 20
-#: Across every caller, per UTC day. Bounds KV writes and a flood from many
-#: addresses at once.
+#: Across every caller, per UTC day and per client group (the website, and
+#: everything else), so a flood of agent traffic cannot use up the page's
+#: share. Bounds KV writes and a flood from many addresses at once.
 GLOBAL_DAILY_CAP = 1000
 
 RECORD_PREFIX = "feedback/v1/record/"
 LIMIT_PREFIX = "feedback/v1/limit/"
-_DAY_COUNTER_TTL = 2 * 86_400
+#: Counters outlive their day by one more day, then go.
+_COUNTER_DAYS = 2
 
 HTTP_OK = 200
 HTTP_ACCEPTED = 202
@@ -153,22 +158,31 @@ def error(code: str, message: str, **extra: Any) -> Outcome:
 # ── free text ────────────────────────────────────────────────────────────────
 
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+#: Credentials in a URL go first, so the email rule does not half-match them.
+_URL_USERINFO = re.compile(r"(\bhttps?://)[^\s/@]+@", re.I)
 #: A URL's query and fragment go; its scheme, host and path stay.
 _URL_TAIL = re.compile(r"(\bhttps?://[^\s?#]+)[?#]\S*", re.I)
 _IPV4 = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-_IPV6 = re.compile(r"\b(?:[0-9a-f]{1,4}:){2,7}[0-9a-f]{1,4}\b", re.I)
+#: Candidates only; `ipaddress` decides, so a clock time like 12:30:45 stays.
+_IPV6 = re.compile(r"(?<![\w:])(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}(?![\w:])", re.I)
 #: Credential shapes: a known vendor prefix, a bearer header, a ModelSpec key.
 _SECRET_PREFIXED = re.compile(
-    r"\b(?:sk|rk|ghp|gho|ghs|github_pat|xox[abpr]|hf|glpat|AIza)[-_][A-Za-z0-9_-]{8,}"
+    r"\b(?:sk|rk|ghp|gho|ghs|ghu|github_pat|xox[abpr]|hf|glpat|AIza)[-_][A-Za-z0-9_-]{8,}"
+    r"|\bya29\.[A-Za-z0-9_.-]{10,}"
     r"|\b(?:live|test)_[A-Za-z0-9]{16,}"
-    r"|\bAKIA[0-9A-Z]{12,}\b"
+    r"|\b(?:AKIA|ASIA)[0-9A-Z]{12,}\b"
     r"|\bBearer\s+\S+", re.I)
-#: A long unbroken run that mixes letters and digits, as keys do and model
-#: slugs (hyphenated) and words do not. Decision and snapshot IDs are kept.
-_LONG_TOKEN = re.compile(r"\b[A-Za-z0-9_]{24,}\b|[A-Za-z0-9+/]{40,}={0,2}")
+#: A long unbroken run that mixes letters and digits, as keys and JWT segments
+#: do and model slugs (hyphenated) and words do not. Decision, snapshot and
+#: sha256 IDs are kept: they are how a report is reproduced.
+_LONG_TOKEN = re.compile(r"(?<!sha256:)\b[A-Za-z0-9_]{24,}\b")
 _KEPT_IDS = ("dec_", "snap_", "sha256")
 #: An international number, or a North American one in its usual shape.
 _PHONE = re.compile(r"\+\d[\d ().-]{7,}\d|\(?\b\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b")
+#: A US social security number.
+_SSN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
+#: 13 to 19 digits, optionally grouped: a card number if the Luhn check passes.
+_CARD = re.compile(r"\b(?:\d[ -]?){12,18}\d\b")
 
 
 def _is_secret_like(token: str) -> bool:
@@ -176,11 +190,34 @@ def _is_secret_like(token: str) -> bool:
             and any(c.isdigit() for c in token) and any(c.isalpha() for c in token))
 
 
+def _luhn(candidate: str) -> bool:
+    digits = [int(c) for c in candidate if c.isdigit()]
+    if not 13 <= len(digits) <= 19:
+        return False
+    total = 0
+    for index, digit in enumerate(reversed(digits)):
+        if index % 2:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        total += digit
+    return total % 10 == 0
+
+
+def _is_ip(candidate: str) -> bool:
+    try:
+        ipaddress.ip_address(candidate)
+    except ValueError:
+        return False
+    return True
+
+
 def scrub(text: str) -> tuple[str, set[str]]:
     """Free text with what looks like personal data or a credential replaced.
 
     Best effort, and stated as such: it catches the shapes, not the meaning.
-    The field is labelled optional and asks for none of these things.
+    A name, an employer or a pasted prompt is not caught. The field is labelled
+    optional and asks for none of these things.
     """
     found: set[str] = set()
 
@@ -192,18 +229,25 @@ def scrub(text: str) -> tuple[str, set[str]]:
             return f"[{kind}]"
         return pattern.sub(replace, value)
 
+    def drop_userinfo(match: re.Match[str]) -> str:
+        found.add("secret")
+        return match.group(1) + "[secret]@"
+
     def drop_query(match: re.Match[str]) -> str:
         found.add("url_query")
         return match.group(1)
 
     text = unicodedata.normalize("NFC", text)
     text = "".join(c if (c.isprintable() or c == "\n") else " " for c in text)
+    text = _URL_USERINFO.sub(drop_userinfo, text)
     text = swap("secret", _SECRET_PREFIXED, text)
     text = swap("email", _EMAIL, text)
     text = _URL_TAIL.sub(drop_query, text)
-    text = swap("ip", _IPV4, text)
-    text = swap("ip", _IPV6, text)
+    text = swap("ip", _IPV4, text, _is_ip)
+    text = swap("ip", _IPV6, text, lambda s: s.count(":") >= 2 and _is_ip(s))
     text = swap("secret", _LONG_TOKEN, text, _is_secret_like)
+    text = swap("card", _CARD, text, _luhn)
+    text = swap("id_number", _SSN, text)
     text = swap("phone", _PHONE, text)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
@@ -304,8 +348,38 @@ def _memory_salt() -> bytes:
     return _salt[0]
 
 
+def limit_address(address: str) -> str:
+    """What a limit is keyed on: an IPv4 address, or an IPv6 address's /64.
+
+    One IPv6 subscriber usually holds a whole /64, so keying on the full
+    address would give one sender billions of buckets.
+    """
+    try:
+        parsed = ipaddress.ip_address(address.strip())
+    except ValueError:
+        return address.strip()
+    if isinstance(parsed, ipaddress.IPv6Address):
+        if parsed.ipv4_mapped is not None:
+            return str(parsed.ipv4_mapped)
+        return str(ipaddress.ip_network(f"{parsed}/64", strict=False))
+    return str(parsed)
+
+
 def _mac(key: bytes, window: str, address: str) -> str:
-    return hmac.new(key, f"{window}|{address}".encode(), hashlib.sha256).hexdigest()[:32]
+    return hmac.new(key, f"{window}|{limit_address(address)}".encode(),
+                    hashlib.sha256).hexdigest()[:32]
+
+
+def _midnight(day: date, days_after: int) -> int:
+    """Epoch seconds of 00:00 UTC, `days_after` days after `day`.
+
+    Expiries are set to a day boundary, never as a TTL from now: KV shows every
+    key's expiry, and `now + TTL` would publish the second each record and
+    counter was written, which is enough to link a record to its address's
+    counter or to a platform log line.
+    """
+    return int(datetime.combine(day + timedelta(days=days_after), time(), tzinfo=UTC)
+               .timestamp())
 
 
 def _burst_allowed(address: str, now: datetime) -> bool:
@@ -395,9 +469,11 @@ async def submit(
         return error("feedback_store_unavailable",
                      "feedback storage is switched on but has no store or limit secret")
 
-    day = now.date().isoformat()
+    today = now.date()
+    day = today.isoformat()
     seconds_left = 86_400 - (now.hour * 3600 + now.minute * 60 + now.second)
-    global_name = f"{LIMIT_PREFIX}global/{day}"
+    group = "page" if parsed.client == "page" else "api"
+    global_name = f"{LIMIT_PREFIX}global/{day}/{group}"
     address_name = f"{LIMIT_PREFIX}day/{day}/{_mac(store.pepper, day, address)}"
     total, mine = await _counter(store.kv, global_name), await _counter(store.kv, address_name)
     if total >= GLOBAL_DAILY_CAP:
@@ -407,12 +483,26 @@ async def submit(
         return error("rate_limited", f"at most {DAILY_LIMIT} a day from one address",
                      retry_after=seconds_left)
 
+    # Counters first, and a counter that cannot be written does not stop the
+    # feedback: KV takes one write per second per key, so two callers at once
+    # can collide on the global counter. The limits are good-faith meters.
+    counters_until = _midnight(today, _COUNTER_DAYS)
+    try:
+        await store.kv.put(address_name, str(mine + 1), expiration=counters_until)
+    except Exception:  # noqa: BLE001 - a missed count is not a lost record
+        pass
+    try:
+        await store.kv.put(global_name, str(total + 1), expiration=counters_until)
+    except Exception:  # noqa: BLE001 - a missed count is not a lost record
+        pass
+    # The record last, so a receipt is only ever returned for a record written.
     receipt = f"fbr_{now.strftime('%Y%m%d')}_{secrets.token_hex(16)}"
-    await store.kv.put(_record_name(receipt), json.dumps(record(parsed, day),
-                                                         separators=(",", ":")),
-                       expiration_ttl=RETENTION_DAYS * 86_400)
-    await store.kv.put(address_name, str(mine + 1), expiration_ttl=_DAY_COUNTER_TTL)
-    await store.kv.put(global_name, str(total + 1), expiration_ttl=_DAY_COUNTER_TTL)
+    try:
+        await store.kv.put(_record_name(receipt),
+                           json.dumps(record(parsed, day), separators=(",", ":")),
+                           expiration=_midnight(today, RETENTION_DAYS + 1))
+    except Exception:  # noqa: BLE001 - reported to the caller, never swallowed
+        return error("feedback_store_unavailable", "the feedback could not be stored; retry")
     return Outcome(HTTP_ACCEPTED, _envelope(
         status="recorded",
         recorded=True,

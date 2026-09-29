@@ -538,6 +538,12 @@ def test_feedback_storage_is_unreachable_until_the_statement_covers_it() -> None
             "feedback storage is switched on or bound, and the privacy statement does not "
             "disclose the FEEDBACK store; adopt the wording in "
             "docs/design/feedback-privacy.md first")
+        section = PRIVACY.split("### The feedback store", 1)[-1].split("\n#", 1)[0]
+        assert "not yet live" not in flat(section), (
+            "feedback storage is on and the statement still says it is not yet live")
+    # A deploy-time `--var FEEDBACK_ENABLED:true` would dodge the check above.
+    for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+        assert "FEEDBACK_ENABLED" not in workflow.read_text(encoding="utf-8"), workflow.name
     if disclosed:
         sys.path.insert(0, str(worker / "src"))
         try:

@@ -88,7 +88,7 @@ export function FeedbackForm({
               ? "Thank you. Your feedback was recorded."
               : "Thank you. Feedback storage is not switched on yet, so nothing was kept."}
           {sent.kind === "done" && sent.result.status !== "deleted" && sent.result.redacted.length > 0 &&
-            ` We removed what looked like ${sent.result.redacted.map((kind) => kind.replace("_", " ")).join(", ")} before it reached us.`}
+            ` We removed what looked like ${sent.result.redacted.map((kind) => kind.replaceAll("_", " ")).join(", ")} before it was kept.`}
         </p>
         {sent.kind === "done" && sent.result.status === "recorded" && (
           <button type="button" className="text-button" onClick={() => {

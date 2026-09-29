@@ -840,7 +840,11 @@ class Default(WorkerEntrypoint):
     async def _feedback(self, request, method: str, service_commit: str):
         """`POST` and `DELETE /v1/feedback` (MODEL-221). No key is read."""
         extra = str(getattr(self.env, FEEDBACK_DEV_ORIGINS_VAR, "") or "")
-        allowed = CORS_ORIGINS | frozenset(o.strip() for o in extra.split(",") if o.strip())
+        # Local development only: a value naming any other host is ignored,
+        # so a stray production setting cannot open the endpoint to a site.
+        allowed = CORS_ORIGINS | frozenset(
+            o.strip() for o in extra.split(",")
+            if re.fullmatch(r"http://(localhost|127\.0\.0\.1)(:\d+)?", o.strip()))
         origin = str(request.headers.get("origin") or "") or None
         cors = {}
         if origin in allowed:

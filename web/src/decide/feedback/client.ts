@@ -23,7 +23,7 @@ const envelope = {
   endpoint: z.literal("feedback"),
   service_commit: z.string(),
 };
-const redaction = z.enum(["email", "ip", "phone", "secret", "url_query"]);
+const redaction = z.enum(["card", "email", "id_number", "ip", "phone", "secret", "url_query"]);
 
 /** What the Worker answers. Strict, so a field it starts sending is noticed. */
 export const feedbackResultSchema = z.union([

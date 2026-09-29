@@ -54,12 +54,18 @@ class DigestError(ValueError):
 
 
 def refuse_repo_path(path: Path, what: str) -> Path:
-    """Feedback text is private: never write it where `git add` could publish it."""
+    """Feedback text is private: never write it where `git add` could publish it.
+
+    Refused inside this repository and inside any git work tree at all (another
+    checkout, another worktree), found by a `.git` entry in the path's parents.
+    """
     resolved = Path(path).expanduser().resolve()
-    if resolved == REPO_ROOT or REPO_ROOT in resolved.parents:
+    inside = [p for p in (resolved, *resolved.parents) if (p / ".git").exists()]
+    if resolved == REPO_ROOT or REPO_ROOT in resolved.parents or inside:
+        where = inside[0] if inside else REPO_ROOT
         raise DigestError(
-            f"{what} is inside the public ModelSpec repository ({resolved}). Feedback "
-            "text is private and never lives here; write it beside the export.")
+            f"{what} ({resolved}) is inside a git work tree ({where}). Feedback text is "
+            "private and never lives in a repository; write it beside the export.")
     return resolved
 
 

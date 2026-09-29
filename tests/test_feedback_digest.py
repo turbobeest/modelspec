@@ -112,12 +112,17 @@ def test_the_same_cluster_next_week_is_an_update_not_a_second_issue(tmp_path) ->
 
 def test_feedback_text_is_never_written_into_the_repository(tmp_path) -> None:
     records = _stage(tmp_path)
-    with pytest.raises(digest.DigestError, match="inside the public ModelSpec repository"):
+    with pytest.raises(digest.DigestError, match="inside a git work tree"):
         digest.run(records, REPO_ROOT / "docs" / "feedback" / "out", None, until=UNTIL)
-    with pytest.raises(digest.DigestError, match="inside the public ModelSpec repository"):
+    with pytest.raises(digest.DigestError, match="inside a git work tree"):
         digest.run(records, tmp_path / "ok", REPO_ROOT / "ledger.json", until=UNTIL)
-    with pytest.raises(digest.DigestError, match="inside the public ModelSpec repository"):
+    with pytest.raises(digest.DigestError, match="inside a git work tree"):
         export.export("ns", REPO_ROOT / "export.jsonl", run=lambda args: "[]")
+    # Any other checkout counts too, not only this one.
+    other = tmp_path / "another-checkout"
+    (other / ".git").mkdir(parents=True)
+    with pytest.raises(digest.DigestError, match="inside a git work tree"):
+        digest.run(records, other / "out", None, until=UNTIL)
 
 
 def test_a_record_that_is_not_the_stored_shape_is_refused(tmp_path) -> None:

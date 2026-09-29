@@ -125,6 +125,16 @@ def test_a_page_keeps_its_path_and_loses_its_query() -> None:
     ("llama-3-70b-instruct-2026-09-29 at 128000 200000 tokens on 2026-09-29",
      "llama-3-70b-instruct-2026-09-29 at 128000 200000 tokens on 2026-09-29", set()),
     ("about dec_3f9a1c2b7d4e5f6a7b8c9d0e1f", "about dec_3f9a1c2b7d4e5f6a7b8c9d0e1f", set()),
+    # From the privacy review (MODEL-221).
+    ("card 4111 1111 1111 1111", "card [card]", {"card"}),
+    ("ssn 123-45-6789", "ssn [id_number]", {"id_number"}),
+    ("from 2001:db8::1 today", "from [ip] today", {"ip"}),
+    ("AWS ASIAABCDEFGHIJKLMNOP", "AWS [secret]", {"secret"}),
+    ("token ya29.a0AfH6SMBx_abcdef", "token [secret]", {"secret"}),
+    ("see https://user:pw@host.test/x", "see https://[secret]@host.test/x", {"secret"}),
+    ("at 12:30:45 on 999.1.1.1", "at 12:30:45 on 999.1.1.1", set()),
+    ("hash sha256:" + "a1" * 32, "hash sha256:" + "a1" * 32, set()),
+    ("order 4111 1111 1111 1112", "order 4111 1111 1111 1112", set()),
 ])
 def test_free_text_is_scrubbed_of_personal_data_and_credentials(text, cleaned, kinds) -> None:
     assert fb.scrub(text) == (cleaned, kinds)
@@ -183,7 +193,11 @@ def test_on_a_record_holds_exactly_the_stored_fields_and_no_caller() -> None:
     stored = json.loads(value)
     assert tuple(stored) == fb.STORED_FIELDS
     assert stored == {"received_on": "2026-09-29", **body, "redacted": []}
-    assert kv.ttl[name] == fb.RETENTION_DAYS * 86_400
+    # Expiry is a day boundary, never now + TTL: the key list must not show
+    # the second a record was written.
+    midnight = int(datetime(2026, 9, 29, tzinfo=UTC).timestamp())
+    assert kv.expiration[name] == midnight + (fb.RETENTION_DAYS + 1) * 86_400
+    assert name not in kv.ttl
     # The receipt is the deletion handle and is never stored, nor is the caller.
     everything = json.dumps(kv.data)
     assert receipt not in everything
@@ -194,10 +208,16 @@ def test_on_a_record_holds_exactly_the_stored_fields_and_no_caller() -> None:
 def test_on_the_limit_counters_expire_and_are_named_by_an_hmac() -> None:
     kv = access_kv.MemoryKV()
     _submit(MINIMAL, store=_on(kv))
-    counters = [k for k in kv.data if k.startswith(fb.LIMIT_PREFIX)]
-    assert sorted(counters)[0] == f"{fb.LIMIT_PREFIX}day/2026-09-29/" + fb._mac(
-        PEPPER, "2026-09-29", ADDRESS)
-    assert all(kv.ttl[k] == 2 * 86_400 for k in counters)
+    _submit({**MINIMAL, "client": "page"}, store=_on(kv), now=NOW + timedelta(hours=3))
+    counters = sorted(k for k in kv.data if k.startswith(fb.LIMIT_PREFIX))
+    assert counters == [
+        f"{fb.LIMIT_PREFIX}day/2026-09-29/" + fb._mac(PEPPER, "2026-09-29", ADDRESS),
+        f"{fb.LIMIT_PREFIX}global/2026-09-29/api",
+        f"{fb.LIMIT_PREFIX}global/2026-09-29/page",
+    ]
+    midnight = int(datetime(2026, 10, 1, tzinfo=UTC).timestamp())
+    assert {kv.expiration[k] for k in counters} == {midnight}
+    assert not kv.ttl
     assert all(ADDRESS not in k for k in counters)
     # The same address tomorrow is a different, unlinkable name.
     assert fb._mac(PEPPER, "2026-09-30", ADDRESS) != fb._mac(PEPPER, "2026-09-29", ADDRESS)
@@ -235,10 +255,49 @@ def test_the_daily_limit_per_address_and_the_global_cap() -> None:
     assert refused.status == 429
     assert "a day from one address" in refused.body["error"]["message"]
 
-    kv.data[f"{fb.LIMIT_PREFIX}global/2026-09-29"] = str(fb.GLOBAL_DAILY_CAP)
+    kv.data[f"{fb.LIMIT_PREFIX}global/2026-09-29/api"] = str(fb.GLOBAL_DAILY_CAP)
     capped = _submit(MINIMAL, store=store, address="198.51.100.9")
     assert capped.status == 429
     assert "all the feedback it can for today" in capped.body["error"]["message"]
+    # An agent flood does not use up the website's share.
+    page = _submit({**MINIMAL, "client": "page"}, store=store, address="198.51.100.10")
+    assert page.status == 202
+
+
+def test_one_ipv6_subscriber_is_one_bucket_not_a_billion() -> None:
+    assert fb.limit_address("2001:db8:1:2:aaaa::1") == fb.limit_address("2001:db8:1:2:bbbb::9")
+    assert fb.limit_address("2001:db8:1:3::1") != fb.limit_address("2001:db8:1:2::1")
+    assert fb.limit_address("::ffff:198.51.100.7") == "198.51.100.7"
+    for i in range(fb.BURST_LIMIT):
+        assert _submit(MINIMAL, store=OFF, address=f"2001:db8:1:2::{i + 1}").status == 200
+    assert _submit(MINIMAL, store=OFF, address="2001:db8:1:2::ff").status == 429
+
+
+class FlakyKV(access_kv.MemoryKV):
+    """Workers KV refusing a write: one write per second per key, or an outage."""
+
+    def __init__(self, fail_prefixes: tuple[str, ...]) -> None:
+        super().__init__()
+        self.fail_prefixes = fail_prefixes
+
+    async def put(self, name, value, **kw):
+        if name.startswith(self.fail_prefixes):
+            raise RuntimeError("KV PUT failed: 429 Too Many Requests")
+        await super().put(name, value, **kw)
+
+
+def test_a_counter_that_cannot_be_written_does_not_lose_the_feedback() -> None:
+    kv = FlakyKV((fb.LIMIT_PREFIX,))
+    outcome = _submit(MINIMAL, store=_on(kv))
+    assert outcome.status == 202
+    assert sum(k.startswith(fb.RECORD_PREFIX) for k in kv.data) == 1
+
+
+def test_a_record_that_cannot_be_written_returns_no_receipt() -> None:
+    kv = FlakyKV((fb.RECORD_PREFIX,))
+    outcome = _submit(MINIMAL, store=_on(kv))
+    assert outcome.status == 503
+    assert "receipt" not in outcome.body
 
 
 def test_a_receipt_deletes_its_record_and_nothing_else() -> None:
@@ -415,6 +474,10 @@ def test_the_worker_answers_a_site_preflight_and_refuses_another(entry) -> None:
     dev = _call(entry, Request("OPTIONS", headers={"origin": "http://localhost:8000"}),
                 FEEDBACK_DEV_ORIGINS="http://localhost:8000")
     assert dev.status == 204
+    # The development allowance names local hosts only; anything else is ignored.
+    stray = _call(entry, Request("OPTIONS", headers={"origin": "https://evil.test"}),
+                  FEEDBACK_DEV_ORIGINS="https://evil.test,http://localhost:8000")
+    assert stray.status == 403
 
 
 def test_the_worker_refuses_other_verbs_and_names_the_endpoint(entry) -> None:

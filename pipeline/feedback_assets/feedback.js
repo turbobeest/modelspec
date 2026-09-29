@@ -118,11 +118,11 @@
         }
         Array.prototype.forEach.call(node.querySelectorAll("fieldset, label, .ms-fb-actions, .ms-fb-privacy"),
           function (child) { child.hidden = true; });
-        var removed = (p.redacted || []).map(function (k) { return k.replace("_", " "); });
+        var removed = (p.redacted || []).map(function (k) { return k.split("_").join(" "); });
         var text = p.status === "recorded"
           ? "Thank you. Your feedback was recorded."
           : "Thank you. Feedback storage is not switched on yet, so nothing was kept.";
-        if (removed.length) text += " We removed what looked like " + removed.join(", ") + " before it reached us.";
+        if (removed.length) text += " We removed what looked like " + removed.join(", ") + " before it was kept.";
         say(text, false);
         if (p.status === "recorded" && p.receipt) {
           var undo = el("button", { type: "button", class: "ms-fb-undo", text: "Undo and delete it" });

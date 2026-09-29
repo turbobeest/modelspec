@@ -86,7 +86,7 @@ describe("the per-answer prompt", () => {
 
     const status = await screen.findByRole("status");
     expect(status).toHaveTextContent("Your feedback was recorded");
-    expect(status).toHaveTextContent("We removed what looked like email");
+    expect(status).toHaveTextContent("We removed what looked like email before it was kept");
     await user.click(screen.getByRole("button", { name: "Undo and delete it" }));
     expect(await screen.findByText("Deleted. Nothing of it is kept.")).toBeInTheDocument();
     expect(calls[1].init.method).toBe("DELETE");

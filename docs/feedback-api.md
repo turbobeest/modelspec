@@ -56,7 +56,8 @@ content-type: application/json
 Unknown fields are refused, not ignored. **Never put a prompt, a key, or
 anything that identifies a person in `note` or `trying_to_decide`.** The Worker
 replaces what looks like an email address, a phone number, an IP address, a
-credential or a URL query with a placeholder before anything is kept, and says
+card number, a US social security number, a credential or a URL query (and
+credentials inside a URL) with a placeholder before anything is kept, and says
 which kinds it replaced in `redacted`. That is a safety net, not permission.
 
 The body is capped at 4096 bytes.
@@ -90,9 +91,11 @@ holding the same spec could delete everyone's feedback about it.
 
 ## Limits
 
-Five a minute from one address, twenty a day from one address, and a global
-daily cap. The address is used only as the input to an HMAC keyed by a Worker
-secret and the window; it is never stored or logged by our code. See
+Five a minute from one address, twenty a day from one address, and a daily cap
+across all callers, counted separately for the website and for the API. An
+IPv6 address counts as its /64. The address is used only as the input to an
+HMAC keyed by a Worker secret and the window; it is never stored or logged by
+our code. The counters are good-faith: concurrent senders can overshoot them. See
 [`design/feedback-privacy.md`](design/feedback-privacy.md).
 
 ## Errors

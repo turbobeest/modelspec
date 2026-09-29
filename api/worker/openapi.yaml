@@ -8210,7 +8210,9 @@ components:
           items:
             type: string
             enum:
+            - card
             - email
+            - id_number
             - ip
             - phone
             - secret
