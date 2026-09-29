@@ -630,11 +630,15 @@ export function legacyBoardBaseSpec(spec: Spec): Spec {
   return { ...spec, task: "", conds: [], bar: undefined };
 }
 
-export function estateSpec(spec: Spec, providers: string[]): Spec {
-  if (!providers.length) return spec;
+export const hasEstate = (estate: Estate): boolean =>
+  estate.providers.length + estate.plans.length + estate.hardware.length > 0;
+
+/** The spec's `estate` block: what the caller holds, sent for one decision and never stored. */
+export function estatePayload(estate: Estate): NonNullable<DecisionSpec["estate"]> {
   return {
-    ...spec,
-    conds: [...spec.conds, { f: "facet", facet: "offering.provider", op: "in", value: providers }],
+    ...(estate.providers.length ? { providers: [...estate.providers] } : {}),
+    ...(estate.plans.length ? { plans: [...estate.plans] } : {}),
+    ...(estate.hardware.length ? { devices: [...estate.hardware] } : {}),
   };
 }
 

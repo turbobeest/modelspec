@@ -122,14 +122,28 @@ def test_the_tied_page_fixture_is_the_engines_answer():
 
 # ── MODEL-200: decisions with `access` ────────────────────────────────────
 
+MAX_20X = {"plans": ["anthropic/subscription/max-20x"]}
+
 PLAN_SPECS = {
     # A Max 20x holder in Claude Code: plan routes with a break-even, and the
     # estate answer through the plan at $0 with its coverage.
-    "plans-coding-full": ({"kind": "coding_tool", "harness": "claude-code"},
-                          {"plans": ["anthropic/subscription/max-20x"]}),
+    "plans-coding-full": ({"kind": "coding_tool", "harness": "claude-code"}, MAX_20X, True),
     # The same holder for their own software: pay-per-use, a plan route with a
     # null price and no break-even, and the estate warning.
-    "plans-own-software-full": ("own_software", {"plans": ["anthropic/subscription/max-20x"]}),
+    "plans-own-software-full": ("own_software", MAX_20X, True),
+    # MODEL-202: the board's other access answers. A chat-app holder whose
+    # plans' coverage is sourced: plan routes priced by the month.
+    "plans-chat-app-full": ("chat_app", MAX_20X, True),
+    # Today's catalogue: no plan's coverage is verified yet, so a chat-app
+    # answer is all may-qualify, and the held Max 20x may cover each row.
+    "plans-chat-app-unverified-full": ("chat_app", MAX_20X, False),
+    # The same in a coding tool: pay-per-use ranks; the plan may cover it.
+    "plans-coding-unverified-full": ("coding_tool", MAX_20X, False),
+    # Own hardware: only self-hostable rows, reached through a held device.
+    "plans-own-hardware-full": ("own_hardware", {"devices": ["apple_m3_max"]}, True),
+    # No access ("Doesn't matter"): every route, the cheapest named per model.
+    "plans-any-full": (None, {"plans": ["anthropic/subscription/max-20x"],
+                              "devices": ["apple_m3_max"]}, True),
 }
 
 
@@ -137,16 +151,16 @@ PLAN_SPECS = {
 def test_the_plan_page_fixtures_are_the_engines_answer(name):
     from tests.plan_records import CONTEXT, inputs
 
-    access, estate = PLAN_SPECS[name]
-    snapshot = load_built_snapshot(build_snapshot(inputs(max_coverage=True), as_of=date(2026, 9, 29)),
-                                   include_archive=True, source="plan page fixture build")
-    status, body = _service().decide(
-        {"spec_version": 1, "optimize": {"max": CONTEXT}, "explain": "full",
-         "access": access, "estate": estate},
-        snapshot,
-    )
+    access, estate, max_coverage = PLAN_SPECS[name]
+    snapshot = load_built_snapshot(
+        build_snapshot(inputs(max_coverage=max_coverage), as_of=date(2026, 9, 29)),
+        include_archive=True, source="plan page fixture build")
+    spec = {"spec_version": 1, "optimize": {"max": CONTEXT}, "explain": "full", "estate": estate}
+    if access is not None:
+        spec["access"] = access
+    status, body = _service().decide(spec, snapshot)
     assert status == 200, body
-    assert any(result.get("plans") for result in body["results"])
+    assert body["with_estate"] is not None
     path = WEB / f"{name}.json"
     fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
     if os.environ.get("MODELSPEC_WRITE_FIXTURES"):

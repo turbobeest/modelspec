@@ -2,6 +2,7 @@ import { useId } from "react";
 import { money } from "../adapter";
 import type { AdapterDecision } from "../adapter";
 import type { Row } from "../engine/reference";
+import { payee } from "./routes";
 
 type Answer = NonNullable<AdapterDecision["answer"]>;
 type TieBreakerKey = keyof Answer["tie_breakers"];
@@ -52,7 +53,7 @@ export function TieAwareAnswer({ answer, decision }: { answer: Answer; decision:
         const pickedBy = picks.filter((pick) => pick.model === model).map((pick) => pick.label);
         return <li key={model}>
           <strong>{nameOf(model)}</strong>
-          {row && <small>{row.m.labName} · via {row.best.o.provider}</small>}
+          {row && <small>{row.m.labName} · via {payee(row.best.o.provider)}</small>}
           {pickedBy.length > 0 && <span className="board-tie-pick">picked by {pickedBy.join(", ")}</span>}
         </li>;
       })}

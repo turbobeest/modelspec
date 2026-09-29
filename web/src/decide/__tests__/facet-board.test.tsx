@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
-  allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estateSpec, foldRefinementWeights, groupFacets,
+  allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, groupFacets,
   formatBoardCondition, legacyBoardBaseSpec, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
   sanitizeBoardState, templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
@@ -215,8 +215,11 @@ describe("facet state mapping", () => {
       expect(Object.keys(weights(state)).length).toBeGreaterThan(0);
     }
   });
-  it("adds the provider estate as a second-spec gate", () => {
-    expect(toDecisionSpec(estateSpec(base, ["anthropic", "google"]), "summary").where?.at(-1)).toBe("offering.provider in {anthropic, google}");
+  it("sends what you hold as the engine's estate, never as a where gate", () => {
+    expect(estatePayload({ providers: ["anthropic"], plans: ["anthropic/subscription/max-20x"], hardware: ["apple_m3_max"] }))
+      .toEqual({ providers: ["anthropic"], plans: ["anthropic/subscription/max-20x"], devices: ["apple_m3_max"] });
+    expect(estatePayload({ providers: [], plans: ["anthropic/subscription/pro"], hardware: [] }))
+      .toEqual({ plans: ["anthropic/subscription/pro"] });
   });
   it("only enables weights the engine supports", () => {
     expect(supportsPreference(smallVocabulary.facets.find((facet) => facet.id === "offering.cost_per_task")!)).toBe(true);

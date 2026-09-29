@@ -150,6 +150,30 @@ export const vocabularySchema = z.object({
     .default({}),
   /** Provider display names by ID. */
   providers: z.record(z.string(), z.string()).default({}),
+  /**
+   * The IDs a spec's `estate` accepts (MODEL-179). From 2.6 each plan also
+   * carries its price, surfaces and coverage, each null when not published.
+   */
+  estate: z
+    .object({
+      providers: z.array(z.string()).default([]),
+      plans: z
+        .array(
+          z.object({
+            id: z.string(),
+            provider: z.string(),
+            name: z.string(),
+            price: z
+              .object({ amount: z.number(), currency: z.string(), period: z.string() })
+              .nullable()
+              .optional(),
+            surfaces: z.array(z.string()).nullable().optional(),
+          }),
+        )
+        .default([]),
+      devices: z.array(z.string()).default([]),
+    })
+    .default({ providers: [], plans: [], devices: [] }),
   /** What the lineup holds, for an empty answer. Absent before MODEL-153's coverage. */
   coverage: z
     .object({
@@ -183,6 +207,7 @@ export type VocabFacet = Vocabulary["facets"][number];
 export type VocabBenchmark = Vocabulary["benchmarks"][number];
 export type VocabRefinement = NonNullable<Vocabulary["refinements"]>[number];
 export type Coverage = NonNullable<Vocabulary["coverage"]>;
+export type VocabPlan = Vocabulary["estate"]["plans"][number];
 
 /** Why the vocabulary could not be used. `missing` means no snapshot is published yet. */
 export class VocabularyError extends Error {

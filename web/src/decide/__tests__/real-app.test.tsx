@@ -125,8 +125,54 @@ it("migrates a composer-era permalink navigated to after vocabulary loads", asyn
 });
 
 /** Keep the legacy full fixture consistent with the objective a UI test sends. */
+type FixtureDecision = typeof fixture;
+
+/** What the engine adds when a spec sends an `estate`: the answer over the offerings it holds. */
+type Offered = {
+  offering: { model: string; provider: string | null; region: string | null; tier: string | null };
+  cost_per_task?: number | null;
+};
+
+function withEstateFor<T extends { results: Offered[]; may_qualify: unknown[] }>(
+  decision: T,
+  sent: { estate?: { providers?: string[] } },
+): T {
+  if (!sent.estate) return decision;
+  const providers = sent.estate.providers ?? [];
+  const results = decision.results
+    .filter((result) => result.offering.provider !== null && providers.includes(result.offering.provider))
+    .map((result, index) => ({
+      rank: index + 1,
+      offering: result.offering,
+      estate: {
+        via: { kind: "provider" as const, id: result.offering.provider! },
+        cost_basis: "list_price" as const,
+        marginal_cost_per_task_usd: result.cost_per_task ?? null,
+      },
+      soft_penalty: 0,
+      warnings: [],
+    }));
+  return {
+    ...decision,
+    with_estate: {
+      status: results.length ? "answered" : decision.may_qualify.length ? "partial" : "no_feasible",
+      answer: null,
+      results,
+      may_qualify: results.length ? [] : decision.may_qualify,
+      truncated: { offerings: 0, models: 0 },
+      gap: { same_answer: false, unreachable_models: [], summary: "" },
+      gain: [],
+      warnings: [],
+    },
+  };
+}
+
 function decisionFor(init: RequestInit | undefined, decision = fixture) {
   const sent = JSON.parse(String(init?.body ?? "{}"));
+  return withEstateFor(rankedFor(sent, decision), sent);
+}
+
+function rankedFor(sent: { optimize?: { weights?: Record<string, number> } }, decision: FixtureDecision) {
   const weights = sent.optimize?.weights ?? {};
   const domain = smallVocabulary.domains.find((row) => row.id in weights)?.id;
   if (!domain) return decision;
@@ -207,9 +253,7 @@ it("folds invalid refinement weights into the parent without losing board state"
   expect(requests.some((body) => body.optimize.weights["software_engineering/python"] > 0)).toBe(true);
   expect(requests.some((body) => body.optimize.weights.software_engineering === 0.5 && !("software_engineering/python" in body.optimize.weights))).toBe(true);
   expect(unsupportedRequests).toBe(1);
-  expect(requests.filter((body) => body.where.some((condition: string) =>
-    condition.startsWith("offering.provider in"),
-  ))).toEqual([expect.objectContaining({
+  expect(requests.filter((body) => "estate" in body)).toEqual([expect.objectContaining({
     optimize: { weights: { software_engineering: 0.5 } },
   })]);
   expect(within(python).getByLabelText("Prefer")).toBeChecked();
@@ -473,7 +517,8 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   const answer = screen.getByLabelText("Facet board answer").closest<HTMLElement>(".board-answer")!;
   expect(within(answer).queryByText(/Best overall|Best value|#1 of/)).not.toBeInTheDocument();
   expect(within(answer).getByText("Delta 4.7")).toBeInTheDocument();
-  expect(within(answer).getAllByText("Lab Inc. · via cloud").length).toBeGreaterThan(0);
+  expect(within(answer).getAllByText("Lab Inc.").length).toBeGreaterThan(0);
+  expect(within(answer).getAllByText("cloud · pay per use").length).toBeGreaterThan(0);
   expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
   expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
   expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
@@ -497,7 +542,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   if (!comparison) throw new Error("Why not has no model option");
   fireEvent.change(whyNot, { target: { value: comparison.getAttribute("value") } });
   expect(why).not.toHaveTextContent(/#\d/);
-  const modelNames = within(answer).getAllByRole("listitem").map((item) =>
+  const modelNames = [...answer.querySelectorAll(".board-ranked-answer > ol > li")].map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
   expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
@@ -539,7 +584,7 @@ it("renders the qualifying models from the live empty-board decision alphabetica
     .closest<HTMLElement>(".board-answer")!;
   fireEvent.click(within(answer).getByRole("button", { name: "Show all 22" }));
   const rankedAnswer = answer.querySelector<HTMLElement>(".board-ranked-answer")!;
-  const modelNames = within(rankedAnswer).getAllByRole("listitem").map((item) =>
+  const modelNames = [...rankedAnswer.querySelectorAll(":scope > ol > li")].map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
 
@@ -741,14 +786,14 @@ it("never requests the estate twice for the same settled key", async () => {
   expect(screen.getAllByText(/models qualify · .* may qualify/).length).toBe(2);
   await new Promise((resolve) => setTimeout(resolve, 350));
   const estateRequests = sentSpecs(fetch).filter((body) =>
-    body.where.some((condition: string) => condition.startsWith("offering.provider in")),
+    "estate" in body,
   );
   expect(estateRequests).toHaveLength(1);
   expect(estateRequests[0].explain).toBe("summary");
   expect(estateRequests[0].optimize.weights).toEqual({ "-offering.cost_per_task": 1 });
   await new Promise((resolve) => setTimeout(resolve, 350));
   expect(sentSpecs(fetch).filter((body) =>
-    body.where.some((condition: string) => condition.startsWith("offering.provider in")),
+    "estate" in body,
   )).toHaveLength(1);
 });
 
@@ -777,9 +822,7 @@ it("reissues an estate request aborted by a vocabulary replacement", async () =>
     decide: (init) => {
       const body = JSON.parse(String(init?.body));
       const snapshot = new Headers(init?.headers).get("x-modelspec-snapshot");
-      const isEstate = body.where.some((condition: string) =>
-        condition.startsWith("offering.provider in"),
-      );
+      const isEstate = "estate" in body;
       if (isEstate) {
         estateRequests += 1;
         if (estateRequests === 1)
@@ -830,12 +873,10 @@ it("reissues an estate request aborted by a newer main decision", async () => {
   const fetch = routeFetch({
     decide: (init) => {
       const body = JSON.parse(String(init?.body));
-      const isEstate = body.where.some((condition: string) =>
-        condition.startsWith("offering.provider in"),
-      );
+      const isEstate = "estate" in body;
       if (!isEstate) return json(decisionFor(init));
       estateRequests += 1;
-      if (estateRequests >= 2) return json(zeroQualify);
+      if (estateRequests >= 2) return json(withEstateFor(zeroQualify, body));
       return new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener(
           "abort",
@@ -864,7 +905,7 @@ it("shows a retry when the estate request fails", async () => {
   const fetch = routeFetch({
     decide: (init) => {
       const body = JSON.parse(String(init?.body));
-      return body.where.some((condition: string) => condition.startsWith("offering.provider in"))
+      return "estate" in body
         ? json({ error: { code: "snapshot_unavailable", message: "Try again" } }, 503)
         : json(decisionFor(init));
     },

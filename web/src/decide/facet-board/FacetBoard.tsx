@@ -8,6 +8,8 @@ import {
   sanitizeBoardState, templateToBoard, writeEstate,
 } from "./model";
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
+import { ACCESS_ANSWERS, deviceName, payee, planName } from "./routes";
+import type { AccessAnswer } from "./routes";
 
 const numberText = (value: unknown) => typeof value === "number" ? String(value) : "0";
 
@@ -126,16 +128,41 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
   </div>;
 }
 
-function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary; estate: Estate; onChange: (estate: Estate) => void }) {
-  const update = (next: Estate) => { onChange(next); writeEstate(next); };
-  return <section className="estate-strip" aria-label="My estate"><span className="eyebrow">My estate</span>
-    <div>{estate.providers.map((provider) => <button key={provider} onClick={() => update({ ...estate, providers: estate.providers.filter((item) => item !== provider) })}>{vocabulary.providers[provider] ?? provider} ×</button>)}
-      <label>+ provider <select aria-label="Add provider" value="" onChange={(event) => event.target.value && update({ ...estate, providers: [...new Set([...estate.providers, event.target.value])] })}><option value="">Choose…</option>{Object.entries(vocabulary.providers).filter(([id]) => !estate.providers.includes(id)).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+function AccessQuestion({ access, onAccess }: { access: AccessAnswer; onAccess: (access: AccessAnswer) => void }) {
+  return <section className="access-question" aria-labelledby="access-question-heading">
+    <h2 id="access-question-heading" className="eyebrow">How will you use it?</h2>
+    <div role="radiogroup" aria-labelledby="access-question-heading">
+      {ACCESS_ANSWERS.map((answer) => <label key={answer.id} className={answer.id === access ? "access-on" : ""}>
+        <input type="radio" name="access" value={answer.id} checked={answer.id === access} onChange={() => onAccess(answer.id)} />
+        <span><strong>{answer.label}</strong><small>{answer.hint}</small></span>
+      </label>)}
     </div>
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string> }) {
+function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary; estate: Estate; onChange: (estate: Estate) => void }) {
+  const update = (next: Estate) => { onChange(next); writeEstate(next); };
+  const plans = vocabulary.estate.plans;
+  const planLabel = (id: string) => planName(plans.find((plan) => plan.id === id)?.name ?? id);
+  const providerName = (id: string) => payee(vocabulary.providers[id] ?? id);
+  const chip = (label: string, remove: () => void) =>
+    <button key={label} className="estate-chip" aria-label={`Remove ${label}`} onClick={remove}>{label} <span aria-hidden="true">×</span></button>;
+  const planGroups = [...new Set(plans.filter((plan) => !estate.plans.includes(plan.id)).map((plan) => plan.provider))];
+  const devices = vocabulary.estate.devices.filter((id) => !estate.hardware.includes(id));
+  return <section className="estate-strip" aria-label="What I already have"><span className="eyebrow">What I already have</span>
+    <div>
+      {estate.plans.map((id) => chip(planLabel(id), () => update({ ...estate, plans: estate.plans.filter((item) => item !== id) })))}
+      {estate.providers.map((id) => chip(`${providerName(id)} account`, () => update({ ...estate, providers: estate.providers.filter((item) => item !== id) })))}
+      {estate.hardware.map((id) => chip(deviceName(id), () => update({ ...estate, hardware: estate.hardware.filter((item) => item !== id) })))}
+      {plans.length > 0 && <label>+ plan <select aria-label="Add plan" value="" onChange={(event) => event.target.value && update({ ...estate, plans: [...new Set([...estate.plans, event.target.value])] })}><option value="">Choose…</option>{planGroups.map((provider) => <optgroup key={provider} label={providerName(provider)}>{plans.filter((plan) => plan.provider === provider && !estate.plans.includes(plan.id)).map((plan) => <option key={plan.id} value={plan.id}>{planName(plan.name)}</option>)}</optgroup>)}</select></label>}
+      <label>+ pay-per-use account <select aria-label="Add provider" value="" onChange={(event) => event.target.value && update({ ...estate, providers: [...new Set([...estate.providers, event.target.value])] })}><option value="">Choose…</option>{Object.entries(vocabulary.providers).filter(([id]) => !estate.providers.includes(id)).map(([id, label]) => <option key={id} value={id}>{payee(label)}</option>)}</select></label>
+      {vocabulary.estate.devices.length > 0 && <label>+ device <select aria-label="Add device" value="" onChange={(event) => event.target.value && update({ ...estate, hardware: [...new Set([...estate.hardware, event.target.value])] })}><option value="">Choose…</option>{devices.map((id) => <option key={id} value={id}>{deviceName(id)}</option>)}</select></label>}
+    </div>
+    <small className="estate-privacy">Kept in this link and this browser. Sent with each question, never stored.</small>
+  </section>;
+}
+
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set() }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string> }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -187,6 +214,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
       ? <button key={template.id} onClick={() => applyTemplate(template)}><strong>{template.name}</strong><span>{template.purpose}</span></button>
       : <article className="template-unavailable" key={template.id}><strong>{template.name}</strong><span>{template.unavailable_reason}</span><details><summary>Info</summary><p>{template.purpose}</p><p>{template.unavailable_reason}</p></details></article>)}</div></section> : null}
     {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}
+    {onAccess && <AccessQuestion access={access} onAccess={onAccess} />}
     <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
     <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
     <div className="board-workspace">

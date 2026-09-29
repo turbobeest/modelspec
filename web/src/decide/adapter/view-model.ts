@@ -202,6 +202,7 @@ export function toDecisionSpec(
     unknowns: "default",
     explain,
     limit: 500,
+    ...(spec.access ? { access: spec.access } : {}),
   };
 }
 

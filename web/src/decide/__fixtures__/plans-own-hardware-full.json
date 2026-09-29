@@ -1,0 +1,269 @@
+{
+  "near_misses": [],
+  "top": [
+    {
+      "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "facts": [
+        {
+          "facet": "model.context_window",
+          "value": 50000,
+          "unit": "tokens",
+          "record_id": "acme/tiny#model.context_window",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "facet": "model.weights_openness",
+          "value": "open_weights",
+          "unit": null,
+          "record_id": "acme/tiny#model.weights_openness",
+          "records": [],
+          "formula": null,
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        }
+      ],
+      "contributions": [],
+      "evidence": []
+    }
+  ],
+  "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 60\" role=\"img\" aria-label=\"Objective contributions in original units\"><text x=\"8\" y=\"18\">acme/tiny · model.context_window: 50000 tokens</text><rect x=\"8\" y=\"27\" width=\"300\" height=\"12\" /></svg>",
+  "number_origins": [
+    {
+      "path": "/results/0/model_rank",
+      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
+      "records": [],
+      "sources": [],
+      "source_ids": []
+    },
+    {
+      "path": "/results/0/contributions/0/raw_value",
+      "basis": "snapshot measurement",
+      "records": [
+        "acme/tiny#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    },
+    {
+      "path": "/results/0/contributions/0/value",
+      "basis": "feasible-set min-max normalisation of snapshot measurements",
+      "records": [
+        "acme/tiny#model.context_window"
+      ],
+      "sources": [],
+      "source_ids": [
+        "src-lab-docs"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "src-lab-docs",
+      "url": "https://lab.example.com/docs/models",
+      "title": null,
+      "date": "2026-09-20"
+    }
+  ],
+  "contract_version": "2.6",
+  "decision_id": "dec_64e40d90584e3f91474fa358",
+  "snapshot": "snap_71b689ca16c5a402",
+  "signature_verified": false,
+  "spec_hash": "sha256:986f7265b465c891ad82128fd38c73ec6f9a9e0515145b6c8db0ab1cd007d9b5",
+  "explain": "full",
+  "status": "partial",
+  "answer": {
+    "kind": "separated",
+    "members": [
+      "acme/tiny"
+    ],
+    "leader": "acme/tiny",
+    "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+    "tie_breakers": {
+      "cheapest": null,
+      "open_weights": null,
+      "most_independently_measured": null,
+      "fastest": null
+    },
+    "deterministic_order": [
+      "acme/tiny"
+    ]
+  },
+  "results": [
+    {
+      "rank": 1,
+      "offering": {
+        "model": "acme/tiny",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "model": "acme/tiny",
+      "model_rank": 1,
+      "cost_per_task": null,
+      "harness": null,
+      "effort": null,
+      "evidence": [],
+      "estimates": null,
+      "p_best": null,
+      "top3_stability": null,
+      "soft_penalty": 0.0,
+      "contributions": [
+        {
+          "raw_value": 50000.0,
+          "unit": "tokens",
+          "records": [
+            "acme/tiny#model.context_window"
+          ],
+          "dimension": "model.context_window",
+          "weight": 1.0,
+          "value": 0.0,
+          "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=50000.0 tokens; constant dimensions contribute zero dimensionless",
+          "evidence": [],
+          "formula": null,
+          "preferred_value": null,
+          "preference_status": null
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "by_model": [
+    {
+      "model": "acme/tiny",
+      "status": "ranked",
+      "rank": 1,
+      "cost_per_task": null,
+      "offerings": [
+        {
+          "offering": {
+            "model": "acme/tiny",
+            "provider": null,
+            "region": null,
+            "tier": null
+          },
+          "status": "ranked",
+          "rank": 1,
+          "cost_per_task": null,
+          "unknown": [],
+          "reason": null
+        }
+      ]
+    },
+    {
+      "model": "acme/unfit",
+      "status": "may_qualify",
+      "rank": null,
+      "cost_per_task": null,
+      "offerings": [
+        {
+          "offering": {
+            "model": "acme/unfit",
+            "provider": null,
+            "region": null,
+            "tier": null
+          },
+          "status": "may_qualify",
+          "rank": null,
+          "cost_per_task": null,
+          "unknown": [
+            "model.fits_hardware"
+          ],
+          "reason": null
+        }
+      ]
+    }
+  ],
+  "may_qualify": [
+    {
+      "model": "acme/unfit",
+      "offering": {
+        "model": "acme/unfit",
+        "provider": null,
+        "region": null,
+        "tier": null
+      },
+      "unknown": [
+        "model.fits_hardware"
+      ]
+    }
+  ],
+  "eliminated": {
+    "funnel": [],
+    "models": [],
+    "model_groups": []
+  },
+  "truncated": {
+    "offerings": 0,
+    "models": 0
+  },
+  "constraint_costs": [],
+  "tipping_points": [],
+  "relax": [],
+  "relax_to": [],
+  "warnings": [],
+  "out_of_lineup": 0,
+  "with_estate": {
+    "status": "answered",
+    "answer": {
+      "kind": "separated",
+      "members": [
+        "acme/tiny"
+      ],
+      "leader": "acme/tiny",
+      "basis": "leader-overlap score intervals; capability estimates use 80% intervals",
+      "tie_breakers": {
+        "cheapest": null,
+        "open_weights": null,
+        "most_independently_measured": null,
+        "fastest": null
+      },
+      "deterministic_order": [
+        "acme/tiny"
+      ]
+    },
+    "results": [
+      {
+        "rank": 1,
+        "offering": {
+          "model": "acme/tiny",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "estate": {
+          "via": {
+            "kind": "device",
+            "id": "apple_m3_max"
+          },
+          "cost_basis": "owned_hardware",
+          "marginal_cost_per_task_usd": 0.0
+        },
+        "soft_penalty": 0.0,
+        "warnings": []
+      }
+    ],
+    "may_qualify": [],
+    "truncated": {
+      "offerings": 0,
+      "models": 0
+    },
+    "gap": {
+      "same_answer": false,
+      "unreachable_models": [],
+      "summary": "Unrestricted, the best is acme/tiny. With what you hold it is acme/tiny; no model ranked at or above it is outside your estate, so the answer differs only in cost or how the tie is broken."
+    },
+    "gain": []
+  }
+}
