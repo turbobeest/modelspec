@@ -14,6 +14,12 @@ deployed: the Worker and the live export both report
 > MODEL-186 landing is `/`, and the decision board is `/decide/`. See
 > [`holding-mode.md`](holding-mode.md) for the fail-closed switch and dark tree.
 
+> **2026-09-29: coverage targets (MODEL-215).** What "every model is up to
+> date and covered" means, measured daily:
+> [`../method/coverage-slo.md`](../method/coverage-slo.md). Report:
+> <https://coverage.modelspec-7np.pages.dev/>. A breached target has an open
+> issue labelled `coverage-slo`.
+
 ## Read this first if you are picking the work up
 
 Three draft PRs are open and **all three are finished work waiting on Jamie's
