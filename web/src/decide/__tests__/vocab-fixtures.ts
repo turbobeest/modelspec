@@ -74,6 +74,14 @@ export const sentSpecs = (fetch: ReturnType<typeof routeFetch>) =>
     .filter(([url]) => url === DECIDE_ENDPOINT)
     .map(([, init]) => JSON.parse(String((init as RequestInit).body)));
 
+/**
+ * The board's own decide calls. Next-question probes (explain "none") add one
+ * condition each and start 300 ms after an answer, so on a slow runner they
+ * land among the board's calls; assertions about the board's spec skip them.
+ */
+export const boardSpecs = (fetch: ReturnType<typeof routeFetch>) =>
+  sentSpecs(fetch).filter((body) => body.explain !== "none");
+
 /** Board ranking calls only: a canvas plot request is a full request with no summary twin. */
 export const rankingCalls = (fetch: ReturnType<typeof routeFetch>) => {
   const calls = fetch.mock.calls.filter(([url]) => url === DECIDE_ENDPOINT);

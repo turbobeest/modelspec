@@ -11,6 +11,7 @@ import {
   json,
   realVocabulary,
   routeFetch,
+  boardSpecs,
   sentSpecs,
   rankingCalls,
   rankingSpecs,
@@ -548,7 +549,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
   expect(within(narrowing).getByText("Qualifying models")).toBeInTheDocument();
   expect(within(narrowing).queryByText(/Ranking on/)).not.toBeInTheDocument();
-  expect(sentSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
+  expect(boardSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 
   fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
